@@ -7,5 +7,6 @@ ENV PORT 5000
 
 ADD . /go/src/github.com/ddollar/convox/kernel
 WORKDIR /go/src/github.com/ddollar/convox/kernel
+RUN go get .
 
 CMD ["bin/web"]
