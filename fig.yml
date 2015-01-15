@@ -6,6 +6,23 @@ kernel:
     - AWS_REGION
     - DEVELOPMENT=true
   ports:
-    - 80:5000
+    - 5000:5000
   volumes:
     - kernel:/go/src/github.com/ddollar/convox/kernel
+  links:
+    - registry
+registry:
+  image: convox/registry
+  ports:
+    - 6000:5000
+  links:
+    - redis
+    - s3
+redis:
+  image: convox/redis
+s3:
+  image: convox/s3
+  environment:
+    - AWS_ACCESS=access
+    - AWS_SECRET=secret
+    - AWS_BUCKET=kernel-registry
