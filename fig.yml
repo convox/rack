@@ -10,11 +10,16 @@ kernel:
   volumes:
     - kernel:/go/src/github.com/ddollar/convox/kernel
   links:
+    - builder
     - registry
+builder:
+  build: builder
+  environment:
+    - DEVELOPMENT=true
 registry:
   image: convox/registry
-  ports:
-    - 6000:5000
+  environment:
+    - BOTO_CALLING_FORMAT=boto.s3.connection.OrdinaryCallingFormat
   links:
     - redis
     - s3
@@ -22,7 +27,3 @@ redis:
   image: convox/redis
 s3:
   image: convox/s3
-  environment:
-    - AWS_ACCESS=access
-    - AWS_SECRET=secret
-    - AWS_BUCKET=kernel-registry
