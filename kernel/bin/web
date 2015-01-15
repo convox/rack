@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PORT=${PORT:-3000}
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  gin -b kernel -p $PORT
+else
+  ./kernel
+fi

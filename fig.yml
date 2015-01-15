@@ -1,0 +1,11 @@
+kernel:
+  build: kernel
+  environment:
+    - AWS_ACCESS
+    - AWS_SECRET
+    - AWS_REGION
+    - DEVELOPMENT=true
+  ports:
+    - 80:5000
+  volumes:
+    - kernel:/go/src/github.com/ddollar/convox/kernel

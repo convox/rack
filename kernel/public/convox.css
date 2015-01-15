@@ -1,0 +1,165 @@
+form {
+	margin: 0
+}
+
+.navbar-brand {
+	padding-right: 40px;
+}
+
+.navbar-brand img {
+	float: left;
+	margin-right: 10px;
+	margin-top: -4px;
+	height: 28px;
+	width: 28px;
+}
+
+.panel {
+	margin-bottom: 10px;
+}
+
+.panel-heading {
+	background-color: #bbb !important;
+}
+
+.panel-title {
+	color: #555;
+	font-size: 1.2em;
+	font-weight: bold !important;
+}
+
+.table {
+	border-radius: 4px !important;
+	border-collapse: collapse;
+	margin-bottom: 10px;
+}
+
+.table th, .table td {
+	padding: 7px 12px !important;
+}
+
+.table th {
+	background-color: #ddd;
+	color: #555;
+	font-weight: 0.9em;
+}
+
+.table td .btn {
+	margin-right: 0px;
+}
+
+.table td {
+	white-space: nowrap;
+}
+
+.table th.expand,
+.table td.expand {
+	width: 100%;
+}
+
+.table th .btn {
+	font-weight: normal;
+}
+
+.table tr.title th {
+	background-color: #bbb;
+	font-size: 1.2em;
+	padding-right: 8px !important;
+}
+
+.panel-heading form {
+	float: right;
+	margin-top: -1px;
+	margin-right: -7px;
+}
+
+.table tr.title button,
+.table tr.title a {
+	float: right;
+	margin-top: 1px;
+}
+
+.meter {
+	background-color: #d6d6d6;
+	border: 1px #999 solid;
+	box-shadow: 0px 1px 1px 0px #999 inset;
+	height: 15px;
+	margin-top: 2px;
+	width: 100px;
+}
+
+@media(max-width:480px) {
+	.meter {
+		width: 50px;
+	}
+}
+
+.meter span {
+	display: block;
+	height: 14px;
+}
+
+.meter.cpu span {
+	background-color: #6ebd64;
+	border-top: 1px #7ecd74 solid;
+	border-bottom: 1px #4e9d44 solid;
+	border-right: 1px #4e9d44 solid;
+}
+
+.meter.memory span {
+	background-color: #8cbeed;
+	border-top: 1px #9ccefd solid;
+	border-bottom: 1px #6c9ecd solid;
+	border-right: 1px #6c9ecd solid;
+}
+
+.meter.disk span {
+	background-color: #9954b0;
+	border-top: 1px #a964c0 solid;
+	border-bottom: 1px #793490 solid;
+	border-right: 1px #793490 solid;
+}
+
+.table-title h1 {
+	font-size: 1.2em;
+	font-weight: bold;
+	margin: 0;
+	margin-left: 4px;
+	padding: 0;
+	padding-top: 4px;
+}
+
+.table-title .buttons {
+	float: right;
+	margin-bottom: 8px;
+}
+
+.breadcrumb {
+	border: 1px #ddd solid;
+	margin-top: 4px;
+	margin-bottom: 10px;
+}
+
+.breadcrumb li {
+	font-weight: bold;
+}
+
+.breadcrumb li.active {
+	color: #666;
+}
+
+.command-line {
+	font-family: monospace;
+	font-size: 0.9em;
+	text-overflow: ellipsis;
+	margin-top: 2px;
+}
+
+.modal-header {
+	background-color: #ccc;
+	border-radius: 6px 6px 0px 0px;
+}
+
+.modal-header h4 {
+	font-weight: bold;
+}
