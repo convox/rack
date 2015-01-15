@@ -1,4 +1,4 @@
-FROM golang:1.3
+FROM golang:1.4
 
 RUN go get github.com/codegangsta/gin
 
