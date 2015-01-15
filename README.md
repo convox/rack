@@ -17,10 +17,8 @@ TBD
 $ fig up
 ```
 
-## Copyright
-
-Copyright &copy;2015 Convox, LLC
-
 ## License
 
 TBD
+
+&copy; 2015 David Dollar
