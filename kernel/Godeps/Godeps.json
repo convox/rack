@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/ddollar/convox/kernel",
 	"GoVersion": "go1.4",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/bitly/go-simplejson",
