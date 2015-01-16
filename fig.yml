@@ -16,14 +16,22 @@ builder:
   build: builder
   environment:
     - DEVELOPMENT=true
+  ports:
+    - 5100:5000
 registry:
   image: convox/registry
   environment:
     - BOTO_CALLING_FORMAT=boto.s3.connection.OrdinaryCallingFormat
+  ports:
+    - 5200:5000
   links:
     - redis
     - s3
 redis:
   image: convox/redis
+  ports:
+    - 5300:6379
 s3:
   image: convox/s3
+  ports:
+    - 5400:80
