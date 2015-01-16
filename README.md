@@ -14,7 +14,7 @@ TBD
 #### Running
 
 ```
-$ fig up
+$ make dev
 ```
 
 ## License

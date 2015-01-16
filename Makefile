@@ -1,4 +1,4 @@
 all: dev
 
 dev:
-	@fig up
+	@forego run fig up
