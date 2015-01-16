@@ -21,12 +21,17 @@ builder:
 registry:
   image: convox/registry
   environment:
-    - BOTO_CALLING_FORMAT=boto.s3.connection.OrdinaryCallingFormat
+    - REGISTRY_CERT_PUBLIC
+    - REGISTRY_CERT_PRIVATE
+    - S3_ENV_AWS_ACCESS
+    - S3_ENV_AWS_SECRET
+    - S3_ENV_AWS_BUCKET
+    - S3_ENV_PORT_80_TCP_ADDR
+    - S3_ENV_PORT_80_TCP_PORT
   ports:
-    - 5200:5000
+    - 5200:443
   links:
     - redis
-    - s3
 redis:
   image: convox/redis
   ports:
