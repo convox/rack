@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/ddollar/convox/kernel/models"
-	"github.com/ddollar/convox/kernel/provider"
+	"github.com/convox/convox/kernel/models"
+	"github.com/convox/convox/kernel/provider"
 )
 
 func List() (models.Clusters, error) {

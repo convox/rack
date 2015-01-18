@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ddollar/convox/kernel/controllers"
-	"github.com/ddollar/convox/kernel/helpers"
-	"github.com/ddollar/convox/kernel/models"
-	"github.com/ddollar/convox/kernel/models/app"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/kernel/controllers"
+	"github.com/convox/convox/kernel/helpers"
+	"github.com/convox/convox/kernel/models"
+	"github.com/convox/convox/kernel/models/app"
 )
 
 func init() {

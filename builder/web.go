@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ddollar/convox/builder/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"github.com/ddollar/convox/builder/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 var port string = "3000"

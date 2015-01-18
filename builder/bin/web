@@ -1,9 +1,0 @@
-#!/bin/bash
-
-PORT=${PORT:-3000}
-
-if [ "$DEVELOPMENT" == "true" ]; then
-  gin -b builder -p $PORT
-else
-  builder
-fi

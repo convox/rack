@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ddollar/convox/kernel/controllers"
-	"github.com/ddollar/convox/kernel/controllers/apps"
-	"github.com/ddollar/convox/kernel/controllers/clusters"
+	"github.com/convox/convox/kernel/controllers"
+	"github.com/convox/convox/kernel/controllers/apps"
+	"github.com/convox/convox/kernel/controllers/clusters"
 
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 var port string = "3000"

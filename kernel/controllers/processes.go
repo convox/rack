@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/ddollar/convox/kernel/models"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/kernel/models"
 )
 
 func init() {

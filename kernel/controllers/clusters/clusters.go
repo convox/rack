@@ -3,11 +3,11 @@ package clusters
 import (
 	"net/http"
 
-	"github.com/ddollar/convox/kernel/controllers"
-	"github.com/ddollar/convox/kernel/helpers"
-	"github.com/ddollar/convox/kernel/models/cluster"
+	"github.com/convox/convox/kernel/controllers"
+	"github.com/convox/convox/kernel/helpers"
+	"github.com/convox/convox/kernel/models/cluster"
 
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/convox/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 func init() {
