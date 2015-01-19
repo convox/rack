@@ -1,21 +1,17 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 var template = `{
   "description": "Convox App",
   "variables": {
-    "CLUSTER": null,
-    "APP": null,
-    "REPO": null,
+    "NAME": null,
+    "SOURCE": null,
     "APPCONF": null,
     "BASE_AMI": "ami-447b042c",
     "AWS_REGION": "us-east-1",
@@ -31,12 +27,7 @@ var template = `{
       "source_ami": "{{user \"BASE_AMI\"}}",
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
-      "ami_name": "{{user \"CLUSTER\"}}-{{user \"APP\"}}-{{timestamp}}",
-      "tags": {
-        "type": "app",
-        "cluster": "{{user \"CLUSTER\"}}",
-        "app": "{{user \"APP\"}}"
-      }
+      "ami_name": "{{user \"NAME\"}}-{{timestamp}}"
     }
   ],
   "provisioners": [
@@ -51,7 +42,7 @@ var template = `{
     },
     {
       "type": "file",
-      "source": "{{user \"REPO\"}}/",
+      "source": "{{user \"SOURCE\"}}/",
       "destination": "/build"
     },
     {
@@ -104,7 +95,7 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, cluster, app string) error {
+func (b *Builder) Build(repo, name string) error {
 	dir, err := ioutil.TempDir("", "repo")
 
 	if err != nil {
@@ -115,8 +106,6 @@ func (b *Builder) Build(repo, cluster, app string) error {
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Run()
 
 	tf := filepath.Join(dir, "packer.json")
@@ -125,29 +114,22 @@ func (b *Builder) Build(repo, cluster, app string) error {
 	ac := filepath.Join(dir, "app.conf")
 	ioutil.WriteFile(ac, []byte(appconf), 0644)
 
-	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "CLUSTER="+cluster, "-var", "APP="+app, "-var", "REPO="+clone, "-var", "APPCONF="+ac, tf)
-	cmd.Stderr = os.Stderr
-	stdout, err := cmd.StdoutPipe()
-	cmd.Start()
+	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "-var", "APPCONF="+ac, tf)
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), ",", 5)
+	// scanner := bufio.NewScanner(stdout)
+	// for scanner.Scan() {
+	//   parts := strings.SplitN(scanner.Text(), ",", 5)
 
-		if parts[2] == "ui" && parts[3] == "say" {
-			fmt.Println(parts[4])
-		}
+	//   if parts[2] == "ui" && parts[3] == "say" {
+	//     fmt.Println(parts[4])
+	//   }
 
-		if parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id" {
-			createRelease(cluster, app, parts[4])
-		}
-	}
-
-	cmd.Wait()
+	//   if parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id" {
+	//     createRelease(cluster, app, parts[4])
+	//   }
+	// }
 
 	return nil
-}
-
-func createRelease(cluster, app, ami string) {
-	fmt.Printf("creating release cluster=%s app=%s ami=%s\n", cluster, app, ami)
 }

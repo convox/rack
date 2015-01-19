@@ -29,7 +29,10 @@ func main() {
 	builder.AwsRegion = *region
 	builder.AwsAccess = *access
 	builder.AwsSecret = *secret
-	builder.Build(args[0], args[1], args[2])
+
+	repo := args[0]
+	name := fmt.Sprintf("%s-%s", args[1], args[2])
+	builder.Build(repo, name)
 
 	fmt.Printf("builder %+v\n", builder)
 }
