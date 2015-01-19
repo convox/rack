@@ -1,5 +1,5 @@
-kernel:
-  build: kernel
+web:
+  build: web
   environment:
     - AWS_ACCESS
     - AWS_SECRET
@@ -8,10 +8,7 @@ kernel:
   ports:
     - 5000:5000
   volumes:
-    - kernel:/go/src/github.com/ddollar/convox/kernel
-  links:
-    - builder
-    - registry
+    - web:/go/src/github.com/ddollar/convox/web
 builder:
   build: builder
   environment:

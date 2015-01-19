@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	simplejson "github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/bitly/go-simplejson"
+	simplejson "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/bitly/go-simplejson"
 )
 
 func (t *Table) FetchPartialResults(query *Query) ([]map[string]*Attribute, *Key, error) {

@@ -1,9 +1,9 @@
 package dynamodb
 
-import simplejson "github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/bitly/go-simplejson"
+import simplejson "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/bitly/go-simplejson"
 import (
 	"errors"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"io/ioutil"
 	"log"
 	"net/http"

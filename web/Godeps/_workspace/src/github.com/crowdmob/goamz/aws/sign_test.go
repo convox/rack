@@ -2,7 +2,7 @@ package aws_test
 
 import (
 	"fmt"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"gopkg.in/check.v1"
 	"net/http"
 	"strings"

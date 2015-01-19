@@ -3,8 +3,8 @@ package ec2_test
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
 	"github.com/crowdmob/goamz/testutil"
 	"gopkg.in/check.v1"
 )

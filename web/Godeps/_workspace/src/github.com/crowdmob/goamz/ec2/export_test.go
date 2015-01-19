@@ -1,7 +1,7 @@
 package ec2
 
 import (
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"time"
 )
 

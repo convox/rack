@@ -9,8 +9,8 @@ import (
 	"github.com/convox/kernel/web/controllers/apps"
 	"github.com/convox/kernel/web/controllers/clusters"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 var port string = "3000"

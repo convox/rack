@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	simplejson "github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/bitly/go-simplejson"
+	simplejson "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/bitly/go-simplejson"
 )
 
 type Table struct {

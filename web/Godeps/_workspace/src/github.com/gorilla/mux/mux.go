@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/gorilla/context"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/context"
 )
 
 // NewRouter returns a new router instance.

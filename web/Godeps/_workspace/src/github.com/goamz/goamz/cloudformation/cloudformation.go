@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/goamz/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/aws"
 )
 
 // The CloudFormation type encapsulates operations within a specific EC2 region.

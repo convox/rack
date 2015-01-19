@@ -1,8 +1,8 @@
 package dynamodb
 
 import (
-	simplejson "github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/bitly/go-simplejson"
-	"github.com/ddollar/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	simplejson "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/bitly/go-simplejson"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"gopkg.in/check.v1"
 )
 
