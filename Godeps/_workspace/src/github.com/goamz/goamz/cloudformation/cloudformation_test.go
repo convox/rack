@@ -6,8 +6,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/convox/convox/Godeps/_workspace/src/github.com/goamz/goamz/aws"
-	cf "github.com/convox/convox/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/goamz/goamz/aws"
+	cf "github.com/convox/kernel/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 	"github.com/goamz/goamz/testutil"
 )
 

@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
-	"github.com/convox/convox/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
 	"io"
 	"net"
 	"net/http"

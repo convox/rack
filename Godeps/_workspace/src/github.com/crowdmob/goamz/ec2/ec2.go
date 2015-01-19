@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/convox/convox/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 )
 
 const debug = false

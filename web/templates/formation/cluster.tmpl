@@ -1,0 +1,101 @@
+{{ define "cluster" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Resources": {
+      "Cluster": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": "10.0.0.0/16",
+          "InstanceTenancy": "default",
+          "Tags": [
+            { "Key": "Name", "Value": "{{.Name}}" }
+          ]
+        }
+      },
+      "Gateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+        }
+      },
+      "GatewayAttachment": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "InternetGatewayId": { "Ref": "Gateway" },
+          "VpcId": { "Ref": "Cluster" }
+        }
+      },
+      {{ range $index, $subnet := .Subnets }}
+        "Subnet{{$index}}": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "AvailabilityZone": "{{$subnet.AvailabilityZone}}",
+            "CidrBlock": "{{$subnet.Cidr}}",
+            "VpcId": { "Ref": "Cluster" }
+          }
+        },
+      {{ end }}
+      "TableApps": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{.Name}}-apps",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "TableProcesses": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{.Name}}-processes",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" },
+            { "AttributeName": "app", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "TableReleases": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{.Name}}-releases",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" },
+            { "AttributeName": "process", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" },
+            { "AttributeName": "process", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      }
+    },
+    "Outputs": {
+      {{ range $index, $subnet := .Subnets }}
+        "Subnet{{$index}}": {
+          "Value": { "Ref": "Subnet{{$index}}" }
+        },
+      {{ end }}
+      "Vpc": {
+        "Value": { "Ref": "Cluster" }
+      }
+    }
+  }
+{{ end }}

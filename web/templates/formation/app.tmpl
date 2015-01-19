@@ -1,0 +1,88 @@
+{{ define "app" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Resources": {
+      {{ $app := . }}
+      {{ range $ps := .Processes }}
+        "{{$ps.UpperName}}Balancer": {
+          "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+          "Properties": {
+            "Subnets": [ {{ subnetList $app.Cluster.Subnets }} ],
+            "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+            "ConnectionSettings": { "IdleTimeout": 60 },
+            "CrossZone": true,
+            "HealthCheck": {
+              "HealthyThreshold": "10",
+              "Interval": 5,
+              "Target": "HTTP:5000/ping",
+              "Timeout": 3,
+              "UnhealthyThreshold": "2"
+            },
+            "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+            "LoadBalancerName": "{{$app.Cluster.UpperName}}{{$app.UpperName}}{{$ps.UpperName}}",
+            "Listeners": [
+              { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "5000" }
+            ],
+            "SecurityGroups": [ { "Ref": "Security" } ]
+          }
+        },
+        "{{$ps.UpperName}}Launch": {
+          "Type": "AWS::AutoScaling::LaunchConfiguration",
+          "Properties": {
+            "AssociatePublicIpAddress": false,
+            "BlockDeviceMappings": [ 
+              { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
+            ],
+            "EbsOptimized": false,
+            "ImageId": "ami-9eaa1cf6",
+            "InstanceMonitoring": true,
+            "InstanceType": "t2.micro",
+            "KeyName": "production",
+            "SecurityGroups": [ { "Ref": "Security" } ],
+            "UserData": ""
+          }
+        },
+        "{{$ps.UpperName}}Instances" : {
+          "Type": "AWS::AutoScaling::AutoScalingGroup",
+          "Properties" : {
+            "LaunchConfigurationName" : { "Ref": "{{$ps.UpperName}}Launch" },
+            "AvailabilityZones": [ {{ azList $app.Cluster.AvailabilityZones }} ],
+            "VPCZoneIdentifier": [ {{ subnetList $app.Cluster.Subnets }} ],
+            "Cooldown": 5,
+            "DesiredCapacity": 2,
+            "MinSize" : "2",
+            "MaxSize" : "2",
+            "LoadBalancerNames": [ { "Ref": "{{$ps.UpperName}}Balancer" } ],
+            "HealthCheckType": "EC2",
+            "HealthCheckGracePeriod": 30,
+            "MetricsCollection": [ { "Granularity": "1Minute" } ]
+          },
+          "UpdatePolicy": {
+            "AutoScalingRollingUpdate": {
+              "MaxBatchSize": 1,
+              "MinInstancesInService": 1
+            }
+          }
+        },
+      {{ end }}
+      "Security": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "production-myapp",
+          "SecurityGroupIngress": [],
+          "VpcId": "{{.Cluster.Id}}"
+        }
+      }
+    },
+    "Outputs": {
+      {{ range $ps := .Processes }}
+        "{{$ps.UpperName}}BalancerId": {
+          "Value": { "Ref": "{{$ps.UpperName}}Balancer" }
+        },
+        "{{$ps.UpperName}}BalancerHost": {
+          "Value": { "Fn::GetAtt": [ "{{$ps.UpperName}}Balancer", "DNSName" ] }
+        }
+      {{ end }}
+    }
+  }
+{{ end }}
