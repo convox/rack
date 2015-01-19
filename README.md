@@ -1,6 +1,6 @@
 # Convox Builder
 
-Builds Convox releases.
+Turn git repos into AMIs.
 
 ## Building
 
