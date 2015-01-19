@@ -7,7 +7,7 @@ import (
 	"github.com/convox/kernel/web/helpers"
 	"github.com/convox/kernel/web/models/cluster"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 func init() {

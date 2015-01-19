@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	caws "github.com/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
+	caws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
 
-	gaws "github.com/convox/kernel/Godeps/_workspace/src/github.com/goamz/goamz/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
+	gaws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
 
 var (

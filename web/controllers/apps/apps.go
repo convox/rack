@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/web/controllers"
 	"github.com/convox/kernel/web/helpers"
 	"github.com/convox/kernel/web/models"
