@@ -125,8 +125,6 @@ func (b *Builder) Build(repo, name string) error {
 		fmt.Printf(",,manifest,,%s\n", scanner.Text())
 	}
 
-	return nil
-
 	tf := filepath.Join(dir, "packer.json")
 	ioutil.WriteFile(tf, []byte(template), 0644)
 
