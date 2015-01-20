@@ -79,10 +79,11 @@ pre-start script
   curl http://169.254.169.254/latest/user-data | jq -r ".start" > /var/app/start
   curl http://169.254.169.254/latest/user-data | jq -r ".env[]" > /var/app/env
   curl http://169.254.169.254/latest/user-data | jq -r '.ports | map("-p \(.):\(.)")[]' | tr '\n' ' ' > /var/app/ports
+  curl http://169.254.169.254/latest/user-data | jq -r '.volumes | map("-v \(.)")[]' | tr '\n' ' ' > /var/app/volumes
 end script
 
 script
-  docker run -a STDOUT -a STDERR --sig-proxy $(cat /var/app/ports) --env-file /var/app/env app_$(cat /var/app/start)
+  docker run -a STDOUT -a STDERR --sig-proxy $(cat /var/app/ports) $(cat /var/app/volumes) --env-file /var/app/env app_$(cat /var/app/start)
 end script
 `
 

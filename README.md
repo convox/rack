@@ -20,7 +20,11 @@ The AMIs produced by this tool will need userdata like the following to boot:
         "FOO=bar",
         "BAZ=qux"
       ],
-      "ports": [ 5000 ]
+      "ports": [ 5000 ],
+      "volumes": [
+        "/ebs/data:/data",
+        "/var/run/docker.dock"
+      ]
     }
 
 ## License
