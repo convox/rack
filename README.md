@@ -1,15 +1,10 @@
 # Convox Builder
 
-Turn git repos into AMIs.
+Turn a git repository with a fig.yml into an AMI.
 
 ## Usage
 
-    $ cat .env
-    AWS_REGION=us-east-1
-    AWS_ACCESS=foo
-    AWS_SECRET=bar
-
-    $ docker run --env-file .env \
+    $ docker run -e AWS_REGION=us-east-1 -e AWS_ACCESS=foo -e AWS_SECRET=bar \
       convox/builder sinatra-example https://github.com/convox-examples/sinatra
 
 ## License
