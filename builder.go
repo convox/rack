@@ -75,13 +75,13 @@ stop on runlevel [!2345]
 respawn
 
 pre-start script
+  curl http://169.254.169.254/latest/user-data | jq -r ".start" > /var/app/start
   curl http://169.254.169.254/latest/user-data | jq -r ".env[]" > /var/app/env
-  curl http://169.254.169.254/latest/user-data | jq -r ".process" > /var/app/process
   curl http://169.254.169.254/latest/user-data | jq -r '.ports | map("-p \(.):\(.)")[]' | tr '\n' ' ' > /var/app/ports
 end script
 
 script
-  docker run -a STDOUT -a STDERR --sig-proxy $(cat /var/app/ports) --env-file /var/app/env app_$(cat /var/app/process)
+  docker run -a STDOUT -a STDERR --sig-proxy $(cat /var/app/ports) --env-file /var/app/env app_$(cat /var/app/start)
 end script
 `
 
