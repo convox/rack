@@ -1,0 +1,95 @@
+{{ define "cluster" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Resources": {
+      "Vpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": "10.0.0.0/16",
+          "InstanceTenancy": "default",
+          "Tags": [
+            { "Key": "Name", "Value": "{{.Name}}" }
+          ]
+        }
+      },
+      "Gateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+        }
+      },
+      "GatewayAttachment": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "InternetGatewayId": { "Ref": "Gateway" },
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "RouteTable": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "DynamoApps": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{.Name}}-apps",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoProcesses": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{.Name}}-processes",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" },
+            { "AttributeName": "app", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoReleases": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{.Name}}-releases",
+          "AttributeDefinitions": [
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "id", "KeyType": "HASH" },
+            { "AttributeName": "app", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      }
+    },
+    "Outputs": {
+      "RouteTable": {
+        "Value": { "Ref": "RouteTable" }
+      },
+      "Vpc": {
+        "Value": { "Ref": "Vpc" }
+      }
+    }
+  }
+{{ end }}

@@ -1,0 +1,25 @@
+{{ define "userdata" }}
+  {
+    "Fn::Base64": {
+      "Fn::Join": [ "\n", [
+        "{",
+        "  \"process\": \"{{ .Process }}\",",
+        "  \"env\": [",
+        { "Fn::Join": [ "\n", [
+          {{ range $name, $value := .Env }}
+            "\"{{ $name }}={{ $value }}\",",
+          {{ end }}
+          "\"CONVOX=true\""
+        ] ] },
+        {{ range .Resources }}
+          {{ range .Env }}
+            { "Fn::Join": [ "=", [ "WEB_BALANCER", { "Ref": "WebBalancer" } ] ] },
+          {{ end }}
+        {{ end }}
+        "  ],",
+        "  \"ports\": [ {{ ports .Ports }} ]",
+        "}"
+      ] ]
+    }
+  }
+{{ end }}

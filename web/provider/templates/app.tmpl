@@ -1,0 +1,143 @@
+{{ define "app" }}
+  {{ $app := . }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Resources": {
+      {{ range .Subnets }}
+        {{ template "subnet" . }}
+      {{ end }}
+      {{ range .Processes }}
+        {{ template "process" . }}
+      {{ end }}
+      "Security": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "production-myapp",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "5000", "ToPort": "5000", "CidrIp": "0.0.0.0/0" }
+          ],
+          "VpcId": "{{ .Vpc }}"
+        }
+      }
+    },
+    "Outputs": {
+      {{ range .Subnets }}
+        "{{ .Name }}": {
+          "Value": { "Ref": "{{ .Name }}" }
+        },
+      {{ end }}
+      {{ range .Processes }}
+        "{{ .Name }}BalancerId": {
+          "Value": { "Ref": "{{ .Name }}Balancer" }
+        },
+        "{{ .Name }}BalancerHost": {
+          "Value": { "Fn::GetAtt": [ "{{ .Name }}Balancer", "DNSName" ] }
+        },
+      {{ end }}
+      "Security": {
+        "Value": { "Ref": "Security" }
+      }
+    }
+  }
+{{ end }}
+
+{{ define "process" }}
+  "{{ .Name }}BalancerSecurity": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+      "GroupDescription": "{{ .Cluster }}-{{ .App }}-{{ .Process }}",
+      "SecurityGroupIngress": [
+        { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
+      ],
+      "VpcId": "{{ .Vpc }}"
+    }
+  },
+  "{{ .Name }}Balancer": {
+    "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+    "Properties": {
+      "Subnets": [
+        { "Ref": "Subnet0" },
+        { "Ref": "Subnet1" },
+        { "Ref": "Subnet2" },
+        { "Ref": "Subnet3" }
+      ],
+      "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+      "ConnectionSettings": { "IdleTimeout": 60 },
+      "CrossZone": true,
+      "HealthCheck": {
+        "HealthyThreshold": "10",
+        "Interval": 5,
+        "Target": "HTTP:5000/ping",
+        "Timeout": 3,
+        "UnhealthyThreshold": "2"
+      },
+      "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+      "LoadBalancerName": "{{ .Cluster }}{{ .App }}{{ .Name }}",
+      "Listeners": [
+        { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "5000" }
+      ],
+      "SecurityGroups": [ { "Ref": "{{ .Name }}BalancerSecurity" } ]
+    }
+  },
+  "{{ .Name }}Launch": {
+    "Type": "AWS::AutoScaling::LaunchConfiguration",
+    "Properties": {
+      "AssociatePublicIpAddress": false,
+      "BlockDeviceMappings": [ 
+        { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
+      ],
+      "EbsOptimized": false,
+      "ImageId": "{{ .Ami }}",
+      "InstanceMonitoring": true,
+      "InstanceType": "t2.micro",
+      "KeyName": "production",
+      "SecurityGroups": [ { "Ref": "Security" } ],
+      "UserData": {{ .UserData }}
+    }
+  },
+  "{{ .Name }}Instances" : {
+    "Type": "AWS::AutoScaling::AutoScalingGroup",
+    "Properties" : {
+      "LaunchConfigurationName" : { "Ref": "{{ .Name }}Launch" },
+      "AvailabilityZones": [ {{ array .AvailabilityZones }} ],
+      "VPCZoneIdentifier": [ 
+        { "Ref": "Subnet0" },
+        { "Ref": "Subnet1" },
+        { "Ref": "Subnet2" },
+        { "Ref": "Subnet3" }
+      ],
+      "Cooldown": 5,
+      "DesiredCapacity": "{{ .Count }}",
+      "MinSize" : "{{ .Count }}",
+      "MaxSize" : "{{ .Count }}",
+      "LoadBalancerNames": [ { "Ref": "{{ .Name }}Balancer" } ],
+      "HealthCheckType": "EC2",
+      "HealthCheckGracePeriod": 30,
+      "MetricsCollection": [ { "Granularity": "1Minute" } ]
+    },
+    "UpdatePolicy": {
+      "AutoScalingRollingUpdate": {
+        "MaxBatchSize": 1,
+        "MinInstancesInService": 1
+      }
+    }
+  },
+{{ end }}
+
+{{ define "subnet" }}
+  "{{ .Name }}": {
+    "Type": "AWS::EC2::Subnet",
+    "Properties": {
+      "AvailabilityZone": "{{ .AvailabilityZone }}",
+      "CidrBlock": "{{ .Cidr }}",
+      "VpcId": "{{ .Vpc }}"
+    }
+  },
+  "{{ .Name }}Routes": {
+    "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    "Properties": {
+      "SubnetId": { "Ref": "{{ .Name }}" },
+      "RouteTableId": "{{ .RouteTable }}"
+    }
+  },
+{{ end }}

@@ -8,7 +8,7 @@ web:
   ports:
     - 5000:5000
   volumes:
-    - web:/go/src/github.com/ddollar/convox/web
+    - web:/go/src/github.com/convox/kernel/web
 builder:
   build: builder
   environment:
@@ -16,3 +16,5 @@ builder:
     - AWS_SECRET
     - AWS_REGION
     - DEVELOPMENT=true
+  volumes:
+    - builder:/go/src/github.com/convox/kernel/builder

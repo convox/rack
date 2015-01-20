@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  builder
+else
+  builder
+fi
