@@ -114,8 +114,10 @@ func (b *Builder) Build(repo, name string) error {
 	cmd.Run()
 
 	data, err := ioutil.ReadFile(filepath.Join(clone, "fig.yml"))
-	fmt.Printf("data %+v\n", data)
-	fmt.Printf("err %+v\n", err)
+
+	if err != nil {
+		return err
+	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 
