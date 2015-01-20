@@ -2,18 +2,15 @@
 
 Turn git repos into AMIs.
 
-## Building
-
-    $ make
-
-## Testing
+## Usage
 
     $ cat .env
     AWS_REGION=us-east-1
     AWS_ACCESS=foo
     AWS_SECRET=bar
 
-    $ make test
+    $ docker run --env-file .env \
+      convox/builder sinatra-example https://github.com/convox-examples/sinatra
 
 ## License
 

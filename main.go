@@ -8,7 +8,7 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s <url> <cluster> <app>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <name> <url>\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -18,7 +18,7 @@ func main() {
 
 	flag.Parse()
 
-	if len(flag.Args()) != 3 {
+	if len(flag.Args()) != 2 {
 		flag.Usage()
 		os.Exit(0)
 	}
@@ -30,9 +30,7 @@ func main() {
 	builder.AwsAccess = *access
 	builder.AwsSecret = *secret
 
-	repo := args[0]
-	name := fmt.Sprintf("%s-%s", args[1], args[2])
+	name := args[0]
+	repo := args[1]
 	builder.Build(repo, name)
-
-	fmt.Printf("builder %+v\n", builder)
 }
