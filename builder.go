@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -110,6 +113,18 @@ func (b *Builder) Build(repo, name string) error {
 	cmd.Dir = dir
 	cmd.Run()
 
+	data, err := ioutil.ReadFile(filepath.Join(clone, "fig.yml"))
+	fmt.Printf("data %+v\n", data)
+	fmt.Printf("err %+v\n", err)
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+
+	for scanner.Scan() {
+		fmt.Printf(",,manifest,,%s\n", scanner.Text())
+	}
+
+	return nil
+
 	tf := filepath.Join(dir, "packer.json")
 	ioutil.WriteFile(tf, []byte(template), 0644)
 
@@ -119,19 +134,6 @@ func (b *Builder) Build(repo, name string) error {
 	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "-var", "APPCONF="+ac, tf)
 	cmd.Stdout = os.Stdout
 	cmd.Run()
-
-	// scanner := bufio.NewScanner(stdout)
-	// for scanner.Scan() {
-	//   parts := strings.SplitN(scanner.Text(), ",", 5)
-
-	//   if parts[2] == "ui" && parts[3] == "say" {
-	//     fmt.Println(parts[4])
-	//   }
-
-	//   if parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id" {
-	//     createRelease(cluster, app, parts[4])
-	//   }
-	// }
 
 	return nil
 }
