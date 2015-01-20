@@ -49,7 +49,8 @@ var template = `{
       "type": "shell",
       "inline": [
         "cd /build",
-        "/usr/local/bin/fig -p app build"
+        "/usr/local/bin/fig -p app build",
+        "/usr/local/bin/fig -p app pull"
       ]
     },
     {
