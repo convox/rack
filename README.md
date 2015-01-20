@@ -10,6 +10,19 @@ Turn a git repository with a fig.yml into an AMI.
       -e AWS_SECRET=bar \
       convox/builder https://github.com/convox-examples/sinatra sinatra-example
 
+## Userdata
+
+The AMIs produced by this tool will userdata like the following to boot:
+
+    {
+      "process": "name-of-fig-process",
+      "env": [
+        "FOO=bar",
+        "BAZ=qux"
+      ],
+      "ports": [ 5000 ]
+    }
+
 ## License
 
 Apache 2.0 &copy; 2015 David Dollar
