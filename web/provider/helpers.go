@@ -57,6 +57,8 @@ func flattenTags(tags []cloudformation.Tag) map[string]string {
 
 func humanStatus(original string) string {
 	switch original {
+	case "":
+		return "new"
 	case "CREATE_IN_PROGRESS":
 		return "creating"
 	case "CREATE_COMPLETE":

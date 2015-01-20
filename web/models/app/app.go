@@ -42,8 +42,8 @@ func Show(cluster, name string) (*models.App, error) {
 	return app, nil
 }
 
-func Create(cluster, name string) error {
-	err := provider.AppCreate(cluster, name)
+func Create(cluster, name string, options map[string]string) error {
+	err := provider.AppCreate(cluster, name, options)
 
 	if err != nil {
 		return err

@@ -26,7 +26,10 @@ func Show(rw http.ResponseWriter, r *http.Request) {
 func Create(rw http.ResponseWriter, r *http.Request) {
 	form := helpers.ParseForm(r)
 	cluster := form["cluster"]
-	err := app.Create(cluster, form["name"])
+	options := map[string]string{
+		"repo": form["repo"],
+	}
+	err := app.Create(cluster, form["name"], options)
 	if err != nil {
 		controllers.RenderError(rw, err)
 		return
