@@ -8,7 +8,7 @@ Turn a git repository with a fig.yml into an AMI.
       -e AWS_REGION=us-east-1 \
       -e AWS_ACCESS=foo \
       -e AWS_SECRET=bar \
-      convox/builder sinatra-example https://github.com/convox-examples/sinatra
+      convox/builder https://github.com/convox-examples/sinatra sinatra-example
 
 ## License
 

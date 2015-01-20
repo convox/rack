@@ -8,7 +8,7 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s <name> <url>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <repo-url> <ami-name>\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -30,7 +30,7 @@ func main() {
 	builder.AwsAccess = *access
 	builder.AwsSecret = *secret
 
-	name := args[0]
-	repo := args[1]
+	repo := args[0]
+	name := args[1]
 	builder.Build(repo, name)
 }
