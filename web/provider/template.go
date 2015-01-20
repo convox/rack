@@ -49,7 +49,41 @@ type UserdataParamsResource struct {
 }
 
 func parseTemplate(name string, object interface{}) (string, error) {
-	funcs := template.FuncMap{
+	tmpl, err := template.New(name).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("provider/templates/%s.tmpl", name))
+
+	if err != nil {
+		return "", err
+	}
+
+	var formation bytes.Buffer
+
+	err = tmpl.Execute(&formation, object)
+
+	if err != nil {
+		return "", err
+	}
+
+	return prettyJson(formation.String())
+}
+
+func prettyJson(raw string) (string, error) {
+	var parsed map[string]interface{}
+
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		return "", err
+	}
+
+	bp, err := json.MarshalIndent(parsed, "", "  ")
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(bp), nil
+}
+
+func templateHelpers() template.FuncMap {
+	return template.FuncMap{
 		"array": func(ss []string) template.HTML {
 			as := make([]string, len(ss))
 			for i, s := range ss {
@@ -64,35 +98,8 @@ func parseTemplate(name string, object interface{}) (string, error) {
 			}
 			return template.HTML(strings.Join(as, ","))
 		},
+		"safe": func(s string) template.HTML {
+			return template.HTML(s)
+		},
 	}
-
-	tmpl, err := template.New(name).Funcs(funcs).ParseFiles(fmt.Sprintf("provider/templates/%s.tmpl", name))
-
-	if err != nil {
-		return "", err
-	}
-
-	var formation bytes.Buffer
-
-	err = tmpl.Execute(&formation, object)
-
-	if err != nil {
-		return "", err
-	}
-
-	raw := formation.String()
-
-	var parsed map[string]interface{}
-
-	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-		return "", err
-	}
-
-	bp, err := json.MarshalIndent(parsed, "", "  ")
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(bp), nil
 }

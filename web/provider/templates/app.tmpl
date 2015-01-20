@@ -92,7 +92,7 @@
       "InstanceType": "t2.micro",
       "KeyName": "production",
       "SecurityGroups": [ { "Ref": "Security" } ],
-      "UserData": {{ .UserData }}
+      "UserData": {{ safe .UserData }}
     }
   },
   "{{ .Name }}Instances" : {
