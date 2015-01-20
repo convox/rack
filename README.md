@@ -12,7 +12,7 @@ Turn a git repository with a fig.yml into an AMI.
 
 ## Userdata
 
-The AMIs produced by this tool will userdata like the following to boot:
+The AMIs produced by this tool will need userdata like the following to boot:
 
     {
       "process": "name-of-fig-process",
