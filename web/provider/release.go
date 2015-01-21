@@ -2,54 +2,65 @@ package provider
 
 import (
 	"fmt"
-	"strings"
+	"time"
+
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
 )
 
-func ReleaseDeploy(cluster, app, release string) error {
-	outputs, err := stackOutputs(cluster)
+type Release struct {
+	Ami       string
+	CreatedAt time.Time
+}
+
+type UserdataParams struct {
+	Process   string
+	Env       map[string]string
+	Resources []UserdataParamsResource
+	Ports     []int
+}
+
+type UserdataParamsResource struct {
+}
+
+func ReleaseList(cluster, app string) ([]Release, error) {
+	res, err := releasesTable(cluster, app).Scan(nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	releases := []Release{}
+
+	for _, r := range res {
+		releases = append(releases, Release{
+			Ami:       r["ami"].Value,
+			CreatedAt: time.Now(),
+		})
+	}
+
+	return releases, nil
+}
+
+func ReleaseCreate(cluster, app, ami string, options map[string]string) error {
+	attributes := []dynamodb.Attribute{
+		*dynamodb.NewStringAttribute("ami", ami),
+		*dynamodb.NewStringAttribute("created-at", "now"),
+	}
+
+	for k, v := range options {
+		attributes = append(attributes, *dynamodb.NewStringAttribute(k, v))
+	}
+
+	_, err := releasesTable(cluster, app).PutItem(ami, "", attributes)
+
+	return err
+}
+
+func ReleaseDeploy(cluster, app, ami string) error {
+	params, err := appParams(cluster, app)
 
 	if err != nil {
 		return err
-	}
-
-	vpc := outputs["Vpc"]
-	rt := outputs["RouteTable"]
-
-	base, err := nextAvailableSubnet(vpc)
-
-	if err != nil {
-		return err
-	}
-
-	params := &AppParams{
-		Name:    upperName(app),
-		Cluster: upperName(cluster),
-		Cidr:    base,
-		Vpc:     vpc,
-	}
-
-	azs, err := availabilityZones()
-
-	if err != nil {
-		return err
-	}
-
-	subnets, err := divideSubnet(base, len(azs))
-
-	if err != nil {
-		return err
-	}
-
-	params.Subnets = make([]AppParamsSubnet, len(azs))
-
-	for i, az := range azs {
-		params.Subnets[i] = AppParamsSubnet{
-			Name:             fmt.Sprintf("Subnet%d", i),
-			AvailabilityZone: az,
-			Cidr:             subnets[i],
-			RouteTable:       rt,
-			Vpc:              vpc,
-		}
 	}
 
 	uparams := UserdataParams{
@@ -59,7 +70,7 @@ func ReleaseDeploy(cluster, app, release string) error {
 		Ports:     []int{5000},
 	}
 
-	userdata, err := parseTemplate("userdata", uparams)
+	userdata, err := buildTemplate("userdata", uparams)
 
 	if err != nil {
 		return err
@@ -67,36 +78,32 @@ func ReleaseDeploy(cluster, app, release string) error {
 
 	params.Processes = []AppParamsProcess{
 		{
-			Name:              "Web",
-			Process:           "web",
-			Count:             2,
-			Vpc:               vpc,
+			Ami:               ami,
 			App:               app,
-			Ami:               "ami-acb1cfc4",
+			AvailabilityZones: params.AvailabilityZones,
 			Cluster:           cluster,
-			AvailabilityZones: azs,
+			Count:             2,
+			Name:              "web",
 			UserData:          userdata,
+			Vpc:               params.Vpc,
 		},
 	}
 
-	formation, err := parseTemplate("app", params)
-
-	lines := strings.Split(formation, "\n")
-
-	for i, line := range lines {
-		fmt.Printf("%d: %s\n", i, line)
-	}
+	template, err := buildTemplate("app", params)
 
 	if err != nil {
 		return err
 	}
 
-	tags := map[string]string{
-		"type":    "app",
-		"cluster": cluster,
-		"app":     app,
-		"subnet":  base,
-	}
+	printLines(template)
 
-	return createStackFromTemplate(formation, fmt.Sprintf("%s-%s", cluster, app), tags)
+	// update stack
+
+	return nil
+}
+
+func releasesTable(cluster, app string) *dynamodb.Table {
+	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("ami", ""), dynamodb.NewStringAttribute("created-at", "")}
+	table := DynamoDB.NewTable(fmt.Sprintf("%s-%s-releases", cluster, app), pk)
+	return table
 }

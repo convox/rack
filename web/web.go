@@ -13,7 +13,7 @@ import (
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
-var port string = "3000"
+var port string = "5000"
 
 func redirect(path string) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {

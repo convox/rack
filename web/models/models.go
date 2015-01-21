@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type App struct {
 	Name   string
 	Status string
@@ -13,6 +15,7 @@ type App struct {
 
 	Cluster   *Cluster
 	Processes Processes
+	Releases  Releases
 }
 
 type Apps []App
@@ -63,3 +66,10 @@ type Process struct {
 }
 
 type Processes []Process
+
+type Release struct {
+	Ami       string
+	CreatedAt time.Time
+}
+
+type Releases []Release

@@ -1,10 +1,10 @@
 package clusters
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/convox/kernel/web/controllers"
-	"github.com/convox/kernel/web/helpers"
 	"github.com/convox/kernel/web/models/cluster"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -35,13 +35,14 @@ func Show(rw http.ResponseWriter, r *http.Request) {
 }
 
 func Create(rw http.ResponseWriter, r *http.Request) {
-	form := helpers.ParseForm(r)
-	err := cluster.Create(form["name"])
+	form := controllers.ParseForm(r)
+	name := form["name"]
+	err := cluster.Create(name)
 	if err != nil {
 		controllers.RenderError(rw, err)
 		return
 	}
-	controllers.Redirect(rw, r, "/clusters")
+	controllers.Redirect(rw, r, fmt.Sprintf("/clusters/%s", name))
 }
 
 func Delete(rw http.ResponseWriter, r *http.Request) {

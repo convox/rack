@@ -48,6 +48,38 @@
 				{{ end }}
 			</tbody>
 		</table>
+	<div class="table-title">
+		<table class="table table-striped table-bordered">
+			<thead>
+				<tr class="title">
+					<th colspan="6">
+						<a class="btn btn-success btn-xs">Create Release</a>
+						Releases
+					</th>
+				</tr>
+				<tr>
+					<th class="expand">AMI</th>
+					<th>Created</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{ range .Releases }}
+					<tr>
+						<td>
+							{{ .Ami }}
+						</td>
+						<td>
+							<span class="timeago" title="{{ iso8601 .CreatedAt }}">{{ .CreatedAt }}</span>
+						</td>
+						<td>
+							<button class="btn btn-primary btn-xs">Promote</button>
+						</td>
+					</tr>
+				{{ end }}
+			</tbody>
+		</table>
+	</div>
 	</div>
 	<script>
 		$(window).ready(function() {

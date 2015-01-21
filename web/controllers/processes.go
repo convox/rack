@@ -15,7 +15,7 @@ func init() {
 
 func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 	cluster := models.Cluster{Name: mux.Vars(r)["cluster"]}
-	app := models.App{mux.Vars(r)["app"], "unknown", 40, 100, 60, 100, 10, 100, &cluster, make(models.Processes, 2)}
+	app := models.App{mux.Vars(r)["app"], "unknown", 40, 100, 60, 100, 10, 100, &cluster, make(models.Processes, 2), make(models.Releases, 0)}
 	process := models.Process{mux.Vars(r)["process"], "bundle exec rails start -p $PORT", 3, 60, 100, 20, 100, 5, 100, &app, make(models.Containers, (rand.Int()%10)+2)}
 	for i := 0; i < len(process.Containers); i++ {
 		container := models.Container{Name: fmt.Sprintf("%s.%d", mux.Vars(r)["process"], i+1)}

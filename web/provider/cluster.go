@@ -31,7 +31,7 @@ func ClusterList() ([]Cluster, error) {
 func ClusterCreate(name string) error {
 	cluster := &Cluster{Name: name}
 
-	formation, err := parseTemplate("cluster", cluster)
+	formation, err := buildTemplate("cluster", cluster)
 
 	if err != nil {
 		return err

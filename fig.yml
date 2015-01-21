@@ -9,12 +9,17 @@ web:
     - 5000:5000
   volumes:
     - web:/go/src/github.com/convox/kernel/web
+  links:
+    - builder
 builder:
+  privileged: true
   build: builder
   environment:
     - AWS_ACCESS
     - AWS_SECRET
     - AWS_REGION
     - DEVELOPMENT=true
+  ports:
+    - 5100:5000
   volumes:
     - builder:/go/src/github.com/convox/kernel/builder

@@ -5,12 +5,16 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var Templates = make(map[string]*template.Template)
 
 func displayHelpers() template.FuncMap {
 	return template.FuncMap{
+		"iso8601": func(t time.Time) string {
+			return t.Format(time.RFC3339)
+		},
 		"join": func(s []string, t string) string {
 			return strings.Join(s, t)
 		},
@@ -18,6 +22,18 @@ func displayHelpers() template.FuncMap {
 			return template.HTML(fmt.Sprintf(`<div class="meter %s"><span style="width: %0.2f%%"></div>`, klass, float64(value)/float64(total)*100))
 		},
 	}
+}
+
+func ParseForm(r *http.Request) map[string]string {
+	options := make(map[string]string)
+
+	r.ParseMultipartForm(4096)
+
+	for key, values := range r.PostForm {
+		options[key] = values[0]
+	}
+
+	return options
 }
 
 func RegisterTemplate(name string, names ...string) {

@@ -1,18 +1,14 @@
 package provider
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"strings"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
-
-func appsTable(cluster string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("name", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("%s-apps", cluster), pk)
-	return table
-}
 
 func availabilityZones() ([]string, error) {
 	res, err := EC2.DescribeAvailabilityZones(nil, nil)
@@ -30,6 +26,24 @@ func availabilityZones() ([]string, error) {
 	return subnets, nil
 }
 
+func buildTemplate(name string, object interface{}) (string, error) {
+	tmpl, err := template.New(name).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("provider/templates/%s.tmpl", name))
+
+	if err != nil {
+		return "", err
+	}
+
+	var formation bytes.Buffer
+
+	err = tmpl.Execute(&formation, object)
+
+	if err != nil {
+		return "", err
+	}
+
+	return prettyJson(formation.String())
+}
+
 func createStackFromTemplate(t, name string, tags map[string]string) error {
 	params := &cloudformation.CreateStackParams{
 		StackName:    name,
@@ -43,6 +57,21 @@ func createStackFromTemplate(t, name string, tags map[string]string) error {
 	_, err := CloudFormation.CreateStack(params)
 
 	return err
+}
+
+func divideSubnet(base string, num int) ([]string, error) {
+	if num > 4 {
+		return nil, fmt.Errorf("too many divisions")
+	}
+
+	div := make([]string, num)
+	parts := strings.Split(base, ".")
+
+	for i := 0; i < num; i++ {
+		div[i] = fmt.Sprintf("%s.%s.%s.%d/27", parts[0], parts[1], parts[2], i*32)
+	}
+
+	return div, nil
 }
 
 func flattenTags(tags []cloudformation.Tag) map[string]string {
@@ -75,21 +104,6 @@ func humanStatus(original string) string {
 		fmt.Printf("unknown status: %s\n", original)
 		return "unknown"
 	}
-}
-
-func divideSubnet(base string, num int) ([]string, error) {
-	if num > 4 {
-		return nil, fmt.Errorf("too many divisions")
-	}
-
-	div := make([]string, num)
-	parts := strings.Split(base, ".")
-
-	for i := 0; i < num; i++ {
-		div[i] = fmt.Sprintf("%s.%s.%s.%d/27", parts[0], parts[1], parts[2], i*32)
-	}
-
-	return div, nil
 }
 
 func nextAvailableSubnet(vpc string) (string, error) {
@@ -130,6 +144,30 @@ func nextAvailableSubnet(vpc string) (string, error) {
 	}
 
 	return "", fmt.Errorf("no available subnets")
+}
+
+func prettyJson(raw string) (string, error) {
+	var parsed map[string]interface{}
+
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		return "", err
+	}
+
+	bp, err := json.MarshalIndent(parsed, "", "  ")
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(bp), nil
+}
+
+func printLines(data string) {
+	lines := strings.Split(data, "\n")
+
+	for i, line := range lines {
+		fmt.Printf("%d: %s\n", i, line)
+	}
 }
 
 func stackTags(stack cloudformation.Stack) map[string]string {
@@ -178,6 +216,31 @@ func stackOutputList(stack, prefix string) ([]string, error) {
 	}
 
 	return values, nil
+}
+
+func templateHelpers() template.FuncMap {
+	return template.FuncMap{
+		"array": func(ss []string) template.HTML {
+			as := make([]string, len(ss))
+			for i, s := range ss {
+				as[i] = fmt.Sprintf("%q", s)
+			}
+			return template.HTML(strings.Join(as, ", "))
+		},
+		"ports": func(nn []int) template.HTML {
+			as := make([]string, len(nn))
+			for i, n := range nn {
+				as[i] = fmt.Sprintf("%d", n)
+			}
+			return template.HTML(strings.Join(as, ","))
+		},
+		"safe": func(s string) template.HTML {
+			return template.HTML(s)
+		},
+		"upper": func(s string) string {
+			return upperName(s)
+		},
+	}
 }
 
 func upperName(name string) string {

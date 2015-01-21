@@ -34,9 +34,23 @@ func List(cluster string) (models.Apps, error) {
 }
 
 func Show(cluster, name string) (*models.App, error) {
+	pa, err := provider.AppShow(cluster, name)
+
+	if err != nil {
+		return nil, err
+	}
+
 	app := &models.App{
-		Name:    name,
-		Cluster: &models.Cluster{Name: cluster},
+		Name:     pa.Name,
+		Cluster:  &models.Cluster{Name: pa.Cluster.Name},
+		Releases: make(models.Releases, 0),
+	}
+
+	for _, r := range pa.Releases {
+		app.Releases = append(app.Releases, models.Release{
+			Ami:       r.Ami,
+			CreatedAt: r.CreatedAt,
+		})
 	}
 
 	return app, nil
