@@ -16,7 +16,7 @@ var template = `{
     "NAME": null,
     "SOURCE": null,
     "APPCONF": null,
-    "BASE_AMI": "ami-ba166fd2",
+    "BASE_AMI": "ami-6e0b7206",
     "AWS_REGION": "us-east-1",
     "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
     "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
