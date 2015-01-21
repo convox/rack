@@ -19,6 +19,24 @@
           "VpcId": "{{ .Vpc }}"
         }
       },
+      "DynamoBuilds": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{ .Cluster }}-{{ .Name }}-builds",
+          "AttributeDefinitions": [
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "created-at", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "id", "KeyType": "HASH" },
+            { "AttributeName": "created-at", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
       "DynamoProcesses": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
