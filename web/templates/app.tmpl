@@ -82,7 +82,6 @@
 	<script>
 		$(window).ready(function() {
 			$('#toggle-select').on('change', function() {
-				console.log('checked', this.checked);
 				$('input[type="checkbox"]').prop('checked', this.checked);
 			});
 		});
