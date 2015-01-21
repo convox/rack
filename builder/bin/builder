@@ -1,7 +1,11 @@
 #!/bin/bash
 
+root=$(dirname $(dirname $0))
+
+$root/bin/start-docker &
+
 if [ "$DEVELOPMENT" == "true" ]; then
-  builder
+  gin -b builder -p $PORT
 else
   builder
 fi
