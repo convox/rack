@@ -1,6 +1,6 @@
 FROM golang:1.4
 
-RUN go get github.com/codegangsta/gin
+RUN go get github.com/ddollar/gin
 
 EXPOSE 5000
 ENV PORT 5000
