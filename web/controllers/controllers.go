@@ -12,14 +12,14 @@ var Templates = make(map[string]*template.Template)
 
 func displayHelpers() template.FuncMap {
 	return template.FuncMap{
-		"iso8601": func(t time.Time) string {
-			return t.Format(time.RFC3339)
-		},
 		"join": func(s []string, t string) string {
 			return strings.Join(s, t)
 		},
 		"meter": func(klass string, value int, total int) template.HTML {
 			return template.HTML(fmt.Sprintf(`<div class="meter %s"><span style="width: %0.2f%%"></div>`, klass, float64(value)/float64(total)*100))
+		},
+		"timeago": func(t time.Time) template.HTML {
+			return template.HTML(fmt.Sprintf(`<span class="timeago" title="%s">%s</span>`, t.Format(time.RFC3339), t.Format("2006-01-02 15:04:05 UTC")))
 		},
 	}
 }

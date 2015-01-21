@@ -69,9 +69,7 @@
 						<td>
 							{{ .Ami }}
 						</td>
-						<td>
-							<span class="timeago" title="{{ iso8601 .CreatedAt }}">{{ .CreatedAt }}</span>
-						</td>
+						<td>{{ timeago .CreatedAt }}</td>
 						<td>
 							<button class="btn btn-primary btn-xs">Promote</button>
 						</td>
