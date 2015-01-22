@@ -1,5 +1,6 @@
 FROM convox/dind-go
 
+RUN wrapdocker; docker pull convox/builder
 RUN go get github.com/ddollar/gin
 
 EXPOSE 5000

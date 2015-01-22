@@ -4,6 +4,10 @@ root=$(dirname $(dirname $0))
 
 $root/bin/start-docker &
 
+sleep 1
+
+docker pull convox/builder:latest &
+
 if [ "$DEVELOPMENT" == "true" ]; then
   gin -b builder -p $PORT
 else

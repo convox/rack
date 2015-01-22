@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -27,6 +29,8 @@ func main() {
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
 	}
+
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	router := mux.NewRouter()
 
