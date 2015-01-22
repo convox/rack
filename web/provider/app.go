@@ -7,10 +7,13 @@ import (
 )
 
 type App struct {
-	Name   string
-	Status string
+	Name       string
+	Status     string
+	Repository string
+	Release    string
 
 	Cluster   *Cluster
+	Builds    []Build
 	Processes []Process
 	Releases  []Release
 }
@@ -37,6 +40,7 @@ type AppParamsProcess struct {
 	Ami               string
 	App               string
 	AvailabilityZones []string
+	Balancer          bool
 	Cluster           string
 	Count             int
 	Name              string
@@ -56,9 +60,12 @@ func AppList(cluster string) ([]App, error) {
 	for _, stack := range res.Stacks {
 		tags := stackTags(stack)
 		if tags["type"] == "app" && tags["cluster"] == cluster {
+			params := stackParameters(stack)
 			apps = append(apps, App{
-				Name:   tags["app"],
-				Status: humanStatus(stack.StackStatus),
+				Name:       tags["app"],
+				Status:     humanStatus(stack.StackStatus),
+				Release:    params["Release"],
+				Repository: params["Repository"],
 			})
 		}
 	}
@@ -69,9 +76,31 @@ func AppList(cluster string) ([]App, error) {
 func AppShow(cluster, app string) (*App, error) {
 	apps, err := AppList(cluster)
 
+	if err != nil {
+		return nil, err
+	}
+
 	for _, a := range apps {
 		if a.Name == app {
 			a.Cluster = &Cluster{Name: cluster}
+
+			builds, err := BuildsList(cluster, app)
+
+			if err != nil {
+				return nil, err
+			}
+
+			a.Builds = builds
+
+			ps, err := ProcessList(cluster, app)
+
+			if err != nil {
+				return nil, err
+			}
+
+			a.Processes = ps
+
+			fmt.Printf("ps %+v\n", ps)
 
 			if r, err := ReleaseList(cluster, app); err == nil {
 				a.Releases = r
@@ -132,6 +161,10 @@ func AppCreate(cluster, app string, options map[string]string) error {
 
 	printLines(template)
 
+	p := map[string]string{
+		"Repository": options["repo"],
+	}
+
 	tags := map[string]string{
 		"type":    "app",
 		"cluster": cluster,
@@ -139,7 +172,7 @@ func AppCreate(cluster, app string, options map[string]string) error {
 		"subnet":  params.Cidr,
 	}
 
-	return createStackFromTemplate(template, fmt.Sprintf("%s-%s", cluster, app), tags)
+	return createStackFromTemplate(template, fmt.Sprintf("%s-%s", cluster, app), p, tags)
 }
 
 func AppDelete(cluster string, name string) error {

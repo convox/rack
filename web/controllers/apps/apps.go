@@ -9,6 +9,7 @@ import (
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/web/controllers"
 	"github.com/convox/kernel/web/models/app"
+	"github.com/convox/kernel/web/models/release"
 )
 
 func init() {
@@ -17,7 +18,7 @@ func init() {
 
 func Show(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	app, err := app.Show(vars["cluster"], vars["app"])
+	app, err := app.Get(vars["cluster"], vars["app"])
 	if err != nil {
 		controllers.RenderError(rw, err)
 		return
@@ -42,29 +43,7 @@ func Create(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bhost := os.Getenv("BUILDER_PORT_5000_TCP_ADDR")
-	bport := os.Getenv("BUILDER_PORT_5000_TCP_PORT")
-
-	res, err := http.PostForm(fmt.Sprintf("http://%s:%s/clusters/%s/apps/%s/build", bhost, bport, cluster, name), url.Values{
-		"repo": {repo},
-	})
-
-	fmt.Printf("res %+v\n", res)
-	fmt.Printf("err %+v\n", err)
-
-	/* TEMP */
-	// err = release.Create(cluster, name, "ami-acb1cfc4", map[string]string{})
-	// if err != nil {
-	//   controllers.RenderError(rw, err)
-	//   return
-	// }
-	// err = release.Deploy(cluster, name, "ami-acb1cfc4")
-	// if err != nil {
-	//   controllers.RenderError(rw, err)
-	//   return
-	// }
-	/* END TEMP */
-	controllers.Redirect(rw, r, fmt.Sprintf("/clusters/%s/apps/%s", cluster, name))
+	controllers.Redirect(rw, r, fmt.Sprintf("/clusters/%s", cluster))
 }
 
 func Delete(rw http.ResponseWriter, r *http.Request) {
@@ -76,4 +55,48 @@ func Delete(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	controllers.Redirect(rw, r, fmt.Sprintf("/clusters/%s", cluster))
+}
+
+func Build(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	form := controllers.ParseForm(r)
+	cluster := vars["cluster"]
+	app := vars["app"]
+	repo := form["repo"]
+
+	bhost := os.Getenv("BUILDER_PORT_5000_TCP_ADDR")
+	bport := os.Getenv("BUILDER_PORT_5000_TCP_PORT")
+
+	_, err := http.PostForm(fmt.Sprintf("http://%s:%s/clusters/%s/apps/%s/build", bhost, bport, cluster, app), url.Values{"repo": {repo}})
+
+	if err != nil {
+		controllers.RenderError(rw, err)
+		return
+	}
+
+	controllers.Redirect(rw, r, fmt.Sprintf("/clusters/%s/apps/%s", cluster, app))
+}
+
+func Promote(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	form := controllers.ParseForm(r)
+	cluster := vars["cluster"]
+	app := vars["app"]
+
+	// id, err := release.Copy(cluster, app, form["release"])
+
+	// if err != nil {
+	//   controllers.RenderError(rw, err)
+	//   return
+	// }
+
+	// err = release.Promote(cluster, app, id)
+
+	err := release.Promote(cluster, app, form["release"])
+
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+	}
+
+	controllers.Redirect(rw, r, fmt.Sprintf("/clusters/%s/apps/%s", cluster, app))
 }

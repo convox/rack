@@ -12,6 +12,15 @@ var Templates = make(map[string]*template.Template)
 
 func displayHelpers() template.FuncMap {
 	return template.FuncMap{
+		"duration": func(start, end time.Time) string {
+			if end.IsZero() {
+				return "--"
+			} else {
+				duration := end.Sub(start)
+				seconds := duration / time.Second
+				return fmt.Sprintf("%dmin %dsec", seconds/60, seconds%60)
+			}
+		},
 		"join": func(s []string, t string) string {
 			return strings.Join(s, t)
 		},

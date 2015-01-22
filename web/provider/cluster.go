@@ -37,12 +37,14 @@ func ClusterCreate(name string) error {
 		return err
 	}
 
+	params := map[string]string{}
+
 	tags := map[string]string{
 		"type":    "cluster",
 		"cluster": name,
 	}
 
-	err = createStackFromTemplate(formation, name, tags)
+	err = createStackFromTemplate(formation, name, params, tags)
 
 	if err != nil {
 		return fmt.Errorf("could not create stack %s: %s", name, err)

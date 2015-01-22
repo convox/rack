@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 
@@ -33,7 +34,7 @@ func List(cluster string) (models.Apps, error) {
 	return apps, nil
 }
 
-func Show(cluster, name string) (*models.App, error) {
+func Get(cluster, name string) (*models.App, error) {
 	pa, err := provider.AppShow(cluster, name)
 
 	if err != nil {
@@ -41,13 +42,36 @@ func Show(cluster, name string) (*models.App, error) {
 	}
 
 	app := &models.App{
-		Name:     pa.Name,
-		Cluster:  &models.Cluster{Name: pa.Cluster.Name},
-		Releases: make(models.Releases, 0),
+		Name:       pa.Name,
+		Status:     pa.Status,
+		Repository: pa.Repository,
+		Release:    pa.Release,
+		Cluster:    &models.Cluster{Name: pa.Cluster.Name},
+	}
+
+	for _, b := range pa.Builds {
+		app.Builds = append(app.Builds, models.Build{
+			Id:        b.Id,
+			Status:    b.Status,
+			Release:   b.Release,
+			CreatedAt: b.CreatedAt,
+			EndedAt:   b.EndedAt,
+			Logs:      b.Logs,
+		})
+	}
+
+	fmt.Printf("pa.Processes %+v\n", pa.Processes)
+
+	for _, p := range pa.Processes {
+		app.Processes = append(app.Processes, models.Process{
+			Name:  p.Name,
+			Count: p.Count,
+		})
 	}
 
 	for _, r := range pa.Releases {
 		app.Releases = append(app.Releases, models.Release{
+			Id:        r.Id,
 			Ami:       r.Ami,
 			CreatedAt: r.CreatedAt,
 		})
@@ -57,13 +81,7 @@ func Show(cluster, name string) (*models.App, error) {
 }
 
 func Create(cluster, name string, options map[string]string) error {
-	err := provider.AppCreate(cluster, name, options)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return provider.AppCreate(cluster, name, options)
 }
 
 func Delete(cluster, name string) error {

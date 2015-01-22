@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math/rand"
 	"strings"
 
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
 
@@ -44,10 +46,22 @@ func buildTemplate(name string, object interface{}) (string, error) {
 	return prettyJson(formation.String())
 }
 
-func createStackFromTemplate(t, name string, tags map[string]string) error {
+func coalesce(att *dynamodb.Attribute, def string) string {
+	if att != nil {
+		return att.Value
+	} else {
+		return def
+	}
+}
+
+func createStackFromTemplate(t, name string, p map[string]string, tags map[string]string) error {
 	params := &cloudformation.CreateStackParams{
 		StackName:    name,
 		TemplateBody: t,
+	}
+
+	for key, value := range p {
+		params.Parameters = append(params.Parameters, cloudformation.Parameter{ParameterKey: key, ParameterValue: value})
 	}
 
 	for key, value := range tags {
@@ -84,6 +98,16 @@ func flattenTags(tags []cloudformation.Tag) map[string]string {
 	return f
 }
 
+var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+	}
+	return prefix + string(b)
+}
+
 func humanStatus(original string) string {
 	switch original {
 	case "":
@@ -99,6 +123,16 @@ func humanStatus(original string) string {
 	case "ROLLBACK_IN_PROGRESS":
 		return "rollback"
 	case "ROLLBACK_COMPLETE":
+		return "failed"
+	case "UPDATE_IN_PROGRESS":
+		return "updating"
+	case "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS":
+		return "updating"
+	case "UPDATE_COMPLETE":
+		return "running"
+	case "UPDATE_ROLLBACK_IN_PROGRESS":
+		return "rollback"
+	case "UPDATE_ROLLBACK_COMPLETE":
 		return "failed"
 	default:
 		fmt.Printf("unknown status: %s\n", original)
@@ -168,6 +202,16 @@ func printLines(data string) {
 	for i, line := range lines {
 		fmt.Printf("%d: %s\n", i, line)
 	}
+}
+
+func stackParameters(stack cloudformation.Stack) map[string]string {
+	parameters := make(map[string]string)
+
+	for _, parameter := range stack.Parameters {
+		parameters[parameter.ParameterKey] = parameter.ParameterValue
+	}
+
+	return parameters
 }
 
 func stackTags(stack cloudformation.Stack) map[string]string {

@@ -69,14 +69,20 @@ form {
 
 .panel-heading form {
 	float: right;
-	margin-top: -1px;
+	margin-top: -2px;
 	margin-right: -7px;
+	margin-left: 14px;
 }
 
 .table tr.title button,
 .table tr.title a {
 	float: right;
 	margin-top: 1px;
+}
+
+.table tr.title form {
+	float: right;
+	margin-top: -2px;
 }
 
 .meter {
@@ -129,11 +135,6 @@ form {
 	padding-top: 4px;
 }
 
-.table-title .buttons {
-	float: right;
-	margin-bottom: 8px;
-}
-
 .breadcrumb {
 	border: 1px #ddd solid;
 	margin-top: 4px;
@@ -162,4 +163,20 @@ form {
 
 .modal-header h4 {
 	font-weight: bold;
+}
+
+td.buttons {
+	padding-left: 8px !important;
+	padding-right: 8px !important;
+}
+
+.id {
+	font-family: monospace;
+}
+
+.release-active {
+	font-size: 0.9em;
+	padding-left: 10px;
+	padding-right: 11px;
+	padding-bottom: 3px;
 }

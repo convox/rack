@@ -41,6 +41,8 @@ func main() {
 	router.HandleFunc("/clusters/{cluster}/apps", apps.Create).Methods("POST")
 	router.HandleFunc("/clusters/{cluster}/apps/{app}", apps.Show).Methods("GET")
 	router.HandleFunc("/clusters/{cluster}/apps/{app}/delete", apps.Delete).Methods("POST")
+	router.HandleFunc("/clusters/{cluster}/apps/{app}/build", apps.Build).Methods("POST")
+	router.HandleFunc("/clusters/{cluster}/apps/{app}/promote", apps.Promote).Methods("POST")
 	router.HandleFunc("/clusters/{cluster}/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
 	router.HandleFunc("/settings", controllers.Settings).Methods("GET")
 

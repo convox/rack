@@ -1,6 +1,6 @@
 package dynamodb
 
-import simplejson "github.com/bitly/go-simplejson"
+import simplejson "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/bitly/go-simplejson"
 import (
 	"errors"
 	"fmt"

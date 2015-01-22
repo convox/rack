@@ -2,6 +2,18 @@
   {{ $app := . }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters" : {
+      "Release" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Release"
+      },
+      "Repository" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Repository"
+      }
+    },
     "Resources": {
       {{ range .Subnets }}
         {{ template "subnet" . }}
@@ -25,12 +37,26 @@
           "TableName": "{{ .Cluster }}-{{ .Name }}-builds",
           "AttributeDefinitions": [
             { "AttributeName": "id", "AttributeType": "S" },
-            { "AttributeName": "created-at", "AttributeType": "S" }
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
           ],
           "KeySchema": [
-            { "AttributeName": "id", "KeyType": "HASH" },
-            { "AttributeName": "created-at", "KeyType": "RANGE" }
+            { "AttributeName": "id", "KeyType": "HASH" }
           ],
+          "GlobalSecondaryIndexes": [{
+            "IndexName": "app.created",
+            "KeySchema": [
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }],
           "ProvisionedThroughput": {
             "ReadCapacityUnits": "5",
             "WriteCapacityUnits": "5"
@@ -58,13 +84,27 @@
         "Properties": {
           "TableName": "{{ .Cluster }}-{{ .Name }}-releases",
           "AttributeDefinitions": [
-            { "AttributeName": "ami", "AttributeType": "S" },
-            { "AttributeName": "created-at", "AttributeType": "S" }
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
           ],
           "KeySchema": [
-            { "AttributeName": "ami", "KeyType": "HASH" },
-            { "AttributeName": "created-at", "KeyType": "RANGE" }
+            { "AttributeName": "id", "KeyType": "HASH" }
           ],
+          "GlobalSecondaryIndexes": [{
+            "IndexName": "app.created",
+            "KeySchema": [
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }],
           "ProvisionedThroughput": {
             "ReadCapacityUnits": "5",
             "WriteCapacityUnits": "5"
@@ -94,43 +134,45 @@
 {{ end }}
 
 {{ define "process" }}
-  "{{ upper .Name }}BalancerSecurity": {
-    "Type": "AWS::EC2::SecurityGroup",
-    "Properties": {
-      "GroupDescription": "{{ .Cluster }}-{{ .App }}-{{ .Name }}",
-      "SecurityGroupIngress": [
-        { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
-      ],
-      "VpcId": "{{ .Vpc }}"
-    }
-  },
-  "{{ upper .Name }}Balancer": {
-    "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-    "Properties": {
-      "Subnets": [
-        { "Ref": "Subnet0" },
-        { "Ref": "Subnet1" },
-        { "Ref": "Subnet2" },
-        { "Ref": "Subnet3" }
-      ],
-      "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-      "ConnectionSettings": { "IdleTimeout": 60 },
-      "CrossZone": true,
-      "HealthCheck": {
-        "HealthyThreshold": "10",
-        "Interval": 5,
-        "Target": "HTTP:5000/ping",
-        "Timeout": 3,
-        "UnhealthyThreshold": "2"
-      },
-      "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-      "LoadBalancerName": "{{ .Cluster }}-{{ .App }}-{{ .Name }}",
-      "Listeners": [
-        { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "5000" }
-      ],
-      "SecurityGroups": [ { "Ref": "{{ upper .Name }}BalancerSecurity" } ]
-    }
-  },
+  {{ if .Balancer }}
+    "{{ upper .Name }}BalancerSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "{{ .Cluster }}-{{ .App }}-{{ .Name }}",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
+        ],
+        "VpcId": "{{ .Vpc }}"
+      }
+    },
+    "{{ upper .Name }}Balancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": [
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Ref": "Subnet2" },
+          { "Ref": "Subnet3" }
+        ],
+        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+        "ConnectionSettings": { "IdleTimeout": 60 },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "10",
+          "Interval": 5,
+          "Target": "HTTP:5000/ping",
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+        "LoadBalancerName": "{{ .Cluster }}-{{ .App }}-{{ .Name }}",
+        "Listeners": [
+          { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "5000" }
+        ],
+        "SecurityGroups": [ { "Ref": "{{ upper .Name }}BalancerSecurity" } ]
+      }
+    },
+  {{ end }}
   "{{ upper .Name }}Launch": {
     "Type": "AWS::AutoScaling::LaunchConfiguration",
     "Properties": {
@@ -160,9 +202,11 @@
       ],
       "Cooldown": 5,
       "DesiredCapacity": "{{ .Count }}",
-      "MinSize" : "{{ .Count }}",
-      "MaxSize" : "{{ .Count }}",
-      "LoadBalancerNames": [ { "Ref": "{{ upper .Name }}Balancer" } ],
+      "MinSize" : "1",
+      "MaxSize" : "3",
+      {{ if .Balancer }}
+        "LoadBalancerNames": [ { "Ref": "{{ upper .Name }}Balancer" } ],
+      {{ end }}
       "HealthCheckType": "EC2",
       "HealthCheckGracePeriod": 30,
       "MetricsCollection": [ { "Granularity": "1Minute" } ]
