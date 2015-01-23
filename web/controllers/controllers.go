@@ -24,8 +24,21 @@ func displayHelpers() template.FuncMap {
 		"join": func(s []string, t string) string {
 			return strings.Join(s, t)
 		},
+		"label": func(name, value string) template.HTML {
+			return template.HTML(fmt.Sprintf(`<div class="labelled-value" id="%s"><span class="name">%s</span><span class="value">%s</span></div>`, strings.ToLower(name), name, value))
+		},
 		"meter": func(klass string, value int, total int) template.HTML {
 			return template.HTML(fmt.Sprintf(`<div class="meter %s"><span style="width: %0.2f%%"></div>`, klass, float64(value)/float64(total)*100))
+		},
+		"status": func(s string) string {
+			state := "default"
+			switch s {
+			case "running":
+				state = "success"
+			case "updating":
+				state = "warning"
+			}
+			return fmt.Sprintf(`<div class="label label-%s">%s</div>`, state, s)
 		},
 		"timeago": func(t time.Time) template.HTML {
 			return template.HTML(fmt.Sprintf(`<span class="timeago" title="%s">%s</span>`, t.Format(time.RFC3339), t.Format("2006-01-02 15:04:05 UTC")))

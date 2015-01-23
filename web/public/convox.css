@@ -180,3 +180,17 @@ td.buttons {
 	padding-right: 11px;
 	padding-bottom: 3px;
 }
+
+.labelled-value {
+	padding: 4px 8px;
+}
+
+.labelled-value .name {
+	font-weight: bold;
+	display: inline-block;
+	width: 90px;
+}
+
+.labelled-value#repository .value {
+	font-family: monospace;
+}

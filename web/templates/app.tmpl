@@ -19,9 +19,8 @@
 			<h3 class="panel-title">App Information</h3>
 		</div>
 		<div class="panel-body">
-			Repository: {{ .Repository }}
-			<br/><br/>
-			Status: {{ .Status }}
+			{{ label "Repository" .Repository }}
+			{{ label "Status" (status .Status) }}
 		</div>
 	</div>
 	<div class="table-title">
