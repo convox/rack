@@ -43,7 +43,14 @@
 			<tbody>
 				{{ range $process := .Processes }}
 					<tr>
-						<td><a href="/clusters/{{ $app.Cluster.Name }}/apps/{{ $app.Name }}/processes/{{.Name}}">{{ .Name }}</a></td>
+						<td>
+							{{ if .Balancer }}
+								<button class="btn btn-xs btn-primary pull-right" style="padding-top:3px; padding-right:6px;">
+									<span class="glyphicon glyphicon-random">
+								</button>
+							{{ end }}
+							<a href="/clusters/{{ $app.Cluster.Name }}/apps/{{ $app.Name }}/processes/{{.Name}}">{{ .Name }}</a>
+						</td>
 						<td class="text-center">{{.Count}}</td>
 						<td>{{ meter "cpu"    .CpuUsed    .CpuTotal    }}</td>
 						<td>{{ meter "memory" .MemoryUsed .MemoryTotal }}</td>

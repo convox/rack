@@ -64,9 +64,10 @@ type Container struct {
 type Containers []Container
 
 type Process struct {
-	Name    string
-	Command string
-	Count   int
+	Name     string
+	Command  string
+	Count    int
+	Balancer bool
 
 	CpuUsed     int
 	CpuTotal    int

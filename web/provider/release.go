@@ -195,17 +195,11 @@ func releaseFormation(cluster, app, release string) (string, error) {
 				return "", err
 			}
 
-			balance := false
-
-			if name == "web" {
-				balance = true
-			}
-
 			params.Processes = append(params.Processes, AppParamsProcess{
 				Ami:               ami,
 				App:               app,
 				AvailabilityZones: params.AvailabilityZones,
-				Balancer:          balance,
+				Balancer:          (name == "web"),
 				Cluster:           cluster,
 				Count:             1,
 				Name:              name,
