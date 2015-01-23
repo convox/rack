@@ -119,12 +119,14 @@
         },
       {{ end }}
       {{ range .Processes }}
-        "{{ upper .Name }}BalancerId": {
-          "Value": { "Ref": "{{ upper .Name }}Balancer" }
-        },
-        "{{ upper .Name }}BalancerHost": {
-          "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
-        },
+        {{ if .Balancer }}
+          "{{ upper .Name }}BalancerId": {
+            "Value": { "Ref": "{{ upper .Name }}Balancer" }
+          },
+          "{{ upper .Name }}BalancerHost": {
+            "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
+          },
+        {{ end }}
       {{ end }}
       "Security": {
         "Value": { "Ref": "Security" }
