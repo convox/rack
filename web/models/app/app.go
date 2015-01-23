@@ -66,7 +66,7 @@ func Get(cluster, name string) (*models.App, error) {
 		app.Processes = append(app.Processes, models.Process{
 			Name:     p.Name,
 			Count:    p.Count,
-			Balancer: (p.Name == "web"),
+			Balancer: p.Balancer,
 		})
 	}
 

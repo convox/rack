@@ -67,7 +67,7 @@ type Process struct {
 	Name     string
 	Command  string
 	Count    int
-	Balancer bool
+	Balancer string
 
 	CpuUsed     int
 	CpuTotal    int

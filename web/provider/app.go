@@ -16,6 +16,9 @@ type App struct {
 	Builds    []Build
 	Processes []Process
 	Releases  []Release
+
+	Parameters map[string]string
+	Tags       map[string]string
 }
 
 type AppParams struct {
@@ -66,6 +69,8 @@ func AppList(cluster string) ([]App, error) {
 				Status:     humanStatus(stack.StackStatus),
 				Release:    params["Release"],
 				Repository: params["Repository"],
+				Tags:       tags,
+				Parameters: params,
 			})
 		}
 	}
