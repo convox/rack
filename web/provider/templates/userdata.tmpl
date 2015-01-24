@@ -3,19 +3,26 @@
     "Fn::Base64": {
       "Fn::Join": [ "\n", [
         "{",
-        "  \"process\": \"{{ .Process }}\",",
+        "  \"start\": \"{{ .Process }}\",",
         "  \"env\": [",
-        { "Fn::Join": [ "\n", [
-          {{ range $name, $value := .Env }}
-            "\"{{ $name }}={{ $value }}\",",
-          {{ end }}
-          "\"CONVOX=true\""
-        ] ] },
-        {{ range .Resources }}
-          {{ range .Env }}
-            { "Fn::Join": [ "=", [ "WEB_BALANCER", { "Ref": "WebBalancer" } ] ] },
-          {{ end }}
-        {{ end }}
+        { 
+          "Fn::Join": [ "", [
+            "    \"",
+            {
+              "Fn::Join": [ "\",\n    \"", [
+                {{ range $name, $value := .Env }}
+                  "{{ $name }}={{ $value }}",
+                {{ end }}
+                {{ range .App.Resources }}
+                  {{ safe .Env }}
+                {{ end }}
+                "CONVOX_CLUSTER={{ .App.Cluster }}",
+                "CONVOX_APP={{ .App.Name }}"
+              ] ]
+            },
+            "\""
+          ] ]
+        },
         "  ],",
         "  \"ports\": [ {{ ports .Ports }} ]",
         "}"

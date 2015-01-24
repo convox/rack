@@ -42,9 +42,9 @@
 			<tbody>
 				{{ range $process := .Processes }}
 					<tr>
-						<td>
+						<td class="meta-buttons">
 							{{ if .Balancer }}
-								<button class="btn btn-xs btn-primary pull-right" style="padding-top:3px; padding-right:6px;">
+								<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-content="<a href='http://{{ .Balancer }}/'>{{ .Balancer }}</a>">
 									<span class="glyphicon glyphicon-random">
 								</button>
 							{{ end }}
@@ -85,10 +85,10 @@
 						<td class="id">{{ .Release }}</td>
 						<td>{{ duration .CreatedAt .EndedAt }}</td>
 						<td class="buttons">
-							<button class="btn btn-xs btn-primary" title="Logs">
+							<button class="btn btn-xs btn-primary glyph" title="Logs">
 								<span class="glyphicon glyphicon-align-left" aria-hidden="true" style="margin-top:2px;"></span>
 							</button>
-							<button class="btn btn-xs btn-primary" title="Manifest">
+							<button class="btn btn-xs btn-primary glyph" title="Manifest">
 								<span class="glyphicon glyphicon-briefcase" aria-hidden="true" style="margin-top:2px;"></span>
 							</button>
 						</td>
@@ -135,9 +135,6 @@
 	</div>
 	<script>
 		$(window).ready(function() {
-			$('#toggle-select').on('change', function() {
-				$('input[type="checkbox"]').prop('checked', this.checked);
-			});
 		});
 	</script>
 {{ end }}

@@ -1,0 +1,40 @@
+{{ define "env" }}
+  { "Fn::Join": [ "=", [ "REDIS_PORT_6379_TCP_HOST", { "Fn::GetAtt": [ "{{ .Name }}", "ConfigurationEndpoint.Address" ] } ] ] },
+  { "Fn::Join": [ "=", [ "REDIS_PORT_6379_TCP_PORT", { "Fn::GetAtt": [ "{{ .Name }}", "ConfigurationEndpoint.Port"    ] } ] ] },
+{{ end }}
+
+{{ define "formation" }}
+	"{{ .Name }}Security": {
+		"Type": "AWS::EC2::SecurityGroup",
+		"Properties": {
+			"GroupDescription": "{{ .Name }}",
+			"SecurityGroupIngress": [
+				{ "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "{{ .Cidr }}" }
+			],
+			"VpcId": "{{ .Vpc }}"
+		}
+	},
+	"{{ .Name }}SubnetGroup": {
+		"Type": "AWS::ElastiCache::SubnetGroup",
+		"Properties": {
+			"Description": "{{ .Name }}",
+			"SubnetIds": [
+				{ "Ref": "Subnet0" },
+				{ "Ref": "Subnet1" },
+				{ "Ref": "Subnet2" },
+				{ "Ref": "Subnet3" }
+			]
+		}
+	},
+  "{{ .Name }}": {
+    "Type": "AWS::ElastiCache::CacheCluster",
+    "Properties": {
+      "CacheNodeType": "cache.t2.micro",
+      "CacheSubnetGroupName": { "Ref": "{{ .Name }}SubnetGroup" },
+      "Engine": "redis",
+      "NumCacheNodes": "1",
+      "Port": "6379",
+      "VpcSecurityGroupIds": [ { "Ref": "{{ .Name }}Security" } ]
+    }
+  },
+{{ end }}

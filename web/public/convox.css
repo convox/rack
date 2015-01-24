@@ -194,3 +194,24 @@ td.buttons {
 .labelled-value#repository .value {
 	font-family: monospace;
 }
+
+.popover {
+	max-width: 700px;
+}
+
+button .glyphicon {
+	font-size: 0.85em;
+}
+
+button .glyph {
+	padding: 2px;
+	line-height: 1.0;
+}
+
+td.meta-buttons {
+	padding-right: 8px !important;
+}
+
+td.meta-buttons .glyph {
+	float: right;
+}

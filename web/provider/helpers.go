@@ -28,8 +28,8 @@ func availabilityZones() ([]string, error) {
 	return subnets, nil
 }
 
-func buildTemplate(name string, object interface{}) (string, error) {
-	tmpl, err := template.New(name).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("provider/templates/%s.tmpl", name))
+func buildTemplate(name, section string, object interface{}) (string, error) {
+	tmpl, err := template.New(section).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("provider/templates/%s.tmpl", name))
 
 	if err != nil {
 		return "", err

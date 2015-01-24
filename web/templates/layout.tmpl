@@ -63,6 +63,8 @@
 			$('.nav a[href="' + root + '"]').parent('li').addClass('active');
 
 			$('.timeago').timeago()
+			$('[data-toggle="popover"]').popover({html:true})
+			$('[data-toggle="tooltip"]').tooltip()
 		});
 	</script>
 {{ end }}

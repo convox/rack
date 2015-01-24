@@ -158,7 +158,7 @@ func AppCreate(cluster, app string, options map[string]string) error {
 		return err
 	}
 
-	template, err := buildTemplate("app", params)
+	template, err := buildTemplate("app", "app", params)
 
 	if err != nil {
 		return err

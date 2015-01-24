@@ -2,12 +2,10 @@ package provider
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 type Release struct {
@@ -17,13 +15,10 @@ type Release struct {
 }
 
 type UserdataParams struct {
-	Process   string
-	Env       map[string]string
-	Resources []UserdataParamsResource
-	Ports     []int
-}
-
-type UserdataParamsResource struct {
+	App     *AppParams
+	Process string
+	Env     map[string]string
+	Ports   []int
 }
 
 func ReleaseList(cluster, app string) ([]Release, error) {
@@ -79,6 +74,10 @@ func ReleaseCreate(cluster, app, ami string, options map[string]string) error {
 
 func ReleasePromote(cluster, app, release string) error {
 	formation, err := releaseFormation(cluster, app, release)
+
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+	}
 
 	a, err := AppShow(cluster, app)
 
@@ -164,80 +163,114 @@ func releaseFormation(cluster, app, release string) (string, error) {
 		return "", err
 	}
 
-	uparams := UserdataParams{
-		Process:   "web",
-		Env:       map[string]string{"FOO": "bar"},
-		Resources: []UserdataParamsResource{},
-		Ports:     []int{5000},
-	}
+	manifest, err := NewManifest(drelease["manifest"].Value)
+	fmt.Printf("manifest %+v\n", manifest)
+	fmt.Printf("err %+v\n", err)
 
-	userdata, err := buildTemplate("userdata", uparams)
+	// manifest, err := releaseManifest(cluster, app, release)
 
-	if err != nil {
-		return "", err
-	}
+	// if err != nil {
+	//   return "", err
+	// }
 
-	manifest, err := releaseManifest(cluster, app, release)
+	// for name, process := range *manifest {
+	//   if strings.HasPrefix(process.Image, "convox/") {
+	//     key := process.Image[7:]
 
-	if err != nil {
-		return "", err
-	}
+	//     rparams := ResourceParams{
+	//       Name: fmt.Sprintf(upperName(key) + upperName(name)),
+	//       Cidr: params.Cidr,
+	//       Vpc:  params.Vpc,
+	//     }
 
-	params.Processes = []AppParamsProcess{}
+	//     resource, err := manifestResource(key, rparams)
 
-	for name, process := range *manifest {
-		if strings.HasPrefix(process.Image, "convox/") {
-			fmt.Printf("special: %s\n", process.Image)
-		} else {
-			err = ProcessCreate(cluster, app, name)
+	//     if err != nil {
+	//       return "", err
+	//     }
 
-			if err != nil {
-				return "", err
-			}
+	//     params.Resources = append(params.Resources, *resource)
+	//   }
+	// }
 
-			params.Processes = append(params.Processes, AppParamsProcess{
-				Ami:               ami,
-				App:               app,
-				AvailabilityZones: params.AvailabilityZones,
-				Balancer:          (name == "web"),
-				Cluster:           cluster,
-				Count:             1,
-				Name:              name,
-				UserData:          userdata,
-				Vpc:               params.Vpc,
-			})
-		}
-	}
+	// params.Processes = []AppParamsProcess{}
+
+	// for name, process := range *manifest {
+	//   if !strings.HasPrefix(process.Image, "convox/") {
+	//     uparams := UserdataParams{
+	//       App:     params,
+	//       Process: name,
+	//       Env:     map[string]string{"FOO": "bar"},
+	//       Ports:   []int{5000},
+	//     }
+
+	//     userdata, err := buildTemplate("userdata", uparams)
+
+	//     printLines(userdata)
+
+	//     if err != nil {
+	//       return "", err
+	//     }
+
+	//     err = ProcessCreate(cluster, app, name)
+
+	//     if err != nil {
+	//       return "", err
+	//     }
+
+	//     params.Processes = append(params.Processes, AppParamsProcess{
+	//       Ami:               ami,
+	//       App:               app,
+	//       AvailabilityZones: params.AvailabilityZones,
+	//       Balancer:          (name == "web"),
+	//       Cluster:           cluster,
+	//       Count:             1,
+	//       Name:              name,
+	//       UserData:          userdata,
+	//       Vpc:               params.Vpc,
+	//     })
+	//   }
+	// }
 
 	template, err := buildTemplate("app", params)
 
+	printLines(template)
+
 	if err != nil {
 		return "", err
 	}
-
-	printLines(template)
 
 	return template, nil
 }
 
-type ManifestProcess struct {
-	Build string   `yaml:"build"`
-	Image string   `yaml:"image"`
-	Links []string `yaml:"links"`
-}
+// type Manifest map[string]ManifestProcess
 
-type Manifest map[string]ManifestProcess
+// func releaseManifest(cluster, app, release string) (*Manifest, error) {
+//   drel, err := releasesTable(cluster, app).GetItem(&dynamodb.Key{release, ""})
 
-func releaseManifest(cluster, app, release string) (*Manifest, error) {
-	drel, err := releasesTable(cluster, app).GetItem(&dynamodb.Key{release, ""})
+//   if err != nil {
+//     return nil, err
+//   }
 
-	if err != nil {
-		return nil, err
-	}
+//   var manifest Manifest
 
-	var manifest Manifest
+//   err = yaml.Unmarshal([]byte(drel["manifest"].Value), &manifest)
 
-	err = yaml.Unmarshal([]byte(drel["manifest"].Value), &manifest)
+//   return &manifest, err
+// }
 
-	return &manifest, err
-}
+// func manifestResource(key string, params ResourceParams) (*Resource, error) {
+//   env, err := buildResourceTemplate(key, "env", params)
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   formation, err := buildResourceTemplate(key, "formation", params)
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   return &Resource{Env: env, Formation: formation}, nil
+// }
