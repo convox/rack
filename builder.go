@@ -5,90 +5,11 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"text/template"
 )
-
-var template = `{
-  "description": "Convox App",
-  "variables": {
-    "NAME": null,
-    "SOURCE": null,
-    "APPCONF": null,
-    "BASE_AMI": "ami-6e0b7206",
-    "AWS_REGION": "us-east-1",
-    "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
-    "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
-  },
-  "builders": [
-    {
-      "type": "amazon-ebs",
-      "region": "{{user \"AWS_REGION\"}}",
-      "access_key": "{{user \"AWS_ACCESS\"}}",
-      "secret_key": "{{user \"AWS_SECRET\"}}",
-      "source_ami": "{{user \"BASE_AMI\"}}",
-      "instance_type": "t2.micro",
-      "ssh_username": "ubuntu",
-      "ami_name": "{{user \"NAME\"}}-{{timestamp}}"
-    }
-  ],
-  "provisioners": [
-    {
-      "type": "shell",
-      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
-      "inline": [
-        "mkdir /build",
-        "chown ubuntu:ubuntu /build",
-        "mkdir /var/app"
-      ]
-    },
-    {
-      "type": "file",
-      "source": "{{user \"SOURCE\"}}/",
-      "destination": "/build"
-    },
-    {
-      "type": "shell",
-      "inline": [
-        "cd /build",
-        "/usr/local/bin/fig -p app build",
-        "/usr/local/bin/fig -p app pull"
-      ]
-    },
-    {
-      "type": "file",
-      "source": "{{user \"APPCONF\"}}",
-      "destination": "/tmp/app.conf"
-    },
-    {
-      "type": "shell",
-      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
-      "inline": [
-        "rm -rf /build",
-        "mv /tmp/app.conf /etc/init/app.conf"
-      ]
-    }
-  ]
-}`
-
-var appconf = `
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-respawn
-
-pre-start script
-  curl http://169.254.169.254/latest/user-data | jq -r ".start" > /var/app/start
-  curl http://169.254.169.254/latest/user-data | jq -r ".env[]" > /var/app/env
-  curl http://169.254.169.254/latest/user-data | jq -r '.ports | map("-p \(.):\(.)")[]' | tr '\n' ' ' > /var/app/ports
-  curl http://169.254.169.254/latest/user-data | jq -r '.volumes | map("-v \(.)")[]' | tr '\n' ' ' > /var/app/volumes
-end script
-
-script
-  docker run -a STDOUT -a STDERR --sig-proxy $(cat /var/app/ports) $(cat /var/app/volumes) --env-file /var/app/env app_$(cat /var/app/start)
-end script
-`
 
 type Builder struct {
 	AwsRegion string
@@ -100,40 +21,152 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, name string) error {
-	dir, err := ioutil.TempDir("", "repo")
+func (b *Builder) Build(repo, app, ref string) error {
+	ami, err := buildAmi(repo, app, ref)
+	fmt.Printf("ami %+v\n", ami)
+	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
 		return err
+	}
+
+	// cloudformation
+
+	return nil
+}
+
+func buildAmi(repo, app, ref string) (string, error) {
+	dir, err := ioutil.TempDir("", "repo")
+
+	if err != nil {
+		return "", err
 	}
 
 	clone := filepath.Join(dir, "clone")
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
-	cmd.Run()
+	err = cmd.Run()
+
+	if err != nil {
+		return "", err
+	}
+
+	if ref != "" {
+		cmd = exec.Command("git", "checkout", ref)
+		cmd.Dir = clone
+		err = cmd.Run()
+
+		if err != nil {
+			return "", err
+		}
+	}
 
 	data, err := ioutil.ReadFile(filepath.Join(clone, "fig.yml"))
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
-		fmt.Printf(",,manifest,,%s\n", scanner.Text())
+		fmt.Printf("manifest|%s\n", scanner.Text())
 	}
 
-	tf := filepath.Join(dir, "packer.json")
-	ioutil.WriteFile(tf, []byte(template), 0644)
+	output, err := dataRaw("packer.json")
 
-	ac := filepath.Join(dir, "app.conf")
-	ioutil.WriteFile(ac, []byte(appconf), 0644)
+	if err != nil {
+		return "", err
+	}
 
-	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "-var", "APPCONF="+ac, tf)
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	packerjson := filepath.Join(dir, "packer.json")
 
-	return nil
+	err = ioutil.WriteFile(packerjson, output, 0644)
+
+	if err != nil {
+		return "", err
+	}
+
+	output, err = dataRaw("upstart.conf")
+
+	if err != nil {
+		return "", err
+	}
+
+	appconf := filepath.Join(dir, "app.conf")
+
+	err = ioutil.WriteFile(appconf, output, 0644)
+
+	if err != nil {
+		return "", err
+	}
+
+	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "APP="+app, "-var", "SOURCE="+clone, "-var", "APPCONF="+appconf, packerjson)
+
+	stdout, err := cmd.StdoutPipe()
+
+	if err != nil {
+		return "", err
+	}
+
+	cmd.Start()
+
+	scanner = bufio.NewScanner(stdout)
+
+	ami := ""
+
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), ",", 6)
+
+		switch {
+		case len(parts) < 5:
+			fmt.Printf("unknown|%s\n", scanner.Text())
+		case parts[2] == "ui" && parts[3] == "say":
+			fmt.Printf("packer|%s\n", parts[4])
+		case strings.HasPrefix(parts[4], "    amazon-ebs: Instance ID:"):
+			fmt.Printf("packer|==> amazon-ebs: %s\n", strings.SplitN(parts[4], ": ", 2)[1])
+		case parts[2] == "ui" && parts[3] == "message":
+			fmt.Printf("build|%s\n", strings.Replace(strings.SplitN(parts[4], ": ", 2)[1], "%!(PACKER_COMMA)", ",", -1))
+		case parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id":
+			ami = strings.Split(parts[5], ":")[1]
+			fmt.Printf("ami|%s\n", ami)
+		}
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		return "", err
+	}
+
+	return ami, nil
+}
+
+func dataRaw(path string) ([]byte, error) {
+	return Asset(fmt.Sprintf("data/%s", path))
+}
+
+func dataTemplate(path, section string, object interface{}) ([]byte, error) {
+	data, err := dataRaw(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl, err := template.New(section).Parse(string(data))
+
+	if err != nil {
+		return nil, err
+	}
+
+	var output bytes.Buffer
+
+	err = tmpl.Execute(&output, object)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return output.Bytes(), nil
 }

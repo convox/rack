@@ -8,7 +8,7 @@ import (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s <repo-url> <ami-name>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <repo> <app> [ref]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -30,7 +30,22 @@ func main() {
 	builder.AwsAccess = *access
 	builder.AwsSecret = *secret
 
-	repo := args[0]
-	name := args[1]
-	builder.Build(repo, name)
+	repo := positional(args, 0)
+	app := positional(args, 1)
+	ref := positional(args, 2)
+
+	err := builder.Build(repo, app, ref)
+
+	if err != nil {
+		fmt.Printf("error|%s\n", err)
+		os.Exit(1)
+	}
+}
+
+func positional(args []string, n int) string {
+	if len(args) > n {
+		return args[n]
+	} else {
+		return ""
+	}
 }

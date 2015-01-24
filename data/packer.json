@@ -1,0 +1,61 @@
+{
+	"description": "Convox App",
+	"variables": {
+		"APP": null,
+		"SOURCE": null,
+		"APPCONF": null,
+		"BASE_AMI": "ami-6e0b7206",
+		"AWS_REGION": "us-east-1",
+		"AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
+		"AWS_SECRET": "{{env \"AWS_SECRET\"}}"
+	},
+	"builders": [
+		{
+			"type": "amazon-ebs",
+			"region": "{{user \"AWS_REGION\"}}",
+			"access_key": "{{user \"AWS_ACCESS\"}}",
+			"secret_key": "{{user \"AWS_SECRET\"}}",
+			"source_ami": "{{user \"BASE_AMI\"}}",
+			"instance_type": "t2.micro",
+			"ssh_username": "ubuntu",
+			"ami_name": "{{user \"APP\"}}-{{timestamp}}"
+		}
+	],
+	"provisioners": [
+		{
+			"type": "shell",
+			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+			"inline": [
+				"mkdir /build",
+				"chown ubuntu:ubuntu /build",
+				"mkdir /var/app"
+			]
+		},
+		{
+			"type": "file",
+			"source": "{{user \"SOURCE\"}}/",
+			"destination": "/build"
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"cd /build",
+				"/usr/local/bin/fig -p app build",
+				"/usr/local/bin/fig -p app pull"
+			]
+		},
+		{
+			"type": "file",
+			"source": "{{user \"APPCONF\"}}",
+			"destination": "/tmp/app.conf"
+		},
+		{
+			"type": "shell",
+			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+			"inline": [
+				"rm -rf /build",
+				"mv /tmp/app.conf /etc/init/app.conf"
+			]
+		}
+	]
+}
