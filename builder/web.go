@@ -9,7 +9,7 @@ import (
 
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/builder/controllers/builder"
+	"github.com/convox/kernel/builder/controllers"
 )
 
 var port string = "3000"
@@ -38,7 +38,7 @@ func main() {
 		rw.Write([]byte("Hello, World!"))
 	}).Methods("GET")
 
-	router.HandleFunc("/clusters/{cluster}/apps/{app}/build", builder.Build).Methods("POST")
+	router.HandleFunc("/apps/{app}/build", controllers.Build).Methods("POST")
 
 	n := negroni.Classic()
 	n.Use(negroni.HandlerFunc(parseForm))

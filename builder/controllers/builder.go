@@ -1,4 +1,4 @@
-package builder
+package controllers
 
 import (
 	"bufio"
@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/builder/controllers"
 
 	caws "github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
@@ -41,11 +40,11 @@ func init() {
 
 func Build(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	form := controllers.ParseForm(r)
+	form := ParseForm(r)
 
-	go executeBuild(vars["cluster"], vars["app"], form["repo"])
+	go executeBuild(vars["app"], form["repo"])
 
-	controllers.RenderText(rw, `{"status":"ok"}`)
+	RenderText(rw, `{"status":"ok"}`)
 }
 
 func awsEnvironment() string {
@@ -57,11 +56,11 @@ func awsEnvironment() string {
 	return strings.Join(env, "\n")
 }
 
-func executeBuild(cluster, app, repo string) {
-	id, err := createBuild(cluster, app)
+func executeBuild(app, repo string) {
+	id, err := createBuild(app)
 	fmt.Printf("err %+v\n", err)
 
-	ami := fmt.Sprintf("%s-%s", cluster, app)
+	name := fmt.Sprintf("convox-%s", app)
 
 	base, err := ioutil.TempDir("", "build")
 	fmt.Printf("err %+v\n", err)
@@ -71,10 +70,7 @@ func executeBuild(cluster, app, repo string) {
 	err = ioutil.WriteFile(env, []byte(awsEnvironment()), 0400)
 	fmt.Printf("err %+v\n", err)
 
-	fmt.Printf("repo %+v\n", repo)
-	fmt.Printf("ami %+v\n", ami)
-
-	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, ami)
+	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, name)
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
 
@@ -86,50 +82,38 @@ func executeBuild(cluster, app, repo string) {
 
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), ",", 6)
+		parts := strings.SplitN(scanner.Text(), "|", 2)
 
-		if len(parts) < 5 {
-			fmt.Println(scanner.Text())
+		if len(parts) < 2 {
+			fmt.Printf("unknown | %s\n", scanner.Text())
 			continue
 		}
 
-		if parts[2] == "manifest" {
-			manifest += parts[4] + "\n"
-		}
-
-		if parts[2] == "ui" && parts[3] == "say" {
-			fmt.Printf("system: %s\n", parts[4])
-		}
-
-		if parts[2] == "ui" && parts[3] == "message" {
-			line := parts[4]
-			message := strings.Replace(strings.SplitN(line, ": ", 2)[1], "%!(PACKER_COMMA)", ",", -1)
-			logs += fmt.Sprintf("%s\n", message)
-			fmt.Printf("message: %s\n", message)
-		}
-
-		if parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id" {
-			ami := strings.Split(parts[5], ":")[1]
-			release, err := createRelease(cluster, app, ami, manifest)
+		switch parts[0] {
+		case "manifest":
+			manifest += fmt.Sprintf("%s\n", parts[1])
+		case "packer":
+			fmt.Printf("packer | %s\n", parts[1])
+		case "build":
+			fmt.Printf("build | %s\n", parts[1])
+			logs += fmt.Sprintf("%s\n", parts[1])
+		case "ami":
+			release, err := createRelease(app, parts[1], manifest)
 			fmt.Printf("release %+v\n", release)
 			fmt.Printf("err %+v\n", err)
 
-			err = updateBuild(cluster, app, id, release, logs)
+			err = updateBuild(app, id, release, logs)
 			fmt.Printf("err %+v\n", err)
+		default:
+			fmt.Printf("unknown | %s\n", parts[1])
 		}
 	}
 
 	err = cmd.Wait()
 	fmt.Printf("err %+v\n", err)
-
-	// err = createRelease(cluster, app, "ami-foo", "example-manifest")
-	// fmt.Printf("err1 %+v\n", err)
-
-	// err = updateBuild(cluster, app, id, "ami-foo", "example-logs")
-	// fmt.Printf("err2 %+v\n", err)
 }
 
-func createBuild(cluster, app string) (string, error) {
+func createBuild(app string) (string, error) {
 	id := generateId("B", 9)
 	created := time.Now().Format(SortableTime)
 
@@ -140,7 +124,7 @@ func createBuild(cluster, app string) (string, error) {
 		*dynamodb.NewStringAttribute("status", "building"),
 	}
 
-	_, err := buildsTable(cluster, app).PutItem(id, "", build)
+	_, err := buildsTable(app).PutItem(id, "", build)
 
 	if err != nil {
 		return "", err
@@ -149,10 +133,8 @@ func createBuild(cluster, app string) (string, error) {
 	return id, nil
 }
 
-func updateBuild(cluster, app, id, release, logs string) error {
-	dbuild, err := buildsTable(cluster, app).GetItem(&dynamodb.Key{HashKey: id})
-
-	fmt.Printf("erra %+v\n", err)
+func updateBuild(app, id, release, logs string) error {
+	row, err := buildsTable(app).GetItem(&dynamodb.Key{HashKey: id})
 
 	if err != nil {
 		return err
@@ -160,7 +142,7 @@ func updateBuild(cluster, app, id, release, logs string) error {
 
 	build := []dynamodb.Attribute{}
 
-	for key, attr := range dbuild {
+	for key, attr := range row {
 		build = append(build, *dynamodb.NewStringAttribute(key, attr.Value))
 	}
 
@@ -171,18 +153,12 @@ func updateBuild(cluster, app, id, release, logs string) error {
 	build = append(build, *dynamodb.NewStringAttribute("release", release))
 	build = append(build, *dynamodb.NewStringAttribute("logs", logs))
 
-	_, err = buildsTable(cluster, app).PutItem(id, "", build)
+	_, err = buildsTable(app).PutItem(id, "", build)
 
 	return err
 }
 
-func createRelease(cluster, app, ami, manifest string) (string, error) {
-	dapp, err := appsTable(cluster).GetItem(&dynamodb.Key{HashKey: app})
-
-	if err != nil {
-		return "", err
-	}
-
+func createRelease(app, ami, manifest string) (string, error) {
 	id := generateId("R", 9)
 	created := time.Now().Format(SortableTime)
 
@@ -192,10 +168,9 @@ func createRelease(cluster, app, ami, manifest string) (string, error) {
 		*dynamodb.NewStringAttribute("id", id),
 		*dynamodb.NewStringAttribute("ami", ami),
 		*dynamodb.NewStringAttribute("manifest", manifest),
-		*dynamodb.NewStringAttribute("env", coalesce(dapp["env"], "{}")),
 	}
 
-	_, err = releasesTable(cluster, app).PutItem(id, "", release)
+	_, err := releasesTable(app).PutItem(id, "", release)
 
 	return id, err
 }
@@ -208,21 +183,15 @@ func coalesce(att *dynamodb.Attribute, def string) string {
 	}
 }
 
-func appsTable(cluster string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("name", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("%s-apps", cluster), pk)
+func buildsTable(app string) *dynamodb.Table {
+	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
+	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-builds", app), pk)
 	return table
 }
 
-func buildsTable(cluster, app string) *dynamodb.Table {
+func releasesTable(app string) *dynamodb.Table {
 	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("%s-%s-builds", cluster, app), pk)
-	return table
-}
-
-func releasesTable(cluster, app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("%s-%s-releases", cluster, app), pk)
+	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-releases", app), pk)
 	return table
 }
 
