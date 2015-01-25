@@ -1,53 +1,86 @@
-{{ define "title" }} {{.App.Cluster.Name}} / {{.App.Name}} / {{.Name}} {{ end }}
-
-{{ define "body" }}
-	<ul class="breadcrumb">
-		<li><a href="/clusters">Clusters</a></li>
-		<li><a href="/clusters/{{.App.Cluster.Name}}">{{.App.Cluster.Name}}</a></li>
-		<li><a href="/clusters/{{.App.Cluster.Name}}/apps/{{.App.Name}}">{{.App.Name}}</a></li>
-		<li class="active">{{ .Name }}</li>
-	</ul>
-	<div class="panel panel-default">
-		<div class="panel-heading">
-			<h3 class="panel-title">Process Information</h3>
-		</div>
-		<div class="panel-body">
-			Stuff
-		</div>
-	</div>
-	<div class="table-title">
-		<table class="table table-striped table-bordered">
-			<thead>
-				<tr class="title">
-					<th colspan="4">
-						Containers
-					</th>
-				</tr>
-				<tr>
-					<th class="expand">Name</th>
-					<th>CPU</th>
-					<th>Memory</th>
-					<th>Disk</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{ range $container := .Containers }}
-					<tr>
-						<td>{{.Name}}</td>
-						<td>{{ meter "cpu"    .CpuUsed    .CpuTotal    }}</td>
-						<td>{{ meter "memory" .MemoryUsed .MemoryTotal }}</td>
-						<td>{{ meter "disk"   .DiskUsed   .DiskTotal   }}</td>
-					</tr>
-				{{ end }}
-			</tbody>
-		</table>
-	</div>
-	<script>
-		$(window).ready(function() {
-			$('#toggle-select').on('change', function() {
-				console.log('checked', this.checked);
-				$('input[type="checkbox"]').prop('checked', this.checked);
-			});
-		});
-	</script>
+{{ define "formation" }}
+  {{ if .Balancer }}
+    "{{ upper .Name }}BalancerSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "{{ .Name}} Balancer",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
+        ],
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "{{ upper .Name }}Balancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": [
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Ref": "Subnet2" },
+          { "Ref": "Subnet3" }
+        ],
+        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+        "ConnectionSettings": { "IdleTimeout": 60 },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": "HTTP:5000/ping",
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+        "LoadBalancerName": "convox-{{ .App }}",
+        "Listeners": [
+          { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "5000" }
+        ],
+        "SecurityGroups": [ { "Ref": "{{ upper .Name }}BalancerSecurity" } ]
+      }
+    },
+  {{ end }}
+  "{{ upper .Name }}Launch": {
+    "Type": "AWS::AutoScaling::LaunchConfiguration",
+    "Properties": {
+      "AssociatePublicIpAddress": true,
+      "BlockDeviceMappings": [ 
+        { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
+      ],
+      "EbsOptimized": false,
+      "ImageId": { "Fn::FindInMap": [ "Variables", "Ami", "Value" ] },
+      "InstanceMonitoring": true,
+      "InstanceType": "t2.micro",
+      "KeyName": "production",
+      "SecurityGroups": [ { "Ref": "SecurityInstances" } ],
+      "UserData": {{ safe .Userdata }}
+    }
+  },
+  "{{ upper .Name }}Instances": {
+    "Type": "AWS::AutoScaling::AutoScalingGroup",
+    "Properties" : {
+      "LaunchConfigurationName" : { "Ref": "{{ upper .Name }}Launch" },
+      "AvailabilityZones": [ {{ array .AvailabilityZones }} ],
+      "VPCZoneIdentifier": [ 
+        { "Ref": "Subnet0" },
+        { "Ref": "Subnet1" },
+        { "Ref": "Subnet2" },
+        { "Ref": "Subnet3" }
+      ],
+      "Cooldown": 5,
+      "DesiredCapacity": "{{ .Count }}",
+      "MinSize" : "1",
+      "MaxSize" : "3",
+      {{ if .Balancer }}
+        "LoadBalancerNames": [ { "Ref": "{{ upper .Name }}Balancer" } ],
+      {{ end }}
+      "HealthCheckType": "EC2",
+      "HealthCheckGracePeriod": 30,
+      "MetricsCollection": [ { "Granularity": "1Minute" } ]
+    },
+    "UpdatePolicy": {
+      "AutoScalingRollingUpdate": {
+        "MaxBatchSize": 1,
+        "MinInstancesInService": 1
+      }
+    }
+  },
 {{ end }}

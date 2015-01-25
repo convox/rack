@@ -1,38 +1,28 @@
 package models
 
-import "time"
+import (
+	"os"
 
-type App struct {
-	Name       string
-	Status     string
-	Repository string
-	Release    string
+	caws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
 
-	CpuUsed     int
-	CpuTotal    int
-	MemoryUsed  int
-	MemoryTotal int
-	DiskUsed    int
-	DiskTotal   int
+	gaws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
+)
 
-	Cluster   *Cluster
-	Builds    Builds
-	Processes Processes
-	Releases  Releases
-}
+var SortableTime = "20060102.150405.000000000"
 
-type Apps []App
+var (
+	cauth = caws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
+	gauth = gaws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
+)
 
-type Build struct {
-	Id        string
-	Status    string
-	Release   string
-	CreatedAt time.Time
-	EndedAt   time.Time
-	Logs      string
-}
-
-type Builds []Build
+var (
+	CloudFormation = cloudformation.New(gauth, gaws.Regions[os.Getenv("AWS_REGION")])
+	DynamoDB       = dynamodb.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
+	EC2            = ec2.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
+)
 
 type Cluster struct {
 	Name   string
@@ -62,30 +52,3 @@ type Container struct {
 }
 
 type Containers []Container
-
-type Process struct {
-	Name     string
-	Command  string
-	Count    int
-	Balancer string
-
-	CpuUsed     int
-	CpuTotal    int
-	MemoryUsed  int
-	MemoryTotal int
-	DiskUsed    int
-	DiskTotal   int
-
-	App        *App
-	Containers Containers
-}
-
-type Processes []Process
-
-type Release struct {
-	Id        string
-	Ami       string
-	CreatedAt time.Time
-}
-
-type Releases []Release

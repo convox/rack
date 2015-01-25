@@ -67,6 +67,7 @@ form {
 	padding-right: 8px !important;
 }
 
+.panel-heading button,
 .panel-heading form {
 	float: right;
 	margin-top: -2px;

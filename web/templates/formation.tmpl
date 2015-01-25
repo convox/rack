@@ -1,0 +1,194 @@
+{{ define "formation" }}
+  {{ $app := . }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters" : {
+      "Release" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Release"
+      },
+      "Repository" : {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Repository"
+      }
+    },
+    "Mappings": {
+      "Variables": {
+        "Ami": { "Value": "{{ .Ami }}" }
+      }
+    },
+    "Resources": {
+      "Vpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": "10.0.0.0/16",
+          "InstanceTenancy": "default",
+          "Tags": [
+            { "Key": "Name", "Value": "{{.Name}}" }
+          ]
+        }
+      },
+      "Gateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+        }
+      },
+      "GatewayAttachment": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "InternetGatewayId": { "Ref": "Gateway" },
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "RouteTable": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      {{ range $i, $subnet := .Subnets }}
+        "Subnet{{ $i }}": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "AvailabilityZone": "{{ .AvailabilityZone }}",
+            "CidrBlock": "{{ .Cidr }}",
+            "VpcId": { "Ref": "Vpc" }
+          }
+        },
+        "Subnet{{ $i }}Routes": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": { "Ref": "Subnet{{ $i }}" },
+            "RouteTableId": { "Ref": "RouteTable" }
+          }
+        },
+      {{ end }}
+      {{ safe .ProcessFormation }}
+      {{ safe .ResourceFormation }}
+      "SecurityInstances": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "Instances",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "24.98.26.131/32" },
+            { "IpProtocol": "tcp", "FromPort": "5000", "ToPort": "5000", "CidrIp": "0.0.0.0/0" }
+          ],
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "DynamoBuilds": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "convox-{{ .Name }}-builds",
+          "AttributeDefinitions": [
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "id", "KeyType": "HASH" }
+          ],
+          "GlobalSecondaryIndexes": [{
+            "IndexName": "app.created",
+            "KeySchema": [
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoEnv": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "convox-{{ .Name }}-env",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoProcesses": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "convox-{{ .Name }}-processes",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoReleases": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "convox-{{ .Name }}-releases",
+          "AttributeDefinitions": [
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "id", "KeyType": "HASH" }
+          ],
+          "GlobalSecondaryIndexes": [{
+            "IndexName": "app.created",
+            "KeySchema": [
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      }
+    },
+    "Outputs": {
+      {{ range .Processes }}
+        {{ if .Balancer }}
+          "{{ upper .Name }}BalancerId": {
+            "Value": { "Ref": "{{ upper .Name }}Balancer" }
+          },
+          "{{ upper .Name }}BalancerHost": {
+            "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
+          },
+        {{ end }}
+      {{ end }}
+      "SecurityInstances": {
+        "Value": { "Ref": "SecurityInstances" }
+      }
+    }
+  }
+{{ end }}

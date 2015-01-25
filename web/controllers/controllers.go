@@ -66,6 +66,13 @@ func RegisterTemplate(name string, names ...string) {
 	Templates[name] = template.Must(template.New("layout").Funcs(displayHelpers()).ParseFiles(templates...))
 }
 
+func RenderError(rw http.ResponseWriter, err error) error {
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
+	return err
+}
+
 func RenderTemplate(rw http.ResponseWriter, name string, data interface{}) error {
 	if _, ok := Templates[name]; !ok {
 		return RenderError(rw, fmt.Errorf("no such template: %s", name))
@@ -76,10 +83,8 @@ func RenderTemplate(rw http.ResponseWriter, name string, data interface{}) error
 	return nil
 }
 
-func RenderError(rw http.ResponseWriter, err error) error {
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-	}
+func RenderText(rw http.ResponseWriter, text string) error {
+	_, err := rw.Write([]byte(text))
 	return err
 }
 

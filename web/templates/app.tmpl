@@ -1,22 +1,17 @@
-{{ define "title" }} {{.Cluster.Name}} / {{.Name}} {{ end }}
+{{ define "title" }} Convox {{ end }}
 
 {{ define "body" }}
-	{{ $app := . }}
-	<ul class="breadcrumb">
-		<li><a href="/clusters">Clusters</a></li>
-		<li><a href="/clusters/{{.Cluster.Name}}">{{.Cluster.Name}}</a></li>
-		<li class="active">{{ .Name }}</li>
-	</ul>
+  {{ $app := . }}
+	<div id="alert" class="alert alert-danger  alert-dismissible" role="alert" style="display: none;">
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		<strong>Error:</strong><span class="message"></span>
+	</div>
+
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<form method="post" action="/clusters/{{.Cluster.Name}}/apps/{{.Name}}/delete">
-				<input type="submit" class="btn btn-danger btn-xs" value="Destroy App">
-			</form>
-			<form method="post" action="/clusters/{{ .Cluster.Name }}/apps/{{ .Name }}/build">
-				<input type="hidden" name="repo" value="{{ .Repository }}">
-				<input type="submit" class="btn btn-success btn-xs" value="Build">
-			</form>
-			<h3 class="panel-title">App Information</h3>
+			<button id="destroy-app" class="btn btn-danger btn-xs">Destroy App</button>
+			<button id="build-app" class="btn btn-success btn-xs">Build</button>
+			<h3 class="panel-title">{{ .Name }}</h3>
 		</div>
 		<div class="panel-body">
 			{{ label "Repository" .Repository }}
@@ -81,9 +76,9 @@
 					<tr>
 						<td class="id">{{ .Id }}</td>
 						<td>{{ .Status }}</td>
-						<td>{{ timeago .CreatedAt }}</td>
+						<td>{{ timeago .Created }}</td>
 						<td class="id">{{ .Release }}</td>
-						<td>{{ duration .CreatedAt .EndedAt }}</td>
+						<td>{{ duration .Created .Ended }}</td>
 						<td class="buttons">
 							<button class="btn btn-xs btn-primary glyph" title="Logs">
 								<span class="glyphicon glyphicon-align-left" aria-hidden="true" style="margin-top:2px;"></span>
@@ -117,15 +112,12 @@
 					<tr>
 						<td class="id">{{ .Id }}</td>
 						<td>{{ .Ami }}</td>
-						<td>{{ timeago .CreatedAt }}</td>
+						<td>{{ timeago .Created }}</td>
 						<td class="buttons">
 							{{ if eq $app.Release .Id }}
 								<div class="label label-success release-active">Active</div>
 							{{ else }}
-								<form method="post" action="/clusters/{{ $app.Cluster.Name }}/apps/{{ $app.Name }}/promote">
-									<input type="hidden" name="release" value="{{ .Id }}">
-									<input type="submit" class="btn btn-warning btn-xs" value="Promote">
-								</form>
+								<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
 							{{ end }}
 						</td>
 					</tr>
@@ -135,6 +127,36 @@
 	</div>
 	<script>
 		$(window).ready(function() {
+			$('#build-app').on('click', function() {
+				$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
+					window.location = '/apps/{{ .Name }}';
+				}).fail(function(msg) {
+					$('#alert .message').html(msg.responseText);
+					$('#alert').show();
+				});
+			});
+
+			$('#destroy-app').on('click', function() {
+				$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
+					window.location = '/apps';
+				}).fail(function(msg) {
+					$('#alert .message').html(msg.responseText);
+					$('#alert').show();
+				});
+			});
+
+			$('.promote-release').on('click', function() {
+				console.log('foo');
+				$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/promote', data: { release: $(this).data('release') }}).done(function(msg) {
+					window.location = '/apps/{{ .Name }}';
+				}).fail(function(msg) {
+					$('#alert .message').html(msg.responseText);
+					$('#alert').show();
+				});
+			});
 		});
 	</script>
+{{ end }}
+
+{{ define "build" }}
 {{ end }}

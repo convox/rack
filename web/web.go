@@ -5,19 +5,16 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/convox/kernel/web/controllers"
-	"github.com/convox/kernel/web/controllers/apps"
-	"github.com/convox/kernel/web/controllers/clusters"
-
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/web/controllers"
 )
 
 var port string = "5000"
 
 func redirect(path string) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		http.Redirect(rw, r, "/clusters", http.StatusFound)
+		http.Redirect(rw, r, path, http.StatusFound)
 	}
 }
 
@@ -33,22 +30,14 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", redirect("/clusters")).Methods("GET")
-	router.HandleFunc("/clusters", clusters.List).Methods("GET")
-	router.HandleFunc("/clusters", clusters.Create).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}", clusters.Show).Methods("GET")
-	router.HandleFunc("/clusters/{cluster}/delete", clusters.Delete).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}/apps", apps.Create).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}/apps/{app}", apps.Show).Methods("GET")
-	router.HandleFunc("/clusters/{cluster}/apps/{app}/delete", apps.Delete).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}/apps/{app}/build", apps.Build).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}/apps/{app}/promote", apps.Promote).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
-	router.HandleFunc("/settings", controllers.Settings).Methods("GET")
+	router.HandleFunc("/", redirect("/apps")).Methods("GET")
 
-	router.HandleFunc("/setup", func(rw http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(rw, "Needs setup")
-	}).Methods("GET")
+	router.HandleFunc("/apps", controllers.AppList).Methods("GET")
+	router.HandleFunc("/apps", controllers.AppCreate).Methods("POST")
+	router.HandleFunc("/apps/{app}", controllers.AppShow).Methods("GET")
+	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
+	router.HandleFunc("/apps/{app}/build", controllers.AppBuild).Methods("POST")
+	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 
 	n := negroni.Classic()
 	n.Use(negroni.HandlerFunc(parseForm))
