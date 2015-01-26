@@ -10,6 +10,7 @@ import (
 type Build struct {
 	Id string
 
+	Logs    string
 	Release string
 	Status  string
 
@@ -51,6 +52,7 @@ func buildFromRow(row map[string]*dynamodb.Attribute) *Build {
 
 	return &Build{
 		Id:      coalesce(row["id"], ""),
+		Logs:    coalesce(row["logs"], ""),
 		Release: coalesce(row["release"], ""),
 		Status:  coalesce(row["status"], ""),
 		Created: created,

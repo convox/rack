@@ -17,7 +17,19 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	return nil, nil
+	rows, err := processesTable(app).Scan(nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	processes := make(Processes, len(rows))
+
+	for i, row := range rows {
+		processes[i] = *processFromRow(row)
+	}
+
+	return processes, nil
 }
 
 func (p *Process) Save() error {
@@ -32,12 +44,18 @@ func (p *Process) Save() error {
 	return err
 }
 
-func (p *Process) Balancer() string {
-	if p.Name == "web" {
-		return "foo"
-	} else {
+func (p *Process) Balancer() bool {
+	return p.Name == "web"
+}
+
+func (p *Process) BalancerUrl() string {
+	app, err := GetApp(p.App)
+
+	if err != nil {
 		return ""
 	}
+
+	return app.Outputs[upperName(p.Name)+"BalancerHost"]
 }
 
 func (p *Process) Formation(env string) (string, error) {
@@ -73,8 +91,9 @@ func (p *Process) Userdata() string {
 
 func processFromRow(row map[string]*dynamodb.Attribute) *Process {
 	return &Process{
-		Name:  coalesce(row["id"], ""),
-		Count: coalesce(row["release"], ""),
+		Name:  coalesce(row["name"], ""),
+		Count: coalesce(row["count"], "0"),
+		App:   coalesce(row["app"], ""),
 	}
 }
 

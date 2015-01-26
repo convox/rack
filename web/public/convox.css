@@ -216,3 +216,9 @@ td.meta-buttons {
 td.meta-buttons .glyph {
 	float: right;
 }
+
+pre.build-logs {
+	height: 400px;
+	overflow-y: auto;
+	overflow: scroll;
+}

@@ -39,16 +39,16 @@
 					<tr>
 						<td class="meta-buttons">
 							{{ if .Balancer }}
-								<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-content="<a href='http://{{ .Balancer }}/'>{{ .Balancer }}</a>">
+								<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-content="<a href='http://{{ .BalancerUrl }}/'>{{ .BalancerUrl }}</a>">
 									<span class="glyphicon glyphicon-random">
 								</button>
 							{{ end }}
-							<a href="/clusters/{{ $app.Cluster.Name }}/apps/{{ $app.Name }}/processes/{{.Name}}">{{ .Name }}</a>
+							<a href="/apps/{{ $app.Name }}/processes/{{.Name}}">{{ .Name }}</a>
 						</td>
 						<td class="text-center">{{.Count}}</td>
-						<td>{{ meter "cpu"    .CpuUsed    .CpuTotal    }}</td>
-						<td>{{ meter "memory" .MemoryUsed .MemoryTotal }}</td>
-						<td>{{ meter "disk"   .DiskUsed   .DiskTotal   }}</td>
+						<td>{{ meter "cpu"    0 100 }}</td>
+						<td>{{ meter "memory" 0 100 }}</td>
+						<td>{{ meter "disk"   0 100 }}</td>
 					</tr>
 				{{ end }}
 			</tbody>
@@ -80,11 +80,8 @@
 						<td class="id">{{ .Release }}</td>
 						<td>{{ duration .Created .Ended }}</td>
 						<td class="buttons">
-							<button class="btn btn-xs btn-primary glyph" title="Logs">
+							<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">
 								<span class="glyphicon glyphicon-align-left" aria-hidden="true" style="margin-top:2px;"></span>
-							</button>
-							<button class="btn btn-xs btn-primary glyph" title="Manifest">
-								<span class="glyphicon glyphicon-briefcase" aria-hidden="true" style="margin-top:2px;"></span>
 							</button>
 						</td>
 					</tr>
@@ -125,6 +122,21 @@
 			</tbody>
 		</table>
 	</div>
+	{{ range .Builds }}
+		<div id="build-logs-{{ .Id }}" class="modal fade">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Build Logs: {{ .Id }}</h4>
+					</div>
+					<div class="modal-body">
+						<pre class="build-logs">{{ .Logs }}</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+	{{ end }}
 	<script>
 		$(window).ready(function() {
 			$('#build-app').on('click', function() {

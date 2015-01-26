@@ -10,6 +10,8 @@ type App struct {
 	Name string
 
 	Status     string
+	Outputs    map[string]string
+	Parameters map[string]string
 	Repository string
 	Release    string
 
@@ -54,6 +56,9 @@ func GetApp(name string) (*App, error) {
 
 	app := appFromStack(res.Stacks[0])
 
+	app.Outputs = stackOutputs(res.Stacks[0])
+	app.Parameters = stackParameters(res.Stacks[0])
+
 	builds, err := ListBuilds(app.Name)
 
 	if err != nil {
@@ -61,6 +66,14 @@ func GetApp(name string) (*App, error) {
 	}
 
 	app.Builds = builds
+
+	processes, err := ListProcesses(app.Name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	app.Processes = processes
 
 	releases, err := ListReleases(app.Name)
 
