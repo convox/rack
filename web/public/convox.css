@@ -222,3 +222,24 @@ pre.build-logs {
 	overflow-y: auto;
 	overflow: scroll;
 }
+
+.nav li .glyphicon {
+	padding-top: 2px;
+	margin-right: 7px;
+}
+
+.powered-by {
+	margin-right: 180px;
+	margin-top: 6px;
+}
+
+.powered-by img {
+	height: 40px;
+	margin-right: 8px;
+	vertical-align: middle;
+}
+
+.powered-by .location {
+	color: #bdbdbd;
+	display: inline-block;
+}

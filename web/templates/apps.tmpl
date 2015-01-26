@@ -1,6 +1,11 @@
 {{ define "title" }} Convox {{ end }}
 
 {{ define "body" }}
+
+	<ol class="breadcrumb">
+		<li class="active">Apps</li>
+	</ol>
+
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr class="title">
@@ -29,7 +34,9 @@
 			{{ end }}
 		</tbody>
 	</table>
+
 	{{ template "modals" . }}
+
 {{ end }}
 
 {{ define "modals" }}

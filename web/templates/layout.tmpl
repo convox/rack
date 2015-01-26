@@ -21,9 +21,7 @@
 			<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 			<script src="/bootstrap/js/bootstrap.min.js"></script>
 			<script src="/timeago.js"></script>
-
 			{{ template "navbar" . }}
-
 			<div class="container">
 				{{ template "body" . }}
 			</div>
@@ -48,10 +46,13 @@
 			</div>
 			<div class="collapse navbar-collapse" id="navbar-links">
 				<ul class="nav navbar-nav pull-right">
-					<li><a href="/settings">Settings</a></li>
+					<li class="powered-by"><img src="/aws.png"><div class="location id">us-east-1</div></li>
+					<li><a href="/users"><span class="glyphicon glyphicon-user"></span>Users</a></li>
+					<li><a href="/groups"><span class="glyphicon glyphicon-th"></span>Groups</a></li>
+					<li><a href="/settings"><span class="glyphicon glyphicon-cog"></span>Settings</a></li>
 				</ul>
 				<ul class="nav navbar-nav">
-					<li><a href="/apps">Apps</a></li>
+					<li><a href="/apps"><span class="glyphicon glyphicon-th-list"></span>Apps</a></li>
 				</ul>
 			</div>
 		</div>

@@ -5,11 +5,12 @@ RUN go get github.com/ddollar/gin
 EXPOSE 3000
 RUN apt-get update
 RUN apt-get -y install nginx
-RUN mkdir -p /nginx/client_body_temp
-RUN mkdir -p /nginx/fastcgi_temp
-RUN mkdir -p /nginx/proxy_temp
-RUN mkdir -p /nginx/scgi_temp
-RUN mkdir -p /nginx/uwsgi_temp
+RUN mkdir -p /var/cache/nginx/body
+RUN mkdir -p /var/cache/nginx/fastcgi
+RUN mkdir -p /var/cache/nginx/proxy
+RUN mkdir -p /var/cache/nginx/scgi
+RUN mkdir -p /var/cache/nginx/uwsgi
+RUN mkdir -p /var/run/nginx
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
 ENV PORT 5000
