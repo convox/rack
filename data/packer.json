@@ -26,6 +26,7 @@
 			"type": "shell",
 			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
 			"inline": [
+				"set -e",
 				"mkdir /build",
 				"chown ubuntu:ubuntu /build",
 				"mkdir /var/app"
@@ -39,6 +40,7 @@
 		{
 			"type": "shell",
 			"inline": [
+				"set -e",
 				"cd /build",
 				"/usr/local/bin/fig -p app build",
 				"/usr/local/bin/fig -p app pull"
@@ -53,6 +55,7 @@
 			"type": "shell",
 			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
 			"inline": [
+				"set -e",
 				"rm -rf /build",
 				"mv /tmp/app.conf /etc/init/app.conf"
 			]
