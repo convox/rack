@@ -65,21 +65,27 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	app.Release = r.Id
+
 	manifest, err := LoadManifest(r.Manifest)
 
 	if err != nil {
 		return err
 	}
 
-	manifest.Apply(app)
+	err = manifest.Apply(app)
 
-	fmt.Printf("app %+v\n", app)
+	if err != nil {
+		return err
+	}
 
 	formation, err := app.Formation()
 
 	if err != nil {
 		return err
 	}
+
+	printLines(formation)
 
 	sp := &cloudformation.UpdateStackParams{
 		StackName:    fmt.Sprintf("convox-%s", r.App),

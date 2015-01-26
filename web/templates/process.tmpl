@@ -1,16 +1,16 @@
 {{ define "formation" }}
-  {{ if .Balancer }}
-    "{{ upper .Name }}BalancerSecurity": {
+  {{ if .Process.Balancer }}
+    "{{ upper .Process.Name }}BalancerSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "{{ .Name}} Balancer",
+        "GroupDescription": "{{ .Process.Name}} Balancer",
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
         ],
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "{{ upper .Name }}Balancer": {
+    "{{ upper .Process.Name }}Balancer": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
         "Subnets": [
@@ -25,20 +25,20 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:5000/ping",
+          "Target": "HTTP:3000/",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": "convox-{{ .App }}",
+        "LoadBalancerName": "convox-{{ .Process.App }}",
         "Listeners": [
-          { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "5000" }
+          { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "3000" }
         ],
-        "SecurityGroups": [ { "Ref": "{{ upper .Name }}BalancerSecurity" } ]
+        "SecurityGroups": [ { "Ref": "{{ upper .Process.Name }}BalancerSecurity" } ]
       }
     },
   {{ end }}
-  "{{ upper .Name }}Launch": {
+  "{{ upper .Process.Name }}Launch": {
     "Type": "AWS::AutoScaling::LaunchConfiguration",
     "Properties": {
       "AssociatePublicIpAddress": true,
@@ -51,14 +51,14 @@
       "InstanceType": "t2.micro",
       "KeyName": "production",
       "SecurityGroups": [ { "Ref": "SecurityInstances" } ],
-      "UserData": {{ safe .Userdata }}
+      "UserData": {{ template "userdata" . }}
     }
   },
-  "{{ upper .Name }}Instances": {
+  "{{ upper .Process.Name }}Instances": {
     "Type": "AWS::AutoScaling::AutoScalingGroup",
     "Properties" : {
-      "LaunchConfigurationName" : { "Ref": "{{ upper .Name }}Launch" },
-      "AvailabilityZones": [ {{ array .AvailabilityZones }} ],
+      "LaunchConfigurationName" : { "Ref": "{{ upper .Process.Name }}Launch" },
+      "AvailabilityZones": [ {{ array .Process.AvailabilityZones }} ],
       "VPCZoneIdentifier": [ 
         { "Ref": "Subnet0" },
         { "Ref": "Subnet1" },
@@ -66,15 +66,18 @@
         { "Ref": "Subnet3" }
       ],
       "Cooldown": 5,
-      "DesiredCapacity": "{{ .Count }}",
+      "DesiredCapacity": "{{ .Process.Count }}",
       "MinSize" : "1",
       "MaxSize" : "3",
-      {{ if .Balancer }}
-        "LoadBalancerNames": [ { "Ref": "{{ upper .Name }}Balancer" } ],
+      {{ if .Process.Balancer }}
+        "LoadBalancerNames": [ { "Ref": "{{ upper .Process.Name }}Balancer" } ],
       {{ end }}
       "HealthCheckType": "EC2",
       "HealthCheckGracePeriod": 30,
-      "MetricsCollection": [ { "Granularity": "1Minute" } ]
+      "MetricsCollection": [ { "Granularity": "1Minute" } ],
+      "Tags": [
+        { "Key": "Name", "Value": "{{ .App.Name }}-{{ .Process.Name }}", "PropagateAtLaunch": true }
+      ]
     },
     "UpdatePolicy": {
       "AutoScalingRollingUpdate": {
@@ -83,4 +86,32 @@
       }
     }
   },
+{{ end }}
+
+{{ define "userdata" }}
+  {
+    "Fn::Base64": {
+      "Fn::Join": [ "\n", [
+        "{",
+        "  \"start\": \"{{ .Process.Name }}\",",
+        "  \"env\": [",
+        { 
+          "Fn::Join": [ "", [
+            "    \"",
+            {
+              "Fn::Join": [ "\",\n    \"", [
+                {{ safe .Env }}
+                "CONVOX_CLUSTER={{ .App.Cluster }}",
+                "CONVOX_APP={{ .App.Name }}"
+              ] ]
+            },
+            "\""
+          ] ]
+        },
+        "  ],",
+        "  \"ports\": [ {{ ports .Process.Ports }} ]",
+        "}"
+      ] ]
+    }
+  }
 {{ end }}

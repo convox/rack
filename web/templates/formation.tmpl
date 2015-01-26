@@ -48,6 +48,14 @@
           "VpcId": { "Ref": "Vpc" }
         }
       },
+      "DefaultRoute": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "Gateway" },
+          "RouteTableId": { "Ref": "RouteTable" }
+        }
+      },
       {{ range $i, $subnet := .Subnets }}
         "Subnet{{ $i }}": {
           "Type": "AWS::EC2::Subnet",
@@ -73,7 +81,7 @@
           "GroupDescription": "Instances",
           "SecurityGroupIngress": [
             { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "24.98.26.131/32" },
-            { "IpProtocol": "tcp", "FromPort": "5000", "ToPort": "5000", "CidrIp": "0.0.0.0/0" }
+            { "IpProtocol": "tcp", "FromPort": "3000", "ToPort": "3000", "CidrIp": "0.0.0.0/0" }
           ],
           "VpcId": { "Ref": "Vpc" }
         }

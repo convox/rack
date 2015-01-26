@@ -9,6 +9,7 @@ import (
 type Process struct {
 	Name  string
 	Count string
+	Ports []int
 
 	App string
 }
@@ -20,7 +21,15 @@ func ListProcesses(app string) (Processes, error) {
 }
 
 func (p *Process) Save() error {
-	return nil
+	process := []dynamodb.Attribute{
+		*dynamodb.NewStringAttribute("name", p.Name),
+		*dynamodb.NewStringAttribute("count", p.Count),
+		*dynamodb.NewStringAttribute("app", p.App),
+	}
+
+	_, err := processesTable(p.App).PutItem(p.Name, "", process)
+
+	return err
 }
 
 func (p *Process) Balancer() string {
@@ -31,14 +40,19 @@ func (p *Process) Balancer() string {
 	}
 }
 
-func (p *Process) Formation() (string, error) {
-	formation, err := buildTemplate("process", "formation", p)
+func (p *Process) Formation(env string) (string, error) {
+	p.Ports = []int{3000}
+
+	params := map[string]interface{}{
+		"Env":     env,
+		"Process": p,
+	}
+
+	formation, err := buildTemplate("process", "formation", params)
 
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Printf("formation %+v\n", formation)
 
 	return formation, nil
 }
@@ -64,8 +78,8 @@ func processFromRow(row map[string]*dynamodb.Attribute) *Process {
 	}
 }
 
-func processTable(app string) *dynamodb.Table {
+func processesTable(app string) *dynamodb.Table {
 	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("name", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-processs", app), pk)
+	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-processes", app), pk)
 	return table
 }

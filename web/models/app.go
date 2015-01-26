@@ -16,6 +16,7 @@ type App struct {
 	Builds    Builds
 	Processes Processes
 	Releases  Releases
+	Resources Resources
 }
 
 type Apps []App
@@ -99,17 +100,26 @@ func (a *App) Delete() error {
 }
 
 func (a *App) Formation() (string, error) {
+	fmt.Printf("a %+v\n", a)
+
+	fmt.Printf("a.Ami() %+v\n", a.Ami())
+
 	formation, err := buildTemplate("formation", "formation", a)
 
 	if err != nil {
 		return "", err
 	}
 
+	// printLines(formation)
+
 	return prettyJson(formation)
 }
 
 func (a *App) Ami() string {
 	release, err := GetRelease(a.Name, a.Release)
+
+	fmt.Printf("release %+v\n", release)
+	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
 		return ""
@@ -121,13 +131,13 @@ func (a *App) Ami() string {
 func (a *App) ProcessFormation() string {
 	formation := ""
 
-	fmt.Printf("a.Processes %+v\n", a.Processes)
-
 	for _, p := range a.Processes {
-		f, err := p.Formation()
+		env := a.ResourceEnv()
+
+		f, err := p.Formation(env)
 
 		if err != nil {
-			fmt.Printf("err %+v\n", err)
+			panic(err)
 		}
 
 		formation += f
@@ -136,8 +146,36 @@ func (a *App) ProcessFormation() string {
 	return formation
 }
 
+func (a *App) ResourceEnv() string {
+	env := ""
+
+	for _, r := range a.Resources {
+		e, err := r.Env()
+
+		if err != nil {
+			panic(err)
+		}
+
+		env += e
+	}
+
+	return env
+}
+
 func (a *App) ResourceFormation() string {
-	return ""
+	formation := ""
+
+	for _, r := range a.Resources {
+		f, err := r.Formation()
+
+		if err != nil {
+			panic(err)
+		}
+
+		formation += f
+	}
+
+	return formation
 }
 
 func (a *App) Subnets() Subnets {

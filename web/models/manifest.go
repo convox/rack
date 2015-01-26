@@ -6,22 +6,32 @@ import (
 	"github.com/convox/kernel/web/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
-type Manifest map[string]ManifestEntry
+type Manifest []ManifestEntry
 
 type ManifestEntry struct {
 	Build string   `yaml:"build"`
 	Env   []string `yaml:"env"`
 	Image string   `yaml:"image"`
 	Links []string `yaml:"links"`
+	Name  string
 }
 
-func LoadManifest(data string) (*Manifest, error) {
-	var manifest *Manifest
+type ManifestEntries map[string]ManifestEntry
 
-	err := yaml.Unmarshal([]byte(data), &manifest)
+func LoadManifest(data string) (Manifest, error) {
+	var entries ManifestEntries
+
+	err := yaml.Unmarshal([]byte(data), &entries)
 
 	if err != nil {
 		return nil, err
+	}
+
+	manifest := make(Manifest, 0)
+
+	for name, entry := range entries {
+		entry.Name = name
+		manifest = append(manifest, ManifestEntry(entry))
 	}
 
 	return manifest, nil
@@ -34,32 +44,44 @@ func (m *Manifest) Apply(app *App) error {
 		return err
 	}
 
-	processes := make(Processes, 0)
+	for _, entry := range *m {
+		if rt := entry.ResourceType(); rt != "" {
+			resource := Resource{
+				Name: entry.Name,
+				Type: rt,
+			}
 
-	for name, entry := range *m {
-		if strings.HasPrefix(entry.Image, "convox/") {
+			// resource.Save()
+
+			app.Resources = append(app.Resources, resource)
 		} else {
 			count := "1"
 
 			for _, p := range original {
-				if p.Name == name {
+				if p.Name == entry.Name {
 					count = p.Count
 				}
 			}
 
 			process := &Process{
-				Name:  name,
+				Name:  entry.Name,
 				Count: count,
 				App:   app.Name,
 			}
 
 			process.Save()
 
-			processes = append(processes, *process)
+			app.Processes = append(app.Processes, *process)
 		}
 	}
 
-	app.Processes = processes
-
 	return nil
+}
+
+func (me *ManifestEntry) ResourceType() string {
+	if strings.HasPrefix(me.Image, "convox/") {
+		return me.Image[7:]
+	} else {
+		return ""
+	}
 }
