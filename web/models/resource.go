@@ -5,6 +5,8 @@ import "fmt"
 type Resource struct {
 	Name string
 	Type string
+
+	App string
 }
 
 type Resources []Resource

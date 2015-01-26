@@ -51,7 +51,6 @@
 					<li><a href="/settings">Settings</a></li>
 				</ul>
 				<ul class="nav navbar-nav">
-					<li><a href="/dashboard">Dashboard</a></li>
 					<li><a href="/apps">Apps</a></li>
 				</ul>
 			</div>
@@ -62,9 +61,10 @@
 			var root = '/' + window.location.pathname.split('/')[1];
 			$('.nav a[href="' + root + '"]').parent('li').addClass('active');
 
-			$('.timeago').timeago()
 			$('[data-toggle="popover"]').popover({html:true})
 			$('[data-toggle="tooltip"]').tooltip()
+
+			$('.timeago').timeago()
 		});
 	</script>
 {{ end }}

@@ -30,7 +30,7 @@
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": "convox-{{ .Process.App }}",
+        "LoadBalancerName": "convox-{{ .Process.App }}-{{ .Process.Name }}",
         "Listeners": [
           { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "3000" }
         ],
@@ -76,7 +76,7 @@
       "HealthCheckGracePeriod": 30,
       "MetricsCollection": [ { "Granularity": "1Minute" } ],
       "Tags": [
-        { "Key": "Name", "Value": "{{ .App.Name }}-{{ .Process.Name }}", "PropagateAtLaunch": true }
+        { "Key": "Name", "Value": "{{ .Process.App }}-{{ .Process.Name }}", "PropagateAtLaunch": true }
       ]
     },
     "UpdatePolicy": {
@@ -101,8 +101,7 @@
             {
               "Fn::Join": [ "\",\n    \"", [
                 {{ safe .Env }}
-                "CONVOX_CLUSTER={{ .App.Cluster }}",
-                "CONVOX_APP={{ .App.Name }}"
+                "CONVOX_APP={{ .Process.App }}"
               ] ]
             },
             "\""

@@ -49,6 +49,7 @@ func (m *Manifest) Apply(app *App) error {
 			resource := Resource{
 				Name: entry.Name,
 				Type: rt,
+				App:  app.Name,
 			}
 
 			// resource.Save()

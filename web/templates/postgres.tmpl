@@ -34,7 +34,7 @@
 		"Properties": {
 			"AllocatedStorage": "10",
 			"DBInstanceClass": "db.t2.micro",
-			"DBInstanceIdentifier": "{{ .FormationName }}",
+			"DBInstanceIdentifier": "convox-{{ .App }}-{{ .Name }}",
 			"DBName": "app",
 			"DBSubnetGroupName": { "Ref": "{{ .FormationName }}SubnetGroup" },
 			"Engine": "postgres",
