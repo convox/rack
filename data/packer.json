@@ -1,10 +1,9 @@
 {
 	"description": "Convox App",
 	"variables": {
-		"APP": null,
+		"NAME": null,
 		"SOURCE": null,
-		"APPCONF": null,
-		"BASE_AMI": "ami-6e0b7206",
+		"BASE_AMI": "ami-a02760c8",
 		"AWS_REGION": "us-east-1",
 		"AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
 		"AWS_SECRET": "{{env \"AWS_SECRET\"}}"
@@ -18,7 +17,7 @@
 			"source_ami": "{{user \"BASE_AMI\"}}",
 			"instance_type": "t2.micro",
 			"ssh_username": "ubuntu",
-			"ami_name": "{{user \"APP\"}}-{{timestamp}}"
+			"ami_name": "{{user \"NAME\"}}-{{timestamp}}"
 		}
 	],
 	"provisioners": [
@@ -48,8 +47,20 @@
 		},
 		{
 			"type": "file",
-			"source": "{{user \"APPCONF\"}}",
+			"source": "app.conf",
 			"destination": "/tmp/app.conf"
+		},
+		{
+			"type": "file",
+			"source": "cloudwatch-logs.conf",
+			"destination": "/tmp/awslogs.conf"
+		},
+		{
+			"type": "shell",
+			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+			"inline": [
+				"mv /tmp/awslogs.conf /var/awslogs/etc/awslogs.confset"
+			]
 		},
 		{
 			"type": "shell",

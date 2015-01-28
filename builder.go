@@ -21,8 +21,8 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, app, ref string) error {
-	ami, err := buildAmi(repo, app, ref)
+func (b *Builder) Build(repo, name, ref string) error {
+	ami, err := buildAmi(repo, name, ref)
 	fmt.Printf("ami %+v\n", ami)
 	fmt.Printf("err %+v\n", err)
 
@@ -35,7 +35,7 @@ func (b *Builder) Build(repo, app, ref string) error {
 	return nil
 }
 
-func buildAmi(repo, app, ref string) (string, error) {
+func buildAmi(repo, name, ref string) (string, error) {
 	dir, err := ioutil.TempDir("", "repo")
 
 	if err != nil {
@@ -74,35 +74,20 @@ func buildAmi(repo, app, ref string) (string, error) {
 		fmt.Printf("manifest|%s\n", scanner.Text())
 	}
 
-	output, err := dataRaw("packer.json")
-
-	if err != nil {
+	if err = writeFile(dir, "app.conf", nil); err != nil {
 		return "", err
 	}
 
-	packerjson := filepath.Join(dir, "packer.json")
-
-	err = ioutil.WriteFile(packerjson, output, 0644)
-
-	if err != nil {
+	if err = writeFile(dir, "packer.json", nil); err != nil {
 		return "", err
 	}
 
-	output, err = dataRaw("upstart.conf")
-
-	if err != nil {
+	if err = writeFile(dir, "cloudwatch-logs.conf", map[string]string{"{{APP}}": name}); err != nil {
 		return "", err
 	}
 
-	appconf := filepath.Join(dir, "app.conf")
-
-	err = ioutil.WriteFile(appconf, output, 0644)
-
-	if err != nil {
-		return "", err
-	}
-
-	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "APP="+app, "-var", "SOURCE="+clone, "-var", "APPCONF="+appconf, packerjson)
+	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "packer.json")
+	cmd.Dir = dir
 
 	stdout, err := cmd.StdoutPipe()
 
@@ -122,15 +107,22 @@ func buildAmi(repo, app, ref string) (string, error) {
 		switch {
 		case len(parts) < 5:
 			fmt.Printf("unknown|%s\n", scanner.Text())
+		case parts[3] == "error":
+			fmt.Printf("error|%s\n", cleanupPackerString(parts[4]))
 		case parts[2] == "ui" && parts[3] == "say":
 			fmt.Printf("packer|%s\n", parts[4])
 		case strings.HasPrefix(parts[4], "    amazon-ebs: Instance ID:"):
 			fmt.Printf("packer|==> amazon-ebs: %s\n", strings.SplitN(parts[4], ": ", 2)[1])
 		case parts[2] == "ui" && parts[3] == "message":
-			fmt.Printf("build|%s\n", strings.Replace(strings.SplitN(parts[4], ": ", 2)[1], "%!(PACKER_COMMA)", ",", -1))
+			mparts := strings.SplitN(parts[4], ": ", 2)
+			if len(mparts) > 1 {
+				fmt.Printf("build|%s\n", cleanupPackerString(mparts[1]))
+			}
 		case parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id":
-			ami = strings.Split(parts[5], ":")[1]
-			fmt.Printf("ami|%s\n", ami)
+			if len(parts) > 5 {
+				ami = strings.Split(parts[5], ":")[1]
+				fmt.Printf("ami|%s\n", ami)
+			}
 		}
 	}
 
@@ -141,6 +133,10 @@ func buildAmi(repo, app, ref string) (string, error) {
 	}
 
 	return ami, nil
+}
+
+func cleanupPackerString(s string) string {
+	return strings.Replace(s, "%!(PACKER_COMMA)", ",", -1)
 }
 
 func dataRaw(path string) ([]byte, error) {
@@ -169,4 +165,22 @@ func dataTemplate(path, section string, object interface{}) ([]byte, error) {
 	}
 
 	return output.Bytes(), nil
+}
+
+func writeFile(dir, name string, replacements map[string]string) error {
+	data, err := dataRaw(name)
+
+	if err != nil {
+		return err
+	}
+
+	sdata := string(data)
+
+	if replacements != nil {
+		for key, val := range replacements {
+			sdata = strings.Replace(sdata, key, val, -1)
+		}
+	}
+
+	return ioutil.WriteFile(filepath.Join(dir, name), []byte(sdata), 0644)
 }
