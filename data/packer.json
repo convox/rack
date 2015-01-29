@@ -59,7 +59,7 @@
 			"type": "shell",
 			"execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
 			"inline": [
-				"mv /tmp/awslogs.conf /var/awslogs/etc/awslogs.confset"
+				"mv /tmp/awslogs.conf /var/awslogs/etc/awslogs.conf"
 			]
 		},
 		{
