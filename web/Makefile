@@ -2,10 +2,10 @@ PORT ?= 3000
 
 .PHONY: default dev
 
-all: dev
+all: build
 
-dev:
-	@forego start
+build:
+	go get ./...
 
-save-deps:
+vendor:
 	godep save -r -copy=true ./...

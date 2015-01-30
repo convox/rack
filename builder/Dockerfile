@@ -19,4 +19,5 @@ WORKDIR /go/src/github.com/convox/kernel/builder
 COPY . /go/src/github.com/convox/kernel/builder
 RUN go get .
 
-CMD ["init", "bin/builder"]
+ENTRYPOINT ["init"]
+CMD ["bin/builder"]

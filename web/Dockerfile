@@ -19,4 +19,5 @@ WORKDIR /go/src/github.com/convox/kernel/web
 COPY . /go/src/github.com/convox/kernel/web
 RUN go get .
 
-CMD ["init", "bin/web"]
+ENTRYPOINT ["init"]
+CMD ["bin/web"]
