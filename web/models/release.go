@@ -58,11 +58,11 @@ func GetRelease(app, id string) (*Release, error) {
 	return releaseFromRow(row), nil
 }
 
-func (r *Release) Promote() error {
+func (r *Release) Formation() (string, error) {
 	app, err := GetApp(r.App)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	app.Release = r.Id
@@ -70,26 +70,41 @@ func (r *Release) Promote() error {
 	manifest, err := LoadManifest(r.Manifest)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = manifest.Apply(app)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	formation, err := app.Formation()
 
 	if err != nil {
+		return "", err
+	}
+
+	return formation, nil
+}
+
+func (r *Release) Promote() error {
+	app, err := GetApp(r.App)
+
+	if err != nil {
 		return err
 	}
 
-	printLines(formation)
+	formation, err := r.Formation()
+
+	if err != nil {
+		return err
+	}
 
 	sp := &cloudformation.UpdateStackParams{
 		StackName:    fmt.Sprintf("convox-%s", r.App),
 		TemplateBody: formation,
+		Capabilities: []string{"CAPABILITY_IAM"},
 		Parameters: []cloudformation.Parameter{
 			cloudformation.Parameter{ParameterKey: "Release", ParameterValue: r.Id},
 			cloudformation.Parameter{ParameterKey: "Repository", ParameterValue: app.Repository},

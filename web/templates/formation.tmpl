@@ -181,6 +181,22 @@
             "WriteCapacityUnits": "5"
           }
         }
+      },
+      "DynamoResources": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "convox-{{ .Name }}-resources",
+          "AttributeDefinitions": [
+            { "AttributeName": "name", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "name", "KeyType": "HASH" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
       }
     },
     "Outputs": {

@@ -2,11 +2,13 @@
 
 root=$(dirname $(dirname $0))
 
+echo "updating builder"
 $root/bin/start-docker &
-
 sleep 1
-
 docker pull convox/builder:latest &
+
+echo "starting nginx"
+/etc/init.d/nginx start
 
 if [ "$DEVELOPMENT" == "true" ]; then
   gin -b builder -p $PORT

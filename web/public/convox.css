@@ -217,7 +217,7 @@ td.meta-buttons .glyph {
 	float: right;
 }
 
-pre.build-logs {
+pre.modal-scroll {
 	height: 400px;
 	overflow-y: auto;
 	overflow: scroll;
@@ -230,16 +230,21 @@ pre.build-logs {
 
 .powered-by {
 	margin-right: 180px;
-	margin-top: 6px;
+	margin-top: 11px;
 }
 
 .powered-by img {
-	height: 40px;
+	height: 30px;
 	margin-right: 8px;
 	vertical-align: middle;
 }
 
 .powered-by .location {
-	color: #bdbdbd;
+	color: #9d9d9d;
 	display: inline-block;
+}
+
+.release-active {
+	font-weight: bold;
+	padding: 1px 9px 1px 10px;
 }

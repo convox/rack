@@ -56,29 +56,47 @@ func awsEnvironment() string {
 	return strings.Join(env, "\n")
 }
 
+func recoverBuild(app, id string) {
+	if r := recover(); r != nil {
+		err := updateBuild(app, id, "failed", "", r.(error).Error())
+
+		if err != nil {
+			fmt.Printf("error during recovery: %v\n", err)
+		}
+	}
+}
+
 func executeBuild(app, repo string) {
 	id, err := createBuild(app)
 	fmt.Printf("err %+v\n", err)
 
+	defer recoverBuild(app, id)
+
 	name := fmt.Sprintf("convox-%s", app)
 
 	base, err := ioutil.TempDir("", "build")
-	fmt.Printf("err %+v\n", err)
+
+	if err != nil {
+		panic(err)
+	}
 
 	env := filepath.Join(base, ".env")
 
-	err = ioutil.WriteFile(env, []byte(awsEnvironment()), 0400)
-	fmt.Printf("err %+v\n", err)
+	if err = ioutil.WriteFile(env, []byte(awsEnvironment()), 0400); err != nil {
+		panic(err)
+	}
 
 	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, name)
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Start()
-	fmt.Printf("err %+v\n", err)
+	if err = cmd.Start(); err != nil {
+		panic(err)
+	}
 
 	manifest := ""
 	logs := ""
+	success := false
 
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -97,24 +115,40 @@ func executeBuild(app, repo string) {
 		case "build":
 			fmt.Printf("build | %s\n", parts[1])
 			logs += fmt.Sprintf("%s\n", parts[1])
+		case "error":
+			fmt.Printf("error| %s\n", parts[1])
 		case "ami":
 			release, err := createRelease(app, parts[1], manifest)
-			fmt.Printf("release %+v\n", release)
-			fmt.Printf("err %+v\n", err)
 
-			err = updateBuild(app, id, release, logs)
-			fmt.Printf("err %+v\n", err)
+			if err != nil {
+				panic(err)
+			}
+
+			err = updateBuild(app, id, "complete", release, logs)
+
+			if err != nil {
+				panic(err)
+			}
+
+			success = true
 		default:
 			fmt.Printf("unknown | %s\n", parts[1])
 		}
 	}
 
 	err = cmd.Wait()
-	fmt.Printf("err %+v\n", err)
+
+	if !success || err != nil {
+		fmt.Printf("build failed\n")
+		err = updateBuild(app, id, "failed", "", logs)
+	}
 }
 
 func createBuild(app string) (string, error) {
 	id := generateId("B", 9)
+
+	defer recoverBuild(app, id)
+
 	created := time.Now().Format(SortableTime)
 
 	build := []dynamodb.Attribute{
@@ -133,7 +167,7 @@ func createBuild(app string) (string, error) {
 	return id, nil
 }
 
-func updateBuild(app, id, release, logs string) error {
+func updateBuild(app, id, status, release, logs string) error {
 	row, err := buildsTable(app).GetItem(&dynamodb.Key{HashKey: id})
 
 	if err != nil {
@@ -149,9 +183,12 @@ func updateBuild(app, id, release, logs string) error {
 	ended := time.Now().Format(SortableTime)
 
 	build = append(build, *dynamodb.NewStringAttribute("ended", ended))
-	build = append(build, *dynamodb.NewStringAttribute("status", "complete"))
-	build = append(build, *dynamodb.NewStringAttribute("release", release))
+	build = append(build, *dynamodb.NewStringAttribute("status", status))
 	build = append(build, *dynamodb.NewStringAttribute("logs", logs))
+
+	if release != "" {
+		build = append(build, *dynamodb.NewStringAttribute("release", release))
+	}
 
 	_, err = buildsTable(app).PutItem(id, "", build)
 

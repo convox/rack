@@ -93,8 +93,6 @@ func (a *App) Create() error {
 		return err
 	}
 
-	printLines(formation)
-
 	params := map[string]string{
 		"Repository": a.Repository,
 	}
@@ -113,26 +111,19 @@ func (a *App) Delete() error {
 }
 
 func (a *App) Formation() (string, error) {
-	fmt.Printf("a %+v\n", a)
-
-	fmt.Printf("a.Ami() %+v\n", a.Ami())
-
 	formation, err := buildTemplate("formation", "formation", a)
 
 	if err != nil {
 		return "", err
 	}
 
-	// printLines(formation)
+	printLines(formation)
 
 	return prettyJson(formation)
 }
 
 func (a *App) Ami() string {
 	release, err := GetRelease(a.Name, a.Release)
-
-	fmt.Printf("release %+v\n", release)
-	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
 		return ""

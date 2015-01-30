@@ -67,7 +67,7 @@
 		<table class="table table-striped table-bordered">
 			<thead>
 				<tr class="title">
-					<th colspan="6">
+					<th colspan="5">
 						Builds
 					</th>
 				</tr>
@@ -75,7 +75,6 @@
 					<th>ID</th>
 					<th>Status</th>
 					<th class="expand">Started</th>
-					<th>Release</th>
 					<th>Duration</th>
 					<th></th>
 				</tr>
@@ -86,7 +85,6 @@
 						<td class="id">{{ .Id }}</td>
 						<td>{{ .Status }}</td>
 						<td>{{ timeago .Created }}</td>
-						<td class="id">{{ .Release }}</td>
 						<td>{{ duration .Created .Ended }}</td>
 						<td class="buttons">
 							<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">
@@ -112,6 +110,7 @@
 					<th>AMI</th>
 					<th class="expand">Created</th>
 					<th></th>
+					<th></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -121,8 +120,13 @@
 						<td>{{ .Ami }}</td>
 						<td>{{ timeago .Created }}</td>
 						<td class="buttons">
+							<button class="btn btn-xs btn-primary glyph" title="CloudFormation Template" data-toggle="modal" data-target="#release-formation-{{ .Id }}">
+								<span class="glyphicon glyphicon-barcode" aria-hidden="true" style="margin-top:2px;"></span>
+							</button>
+						</td>
+						<td class="buttons">
 							{{ if eq $app.Release .Id }}
-								<div class="label label-success release-active">Active</div>
+								<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
 							{{ else }}
 								<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
 							{{ end }}
@@ -142,7 +146,23 @@
 						<h4 class="modal-title">Build Logs: {{ .Id }}</h4>
 					</div>
 					<div class="modal-body">
-						<pre class="build-logs">{{ .Logs }}</pre>
+						<pre class="modal-scroll">{{ .Logs }}</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+	{{ end }}
+
+	{{ range .Releases }}
+		<div id="release-formation-{{ .Id }}" class="modal fade">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">CloudFormation Template: {{ .Id }}</h4>
+					</div>
+					<div class="modal-body">
+						<pre class="modal-scroll">{{ .Formation }}</pre>
 					</div>
 				</div>
 			</div>

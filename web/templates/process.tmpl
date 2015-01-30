@@ -38,6 +38,46 @@
       }
     },
   {{ end }}
+  "{{ upper .Process.Name }}Role": {
+    "Type": "AWS::IAM::Role",
+    "Properties": {
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [ "ec2.amazonaws.com" ]
+            },
+            "Action": [ "sts:AssumeRole" ]
+          }
+        ]
+      },
+      "Path": "/",
+      "Policies": [
+        {
+          "PolicyName": "{{ upper .Process.Name }}Role",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [ "logs:*" ],
+                "Resource": [ "arn:aws:logs:*:*:*" ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "{{ upper .Process.Name }}InstanceProfile": {
+    "Type": "AWS::IAM::InstanceProfile",
+    "Properties": {
+      "Path": "/",
+      "Roles": [ { "Ref": "{{ upper .Process.Name }}Role" } ]
+    }
+  },
   "{{ upper .Process.Name }}Launch": {
     "Type": "AWS::AutoScaling::LaunchConfiguration",
     "Properties": {
@@ -46,6 +86,7 @@
         { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
       ],
       "EbsOptimized": false,
+      "IamInstanceProfile": { "Ref": "{{ upper .Process.Name }}InstanceProfile" },
       "ImageId": { "Fn::FindInMap": [ "Variables", "Ami", "Value" ] },
       "InstanceMonitoring": true,
       "InstanceType": "t2.micro",

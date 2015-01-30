@@ -89,8 +89,8 @@ func AppBuild(rw http.ResponseWriter, r *http.Request) {
 	app := vars["app"]
 	repo := form["repo"]
 
-	bhost := os.Getenv("BUILDER_PORT_5000_TCP_ADDR")
-	bport := os.Getenv("BUILDER_PORT_5000_TCP_PORT")
+	bhost := os.Getenv("BUILDER_PORT_3000_TCP_ADDR")
+	bport := os.Getenv("BUILDER_PORT_3000_TCP_PORT")
 
 	_, err := http.PostForm(fmt.Sprintf("http://%s:%s/apps/%s/build", bhost, bport, app), url.Values{"repo": {repo}})
 
