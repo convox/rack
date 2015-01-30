@@ -12,10 +12,11 @@ RUN mkdir -p /var/run/nginx
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
 RUN go get github.com/ddollar/gin
+RUN go get github.com/ddollar/init
 
 ENV PORT 5000
 WORKDIR /go/src/github.com/convox/kernel/builder
 COPY . /go/src/github.com/convox/kernel/builder
 RUN go get .
 
-CMD ["bin/builder"]
+CMD ["init", "bin/builder"]
