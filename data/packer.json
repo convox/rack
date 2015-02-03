@@ -51,18 +51,6 @@
       "destination": "/tmp/app.conf"
     },
     {
-      "type": "file",
-      "source": "cloudwatch-logs.conf",
-      "destination": "/tmp/awslogs.conf"
-    },
-    {
-      "type": "shell",
-      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
-      "inline": [
-        "mv /tmp/awslogs.conf /var/awslogs/etc/awslogs.conf"
-      ]
-    },
-    {
       "type": "shell",
       "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
