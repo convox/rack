@@ -1,14 +1,10 @@
 # Convox Agent
 
+Instance agent for collecting metrics and logs.
+
 ## Running
 
     $ docker run convox/agent
-
-## Hacking
-
-#### Prerequisites
-
-* [Go](https://golang.org/doc/install)
 
 ## License
 
