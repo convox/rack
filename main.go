@@ -54,7 +54,7 @@ func main() {
 		AwsAccess: *access,
 		AwsSecret: *secret,
 		AwsToken:  *token,
-		Tick:      2 * time.Second,
+		Tick:      30 * time.Second,
 		App:       app,
 		Process:   process,
 		Instance:  instance,
