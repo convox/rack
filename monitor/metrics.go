@@ -39,9 +39,6 @@ func (mm *Metrics) Monitor() {
 			Namespace: aws.String("Convox"),
 		}
 
-		fmt.Printf("data %+v\n", data)
-		continue
-
 		fmt.Println("uploading cloudwatch metrics")
 		err := cw.PutMetricData(data)
 
