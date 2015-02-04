@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/gen/cloudwatch"
-	"github.com/guillermo/go.procmeminfo"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/guillermo/go.procmeminfo"
 )
 
 type Memory struct {

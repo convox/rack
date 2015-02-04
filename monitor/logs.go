@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ActiveState/tail"
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/gen/kinesis"
-	"github.com/awslabs/aws-sdk-go/gen/logs"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/ActiveState/tail"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/logs"
 )
 
 type Logs struct {

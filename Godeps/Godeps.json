@@ -1,0 +1,50 @@
+{
+	"ImportPath": "github.com/convox/agent",
+	"GoVersion": "go1.4.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/ActiveState/tail",
+			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudwatch",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/endpoints",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kinesis",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/logs",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/guillermo/go.procmeminfo",
+			"Rev": "be4355a9fb0e5340ebee5b05aafe85948eaccd1b"
+		},
+		{
+			"ImportPath": "github.com/howeyc/fsnotify",
+			"Comment": "v0.9.0-11-g6b1ef89",
+			"Rev": "6b1ef893dc11e0447abda6da20a5203481878dda"
+		},
+		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
+			"ImportPath": "gopkg.in/tomb.v1",
+			"Rev": "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
+		}
+	]
+}
