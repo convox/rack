@@ -16,6 +16,7 @@ type Logs struct {
 	AwsRegion string
 	AwsAccess string
 	AwsSecret string
+	AwsToken  string
 
 	Tick time.Duration
 	Logs []string
@@ -59,7 +60,7 @@ func (lm *Logs) Monitor() {
 }
 
 func (lm *Logs) initializeCloudwatch() {
-	creds := aws.Creds(lm.AwsAccess, lm.AwsSecret, "")
+	creds := aws.Creds(lm.AwsAccess, lm.AwsSecret, lm.AwsToken)
 
 	lm.cloudwatch = logs.New(creds, lm.AwsRegion, nil)
 
@@ -90,7 +91,7 @@ func (lm *Logs) initializeCloudwatch() {
 }
 
 func (lm *Logs) initializeKinesis() {
-	creds := aws.Creds(lm.AwsAccess, lm.AwsSecret, "")
+	creds := aws.Creds(lm.AwsAccess, lm.AwsSecret, lm.AwsToken)
 
 	lm.kinesis = kinesis.New(creds, lm.AwsRegion, nil)
 }

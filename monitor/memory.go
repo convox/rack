@@ -14,6 +14,7 @@ type Memory struct {
 	AwsRegion string
 	AwsAccess string
 	AwsSecret string
+	AwsToken  string
 
 	Tick time.Duration
 
@@ -22,7 +23,7 @@ type Memory struct {
 }
 
 func (mm *Memory) Monitor() {
-	creds := aws.Creds(mm.AwsAccess, mm.AwsSecret, "")
+	creds := aws.Creds(mm.AwsAccess, mm.AwsSecret, mm.AwsToken)
 	cw := cloudwatch.New(creds, mm.AwsRegion, nil)
 
 	meminfo := &procmeminfo.MemInfo{}

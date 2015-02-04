@@ -36,6 +36,7 @@ func main() {
 	region := flag.String("region", "us-east-1", "aws region")
 	access := flag.String("access", os.Getenv("AWS_ACCESS"), "aws access id")
 	secret := flag.String("secret", os.Getenv("AWS_SECRET"), "aws secret key")
+	token := flag.String("token", os.Getenv("AWS_TOKEN"), "aws token")
 
 	flag.Parse()
 
@@ -51,6 +52,7 @@ func main() {
 		AwsRegion:      *region,
 		AwsAccess:      *access,
 		AwsSecret:      *secret,
+		AwsToken:       *token,
 		Tick:           60 * time.Second,
 		AutoScaleGroup: asg,
 		InstanceId:     instance,
@@ -61,6 +63,7 @@ func main() {
 		AwsRegion:        *region,
 		AwsAccess:        *access,
 		AwsSecret:        *secret,
+		AwsToken:         *token,
 		Tick:             2 * time.Second,
 		Logs:             logs,
 		CloudwatchGroup:  *cwgroup,
