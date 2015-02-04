@@ -3,7 +3,7 @@
   "variables": {
     "NAME": null,
     "SOURCE": null,
-    "BASE_AMI": "ami-d881c2b0",
+    "BASE_AMI": "ami-36a3e05e",
     "AWS_REGION": "us-east-1",
     "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
     "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
@@ -46,6 +46,13 @@
       ]
     },
     {
+      "type": "shell",
+      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "rm -rf /build"
+      ]
+    },
+    {
       "type": "file",
       "source": "app.conf",
       "destination": "/tmp/app.conf"
@@ -54,8 +61,6 @@
       "type": "shell",
       "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
-        "set -e",
-        "rm -rf /build",
         "mv /tmp/app.conf /etc/init/app.conf"
       ]
     }
