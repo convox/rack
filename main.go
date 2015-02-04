@@ -22,7 +22,7 @@ func (ss *StringSlice) Set(v string) error {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [-log <file>] [-log <file>] [-cloudwatch <group>] [-kinesis <stream>] <autoscalegroup>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [-log <file>] [-log <file>] [-cloudwatch <group>] [-kinesis <stream>] <app> <process> <instance>\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -40,22 +40,24 @@ func main() {
 
 	flag.Parse()
 
-	if len(flag.Args()) < 2 {
+	if len(flag.Args()) < 3 {
 		flag.Usage()
 		os.Exit(0)
 	}
 
-	asg := flag.Args()[0]
-	instance := flag.Args()[1]
+	app := flag.Args()[0]
+	process := flag.Args()[1]
+	instance := flag.Args()[2]
 
-	mm := &monitor.Memory{
-		AwsRegion:      *region,
-		AwsAccess:      *access,
-		AwsSecret:      *secret,
-		AwsToken:       *token,
-		Tick:           60 * time.Second,
-		AutoScaleGroup: asg,
-		InstanceId:     instance,
+	mm := &monitor.Metrics{
+		AwsRegion: *region,
+		AwsAccess: *access,
+		AwsSecret: *secret,
+		AwsToken:  *token,
+		Tick:      2 * time.Second,
+		App:       app,
+		Process:   process,
+		Instance:  instance,
 	}
 	go mm.Monitor()
 
