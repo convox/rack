@@ -73,7 +73,7 @@ func (lm *Logs) initializeCloudwatch() {
 	res, err := lm.cloudwatch.DescribeLogStreams(req)
 
 	if err == nil && len(res.LogStreams) == 1 {
-		if *res.LogStreams[0].LogStreamName == lm.CloudwatchStream {
+		if *res.LogStreams[0].LogStreamName == lm.CloudwatchStream && res.LogStreams[0].UploadSequenceToken != nil {
 			lm.cwsequence = *res.LogStreams[0].UploadSequenceToken
 		}
 	} else {
