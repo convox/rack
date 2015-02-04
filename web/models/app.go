@@ -117,7 +117,7 @@ func (a *App) Formation() (string, error) {
 		return "", err
 	}
 
-	printLines(formation)
+	// printLines(formation)
 
 	return prettyJson(formation)
 }

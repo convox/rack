@@ -73,6 +73,12 @@
           }
         },
       {{ end }}
+      "LogGroup": {
+        "Type": "AWS::Logs::LogGroup",
+        "Properties": {
+          "RetentionInDays": 7
+        }
+      },
       {{ safe .ProcessFormation }}
       {{ safe .ResourceFormation }}
       "SecurityInstances": {

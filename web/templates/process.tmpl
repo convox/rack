@@ -38,6 +38,12 @@
       }
     },
   {{ end }}
+  "{{ upper .Process.Name }}Kinesis": {
+    "Type": "AWS::Kinesis::Stream",
+    "Properties": {
+      "ShardCount": 1
+    }
+  },
   "{{ upper .Process.Name }}Role": {
     "Type": "AWS::IAM::Role",
     "Properties": {
@@ -64,6 +70,16 @@
                 "Effect": "Allow",
                 "Action": [ "logs:*" ],
                 "Resource": [ "arn:aws:logs:*:*:*" ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [ "kinesis:PutRecords" ],
+                "Resource": [ "arn:aws:kinesis:*:*:stream/convox-{{ .Process.App }}-*" ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": [ "cloudwatch:PutMetricData" ],
+                "Resource": [ "*" ]
               }
             ]
           }
@@ -135,6 +151,12 @@
       "Fn::Join": [ "\n", [
         "{",
         "  \"start\": \"{{ .Process.Name }}\",",
+        "  \"asg\": \"{{ .Process.App }}-{{ .Process.Name }}\",",
+        "  \"logs\": {",
+        { "Fn::Join": [ "", [ "    \"cwgroup\": \"", { "Ref": "LogGroup" }, "\"," ] ] },
+        "    \"cwstream\": \"{{ .Process.Name }}\",",
+        { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "{{ upper .Process.Name }}Kinesis" }, "\"" ] ] },
+        "  },",
         "  \"env\": [",
         { 
           "Fn::Join": [ "", [
