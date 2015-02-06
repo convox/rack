@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/convox/agent/Godeps/_workspace/src/bitbucket.org/bertimus9/systemstat"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/guillermo/go.procmeminfo"
@@ -32,7 +33,7 @@ func (mm *Metrics) Monitor() {
 	for _ = range time.Tick(mm.Tick) {
 		data := &cloudwatch.PutMetricDataInput{
 			MetricData: []cloudwatch.MetricDatum{
-				// mm.metricCPU(),
+				mm.metricCPU(),
 				mm.metricMemory(),
 				mm.metricDisk(),
 			},
@@ -65,15 +66,21 @@ func (mm *Metrics) metricDimensions() []cloudwatch.Dimension {
 	}
 }
 
-// func (mm *Metrics) metricCPU() cloudwatch.MetricDatum {
-//   return cloudwatch.MetricDatum{
-//     Dimensions: mm.metricDimensions(),
-//     MetricName: aws.String("CpuUtilization"),
-//     Timestamp:  time.Now(),
-//     Unit:       aws.String("Percent"),
-//     Value:      aws.Double(pct),
-//   }
-// }
+func (mm *Metrics) metricCPU() cloudwatch.MetricDatum {
+	s1 := systemstat.GetCPUSample()
+	time.Sleep(2 * time.Second)
+	s2 := systemstat.GetCPUSample()
+	sample := systemstat.GetCPUAverage(s1, s2)
+	pct := 100.0 - sample.IdlePct
+
+	return cloudwatch.MetricDatum{
+		Dimensions: mm.metricDimensions(),
+		MetricName: aws.String("CpuUtilization"),
+		Timestamp:  time.Now(),
+		Unit:       aws.String("Percent"),
+		Value:      aws.Double(pct),
+	}
+}
 
 func (mm *Metrics) metricMemory() cloudwatch.MetricDatum {
 	meminfo := &procmeminfo.MemInfo{}
