@@ -104,7 +104,7 @@ func (lm *Logs) addLine(text string, tm time.Time) {
 }
 
 func (lm *Logs) watchLog(log string) {
-	t, err := tail.TailFile(log, tail.Config{Follow: true, ReOpen: true})
+	t, err := tail.TailFile(log, tail.Config{Location: &tail.SeekInfo{0, os.SEEK_END}, Follow: true, ReOpen: true})
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
