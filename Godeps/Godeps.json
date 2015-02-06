@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "bitbucket.org/bertimus9/systemstat",
+			"Rev": "1468fd0db20598383c9393cccaa547de6ad99e5e"
+		},
+		{
 			"ImportPath": "github.com/ActiveState/tail",
 			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
 		},
