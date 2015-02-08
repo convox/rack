@@ -31,13 +31,18 @@ func (mm *Metrics) Monitor() {
 	cw := cloudwatch.New(creds, mm.AwsRegion, nil)
 
 	for _ = range time.Tick(mm.Tick) {
-		data := &cloudwatch.PutMetricDataInput{
-			MetricData: []cloudwatch.MetricDatum{
-				mm.metricCPU(),
-				mm.metricMemory(),
-				mm.metricDisk(),
-			},
-			Namespace: aws.String("Convox"),
+		data := &cloudwatch.PutMetricDataInput{Namespace: aws.String("Convox")}
+
+		for _, d := range mm.metricCPU() {
+			data.MetricData = append(data.MetricData, d)
+		}
+
+		for _, d := range mm.metricMemory() {
+			data.MetricData = append(data.MetricData, d)
+		}
+
+		for _, d := range mm.metricDisk() {
+			data.MetricData = append(data.MetricData, d)
 		}
 
 		fmt.Println("uploading cloudwatch metrics")
@@ -49,40 +54,77 @@ func (mm *Metrics) Monitor() {
 	}
 }
 
-func (mm *Metrics) metricDimensions() []cloudwatch.Dimension {
-	return []cloudwatch.Dimension{
-		cloudwatch.Dimension{
-			Name:  aws.String("App"),
-			Value: aws.String(mm.App),
+func (mm *Metrics) metricDimensions() [][]cloudwatch.Dimension {
+	return [][]cloudwatch.Dimension{
+		[]cloudwatch.Dimension{
+			cloudwatch.Dimension{
+				Name:  aws.String("App"),
+				Value: aws.String(mm.App),
+			},
+			cloudwatch.Dimension{
+				Name:  aws.String("Process"),
+				Value: aws.String(mm.Process),
+			},
+			cloudwatch.Dimension{
+				Name:  aws.String("InstanceId"),
+				Value: aws.String(mm.Instance),
+			},
 		},
-		cloudwatch.Dimension{
-			Name:  aws.String("Process"),
-			Value: aws.String(mm.Process),
+		[]cloudwatch.Dimension{
+			cloudwatch.Dimension{
+				Name:  aws.String("App"),
+				Value: aws.String(mm.App),
+			},
+			cloudwatch.Dimension{
+				Name:  aws.String("Process"),
+				Value: aws.String(mm.Process),
+			},
+			cloudwatch.Dimension{
+				Name:  aws.String("InstanceId"),
+				Value: aws.String("<all>"),
+			},
 		},
-		cloudwatch.Dimension{
-			Name:  aws.String("InstanceId"),
-			Value: aws.String(mm.Instance),
+		[]cloudwatch.Dimension{
+			cloudwatch.Dimension{
+				Name:  aws.String("App"),
+				Value: aws.String(mm.App),
+			},
+			cloudwatch.Dimension{
+				Name:  aws.String("Process"),
+				Value: aws.String("<all>"),
+			},
+			cloudwatch.Dimension{
+				Name:  aws.String("InstanceId"),
+				Value: aws.String("<all>"),
+			},
 		},
 	}
 }
 
-func (mm *Metrics) metricCPU() cloudwatch.MetricDatum {
+func (mm *Metrics) metricCPU() []cloudwatch.MetricDatum {
 	s1 := systemstat.GetCPUSample()
 	time.Sleep(2 * time.Second)
 	s2 := systemstat.GetCPUSample()
 	sample := systemstat.GetCPUAverage(s1, s2)
 	pct := 100.0 - sample.IdlePct
 
-	return cloudwatch.MetricDatum{
-		Dimensions: mm.metricDimensions(),
-		MetricName: aws.String("CpuUtilization"),
-		Timestamp:  time.Now(),
-		Unit:       aws.String("Percent"),
-		Value:      aws.Double(pct),
+	dimensions := mm.metricDimensions()
+	data := make([]cloudwatch.MetricDatum, len(dimensions))
+
+	for i, dim := range dimensions {
+		data[i] = cloudwatch.MetricDatum{
+			Dimensions: dim,
+			MetricName: aws.String("CpuUtilization"),
+			Timestamp:  time.Now(),
+			Unit:       aws.String("Percent"),
+			Value:      aws.Double(pct),
+		}
 	}
+
+	return data
 }
 
-func (mm *Metrics) metricMemory() cloudwatch.MetricDatum {
+func (mm *Metrics) metricMemory() []cloudwatch.MetricDatum {
 	meminfo := &procmeminfo.MemInfo{}
 	meminfo.Update()
 
@@ -92,24 +134,38 @@ func (mm *Metrics) metricMemory() cloudwatch.MetricDatum {
 		pct = 0.01
 	}
 
-	return cloudwatch.MetricDatum{
-		Dimensions: mm.metricDimensions(),
-		MetricName: aws.String("MemoryUtilization"),
-		Timestamp:  time.Now(),
-		Unit:       aws.String("Percent"),
-		Value:      aws.Double(pct),
+	dimensions := mm.metricDimensions()
+	data := make([]cloudwatch.MetricDatum, len(dimensions))
+
+	for i, dim := range dimensions {
+		data[i] = cloudwatch.MetricDatum{
+			Dimensions: dim,
+			MetricName: aws.String("MemoryUtilization"),
+			Timestamp:  time.Now(),
+			Unit:       aws.String("Percent"),
+			Value:      aws.Double(pct),
+		}
 	}
+
+	return data
 }
 
-func (mm *Metrics) metricDisk() cloudwatch.MetricDatum {
+func (mm *Metrics) metricDisk() []cloudwatch.MetricDatum {
 	usage, _ := exec.Command("bash", "-c", "df / | tail -n 1 | awk '{print $5}'").CombinedOutput()
 	pct, _ := strconv.Atoi(string(usage[0 : len(usage)-2]))
 
-	return cloudwatch.MetricDatum{
-		Dimensions: mm.metricDimensions(),
-		MetricName: aws.String("DiskUtilization"),
-		Timestamp:  time.Now(),
-		Unit:       aws.String("Percent"),
-		Value:      aws.Double(float64(pct)),
+	dimensions := mm.metricDimensions()
+	data := make([]cloudwatch.MetricDatum, len(dimensions))
+
+	for i, dim := range dimensions {
+		data[i] = cloudwatch.MetricDatum{
+			Dimensions: dim,
+			MetricName: aws.String("DiskUtilization"),
+			Timestamp:  time.Now(),
+			Unit:       aws.String("Percent"),
+			Value:      aws.Double(float64(pct)),
+		}
 	}
+
+	return data
 }
