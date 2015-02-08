@@ -32,6 +32,7 @@ func main() {
 	cwgroup := flag.String("cwgroup", "", "cloudwatch log group")
 	cwstream := flag.String("cwstream", "", "cloudwatch log stream")
 	kinesis := flag.String("kinesis", "", "kinesis stream")
+	tick := flag.Int("tick", 30, "metric update interval")
 
 	region := flag.String("region", "us-east-1", "aws region")
 	access := flag.String("access", os.Getenv("AWS_ACCESS"), "aws access id")
@@ -54,7 +55,7 @@ func main() {
 		AwsAccess: *access,
 		AwsSecret: *secret,
 		AwsToken:  *token,
-		Tick:      30 * time.Second,
+		Tick:      time.Duration(*tick) * time.Second,
 		App:       app,
 		Process:   process,
 		Instance:  instance,
