@@ -26,12 +26,10 @@
   "provisioners": [
     {
       "type": "shell",
-      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "execute_command": "env {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
-        "set -e",
         "mkdir /build",
-        "chown ubuntu:ubuntu /build",
-        "mkdir /var/app"
+        "chown ubuntu:ubuntu /build"
       ]
     },
     {
@@ -50,7 +48,7 @@
     },
     {
       "type": "shell",
-      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "execute_command": "env {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
         "rm -rf /build"
       ]
@@ -62,7 +60,7 @@
     },
     {
       "type": "shell",
-      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "execute_command": "{{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
         "mv /tmp/app.conf /etc/init/app.conf"
       ]
