@@ -3,6 +3,9 @@ package models
 import (
 	"os"
 
+	aaws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
+
 	caws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
@@ -14,12 +17,14 @@ import (
 var SortableTime = "20060102.150405.000000000"
 
 var (
+	aauth = aaws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
 	cauth = caws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
 	gauth = gaws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
 )
 
 var (
 	CloudFormation = cloudformation.New(gauth, gaws.Regions[os.Getenv("AWS_REGION")])
+	Cloudwatch     = cloudwatch.New(aauth, os.Getenv("AWS_REGION"), nil)
 	DynamoDB       = dynamodb.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
 	EC2            = ec2.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
 )

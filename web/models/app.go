@@ -186,6 +186,16 @@ func (a *App) Subnets() Subnets {
 	return ListSubnets()
 }
 
+func (a *App) Metrics() *Metrics {
+	metrics, err := AppMetrics(a.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return metrics
+}
+
 func appFromStack(stack cloudformation.Stack) *App {
 	params := stackParameters(stack)
 

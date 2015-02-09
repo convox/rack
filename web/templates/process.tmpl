@@ -150,8 +150,8 @@
     "Fn::Base64": {
       "Fn::Join": [ "\n", [
         "{",
-        "  \"start\": \"{{ .Process.Name }}\",",
-        "  \"asg\": \"{{ .Process.App }}-{{ .Process.Name }}\",",
+        "  \"app\": \"{{ .Process.App }}\",",
+        "  \"process\": \"{{ .Process.Name }}\",",
         "  \"logs\": {",
         { "Fn::Join": [ "", [ "    \"cwgroup\": \"", { "Ref": "LogGroup" }, "\"," ] ] },
         "    \"cwstream\": \"{{ .Process.Name }}\",",

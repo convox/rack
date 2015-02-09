@@ -89,6 +89,16 @@ func (p *Process) Userdata() string {
 	return `""`
 }
 
+func (p *Process) Metrics() *Metrics {
+	metrics, err := ProcessMetrics(p.App, p.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return metrics
+}
+
 func processFromRow(row map[string]*dynamodb.Attribute) *Process {
 	return &Process{
 		Name:  coalesce(row["name"], ""),

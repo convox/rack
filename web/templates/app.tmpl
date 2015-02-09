@@ -54,9 +54,10 @@
 							{{ .Name }}
 						</td>
 						<td class="text-center">{{.Count}}</td>
-						<td>{{ meter "cpu"    0 100 }}</td>
-						<td>{{ meter "memory" 0 100 }}</td>
-						<td>{{ meter "disk"   0 100 }}</td>
+						{{ $metrics := .Metrics }}
+						<td>{{ meter "cpu"    $metrics.Cpu    100 }}</td>
+						<td>{{ meter "memory" $metrics.Memory 100 }}</td>
+						<td>{{ meter "disk"   $metrics.Disk   100 }}</td>
 					</tr>
 				{{ end }}
 			</tbody>
@@ -162,7 +163,7 @@
 						<h4 class="modal-title">CloudFormation Template: {{ .Id }}</h4>
 					</div>
 					<div class="modal-body">
-						<pre class="modal-scroll">{{ .Formation }}</pre>
+						<pre class="modal-scroll"></pre>
 					</div>
 				</div>
 			</div>
