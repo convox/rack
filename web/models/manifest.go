@@ -71,8 +71,6 @@ func (m *Manifest) Apply(app *App) error {
 			}
 
 			process.Save()
-
-			app.Processes = append(app.Processes, *process)
 		}
 	}
 

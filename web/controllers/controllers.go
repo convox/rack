@@ -6,9 +6,13 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 var Templates = make(map[string]*template.Template)
+
+var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
 func displayHelpers() template.FuncMap {
 	return template.FuncMap{

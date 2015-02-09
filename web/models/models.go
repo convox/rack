@@ -5,6 +5,7 @@ import (
 
 	aaws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
 
 	caws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
@@ -27,6 +28,7 @@ var (
 	Cloudwatch     = cloudwatch.New(aauth, os.Getenv("AWS_REGION"), nil)
 	DynamoDB       = dynamodb.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
 	EC2            = ec2.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
+	Kinesis        = kinesis.New(aauth, os.Getenv("AWS_REGION"), nil)
 )
 
 type Cluster struct {

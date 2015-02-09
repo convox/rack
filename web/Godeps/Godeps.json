@@ -18,6 +18,10 @@
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kinesis",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
 			"ImportPath": "github.com/bitly/go-simplejson",
 			"Comment": "v0.4.3-28-g3378bdc",
 			"Rev": "3378bdcb5cebedcbf8b5750edee28010f128fe24"

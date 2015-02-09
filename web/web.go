@@ -38,9 +38,10 @@ func main() {
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/build", controllers.AppBuild).Methods("POST")
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
+	router.HandleFunc("/apps/{app}/logs", controllers.AppLogs)
 
 	n := negroni.Classic()
-	n.Use(negroni.HandlerFunc(parseForm))
+	// n.Use(negroni.HandlerFunc(parseForm))
 	n.UseHandler(router)
 	n.Run(fmt.Sprintf(":%s", port))
 }

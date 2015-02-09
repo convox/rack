@@ -8,6 +8,8 @@ import (
 	"sort"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/websocket"
+
 	"github.com/convox/kernel/web/models"
 )
 
@@ -122,4 +124,32 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
+}
+
+func AppLogs(rw http.ResponseWriter, r *http.Request) {
+	app, err := models.GetApp(mux.Vars(r)["app"])
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	ws, err := upgrader.Upgrade(rw, r, nil)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	logs := make(chan []byte)
+	done := make(chan bool)
+
+	app.SubscribeLogs(logs, done)
+
+	for data := range logs {
+		ws.WriteMessage(websocket.TextMessage, data)
+	}
+
+	fmt.Println("ended")
+	ws.Close()
 }
