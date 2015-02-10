@@ -9,7 +9,7 @@ RUN mkdir -p /var/cache/nginx/proxy
 RUN mkdir -p /var/cache/nginx/scgi
 RUN mkdir -p /var/cache/nginx/uwsgi
 RUN mkdir -p /var/run/nginx
-COPY conf/nginx.conf /etc/nginx/nginx.conf
+COPY data/nginx.conf /etc/nginx/nginx.conf
 
 RUN go get github.com/ddollar/gin
 RUN go get github.com/ddollar/init

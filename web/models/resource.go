@@ -44,7 +44,7 @@ func (r *Resource) Save() error {
 }
 
 func (r *Resource) Env() (string, error) {
-	env, err := buildTemplate(r.Type, "env", r)
+	env, err := buildFormationTemplate(r.Type, "env", r)
 
 	if err != nil {
 		return "", err
@@ -54,7 +54,7 @@ func (r *Resource) Env() (string, error) {
 }
 
 func (r *Resource) Formation() (string, error) {
-	formation, err := buildTemplate(r.Type, "formation", r)
+	formation, err := buildFormationTemplate(r.Type, "formation", r)
 
 	if err != nil {
 		return "", err

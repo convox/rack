@@ -66,7 +66,7 @@ func (p *Process) Formation(env string) (string, error) {
 		"Process": p,
 	}
 
-	formation, err := buildTemplate("process", "formation", params)
+	formation, err := buildFormationTemplate("process", "formation", params)
 
 	if err != nil {
 		return "", err

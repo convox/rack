@@ -80,7 +80,7 @@ func GetApp(name string) (*App, error) {
 }
 
 func (a *App) Create() error {
-	formation, err := buildTemplate("formation", "formation", a)
+	formation, err := a.Formation()
 
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (a *App) Delete() error {
 }
 
 func (a *App) Formation() (string, error) {
-	formation, err := buildTemplate("formation", "formation", a)
+	formation, err := buildFormationTemplate("base", "formation", a)
 
 	if err != nil {
 		return "", err

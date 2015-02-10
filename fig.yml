@@ -9,7 +9,7 @@ web:
     - 5000:3000
   volumes:
     - web:/go/src/github.com/convox/kernel/web
-    - web/conf/nginx.conf:/etc/nginx/nginx.conf
+    - web/data/nginx.conf:/etc/nginx/nginx.conf
   links:
     - builder
 builder:

@@ -65,7 +65,7 @@ func ParseForm(r *http.Request) map[string]string {
 func RegisterTemplate(name string, names ...string) {
 	templates := []string{}
 	for _, name := range names {
-		templates = append(templates, fmt.Sprintf("templates/%s.tmpl", name))
+		templates = append(templates, fmt.Sprintf("views/%s.tmpl", name))
 	}
 	Templates[name] = template.Must(template.New("layout").Funcs(displayHelpers()).ParseFiles(templates...))
 }
