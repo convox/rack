@@ -32,6 +32,16 @@ func ListProcesses(app string) (Processes, error) {
 	return processes, nil
 }
 
+func GetProcess(app, name string) (*Process, error) {
+	row, err := processesTable(app).GetItem(&dynamodb.Key{name, ""})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return processFromRow(row), nil
+}
+
 func (p *Process) Save() error {
 	process := []dynamodb.Attribute{
 		*dynamodb.NewStringAttribute("name", p.Name),
@@ -87,6 +97,16 @@ func (p *Process) AvailabilityZones() []string {
 
 func (p *Process) Userdata() string {
 	return `""`
+}
+
+func (p *Process) Instances() Instances {
+	app, err := GetApp(p.App)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return Instances{}
 }
 
 func (p *Process) Metrics() *Metrics {

@@ -51,7 +51,9 @@
 									<span class="glyphicon glyphicon-random">
 								</button>
 							{{ end }}
-							{{ .Name }}
+							<a href="/apps/{{ .App }}/processes/{{ .Name }}">
+								{{ .Name }}
+							</a>
 						</td>
 						<td class="text-center">{{.Count}}</td>
 						{{ $metrics := .Metrics }}
