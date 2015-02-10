@@ -31,7 +31,7 @@ func ListReleases(app string) (Releases, error) {
 		*dynamodb.NewEqualStringAttributeComparison("app", app),
 	})
 	q.AddScanIndexForward(false)
-	q.AddLimit(5)
+	q.AddLimit(10)
 
 	rows, _, err := table.QueryTable(q)
 

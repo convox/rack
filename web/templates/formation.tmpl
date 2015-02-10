@@ -215,8 +215,8 @@
             "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
           },
         {{ end }}
-        "{{ upper .Name}}KinesisStream": {
-          "Value": { "Ref": "{{ upper .Name }}KinesisStream" }
+        "{{ upper .Name}}Kinesis": {
+          "Value": { "Ref": "{{ upper .Name }}Kinesis" }
         },
       {{ end }}
       "SecurityInstances": {

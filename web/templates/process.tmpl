@@ -38,7 +38,7 @@
       }
     },
   {{ end }}
-  "{{ upper .Process.Name }}KinesisStream": {
+  "{{ upper .Process.Name }}Kinesis": {
     "Type": "AWS::Kinesis::Stream",
     "Properties": {
       "ShardCount": 1
@@ -155,7 +155,7 @@
         "  \"logs\": {",
         { "Fn::Join": [ "", [ "    \"cwgroup\": \"", { "Ref": "LogGroup" }, "\"," ] ] },
         "    \"cwstream\": \"{{ .Process.Name }}\",",
-        { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "{{ upper .Process.Name }}KinesisStream" }, "\"" ] ] },
+        { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "{{ upper .Process.Name }}Kinesis" }, "\"" ] ] },
         "  },",
         "  \"env\": [",
         { 

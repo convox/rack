@@ -250,15 +250,18 @@ pre.modal-scroll {
 }
 
 pre#app-logs {
-	height: 200px;
+	height: 400px;
 	width: 1138px;
-	overflow: scroll;
-	margin-bottom: 0px;
-	border: 0px;
-	background-color: #fff;
-	padding: 8px 12px;
+	border: 1px #ddd solid;
+	background-color: #f3f3f3;
 }
 
-td#logs-container {
-	padding: 0px !important;
+ul.nav-tabs a {
+	font-weight: bold;
+	font-size: 1.2em;
+	padding: 8px 20px;
+}
+
+.tab-content {
+	margin-top: 10px;
 }

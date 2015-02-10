@@ -52,9 +52,7 @@ func (m *Manifest) Apply(app *App) error {
 				App:  app.Name,
 			}
 
-			// resource.Save()
-
-			app.Resources = append(app.Resources, resource)
+			resource.Save()
 		} else {
 			count := "1"
 

@@ -29,7 +29,7 @@ func ListBuilds(app string) (Builds, error) {
 		*dynamodb.NewEqualStringAttributeComparison("app", app),
 	})
 	q.AddScanIndexForward(false)
-	q.AddLimit(5)
+	q.AddLimit(10)
 
 	rows, _, err := table.QueryTable(q)
 

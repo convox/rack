@@ -43,7 +43,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{ range $process := .Processes }}
+				{{ range .Processes }}
 					<tr>
 						<td class="meta-buttons">
 							{{ if .Balancer }}
@@ -64,97 +64,99 @@
 		</table>
 	</div>
 
-	<div class="table-title">
-		<table class="table table-striped table-bordered">
-			<thead>
-				<tr class="title">
-					<th>
-						Logs	
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td id="logs-container">
-						<pre id="app-logs"></pre>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
+	<ul class="nav nav-tabs">
+		<li role="presentation" class="active"><a href="#tab-logs" aria-controls="logs" role="tab" data-toggle="tab">Logs</a></li>
+		<li role="presentation"><a href="#tab-resources" aria-controls="logs" role="tab" data-toggle="tab">Resources</a></li>
+		<li role="presentation"><a href="#tab-builds" aria-controls="logs" role="tab" data-toggle="tab">Builds</a></li>
+		<li role="presentation"><a href="#tab-releases" aria-controls="logs" role="tab" data-toggle="tab">Releases</a></li>
+	</ul>
 
-	<div class="table-title">
-		<table class="table table-striped table-bordered">
-			<thead>
-				<tr class="title">
-					<th colspan="5">
-						Builds
-					</th>
-				</tr>
-				<tr>
-					<th>ID</th>
-					<th>Status</th>
-					<th class="expand">Started</th>
-					<th>Duration</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{{ range .Builds }}
+	<div class="tab-content">
+		<div role="tabpanel" class="tab-pane content-table" id="tab-builds">
+			<table class="table table-striped table-bordered">
+				<thead>
 					<tr>
-						<td class="id">{{ .Id }}</td>
-						<td>{{ .Status }}</td>
-						<td>{{ timeago .Created }}</td>
-						<td>{{ duration .Created .Ended }}</td>
-						<td class="buttons">
-							<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">
-								<span class="glyphicon glyphicon-align-left" aria-hidden="true" style="margin-top:2px;"></span>
-							</button>
-						</td>
+						<th>ID</th>
+						<th>Status</th>
+						<th class="expand">Started</th>
+						<th>Release</th>
+						<th>Duration</th>
+						<th></th>
 					</tr>
-				{{ end }}
-			</tbody>
-		</table>
-	</div>
-
-	<div class="table-title">
-		<table class="table table-striped table-bordered">
-			<thead>
-				<tr class="title">
-					<th colspan="6">
-						Releases
-					</th>
-				</tr>
-				<tr>
-					<th>ID</th>
-					<th>AMI</th>
-					<th class="expand">Created</th>
-					<th></th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{{ range .Releases }}
+				</thead>
+				<tbody>
+					{{ range .Builds }}
+						<tr>
+							<td class="id">{{ .Id }}</td>
+							<td>{{ .Status }}</td>
+							<td>{{ timeago .Created }}</td>
+							<td class="id">{{ .Release }}</td>
+							<td>{{ duration .Created .Ended }}</td>
+							<td class="buttons">
+								<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">
+									<span class="glyphicon glyphicon-align-left" aria-hidden="true" style="margin-top:2px;"></span>
+								</button>
+							</td>
+						</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		</div>
+		<div role="tabpanel" class="tab-pane active" id="tab-logs">
+			<pre id="app-logs">Connecting...</pre>
+		</div>
+		<div role="tabpanel" class="tab-pane content-table" id="tab-releases">
+			<table class="table table-striped table-bordered">
+				<thead>
 					<tr>
-						<td class="id">{{ .Id }}</td>
-						<td>{{ .Ami }}</td>
-						<td>{{ timeago .Created }}</td>
-						<td class="buttons">
-							<button class="btn btn-xs btn-primary glyph" title="CloudFormation Template" data-toggle="modal" data-target="#release-formation-{{ .Id }}">
-								<span class="glyphicon glyphicon-barcode" aria-hidden="true" style="margin-top:2px;"></span>
-							</button>
-						</td>
-						<td class="buttons">
-							{{ if eq $app.Release .Id }}
-								<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
-							{{ else }}
-								<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
-							{{ end }}
-						</td>
+						<th>ID</th>
+						<th>AMI</th>
+						<th class="expand">Created</th>
+						<th></th>
+						<th></th>
 					</tr>
-				{{ end }}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{{ range .Releases }}
+						<tr>
+							<td class="id">{{ .Id }}</td>
+							<td>{{ .Ami }}</td>
+							<td>{{ timeago .Created }}</td>
+							<td class="buttons">
+								<button class="btn btn-xs btn-primary glyph" title="CloudFormation Template" data-toggle="modal" data-target="#release-formation-{{ .Id }}">
+									<span class="glyphicon glyphicon-barcode" aria-hidden="true" style="margin-top:2px;"></span>
+								</button>
+							</td>
+							<td class="buttons">
+								{{ if eq $app.Release .Id }}
+									<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
+								{{ else }}
+									<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
+								{{ end }}
+							</td>
+						</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		</div>
+		<div role="tabpanel" class="tab-pane content-table" id="tab-resources">
+			<table class="table table-striped table-bordered">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th class="expand">Type</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{ range .Resources }}
+						<tr>
+							<td>{{ .Name }}</td>
+							<td>{{ .Type }}</td>
+						</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		</div>
 	</div>
 
 	{{ range .Builds }}
@@ -226,6 +228,10 @@
 
 		function connect_log_socket() {
 			logs = new WebSocket('ws://' + location.host + '/apps/{{ .Name }}/logs');
+
+			logs.onopen = function(e) {
+				$('#app-logs').text('');
+			}
 
 			logs.onclose = function(e) {
 				console.log('onclose', e);

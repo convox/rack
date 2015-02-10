@@ -18,9 +18,8 @@ type App struct {
 	Repository string
 	Release    string
 
-	Builds    Builds
-	Releases  Releases
-	Resources Resources
+	Builds   Builds
+	Releases Releases
 }
 
 type Apps []App
@@ -147,7 +146,7 @@ func (a *App) ProcessFormation() string {
 func (a *App) ResourceEnv() string {
 	env := ""
 
-	for _, r := range a.Resources {
+	for _, r := range a.Resources() {
 		e, err := r.Env()
 
 		if err != nil {
@@ -163,7 +162,7 @@ func (a *App) ResourceEnv() string {
 func (a *App) ResourceFormation() string {
 	formation := ""
 
-	for _, r := range a.Resources {
+	for _, r := range a.Resources() {
 		f, err := r.Formation()
 
 		if err != nil {
@@ -190,6 +189,16 @@ func (a *App) Processes() Processes {
 	return processes
 }
 
+func (a *App) Resources() Resources {
+	resources, err := ListResources(a.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return resources
+}
+
 func (a *App) Metrics() *Metrics {
 	metrics, err := AppMetrics(a.Name)
 
@@ -206,7 +215,7 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 
 	for i, ps := range processes {
 		done[i] = make(chan bool)
-		go a.subscribeKinesis(ps.Name, a.Outputs[upperName(ps.Name)+"KinesisStream"], output, done[i])
+		go a.subscribeKinesis(ps.Name, a.Outputs[upperName(ps.Name)+"Kinesis"], output, done[i])
 	}
 
 	return nil
@@ -220,7 +229,7 @@ func (a *App) subscribeKinesis(prefix, stream string, output chan []byte, quit c
 
 	if err != nil {
 		fmt.Printf("err1 %+v\n", err)
-		close(output)
+		// panic(err)
 		return
 	}
 
@@ -248,7 +257,7 @@ func (a *App) subscribeKinesisShard(prefix, stream, shard string, output chan []
 
 	if err != nil {
 		fmt.Printf("err2 %+v\n", err)
-		close(output)
+		// panic(err)
 		return
 	}
 
@@ -267,7 +276,7 @@ func (a *App) subscribeKinesisShard(prefix, stream, shard string, output chan []
 
 			if err != nil {
 				fmt.Printf("err3 %+v\n", err)
-				close(output)
+				// panic(err)
 				return
 			}
 
