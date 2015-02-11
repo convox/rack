@@ -45,8 +45,8 @@ func (m *Manifest) Apply(app *App) error {
 	}
 
 	for _, entry := range *m {
-		if rt := entry.ResourceType(); rt != "" {
-			resource := Resource{
+		if rt := entry.ServiceType(); rt != "" {
+			resource := Service{
 				Name: entry.Name,
 				Type: rt,
 				App:  app.Name,
@@ -75,7 +75,7 @@ func (m *Manifest) Apply(app *App) error {
 	return nil
 }
 
-func (me *ManifestEntry) ResourceType() string {
+func (me *ManifestEntry) ServiceType() string {
 	if strings.HasPrefix(me.Image, "convox/") {
 		return me.Image[7:]
 	} else {

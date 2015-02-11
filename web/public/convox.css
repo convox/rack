@@ -249,7 +249,7 @@ pre.modal-scroll {
 	padding: 1px 9px 1px 10px;
 }
 
-pre#app-logs {
+pre#app-logs, pre#process-logs {
 	height: 400px;
 	width: 1138px;
 	border: 1px #ddd solid;

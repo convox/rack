@@ -100,13 +100,13 @@ func (p *Process) Userdata() string {
 }
 
 func (p *Process) Instances() Instances {
-	app, err := GetApp(p.App)
+	instances, err := ListInstances(p.App, p.Name)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return Instances{}
+	return instances
 }
 
 func (p *Process) Metrics() *Metrics {
@@ -117,6 +117,19 @@ func (p *Process) Metrics() *Metrics {
 	}
 
 	return metrics
+}
+
+func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
+	resources, err := ListResources(p.App)
+
+	if err != nil {
+		return err
+	}
+
+	done := make(chan bool)
+	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].PhysicalId, output, done)
+
+	return nil
 }
 
 func processFromRow(row map[string]*dynamodb.Attribute) *Process {

@@ -69,6 +69,34 @@ func ProcessMetrics(app, process string) (*Metrics, error) {
 	return &Metrics{Cpu: getLastAverage(cpu), Memory: getLastAverage(memory), Disk: getLastAverage(disk)}, nil
 }
 
+func InstanceMetrics(app, process, instance string) (*Metrics, error) {
+	dimensions := []cloudwatch.Dimension{
+		cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
+		cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
+		cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String(instance)},
+	}
+
+	cpu, err := getMetric("CpuUtilization", dimensions, 1, 1)
+
+	if err != nil {
+		return nil, err
+	}
+
+	memory, err := getMetric("MemoryUtilization", dimensions, 1, 1)
+
+	if err != nil {
+		return nil, err
+	}
+
+	disk, err := getMetric("DiskUtilization", dimensions, 1, 1)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Metrics{Cpu: getLastAverage(cpu), Memory: getLastAverage(memory), Disk: getLastAverage(disk)}, nil
+}
+
 func getMetric(metric string, dimensions []cloudwatch.Dimension, span, precision int) ([]cloudwatch.Datapoint, error) {
 	req := &cloudwatch.GetMetricStatisticsInput{
 		Dimensions: dimensions,

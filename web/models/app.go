@@ -2,10 +2,7 @@ package models
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
 
@@ -13,10 +10,12 @@ type App struct {
 	Name string
 
 	Status     string
-	Outputs    map[string]string
-	Parameters map[string]string
 	Repository string
 	Release    string
+
+	Outputs    map[string]string
+	Parameters map[string]string
+	Tags       map[string]string
 
 	Builds   Builds
 	Releases Releases
@@ -59,6 +58,7 @@ func GetApp(name string) (*App, error) {
 
 	app.Outputs = stackOutputs(res.Stacks[0])
 	app.Parameters = stackParameters(res.Stacks[0])
+	app.Tags = stackTags(res.Stacks[0])
 
 	builds, err := ListBuilds(app.Name)
 
@@ -129,7 +129,7 @@ func (a *App) ProcessFormation() string {
 	formation := ""
 
 	for _, p := range a.Processes() {
-		env := a.ResourceEnv()
+		env := a.ServiceEnv()
 
 		f, err := p.Formation(env)
 
@@ -143,10 +143,10 @@ func (a *App) ProcessFormation() string {
 	return formation
 }
 
-func (a *App) ResourceEnv() string {
+func (a *App) ServiceEnv() string {
 	env := ""
 
-	for _, r := range a.Resources() {
+	for _, r := range a.Services() {
 		e, err := r.Env()
 
 		if err != nil {
@@ -159,10 +159,10 @@ func (a *App) ResourceEnv() string {
 	return env
 }
 
-func (a *App) ResourceFormation() string {
+func (a *App) ServiceFormation() string {
 	formation := ""
 
-	for _, r := range a.Resources() {
+	for _, r := range a.Services() {
 		f, err := r.Formation()
 
 		if err != nil {
@@ -199,6 +199,16 @@ func (a *App) Resources() Resources {
 	return resources
 }
 
+func (a *App) Services() Services {
+	services, err := ListServices(a.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return services
+}
+
 func (a *App) Metrics() *Metrics {
 	metrics, err := AppMetrics(a.Name)
 
@@ -215,80 +225,10 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 
 	for i, ps := range processes {
 		done[i] = make(chan bool)
-		go a.subscribeKinesis(ps.Name, a.Outputs[upperName(ps.Name)+"Kinesis"], output, done[i])
+		go subscribeKinesis(ps.Name, a.Outputs[upperName(ps.Name)+"Kinesis"], output, done[i])
 	}
 
 	return nil
-}
-
-func (a *App) subscribeKinesis(prefix, stream string, output chan []byte, quit chan bool) {
-	sreq := &kinesis.DescribeStreamInput{
-		StreamName: aws.String(stream),
-	}
-	sres, err := Kinesis.DescribeStream(sreq)
-
-	if err != nil {
-		fmt.Printf("err1 %+v\n", err)
-		// panic(err)
-		return
-	}
-
-	shards := make([]string, len(sres.StreamDescription.Shards))
-
-	for i, s := range sres.StreamDescription.Shards {
-		shards[i] = *s.ShardID
-	}
-
-	done := make([](chan bool), len(shards))
-
-	for i, shard := range shards {
-		done[i] = make(chan bool)
-		go a.subscribeKinesisShard(prefix, stream, shard, output, done[i])
-	}
-}
-
-func (a *App) subscribeKinesisShard(prefix, stream, shard string, output chan []byte, quit chan bool) {
-	ireq := &kinesis.GetShardIteratorInput{
-		ShardID:           aws.String(shard),
-		ShardIteratorType: aws.String("LATEST"),
-		StreamName:        aws.String(stream),
-	}
-	ires, err := Kinesis.GetShardIterator(ireq)
-
-	if err != nil {
-		fmt.Printf("err2 %+v\n", err)
-		// panic(err)
-		return
-	}
-
-	iter := *ires.ShardIterator
-
-	for {
-		select {
-		case <-quit:
-			fmt.Println("quitting")
-			return
-		default:
-			greq := &kinesis.GetRecordsInput{
-				ShardIterator: aws.String(iter),
-			}
-			gres, err := Kinesis.GetRecords(greq)
-
-			if err != nil {
-				fmt.Printf("err3 %+v\n", err)
-				// panic(err)
-				return
-			}
-
-			iter = *gres.NextShardIterator
-
-			for _, record := range gres.Records {
-				output <- []byte(fmt.Sprintf("%s: %s\n", prefix, string(record.Data)))
-			}
-
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
 }
 
 func appFromStack(stack cloudformation.Stack) *App {

@@ -80,7 +80,7 @@
         }
       },
       {{ safe .ProcessFormation }}
-      {{ safe .ResourceFormation }}
+      {{ safe .ServiceFormation }}
       "SecurityInstances": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
@@ -188,10 +188,10 @@
           }
         }
       },
-      "DynamoResources": {
+      "DynamoServices": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "convox-{{ .Name }}-resources",
+          "TableName": "convox-{{ .Name }}-services",
           "AttributeDefinitions": [
             { "AttributeName": "name", "AttributeType": "S" }
           ],

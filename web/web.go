@@ -40,6 +40,7 @@ func main() {
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/logs", controllers.AppLogs)
 	router.HandleFunc("/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
+	router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs)
 
 	n := negroni.Classic()
 	// n.Use(negroni.HandlerFunc(parseForm))
