@@ -208,19 +208,10 @@
     "Outputs": {
       {{ range .Processes }}
         {{ if .Balancer }}
-          "{{ upper .Name }}BalancerId": {
-            "Value": { "Ref": "{{ upper .Name }}Balancer" }
-          },
           "{{ upper .Name }}BalancerHost": {
             "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
           },
         {{ end }}
-        "{{ upper .Name }}Instances": {
-          "Value": { "Ref": "{{ upper .Name }}Instances" }
-        },
-        "{{ upper .Name}}Kinesis": {
-          "Value": { "Ref": "{{ upper .Name }}Kinesis" }
-        },
       {{ end }}
       "SecurityInstances": {
         "Value": { "Ref": "SecurityInstances" }

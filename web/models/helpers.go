@@ -10,26 +10,9 @@ import (
 	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
-
-func availabilityZones() ([]string, error) {
-	res, err := EC2.DescribeAvailabilityZones(nil, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	subnets := make([]string, len(res.AvailabilityZones))
-
-	for i, zone := range res.AvailabilityZones {
-		subnets[i] = zone.Name
-	}
-
-	return subnets, nil
-}
 
 func buildFormationTemplate(name, section string, object interface{}) (string, error) {
 	tmpl, err := template.New(section).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("formation/%s.tmpl", name))
@@ -49,29 +32,29 @@ func buildFormationTemplate(name, section string, object interface{}) (string, e
 	return formation.String(), nil
 }
 
-func coalesce(att *dynamodb.Attribute, def string) string {
-	if att != nil {
-		return att.Value
+func coalesce(s aws.StringValue, def string) string {
+	if s != nil {
+		return *s
 	} else {
 		return def
 	}
 }
 
 func createStack(formation, name string, params map[string]string, tags map[string]string) error {
-	sp := &cloudformation.CreateStackParams{
-		StackName:    name,
-		TemplateBody: formation,
+	req := &cloudformation.CreateStackInput{
+		StackName:    aws.String(name),
+		TemplateBody: aws.String(formation),
 	}
 
 	for key, value := range params {
-		sp.Parameters = append(sp.Parameters, cloudformation.Parameter{ParameterKey: key, ParameterValue: value})
+		req.Parameters = append(req.Parameters, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
 	for key, value := range tags {
-		sp.Tags = append(sp.Tags, cloudformation.Tag{Key: key, Value: value})
+		req.Tags = append(req.Tags, cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
 	}
 
-	_, err := CloudFormation.CreateStack(sp)
+	_, err := CloudFormation.CreateStack(req)
 
 	return err
 }
@@ -95,7 +78,7 @@ func flattenTags(tags []cloudformation.Tag) map[string]string {
 	f := make(map[string]string)
 
 	for _, tag := range tags {
-		f[tag.Key] = tag.Value
+		f[*tag.Key] = *tag.Value
 	}
 
 	return f
@@ -143,46 +126,6 @@ func humanStatus(original string) string {
 	}
 }
 
-func nextAvailableSubnet(vpc string) (string, error) {
-	res, err := CloudFormation.DescribeStacks("", "")
-
-	if err != nil {
-		return "", err
-	}
-
-	available := make([]string, 254)
-
-	for i := 1; i <= 254; i++ {
-		available[i-1] = fmt.Sprintf("10.0.%d.0/24", i)
-	}
-
-	used := make([]string, 0)
-
-	for _, stack := range res.Stacks {
-		tags := stackTags(stack)
-		if tags["type"] == "app" {
-			used = append(used, tags["subnet"])
-		}
-	}
-
-	for _, a := range available {
-		found := false
-
-		for _, u := range used {
-			if a == u {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return a, nil
-		}
-	}
-
-	return "", fmt.Errorf("no available subnets")
-}
-
 func prettyJson(raw string) (string, error) {
 	var parsed map[string]interface{}
 
@@ -211,30 +154,30 @@ func stackParameters(stack cloudformation.Stack) map[string]string {
 	parameters := make(map[string]string)
 
 	for _, parameter := range stack.Parameters {
-		parameters[parameter.ParameterKey] = parameter.ParameterValue
+		parameters[*parameter.ParameterKey] = *parameter.ParameterValue
 	}
 
 	return parameters
-}
-
-func stackTags(stack cloudformation.Stack) map[string]string {
-	tags := make(map[string]string)
-
-	for _, tag := range stack.Tags {
-		tags[tag.Key] = tag.Value
-	}
-
-	return tags
 }
 
 func stackOutputs(stack cloudformation.Stack) map[string]string {
 	outputs := make(map[string]string)
 
 	for _, output := range stack.Outputs {
-		outputs[output.OutputKey] = output.OutputValue
+		outputs[*output.OutputKey] = *output.OutputValue
 	}
 
 	return outputs
+}
+
+func stackTags(stack cloudformation.Stack) map[string]string {
+	tags := make(map[string]string)
+
+	for _, tag := range stack.Tags {
+		tags[*tag.Key] = *tag.Value
+	}
+
+	return tags
 }
 
 func templateHelpers() template.FuncMap {

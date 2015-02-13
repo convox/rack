@@ -3,7 +3,8 @@ package models
 import (
 	"fmt"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 type Service struct {
@@ -16,29 +17,38 @@ type Service struct {
 type Services []Service
 
 func ListServices(app string) (Services, error) {
-	rows, err := servicesTable(app).Scan(nil)
+	req := &dynamodb.ScanInput{
+		TableName: aws.String(servicesTable(app)),
+	}
+
+	res, err := DynamoDB.Scan(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	services := make(Services, len(rows))
+	services := make(Services, len(res.Items))
 
-	for i, row := range rows {
-		services[i] = *serviceFromRow(row)
+	for i, item := range res.Items {
+		services[i] = *serviceFromItem(item)
 	}
+
+	fmt.Printf("services %+v\n", services)
 
 	return services, nil
 }
 
 func (r *Service) Save() error {
-	service := []dynamodb.Attribute{
-		*dynamodb.NewStringAttribute("name", r.Name),
-		*dynamodb.NewStringAttribute("type", r.Type),
-		*dynamodb.NewStringAttribute("app", r.App),
+	req := &dynamodb.PutItemInput{
+		Item: map[string]dynamodb.AttributeValue{
+			"name": dynamodb.AttributeValue{S: aws.String(r.Name)},
+			"type": dynamodb.AttributeValue{S: aws.String(r.Type)},
+			"app":  dynamodb.AttributeValue{S: aws.String(r.App)},
+		},
+		TableName: aws.String(servicesTable(r.App)),
 	}
 
-	_, err := servicesTable(r.App).PutItem(r.Name, "", service)
+	_, err := DynamoDB.PutItem(req)
 
 	return err
 }
@@ -77,16 +87,14 @@ func (r Service) FormationName() string {
 	return fmt.Sprintf("%s%s", upperName(r.Type), upperName(r.Name))
 }
 
-func serviceFromRow(row map[string]*dynamodb.Attribute) *Service {
-	return &Service{
-		Name: coalesce(row["name"], ""),
-		Type: coalesce(row["type"], ""),
-		App:  coalesce(row["app"], ""),
-	}
+func servicesTable(app string) string {
+	return fmt.Sprintf("convox-%s-services", app)
 }
 
-func servicesTable(app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("name", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-resources", app), pk)
-	return table
+func serviceFromItem(item map[string]dynamodb.AttributeValue) *Service {
+	return &Service{
+		Name: coalesce(item["name"].S, ""),
+		Type: coalesce(item["type"].S, ""),
+		App:  coalesce(item["app"].S, ""),
+	}
 }

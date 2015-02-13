@@ -3,7 +3,8 @@ package models
 import (
 	"fmt"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 )
 
 type App struct {
@@ -24,7 +25,7 @@ type App struct {
 type Apps []App
 
 func ListApps() (Apps, error) {
-	res, err := CloudFormation.DescribeStacks("", "")
+	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{})
 
 	if err != nil {
 		return nil, err
@@ -44,7 +45,7 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	res, err := CloudFormation.DescribeStacks(fmt.Sprintf("convox-%s", name), "")
+	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(fmt.Sprintf("convox-%s", name))})
 
 	if err != nil {
 		return nil, err
@@ -99,8 +100,7 @@ func (a *App) Create() error {
 }
 
 func (a *App) Delete() error {
-	_, err := CloudFormation.DeleteStack(fmt.Sprintf("convox-%s", a.Name))
-	return err
+	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(fmt.Sprintf("convox-%s", a.Name))})
 }
 
 func (a *App) Formation() (string, error) {
@@ -220,12 +220,18 @@ func (a *App) Metrics() *Metrics {
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
+	resources, err := ListResources(a.Name)
+
+	if err != nil {
+		return err
+	}
+
 	processes := a.Processes()
 	done := make([](chan bool), len(processes))
 
 	for i, ps := range processes {
 		done[i] = make(chan bool)
-		go subscribeKinesis(ps.Name, a.Outputs[upperName(ps.Name)+"Kinesis"], output, done[i])
+		go subscribeKinesis(ps.Name, resources[fmt.Sprintf("%sKinesis", upperName(ps.Name))].PhysicalId, output, done[i])
 	}
 
 	return nil
@@ -235,8 +241,8 @@ func appFromStack(stack cloudformation.Stack) *App {
 	params := stackParameters(stack)
 
 	return &App{
-		Name:       stack.StackName[7:],
-		Status:     humanStatus(stack.StackStatus),
+		Name:       (*stack.StackName)[7:],
+		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 		Release:    params["Release"],
 	}

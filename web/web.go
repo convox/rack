@@ -7,6 +7,7 @@ import (
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
+
 	"github.com/convox/kernel/web/controllers"
 )
 
@@ -43,7 +44,7 @@ func main() {
 	router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs)
 
 	n := negroni.Classic()
-	// n.Use(negroni.HandlerFunc(parseForm))
+	n.Use(negroni.HandlerFunc(parseForm))
 	n.UseHandler(router)
 	n.Run(fmt.Sprintf(":%s", port))
 }

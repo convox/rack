@@ -4,31 +4,25 @@ import (
 	"os"
 
 	aaws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
-
-	caws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
-
-	gaws "github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/aws"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
 
 var SortableTime = "20060102.150405.000000000"
 
 var (
-	aauth = aaws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
-	cauth = caws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
-	gauth = gaws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
+	auth = aaws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
 )
 
 var (
-	CloudFormation = cloudformation.New(gauth, gaws.Regions[os.Getenv("AWS_REGION")])
-	Cloudwatch     = cloudwatch.New(aauth, os.Getenv("AWS_REGION"), nil)
-	DynamoDB       = dynamodb.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
-	EC2            = ec2.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
-	Kinesis        = kinesis.New(aauth, os.Getenv("AWS_REGION"), nil)
+	CloudFormation = cloudformation.New(auth, os.Getenv("AWS_REGION"), nil)
+	Cloudwatch     = cloudwatch.New(auth, os.Getenv("AWS_REGION"), nil)
+	DynamoDB       = dynamodb.New(auth, os.Getenv("AWS_REGION"), nil)
+	EC2            = ec2.New(auth, os.Getenv("AWS_REGION"), nil)
+	Kinesis        = kinesis.New(auth, os.Getenv("AWS_REGION"), nil)
 )
 
 type Cluster struct {

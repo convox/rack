@@ -3,7 +3,8 @@ package models
 import (
 	"fmt"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 type Process struct {
@@ -17,39 +18,50 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	rows, err := processesTable(app).Scan(nil)
+	res, err := DynamoDB.Scan(&dynamodb.ScanInput{TableName: aws.String(processesTable(app))})
 
 	if err != nil {
 		return nil, err
 	}
 
-	processes := make(Processes, len(rows))
+	processes := make(Processes, len(res.Items))
 
-	for i, row := range rows {
-		processes[i] = *processFromRow(row)
+	for i, item := range res.Items {
+		processes[i] = *processFromItem(item)
 	}
 
 	return processes, nil
 }
 
 func GetProcess(app, name string) (*Process, error) {
-	row, err := processesTable(app).GetItem(&dynamodb.Key{name, ""})
+	req := &dynamodb.GetItemInput{
+		ConsistentRead: aws.Boolean(true),
+		Key: map[string]dynamodb.AttributeValue{
+			"name": dynamodb.AttributeValue{S: aws.String(name)},
+		},
+		TableName: aws.String(processesTable(app)),
+	}
+
+	res, err := DynamoDB.GetItem(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return processFromRow(row), nil
+	return processFromItem(res.Item), nil
 }
 
 func (p *Process) Save() error {
-	process := []dynamodb.Attribute{
-		*dynamodb.NewStringAttribute("name", p.Name),
-		*dynamodb.NewStringAttribute("count", p.Count),
-		*dynamodb.NewStringAttribute("app", p.App),
+	req := &dynamodb.PutItemInput{
+		Item: map[string]dynamodb.AttributeValue{
+			"name":  dynamodb.AttributeValue{S: aws.String(p.Name)},
+			"count": dynamodb.AttributeValue{S: aws.String(p.Count)},
+			"app":   dynamodb.AttributeValue{S: aws.String(p.App)},
+		},
+		TableName: aws.String(processesTable(p.App)),
 	}
 
-	_, err := processesTable(p.App).PutItem(p.Name, "", process)
+	_, err := DynamoDB.PutItem(req)
 
 	return err
 }
@@ -132,16 +144,14 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 	return nil
 }
 
-func processFromRow(row map[string]*dynamodb.Attribute) *Process {
-	return &Process{
-		Name:  coalesce(row["name"], ""),
-		Count: coalesce(row["count"], "0"),
-		App:   coalesce(row["app"], ""),
-	}
+func processesTable(app string) string {
+	return fmt.Sprintf("convox-%s-processes", app)
 }
 
-func processesTable(app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("name", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-processes", app), pk)
-	return table
+func processFromItem(item map[string]dynamodb.AttributeValue) *Process {
+	return &Process{
+		Name:  coalesce(item["name"].S, ""),
+		Count: coalesce(item["count"].S, "0"),
+		App:   coalesce(item["app"].S, ""),
+	}
 }

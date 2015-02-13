@@ -10,7 +10,19 @@
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudformation",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudwatch",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/dynamodb",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/ec2",
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
 		{
@@ -22,34 +34,9 @@
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
 		{
-			"ImportPath": "github.com/bitly/go-simplejson",
-			"Comment": "v0.4.3-28-g3378bdc",
-			"Rev": "3378bdcb5cebedcbf8b5750edee28010f128fe24"
-		},
-		{
 			"ImportPath": "github.com/codegangsta/negroni",
 			"Comment": "v0.1-32-gc64702c",
 			"Rev": "c64702ca03d0f858ab7866638b69e85f0d4c6ee7"
-		},
-		{
-			"ImportPath": "github.com/crowdmob/goamz/aws",
-			"Rev": "17e2dd3ab42716b79ea2ed7a1d58f20959930c5b"
-		},
-		{
-			"ImportPath": "github.com/crowdmob/goamz/dynamodb",
-			"Rev": "17e2dd3ab42716b79ea2ed7a1d58f20959930c5b"
-		},
-		{
-			"ImportPath": "github.com/crowdmob/goamz/ec2",
-			"Rev": "17e2dd3ab42716b79ea2ed7a1d58f20959930c5b"
-		},
-		{
-			"ImportPath": "github.com/goamz/goamz/aws",
-			"Rev": "a748daf209ba9ad8fedbe74d64df2bdc5f327463"
-		},
-		{
-			"ImportPath": "github.com/goamz/goamz/cloudformation",
-			"Rev": "a748daf209ba9ad8fedbe74d64df2bdc5f327463"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",

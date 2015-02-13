@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 type Release struct {
@@ -23,39 +24,52 @@ type Release struct {
 type Releases []Release
 
 func ListReleases(app string) (Releases, error) {
-	table := releasesTable(app)
+	req := &dynamodb.QueryInput{
+		KeyConditions: map[string]dynamodb.Condition{
+			"app": dynamodb.Condition{
+				AttributeValueList: []dynamodb.AttributeValue{
+					dynamodb.AttributeValue{S: aws.String(app)},
+				},
+				ComparisonOperator: aws.String("EQ"),
+			},
+		},
+		IndexName:        aws.String("app.created"),
+		Limit:            aws.Integer(10),
+		ScanIndexForward: aws.Boolean(false),
+		TableName:        aws.String(releasesTable(app)),
+	}
 
-	q := dynamodb.NewQuery(table)
-	q.AddIndex("app.created")
-	q.AddKeyConditions([]dynamodb.AttributeComparison{
-		*dynamodb.NewEqualStringAttributeComparison("app", app),
-	})
-	q.AddScanIndexForward(false)
-	q.AddLimit(10)
-
-	rows, _, err := table.QueryTable(q)
+	res, err := DynamoDB.Query(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	releases := make(Releases, len(rows))
+	releases := make(Releases, len(res.Items))
 
-	for i, row := range rows {
-		releases[i] = *releaseFromRow(row)
+	for i, item := range res.Items {
+		releases[i] = *releaseFromItem(item)
 	}
 
 	return releases, nil
 }
 
 func GetRelease(app, id string) (*Release, error) {
-	row, err := releasesTable(app).GetItem(&dynamodb.Key{id, ""})
+	req := &dynamodb.GetItemInput{
+		ConsistentRead: aws.Boolean(true),
+		Key: map[string]dynamodb.AttributeValue{
+			"id": dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		TableName: aws.String(releasesTable(app)),
+	}
+
+	res, err := DynamoDB.GetItem(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return releaseFromRow(row), nil
+	return releaseFromItem(res.Item), nil
 }
 
 func (r *Release) Formation() (string, error) {
@@ -101,36 +115,34 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	sp := &cloudformation.UpdateStackParams{
-		StackName:    fmt.Sprintf("convox-%s", r.App),
-		TemplateBody: formation,
+	req := &cloudformation.UpdateStackInput{
+		StackName:    aws.String(fmt.Sprintf("convox-%s", r.App)),
+		TemplateBody: aws.String(formation),
 		Capabilities: []string{"CAPABILITY_IAM"},
 		Parameters: []cloudformation.Parameter{
-			cloudformation.Parameter{ParameterKey: "Release", ParameterValue: r.Id},
-			cloudformation.Parameter{ParameterKey: "Repository", ParameterValue: app.Repository},
+			cloudformation.Parameter{ParameterKey: aws.String("Release"), ParameterValue: aws.String(r.Id)},
+			cloudformation.Parameter{ParameterKey: aws.String("Repository"), ParameterValue: aws.String(app.Repository)},
 		},
 	}
 
-	_, err = CloudFormation.UpdateStack(sp)
+	_, err = CloudFormation.UpdateStack(req)
 
 	return err
 }
 
-func releasesTable(app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-releases", app), pk)
-	return table
+func releasesTable(app string) string {
+	return fmt.Sprintf("convox-%s-releases", app)
 }
 
-func releaseFromRow(row map[string]*dynamodb.Attribute) *Release {
-	created, _ := time.Parse(SortableTime, coalesce(row["created"], ""))
+func releaseFromItem(item map[string]dynamodb.AttributeValue) *Release {
+	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
 
 	return &Release{
-		Id:       coalesce(row["id"], ""),
-		Ami:      coalesce(row["ami"], ""),
-		Manifest: coalesce(row["manifest"], ""),
-		Status:   coalesce(row["status"], ""),
-		App:      coalesce(row["app"], ""),
+		Id:       coalesce(item["id"].S, ""),
+		Ami:      coalesce(item["ami"].S, ""),
+		Manifest: coalesce(item["manifest"].S, ""),
+		Status:   coalesce(item["status"].S, ""),
+		App:      coalesce(item["app"].S, ""),
 		Created:  created,
 	}
 }

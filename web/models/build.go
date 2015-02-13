@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
 type Build struct {
@@ -21,47 +22,50 @@ type Build struct {
 type Builds []Build
 
 func ListBuilds(app string) (Builds, error) {
-	table := buildsTable(app)
+	req := &dynamodb.QueryInput{
+		KeyConditions: map[string]dynamodb.Condition{
+			"app": dynamodb.Condition{
+				AttributeValueList: []dynamodb.AttributeValue{
+					dynamodb.AttributeValue{S: aws.String(app)},
+				},
+				ComparisonOperator: aws.String("EQ"),
+			},
+		},
+		IndexName:        aws.String("app.created"),
+		Limit:            aws.Integer(10),
+		ScanIndexForward: aws.Boolean(false),
+		TableName:        aws.String(buildsTable(app)),
+	}
 
-	q := dynamodb.NewQuery(table)
-	q.AddIndex("app.created")
-	q.AddKeyConditions([]dynamodb.AttributeComparison{
-		*dynamodb.NewEqualStringAttributeComparison("app", app),
-	})
-	q.AddScanIndexForward(false)
-	q.AddLimit(10)
-
-	rows, _, err := table.QueryTable(q)
+	res, err := DynamoDB.Query(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	builds := make(Builds, len(rows))
+	builds := make(Builds, len(res.Items))
 
-	for i, row := range rows {
-		builds[i] = *buildFromRow(row)
+	for i, item := range res.Items {
+		builds[i] = *buildFromItem(item)
 	}
 
 	return builds, nil
 }
 
-func buildFromRow(row map[string]*dynamodb.Attribute) *Build {
-	created, _ := time.Parse(SortableTime, coalesce(row["created"], ""))
-	ended, _ := time.Parse(SortableTime, coalesce(row["ended"], ""))
+func buildsTable(app string) string {
+	return fmt.Sprintf("convox-%s-builds", app)
+}
+
+func buildFromItem(item map[string]dynamodb.AttributeValue) *Build {
+	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
+	ended, _ := time.Parse(SortableTime, coalesce(item["ended"].S, ""))
 
 	return &Build{
-		Id:      coalesce(row["id"], ""),
-		Logs:    coalesce(row["logs"], ""),
-		Release: coalesce(row["release"], ""),
-		Status:  coalesce(row["status"], ""),
+		Id:      coalesce(item["id"].S, ""),
+		Logs:    coalesce(item["logs"].S, ""),
+		Release: coalesce(item["release"].S, ""),
+		Status:  coalesce(item["status"].S, ""),
 		Created: created,
 		Ended:   ended,
 	}
-}
-
-func buildsTable(app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-builds", app), pk)
-	return table
 }
