@@ -17,9 +17,6 @@ type App struct {
 	Outputs    map[string]string
 	Parameters map[string]string
 	Tags       map[string]string
-
-	Builds   Builds
-	Releases Releases
 }
 
 type Apps []App
@@ -61,27 +58,12 @@ func GetApp(name string) (*App, error) {
 	app.Parameters = stackParameters(res.Stacks[0])
 	app.Tags = stackTags(res.Stacks[0])
 
-	builds, err := ListBuilds(app.Name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	app.Builds = builds
-
-	releases, err := ListReleases(app.Name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	app.Releases = releases
-
 	return app, nil
 }
 
 func (a *App) Create() error {
 	formation, err := a.Formation()
+	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
 		return err
@@ -96,7 +78,9 @@ func (a *App) Create() error {
 		"Type":   "app",
 	}
 
-	return createStack(formation, fmt.Sprintf("convox-%s", a.Name), params, tags)
+	err = createStack(formation, fmt.Sprintf("convox-%s", a.Name), params, tags)
+	fmt.Printf("err %+v\n", err)
+	return err
 }
 
 func (a *App) Delete() error {
@@ -105,6 +89,7 @@ func (a *App) Delete() error {
 
 func (a *App) Formation() (string, error) {
 	formation, err := buildFormationTemplate("base", "formation", a)
+	fmt.Printf("err3 %+v\n", err)
 
 	if err != nil {
 		return "", err
@@ -175,6 +160,20 @@ func (a *App) Ami() string {
 	return release.Ami
 }
 
+func (a *App) Builds() Builds {
+	builds, err := ListBuilds(a.Name)
+
+	if err != nil {
+		if err.(aws.APIError).Message == "Requested resource not found" {
+			return Builds{}
+		} else {
+			panic(err)
+		}
+	}
+
+	return builds
+}
+
 func (a *App) History() Histories {
 	histories, err := ListHistories(a.Name)
 
@@ -199,17 +198,39 @@ func (a *App) Processes() Processes {
 	processes, err := ListProcesses(a.Name)
 
 	if err != nil {
-		panic(err)
+		if err.(aws.APIError).Message == "Requested resource not found" {
+			return Processes{}
+		} else {
+			panic(err)
+		}
 	}
 
 	return processes
+}
+
+func (a *App) Releases() Releases {
+	releases, err := ListReleases(a.Name)
+
+	if err != nil {
+		if err.(aws.APIError).Message == "Requested resource not found" {
+			return Releases{}
+		} else {
+			panic(err)
+		}
+	}
+
+	return releases
 }
 
 func (a *App) Resources() Resources {
 	resources, err := ListResources(a.Name)
 
 	if err != nil {
-		panic(err)
+		if err.(aws.APIError).Message == "Requested resource not found" {
+			return Resources{}
+		} else {
+			panic(err)
+		}
 	}
 
 	return resources
@@ -219,7 +240,11 @@ func (a *App) Services() Services {
 	services, err := ListServices(a.Name)
 
 	if err != nil {
-		panic(err)
+		if err.(aws.APIError).Message == "Requested resource not found" {
+			return Services{}
+		} else {
+			panic(err)
+		}
 	}
 
 	return services
