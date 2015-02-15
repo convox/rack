@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
@@ -84,7 +85,9 @@ func (r Service) AvailabilityZones() []string {
 }
 
 func (r Service) FormationName() string {
-	return fmt.Sprintf("%s%s", upperName(r.Type), upperName(r.Name))
+	parts := strings.Split(r.Type, "/")
+	name := upperName(parts[1])
+	return fmt.Sprintf("%s%s", name, upperName(r.Name))
 }
 
 func servicesTable(app string) string {

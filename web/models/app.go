@@ -115,16 +115,6 @@ func (a *App) Formation() (string, error) {
 	return prettyJson(formation)
 }
 
-func (a *App) Ami() string {
-	release, err := GetRelease(a.Name, a.Release)
-
-	if err != nil {
-		return ""
-	}
-
-	return release.Ami
-}
-
 func (a *App) ProcessFormation() string {
 	formation := ""
 
@@ -175,8 +165,34 @@ func (a *App) ServiceFormation() string {
 	return formation
 }
 
-func (a *App) Subnets() Subnets {
-	return ListSubnets()
+func (a *App) Ami() string {
+	release, err := GetRelease(a.Name, a.Release)
+
+	if err != nil {
+		return ""
+	}
+
+	return release.Ami
+}
+
+func (a *App) History() Histories {
+	histories, err := ListHistories(a.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return histories
+}
+
+func (a *App) Metrics() *Metrics {
+	metrics, err := AppMetrics(a.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return metrics
 }
 
 func (a *App) Processes() Processes {
@@ -209,14 +225,8 @@ func (a *App) Services() Services {
 	return services
 }
 
-func (a *App) Metrics() *Metrics {
-	metrics, err := AppMetrics(a.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return metrics
+func (a *App) Subnets() Subnets {
+	return ListSubnets()
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {

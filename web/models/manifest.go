@@ -45,14 +45,14 @@ func (m *Manifest) Apply(app *App) error {
 	}
 
 	for _, entry := range *m {
-		if rt := entry.ServiceType(); rt != "" {
-			resource := Service{
+		if st := entry.ServiceType(); st != "" {
+			service := Service{
 				Name: entry.Name,
-				Type: rt,
+				Type: st,
 				App:  app.Name,
 			}
 
-			resource.Save()
+			service.Save()
 		} else {
 			count := "1"
 
@@ -77,7 +77,7 @@ func (m *Manifest) Apply(app *App) error {
 
 func (me *ManifestEntry) ServiceType() string {
 	if strings.HasPrefix(me.Image, "convox/") {
-		return me.Image[7:]
+		return me.Image
 	} else {
 		return ""
 	}

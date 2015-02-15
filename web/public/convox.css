@@ -48,7 +48,7 @@ form {
 	margin-right: 0px;
 }
 
-.table td {
+.table td:not(.wrap) {
 	white-space: nowrap;
 }
 
@@ -254,6 +254,7 @@ pre#app-logs, pre#process-logs {
 	width: 1138px;
 	border: 1px #ddd solid;
 	background-color: #f3f3f3;
+	font-size: 0.65em;
 }
 
 ul.nav-tabs a {
@@ -264,4 +265,26 @@ ul.nav-tabs a {
 
 .tab-content {
 	margin-top: 10px;
+}
+
+table.scrollable {
+	border: 0px;
+}
+
+table.scrollable > thead {
+	display: block;
+}
+
+.scrollable-wrapper table {
+	border-left: 0px;
+}
+
+.scrollable-wrapper tbody {
+	display: block;
+	overflow-y: scroll;
+	width: 1140px;
+}
+
+table.app-history td {
+	font-size: 0.74em;
 }
