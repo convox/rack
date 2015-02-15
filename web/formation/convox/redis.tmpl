@@ -1,5 +1,5 @@
 {{ define "env" }}
-	{ "Fn::Join": [ "=", [ "REDIS_PORT_6379_TCP_ADDR", { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] } ] ] },
+	{ "Fn::Join": [ "=", [ "REDIS_PORT_6379_TCP_ADDR", { "Fn::GetAtt": [ "Convox{{ upper .App }}{{ upper .Name }}Balancer", "DNSName" ] } ] ] },
 	"REDIS_PORT_6379_TCP_PORT=6379",
 {{ end }}
 
@@ -7,24 +7,24 @@
 {{ end }}
 
 {{ define "formation" }}
-	"{{ upper .Name }}BalancerSecurity": {
+	"Convox{{ upper .App }}{{ upper .Name }}BalancerSecurityGroup": {
 		"Type": "AWS::EC2::SecurityGroup",
 		"Properties": {
-			"GroupDescription": "{{ .Name}} Balancer",
+			"GroupDescription": "{{ .Name }} Balancer",
 			"SecurityGroupIngress": [
 				{ "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "10.0.0.0/16" }
 			],
-			"VpcId": { "Ref": "Vpc" }
+			"VpcId": { "Ref": "Convox{{ upper .App }}BaseVpc" }
 		}
 	},
-	"{{ upper .Name }}Balancer": {
+	"Convox{{ upper .App }}{{ upper .Name }}Balancer": {
 		"Type": "AWS::ElasticLoadBalancing::LoadBalancer",
 		"Properties": {
 			"Subnets": [
-				{ "Ref": "Subnet0" },
-				{ "Ref": "Subnet1" },
-				{ "Ref": "Subnet2" },
-				{ "Ref": "Subnet3" }
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet0" },
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet1" },
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet2" },
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet3" }
 			],
 			"ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
 			"ConnectionSettings": { "IdleTimeout": 60 },
@@ -41,20 +41,20 @@
 				{ "Protocol": "TCP", "LoadBalancerPort": "6379", "InstanceProtocol": "TCP", "InstancePort": "6379" }
 			],
 			"Scheme": "internal",
-			"SecurityGroups": [ { "Ref": "{{ upper .Name }}BalancerSecurity" } ]
+			"SecurityGroups": [ { "Ref": "Convox{{ upper .App }}{{ upper .Name }}BalancerSecurityGroup" } ]
 		}
 	},
-	"{{ upper .Name }}Security": {
+	"Convox{{ upper .App }}{{ upper .Name }}SecurityGroup": {
 		"Type": "AWS::EC2::SecurityGroup",
 		"Properties": {
 			"GroupDescription": "{{ .Name }} Balancer",
 			"SecurityGroupIngress": [
 				{ "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "10.0.0.0/16" }
 			],
-			"VpcId": { "Ref": "Vpc" }
+			"VpcId": { "Ref": "Convox{{ upper .App }}BaseVpc" }
 		}
 	},
-  "{{ upper .Name }}Launch": {
+  "Convox{{ upper .App }}{{ upper .Name }}LaunchConfiguration": {
     "Type": "AWS::AutoScaling::LaunchConfiguration",
     "Properties": {
       "AssociatePublicIpAddress": true,
@@ -66,26 +66,26 @@
       "InstanceMonitoring": true,
       "InstanceType": "t2.micro",
       "KeyName": "production",
-      "SecurityGroups": [ { "Ref": "{{ upper .Name }}Security" } ],
+      "SecurityGroups": [ { "Ref": "Convox{{ upper .App }}{{ upper .Name }}SecurityGroup" } ],
       "UserData": ""
     }
   },
-  "{{ upper .Name }}Instances": {
+  "Convox{{ upper .App }}{{ upper .Name }}Instances": {
     "Type": "AWS::AutoScaling::AutoScalingGroup",
     "Properties" : {
-      "LaunchConfigurationName" : { "Ref": "{{ upper .Name }}Launch" },
+      "LaunchConfigurationName" : { "Ref": "Convox{{ upper .App }}{{ upper .Name }}LaunchConfiguration" },
       "AvailabilityZones": [ {{ array .AvailabilityZones }} ],
       "VPCZoneIdentifier": [ 
-        { "Ref": "Subnet0" },
-        { "Ref": "Subnet1" },
-        { "Ref": "Subnet2" },
-        { "Ref": "Subnet3" }
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet0" },
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet1" },
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet2" },
+				{ "Ref": "Convox{{ upper .App }}BaseSubnet3" }
       ],
       "Cooldown": 5,
       "DesiredCapacity": "1",
       "MinSize" : "1",
       "MaxSize" : "2",
-			"LoadBalancerNames": [ { "Ref": "{{ upper .Name }}Balancer" } ],
+			"LoadBalancerNames": [ { "Ref": "Convox{{ upper .App }}{{ upper .Name }}Balancer" } ],
       "HealthCheckType": "EC2",
       "HealthCheckGracePeriod": 30,
       "MetricsCollection": [ { "Granularity": "1Minute" } ],

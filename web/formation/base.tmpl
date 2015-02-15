@@ -20,7 +20,7 @@
       }
     },
     "Resources": {
-      "Vpc": {
+      "Convox{{ upper .Name }}BaseVpc": {
         "Type": "AWS::EC2::VPC",
         "Properties": {
           "CidrBlock": "10.0.0.0/16",
@@ -30,50 +30,50 @@
           ]
         }
       },
-      "Gateway": {
+      "Convox{{ upper .Name }}BaseGateway": {
         "Type": "AWS::EC2::InternetGateway",
         "Properties": {
         }
       },
-      "GatewayAttachment": {
+      "Convox{{ upper .Name }}BaseGatewayAttachment": {
         "Type": "AWS::EC2::VPCGatewayAttachment",
         "Properties": {
-          "InternetGatewayId": { "Ref": "Gateway" },
-          "VpcId": { "Ref": "Vpc" }
+          "InternetGatewayId": { "Ref": "Convox{{ upper .Name }}BaseGateway" },
+          "VpcId": { "Ref": "Convox{{ upper .Name }}BaseVpc" }
         }
       },
-      "RouteTable": {
+      "Convox{{ upper .Name }}BaseRoutes": {
         "Type": "AWS::EC2::RouteTable",
         "Properties": {
-          "VpcId": { "Ref": "Vpc" }
+          "VpcId": { "Ref": "Convox{{ upper .Name }}BaseVpc" }
         }
       },
-      "DefaultRoute": {
+      "Convox{{ upper .Name }}BaseRouteDefault": {
         "Type": "AWS::EC2::Route",
         "Properties": {
           "DestinationCidrBlock": "0.0.0.0/0",
-          "GatewayId": { "Ref": "Gateway" },
-          "RouteTableId": { "Ref": "RouteTable" }
+          "GatewayId": { "Ref": "Convox{{ upper .Name }}BaseGateway" },
+          "RouteTableId": { "Ref": "Convox{{ upper .Name }}BaseRoutes" }
         }
       },
       {{ range $i, $subnet := .Subnets }}
-        "Subnet{{ $i }}": {
+        "Convox{{ upper $app.Name }}BaseSubnet{{ $i }}": {
           "Type": "AWS::EC2::Subnet",
           "Properties": {
             "AvailabilityZone": "{{ .AvailabilityZone }}",
             "CidrBlock": "{{ .Cidr }}",
-            "VpcId": { "Ref": "Vpc" }
+            "VpcId": { "Ref": "Convox{{ upper $app.Name }}BaseVpc" }
           }
         },
-        "Subnet{{ $i }}Routes": {
+        "Convox{{ upper $app.Name }}BaseSubnet{{ $i }}Routes": {
           "Type": "AWS::EC2::SubnetRouteTableAssociation",
           "Properties": {
-            "SubnetId": { "Ref": "Subnet{{ $i }}" },
-            "RouteTableId": { "Ref": "RouteTable" }
+            "SubnetId": { "Ref": "Convox{{ upper $app.Name }}BaseSubnet{{ $i }}" },
+            "RouteTableId": { "Ref": "Convox{{ upper $app.Name }}BaseRoutes" }
           }
         },
       {{ end }}
-      "LogGroup": {
+      "Convox{{ upper .Name }}BaseLogGroup": {
         "Type": "AWS::Logs::LogGroup",
         "Properties": {
           "RetentionInDays": 7
@@ -81,7 +81,7 @@
       },
       {{ safe .ProcessFormation }}
       {{ safe .ServiceFormation }}
-      "SecurityInstances": {
+      "Convox{{ upper .Name }}BaseSecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
           "GroupDescription": "Instances",
@@ -89,10 +89,10 @@
             { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "24.98.26.131/32" },
             { "IpProtocol": "tcp", "FromPort": "3000", "ToPort": "3000", "CidrIp": "0.0.0.0/0" }
           ],
-          "VpcId": { "Ref": "Vpc" }
+          "VpcId": { "Ref": "Convox{{ upper .Name }}BaseVpc" }
         }
       },
-      "DynamoBuilds": {
+      "Convox{{ upper .Name }}BaseDynamoBuilds": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
           "TableName": "convox-{{ .Name }}-builds",
@@ -124,7 +124,7 @@
           }
         }
       },
-      "DynamoEnv": {
+      "Convox{{ upper .Name }}BaseDynamoEnv": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
           "TableName": "convox-{{ .Name }}-env",
@@ -140,7 +140,7 @@
           }
         }
       },
-      "DynamoProcesses": {
+      "Convox{{ upper .Name }}BaseDynamoProcesses": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
           "TableName": "convox-{{ .Name }}-processes",
@@ -156,7 +156,7 @@
           }
         }
       },
-      "DynamoReleases": {
+      "Convox{{ upper .Name }}BaseDynamoReleases": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
           "TableName": "convox-{{ .Name }}-releases",
@@ -188,7 +188,7 @@
           }
         }
       },
-      "DynamoServices": {
+      "Convox{{ upper .Name }}BaseDynamoServices": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
           "TableName": "convox-{{ .Name }}-services",
@@ -208,13 +208,13 @@
     "Outputs": {
       {{ range .Processes }}
         {{ if .Balancer }}
-          "{{ upper .Name }}BalancerHost": {
-            "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
+          "Balancer{{ upper .Name }}Host": {
+            "Value": { "Fn::GetAtt": [ "Convox{{ upper $app.Name }}{{ upper .Name }}Balancer", "DNSName" ] }
           },
         {{ end }}
       {{ end }}
-      "SecurityInstances": {
-        "Value": { "Ref": "SecurityInstances" }
+      "BaseSecurityGroup": {
+        "Value": { "Ref": "Convox{{ upper .Name }}BaseSecurityGroup" }
       }
     }
   }
