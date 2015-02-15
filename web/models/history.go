@@ -40,7 +40,6 @@ func ListHistories(app string) (Histories, error) {
 		}
 
 		for _, event := range res.StackEvents {
-			fmt.Printf("event %+v\n", event)
 			histories = append(histories, History{
 				Id:     *event.EventID,
 				Name:   coalesce(event.LogicalResourceID, ""),
