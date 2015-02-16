@@ -54,3 +54,27 @@ function table_scroll(table, height) {
     thead.find('th:eq('+i+')').width(widths[i]);
   }
 }
+
+function goto_anchor() {
+  change_to_tab(window.location.hash.substring(1));
+
+  var hash = window.location.hash;
+
+  window.setInterval(function() {
+    if (window.location.hash != hash) {
+      change_to_tab(window.location.hash.substring(1));
+    }
+
+    hash = window.location.hash;
+  }, 200);
+
+  $('a[role="tab"]').on('click', function() {
+    window.location.hash = '#' + $(this).attr('href').substring(5);
+  });
+}
+
+var changer;
+
+function change_to_tab(name) {
+  $('a[href="#tab-'+name+'"][role="tab"]').click();
+}

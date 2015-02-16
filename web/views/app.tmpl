@@ -68,10 +68,10 @@
 
 	<ul class="nav nav-tabs">
 		<li role="presentation" class="active"><a href="#tab-logs" aria-controls="logs" role="tab" data-toggle="tab">Logs</a></li>
-		<li role="presentation"><a href="#tab-services" aria-controls="services" role="tab" data-toggle="tab">Services</a></li>
-		<li role="presentation"><a href="#tab-resources" aria-controls="resources" role="tab" data-toggle="tab">Resources</a></li>
 		<li role="presentation"><a href="#tab-builds" aria-controls="builds" role="tab" data-toggle="tab">Builds</a></li>
 		<li role="presentation"><a href="#tab-releases" aria-controls="releases" role="tab" data-toggle="tab">Releases</a></li>
+		<li role="presentation"><a href="#tab-services" aria-controls="services" role="tab" data-toggle="tab">Services</a></li>
+		<li role="presentation"><a href="#tab-resources" aria-controls="resources" role="tab" data-toggle="tab">Resources</a></li>
 		<li role="presentation"><a href="#tab-history" aria-controls="history" role="tab" data-toggle="tab">History</a></li>
 	</ul>
 
@@ -245,6 +245,8 @@
 
 	<script>
 		$(window).ready(function() {
+			goto_anchor();
+
 			connect_log_socket($('#app-logs'), '/apps/{{ .Name }}/logs');
 
 			table_scroll($('.app-history'), '365px');
