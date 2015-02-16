@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -37,6 +38,26 @@ func ListResources(app string) (Resources, error) {
 			Status: coalesce(r.ResourceStatus, ""),
 			Type:   coalesce(r.ResourceType, ""),
 			Time:   r.Timestamp,
+		}
+	}
+
+	return resources, nil
+}
+
+func ListResourcesForProcess(app, process string) (Resources, error) {
+	res, err := ListResources(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resources := make(Resources)
+
+	prefix := upperName(process)
+
+	for name, resource := range res {
+		if strings.HasPrefix(name, prefix) {
+			resources[name] = resource
 		}
 	}
 

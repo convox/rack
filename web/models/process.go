@@ -66,6 +66,30 @@ func (p *Process) Save() error {
 	return err
 }
 
+func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
+	resources, err := ListResources(p.App)
+	fmt.Printf("err %+v\n", err)
+
+	if err != nil {
+		return err
+	}
+
+	done := make(chan bool)
+	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
+
+	return nil
+}
+
+func (p *Process) AvailabilityZones() []string {
+	azs := []string{}
+
+	for _, subnet := range ListSubnets() {
+		azs = append(azs, subnet.AvailabilityZone)
+	}
+
+	return azs
+}
+
 func (p *Process) Balancer() bool {
 	return p.Name == "web"
 }
@@ -97,20 +121,6 @@ func (p *Process) Formation(env string) (string, error) {
 	return formation, nil
 }
 
-func (p *Process) AvailabilityZones() []string {
-	azs := []string{}
-
-	for _, subnet := range ListSubnets() {
-		azs = append(azs, subnet.AvailabilityZone)
-	}
-
-	return azs
-}
-
-func (p *Process) Userdata() string {
-	return `""`
-}
-
 func (p *Process) Instances() Instances {
 	instances, err := ListInstances(p.App, p.Name)
 
@@ -131,17 +141,18 @@ func (p *Process) Metrics() *Metrics {
 	return metrics
 }
 
-func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
-	resources, err := ListResources(p.App)
+func (p *Process) Resources() Resources {
+	resources, err := ListResourcesForProcess(p.App, p.Name)
 
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	done := make(chan bool)
-	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
+	return resources
+}
 
-	return nil
+func (p *Process) Userdata() string {
+	return `""`
 }
 
 func processesTable(app string) string {
