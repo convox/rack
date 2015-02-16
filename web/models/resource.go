@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -31,7 +30,6 @@ func ListResources(app string) (Resources, error) {
 	resources := make(Resources)
 
 	for _, r := range res.StackResources {
-		fmt.Printf("r %+v\n", r)
 		resources[*r.LogicalResourceID] = Resource{
 			Id:     coalesce(r.PhysicalResourceID, ""),
 			Name:   coalesce(r.LogicalResourceID, ""),
