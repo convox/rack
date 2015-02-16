@@ -96,9 +96,7 @@
 							<td class="id">{{ .Release }}</td>
 							<td>{{ duration .Created .Ended }}</td>
 							<td class="buttons">
-								<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">
-									<span class="glyphicon glyphicon-align-left" aria-hidden="true" style="margin-top:2px;"></span>
-								</button>
+								<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
 							</td>
 						</tr>
 					{{ end }}
