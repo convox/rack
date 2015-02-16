@@ -101,7 +101,7 @@ func (a *App) Delete() error {
 }
 
 func (a *App) Formation() (string, error) {
-	formation, err := buildFormationTemplate("base", "formation", a)
+	formation, err := buildFormationTemplate("app", "formation", a)
 	fmt.Printf("err3 %+v\n", err)
 
 	if err != nil {
