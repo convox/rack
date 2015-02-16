@@ -191,6 +191,7 @@
 					<tr>
 						<th>Name</th>
 						<th class="expand">Type</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -198,6 +199,11 @@
 						<tr>
 							<td>{{ .Name }}</td>
 							<td>{{ .Type }}</td>
+							<td>
+								{{ if .ManagementUrl }}
+									<a class="btn btn-xs btn-primary" href="{{ .ManagementUrl }}" target="convox-aws-console">Manage</a>
+								{{ end }}
+							</td>
 						</tr>
 					{{ end }}
 				</tbody>
@@ -294,6 +300,12 @@
 				var widths = [];
 
 				var clone = $(table).clone().appendTo('body > .container');
+				var width_no_scroll = clone.width();
+
+				clone.wrap('<div style="height:'+height+'; overflow-y:scroll;"></div>');
+				var wrap = clone.parent();
+				var width_scroll = clone.width();
+
 				var tr = clone.find('tbody > tr')[0];
 
 				if (tr) {
@@ -302,7 +314,10 @@
 					});
 				}
 
-				clone.remove();
+				// lengthen last th by the scrollbar size
+				widths[widths.length-1] += (width_no_scroll - width_scroll + 2);
+
+				wrap.remove();
 
 				$(table).addClass('scrollable');
 

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -52,6 +53,16 @@ func (r *Service) Save() error {
 	return err
 }
 
+func (r Service) AvailabilityZones() []string {
+	azs := []string{}
+
+	for _, subnet := range ListSubnets() {
+		azs = append(azs, subnet.AvailabilityZone)
+	}
+
+	return azs
+}
+
 func (r *Service) Env() (string, error) {
 	env, err := buildFormationTemplate(r.Type, "env", r)
 
@@ -72,20 +83,31 @@ func (r *Service) Formation() (string, error) {
 	return formation, nil
 }
 
-func (r Service) AvailabilityZones() []string {
-	azs := []string{}
-
-	for _, subnet := range ListSubnets() {
-		azs = append(azs, subnet.AvailabilityZone)
-	}
-
-	return azs
-}
-
 func (r Service) FormationName() string {
 	parts := strings.Split(r.Type, "/")
 	name := upperName(parts[1])
 	return fmt.Sprintf("%s%s", name, upperName(r.Name))
+}
+
+func (s *Service) ManagementUrl() string {
+	region := os.Getenv("AWS_REGION")
+
+	resources, err := ListResources(s.App)
+
+	if err != nil {
+		panic(err)
+	}
+
+	switch s.Type {
+	case "convox/postgres":
+		id := resources[fmt.Sprintf("%sDatabase", upperName(s.Name))].Id
+		return fmt.Sprintf("https://console.aws.amazon.com/rds/home?region=%s#dbinstances:id=%s;sf=all", region, id)
+	case "convox/redis":
+		id := resources[fmt.Sprintf("%sInstances", upperName(s.Name))].Id
+		return fmt.Sprintf("https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:id=%s;view=details", region, id)
+	default:
+		return ""
+	}
 }
 
 func servicesTable(app string) string {

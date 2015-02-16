@@ -254,7 +254,9 @@ pre#app-logs, pre#process-logs {
 	width: 1138px;
 	border: 1px #ddd solid;
 	background-color: #f3f3f3;
-	font-size: 0.65em;
+	font-size: 0.8em;
+	background-color: #333;
+	color: #eee;
 }
 
 ul.nav-tabs a {
@@ -286,5 +288,5 @@ table.scrollable > thead {
 }
 
 table.app-history td {
-	font-size: 0.74em;
+	font-size: 0.9em;
 }
