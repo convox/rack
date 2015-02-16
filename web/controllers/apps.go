@@ -134,12 +134,17 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app := mux.Vars(r)["app"]
+	app, err := models.GetApp(mux.Vars(r)["app"])
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
 
 	logs := make(chan []byte)
 	done := make(chan bool)
 
-	models.SubscribeLogs(app, logs, done)
+	app.SubscribeLogs(logs, done)
 
 	for data := range logs {
 		ws.WriteMessage(websocket.TextMessage, data)

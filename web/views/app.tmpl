@@ -68,10 +68,11 @@
 
 	<ul class="nav nav-tabs">
 		<li role="presentation" class="active"><a href="#tab-logs" aria-controls="logs" role="tab" data-toggle="tab">Logs</a></li>
-		<li role="presentation"><a href="#tab-services" aria-controls="logs" role="tab" data-toggle="tab">Services</a></li>
-		<li role="presentation"><a href="#tab-builds" aria-controls="logs" role="tab" data-toggle="tab">Builds</a></li>
-		<li role="presentation"><a href="#tab-releases" aria-controls="logs" role="tab" data-toggle="tab">Releases</a></li>
-		<li role="presentation"><a href="#tab-history" aria-controls="logs" role="tab" data-toggle="tab">History</a></li>
+		<li role="presentation"><a href="#tab-services" aria-controls="services" role="tab" data-toggle="tab">Services</a></li>
+		<li role="presentation"><a href="#tab-resources" aria-controls="resources" role="tab" data-toggle="tab">Resources</a></li>
+		<li role="presentation"><a href="#tab-builds" aria-controls="builds" role="tab" data-toggle="tab">Builds</a></li>
+		<li role="presentation"><a href="#tab-releases" aria-controls="releases" role="tab" data-toggle="tab">Releases</a></li>
+		<li role="presentation"><a href="#tab-history" aria-controls="history" role="tab" data-toggle="tab">History</a></li>
 	</ul>
 
 	<div class="tab-content">
@@ -157,6 +158,28 @@
 									<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
 								{{ end }}
 							</td>
+						</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		</div>
+		<div role="tabpanel" class="tab-pane content-table" id="tab-resources">
+			<table class="table table-striped table-bordered app-resources">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Type</th>
+						<th class="expand">Status</th>
+						<th>Time</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{ range .Resources }}
+						<tr>
+							<td>{{ .Name }}</td>
+							<td>{{ .Type }}</td>
+							<td class="expand">{{ .Status }}</td>
+							<td>{{ timeago .Time }}</td>
 						</tr>
 					{{ end }}
 				</tbody>
@@ -296,6 +319,7 @@
 			}
 
 			table_scroll($('.app-history'), '365px');
+			table_scroll($('.app-resources'), '365px');
 		});
 	</script>
 

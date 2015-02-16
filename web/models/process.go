@@ -139,7 +139,7 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 	}
 
 	done := make(chan bool)
-	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].PhysicalId, output, done)
+	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
 
 	return nil
 }

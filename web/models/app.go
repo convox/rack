@@ -99,6 +99,20 @@ func (a *App) Delete() error {
 	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
 }
 
+func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
+	resources := a.Resources()
+	processes := a.Processes()
+
+	done := make([](chan bool), len(processes))
+
+	for i, ps := range processes {
+		done[i] = make(chan bool)
+		go subscribeKinesis(ps.Name, resources[fmt.Sprintf("%sKinesis", upperName(ps.Name))].Id, output, done[i])
+	}
+
+	return nil
+}
+
 func (a *App) Formation() (string, error) {
 	formation, err := buildFormationTemplate("app", "formation", a)
 
@@ -249,11 +263,7 @@ func (a *App) Resources() Resources {
 	resources, err := ListResources(a.Name)
 
 	if err != nil {
-		if err.(aws.APIError).Message == "Requested resource not found" {
-			return Resources{}
-		} else {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	return resources

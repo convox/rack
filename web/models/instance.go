@@ -24,7 +24,7 @@ func ListInstances(app, process string) (Instances, error) {
 		panic(err)
 	}
 
-	asg := resources[fmt.Sprintf("%sInstances", upperName(process))].PhysicalId
+	asg := resources[fmt.Sprintf("%sInstances", upperName(process))].Id
 
 	req := &ec2.DescribeInstancesRequest{
 		Filters: []ec2.Filter{
