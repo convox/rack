@@ -37,6 +37,11 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logs := make(chan []byte)
+	done := make(chan bool)
+
+	process.SubscribeLogs(logs, done)
+
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
@@ -44,15 +49,11 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logs := make(chan []byte)
-	done := make(chan bool)
-
-	process.SubscribeLogs(logs, done)
+	defer ws.Close()
 
 	for data := range logs {
 		ws.WriteMessage(websocket.TextMessage, data)
 	}
 
 	fmt.Println("ended")
-	ws.Close()
 }
