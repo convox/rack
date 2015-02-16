@@ -34,8 +34,6 @@ func ListServices(app string) (Services, error) {
 		services[i] = *serviceFromItem(item)
 	}
 
-	fmt.Printf("services %+v\n", services)
-
 	return services, nil
 }
 

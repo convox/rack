@@ -63,7 +63,6 @@ func GetApp(name string) (*App, error) {
 
 func (a *App) Create() error {
 	formation, err := a.Formation()
-	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
 		return err
@@ -102,7 +101,6 @@ func (a *App) Delete() error {
 
 func (a *App) Formation() (string, error) {
 	formation, err := buildFormationTemplate("app", "formation", a)
-	fmt.Printf("err3 %+v\n", err)
 
 	if err != nil {
 		return "", err
