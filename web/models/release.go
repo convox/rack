@@ -116,7 +116,7 @@ func (r *Release) Promote() error {
 	}
 
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(fmt.Sprintf("convox-%s", r.App)),
+		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
 		Capabilities: []string{"CAPABILITY_IAM"},
 		Parameters: []cloudformation.Parameter{
@@ -131,7 +131,7 @@ func (r *Release) Promote() error {
 }
 
 func releasesTable(app string) string {
-	return fmt.Sprintf("convox-%s-releases", app)
+	return fmt.Sprintf("%s-releases", app)
 }
 
 func releaseFromItem(item map[string]dynamodb.AttributeValue) *Release {

@@ -145,7 +145,7 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 }
 
 func processesTable(app string) string {
-	return fmt.Sprintf("convox-%s-processes", app)
+	return fmt.Sprintf("%s-processes", app)
 }
 
 func processFromItem(item map[string]dynamodb.AttributeValue) *Process {

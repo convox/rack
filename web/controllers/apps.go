@@ -127,13 +127,6 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
-	app, err := models.GetApp(mux.Vars(r)["app"])
-
-	if err != nil {
-		RenderError(rw, err)
-		return
-	}
-
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
@@ -141,10 +134,12 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	app := mux.Vars(r)["app"]
+
 	logs := make(chan []byte)
 	done := make(chan bool)
 
-	app.SubscribeLogs(logs, done)
+	models.SubscribeLogs(app, logs, done)
 
 	for data := range logs {
 		ws.WriteMessage(websocket.TextMessage, data)

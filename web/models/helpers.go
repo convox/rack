@@ -7,11 +7,9 @@ import (
 	"html/template"
 	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
-	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
 )
 
 func buildFormationTemplate(name, section string, object interface{}) (string, error) {
@@ -38,40 +36,6 @@ func coalesce(s aws.StringValue, def string) string {
 	} else {
 		return def
 	}
-}
-
-func createStack(formation, name string, params map[string]string, tags map[string]string) error {
-	req := &cloudformation.CreateStackInput{
-		StackName:    aws.String(name),
-		TemplateBody: aws.String(formation),
-	}
-
-	for key, value := range params {
-		req.Parameters = append(req.Parameters, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
-	}
-
-	for key, value := range tags {
-		req.Tags = append(req.Tags, cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
-	}
-
-	_, err := CloudFormation.CreateStack(req)
-
-	return err
-}
-
-func divideSubnet(base string, num int) ([]string, error) {
-	if num > 4 {
-		return nil, fmt.Errorf("too many divisions")
-	}
-
-	div := make([]string, num)
-	parts := strings.Split(base, ".")
-
-	for i := 0; i < num; i++ {
-		div[i] = fmt.Sprintf("%s.%s.%s.%d/27", parts[0], parts[1], parts[2], i*32)
-	}
-
-	return div, nil
 }
 
 func flattenTags(tags []cloudformation.Tag) map[string]string {
@@ -189,6 +153,9 @@ func templateHelpers() template.FuncMap {
 			}
 			return template.HTML(strings.Join(as, ", "))
 		},
+		"join": func(s []string, t string) string {
+			return strings.Join(s, t)
+		},
 		"ports": func(nn []int) template.HTML {
 			as := make([]string, len(nn))
 			for i, n := range nn {
@@ -207,74 +174,4 @@ func templateHelpers() template.FuncMap {
 
 func upperName(name string) string {
 	return strings.ToUpper(name[0:1]) + name[1:]
-}
-
-func subscribeKinesis(prefix, stream string, output chan []byte, quit chan bool) {
-	sreq := &kinesis.DescribeStreamInput{
-		StreamName: aws.String(stream),
-	}
-	sres, err := Kinesis.DescribeStream(sreq)
-
-	if err != nil {
-		fmt.Printf("err1 %+v\n", err)
-		// panic(err)
-		return
-	}
-
-	shards := make([]string, len(sres.StreamDescription.Shards))
-
-	for i, s := range sres.StreamDescription.Shards {
-		shards[i] = *s.ShardID
-	}
-
-	done := make([](chan bool), len(shards))
-
-	for i, shard := range shards {
-		done[i] = make(chan bool)
-		go subscribeKinesisShard(prefix, stream, shard, output, done[i])
-	}
-}
-
-func subscribeKinesisShard(prefix, stream, shard string, output chan []byte, quit chan bool) {
-	ireq := &kinesis.GetShardIteratorInput{
-		ShardID:           aws.String(shard),
-		ShardIteratorType: aws.String("LATEST"),
-		StreamName:        aws.String(stream),
-	}
-	ires, err := Kinesis.GetShardIterator(ireq)
-
-	if err != nil {
-		fmt.Printf("err2 %+v\n", err)
-		// panic(err)
-		return
-	}
-
-	iter := *ires.ShardIterator
-
-	for {
-		select {
-		case <-quit:
-			fmt.Println("quitting")
-			return
-		default:
-			greq := &kinesis.GetRecordsInput{
-				ShardIterator: aws.String(iter),
-			}
-			gres, err := Kinesis.GetRecords(greq)
-
-			if err != nil {
-				fmt.Printf("err3 %+v\n", err)
-				// panic(err)
-				return
-			}
-
-			iter = *gres.NextShardIterator
-
-			for _, record := range gres.Records {
-				output <- []byte(fmt.Sprintf("%s: %s\n", prefix, string(record.Data)))
-			}
-
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
 }

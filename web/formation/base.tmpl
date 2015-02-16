@@ -20,7 +20,7 @@
       }
     },
     "Resources": {
-      "Convox{{ upper .Name }}BaseVpc": {
+      "BaseVpc": {
         "Type": "AWS::EC2::VPC",
         "Properties": {
           "CidrBlock": "10.0.0.0/16",
@@ -30,50 +30,50 @@
           ]
         }
       },
-      "Convox{{ upper .Name }}BaseGateway": {
+      "BaseGateway": {
         "Type": "AWS::EC2::InternetGateway",
         "Properties": {
         }
       },
-      "Convox{{ upper .Name }}BaseGatewayAttachment": {
+      "BaseGatewayAttachment": {
         "Type": "AWS::EC2::VPCGatewayAttachment",
         "Properties": {
-          "InternetGatewayId": { "Ref": "Convox{{ upper .Name }}BaseGateway" },
-          "VpcId": { "Ref": "Convox{{ upper .Name }}BaseVpc" }
+          "InternetGatewayId": { "Ref": "BaseGateway" },
+          "VpcId": { "Ref": "BaseVpc" }
         }
       },
-      "Convox{{ upper .Name }}BaseRoutes": {
+      "BaseRoutes": {
         "Type": "AWS::EC2::RouteTable",
         "Properties": {
-          "VpcId": { "Ref": "Convox{{ upper .Name }}BaseVpc" }
+          "VpcId": { "Ref": "BaseVpc" }
         }
       },
-      "Convox{{ upper .Name }}BaseRouteDefault": {
+      "BaseRouteDefault": {
         "Type": "AWS::EC2::Route",
         "Properties": {
           "DestinationCidrBlock": "0.0.0.0/0",
-          "GatewayId": { "Ref": "Convox{{ upper .Name }}BaseGateway" },
-          "RouteTableId": { "Ref": "Convox{{ upper .Name }}BaseRoutes" }
+          "GatewayId": { "Ref": "BaseGateway" },
+          "RouteTableId": { "Ref": "BaseRoutes" }
         }
       },
       {{ range $i, $subnet := .Subnets }}
-        "Convox{{ upper $app.Name }}BaseSubnet{{ $i }}": {
+        "BaseSubnet{{ $i }}": {
           "Type": "AWS::EC2::Subnet",
           "Properties": {
             "AvailabilityZone": "{{ .AvailabilityZone }}",
             "CidrBlock": "{{ .Cidr }}",
-            "VpcId": { "Ref": "Convox{{ upper $app.Name }}BaseVpc" }
+            "VpcId": { "Ref": "BaseVpc" }
           }
         },
-        "Convox{{ upper $app.Name }}BaseSubnet{{ $i }}Routes": {
+        "BaseSubnet{{ $i }}Routes": {
           "Type": "AWS::EC2::SubnetRouteTableAssociation",
           "Properties": {
-            "SubnetId": { "Ref": "Convox{{ upper $app.Name }}BaseSubnet{{ $i }}" },
-            "RouteTableId": { "Ref": "Convox{{ upper $app.Name }}BaseRoutes" }
+            "SubnetId": { "Ref": "BaseSubnet{{ $i }}" },
+            "RouteTableId": { "Ref": "BaseRoutes" }
           }
         },
       {{ end }}
-      "Convox{{ upper .Name }}BaseLogGroup": {
+      "BaseLogGroup": {
         "Type": "AWS::Logs::LogGroup",
         "Properties": {
           "RetentionInDays": 7
@@ -81,7 +81,7 @@
       },
       {{ safe .ProcessFormation }}
       {{ safe .ServiceFormation }}
-      "Convox{{ upper .Name }}BaseSecurityGroup": {
+      "BaseSecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
           "GroupDescription": "Instances",
@@ -89,13 +89,13 @@
             { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "24.98.26.131/32" },
             { "IpProtocol": "tcp", "FromPort": "3000", "ToPort": "3000", "CidrIp": "0.0.0.0/0" }
           ],
-          "VpcId": { "Ref": "Convox{{ upper .Name }}BaseVpc" }
+          "VpcId": { "Ref": "BaseVpc" }
         }
       },
-      "Convox{{ upper .Name }}BaseDynamoBuilds": {
+      "BaseDynamoBuilds": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "convox-{{ .Name }}-builds",
+          "TableName": "{{ .Name }}-builds",
           "AttributeDefinitions": [
             { "AttributeName": "id", "AttributeType": "S" },
             { "AttributeName": "app", "AttributeType": "S" },
@@ -124,10 +124,10 @@
           }
         }
       },
-      "Convox{{ upper .Name }}BaseDynamoEnv": {
+      "BaseDynamoEnv": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "convox-{{ .Name }}-env",
+          "TableName": "{{ .Name }}-env",
           "AttributeDefinitions": [
             { "AttributeName": "name", "AttributeType": "S" }
           ],
@@ -140,10 +140,10 @@
           }
         }
       },
-      "Convox{{ upper .Name }}BaseDynamoProcesses": {
+      "BaseDynamoProcesses": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "convox-{{ .Name }}-processes",
+          "TableName": "{{ .Name }}-processes",
           "AttributeDefinitions": [
             { "AttributeName": "name", "AttributeType": "S" }
           ],
@@ -156,10 +156,10 @@
           }
         }
       },
-      "Convox{{ upper .Name }}BaseDynamoReleases": {
+      "BaseDynamoReleases": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "convox-{{ .Name }}-releases",
+          "TableName": "{{ .Name }}-releases",
           "AttributeDefinitions": [
             { "AttributeName": "id", "AttributeType": "S" },
             { "AttributeName": "app", "AttributeType": "S" },
@@ -188,10 +188,10 @@
           }
         }
       },
-      "Convox{{ upper .Name }}BaseDynamoServices": {
+      "BaseDynamoServices": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "convox-{{ .Name }}-services",
+          "TableName": "{{ .Name }}-services",
           "AttributeDefinitions": [
             { "AttributeName": "name", "AttributeType": "S" }
           ],
@@ -206,15 +206,18 @@
       }
     },
     "Outputs": {
+      "Processes": {
+        "Value": "{{ join .ProcessNames "," }}"
+      },
       {{ range .Processes }}
         {{ if .Balancer }}
-          "Balancer{{ upper .Name }}Host": {
-            "Value": { "Fn::GetAtt": [ "Convox{{ upper $app.Name }}{{ upper .Name }}Balancer", "DNSName" ] }
+          "{{ upper .Name }}BalancerHost": {
+            "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Balancer", "DNSName" ] }
           },
         {{ end }}
       {{ end }}
       "BaseSecurityGroup": {
-        "Value": { "Ref": "Convox{{ upper .Name }}BaseSecurityGroup" }
+        "Value": { "Ref": "BaseSecurityGroup" }
       }
     }
   }

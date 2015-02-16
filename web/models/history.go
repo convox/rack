@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -27,7 +26,7 @@ func ListHistories(app string) (Histories, error) {
 	next := ""
 
 	for {
-		req := &cloudformation.DescribeStackEventsInput{StackName: aws.String(fmt.Sprintf("convox-%s", app))}
+		req := &cloudformation.DescribeStackEventsInput{StackName: aws.String(app)}
 
 		if next != "" {
 			req.NextToken = aws.String(next)

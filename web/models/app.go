@@ -42,7 +42,7 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(fmt.Sprintf("convox-%s", name))})
+	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
 
 	if err != nil {
 		return nil, err
@@ -78,13 +78,26 @@ func (a *App) Create() error {
 		"Type":   "app",
 	}
 
-	err = createStack(formation, fmt.Sprintf("convox-%s", a.Name), params, tags)
-	fmt.Printf("err %+v\n", err)
+	req := &cloudformation.CreateStackInput{
+		StackName:    aws.String(a.Name),
+		TemplateBody: aws.String(formation),
+	}
+
+	for key, value := range params {
+		req.Parameters = append(req.Parameters, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+	}
+
+	for key, value := range tags {
+		req.Tags = append(req.Tags, cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
+	}
+
+	_, err = CloudFormation.CreateStack(req)
+
 	return err
 }
 
 func (a *App) Delete() error {
-	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(fmt.Sprintf("convox-%s", a.Name))})
+	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
 }
 
 func (a *App) Formation() (string, error) {
@@ -208,6 +221,18 @@ func (a *App) Processes() Processes {
 	return processes
 }
 
+func (a *App) ProcessNames() []string {
+	processes := a.Processes()
+
+	pp := make([]string, len(processes))
+
+	for i, p := range processes {
+		pp[i] = p.Name
+	}
+
+	return pp
+}
+
 func (a *App) Releases() Releases {
 	releases, err := ListReleases(a.Name)
 
@@ -254,29 +279,11 @@ func (a *App) Subnets() Subnets {
 	return ListSubnets()
 }
 
-func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
-	resources, err := ListResources(a.Name)
-
-	if err != nil {
-		return err
-	}
-
-	processes := a.Processes()
-	done := make([](chan bool), len(processes))
-
-	for i, ps := range processes {
-		done[i] = make(chan bool)
-		go subscribeKinesis(ps.Name, resources[fmt.Sprintf("%sKinesis", upperName(ps.Name))].PhysicalId, output, done[i])
-	}
-
-	return nil
-}
-
 func appFromStack(stack cloudformation.Stack) *App {
 	params := stackParameters(stack)
 
 	return &App{
-		Name:       (*stack.StackName)[7:],
+		Name:       coalesce(stack.StackName, "<unknown>"),
 		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 		Release:    params["Release"],

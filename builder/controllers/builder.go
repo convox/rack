@@ -72,8 +72,6 @@ func executeBuild(app, repo string) {
 
 	defer recoverBuild(app, id)
 
-	name := fmt.Sprintf("convox-%s", app)
-
 	base, err := ioutil.TempDir("", "build")
 
 	if err != nil {
@@ -86,7 +84,7 @@ func executeBuild(app, repo string) {
 		panic(err)
 	}
 
-	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, name)
+	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, app)
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
 
@@ -222,13 +220,13 @@ func coalesce(att *dynamodb.Attribute, def string) string {
 
 func buildsTable(app string) *dynamodb.Table {
 	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-builds", app), pk)
+	table := DynamoDB.NewTable(fmt.Sprintf("%s-builds", app), pk)
 	return table
 }
 
 func releasesTable(app string) *dynamodb.Table {
 	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("convox-%s-releases", app), pk)
+	table := DynamoDB.NewTable(fmt.Sprintf("%s-releases", app), pk)
 	return table
 }
 

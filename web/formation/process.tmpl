@@ -1,23 +1,23 @@
 {{ define "formation" }}
   {{ if .Process.Balancer }}
-    "Convox{{ upper .Process.App }}{{ upper .Process.Name }}BalancerSecurityGroup": {
+    "{{ upper .Process.Name }}BalancerSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "{{ .Process.Name}} Balancer",
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
         ],
-        "VpcId": { "Ref": "Convox{{ upper .Process.App }}BaseVpc" }
+        "VpcId": { "Ref": "BaseVpc" }
       }
     },
-    "Convox{{ upper .Process.App }}{{ upper .Process.Name }}Balancer": {
+    "{{ upper .Process.Name }}Balancer": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
         "Subnets": [
-          { "Ref": "Convox{{ upper .Process.App }}BaseSubnet0" },
-          { "Ref": "Convox{{ upper .Process.App }}BaseSubnet1" },
-          { "Ref": "Convox{{ upper .Process.App }}BaseSubnet2" },
-          { "Ref": "Convox{{ upper .Process.App }}BaseSubnet3" }
+          { "Ref": "BaseSubnet0" },
+          { "Ref": "BaseSubnet1" },
+          { "Ref": "BaseSubnet2" },
+          { "Ref": "BaseSubnet3" }
         ],
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 60 },
@@ -30,21 +30,21 @@
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": "convox-{{ .Process.App }}-{{ .Process.Name }}",
+        "LoadBalancerName": "{{ .Process.App }}-{{ .Process.Name }}",
         "Listeners": [
           { "Protocol": "HTTP", "LoadBalancerPort": "80", "InstanceProtocol": "HTTP", "InstancePort": "3000" }
         ],
-        "SecurityGroups": [ { "Ref": "Convox{{ upper .Process.App }}{{ upper .Process.Name }}BalancerSecurityGroup" } ]
+        "SecurityGroups": [ { "Ref": "{{ upper .Process.Name }}BalancerSecurityGroup" } ]
       }
     },
   {{ end }}
-  "Convox{{ upper .Process.App }}{{ upper .Process.Name }}Kinesis": {
+  "{{ upper .Process.Name }}Kinesis": {
     "Type": "AWS::Kinesis::Stream",
     "Properties": {
       "ShardCount": 1
     }
   },
-  "Convox{{ upper .Process.App }}{{ upper .Process.Name }}IamRole": {
+  "{{ upper .Process.Name }}IamRole": {
     "Type": "AWS::IAM::Role",
     "Properties": {
       "AssumeRolePolicyDocument": {
@@ -74,7 +74,7 @@
               {
                 "Effect": "Allow",
                 "Action": [ "kinesis:PutRecords" ],
-                "Resource": [ "arn:aws:kinesis:*:*:stream/convox-{{ .Process.App }}-*" ]
+                "Resource": [ "arn:aws:kinesis:*:*:stream/{{ .Process.App }}-*" ]
               },
               {
                 "Effect": "Allow",
@@ -87,14 +87,14 @@
       ]
     }
   },
-  "Convox{{ upper .Process.App }}{{ upper .Process.Name }}InstanceProfile": {
+  "{{ upper .Process.Name }}InstanceProfile": {
     "Type": "AWS::IAM::InstanceProfile",
     "Properties": {
       "Path": "/",
-      "Roles": [ { "Ref": "Convox{{ upper .Process.App }}{{ upper .Process.Name }}IamRole" } ]
+      "Roles": [ { "Ref": "{{ upper .Process.Name }}IamRole" } ]
     }
   },
-  "Convox{{ upper .Process.App }}{{ upper .Process.Name }}LaunchConfiguration": {
+  "{{ upper .Process.Name }}LaunchConfiguration": {
     "Type": "AWS::AutoScaling::LaunchConfiguration",
     "Properties": {
       "AssociatePublicIpAddress": true,
@@ -102,32 +102,32 @@
         { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
       ],
       "EbsOptimized": false,
-      "IamInstanceProfile": { "Ref": "Convox{{ upper .Process.App }}{{ upper .Process.Name }}InstanceProfile" },
+      "IamInstanceProfile": { "Ref": "{{ upper .Process.Name }}InstanceProfile" },
       "ImageId": { "Fn::FindInMap": [ "Variables", "Ami", "Value" ] },
       "InstanceMonitoring": true,
       "InstanceType": "t2.micro",
       "KeyName": "production",
-      "SecurityGroups": [ { "Ref": "Convox{{ upper .Process.App }}BaseSecurityGroup" } ],
+      "SecurityGroups": [ { "Ref": "BaseSecurityGroup" } ],
       "UserData": {{ template "userdata" . }}
     }
   },
-  "Convox{{ upper .Process.App }}{{ upper .Process.Name }}Instances": {
+  "{{ upper .Process.Name }}Instances": {
     "Type": "AWS::AutoScaling::AutoScalingGroup",
     "Properties" : {
-      "LaunchConfigurationName" : { "Ref": "Convox{{ upper .Process.App }}{{ upper .Process.Name }}LaunchConfiguration" },
+      "LaunchConfigurationName" : { "Ref": "{{ upper .Process.Name }}LaunchConfiguration" },
       "AvailabilityZones": [ {{ array .Process.AvailabilityZones }} ],
       "VPCZoneIdentifier": [ 
-        { "Ref": "Convox{{ upper .Process.App }}BaseSubnet0" },
-        { "Ref": "Convox{{ upper .Process.App }}BaseSubnet1" },
-        { "Ref": "Convox{{ upper .Process.App }}BaseSubnet2" },
-        { "Ref": "Convox{{ upper .Process.App }}BaseSubnet3" }
+        { "Ref": "BaseSubnet0" },
+        { "Ref": "BaseSubnet1" },
+        { "Ref": "BaseSubnet2" },
+        { "Ref": "BaseSubnet3" }
       ],
       "Cooldown": 5,
       "DesiredCapacity": "{{ .Process.Count }}",
       "MinSize" : "1",
       "MaxSize" : "3",
       {{ if .Process.Balancer }}
-        "LoadBalancerNames": [ { "Ref": "Convox{{ upper .Process.App }}{{ upper .Process.Name }}Balancer" } ],
+        "LoadBalancerNames": [ { "Ref": "{{ upper .Process.Name }}Balancer" } ],
       {{ end }}
       "HealthCheckType": "EC2",
       "HealthCheckGracePeriod": 30,
@@ -153,9 +153,9 @@
         "  \"app\": \"{{ .Process.App }}\",",
         "  \"process\": \"{{ .Process.Name }}\",",
         "  \"logs\": {",
-        { "Fn::Join": [ "", [ "    \"cwgroup\": \"", { "Ref": "Convox{{ upper .Process.App }}BaseLogGroup" }, "\"," ] ] },
+        { "Fn::Join": [ "", [ "    \"cwgroup\": \"", { "Ref": "BaseLogGroup" }, "\"," ] ] },
         "    \"cwstream\": \"{{ .Process.Name }}\",",
-        { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "Convox{{ upper .Process.App }}{{ upper .Process.Name }}Kinesis" }, "\"" ] ] },
+        { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "{{ upper .Process.Name }}Kinesis" }, "\"" ] ] },
         "  },",
         "  \"env\": [",
         { 

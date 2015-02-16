@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 )
@@ -15,7 +13,7 @@ type Resource struct {
 type Resources map[string]Resource
 
 func ListResources(app string) (Resources, error) {
-	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{StackName: aws.String(fmt.Sprintf("convox-%s", app))})
+	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{StackName: aws.String(app)})
 
 	if err != nil {
 		return nil, err

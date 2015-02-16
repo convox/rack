@@ -91,7 +91,7 @@ func (r Service) FormationName() string {
 }
 
 func servicesTable(app string) string {
-	return fmt.Sprintf("convox-%s-services", app)
+	return fmt.Sprintf("%s-services", app)
 }
 
 func serviceFromItem(item map[string]dynamodb.AttributeValue) *Service {

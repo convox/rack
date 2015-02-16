@@ -1,48 +1,48 @@
 {{ define "env" }}
-	{ "Fn::Join": [ "=", [ "POSTGRES_PORT_5432_TCP_ADDR", { "Fn::GetAtt": [ "Convox{{ upper .App }}{{ upper .Name }}", "Endpoint.Address" ] } ] ] },
-	{ "Fn::Join": [ "=", [ "POSTGRES_PORT_5432_TCP_PORT", { "Fn::GetAtt": [ "Convox{{ upper .App }}{{ upper .Name }}", "Endpoint.Port"		] } ] ] },
+	{ "Fn::Join": [ "=", [ "POSTGRES_PORT_5432_TCP_ADDR", { "Fn::GetAtt": [ "{{ upper .Name }}Database", "Endpoint.Address" ] } ] ] },
+	{ "Fn::Join": [ "=", [ "POSTGRES_PORT_5432_TCP_PORT", { "Fn::GetAtt": [ "{{ upper .Name }}Database", "Endpoint.Port"		] } ] ] },
 	"POSTGRES_ENV_POSTGRES_USER=app",
 	"POSTGRES_ENV_POSTGRES_PASSWORD=password",
 	"POSTGRES_ENV_POSTGRES_DATABASE=app",
 {{ end }}
 
 {{ define "formation" }}
-	"Convox{{ upper .App }}{{ upper .Name }}SecurityGroup": {
+	"{{ upper .Name }}SecurityGroup": {
 		"Type": "AWS::EC2::SecurityGroup",
 		"Properties": {
 			"GroupDescription": "{{ .FormationName }}",
 			"SecurityGroupIngress": [
 				{ "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": "10.0.0.0/16" }
 			],
-			"VpcId": { "Ref": "Convox{{ upper .App }}BaseVpc" }
+			"VpcId": { "Ref": "BaseVpc" }
 		}
 	},
-	"Convox{{ upper .App }}{{ upper .Name }}SubnetGroup": {
+	"{{ upper .Name }}SubnetGroup": {
 		"Type": "AWS::RDS::DBSubnetGroup",
 		"Properties": {
 			"DBSubnetGroupDescription": "{{ .FormationName }}",
 			"SubnetIds": [
-				{ "Ref": "Convox{{ upper .App }}BaseSubnet0" },
-				{ "Ref": "Convox{{ upper .App }}BaseSubnet1" },
-				{ "Ref": "Convox{{ upper .App }}BaseSubnet2" },
-				{ "Ref": "Convox{{ upper .App }}BaseSubnet3" }
+				{ "Ref": "BaseSubnet0" },
+				{ "Ref": "BaseSubnet1" },
+				{ "Ref": "BaseSubnet2" },
+				{ "Ref": "BaseSubnet3" }
 			]
 		}
 	},
-	"Convox{{ upper .App }}{{ upper .Name }}": {
+	"{{ upper .Name }}Database": {
 		"Type": "AWS::RDS::DBInstance",
 		"Properties": {
 			"AllocatedStorage": "10",
 			"DBInstanceClass": "db.t2.micro",
-			"DBInstanceIdentifier": "convox-{{ .App }}-{{ .Name }}",
+			"DBInstanceIdentifier": "{{ .App }}-{{ .Name }}",
 			"DBName": "app",
-			"DBSubnetGroupName": { "Ref": "Convox{{ upper .App }}{{ upper .Name }}SubnetGroup" },
+			"DBSubnetGroupName": { "Ref": "{{ upper .Name }}SubnetGroup" },
 			"Engine": "postgres",
 			"MasterUsername": "app",
 			"MasterUserPassword": "password",
 			"Port": "5432",
 			"StorageType": "gp2",
-			"VPCSecurityGroups": [ { "Ref": "Convox{{ upper .App }}{{ upper .Name }}SecurityGroup" } ]
+			"VPCSecurityGroups": [ { "Ref": "{{ upper .Name }}SecurityGroup" } ]
 		}
 	},
 {{ end }}

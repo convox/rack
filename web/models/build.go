@@ -53,7 +53,7 @@ func ListBuilds(app string) (Builds, error) {
 }
 
 func buildsTable(app string) string {
-	return fmt.Sprintf("convox-%s-builds", app)
+	return fmt.Sprintf("%s-builds", app)
 }
 
 func buildFromItem(item map[string]dynamodb.AttributeValue) *Build {
