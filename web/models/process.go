@@ -142,7 +142,7 @@ func (p *Process) Metrics() *Metrics {
 }
 
 func (p *Process) Resources() Resources {
-	resources, err := ListResourcesForProcess(p.App, p.Name)
+	resources, err := ListProcessResources(p.App, p.Name)
 
 	if err != nil {
 		panic(err)

@@ -35,6 +35,7 @@ func subscribeKinesis(prefix, stream string, output chan []byte, quit chan bool)
 }
 
 func subscribeKinesisShard(prefix, stream, shard string, output chan []byte, quit chan bool) {
+
 	ireq := &kinesis.GetShardIteratorInput{
 		ShardID:           aws.String(shard),
 		ShardIteratorType: aws.String("LATEST"),

@@ -14,6 +14,13 @@ import (
 )
 
 func init() {
+	RegisterPartial("app", "builds")
+	RegisterPartial("app", "events")
+	RegisterPartial("app", "logs")
+	RegisterPartial("app", "releases")
+	RegisterPartial("app", "resources")
+	RegisterPartial("app", "services")
+
 	RegisterTemplate("apps", "layout", "apps")
 	RegisterTemplate("app", "layout", "app")
 }
@@ -101,7 +108,7 @@ func AppBuild(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
+	Redirect(rw, r, fmt.Sprintf("/apps/%s#builds", app))
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
@@ -126,7 +133,39 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 }
 
+func AppBuilds(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	builds, err := models.ListBuilds(app)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "builds", builds)
+}
+
+func AppEvents(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	events, err := models.ListEvents(app)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "events", events)
+}
+
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	RenderPartial(rw, "app", "logs", app)
+}
+
+func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
@@ -153,4 +192,43 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("ended")
+}
+
+func AppReleases(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	releases, err := models.ListReleases(app)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "releases", releases)
+}
+
+func AppResources(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	resources, err := models.ListResources(app)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "resources", resources)
+}
+
+func AppServices(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	services, err := models.ListServices(app)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "services", services)
 }

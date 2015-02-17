@@ -12,6 +12,7 @@ import (
 type Release struct {
 	Id string
 
+	Active   bool
 	Ami      string
 	Manifest string
 	Status   string
@@ -39,6 +40,12 @@ func ListReleases(app string) (Releases, error) {
 		TableName:        aws.String(releasesTable(app)),
 	}
 
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := DynamoDB.Query(req)
 
 	if err != nil {
@@ -49,6 +56,7 @@ func ListReleases(app string) (Releases, error) {
 
 	for i, item := range res.Items {
 		releases[i] = *releaseFromItem(item)
+		releases[i].Active = (a.Release == releases[i].Id)
 	}
 
 	return releases, nil
@@ -63,13 +71,22 @@ func GetRelease(app, id string) (*Release, error) {
 		TableName: aws.String(releasesTable(app)),
 	}
 
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := DynamoDB.GetItem(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return releaseFromItem(res.Item), nil
+	release := releaseFromItem(res.Item)
+	release.Active = (a.Release == release.Id)
+
+	return release, nil
 }
 
 func (r *Release) Formation() (string, error) {

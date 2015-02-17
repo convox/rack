@@ -11,6 +11,9 @@ import (
 )
 
 func init() {
+	RegisterPartial("process", "logs")
+	RegisterPartial("process", "resources")
+
 	RegisterTemplate("process", "layout", "process")
 }
 
@@ -28,6 +31,19 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process"]
+
+	params := map[string]string{
+		"App":     app,
+		"Process": process,
+	}
+
+	RenderPartial(rw, "process", "logs", params)
+}
+
+func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	process, err := models.GetProcess(vars["app"], vars["process"])
@@ -56,4 +72,19 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("ended")
+}
+
+func ProcessResources(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process"]
+
+	resources, err := models.ListProcessResources(app, process)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "process", "resources", resources)
 }

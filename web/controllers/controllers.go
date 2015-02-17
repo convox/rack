@@ -10,6 +10,7 @@ import (
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
+var Partials = make(map[string]*template.Template)
 var Templates = make(map[string]*template.Template)
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
@@ -62,11 +63,17 @@ func ParseForm(r *http.Request) map[string]string {
 	return options
 }
 
+func RegisterPartial(name, section string) {
+	Partials[fmt.Sprintf("%s.%s", name, section)] = template.Must(template.New(section).Funcs(displayHelpers()).ParseFiles(fmt.Sprintf("views/%s.tmpl", name)))
+}
+
 func RegisterTemplate(name string, names ...string) {
 	templates := []string{}
+
 	for _, name := range names {
 		templates = append(templates, fmt.Sprintf("views/%s.tmpl", name))
 	}
+
 	Templates[name] = template.Must(template.New("layout").Funcs(displayHelpers()).ParseFiles(templates...))
 }
 
@@ -74,16 +81,33 @@ func RenderError(rw http.ResponseWriter, err error) error {
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 	}
+
 	return err
+}
+
+func RenderPartial(rw http.ResponseWriter, name, section string, data interface{}) error {
+	tn := fmt.Sprintf("%s.%s", name, section)
+
+	if _, ok := Partials[tn]; !ok {
+		return RenderError(rw, fmt.Errorf("no such partial: %s %s", name, section))
+	}
+
+	if err := Partials[tn].Execute(rw, data); err != nil {
+		return RenderError(rw, err)
+	}
+
+	return nil
 }
 
 func RenderTemplate(rw http.ResponseWriter, name string, data interface{}) error {
 	if _, ok := Templates[name]; !ok {
 		return RenderError(rw, fmt.Errorf("no such template: %s", name))
 	}
+
 	if err := Templates[name].Execute(rw, data); err != nil {
 		return RenderError(rw, err)
 	}
+
 	return nil
 }
 

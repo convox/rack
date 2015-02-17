@@ -259,6 +259,10 @@ pre#app-logs, pre#process-logs {
 	color: #eee;
 }
 
+ul.nav-tabs {
+	margin-top: 16px;
+}
+
 ul.nav-tabs a {
 	font-weight: bold;
 	font-size: 1.2em;
@@ -289,4 +293,22 @@ table.scrollable > thead {
 
 table.app-history td {
 	font-size: 0.9em;
+}
+
+#tab-content {
+	margin-top: 12px;
+}
+
+.nav-buttons {
+	margin-top: 16px;
+}
+
+img#spinner {
+	margin-right: 4px;
+	display: none;
+}
+
+.nav > li > a:focus {
+	background-color: #fff !important;
+	border-bottom: 1px #ddd solid;
 }

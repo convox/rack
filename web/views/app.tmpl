@@ -66,191 +66,27 @@
 		</table>
 	</div>
 
-	<ul class="nav nav-tabs">
-		<li role="presentation" class="active"><a href="#tab-logs" aria-controls="logs" role="tab" data-toggle="tab">Logs</a></li>
-		<li role="presentation"><a href="#tab-builds" aria-controls="builds" role="tab" data-toggle="tab">Builds</a></li>
-		<li role="presentation"><a href="#tab-releases" aria-controls="releases" role="tab" data-toggle="tab">Releases</a></li>
-		<li role="presentation"><a href="#tab-services" aria-controls="services" role="tab" data-toggle="tab">Services</a></li>
-		<li role="presentation"><a href="#tab-resources" aria-controls="resources" role="tab" data-toggle="tab">Resources</a></li>
-		<li role="presentation"><a href="#tab-history" aria-controls="history" role="tab" data-toggle="tab">History</a></li>
-	</ul>
-
-	<div class="tab-content">
-		<div role="tabpanel" class="tab-pane content-table" id="tab-builds">
-			<table class="table table-striped table-bordered">
-				<thead>
-					<tr>
-						<th>ID</th>
-						<th>Status</th>
-						<th class="expand">Started</th>
-						<th>Release</th>
-						<th>Duration</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{ range .Builds }}
-						<tr>
-							<td class="id">{{ .Id }}</td>
-							<td>{{ .Status }}</td>
-							<td>{{ timeago .Created }}</td>
-							<td class="id">{{ .Release }}</td>
-							<td>{{ duration .Created .Ended }}</td>
-							<td class="buttons">
-								<button class="btn btn-xs btn-primary glyph" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
-							</td>
-						</tr>
-					{{ end }}
-				</tbody>
-			</table>
-		</div>
-		<div role="tabpanel" class="tab-pane active" id="tab-logs">
-			<pre id="app-logs">Connecting...</pre>
-		</div>
-		<div role="tabpanel" class="tab-pane content-table" id="tab-history">
-			<table class="table table-striped table-bordered app-history">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Status</th>
-						<th class="expand">Reason</th>
-						<th>Time</th>
-					</tr>
-				</thead>
-				<tbody>
-					{{ range .History }}
-						<tr>
-							<td>{{ .Name }}</td>
-							<td>{{ .Status }}</td>
-							<td class="expand wrap">{{ .Reason }}</td>
-							<td>{{ timeago .Time }}</td>
-						</tr>
-					{{ end }}
-				</tbody>
-			</table>
-		</div>
-		<div role="tabpanel" class="tab-pane content-table" id="tab-releases">
-			<table class="table table-striped table-bordered">
-				<thead>
-					<tr>
-						<th>ID</th>
-						<th>AMI</th>
-						<th class="expand">Created</th>
-						<th></th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{ range .Releases }}
-						<tr>
-							<td class="id">{{ .Id }}</td>
-							<td>{{ .Ami }}</td>
-							<td>{{ timeago .Created }}</td>
-							<td class="buttons">
-								<button class="btn btn-xs btn-primary glyph" title="CloudFormation Template" data-toggle="modal" data-target="#release-formation-{{ .Id }}">
-									<span class="glyphicon glyphicon-barcode" aria-hidden="true" style="margin-top:2px;"></span>
-								</button>
-							</td>
-							<td class="buttons">
-								{{ if eq $app.Release .Id }}
-									<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
-								{{ else }}
-									<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
-								{{ end }}
-							</td>
-						</tr>
-					{{ end }}
-				</tbody>
-			</table>
-		</div>
-		<div role="tabpanel" class="tab-pane content-table" id="tab-resources">
-			<table class="table table-striped table-bordered app-resources">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Type</th>
-						<th class="expand">Status</th>
-						<th>Time</th>
-					</tr>
-				</thead>
-				<tbody>
-					{{ range .Resources }}
-						<tr>
-							<td>{{ .Name }}</td>
-							<td>{{ .Type }}</td>
-							<td class="expand">{{ .Status }}</td>
-							<td>{{ timeago .Time }}</td>
-						</tr>
-					{{ end }}
-				</tbody>
-			</table>
-		</div>
-		<div role="tabpanel" class="tab-pane content-table" id="tab-services">
-			<table class="table table-striped table-bordered">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th class="expand">Type</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{ range .Services }}
-						<tr>
-							<td>{{ .Name }}</td>
-							<td>{{ .Type }}</td>
-							<td>
-								{{ if .ManagementUrl }}
-									<a class="btn btn-xs btn-primary" href="{{ .ManagementUrl }}" target="convox-aws-console">Manage</a>
-								{{ end }}
-							</td>
-						</tr>
-					{{ end }}
-				</tbody>
-			</table>
-		</div>
+	<div class="nav-buttons pull-right">
+		<img id="spinner" src="/spinner.gif">
+		<a href="#" class="btn btn-xs btn-primary" id="refresh">Refresh</a>
 	</div>
 
-	{{ range .Builds }}
-		<div id="build-logs-{{ .Id }}" class="modal fade">
-			<div class="modal-dialog modal-lg">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-						<h4 class="modal-title">Build Logs: {{ .Id }}</h4>
-					</div>
-					<div class="modal-body">
-						<pre class="modal-scroll">{{ .Logs }}</pre>
-					</div>
-				</div>
-			</div>
-		</div>
-	{{ end }}
+	<ul class="nav nav-tabs">
+		<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
+		<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
+		<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
+		<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
+		<li role="presentation"><a href="#resources" role="tab" data-source="/apps/{{ .Name }}/resources">Resources</a></li>
+		<li role="presentation"><a href="#events" role="tab" data-source="/apps/{{ .Name }}/events">Events</a></li>
+	</ul>
 
-	{{ range .Releases }}
-		<div id="release-formation-{{ .Id }}" class="modal fade">
-			<div class="modal-dialog modal-lg">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-						<h4 class="modal-title">CloudFormation Template: {{ .Id }}</h4>
-					</div>
-					<div class="modal-body">
-						<pre class="modal-scroll"></pre>
-					</div>
-				</div>
-			</div>
-		</div>
-	{{ end }}
+	<div id="tab-content">
+	</div>
 
 	<script>
 		$(window).ready(function() {
-			goto_anchor();
-
-			connect_log_socket($('#app-logs'), '/apps/{{ .Name }}/logs');
-
-			table_scroll($('.app-history'), '365px');
-			table_scroll($('.app-resources'), '365px');
+			activate_tabs();
+			goto_anchor('#logs');
 
 			$('#build-app').on('click', function() {
 				$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
@@ -270,16 +106,201 @@
 				});
 			});
 
-			$('.promote-release').on('click', function() {
-				console.log('foo');
-				$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/promote', data: { release: $(this).data('release') }}).done(function(msg) {
-					window.location = '/apps/{{ .Name }}';
-				}).fail(function(msg) {
-					$('#alert .message').html(msg.responseText);
-					$('#alert').show();
-				});
-			});
 		});
 	</script>
 
+{{ end }}
+
+{{ define "builds" }}
+	<table class="table table-striped table-bordered">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Status</th>
+				<th class="expand">Started</th>
+				<th>Release</th>
+				<th>Duration</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+				<tr>
+					<td class="id">{{ .Id }}</td>
+					<td>{{ .Status }}</td>
+					<td>{{ timeago .Created }}</td>
+					<td class="id">{{ .Release }}</td>
+					<td>{{ duration .Created .Ended }}</td>
+					<td class="buttons">
+						<button class="btn btn-xs btn-info" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
+					</td>
+				</tr>
+			{{ end }}
+		</tbody>
+	</table>
+{{ end }}
+
+{{ define "build" }}
+	<div id="build-logs-{{ .Id }}" class="modal fade">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title">Build Logs: {{ .Id }}</h4>
+				</div>
+				<div class="modal-body">
+					<pre class="modal-scroll">{{ .Logs }}</pre>
+				</div>
+			</div>
+		</div>
+	</div>
+{{ end }}
+
+{{ define "events" }}
+	<table class="table table-striped table-bordered app-events">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Status</th>
+				<th class="expand">Reason</th>
+				<th>Time</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+				<tr>
+					<td>{{ .Name }}</td>
+					<td>{{ .Status }}</td>
+					<td class="expand wrap">{{ .Reason }}</td>
+					<td>{{ timeago .Time }}</td>
+				</tr>
+			{{ end }}
+		</tbody>
+	</table>
+	<script>
+		table_scroll($('.app-events'), '365px');
+
+		$('.timeago').timeago();
+	</script>
+{{ end }}
+
+{{ define "logs" }}
+	<pre id="app-logs">Connecting...</pre>
+	<script>
+		connect_log_socket($('#app-logs'), '/apps/{{ . }}/logs/stream');
+	</script>
+{{ end }}
+
+{{ define "releases" }}
+	<table class="table table-striped table-bordered">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>AMI</th>
+				<th class="expand">Created</th>
+				<th></th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+				<tr>
+					<td class="id">{{ .Id }}</td>
+					<td>{{ .Ami }}</td>
+					<td>{{ timeago .Created }}</td>
+					<td class="buttons">
+						<button class="btn btn-xs btn-info" title="CloudFormation Template" data-toggle="modal" data-target="#release-formation-{{ .Id }}">Manifest</button>
+					</td>
+					<td class="buttons">
+						{{ if .Active }}
+							<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
+						{{ else }}
+							<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
+						{{ end }}
+					</td>
+				</tr>
+			{{ end }}
+		</tbody>
+	</table>
+	<script>
+		$('.timeago').timeago();
+
+		$('.promote-release').on('click', function() {
+			$.ajax({ type: 'POST', url:window.location.pathname+'/promote', data: { release: $(this).data('release') }}).done(function(msg) {
+				refresh_tab();
+			}).fail(function(msg) {
+				$('#alert .message').html(msg.responseText);
+				$('#alert').show();
+			});
+		});
+	</script>
+{{ end }}
+
+{{ define "release" }}
+	<div id="release-formation-{{ .Id }}" class="modal fade">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title">CloudFormation Template: {{ .Id }}</h4>
+				</div>
+				<div class="modal-body">
+					<pre class="modal-scroll"></pre>
+				</div>
+			</div>
+		</div>
+	</div>
+{{ end }}
+
+{{ define "resources" }}
+	<table class="table table-striped table-bordered app-resources">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Type</th>
+				<th class="expand">Status</th>
+				<th>Time</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+				<tr>
+					<td>{{ .Name }}</td>
+					<td>{{ .Type }}</td>
+					<td class="expand">{{ .Status }}</td>
+					<td>{{ timeago .Time }}</td>
+				</tr>
+			{{ end }}
+		</tbody>
+	</table>
+	<script>
+		$('.timeago').timeago();
+
+		table_scroll($('.app-resources'), '365px');
+	</script>
+{{ end }}
+
+{{ define "services" }}
+	<table class="table table-striped table-bordered">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th class="expand">Type</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+				<tr>
+					<td>{{ .Name }}</td>
+					<td>{{ .Type }}</td>
+					<td>
+						{{ if .ManagementUrl }}
+							<a class="btn btn-xs btn-primary" href="{{ .ManagementUrl }}" target="convox-aws-console">Manage</a>
+						{{ end }}
+					</td>
+				</tr>
+			{{ end }}
+		</tbody>
+	</table>
 {{ end }}

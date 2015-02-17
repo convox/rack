@@ -7,7 +7,7 @@ import (
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 )
 
-type History struct {
+type Event struct {
 	Id   string
 	Name string
 
@@ -18,10 +18,10 @@ type History struct {
 	Time time.Time
 }
 
-type Histories []History
+type Events []Event
 
-func ListHistories(app string) (Histories, error) {
-	histories := Histories{}
+func ListEvents(app string) (Events, error) {
+	events := Events{}
 
 	next := ""
 
@@ -39,7 +39,7 @@ func ListHistories(app string) (Histories, error) {
 		}
 
 		for _, event := range res.StackEvents {
-			histories = append(histories, History{
+			events = append(events, Event{
 				Id:     *event.EventID,
 				Name:   coalesce(event.LogicalResourceID, ""),
 				Status: coalesce(event.ResourceStatus, ""),
@@ -56,5 +56,5 @@ func ListHistories(app string) (Histories, error) {
 		next = *res.NextToken
 	}
 
-	return histories, nil
+	return events, nil
 }

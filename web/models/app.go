@@ -11,8 +11,8 @@ type App struct {
 	Name string
 
 	Status     string
-	Repository string
 	Release    string
+	Repository string
 
 	Outputs    map[string]string
 	Parameters map[string]string
@@ -199,14 +199,14 @@ func (a *App) Builds() Builds {
 	return builds
 }
 
-func (a *App) History() Histories {
-	histories, err := ListHistories(a.Name)
+func (a *App) Events() Events {
+	events, err := ListEvents(a.Name)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return histories
+	return events
 }
 
 func (a *App) Metrics() *Metrics {

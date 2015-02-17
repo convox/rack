@@ -44,7 +44,7 @@ func ListResources(app string) (Resources, error) {
 	return resources, nil
 }
 
-func ListResourcesForProcess(app, process string) (Resources, error) {
+func ListProcessResources(app, process string) (Resources, error) {
 	res, err := ListResources(app)
 
 	if err != nil {
