@@ -16,9 +16,6 @@
 	</ol>
 
 	<div class="panel panel-default">
-		<div class="panel-heading">
-			<h3 class="panel-title">{{ .Name }}</h3>
-		</div>
 		<div class="panel-body">
 		</div>
 	</div>
@@ -71,7 +68,7 @@
 {{ end }}
 
 {{ define "logs" }}
-	<pre id="process-logs">Connecting...</pre>
+	<pre id="process-logs" class="logs"><p>Connecting...</p></pre>
 	<script>
 		connect_log_socket($('#process-logs'), '/apps/{{ .App }}/processes/{{ .Process }}/logs/stream');
 	</script>

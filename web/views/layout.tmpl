@@ -63,8 +63,8 @@
 			var root = '/' + window.location.pathname.split('/')[1];
 			$('.nav a[href="' + root + '"]').parent('li').addClass('active');
 
-			$('[data-toggle="popover"]').popover({html:true})
 			$('[data-toggle="tooltip"]').tooltip()
+			$('[data-toggle="popover"]').popover({html:true})
 
 			$('.timeago').timeago()
 		});

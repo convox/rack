@@ -10,16 +10,13 @@
 	</div>
 
 	<ol class="breadcrumb">
+		<button id="destroy-app" class="btn btn-danger btn-xs">Destroy App</button>
+		<button id="build-app" class="btn btn-success btn-xs">Build</button>
 		<li><a href="/apps">Apps</a></li>
 		<li class="active">{{ .Name }}</li>
 	</ol>
 
 	<div class="panel panel-default">
-		<div class="panel-heading">
-			<button id="destroy-app" class="btn btn-danger btn-xs">Destroy App</button>
-			<button id="build-app" class="btn btn-success btn-xs">Build</button>
-			<h3 class="panel-title">{{ .Name }}</h3>
-		</div>
 		<div class="panel-body">
 			{{ label "Repository" .Repository }}
 			{{ label "Status" (status .Status) }}
@@ -171,21 +168,21 @@
 				<tr>
 					<td>{{ .Name }}</td>
 					<td>{{ .Status }}</td>
-					<td class="expand wrap">{{ .Reason }}</td>
+					<td class="wrap">{{ .Reason }}</td>
 					<td>{{ timeago .Time }}</td>
 				</tr>
 			{{ end }}
 		</tbody>
 	</table>
 	<script>
-		table_scroll($('.app-events'), '365px');
-
 		$('.timeago').timeago();
+
+		table_scroll($('.app-events'), '365px');
 	</script>
 {{ end }}
 
 {{ define "logs" }}
-	<pre id="app-logs">Connecting...</pre>
+	<pre id="app-logs" class="logs"><p>Connecting...</p></pre>
 	<script>
 		connect_log_socket($('#app-logs'), '/apps/{{ . }}/logs/stream');
 	</script>

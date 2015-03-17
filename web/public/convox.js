@@ -13,7 +13,7 @@ function connect_log_socket(display, path) {
   }
 
   logs.onmessage = function(e) {
-    $(display).append(e.data);
+    $(display).append('<p>' + e.data + '</p>');
     $(display)[0].scrollTop = $(display)[0].scrollHeight;
   }
 }

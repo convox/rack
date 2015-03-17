@@ -1,3 +1,7 @@
+body {
+	background-color: #aaa;
+}
+
 form {
 	margin: 0
 }
@@ -14,34 +18,34 @@ form {
 	width: 20px;
 }
 
-.panel {
-	margin-bottom: 10px;
-}
-
-.panel-heading {
-	background-color: #bbb !important;
-}
-
-.panel-title {
-	color: #555;
-	font-size: 1.2em;
-	font-weight: bold !important;
-}
-
 .table {
 	border-radius: 4px !important;
 	border-collapse: collapse;
-	margin-bottom: 10px;
+	margin-bottom: 16px;
+	overflow: hidden;
 }
 
-.table th, .table td {
-	padding: 7px 12px !important;
+.table>thead>tr>th,
+.table>tbody>tr>th,
+.table>tfoot>tr>th,
+.table>thead>tr>td,
+.table>tbody>tr>td,
+.table>tfoot>tr>td {
+	padding: 8px 10px;
+}
+
+.table th:focus {
+	outline: 0;
 }
 
 .table th {
 	background-color: #ddd;
 	color: #555;
 	font-weight: 0.9em;
+}
+
+.table-striped>tbody>tr:nth-child(even) {
+	background-color: #fff;
 }
 
 .table td .btn {
@@ -62,9 +66,32 @@ form {
 }
 
 .table tr.title th {
-	background-color: #bbb;
+  background-color: #555;
+	border: 1px #555 solid;
+	color: #fff;
+	font-weight: normal;
+	font-size: 1.1em;
+	letter-spacing: 0.06em;
+	padding-left: 12px;
+}
+
+.panel {
+	margin-bottom: 16px;
+	border: 0;
+	background-color: #f7f7f7;
+}
+
+.panel-default > .panel-heading {
+	background-color: #555;
+	padding-left: 12px;
+	letter-spacing: 0.06em;
+}
+
+.panel-title {
+	color: #fff;
+	font-weight: normal;
+	font-size: 1.1em;
 	font-size: 1.2em;
-	padding-right: 8px !important;
 }
 
 .panel-heading button,
@@ -137,17 +164,34 @@ form {
 }
 
 .breadcrumb {
-	border: 1px #ddd solid;
 	margin-top: 4px;
-	margin-bottom: 10px;
+	margin-bottom: 16px;
+	font-size: 1.2em;
+	padding-right: 8px;
+	background-color: #555;
+	color: #eee;
+	letter-spacing: 0.06em;
+}
+
+.breadcrumb button {
+	float: right;
+	margin-left: 8px;
 }
 
 .breadcrumb li {
-	font-weight: bold;
+}
+
+.breadcrumb li a {
+	color: #BDC8D1;
 }
 
 .breadcrumb li.active {
-	color: #666;
+	color: #eee;
+}
+
+.breadcrumb>li+li:before {
+	color: #999;
+	padding: 0px 4px;
 }
 
 .command-line {
@@ -249,40 +293,79 @@ pre.modal-scroll {
 	padding: 1px 9px 1px 10px;
 }
 
-pre#app-logs, pre#process-logs {
+pre.logs {
 	height: 400px;
 	width: 1138px;
-	border: 1px #ddd solid;
+	margin-top: 1px;
 	background-color: #f3f3f3;
 	font-size: 0.8em;
-	background-color: #333;
+	background-color: #555;
 	color: #eee;
+	border: 8px #555 solid;
+	padding: 0px;
+	padding-right: 8px;
+	border-bottom: 6px #555 solid;
+	padding-left: 12px;
+}
+
+pre.logs p {
+	text-indent: -10px;
+	margin-bottom: 2px;
 }
 
 ul.nav-tabs {
+	margin-left: 10px;
 	margin-top: 16px;
+	border-bottom: 0px;
 }
 
-ul.nav-tabs a {
-	font-weight: bold;
-	font-size: 1.2em;
+ul.nav-tabs li a {
+	font-size: 1.1em;
 	padding: 8px 20px;
+	color: #444;
+	letter-spacing: 0.06em;
 }
 
-.tab-content {
-	margin-top: 10px;
+ul.nav-tabs li a:focus {
+	background-color: #555 !important;
+	color: #fff !important;
+	border: 1px #555 solid !important;
+	outline: 0;
+}
+
+ul.nav-tabs li a:hover {
+	border: 1px #888 solid;
+	background-color: #888;
+	color: #fff;
+}
+
+ul.nav-tabs li.active a {
+	background-color: #555;
+	color: #fff;
+	border: 1px #555 solid;
+}
+
+ul.nav-tabs li.active a:hover {
+	background-color: #555;
+	color: #fff;
+	border: 1px #555 solid;
+}
+
+#tab-content {
+	margin-top: 0px;
 }
 
 table.scrollable {
-	border: 0px;
 }
 
 table.scrollable > thead {
 	display: block;
 }
 
-.scrollable-wrapper table {
+.scrollable-wrapper table.table {
 	border-left: 0px;
+	border-top-left-radius: 0px !important;
+	border-top-right-radius: 0px !important;
 }
 
 .scrollable-wrapper tbody {
@@ -295,12 +378,9 @@ table.app-history td {
 	font-size: 0.9em;
 }
 
-#tab-content {
-	margin-top: 12px;
-}
-
 .nav-buttons {
-	margin-top: 16px;
+	margin-top: 6px;
+	margin-right: 4px;
 }
 
 img#spinner {
@@ -308,7 +388,30 @@ img#spinner {
 	display: none;
 }
 
-.nav > li > a:focus {
-	background-color: #fff !important;
-	border-bottom: 1px #ddd solid;
+::-webkit-scrollbar {
+	width: 12px;
+}
+
+::-webkit-scrollbar-track {
+	background-color: #ccc;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: #666;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: #777;
+}
+
+pre.logs::-webkit-scrollbar-track {
+	background-color: #666;
+}
+
+pre.logs::-webkit-scrollbar-thumb {
+	background-color: #ccc;
+}
+
+pre.logs::-webkit-scrollbar-thumb:hover,
+	background-color: #ddd;
 }
