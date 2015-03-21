@@ -12,31 +12,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/gorilla/mux"
-
-	caws "github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/crowdmob/goamz/aws"
-	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/crowdmob/goamz/dynamodb"
-	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/crowdmob/goamz/ec2"
-
-	gaws "github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/goamz/goamz/aws"
-	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/goamz/goamz/cloudformation"
 )
 
 var SortableTime = "20060102.150405.000000000"
 
 var (
-	cauth = caws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
-	gauth = gaws.Auth{AccessKey: os.Getenv("AWS_ACCESS"), SecretKey: os.Getenv("AWS_SECRET")}
+	DynamoDB = dynamodb.New(aws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), ""), os.Getenv("AWS_REGION"), nil)
 )
-
-var (
-	CloudFormation = cloudformation.New(gauth, gaws.Regions[os.Getenv("AWS_REGION")])
-	DynamoDB       = dynamodb.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
-	EC2            = ec2.New(cauth, caws.Regions[os.Getenv("AWS_REGION")])
-)
-
-func init() {
-}
 
 func Build(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -149,14 +134,17 @@ func createBuild(app string) (string, error) {
 
 	created := time.Now().Format(SortableTime)
 
-	build := []dynamodb.Attribute{
-		*dynamodb.NewStringAttribute("app", app),
-		*dynamodb.NewStringAttribute("created", created),
-		*dynamodb.NewStringAttribute("id", id),
-		*dynamodb.NewStringAttribute("status", "building"),
+	req := &dynamodb.PutItemInput{
+		Item: map[string]dynamodb.AttributeValue{
+			"app":     dynamodb.AttributeValue{S: aws.String(app)},
+			"created": dynamodb.AttributeValue{S: aws.String(created)},
+			"id":      dynamodb.AttributeValue{S: aws.String(id)},
+			"status":  dynamodb.AttributeValue{S: aws.String("building")},
+		},
+		TableName: aws.String(buildsTable(app)),
 	}
 
-	_, err := buildsTable(app).PutItem(id, "", build)
+	_, err := DynamoDB.PutItem(req)
 
 	if err != nil {
 		return "", err
@@ -166,29 +154,42 @@ func createBuild(app string) (string, error) {
 }
 
 func updateBuild(app, id, status, release, logs string) error {
-	row, err := buildsTable(app).GetItem(&dynamodb.Key{HashKey: id})
+	req := &dynamodb.GetItemInput{
+		ConsistentRead: aws.Boolean(true),
+		Key: map[string]dynamodb.AttributeValue{
+			"id": dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		TableName: aws.String(buildsTable(app)),
+	}
+
+	row, err := DynamoDB.GetItem(req)
 
 	if err != nil {
 		return err
 	}
 
-	build := []dynamodb.Attribute{}
-
-	for key, attr := range row {
-		build = append(build, *dynamodb.NewStringAttribute(key, attr.Value))
+	if len(row.Item) == 0 {
+		return fmt.Errorf("no such build: %s", id)
 	}
+
+	build := row.Item
 
 	ended := time.Now().Format(SortableTime)
 
-	build = append(build, *dynamodb.NewStringAttribute("ended", ended))
-	build = append(build, *dynamodb.NewStringAttribute("status", status))
-	build = append(build, *dynamodb.NewStringAttribute("logs", logs))
+	build["ended"] = dynamodb.AttributeValue{S: aws.String(ended)}
+	build["status"] = dynamodb.AttributeValue{S: aws.String(status)}
+	build["logs"] = dynamodb.AttributeValue{S: aws.String(logs)}
 
 	if release != "" {
-		build = append(build, *dynamodb.NewStringAttribute("release", release))
+		build["release"] = dynamodb.AttributeValue{S: aws.String(release)}
 	}
 
-	_, err = buildsTable(app).PutItem(id, "", build)
+	preq := &dynamodb.PutItemInput{
+		Item:      build,
+		TableName: aws.String(buildsTable(app)),
+	}
+
+	_, err = DynamoDB.PutItem(preq)
 
 	return err
 }
@@ -197,37 +198,32 @@ func createRelease(app, ami, manifest string) (string, error) {
 	id := generateId("R", 9)
 	created := time.Now().Format(SortableTime)
 
-	release := []dynamodb.Attribute{
-		*dynamodb.NewStringAttribute("app", app),
-		*dynamodb.NewStringAttribute("created", created),
-		*dynamodb.NewStringAttribute("id", id),
-		*dynamodb.NewStringAttribute("ami", ami),
-		*dynamodb.NewStringAttribute("manifest", manifest),
+	req := &dynamodb.PutItemInput{
+		Item: map[string]dynamodb.AttributeValue{
+			"app":      dynamodb.AttributeValue{S: aws.String(app)},
+			"created":  dynamodb.AttributeValue{S: aws.String(created)},
+			"id":       dynamodb.AttributeValue{S: aws.String(id)},
+			"ami":      dynamodb.AttributeValue{S: aws.String(ami)},
+			"manifest": dynamodb.AttributeValue{S: aws.String(manifest)},
+		},
+		TableName: aws.String(buildsTable(app)),
 	}
 
-	_, err := releasesTable(app).PutItem(id, "", release)
+	_, err := DynamoDB.PutItem(req)
 
-	return id, err
-}
-
-func coalesce(att *dynamodb.Attribute, def string) string {
-	if att != nil {
-		return att.Value
-	} else {
-		return def
+	if err != nil {
+		return "", err
 	}
+
+	return id, nil
 }
 
-func buildsTable(app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("%s-builds", app), pk)
-	return table
+func buildsTable(app string) string {
+	return fmt.Sprintf("%s-builds", app)
 }
 
-func releasesTable(app string) *dynamodb.Table {
-	pk := dynamodb.PrimaryKey{dynamodb.NewStringAttribute("id", ""), nil}
-	table := DynamoDB.NewTable(fmt.Sprintf("%s-releases", app), pk)
-	return table
+func releasesTable(app string) string {
+	return fmt.Sprintf("%s-releases", app)
 }
 
 var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
