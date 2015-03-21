@@ -135,6 +135,16 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	change.Save()
 
+	events, err := models.ListEvents(app)
+	if err != nil {
+		change.State = "ERROR"
+		change.Metadata = err.Error()
+		change.Save()
+
+		RenderError(rw, err)
+		return
+	}
+
 	err = release.Promote()
 
 	if err != nil {
@@ -147,6 +157,12 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
+
+	a, err := models.GetApp(app)
+	if err != nil {
+		panic(err)
+	}
+	go a.WatchForCompletion(change, events)
 }
 
 func AppBuilds(rw http.ResponseWriter, r *http.Request) {

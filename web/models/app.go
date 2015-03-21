@@ -1,7 +1,9 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
@@ -175,6 +177,52 @@ func (a *App) ServiceFormation() string {
 	return formation
 }
 
+func (a *App) WatchForCompletion(change *Change, original Events) {
+	for {
+		req := &cloudformation.DescribeStacksInput{StackName: aws.String(a.Name)}
+		res, err := CloudFormation.DescribeStacks(req)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if len(res.Stacks) < 1 {
+			panic(fmt.Errorf("no such stack: %s", a.Name))
+		}
+
+		status := *res.Stacks[0].StackStatus
+		if status == "UPDATE_COMPLETE" || status == "UPDATE_ROLLBACK_COMPLETE" {
+			break
+		}
+
+		fmt.Printf("%+v\n", res)
+		fmt.Printf("%+v\n", err)
+
+		time.Sleep(2 * time.Second)
+	}
+
+	latest, err := ListEvents(a.Name)
+
+	diff := Events{}
+	for _, event := range latest {
+		if event.Id == original[0].Id {
+			break
+		}
+		diff = append(diff, event)
+	}
+
+  fmt.Printf("%+v\n", diff)
+
+	data, err := json.Marshal(diff)
+	if err != nil {
+		panic(err)
+	}
+
+	change.State = "COMPLETE"
+	change.Metadata = string(data)
+	change.Save()
+}
+
 func (a *App) Ami() string {
 	release, err := GetRelease(a.Name, a.Release)
 
@@ -208,17 +256,6 @@ func (a *App) Changes() Changes {
 
 	return changes
 }
-
-// func (a *App) CloudFormationEvents() (string, error) {
-// 	req := &cloudformation.DescribeStackEventsInput{StackName: aws.String(a.Name)}
-
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	return events
-// }
 
 func (a *App) Metrics() *Metrics {
 	metrics, err := AppMetrics(a.Name)
