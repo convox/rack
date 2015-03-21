@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/websocket"
@@ -123,9 +124,24 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	event := &models.Event{
+		App:      app,
+		Created:  time.Now(),
+		Metadata: "{}",
+		Type:     "PROMOTE",
+		State:    "PENDING",
+		User:     "web",
+	}
+
+	event.Save()
+
 	err = release.Promote()
 
 	if err != nil {
+		event.State = "ERROR"
+		event.Metadata = err.Error()
+		event.Save()
+
 		RenderError(rw, err)
 		return
 	}
