@@ -40,7 +40,7 @@ func main() {
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/builds", controllers.AppBuilds).Methods("GET")
 	router.HandleFunc("/apps/{app}/build", controllers.AppBuild).Methods("POST")
-	router.HandleFunc("/apps/{app}/events", controllers.AppEvents).Methods("GET")
+	router.HandleFunc("/apps/{app}/changes", controllers.AppChanges).Methods("GET")
 	router.HandleFunc("/apps/{app}/logs", controllers.AppLogs)
 	router.HandleFunc("/apps/{app}/logs/stream", controllers.AppLogStream)
 	router.HandleFunc("/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")

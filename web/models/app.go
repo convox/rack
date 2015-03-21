@@ -199,15 +199,26 @@ func (a *App) Builds() Builds {
 	return builds
 }
 
-func (a *App) Events() Events {
-	events, err := ListEvents(a.Name)
+func (a *App) Changes() Changes {
+	changes, err := ListChanges(a.Name)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return events
+	return changes
 }
+
+// func (a *App) CloudFormationEvents() (string, error) {
+// 	req := &cloudformation.DescribeStackEventsInput{StackName: aws.String(a.Name)}
+
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	return events
+// }
 
 func (a *App) Metrics() *Metrics {
 	metrics, err := AppMetrics(a.Name)

@@ -9,7 +9,7 @@ import (
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 )
 
-type Event struct {
+type Change struct {
 	App     string
 	Created time.Time
 
@@ -19,9 +19,9 @@ type Event struct {
 	User     string
 }
 
-type Events []Event
+type Changes []Change
 
-func ListEvents(app string) (Events, error) {
+func ListChanges(app string) (Changes, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]dynamodb.Condition{
 			"app": dynamodb.Condition{
@@ -33,7 +33,7 @@ func ListEvents(app string) (Events, error) {
 		},
 		Limit:            aws.Integer(10),
 		ScanIndexForward: aws.Boolean(false),
-		TableName:        aws.String(eventsTable(app)),
+		TableName:        aws.String(changesTable(app)),
 	}
 
 	res, err := DynamoDB.Query(req)
@@ -42,16 +42,16 @@ func ListEvents(app string) (Events, error) {
 		return nil, err
 	}
 
-	events := make(Events, len(res.Items))
+	changes := make(Changes, len(res.Items))
 
 	for i, item := range res.Items {
-		events[i] = *eventFromItem(item)
+		changes[i] = *changeFromItem(item)
 	}
 
-	return events, nil
+	return changes, nil
 }
 
-func (e *Event) Save() error {
+func (e *Change) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: map[string]dynamodb.AttributeValue{
 			"app":      dynamodb.AttributeValue{S: aws.String(e.App)},
@@ -61,7 +61,7 @@ func (e *Event) Save() error {
 			"type":     dynamodb.AttributeValue{S: aws.String(e.Type)},
 			"user":     dynamodb.AttributeValue{S: aws.String(e.User)},
 		},
-		TableName: aws.String(eventsTable(e.App)),
+		TableName: aws.String(changesTable(e.App)),
 	}
 
 	_, err := DynamoDB.PutItem(req)
@@ -69,14 +69,14 @@ func (e *Event) Save() error {
 	return err
 }
 
-func eventsTable(app string) string {
+func changesTable(app string) string {
 	return fmt.Sprintf("%s-events", app)
 }
 
-func eventFromItem(item map[string]dynamodb.AttributeValue) *Event {
+func changeFromItem(item map[string]dynamodb.AttributeValue) *Change {
 	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
 
-	return &Event{
+	return &Change{
 		App:      coalesce(item["app"].S, ""),
 		Created:  created,
 		Metadata: coalesce(item["metadata"].S, ""),

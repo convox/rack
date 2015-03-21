@@ -16,7 +16,7 @@ import (
 
 func init() {
 	RegisterPartial("app", "builds")
-	RegisterPartial("app", "events")
+	RegisterPartial("app", "changes")
 	RegisterPartial("app", "logs")
 	RegisterPartial("app", "releases")
 	RegisterPartial("app", "resources")
@@ -124,7 +124,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event := &models.Event{
+	change := &models.Change{
 		App:      app,
 		Created:  time.Now(),
 		Metadata: "{}",
@@ -133,14 +133,14 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		User:     "web",
 	}
 
-	event.Save()
+	change.Save()
 
 	err = release.Promote()
 
 	if err != nil {
-		event.State = "ERROR"
-		event.Metadata = err.Error()
-		event.Save()
+		change.State = "ERROR"
+		change.Metadata = err.Error()
+		change.Save()
 
 		RenderError(rw, err)
 		return
@@ -162,17 +162,17 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "app", "builds", builds)
 }
 
-func AppEvents(rw http.ResponseWriter, r *http.Request) {
+func AppChanges(rw http.ResponseWriter, r *http.Request) {
 	app := mux.Vars(r)["app"]
 
-	events, err := models.ListEvents(app)
+	changes, err := models.ListChanges(app)
 
 	if err != nil {
 		RenderError(rw, err)
 		return
 	}
 
-	RenderPartial(rw, "app", "events", events)
+	RenderPartial(rw, "app", "changes", changes)
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
