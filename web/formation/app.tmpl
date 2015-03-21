@@ -140,6 +140,24 @@
           }
         }
       },
+      "BaseDynamoEvents": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": "{{ .Name }}-events",
+          "AttributeDefinitions": [
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "app", "KeyType": "HASH" },
+            { "AttributeName": "created", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
       "BaseDynamoProcesses": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
