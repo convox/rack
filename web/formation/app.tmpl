@@ -140,10 +140,10 @@
           }
         }
       },
-      "BaseDynamoEvents": {
+      "BaseDynamoChanges": {
         "Type": "AWS::DynamoDB::Table",
         "Properties": {
-          "TableName": "{{ .Name }}-events",
+          "TableName": "{{ .Name }}-changes",
           "AttributeDefinitions": [
             { "AttributeName": "app", "AttributeType": "S" },
             { "AttributeName": "created", "AttributeType": "S" }

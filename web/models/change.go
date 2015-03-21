@@ -70,7 +70,7 @@ func (e *Change) Save() error {
 }
 
 func changesTable(app string) string {
-	return fmt.Sprintf("%s-events", app)
+	return fmt.Sprintf("%s-changes", app)
 }
 
 func changeFromItem(item map[string]dynamodb.AttributeValue) *Change {
