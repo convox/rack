@@ -10,12 +10,19 @@ TBD
 
 * [Docker](https://docs.docker.com/installation/)
 * [Fig](http://www.fig.sh/install.html)
+* [Forego](https://github.com/ddollar/forego)
 
 #### Running
 
+Set up these vars in a `.env`:
+
 ```
-$ make dev
+AWS_REGION=
+AWS_ACCESS=
+AWS_SECRET=
 ```
+
+and then run `make dev`
 
 ## License
 
