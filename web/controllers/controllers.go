@@ -30,7 +30,7 @@ func displayHelpers() template.FuncMap {
 			return strings.Join(s, t)
 		},
 		"label": func(name, value string) template.HTML {
-			return template.HTML(fmt.Sprintf(`<div class="labelled-value" id="%s"><span class="name">%s</span><span class="value">%s</span></div>`, strings.ToLower(name), name, value))
+			return template.HTML(fmt.Sprintf(`<div class="labelled-value" id="label-%s"><span class="name">%s</span><span class="value">%s</span></div>`, strings.ToLower(name), name, value))
 		},
 		"meter": func(klass string, value float64, total int) template.HTML {
 			return template.HTML(fmt.Sprintf(`<div class="meter %s"><span style="width: %0.2f%%"></div>`, klass, value/float64(total)*100))

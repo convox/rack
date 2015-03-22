@@ -19,7 +19,7 @@
 	<div class="panel panel-default">
 		<div class="panel-body">
 			{{ label "Repository" .Repository }}
-			{{ label "Status" (status .Status) }}
+			{{ label "Status" .Status }}
 		</div>
 	</div>
 
@@ -99,6 +99,12 @@
 					$('#alert').show();
 				});
 			});
+
+			window.setInterval(function() {
+				$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
+					$('#label-status .value').text(data);
+				});
+			}, 2000);
 		});
 	</script>
 

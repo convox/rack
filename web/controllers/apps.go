@@ -232,3 +232,14 @@ func AppServices(rw http.ResponseWriter, r *http.Request) {
 
 	RenderPartial(rw, "app", "services", services)
 }
+
+func AppStatus(rw http.ResponseWriter, r *http.Request) {
+	app, err := models.GetApp(mux.Vars(r)["app"])
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, app.Status)
+}

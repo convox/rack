@@ -50,6 +50,7 @@ func main() {
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/resources", controllers.AppResources).Methods("GET")
 	router.HandleFunc("/apps/{app}/services", controllers.AppServices).Methods("GET")
+	router.HandleFunc("/apps/{app}/status", controllers.AppStatus).Methods("GET")
 
 	n := negroni.Classic()
 	n.Use(negroni.HandlerFunc(parseForm))
