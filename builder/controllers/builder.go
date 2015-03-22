@@ -206,7 +206,7 @@ func createRelease(app, ami, manifest string) (string, error) {
 			"ami":      dynamodb.AttributeValue{S: aws.String(ami)},
 			"manifest": dynamodb.AttributeValue{S: aws.String(manifest)},
 		},
-		TableName: aws.String(buildsTable(app)),
+		TableName: aws.String(releasesTable(app)),
 	}
 
 	_, err := DynamoDB.PutItem(req)
