@@ -108,8 +108,8 @@
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
+				<th></th>
 				<th>ID</th>
-				<th>Status</th>
 				<th class="expand">Started</th>
 				<th>Release</th>
 				<th>Duration</th>
@@ -119,8 +119,8 @@
 		<tbody>
 			{{ range . }}
 				<tr>
+					<td class="statusicon">{{ statusicon .Status }}</td>
 					<td class="id">{{ .Id }}</td>
-					<td>{{ .Status }}</td>
 					<td>{{ timeago .Created }}</td>
 					<td class="id">{{ .Release }}</td>
 					<td>{{ duration .Created .Ended }}</td>

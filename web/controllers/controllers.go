@@ -45,6 +45,9 @@ func displayHelpers() template.FuncMap {
 			}
 			return fmt.Sprintf(`<div class="label label-%s">%s</div>`, state, s)
 		},
+		"statusicon": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf(`<span class="statusicon statusicon-%s"></span>`, s))
+		},
 		"timeago": func(t time.Time) template.HTML {
 			return template.HTML(fmt.Sprintf(`<span class="timeago" title="%s">%s</span>`, t.Format(time.RFC3339), t.Format("2006-01-02 15:04:05 UTC")))
 		},

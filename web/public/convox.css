@@ -413,5 +413,36 @@ pre.logs::-webkit-scrollbar-thumb {
 }
 
 pre.logs::-webkit-scrollbar-thumb:hover,
+pre.logs::-webkit-scrollbar-thumb:hover {
 	background-color: #ddd;
+}
+
+td.statusicon {
+	padding: 10px 10px 6px 14px !important;
+}
+
+span.statusicon {
+  position: relative;
+  top: 1px;
+  display: inline-block;
+  font-family: 'Glyphicons Halflings';
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.statusicon-complete:before {
+	content: "\e013";
+	color: green;
+}
+
+.statusicon-failed:before {
+	content: "\e014";
+	color: red;
+}
+
+.statusicon-building:before {
+	content: url('/spinner-transparent.gif');
 }
