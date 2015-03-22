@@ -56,7 +56,9 @@ func (r *Service) Save() error {
 func (r Service) AvailabilityZones() []string {
 	azs := []string{}
 
-	for _, subnet := range ListSubnets() {
+	subnets, _ := ListSubnets()
+
+	for _, subnet := range subnets {
 		azs = append(azs, subnet.AvailabilityZone)
 	}
 

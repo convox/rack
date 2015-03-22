@@ -284,7 +284,8 @@ func (a *App) Services() Services {
 }
 
 func (a *App) Subnets() Subnets {
-	return ListSubnets()
+	subnets, _ := ListSubnets()
+	return subnets
 }
 
 func appFromStack(stack cloudformation.Stack) *App {

@@ -83,7 +83,9 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 func (p *Process) AvailabilityZones() []string {
 	azs := []string{}
 
-	for _, subnet := range ListSubnets() {
+	subnets, _ := ListSubnets()
+
+	for _, subnet := range subnets {
 		azs = append(azs, subnet.AvailabilityZone)
 	}
 

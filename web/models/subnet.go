@@ -1,5 +1,11 @@
 package models
 
+import (
+	"fmt"
+
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
+)
+
 type Subnet struct {
 	AvailabilityZone string
 	Cidr             string
@@ -7,11 +13,23 @@ type Subnet struct {
 
 type Subnets []Subnet
 
-func ListSubnets() Subnets {
-	return Subnets{
-		Subnet{AvailabilityZone: "us-east-1a", Cidr: "10.0.1.0/24"},
-		Subnet{AvailabilityZone: "us-east-1c", Cidr: "10.0.2.0/24"},
-		Subnet{AvailabilityZone: "us-east-1d", Cidr: "10.0.3.0/24"},
-		Subnet{AvailabilityZone: "us-east-1e", Cidr: "10.0.4.0/24"},
+func ListSubnets() (Subnets, error) {
+	subnets := Subnets{}
+
+	req := &ec2.DescribeAvailabilityZonesRequest{}
+
+	res, err := EC2.DescribeAvailabilityZones(req)
+
+	if err != nil {
+		return nil, err
 	}
+
+	for i, az := range res.AvailabilityZones {
+		subnets = append(subnets, Subnet{
+			AvailabilityZone: *az.ZoneName,
+			Cidr:             fmt.Sprintf("10.0.%d.0/24", i+1),
+		})
+	}
+
+	return subnets, nil
 }
