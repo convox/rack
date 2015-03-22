@@ -28,7 +28,7 @@
 		},
 		{
 			"ImportPath": "github.com/ddollar/nlogger",
-			"Rev": "40fe3a1df753b0e164bc13b8d29bcc800182b93d"
+			"Rev": "f18c18b60302cfa46801b36b2a83fba26e0585bd"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",

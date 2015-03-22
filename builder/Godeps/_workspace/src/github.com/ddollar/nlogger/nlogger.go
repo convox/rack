@@ -50,5 +50,11 @@ func (nl *Nlogger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		}
 	}
 
-	rlog.At("request").Success("status=%d method=%q path=%q", lrw.Status(), r.Method, r.RequestURI)
+	status := lrw.Status()
+
+	if status == 0 {
+		status = 200
+	}
+
+	rlog.At("request").Success("status=%d method=%q path=%q", status, r.Method, r.RequestURI)
 }
