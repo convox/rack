@@ -125,4 +125,7 @@ function change_to_tab(hash) {
 
 $(window).ready(function() {
   $('.timeago').timeago();
+
+  activate_tabs();
+  goto_anchor('#logs');
 });

@@ -82,12 +82,9 @@
 
 	<script>
 		$(window).ready(function() {
-			activate_tabs();
-			goto_anchor('#logs');
-
 			$('#build-app').on('click', function() {
 				$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
-					window.location = '/apps/{{ .Name }}';
+					change_to_tab('#builds');
 				}).fail(function(msg) {
 					$('#alert .message').html(msg.responseText);
 					$('#alert').show();
@@ -102,7 +99,6 @@
 					$('#alert').show();
 				});
 			});
-
 		});
 	</script>
 

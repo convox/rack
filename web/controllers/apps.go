@@ -108,7 +108,7 @@ func AppBuild(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Redirect(rw, r, fmt.Sprintf("/apps/%s#builds", app))
+	RenderText(rw, "ok")
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
