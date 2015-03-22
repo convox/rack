@@ -94,6 +94,7 @@ function refresh_content(tab) {
     $(tab).tab('show');
     $('#tab-content').html(data);
     $('a[role="tab"]').parent().removeClass('disabled');
+    $('#tab-content').find('.timeago').timeago();
     tabs_enabled = true;
   });
 }
