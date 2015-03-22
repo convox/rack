@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/gorilla/mux"
 
 	"github.com/convox/kernel/web/controllers"
@@ -52,7 +53,12 @@ func main() {
 	router.HandleFunc("/apps/{app}/services", controllers.AppServices).Methods("GET")
 	router.HandleFunc("/apps/{app}/status", controllers.AppStatus).Methods("GET")
 
-	n := negroni.Classic()
+	n := negroni.New(
+		negroni.NewRecovery(),
+		nlogger.New("ns=kernel", nil),
+		negroni.NewStatic(http.Dir("public")),
+	)
+
 	n.Use(negroni.HandlerFunc(parseForm))
 	n.UseHandler(router)
 	n.Run(fmt.Sprintf(":%s", port))

@@ -8,11 +8,15 @@ import (
 	"time"
 
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/gorilla/mux"
+
 	"github.com/convox/kernel/builder/controllers"
 )
 
-var port string = "3000"
+var (
+	port = "3000"
+)
 
 func redirect(path string) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -34,13 +38,16 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte("Hello, World!"))
-	}).Methods("GET")
+	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) { rw.Write([]byte("ok")) }).Methods("GET")
 
 	router.HandleFunc("/apps/{app}/build", controllers.Build).Methods("POST")
 
-	n := negroni.Classic()
+	n := negroni.New(
+		negroni.NewRecovery(),
+		nlogger.New("ns=kernel", nil),
+		negroni.NewStatic(http.Dir("public")),
+	)
+
 	n.Use(negroni.HandlerFunc(parseForm))
 	n.UseHandler(router)
 	n.Run(fmt.Sprintf(":%s", port))

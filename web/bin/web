@@ -1,10 +1,5 @@
 #!/bin/bash
 
-echo "starting nginx"
-/etc/init.d/nginx start
-
-PORT=${PORT:-5000}
-
 if [ "$DEVELOPMENT" == "true" ]; then
   gin -b web -p $PORT
 else

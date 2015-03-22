@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/convox/kernel/web",
-	"GoVersion": "go1.4.1",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
@@ -37,6 +37,14 @@
 			"ImportPath": "github.com/codegangsta/negroni",
 			"Comment": "v0.1-32-gc64702c",
 			"Rev": "c64702ca03d0f858ab7866638b69e85f0d4c6ee7"
+		},
+		{
+			"ImportPath": "github.com/ddollar/logger",
+			"Rev": "a2af4147d3e8495898ed2ba005839a2928e69f80"
+		},
+		{
+			"ImportPath": "github.com/ddollar/nlogger",
+			"Rev": "40fe3a1df753b0e164bc13b8d29bcc800182b93d"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
