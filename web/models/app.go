@@ -203,23 +203,32 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 
 	latest, err := ListEvents(a.Name)
 
-	diff := Events{}
+	events := Events{}
 	for _, event := range latest {
 		if event.Id == original[0].Id {
 			break
 		}
-		diff = append(diff, event)
+		events = append(events, event)
 	}
 
-  fmt.Printf("%+v\n", diff)
+	events_data, err := json.Marshal(events)
+	if err != nil {
+		panic(err)
+	}
 
-	data, err := json.Marshal(diff)
+	logs, err := ParseEvents(events)
+	if err != nil {
+		panic(err)
+	}
+
+	logs_data, err := json.Marshal(logs)
 	if err != nil {
 		panic(err)
 	}
 
 	change.State = "COMPLETE"
-	change.Metadata = string(data)
+	change.Logs = string(logs_data)
+	change.Metadata = string(events_data)
 	change.Save()
 }
 
