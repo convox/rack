@@ -14,6 +14,7 @@ import (
 
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
@@ -21,6 +22,7 @@ var SortableTime = "20060102.150405.000000000"
 
 var (
 	DynamoDB = dynamodb.New(aws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), ""), os.Getenv("AWS_REGION"), nil)
+	Log      = logger.New("ns=builder")
 )
 
 func Build(rw http.ResponseWriter, r *http.Request) {
@@ -46,27 +48,35 @@ func recoverBuild(app, id string) {
 		err := updateBuild(app, id, "failed", "", r.(error).Error())
 
 		if err != nil {
-			fmt.Printf("error during recovery: %v\n", err)
+			Log.At("recover").Error(err)
 		}
 	}
 }
 
 func executeBuild(app, repo string) {
+	log := Log.At("execute")
+
 	id, err := createBuild(app)
-	fmt.Printf("err %+v\n", err)
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
 
 	defer recoverBuild(app, id)
 
 	base, err := ioutil.TempDir("", "build")
 
 	if err != nil {
-		panic(err)
+		log.Error(err)
+		return
 	}
 
 	env := filepath.Join(base, ".env")
 
 	if err = ioutil.WriteFile(env, []byte(awsEnvironment()), 0400); err != nil {
-		panic(err)
+		log.Error(err)
+		return
 	}
 
 	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, app)
@@ -74,7 +84,8 @@ func executeBuild(app, repo string) {
 	cmd.Stderr = os.Stderr
 
 	if err = cmd.Start(); err != nil {
-		panic(err)
+		log.Error(err)
+		return
 	}
 
 	manifest := ""
@@ -86,7 +97,7 @@ func executeBuild(app, repo string) {
 		parts := strings.SplitN(scanner.Text(), "|", 2)
 
 		if len(parts) < 2 {
-			fmt.Printf("unknown | %s\n", scanner.Text())
+			log.Log("type=unknown text=%q", scanner.Text())
 			continue
 		}
 
@@ -94,35 +105,36 @@ func executeBuild(app, repo string) {
 		case "manifest":
 			manifest += fmt.Sprintf("%s\n", parts[1])
 		case "packer":
-			fmt.Printf("packer | %s\n", parts[1])
+			log.Log("type=packer text=%q", parts[1])
 		case "build":
-			fmt.Printf("build | %s\n", parts[1])
+			log.Log("type=build text=%q", parts[1])
 			logs += fmt.Sprintf("%s\n", parts[1])
 		case "error":
-			fmt.Printf("error| %s\n", parts[1])
+			log.Log("type=error text=%q", parts[1])
 		case "ami":
 			release, err := createRelease(app, parts[1], manifest)
 
 			if err != nil {
-				panic(err)
+				Log.At("execute").Error(err)
 			}
 
 			err = updateBuild(app, id, "complete", release, logs)
 
 			if err != nil {
-				panic(err)
+				log.Error(err)
+				return
 			}
 
 			success = true
 		default:
-			fmt.Printf("unknown | %s\n", parts[1])
+			log.Log("type=unknown text=%q", parts[1])
 		}
 	}
 
 	err = cmd.Wait()
 
 	if !success || err != nil {
-		fmt.Printf("build failed\n")
+		log.Log("status=failed")
 		err = updateBuild(app, id, "failed", "", logs)
 	}
 }
