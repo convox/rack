@@ -8,7 +8,7 @@ sleep 1
 docker pull convox/builder:latest &
 
 if [ "$DEVELOPMENT" == "true" ]; then
-  gin -b builder -p $PORT
+  $GOPATH/bin/rerun -build github.com/convox/kernel/builder
 else
-  builder
+  $GOPATH/bin/builder
 fi

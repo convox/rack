@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$DEVELOPMENT" == "true" ]; then
-  gin -b web -p $PORT
+  $GOPATH/bin/rerun -build github.com/convox/kernel/web
 else
-  web
+  $GOPATH/bin/web
 fi

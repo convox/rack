@@ -1,7 +1,7 @@
 FROM golang:1.4
 
-RUN go get github.com/ddollar/gin
 RUN go get github.com/ddollar/init
+RUN go get github.com/ddollar/rerun
 
 ENV PORT 3000
 WORKDIR /go/src/github.com/convox/kernel/web
