@@ -1,6 +1,9 @@
 package nlogger
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/convox/kernel/builder/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -18,6 +21,16 @@ func (rw *logResponseWriter) WriteHeader(status int) {
 
 func (rw *logResponseWriter) Status() int {
 	return rw.status
+}
+
+func (rw *logResponseWriter) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
+	hj, ok := rw.ResponseWriter.(http.Hijacker)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("could not hijack connection")
+	}
+
+	return hj.Hijack()
 }
 
 func Log(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
