@@ -1,0 +1,10 @@
+#!/bin/sh
+
+echo "ns=kernel at=startup pull=\"convox/builder:latest\""
+docker pull convox/builder:latest >/dev/null &
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  $GOPATH/bin/rerun -build github.com/convox/kernel
+else
+  $GOPATH/bin/web
+fi

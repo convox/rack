@@ -1,5 +1,5 @@
 web:
-  build: web
+  build: .
   environment:
     - DEVELOPMENT=true
     - AWS_ACCESS
@@ -8,5 +8,5 @@ web:
   ports:
     - 5000:3000
   volumes:
-    - web:/go/src/github.com/convox/kernel/web
+    - .:/go/src/github.com/convox/kernel
     - /var/run/docker.sock:/var/run/docker.sock

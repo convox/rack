@@ -1,4 +1,2 @@
 .env
-
-# binaries
-/kernel/kernel
+/kernel

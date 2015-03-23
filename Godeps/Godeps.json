@@ -1,0 +1,70 @@
+{
+	"ImportPath": "github.com/convox/kernel",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudformation",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudwatch",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/dynamodb",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/ec2",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/endpoints",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kinesis",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/negroni",
+			"Comment": "v0.1-32-gc64702c",
+			"Rev": "c64702ca03d0f858ab7866638b69e85f0d4c6ee7"
+		},
+		{
+			"ImportPath": "github.com/ddollar/logger",
+			"Rev": "a2af4147d3e8495898ed2ba005839a2928e69f80"
+		},
+		{
+			"ImportPath": "github.com/ddollar/nlogger",
+			"Rev": "1a2c3a205e082ae17f32bd9f9113c07cfa7f31e2"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "50c25fb3b2b3b3cc724e9b6ac75fb44b3bccd0da"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Rev": "a6f041ac33b84488bb44137d6866cd3c8706d792"
+		},
+		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "eca94c41d994ae2215d455ce578ae6e2dc6ee516"
+		}
+	]
+}
