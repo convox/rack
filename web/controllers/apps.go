@@ -53,9 +53,8 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
-	form := ParseForm(r)
-	name := form["name"]
-	repo := form["repo"]
+	name := GetForm(r, "name")
+	repo := GetForm(r, "repo")
 
 	app := &models.App{
 		Name:       name,
@@ -113,11 +112,9 @@ func AppBuild(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	form := ParseForm(r)
-	app := vars["app"]
+	app := mux.Vars(r)["app"]
 
-	release, err := models.GetRelease(app, form["release"])
+	release, err := models.GetRelease(app, GetForm(r, "release"))
 
 	if err != nil {
 		RenderError(rw, err)

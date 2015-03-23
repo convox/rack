@@ -54,16 +54,14 @@ func displayHelpers() template.FuncMap {
 	}
 }
 
-func ParseForm(r *http.Request) map[string]string {
-	options := make(map[string]string)
-
+func GetForm(r *http.Request, name string) string {
 	r.ParseMultipartForm(4096)
 
-	for key, values := range r.PostForm {
-		options[key] = values[0]
+	if len(r.PostForm[name]) == 1 {
+		return r.PostForm[name][0]
+	} else {
+		return ""
 	}
-
-	return options
 }
 
 func RegisterPartial(name, section string) {
