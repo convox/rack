@@ -1,15 +1,22 @@
-FROM golang:1.4
+FROM gliderlabs/alpine:3.1
 
-RUN apt-get -y update
-RUN apt-get -y upgrade
-RUN apt-get -y install unzip
+RUN apk-install curl go git zip
+
+ENV GOPATH /go
+ENV PATH $GOPATH/bin:$PATH
 
 RUN curl -L https://dl.bintray.com/mitchellh/packer/packer_0.7.5_linux_amd64.zip -o /tmp/packer.zip
-RUN unzip /tmp/packer.zip -d /usr/local/bin
+RUN mkdir -p /tmp/packer
+RUN unzip /tmp/packer.zip -d /tmp/packer/
+RUN cp /tmp/packer/packer /usr/local/bin/
+RUN cp /tmp/packer/packer-builder-amazon-ebs /usr/local/bin/
+RUN cp /tmp/packer/packer-provisioner-file /usr/local/bin/
+RUN cp /tmp/packer/packer-provisioner-shell /usr/local/bin/
+RUN rm -rf /tmp/packer*
 
 RUN go get github.com/jteeuwen/go-bindata/...
 
-ADD . /go/src/github.com/convox/builder
+COPY . /go/src/github.com/convox/builder
 WORKDIR /go/src/github.com/convox/builder
 RUN go-bindata data/
 RUN go get .
