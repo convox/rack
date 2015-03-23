@@ -3,8 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"net/url"
-	"os"
 	"sort"
 	"time"
 
@@ -83,25 +81,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	err = app.Delete()
-
-	if err != nil {
-		RenderError(rw, err)
-		return
-	}
-
-	RenderText(rw, "ok")
-}
-
-func AppBuild(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	form := ParseForm(r)
-	app := vars["app"]
-	repo := form["repo"]
-
-	bhost := os.Getenv("BUILDER_PORT_3000_TCP_ADDR")
-	bport := os.Getenv("BUILDER_PORT_3000_TCP_PORT")
-
-	_, err := http.PostForm(fmt.Sprintf("http://%s:%s/apps/%s/build", bhost, bport, app), url.Values{"repo": {repo}})
 
 	if err != nil {
 		RenderError(rw, err)

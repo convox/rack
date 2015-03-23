@@ -127,9 +127,9 @@
 				<tr>
 					<td class="statusicon">{{ statusicon .Status }}</td>
 					<td class="id">{{ .Id }}</td>
-					<td>{{ timeago .Created }}</td>
+					<td>{{ timeago .Started }}</td>
 					<td class="id">{{ .Release }}</td>
-					<td>{{ duration .Created .Ended }}</td>
+					<td>{{ duration .Started .Ended }}</td>
 					<td class="buttons">
 						<button class="btn btn-xs btn-info" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
 					</td>

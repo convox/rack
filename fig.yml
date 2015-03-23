@@ -9,17 +9,4 @@ web:
     - 5000:3000
   volumes:
     - web:/go/src/github.com/convox/kernel/web
-  links:
-    - builder
-builder:
-  privileged: true
-  build: builder
-  environment:
-    - DEVELOPMENT=true
-    - AWS_ACCESS
-    - AWS_SECRET
-    - AWS_REGION
-  ports:
-    - 5100:3000
-  volumes:
-    - builder:/go/src/github.com/convox/kernel/builder
+    - /var/run/docker.sock:/var/run/docker.sock

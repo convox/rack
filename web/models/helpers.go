@@ -6,11 +6,26 @@ import (
 	"fmt"
 	"html/template"
 	"math/rand"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/web/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func awsEnvironment() string {
+	env := []string{
+		fmt.Sprintf("AWS_REGION=%s", os.Getenv("AWS_REGION")),
+		fmt.Sprintf("AWS_ACCESS=%s", os.Getenv("AWS_ACCESS")),
+		fmt.Sprintf("AWS_SECRET=%s", os.Getenv("AWS_SECRET")),
+	}
+	return strings.Join(env, "\n")
+}
 
 func buildFormationTemplate(name, section string, object interface{}) (string, error) {
 	tmpl, err := template.New(section).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("formation/%s.tmpl", name))

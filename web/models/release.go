@@ -12,12 +12,11 @@ import (
 type Release struct {
 	Id string
 
+	App string
+
 	Active   bool
 	Ami      string
 	Manifest string
-	Status   string
-
-	App string
 
 	Created time.Time
 }
@@ -89,6 +88,37 @@ func GetRelease(app, id string) (*Release, error) {
 	return release, nil
 }
 
+func (r *Release) Save() error {
+	if r.Id == "" {
+		r.Id = generateId("R", 10)
+	}
+
+	if r.Created.IsZero() {
+		r.Created = time.Now()
+	}
+
+	req := &dynamodb.PutItemInput{
+		Item: map[string]dynamodb.AttributeValue{
+			"id":      dynamodb.AttributeValue{S: aws.String(r.Id)},
+			"app":     dynamodb.AttributeValue{S: aws.String(r.App)},
+			"created": dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
+		},
+		TableName: aws.String(releasesTable(r.App)),
+	}
+
+	if r.Ami != "" {
+		req.Item["ami"] = dynamodb.AttributeValue{S: aws.String(r.Ami)}
+	}
+
+	if r.Manifest != "" {
+		req.Item["manifest"] = dynamodb.AttributeValue{S: aws.String(r.Manifest)}
+	}
+
+	_, err := DynamoDB.PutItem(req)
+
+	return err
+}
+
 func (r *Release) Formation() (string, error) {
 	app, err := GetApp(r.App)
 
@@ -158,7 +188,6 @@ func releaseFromItem(item map[string]dynamodb.AttributeValue) *Release {
 		Id:       coalesce(item["id"].S, ""),
 		Ami:      coalesce(item["ami"].S, ""),
 		Manifest: coalesce(item["manifest"].S, ""),
-		Status:   coalesce(item["status"].S, ""),
 		App:      coalesce(item["app"].S, ""),
 		Created:  created,
 	}
