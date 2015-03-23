@@ -195,9 +195,6 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 			break
 		}
 
-		fmt.Printf("%+v\n", res)
-		fmt.Printf("%+v\n", err)
-
 		time.Sleep(2 * time.Second)
 	}
 
