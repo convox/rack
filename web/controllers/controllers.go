@@ -96,7 +96,7 @@ func RenderPartial(rw http.ResponseWriter, name, section string, data interface{
 	}
 
 	if err := Partials[tn].Execute(rw, data); err != nil {
-		return RenderError(rw, err)
+		return RenderText(rw, err.Error())
 	}
 
 	return nil
