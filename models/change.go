@@ -21,26 +21,9 @@ type Change struct {
 
 type Changes []Change
 
-type ChangeLog struct {
-	Name   string
-	Type   string
-	Status string
-	Start  time.Time
-	End    time.Time
-}
-
-type ChangeLogs []ChangeLog
-
-func (slice ChangeLogs) Len() int {
-	return len(slice)
-}
-
-func (slice ChangeLogs) Less(i, j int) bool {
-	return slice[i].Start.Before(slice[j].Start)
-}
-
-func (slice ChangeLogs) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
+type ChangeMetadata struct {
+	Events       []Event       `json:"events"`
+	Transactions []Transaction `json:"transactions"`
 }
 
 func ListChanges(app string) (Changes, error) {
@@ -78,7 +61,6 @@ func (e *Change) Save() error {
 		Item: map[string]dynamodb.AttributeValue{
 			"app":      dynamodb.AttributeValue{S: aws.String(e.App)},
 			"created":  dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
-			"logs":     dynamodb.AttributeValue{S: aws.String(e.Logs)},
 			"metadata": dynamodb.AttributeValue{S: aws.String(e.Metadata)},
 			"state":    dynamodb.AttributeValue{S: aws.String(e.State)},
 			"type":     dynamodb.AttributeValue{S: aws.String(e.Type)},
@@ -88,6 +70,10 @@ func (e *Change) Save() error {
 	}
 
 	_, err := DynamoDB.PutItem(req)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return err
 }
@@ -102,7 +88,6 @@ func changeFromItem(item map[string]dynamodb.AttributeValue) *Change {
 	return &Change{
 		App:      coalesce(item["app"].S, ""),
 		Created:  created,
-		Logs:     coalesce(item["logs"].S, ""),
 		Metadata: coalesce(item["metadata"].S, ""),
 		State:    coalesce(item["state"].S, ""),
 		Type:     coalesce(item["type"].S, ""),

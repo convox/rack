@@ -208,24 +208,18 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 		events = append(events, event)
 	}
 
-	events_data, err := json.Marshal(events)
+	transactions, err := GroupEvents(events)
 	if err != nil {
 		panic(err)
 	}
 
-	logs, err := ParseEvents(events)
-	if err != nil {
-		panic(err)
-	}
-
-	logs_data, err := json.Marshal(logs)
-	if err != nil {
-		panic(err)
-	}
+	data, err := json.Marshal(ChangeMetadata{
+		Events:       events,
+		Transactions: transactions,
+	})
 
 	change.State = "COMPLETE"
-	change.Logs = string(logs_data)
-	change.Metadata = string(events_data)
+	change.Metadata = string(data)
 	change.Save()
 }
 
