@@ -12,10 +12,9 @@ form {
 
 .navbar-brand img {
 	float: left;
-	margin-right: 7px;
+	margin-right: -10px;
 	margin-top: 0px;
-	height: 20px;
-	width: 20px;
+	height: 22px;
 }
 
 .table {
