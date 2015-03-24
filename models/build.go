@@ -189,7 +189,7 @@ func (b *Build) Execute(repo string) {
 
 func (b *Build) Fail(err error) {
 	b.Status = "failed"
-	b.Logs += fmt.Sprintf("\nError during build: %s", err)
+	b.Logs += fmt.Sprintf("\nBuild Error:\n %s", err)
 	b.Save()
 }
 
