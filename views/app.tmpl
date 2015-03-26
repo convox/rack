@@ -175,19 +175,23 @@
 					<td>{{ .TargetId }}</td>
 					<td>{{ timeago .Created }}</td>
 					<td class="wrap expand">
-						<ol>
-							{{ range .M.Transactions }}
-								{{ if eq .Type "AWS::CloudFormation::Stack" }}
-									<li>{{ .Name }} stack update ({{ duration .Start .End }})</li>
-								{{ else if eq .Type "AWS::AutoScaling::LaunchConfiguration" }}
-									<li>{{ .Name }} launch configuration change ({{ duration .Start .End }})</li>
-								{{ else if eq .Type "AWS::AutoScaling::AutoScalingGroup" }}
-									<li>{{ .Name }} autoscaling group change ({{ duration .Start .End }})</li>
-								{{ else }}
-									<li>{{ .Name }} {{ .Type }} {{ .Status }} ({{ duration .Start .End }})</li>
+						{{ if .M.Error }}
+							<span class="alert-danger">{{ .M.Error }}</span>
+						{{ else }}
+							<ol>
+								{{ range .M.Transactions }}
+									{{ if eq .Type "AWS::CloudFormation::Stack" }}
+										<li>{{ .Name }} stack update ({{ duration .Start .End }})</li>
+									{{ else if eq .Type "AWS::AutoScaling::LaunchConfiguration" }}
+										<li>{{ .Name }} launch configuration change ({{ duration .Start .End }})</li>
+									{{ else if eq .Type "AWS::AutoScaling::AutoScalingGroup" }}
+										<li>{{ .Name }} autoscaling group change ({{ duration .Start .End }})</li>
+									{{ else }}
+										<li>{{ .Name }} {{ .Type }} {{ .Status }} ({{ duration .Start .End }})</li>
+									{{ end }}
 								{{ end }}
-							{{ end }}
-						</ol>
+							</ol>
+						{{ end }}
 					</td>
 				</tr>
 			{{ end }}

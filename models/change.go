@@ -27,6 +27,7 @@ type Changes []Change
 type ChangeMetadata struct {
 	Events       []Event       `json:"events"`
 	Transactions []Transaction `json:"transactions"`
+	Error        string        `json:"error"`
 }
 
 func ListChanges(app string) (Changes, error) {

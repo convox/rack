@@ -126,7 +126,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		change.Status = "failed"
-		change.Metadata = err.Error()
+		change.Metadata = fmt.Sprintf("{\"error\": \"%s\"}", err.Error())
 		change.Save()
 
 		RenderError(rw, err)
