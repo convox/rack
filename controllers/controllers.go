@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
@@ -50,6 +51,19 @@ func displayHelpers() template.FuncMap {
 		},
 		"timeago": func(t time.Time) template.HTML {
 			return template.HTML(fmt.Sprintf(`<span class="timeago" title="%s">%s</span>`, t.Format(time.RFC3339), t.Format("2006-01-02 15:04:05 UTC")))
+		},
+		"splitcaps": func(name string) string {
+			var words []string
+			l := 0
+			for s := name; s != ""; s = s[l:] {
+				l = strings.IndexFunc(s[1:], unicode.IsUpper) + 1
+				if l <= 0 {
+					l = len(s)
+				}
+				words = append(words, s[:l])
+			}
+
+			return strings.Join(words, " ")
 		},
 	}
 }
