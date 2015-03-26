@@ -161,6 +161,7 @@
 				<th></th>
 				<th>User</th>
 				<th>Type</th>
+				<th>Target</th>
 				<th>Started</th>
 				<th class="expand">Changes</th>
 			</tr>
@@ -171,6 +172,7 @@
 					<td class="statusicon">{{ statusicon .Status }}</td>
 					<td>{{ .User }}</td>
 					<td>{{ .Type }}</td>
+					<td>{{ .TargetId }}</td>
 					<td>{{ timeago .Created }}</td>
 					<td class="wrap expand">
 						<ol>

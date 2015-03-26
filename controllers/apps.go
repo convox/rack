@@ -104,6 +104,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		App:      app,
 		Created:  time.Now(),
 		Metadata: "{}",
+		TargetId: release.Id,
 		Type:     "PROMOTE",
 		Status:   "changing",
 		User:     "web",

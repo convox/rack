@@ -16,6 +16,7 @@ type Change struct {
 	Metadata string
 	Logs     string
 	Status   string
+	TargetId string
 	Type     string
 	User     string
 	M        ChangeMetadata
@@ -61,12 +62,13 @@ func ListChanges(app string) (Changes, error) {
 func (e *Change) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: map[string]dynamodb.AttributeValue{
-			"app":      dynamodb.AttributeValue{S: aws.String(e.App)},
-			"created":  dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
-			"metadata": dynamodb.AttributeValue{S: aws.String(e.Metadata)},
-			"status":   dynamodb.AttributeValue{S: aws.String(e.Status)},
-			"type":     dynamodb.AttributeValue{S: aws.String(e.Type)},
-			"user":     dynamodb.AttributeValue{S: aws.String(e.User)},
+			"app":       dynamodb.AttributeValue{S: aws.String(e.App)},
+			"created":   dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
+			"metadata":  dynamodb.AttributeValue{S: aws.String(e.Metadata)},
+			"status":    dynamodb.AttributeValue{S: aws.String(e.Status)},
+			"target_id": dynamodb.AttributeValue{S: aws.String(e.TargetId)},
+			"type":      dynamodb.AttributeValue{S: aws.String(e.Type)},
+			"user":      dynamodb.AttributeValue{S: aws.String(e.User)},
 		},
 		TableName: aws.String(changesTable(e.App)),
 	}
@@ -101,6 +103,7 @@ func changeFromItem(item map[string]dynamodb.AttributeValue) *Change {
 		M:        metadata,
 		Status:   coalesce(item["status"].S, ""),
 		Type:     coalesce(item["type"].S, ""),
+		TargetId: coalesce(item["target_id"].S, ""),
 		User:     coalesce(item["user"].S, ""),
 	}
 }
