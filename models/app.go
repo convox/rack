@@ -191,6 +191,30 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 		}
 
 		status := *res.Stacks[0].StackStatus
+
+		latest, err := ListEvents(a.Name)
+
+		events := Events{}
+		for _, event := range latest {
+			if event.Id == original[0].Id {
+				break
+			}
+			events = append(events, event)
+		}
+
+		transactions, err := GroupEvents(events)
+		if err != nil {
+			panic(err)
+		}
+
+		data, err := json.Marshal(ChangeMetadata{
+			Events:       events,
+			Transactions: transactions,
+		})
+
+		change.Metadata = string(data)
+		change.Save()
+
 		if status == "UPDATE_COMPLETE" || status == "UPDATE_ROLLBACK_COMPLETE" {
 			break
 		}
@@ -198,28 +222,7 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 		time.Sleep(2 * time.Second)
 	}
 
-	latest, err := ListEvents(a.Name)
-
-	events := Events{}
-	for _, event := range latest {
-		if event.Id == original[0].Id {
-			break
-		}
-		events = append(events, event)
-	}
-
-	transactions, err := GroupEvents(events)
-	if err != nil {
-		panic(err)
-	}
-
-	data, err := json.Marshal(ChangeMetadata{
-		Events:       events,
-		Transactions: transactions,
-	})
-
 	change.Status = "complete"
-	change.Metadata = string(data)
 	change.Save()
 }
 
