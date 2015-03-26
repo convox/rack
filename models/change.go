@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,9 +15,10 @@ type Change struct {
 
 	Metadata string
 	Logs     string
-	State    string
+	Status   string
 	Type     string
 	User     string
+	M        ChangeMetadata
 }
 
 type Changes []Change
@@ -62,7 +64,7 @@ func (e *Change) Save() error {
 			"app":      dynamodb.AttributeValue{S: aws.String(e.App)},
 			"created":  dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
 			"metadata": dynamodb.AttributeValue{S: aws.String(e.Metadata)},
-			"state":    dynamodb.AttributeValue{S: aws.String(e.State)},
+			"status":   dynamodb.AttributeValue{S: aws.String(e.Status)},
 			"type":     dynamodb.AttributeValue{S: aws.String(e.Type)},
 			"user":     dynamodb.AttributeValue{S: aws.String(e.User)},
 		},
@@ -85,11 +87,19 @@ func changesTable(app string) string {
 func changeFromItem(item map[string]dynamodb.AttributeValue) *Change {
 	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
 
+	metadata := ChangeMetadata{}
+
+	err := json.Unmarshal([]byte(coalesce(item["metadata"].S, "{}")), &metadata)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Change{
 		App:      coalesce(item["app"].S, ""),
 		Created:  created,
 		Metadata: coalesce(item["metadata"].S, ""),
-		State:    coalesce(item["state"].S, ""),
+		M:        metadata,
+		Status:   coalesce(item["status"].S, ""),
 		Type:     coalesce(item["type"].S, ""),
 		User:     coalesce(item["user"].S, ""),
 	}

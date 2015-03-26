@@ -105,7 +105,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		Created:  time.Now(),
 		Metadata: "{}",
 		Type:     "PROMOTE",
-		State:    "PENDING",
+		Status:   "changing",
 		User:     "web",
 	}
 
@@ -113,7 +113,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	events, err := models.ListEvents(app)
 	if err != nil {
-		change.State = "ERROR"
+		change.Status = "failed"
 		change.Metadata = err.Error()
 		change.Save()
 
@@ -124,7 +124,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	err = release.Promote()
 
 	if err != nil {
-		change.State = "ERROR"
+		change.Status = "failed"
 		change.Metadata = err.Error()
 		change.Save()
 

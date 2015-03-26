@@ -445,3 +445,7 @@ span.statusicon {
 .statusicon-building:before {
 	content: url('/spinner-transparent.gif');
 }
+
+.statusicon-changing:before {
+	content: url('/spinner-transparent.gif');
+}

@@ -218,7 +218,7 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 		Transactions: transactions,
 	})
 
-	change.State = "COMPLETE"
+	change.Status = "complete"
 	change.Metadata = string(data)
 	change.Save()
 }
