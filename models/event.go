@@ -21,6 +21,56 @@ type Event struct {
 
 type Events []Event
 
+// A Transaction groups more than one event on a Name/Type resource
+type Transaction struct {
+	Name   string
+	Type   string
+	Status string
+	Start  time.Time
+	End    time.Time
+}
+
+type Transactions []Transaction
+
+func (slice Transactions) Len() int {
+	return len(slice)
+}
+
+func (slice Transactions) Less(i, j int) bool {
+	return slice[i].Start.Before(slice[j].Start)
+}
+
+func (slice Transactions) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
+func GroupEvents(events Events) (Transactions, error) {
+	name_events := make(map[string][]Event)
+
+	for _, event := range events {
+		name_events[event.Name] = append(name_events[event.Name], event)
+	}
+
+	transactions := make(Transactions, 0)
+
+	for name, events := range name_events {
+		first := events[len(events)-1]
+		last := events[0]
+
+		transactions = append(transactions, Transaction{
+			Name:   name,
+			Type:   first.Type,
+			Start:  first.Time,
+			End:    last.Time,
+			Status: last.Status,
+		})
+	}
+
+	sort.Sort(transactions)
+
+	return transactions, nil
+}
+
 func ListEvents(app string) (Events, error) {
 	events := Events{}
 
@@ -58,31 +108,4 @@ func ListEvents(app string) (Events, error) {
 	}
 
 	return events, nil
-}
-
-func ParseEvents(events Events) (ChangeLogs, error) {
-	name_events := make(map[string][]Event)
-
-	for _, event := range events {
-		name_events[event.Name] = append(name_events[event.Name], event)
-	}
-
-	logs := make(ChangeLogs, 0)
-
-	for name, events := range name_events {
-		first := events[len(events)-1]
-		last := events[0]
-
-		logs = append(logs, ChangeLog{
-			Name:   name,
-			Type:   first.Type,
-			Start:  first.Time,
-			End:    last.Time,
-			Status: last.Status,
-		})
-	}
-
-	sort.Sort(logs)
-
-	return logs, nil
 }

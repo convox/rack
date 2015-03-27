@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,33 +15,19 @@ type Change struct {
 
 	Metadata string
 	Logs     string
-	State    string
+	Status   string
+	TargetId string
 	Type     string
 	User     string
+	M        ChangeMetadata
 }
 
 type Changes []Change
 
-type ChangeLog struct {
-	Name   string
-	Type   string
-	Status string
-	Start  time.Time
-	End    time.Time
-}
-
-type ChangeLogs []ChangeLog
-
-func (slice ChangeLogs) Len() int {
-	return len(slice)
-}
-
-func (slice ChangeLogs) Less(i, j int) bool {
-	return slice[i].Start.Before(slice[j].Start)
-}
-
-func (slice ChangeLogs) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
+type ChangeMetadata struct {
+	Events       []Event       `json:"events"`
+	Transactions []Transaction `json:"transactions"`
+	Error        string        `json:"error"`
 }
 
 func ListChanges(app string) (Changes, error) {
@@ -76,18 +63,22 @@ func ListChanges(app string) (Changes, error) {
 func (e *Change) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: map[string]dynamodb.AttributeValue{
-			"app":      dynamodb.AttributeValue{S: aws.String(e.App)},
-			"created":  dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
-			"logs":     dynamodb.AttributeValue{S: aws.String(e.Logs)},
-			"metadata": dynamodb.AttributeValue{S: aws.String(e.Metadata)},
-			"state":    dynamodb.AttributeValue{S: aws.String(e.State)},
-			"type":     dynamodb.AttributeValue{S: aws.String(e.Type)},
-			"user":     dynamodb.AttributeValue{S: aws.String(e.User)},
+			"app":       dynamodb.AttributeValue{S: aws.String(e.App)},
+			"created":   dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
+			"metadata":  dynamodb.AttributeValue{S: aws.String(e.Metadata)},
+			"status":    dynamodb.AttributeValue{S: aws.String(e.Status)},
+			"target_id": dynamodb.AttributeValue{S: aws.String(e.TargetId)},
+			"type":      dynamodb.AttributeValue{S: aws.String(e.Type)},
+			"user":      dynamodb.AttributeValue{S: aws.String(e.User)},
 		},
 		TableName: aws.String(changesTable(e.App)),
 	}
 
 	_, err := DynamoDB.PutItem(req)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return err
 }
@@ -99,13 +90,21 @@ func changesTable(app string) string {
 func changeFromItem(item map[string]dynamodb.AttributeValue) *Change {
 	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
 
+	metadata := ChangeMetadata{}
+
+	err := json.Unmarshal([]byte(coalesce(item["metadata"].S, "{}")), &metadata)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Change{
 		App:      coalesce(item["app"].S, ""),
 		Created:  created,
-		Logs:     coalesce(item["logs"].S, ""),
 		Metadata: coalesce(item["metadata"].S, ""),
-		State:    coalesce(item["state"].S, ""),
+		M:        metadata,
+		Status:   coalesce(item["status"].S, ""),
 		Type:     coalesce(item["type"].S, ""),
+		TargetId: coalesce(item["target_id"].S, ""),
 		User:     coalesce(item["user"].S, ""),
 	}
 }

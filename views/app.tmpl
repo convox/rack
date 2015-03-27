@@ -158,21 +158,41 @@
 	<table class="table table-striped table-bordered app-changes">
 		<thead>
 			<tr>
-				<th>Type</th>
-				<th>State</th>
+				<th></th>
 				<th>User</th>
-				<th class="expand">Metadata</th>
-				<th>Time</th>
+				<th>Type</th>
+				<th>Target</th>
+				<th>Started</th>
+				<th class="expand">Changes</th>
 			</tr>
 		</thead>
 		<tbody>
 			{{ range . }}
 				<tr>
-					<td>{{ .Type }}</td>
-					<td>{{ .State }}</td>
+					<td class="statusicon">{{ statusicon .Status }}</td>
 					<td>{{ .User }}</td>
-					<td class="wrap expand">{{ .Metadata }}</td>
+					<td>{{ .Type }}</td>
+					<td>{{ .TargetId }}</td>
 					<td>{{ timeago .Created }}</td>
+					<td class="wrap expand">
+						{{ if .M.Error }}
+							<span class="alert-danger">{{ .M.Error }}</span>
+						{{ else }}
+							<ul>
+								{{ range .M.Transactions }}
+									{{ if eq .Type "AWS::CloudFormation::Stack" }}
+										<li>{{ .Name }} Stack update ({{ duration .Start .End }})</li>
+									{{ else if eq .Type "AWS::AutoScaling::LaunchConfiguration" }}
+										<li style="margin-left: 1em;">{{ splitcaps .Name }} update</li>
+									{{ else if eq .Type "AWS::AutoScaling::AutoScalingGroup" }}
+										<li style="margin-left: 1em;">{{ splitcaps .Name }} stop/start ({{ duration .Start .End }})</li>
+									{{ else }}
+										<li>{{ .Name }} {{ .Type }} {{ .Status }} ({{ duration .Start .End }})</li>
+									{{ end }}
+								{{ end }}
+							</ul>
+						{{ end }}
+					</td>
 				</tr>
 			{{ end }}
 		</tbody>
