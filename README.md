@@ -13,6 +13,8 @@
 
 #### Prerequisites
 
+* [Fig](http://www.fig.sh/install.html)
+* [Forego](https://github.com/ddollar/forego)
 * [Go](https://golang.org/doc/install)
 
 #### Running
