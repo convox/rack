@@ -6,5 +6,5 @@ docker pull convox/builder:release &
 if [ "$DEVELOPMENT" == "true" ]; then
   $GOPATH/bin/rerun -build github.com/convox/kernel
 else
-  $GOPATH/bin/web
+  $GOPATH/bin/kernel
 fi
