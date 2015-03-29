@@ -3,19 +3,20 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/models"
-        "github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 )
 
 var (
-        log = logger.New("ns=kernel cn=build")
+	log = logger.New("ns=kernel cn=build")
 )
 
 func init() {
 }
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("create").Start()
 	app := mux.Vars(r)["app"]
 	repo := GetForm(r, "repo")
 
