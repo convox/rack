@@ -380,6 +380,7 @@
 			$(this).prop('disabled', true);
 			$('#spinner').show();
 			$.ajax({ type: 'POST', url:window.location.pathname+'/promote', data: { release: $(this).data('release') }}).done(function(msg) {
+				$('#alert').hide();
 				$('#spinner').hide();
 				refresh_tab();
 			}).fail(function(msg) {
