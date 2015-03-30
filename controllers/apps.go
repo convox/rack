@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
@@ -22,12 +23,16 @@ func init() {
 
 	RegisterTemplate("apps", "layout", "apps")
 	RegisterTemplate("app", "layout", "app")
+
+	log = logger.New("ns=kernel cn=app")
 }
 
 func AppList(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("list").Start()
 	apps, err := models.ListApps()
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -38,11 +43,13 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppShow(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("show").Start()
 	name := mux.Vars(r)["app"]
 
 	app, err := models.GetApp(name)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -51,6 +58,7 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("create").Start()
 	name := GetForm(r, "name")
 	repo := GetForm(r, "repo")
 
@@ -62,6 +70,7 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	err := app.Create()
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -70,19 +79,24 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppDelete(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("delete").Start()
 	vars := mux.Vars(r)
 	name := vars["app"]
 
+	log.At("get app")
 	app, err := models.GetApp(name)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
 
+	log.At("delete app")
 	err = app.Delete()
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -91,11 +105,14 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("promote").Start()
 	app := mux.Vars(r)["app"]
 
+	log.At("get release")
 	release, err := models.GetRelease(app, GetForm(r, "release"))
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -112,8 +129,10 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	change.Save()
 
+	log.At("list events")
 	events, err := models.ListEvents(app)
 	if err != nil {
+		log.Error(err)
 		change.Status = "failed"
 		change.Metadata = err.Error()
 		change.Save()
@@ -122,9 +141,11 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.At("promote release")
 	err = release.Promote()
 
 	if err != nil {
+		log.Error(err)
 		change.Status = "failed"
 		change.Metadata = fmt.Sprintf("{\"error\": \"%s\"}", err.Error())
 		change.Save()
@@ -135,19 +156,23 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 
+	log.At("get app")
 	a, err := models.GetApp(app)
 	if err != nil {
+		log.Error(err)
 		panic(err)
 	}
 	go a.WatchForCompletion(change, events)
 }
 
 func AppBuilds(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("builds").Start()
 	app := mux.Vars(r)["app"]
 
 	builds, err := models.ListBuilds(app)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -156,11 +181,13 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppChanges(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("changes").Start()
 	app := mux.Vars(r)["app"]
 
 	changes, err := models.ListChanges(app)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -169,15 +196,18 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("logs")
 	app := mux.Vars(r)["app"]
 
 	RenderPartial(rw, "app", "logs", app)
 }
 
 func AppLogStream(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("log stream").Start()
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -187,13 +217,16 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 
 	app.SubscribeLogs(logs, done)
 
+	log.At("upgrade")
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
 
+	log.At("close")
 	defer ws.Close()
 
 	for data := range logs {
@@ -204,11 +237,13 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppReleases(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("releases").Start()
 	app := mux.Vars(r)["app"]
 
 	releases, err := models.ListReleases(app)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -217,11 +252,13 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppResources(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("resources").Start()
 	app := mux.Vars(r)["app"]
 
 	resources, err := models.ListResources(app)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -230,11 +267,13 @@ func AppResources(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppServices(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("services").Start()
 	app := mux.Vars(r)["app"]
 
 	services, err := models.ListServices(app)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -243,9 +282,11 @@ func AppServices(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppStatus(rw http.ResponseWriter, r *http.Request) {
+	log = log.At("status").Start()
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}

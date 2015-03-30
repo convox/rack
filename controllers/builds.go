@@ -8,11 +8,8 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-var (
-	log = logger.New("ns=kernel cn=build")
-)
-
 func init() {
+	log = logger.New("ns=kernel cn=build")
 }
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {

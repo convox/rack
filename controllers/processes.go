@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
@@ -15,14 +16,17 @@ func init() {
 	RegisterPartial("process", "resources")
 
 	RegisterTemplate("process", "layout", "process")
+	log = logger.New("ns=kernel cn=process")
 }
 
 func ProcessShow(rw http.ResponseWriter, r *http.Request) {
+	log.At("show").Start()
 	vars := mux.Vars(r)
 
 	process, err := models.GetProcess(vars["app"], vars["process"])
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -31,6 +35,7 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
+	log.At("logs")
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -44,11 +49,13 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
+	log.At("log stream")
 	vars := mux.Vars(r)
 
 	process, err := models.GetProcess(vars["app"], vars["process"])
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -58,9 +65,11 @@ func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
 
 	process.SubscribeLogs(logs, done)
 
+	log.At("upgrade")
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
@@ -75,6 +84,7 @@ func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessResources(rw http.ResponseWriter, r *http.Request) {
+	log.At("resources")
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -82,6 +92,7 @@ func ProcessResources(rw http.ResponseWriter, r *http.Request) {
 	resources, err := models.ListProcessResources(app, process)
 
 	if err != nil {
+		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
