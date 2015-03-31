@@ -40,7 +40,7 @@
 		},
 		{
 			"ImportPath": "github.com/ddollar/logger",
-			"Rev": "a2af4147d3e8495898ed2ba005839a2928e69f80"
+			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
 		},
 		{
 			"ImportPath": "github.com/ddollar/nlogger",

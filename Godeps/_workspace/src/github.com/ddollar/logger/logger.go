@@ -1,11 +1,20 @@
 package logger
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
+	"regexp"
+	"runtime"
 	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 type Logger struct {
 	namespace string
@@ -23,11 +32,28 @@ func NewWriter(ns string, writer io.Writer) *Logger {
 }
 
 func (l *Logger) At(at string) *Logger {
-	return l.Namespace("at=%s", at)
+	return l.Replace("at", at)
+}
+
+func (l *Logger) Step(step string) *Logger {
+	return l.Replace("step", step)
 }
 
 func (l *Logger) Error(err error) {
-	l.Log("state=error error=%q", err)
+	id := rand.Int31()
+
+	l.Log("state=error id=%d message=%q", id, err)
+
+	stack := make([]byte, 102400)
+	runtime.Stack(stack, false)
+
+	scanner := bufio.NewScanner(bytes.NewReader(stack))
+	line := 1
+
+	for scanner.Scan() {
+		l.Log("state=error id=%d line=%d trace=%q", id, line, scanner.Text())
+		line += 1
+	}
 }
 
 func (l *Logger) Log(format string, args ...interface{}) {
@@ -44,6 +70,22 @@ func (l *Logger) Namespace(format string, args ...interface{}) *Logger {
 		namespace: fmt.Sprintf("%s %s", l.namespace, fmt.Sprintf(format, args...)),
 		started:   l.started,
 		writer:    l.writer,
+	}
+}
+
+func (l *Logger) Replace(key, value string) *Logger {
+	pair := fmt.Sprintf("%s=%s", key, value)
+
+	r := regexp.MustCompile(fmt.Sprintf(`\s%s=\S+`, key))
+
+	if r.MatchString(l.namespace) {
+		return &Logger{
+			namespace: r.ReplaceAllString(l.namespace, " "+pair),
+			started:   l.started,
+			writer:    l.writer,
+		}
+	} else {
+		return l.Namespace(fmt.Sprintf("%s=%s", key, value))
 	}
 }
 
