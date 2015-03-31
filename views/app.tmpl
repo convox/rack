@@ -181,6 +181,7 @@
 							<ul>
 								{{ range .M.Transactions }}
 									{{ if eq .Type "AWS::CloudFormation::Stack" }}
+										<li>Update Stack <span class="target">{{ .Name }}</span> <span class="duration">{{ duration .Start .End }}</span></li>
 										<li>{{ .Name }} Stack update ({{ duration .Start .End }})</li>
 									{{ else if eq .Type "AWS::AutoScaling::LaunchConfiguration" }}
 										<li style="margin-left: 1em;">{{ splitcaps .Name }} update</li>
