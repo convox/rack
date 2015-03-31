@@ -5,7 +5,7 @@ PORT ?= 3000
 all: build
 
 dev:
-	@forego run fig up
+	@export $(shell cat .env); docker-compose up
 
 build:
 	docker build -t convox/kernel .

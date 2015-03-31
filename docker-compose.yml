@@ -8,5 +8,5 @@ web:
   ports:
     - 5000:3000
   volumes:
-    - .:/go/src/github.com/convox/kernel
+    - ./:/go/src/github.com/convox/kernel
     - /var/run/docker.sock:/var/run/docker.sock

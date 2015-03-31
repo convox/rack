@@ -1,12 +1,13 @@
 # convox/kernel
 
-##### Install prerequisites:
+##### Install docker-compose:
 
-* [Fig](http://www.fig.sh/install.html)
-* [Forego](https://github.com/ddollar/forego)
-* [Go](https://golang.org/doc/install)
+```
+curl -L https://github.com/docker/compose/releases/download/1.1.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+```
 
-##### Create a `.env` file:
+##### Create `.env`:
 
 ```
 AWS_REGION=us-east-1
@@ -14,6 +15,6 @@ AWS_ACCESS=foo
 AWS_SECRET=bar
 ```
 
-##### Run the kernel:
+##### Run the kernel for local development:
 
 `make dev`
