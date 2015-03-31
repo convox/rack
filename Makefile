@@ -8,6 +8,7 @@ dev:
 	@export $(shell cat .env); docker-compose up
 
 ami:
+	docker pull convox/builder
 	docker run -v $(shell pwd):/build --env-file .env convox/builder /build convox
 
 build:
