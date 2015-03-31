@@ -3,7 +3,7 @@
   "variables": {
     "NAME": null,
     "SOURCE": null,
-    "BASE_AMI": "ami-800b5fe8",
+    "BASE_AMI": "ami-70cafd18",
     "AWS_REGION": "us-east-1",
     "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
     "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
@@ -42,8 +42,8 @@
       "inline": [
         "set -e",
         "cd /build",
-        "/usr/local/bin/fig -p app build",
-        "/usr/local/bin/fig -p app pull"
+        "/usr/local/bin/docker-compose -p app build",
+        "/usr/local/bin/docker-compose -p app pull"
       ]
     },
     {
