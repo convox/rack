@@ -62,7 +62,7 @@ func buildAmi(repo, name, ref string) (string, error) {
 		}
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(clone, "fig.yml"))
+	data, err := ioutil.ReadFile(filepath.Join(clone, "docker-compose.yml"))
 
 	if err != nil {
 		return "", err

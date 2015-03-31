@@ -1,6 +1,6 @@
 # Convox Builder
 
-Turn a git repository with a fig.yml into an AMI.
+Turn a git repository with a docker-compose.yml into an AMI.
 
 ## Usage
 
@@ -15,7 +15,7 @@ Turn a git repository with a fig.yml into an AMI.
 The AMIs produced by this tool will need userdata like the following to boot:
 
     {
-      "start": "name-of-fig-process",
+      "start": "name-of-compose-process",
       "env": [
         "FOO=bar",
         "BAZ=qux"
