@@ -4,11 +4,22 @@ PORT ?= 3000
 
 all: build
 
-build:
-	go get ./...
-
 dev:
 	@forego run fig up
+
+build:
+	docker build -t convox/kernel .
+
+squash: build
+	cat dist/Dockerfile | docker build -t convox/kernel:squash -
+	docker save convox/kernel:squash | docker run -i convox/squash -verbose -t convox/kernel:squash | docker load
+
+# TODO: make version dynamic
+release: squash
+	docker tag convox/kernel:squash convox/kernel:latest
+	docker tag convox/kernel:squash convox/kernel:v1
+	docker push convox/kernel:v1
+	docker push convox/kernel:latest
 
 vendor:
 	godep save -r -copy=true ./...
