@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/nlogger"
@@ -21,7 +23,44 @@ func redirect(path string) func(http.ResponseWriter, *http.Request) {
 }
 
 func parseForm(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	r.ParseMultipartForm(2048)
+	// r.ParseMultipartForm(2048)
+	next(rw, r)
+}
+
+func authRequired(rw http.ResponseWriter) {
+	rw.Header().Set("WWW-Authenticate", `Basic realm="Convox"`)
+	rw.WriteHeader(401)
+	rw.Write([]byte("unauthorized"))
+}
+
+func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	if password := os.Getenv("HTTP_PASSWORD"); password != "" {
+		auth := r.Header.Get("Authorization")
+
+		if auth == "" {
+			authRequired(rw)
+			return
+		}
+
+		if !strings.HasPrefix(auth, "Basic ") {
+			authRequired(rw)
+			return
+		}
+
+		c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(auth, "Basic "))
+
+		if err != nil {
+			return
+		}
+
+		parts := strings.SplitN(string(c), ":", 2)
+
+		if len(parts) != 2 || parts[1] != password {
+			authRequired(rw)
+			return
+		}
+	}
+
 	next(rw, r)
 }
 
@@ -60,6 +99,7 @@ func main() {
 	)
 
 	n.Use(negroni.HandlerFunc(parseForm))
+	n.Use(negroni.HandlerFunc(basicAuthentication))
 	n.UseHandler(router)
 	n.Run(fmt.Sprintf(":%s", port))
 }
