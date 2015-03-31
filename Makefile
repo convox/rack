@@ -16,8 +16,8 @@ squash: build
 
 # TODO: make version dynamic
 release: squash
-	docker tag convox/kernel:squash convox/kernel:latest
-	docker tag convox/kernel:squash convox/kernel:v1
+	docker tag -f convox/kernel:squash convox/kernel:latest
+	docker tag -f convox/kernel:squash convox/kernel:v1
 	docker push convox/kernel:v1
 	docker push convox/kernel:latest
 
