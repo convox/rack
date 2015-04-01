@@ -1,6 +1,6 @@
 # Convox Builder
 
-Turn a git repository with a docker-compose.yml into an AMI.
+Turn a git repository with a `docker-compose.yml` into an AMI.
 
 ## Usage
 
