@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -29,6 +30,17 @@ func displayHelpers() template.FuncMap {
 		},
 		"meter": func(klass string, value float64, total int) template.HTML {
 			return template.HTML(fmt.Sprintf(`<div class="meter %s"><span style="width: %0.2f%%"></div>`, klass, value/float64(total)*100))
+		},
+		"partial": func(name, section string, data interface{}) template.HTML {
+			partial, err := renderPartial(name, section, data)
+
+			if err != nil {
+				// TODO: use logger
+				fmt.Printf("unknown template: %s %s\n", name, section)
+				return template.HTML("")
+			}
+
+			return template.HTML(partial)
 		},
 		"status": func(s string) string {
 			state := "default"
@@ -95,15 +107,13 @@ func RenderError(rw http.ResponseWriter, err error) error {
 }
 
 func RenderPartial(rw http.ResponseWriter, name, section string, data interface{}) error {
-	tn := fmt.Sprintf("%s.%s", name, section)
+	html, err := renderPartial(name, section, data)
 
-	if _, ok := Partials[tn]; !ok {
-		return RenderError(rw, fmt.Errorf("no such partial: %s %s", name, section))
+	if err != nil {
+		return RenderError(rw, err)
 	}
 
-	if err := Partials[tn].Execute(rw, data); err != nil {
-		return RenderText(rw, err.Error())
-	}
+	RenderText(rw, html)
 
 	return nil
 }
@@ -137,4 +147,20 @@ func duration(start, end time.Time) string {
 		seconds := duration / time.Second
 		return fmt.Sprintf("%dmin %dsec", seconds/60, seconds%60)
 	}
+}
+
+func renderPartial(name, section string, data interface{}) (string, error) {
+	tn := fmt.Sprintf("%s.%s", name, section)
+
+	if _, ok := Partials[tn]; !ok {
+		return "", fmt.Errorf("no such partial: %s %s", name, section)
+	}
+
+	var partial bytes.Buffer
+
+	if err := Partials[tn].Execute(&partial, data); err != nil {
+		return "", err
+	}
+
+	return partial.String(), nil
 }
