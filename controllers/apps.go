@@ -83,7 +83,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["app"]
 
-	log.At("get app")
 	app, err := models.GetApp(name)
 
 	if err != nil {
@@ -92,7 +91,8 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.At("delete app")
+	log.Success("step=app.get app=%q", app.Name)
+
 	err = app.Delete()
 
 	if err != nil {
@@ -101,6 +101,8 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Success("step=app.delete app=%q", app.Name)
+
 	RenderText(rw, "ok")
 }
 
@@ -108,7 +110,6 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	log = log.At("promote").Start()
 	app := mux.Vars(r)["app"]
 
-	log.At("get release")
 	release, err := models.GetRelease(app, GetForm(r, "release"))
 
 	if err != nil {
@@ -116,6 +117,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
+	log.Success("step=release.get app=%q release=%q", release.App, release.Id)
 
 	change := &models.Change{
 		App:      app,
@@ -129,7 +131,6 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	change.Save()
 
-	log.At("list events")
 	events, err := models.ListEvents(app)
 	if err != nil {
 		log.Error(err)
@@ -140,8 +141,8 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
+	log.Success("step=events.list app=%q release=%q", release.App, release.Id)
 
-	log.At("promote release")
 	err = release.Promote()
 
 	if err != nil {
@@ -153,15 +154,16 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
+	log.Success("step=release.promote app=%q release=%q", release.App, release.Id)
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 
-	log.At("get app")
 	a, err := models.GetApp(app)
 	if err != nil {
 		log.Error(err)
 		panic(err)
 	}
+	log.Success("step=app.get app=%q", release.App)
 	go a.WatchForCompletion(change, events)
 }
 
@@ -211,13 +213,13 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
+	log.Success("step=app.get app=%q", app)
 
 	logs := make(chan []byte)
 	done := make(chan bool)
 
 	app.SubscribeLogs(logs, done)
 
-	log.At("upgrade")
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
@@ -225,8 +227,8 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
+	log.Success("step=upgrade app=%q", app)
 
-	log.At("close")
 	defer ws.Close()
 
 	for data := range logs {

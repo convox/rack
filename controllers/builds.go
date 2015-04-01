@@ -27,6 +27,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Success("step=build.save app=%q", build.App)
+
 	go build.Execute(repo)
 
 	RenderText(rw, "ok")
