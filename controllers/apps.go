@@ -20,6 +20,13 @@ func init() {
 	RegisterPartial("app", "resources")
 	RegisterPartial("app", "services")
 
+	RegisterPartial("app", "AWS::AutoScaling::AutoScalingGroup")
+	RegisterPartial("app", "AWS::AutoScaling::LaunchConfiguration")
+	RegisterPartial("app", "AWS::CloudFormation::Stack")
+	RegisterPartial("app", "AWS::EC2::VPC")
+	RegisterPartial("app", "AWS::RDS::DBInstance")
+	RegisterPartial("app", "AWS::S3::Bucket")
+
 	RegisterTemplate("apps", "layout", "apps")
 	RegisterTemplate("app", "layout", "app")
 }

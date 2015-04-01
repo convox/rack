@@ -31,6 +31,9 @@ func displayHelpers() template.FuncMap {
 		"meter": func(klass string, value float64, total int) template.HTML {
 			return template.HTML(fmt.Sprintf(`<div class="meter %s"><span style="width: %0.2f%%"></div>`, klass, value/float64(total)*100))
 		},
+		"name": func(name string) template.HTML {
+			return template.HTML(fmt.Sprintf(`<span class="name">%s</span>`, name))
+		},
 		"partial": func(name, section string, data interface{}) template.HTML {
 			partial, err := renderPartial(name, section, data)
 

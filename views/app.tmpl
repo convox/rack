@@ -172,24 +172,15 @@
 					<td class="statusicon">{{ statusicon .Status }}</td>
 					<td>{{ .User }}</td>
 					<td>{{ .Type }}</td>
-					<td>{{ .TargetId }}</td>
+					<td><span class="id">{{ .TargetId }}</span></td>
 					<td>{{ timeago .Created }}</td>
 					<td class="wrap expand">
 						{{ if .M.Error }}
-							<span class="alert-danger">{{ .M.Error }}</span>
+							<span class="transaction-error">{{ .M.Error }}</span>
 						{{ else }}
-							<ul>
+							<ul class="transactions">
 								{{ range .M.Transactions }}
-									{{ if eq .Type "AWS::CloudFormation::Stack" }}
-										<li>Update Stack <span class="target">{{ .Name }}</span> <span class="duration">{{ duration .Start .End }}</span></li>
-										<li>{{ .Name }} Stack update ({{ duration .Start .End }})</li>
-									{{ else if eq .Type "AWS::AutoScaling::LaunchConfiguration" }}
-										<li style="margin-left: 1em;">{{ splitcaps .Name }} update</li>
-									{{ else if eq .Type "AWS::AutoScaling::AutoScalingGroup" }}
-										<li style="margin-left: 1em;">{{ splitcaps .Name }} stop/start ({{ duration .Start .End }})</li>
-									{{ else }}
-										<li>{{ .Name }} {{ .Type }} {{ .Status }} ({{ duration .Start .End }})</li>
-									{{ end }}
+									{{ partial "app" .Type . }}
 								{{ end }}
 							</ul>
 						{{ end }}
@@ -203,6 +194,30 @@
 
 		table_scroll($('.app-changes'), '365px');
 	</script>
+{{ end }}
+
+{{ define "AWS::AutoScaling::AutoScalingGroup" }}
+	<li>Roll Auto Scaling Group {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::AutoScaling::LaunchConfiguration" }}
+	<li>Update Launch Configuration {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::CloudFormation::Stack" }}
+	<li>Update Stack {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::EC2::VPC" }}
+	<li>Update VPC {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::RDS::DBInstance" }}
+	<li>Update RDS Instance {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::S3::Bucket" }}
+	<li>Update S3 Bucket {{ name .Name }} {{ duration .Start .End }}</li>
 {{ end }}
 
 {{ define "logs" }}
