@@ -1,4 +1,4 @@
-# Convox Builder
+# convox/builder
 
 Turn a git repository with a `docker-compose.yml` into an AMI.
 
@@ -25,4 +25,4 @@ The AMIs produced by this tool will need userdata like the following to boot:
 
 ## License
 
-Apache 2.0 &copy; 2015 David Dollar
+Apache 2.0 &copy; 2015 Convox, Inc.
