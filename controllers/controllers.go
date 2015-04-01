@@ -18,14 +18,8 @@ var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
 func displayHelpers() template.FuncMap {
 	return template.FuncMap{
-		"duration": func(start, end time.Time) string {
-			if end.IsZero() {
-				return "--"
-			} else {
-				duration := end.Sub(start)
-				seconds := duration / time.Second
-				return fmt.Sprintf("%dmin %dsec", seconds/60, seconds%60)
-			}
+		"duration": func(start, end time.Time) template.HTML {
+			return template.HTML(fmt.Sprintf(`<span class="duration">%s</span>`, duration(start, end)))
 		},
 		"join": func(s []string, t string) string {
 			return strings.Join(s, t)
@@ -133,4 +127,14 @@ func RenderText(rw http.ResponseWriter, text string) error {
 
 func Redirect(rw http.ResponseWriter, r *http.Request, path string) {
 	http.Redirect(rw, r, path, http.StatusFound)
+}
+
+func duration(start, end time.Time) string {
+	if end.IsZero() {
+		return "--"
+	} else {
+		duration := end.Sub(start)
+		seconds := duration / time.Second
+		return fmt.Sprintf("%dmin %dsec", seconds/60, seconds%60)
+	}
 }
