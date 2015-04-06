@@ -23,6 +23,10 @@ The AMIs produced by this tool will need userdata like the following to boot:
       "ports": [ 5000 ]
     }
 
+## See Also
+
+* [convox/architect](https://github.com/convox/architect)
+
 ## License
 
 Apache 2.0 &copy; 2015 Convox, Inc.
