@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
@@ -63,32 +62,6 @@ func (r Service) AvailabilityZones() []string {
 	}
 
 	return azs
-}
-
-func (r *Service) Env() (string, error) {
-	env, err := buildFormationTemplate(r.Type, "env", r)
-
-	if err != nil {
-		return "", err
-	}
-
-	return env, nil
-}
-
-func (r *Service) Formation() (string, error) {
-	formation, err := buildFormationTemplate(r.Type, "formation", r)
-
-	if err != nil {
-		return "", err
-	}
-
-	return formation, nil
-}
-
-func (r Service) FormationName() string {
-	parts := strings.Split(r.Type, "/")
-	name := upperName(parts[1])
-	return fmt.Sprintf("%s%s", name, upperName(r.Name))
 }
 
 func (s *Service) ManagementUrl() string {

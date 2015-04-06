@@ -106,23 +106,6 @@ func (p *Process) BalancerUrl() string {
 	return app.Outputs[upperName(p.Name)+"BalancerHost"]
 }
 
-func (p *Process) Formation(env string) (string, error) {
-	p.Ports = []int{3000}
-
-	params := map[string]interface{}{
-		"Env":     env,
-		"Process": p,
-	}
-
-	formation, err := buildFormationTemplate("process", "formation", params)
-
-	if err != nil {
-		return "", err
-	}
-
-	return formation, nil
-}
-
 func (p *Process) Instances() Instances {
 	instances, err := ListInstances(p.App, p.Name)
 

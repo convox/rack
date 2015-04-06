@@ -3,6 +3,8 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -116,65 +118,16 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 }
 
 func (a *App) Formation() (string, error) {
-	formation, err := buildFormationTemplate("app", "formation", a)
+	processes := strings.Join(a.ProcessNames(), ",")
+	balancers := strings.Join(a.BalancerNames(), ",")
+
+	data, err := exec.Command("docker", "run", "convox/architect", "-processes", processes, "-balancers", balancers).CombinedOutput()
 
 	if err != nil {
 		return "", err
 	}
 
-	// printLines(formation)
-
-	return prettyJson(formation)
-}
-
-func (a *App) ProcessFormation() string {
-	formation := ""
-
-	for _, p := range a.Processes() {
-		env := a.ServiceEnv()
-
-		f, err := p.Formation(env)
-
-		if err != nil {
-			panic(err)
-		}
-
-		formation += f
-	}
-
-	return formation
-}
-
-func (a *App) ServiceEnv() string {
-	env := ""
-
-	for _, r := range a.Services() {
-		e, err := r.Env()
-
-		if err != nil {
-			panic(err)
-		}
-
-		env += e
-	}
-
-	return env
-}
-
-func (a *App) ServiceFormation() string {
-	formation := ""
-
-	for _, r := range a.Services() {
-		f, err := r.Formation()
-
-		if err != nil {
-			panic(err)
-		}
-
-		formation += f
-	}
-
-	return formation
+	return string(data), nil
 }
 
 func (a *App) WatchForCompletion(change *Change, original Events) {
@@ -282,6 +235,18 @@ func (a *App) Processes() Processes {
 	}
 
 	return processes
+}
+
+func (a *App) BalancerNames() []string {
+	pp := []string{}
+
+	for _, p := range a.Processes() {
+		if p.Balancer() {
+			pp = append(pp, p.Name)
+		}
+	}
+
+	return pp
 }
 
 func (a *App) ProcessNames() []string {

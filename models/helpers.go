@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -25,24 +24,6 @@ func awsEnvironment() string {
 		fmt.Sprintf("AWS_SECRET=%s", os.Getenv("AWS_SECRET")),
 	}
 	return strings.Join(env, "\n")
-}
-
-func buildFormationTemplate(name, section string, object interface{}) (string, error) {
-	tmpl, err := template.New(section).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("formation/%s.tmpl", name))
-
-	if err != nil {
-		return "", err
-	}
-
-	var formation bytes.Buffer
-
-	err = tmpl.Execute(&formation, object)
-
-	if err != nil {
-		return "", err
-	}
-
-	return formation.String(), nil
 }
 
 func coalesce(s aws.StringValue, def string) string {
