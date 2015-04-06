@@ -1,4 +1,4 @@
-# builder
+# convox/builder
 
 Turn a Compose-enabled application into an AMI.
 
