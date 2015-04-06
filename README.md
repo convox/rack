@@ -1,4 +1,4 @@
-# agent
+# convox/agent
 
 Instance agent for collecting metrics and logs.
 
