@@ -1,4 +1,4 @@
-# convox/kernel
+# kernel
 
 ##### Install docker-compose:
 
@@ -18,3 +18,7 @@ AWS_SECRET=bar
 ##### Run the kernel for local development:
 
 `make dev`
+
+## License
+
+Apache 2.0 &copy; 2015 Convox, Inc.
