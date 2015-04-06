@@ -1,4 +1,4 @@
-# Convox Agent
+# agent
 
 Instance agent for collecting metrics and logs.
 
@@ -8,4 +8,4 @@ Instance agent for collecting metrics and logs.
 
 ## License
 
-Apache 2.0 &copy; 2015 David Dollar
+Apache 2.0 &copy; 2015 Convox, Inc.
