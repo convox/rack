@@ -78,8 +78,10 @@ func humanStatus(original string) string {
 		return "running"
 	case "UPDATE_ROLLBACK_IN_PROGRESS":
 		return "rollback"
+	case "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS":
+		return "rollback"
 	case "UPDATE_ROLLBACK_COMPLETE":
-		return "failed"
+		return "running"
 	default:
 		fmt.Printf("unknown status: %s\n", original)
 		return "unknown"

@@ -118,7 +118,7 @@ func (b *Build) Execute(repo string) {
 		return
 	}
 
-	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", repo, b.App)
+	cmd := exec.Command("docker", "run", "--env-file", env, "convox/builder", b.App, repo)
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
 
