@@ -15,12 +15,18 @@ Turn a Compose-enabled application into an AMI.
 The AMIs produced by this tool will need userdata like the following to boot:
 
     {
-      "start": "name-of-compose-process",
-      "env": [
-        "FOO=bar",
-        "BAZ=qux"
-      ],
-      "ports": [ 5000 ]
+      "app": "myapp",
+      "process": "web",
+      "command": "",
+      "env": "http://convox.io/example.env",
+      "logs": {
+        "kinesis": "kinesis-stream",
+        "cloudwatch": "cloudwatch-logs-group"
+      },
+      "ports": [
+        "5000:3000",
+        "5001:3001"
+      ]
     }
 
 ## See Also
