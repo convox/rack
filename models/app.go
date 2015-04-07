@@ -73,7 +73,8 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"Repository": a.Repository,
+		"AvailabilityZones": "us-east-1a,us-east-1c,us-east-1d",
+		"Repository":        a.Repository,
 	}
 
 	tags := map[string]string{
