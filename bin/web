@@ -1,7 +1,13 @@
 #!/bin/sh
 
-echo "ns=kernel at=startup pull=\"convox/builder:release\""
-docker pull convox/builder &
+pull_image() {
+  image=$1
+  echo "ns=kernel at=boot pull=$image"
+  docker pull $image &
+}
+
+pull_image convox/architect
+pull_image convox/builder
 
 if [ "$DEVELOPMENT" == "true" ]; then
   $GOPATH/bin/rerun -build github.com/convox/kernel
