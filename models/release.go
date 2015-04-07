@@ -127,6 +127,18 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
+	manifest, err := LoadManifest(r.Manifest)
+
+	if err != nil {
+		return "", err
+	}
+
+	err = manifest.Apply(app)
+
+	if err != nil {
+		return "", err
+	}
+
 	formation, err := app.Formation()
 
 	if err != nil {
@@ -155,7 +167,7 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	// TODO: remove hardcoded Environment and WebPorts
+	// TODO: remove hardcoded Environment
 	req := &cloudformation.UpdateStackInput{
 		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
@@ -166,8 +178,22 @@ func (r *Release) Promote() error {
 			cloudformation.Parameter{ParameterKey: aws.String("Environment"), ParameterValue: aws.String("http://convox-temp-ui8ae2rie8ie.s3.amazonaws.com/env")},
 			cloudformation.Parameter{ParameterKey: aws.String("Release"), ParameterValue: aws.String(r.Id)},
 			cloudformation.Parameter{ParameterKey: aws.String("Repository"), ParameterValue: aws.String(app.Repository)},
-			cloudformation.Parameter{ParameterKey: aws.String("WebPorts"), ParameterValue: aws.String("3000:3000")},
 		},
+	}
+
+	manifest, err := LoadManifest(r.Manifest)
+
+	if err != nil {
+		return err
+	}
+
+	for _, process := range manifest {
+		if len(process.Ports) > 0 {
+			req.Parameters = append(req.Parameters, cloudformation.Parameter{
+				ParameterKey:   aws.String(fmt.Sprintf("%sPorts", upperName(process.Name))),
+				ParameterValue: aws.String(strings.Join(process.Ports, ",")),
+			})
+		}
 	}
 
 	_, err = CloudFormation.UpdateStack(req)

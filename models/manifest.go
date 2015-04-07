@@ -9,11 +9,13 @@ import (
 type Manifest []ManifestEntry
 
 type ManifestEntry struct {
+	Name string
+
 	Build string   `yaml:"build"`
 	Env   []string `yaml:"env"`
 	Image string   `yaml:"image"`
 	Links []string `yaml:"links"`
-	Name  string
+	Ports []string `yaml:"ports"`
 }
 
 type ManifestEntries map[string]ManifestEntry
