@@ -64,6 +64,14 @@
       "inline": [
         "mv /tmp/app.conf /etc/init/app.conf"
       ]
+    },
+    {
+      "type": "shell",
+      "execute_command": "{{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "docker pull convox/agent",
+        "docker pull convox/init"
+      ]
     }
   ]
 }
