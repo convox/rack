@@ -31,3 +31,13 @@ func ListAvailabilityZones() (AvailabilityZones, error) {
 
 	return azs, nil
 }
+
+func (aa AvailabilityZones) Names() []string {
+	azs := make([]string, len(aa))
+
+	for i, a := range aa {
+		azs[i] = a.Name
+	}
+
+	return azs
+}

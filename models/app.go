@@ -72,8 +72,14 @@ func (a *App) Create() error {
 		return err
 	}
 
+	azs, err := ListAvailabilityZones()
+
+	if err != nil {
+		return err
+	}
+
 	params := map[string]string{
-		"AvailabilityZones": "us-east-1a,us-east-1c,us-east-1d",
+		"AvailabilityZones": strings.Join(azs.Names(), ","),
 		"Repository":        a.Repository,
 	}
 
