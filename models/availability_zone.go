@@ -17,16 +17,16 @@ func ListAvailabilityZones() (AvailabilityZones, error) {
 		return nil, err
 	}
 
-	azs := make(AvailabilityZones, len(res.AvailabilityZones))
+	azs := AvailabilityZones{}
 
 	for i, az := range res.AvailabilityZones {
 		if i >= 3 {
 			break
 		}
 
-		azs[i] = AvailabilityZone{
+		azs = append(azs, AvailabilityZone{
 			Name: *az.ZoneName,
-		}
+		})
 	}
 
 	return azs, nil
