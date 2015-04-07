@@ -34,6 +34,10 @@
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/s3",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
 			"ImportPath": "github.com/codegangsta/negroni",
 			"Comment": "v0.1-32-gc64702c",
 			"Rev": "c64702ca03d0f858ab7866638b69e85f0d4c6ee7"

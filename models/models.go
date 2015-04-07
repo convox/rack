@@ -9,6 +9,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
 )
 
 var SortableTime = "20060102.150405.000000000"
@@ -23,6 +24,7 @@ var (
 	DynamoDB       = dynamodb.New(auth, os.Getenv("AWS_REGION"), nil)
 	EC2            = ec2.New(auth, os.Getenv("AWS_REGION"), nil)
 	Kinesis        = kinesis.New(auth, os.Getenv("AWS_REGION"), nil)
+	S3             = s3.New(auth, os.Getenv("AWS_REGION"), nil)
 )
 
 type Cluster struct {
