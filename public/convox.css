@@ -486,3 +486,7 @@ ul.transactions li .duration {
 	font-size: 0.8em;
 	display: block;
 }
+
+.alert strong {
+	margin-right: 6px;
+}
