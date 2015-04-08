@@ -474,15 +474,15 @@ ul.transactions li .duration {
 }
 
 .transaction-error {
-	background-image: -webkit-linear-gradient(top, #f0dede 0%, #e7c3c3 100%);
-	background-image:      -o-linear-gradient(top, #f0dede 0%, #e7c3c3 100%);
-	background-image: -webkit-gradient(linear, left top, left bottom, from(#f0dede), to(#e7c3c3));
-	background-image:         linear-gradient(to bottom, #f0dede 0%, #e7c3c3 100%);
-	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff0dede', endColorstr='#ffe7c3c3', GradientType=0);
-	background-repeat: repeat-x;
-	border-color: #dca7a7;
+	/* background-image: -webkit-linear-gradient(top, #f0dede 0%, #e7c3c3 100%);*/
+	/* background-image:      -o-linear-gradient(top, #f0dede 0%, #e7c3c3 100%);*/
+	/* background-image: -webkit-gradient(linear, left top, left bottom, from(#f0dede), to(#e7c3c3));*/
+	/* background-image:         linear-gradient(to bottom, #f0dede 0%, #e7c3c3 100%);*/
+	/* filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff0dede', endColorstr='#ffe7c3c3', GradientType=0);*/
+	/* background-repeat: repeat-x;*/
+	/* border-color: #dca7a7;*/
+	padding: 4px;
 	color: #900;
-	padding: 4px 8px;
 	font-size: 0.8em;
 	display: block;
 }
