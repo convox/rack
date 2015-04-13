@@ -16,6 +16,10 @@
         "Type" : "String",
         "Default" : "",
         "Description" : "Server password"
+      },
+      "SSHKey": {
+        "Type": "AWS::EC2::KeyPair::KeyName",
+        "Description" : "Key name for SSH access"
       }
     },
     "Outputs": {
@@ -163,7 +167,7 @@
           "ImageId": "ami-8ce49ee4",
           "InstanceMonitoring": true,
           "InstanceType": "t2.micro",
-          "KeyName": "production",
+          "KeyName": { "Ref": "SSHKey" },
           "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
           "UserData": ""
         }
