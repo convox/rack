@@ -6,6 +6,10 @@ Create a CloudFormation stack for a Convox service.
 
     $ docker run convox/service redis
 
+## Available Services
+
+  * `redis`
+
 ## Parameters
 
 Different services will expect different parameters:
