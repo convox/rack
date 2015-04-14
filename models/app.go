@@ -81,6 +81,7 @@ func (a *App) Create() error {
 	params := map[string]string{
 		"AvailabilityZones": strings.Join(azs.Names(), ","),
 		"Repository":        a.Repository,
+		"SSHKey":            "production",
 	}
 
 	tags := map[string]string{
