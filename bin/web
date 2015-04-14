@@ -7,7 +7,7 @@ pull_image() {
 }
 
 pull_image convox/architect
-pull_image convox/builder
+pull_image convox/build
 
 if [ "$DEVELOPMENT" == "true" ]; then
   $GOPATH/bin/rerun -build github.com/convox/kernel
