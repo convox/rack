@@ -9,12 +9,14 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 var Partials = make(map[string]*template.Template)
 var Templates = make(map[string]*template.Template)
 
+var log *logger.Logger
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
 func displayHelpers() template.FuncMap {
