@@ -14,7 +14,17 @@ Create a CloudFormation stack for a Convox service.
 
 Different services will expect different parameters:
 
-#### Redis
+#### `postgres`
+
+| Name                | Description                                                                |
+|---------------------|----------------------------------------------------------------------------|
+| `AllocatedStorage`  | Allocated storage size (GB)                                                |
+| `AvailabilityZones` | A comma-delimited list of availability zones to use (specify 3)            |
+| `DatabaseName`      | Default database name                                                      |
+| `InstanceClass`     | Instance class for database nodes                                          |
+| `Password`          | Server password                                                            |
+
+#### `redis`
 
 | Name                | Description                                                                |
 |---------------------|----------------------------------------------------------------------------|

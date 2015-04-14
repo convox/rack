@@ -7,11 +7,6 @@
         "Default" : "10",
         "Description" : "Allocated storage size (GB)"
       },
-      "AllowSSHFrom": {
-        "Type" : "String",
-        "Default" : "0.0.0.0/0",
-        "Description" : "Allow SSH From (CIDR notation)"
-      },
       "AvailabilityZones": {
         "Type" : "CommaDelimitedList",
         "Default" : "",
@@ -25,7 +20,7 @@
       "InstanceClass": {
         "Type" : "String",
         "Default" : "db.t2.micro",
-        "Description" : "Instance class for individual nodes"
+        "Description" : "Instance class for database nodes"
       },
       "Password": {
         "Type" : "String",
