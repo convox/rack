@@ -8,10 +8,10 @@ import (
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "builder: turn a convox application into an ami\n\n")
+		fmt.Fprintf(os.Stderr, "build: turn a convox application into an ami\n\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s <name> <repository> [ref]\n", os.Args[0])
 		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nExample:\n  builder example-sinatra https://github.com/convox-examples/sinatra.git master\n")
+		fmt.Fprintf(os.Stderr, "\nExample:\n  build example-sinatra https://github.com/convox-examples/sinatra.git master\n")
 	}
 }
 

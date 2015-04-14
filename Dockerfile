@@ -16,9 +16,9 @@ RUN rm -rf /tmp/packer*
 
 RUN go get github.com/jteeuwen/go-bindata/...
 
-COPY . /go/src/github.com/convox/builder
-WORKDIR /go/src/github.com/convox/builder
+COPY . /go/src/github.com/convox/build
+WORKDIR /go/src/github.com/convox/build
 RUN go-bindata data/
 RUN go get .
 
-ENTRYPOINT ["builder"]
+ENTRYPOINT ["build"]
