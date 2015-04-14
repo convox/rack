@@ -178,6 +178,7 @@ func (r *Release) Promote() error {
 			cloudformation.Parameter{ParameterKey: aws.String("Environment"), ParameterValue: aws.String("http://convox-temp-ui8ae2rie8ie.s3.amazonaws.com/env")},
 			cloudformation.Parameter{ParameterKey: aws.String("Release"), ParameterValue: aws.String(r.Id)},
 			cloudformation.Parameter{ParameterKey: aws.String("Repository"), ParameterValue: aws.String(app.Repository)},
+			cloudformation.Parameter{ParameterKey: aws.String("SSHKey"), ParameterValue: aws.String("production")},
 		},
 	}
 
