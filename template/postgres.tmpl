@@ -1,0 +1,164 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters": {
+      "AllocatedStorage": {
+        "Type" : "Number",
+        "Default" : "10",
+        "Description" : "Allocated storage size (GB)"
+      },
+      "AllowSSHFrom": {
+        "Type" : "String",
+        "Default" : "0.0.0.0/0",
+        "Description" : "Allow SSH From (CIDR notation)"
+      },
+      "AvailabilityZones": {
+        "Type" : "CommaDelimitedList",
+        "Default" : "",
+        "Description" : "Availability Zones (specify 3)"
+      },
+      "DatabaseName": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Default database name"
+      },
+      "InstanceClass": {
+        "Type" : "String",
+        "Default" : "db.t2.micro",
+        "Description" : "Instance class for individual nodes"
+      },
+      "Password": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Server password"
+      }
+    },
+    "Outputs": {
+      "Addr": { "Value": { "Fn::GetAtt": [ "Database", "Endpoint.Address" ] } },
+      "Port": { "Value": { "Fn::GetAtt": [ "Database", "Endpoint.Port" ] } },
+      "Password": { "Value": { "Ref": "Password" } }
+    },
+    "Resources": {
+      "Vpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": "10.0.0.0/16",
+          "EnableDnsHostnames": "true",
+          "InstanceTenancy": "default",
+          "Tags": [
+            { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+          ]
+        }
+      },
+      "Gateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+        }
+      },
+      "GatewayAttachment": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "InternetGatewayId": { "Ref": "Gateway" },
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "Subnet0": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": { "Fn::Select": [ "0", { "Ref": "AvailabilityZones" } ] },
+          "CidrBlock": "10.0.1.0/24",
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "Subnet1": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": { "Fn::Select": [ "1", { "Ref": "AvailabilityZones" } ] },
+          "CidrBlock": "10.0.2.0/24",
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "Subnet2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": { "Fn::Select": [ "2", { "Ref": "AvailabilityZones" } ] },
+          "CidrBlock": "10.0.3.0/24",
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "Routes": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "RouteDefault": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "Gateway" },
+          "RouteTableId": { "Ref": "Routes" }
+        }
+      },
+      "Subnet0Routes": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "Subnet0" },
+          "RouteTableId": { "Ref": "Routes" }
+        }
+      },
+      "Subnet1Routes": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "Subnet1" },
+          "RouteTableId": { "Ref": "Routes" }
+        }
+      },
+      "Subnet2Routes": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "Subnet2" },
+          "RouteTableId": { "Ref": "Routes" }
+        }
+      },
+      "SecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "postgres service",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": "0.0.0.0/0" }
+          ],
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "SubnetGroup": {
+        "Type": "AWS::RDS::DBSubnetGroup",
+        "Properties": {
+          "DBSubnetGroupDescription": "postgres service",
+          "SubnetIds": [
+            { "Ref": "Subnet0" },
+            { "Ref": "Subnet1" },
+            { "Ref": "Subnet2" }
+          ]
+        }
+      },
+      "Database": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+          "AllocatedStorage": { "Ref": "AllocatedStorage" },
+          "DBInstanceClass": { "Ref": "InstanceClass" },
+          "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+          "DBName": "app",
+          "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+          "Engine": "postgres",
+          "MasterUsername": "app",
+          "MasterUserPassword": { "Ref": "Password" },
+          "Port": "5432",
+          "PubliclyAccessible": "true",
+          "StorageType": "gp2",
+          "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+        }
+      }
+    }
+  }
+{{ end }}
