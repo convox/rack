@@ -227,7 +227,8 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
-	log.Success("step=app.get app=%q", app)
+
+	log.Success("step=app.get app=%q", app.Name)
 
 	logs := make(chan []byte)
 	done := make(chan bool)
@@ -241,7 +242,8 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
-	log.Success("step=upgrade app=%q", app)
+
+	log.Success("step=upgrade app=%q", app.Name)
 
 	defer ws.Close()
 
@@ -249,7 +251,7 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 		ws.WriteMessage(websocket.TextMessage, data)
 	}
 
-	fmt.Println("ended")
+	log.Success("step=ended app=%q", app.Name)
 }
 
 func AppReleases(rw http.ResponseWriter, r *http.Request) {
