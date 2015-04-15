@@ -30,12 +30,11 @@ func init() {
 
 	RegisterTemplate("apps", "layout", "apps")
 	RegisterTemplate("app", "layout", "app")
-
-	log = logger.New("ns=kernel cn=app")
 }
 
 func AppList(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("list").Start()
+	log := appsLogger("list").Start()
+
 	apps, err := models.ListApps()
 
 	if err != nil {
@@ -50,7 +49,8 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppShow(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("show").Start()
+	log := appsLogger("show").Start()
+
 	name := mux.Vars(r)["app"]
 
 	app, err := models.GetApp(name)
@@ -65,7 +65,8 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("create").Start()
+	log := appsLogger("create").Start()
+
 	name := GetForm(r, "name")
 	repo := GetForm(r, "repo")
 
@@ -86,7 +87,8 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppDelete(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("delete").Start()
+	log := appsLogger("delete").Start()
+
 	vars := mux.Vars(r)
 	name := vars["app"]
 
@@ -114,7 +116,8 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("promote").Start()
+	log := appsLogger("promote").Start()
+
 	app := mux.Vars(r)["app"]
 
 	release, err := models.GetRelease(app, GetForm(r, "release"))
@@ -175,7 +178,8 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppBuilds(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("builds").Start()
+	log := appsLogger("builds").Start()
+
 	app := mux.Vars(r)["app"]
 
 	builds, err := models.ListBuilds(app)
@@ -190,7 +194,8 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppChanges(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("changes").Start()
+	log := appsLogger("changes").Start()
+
 	app := mux.Vars(r)["app"]
 
 	changes, err := models.ListChanges(app)
@@ -205,14 +210,16 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("logs")
+	// log := appsLogger("logs").Start()
+
 	app := mux.Vars(r)["app"]
 
 	RenderPartial(rw, "app", "logs", app)
 }
 
 func AppLogStream(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("log stream").Start()
+	log := appsLogger("log-stream").Start()
+
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
@@ -246,7 +253,8 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppReleases(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("releases").Start()
+	log := appsLogger("releases").Start()
+
 	app := mux.Vars(r)["app"]
 
 	releases, err := models.ListReleases(app)
@@ -261,7 +269,8 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppResources(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("resources").Start()
+	log := appsLogger("resources").Start()
+
 	app := mux.Vars(r)["app"]
 
 	resources, err := models.ListResources(app)
@@ -276,7 +285,8 @@ func AppResources(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppServices(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("services").Start()
+	log := appsLogger("services").Start()
+
 	app := mux.Vars(r)["app"]
 
 	services, err := models.ListServices(app)
@@ -291,7 +301,8 @@ func AppServices(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppStatus(rw http.ResponseWriter, r *http.Request) {
-	log = log.At("status").Start()
+	log := appsLogger("status").Start()
+
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
@@ -301,4 +312,8 @@ func AppStatus(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderText(rw, app.Status)
+}
+
+func appsLogger(at string) *logger.Logger {
+	return logger.New("ns=kernel cn=apps").At(at)
 }

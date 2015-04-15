@@ -16,11 +16,11 @@ func init() {
 	RegisterPartial("process", "resources")
 
 	RegisterTemplate("process", "layout", "process")
-	log = logger.New("ns=kernel cn=process")
 }
 
 func ProcessShow(rw http.ResponseWriter, r *http.Request) {
-	log.At("show").Start()
+	log := processesLogger("show").Start()
+
 	vars := mux.Vars(r)
 
 	process, err := models.GetProcess(vars["app"], vars["process"])
@@ -35,7 +35,8 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
-	log.At("logs")
+	// log := processesLogger("logs").Start()
+
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -49,7 +50,8 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
-	log.At("log stream")
+	log := processesLogger("log-stream").Start()
+
 	vars := mux.Vars(r)
 
 	process, err := models.GetProcess(vars["app"], vars["process"])
@@ -84,7 +86,8 @@ func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessResources(rw http.ResponseWriter, r *http.Request) {
-	log.At("resources")
+	log := processesLogger("resources").Start()
+
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -98,4 +101,8 @@ func ProcessResources(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderPartial(rw, "process", "resources", resources)
+}
+
+func processesLogger(at string) *logger.Logger {
+	return logger.New("ns=kernel cn=processes").At(at)
 }
