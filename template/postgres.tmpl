@@ -12,7 +12,7 @@
         "Default" : "",
         "Description" : "Availability Zones (specify 3)"
       },
-      "DatabaseName": {
+      "Database": {
         "Type" : "String",
         "Default" : "app",
         "Description" : "Default database name"
@@ -31,6 +31,7 @@
     "Outputs": {
       "Addr": { "Value": { "Fn::GetAtt": [ "Database", "Endpoint.Address" ] } },
       "Port": { "Value": { "Fn::GetAtt": [ "Database", "Endpoint.Port" ] } },
+      "Database": { "Value": { "Ref": "Database" } },
       "Password": { "Value": { "Ref": "Password" } }
     },
     "Resources": {

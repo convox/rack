@@ -2,30 +2,38 @@
 
 Create a CloudFormation stack for a Convox service.
 
-## Usage
+## postgres
 
-    $ docker run convox/service redis
+#### Usage
 
-## Available Services
+    $ docker run convox/service postgres
 
-  * `postgres`
-  * `redis`
-
-## Parameters
-
-Different services will expect different parameters:
-
-#### postgres
+#### Parameters
 
 | Name                | Description                                                     |
 |---------------------|-----------------------------------------------------------------|
 | `AllocatedStorage`  | Allocated storage size (GB)                                     |
 | `AvailabilityZones` | A comma-delimited list of availability zones to use (specify 3) |
-| `DatabaseName`      | Default database name                                           |
+| `Database`          | Default database name                                           |
 | `InstanceClass`     | Instance class for database nodes                               |
 | `Password`          | Server password                                                 |
 
-#### `redis`
+#### Outputs
+
+| Name       | Description       |
+|------------|-------------------|
+| `Addr`     | Database hostname |
+| `Port`     | Database port     |
+| `Database` | Database name     |
+| `Password` | Database password |
+
+## redis
+
+#### Usage
+
+    $ docker run convox/service redis
+
+#### Parameters
 
 | Name                | Description                                                     |
 |---------------------|-----------------------------------------------------------------|
@@ -33,6 +41,14 @@ Different services will expect different parameters:
 | `AvailabilityZones` | A comma-delimited list of availability zones to use (specify 3) |
 | `Password`          | Server password                                                 |
 | `SSHKey`            | Key name for SSH access                                         |
+
+#### Outputs
+
+| Name       | Description    |
+|------------|----------------|
+| `Addr`     | Redis hostname |
+| `Port`     | Redis port     |
+| `Password` | Redis password |
 
 ## License
 
