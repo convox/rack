@@ -8,13 +8,14 @@ Create a CloudFormation stack for a Convox service.
 
 ## Available Services
 
+  * `postgres`
   * `redis`
 
 ## Parameters
 
 Different services will expect different parameters:
 
-#### `postgres`
+#### postgres
 
 | Name                | Description                                                     |
 |---------------------|-----------------------------------------------------------------|
