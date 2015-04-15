@@ -217,8 +217,8 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "app", "logs", app)
 }
 
-func AppLogStream(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("log-stream").Start()
+func AppStream(rw http.ResponseWriter, r *http.Request) {
+	log := appsLogger("stream").Start()
 
 	app, err := models.GetApp(mux.Vars(r)["app"])
 

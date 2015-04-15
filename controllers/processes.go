@@ -49,8 +49,8 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "process", "logs", params)
 }
 
-func ProcessLogStream(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("log-stream").Start()
+func ProcessStream(rw http.ResponseWriter, r *http.Request) {
+	log := processesLogger("stream").Start()
 
 	vars := mux.Vars(r)
 
