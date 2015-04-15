@@ -2,13 +2,15 @@
 
 Create a CloudFormation stack for a Convox service.
 
-## postgres
+## Usage
 
-#### Usage
+    $ docker run convox/service <service>
 
-    $ docker run convox/service postgres
+## Available Services
 
-#### Parameters
+### postgres
+
+###### Parameters
 
 | Name                | Description                                                     |
 |---------------------|-----------------------------------------------------------------|
@@ -18,7 +20,7 @@ Create a CloudFormation stack for a Convox service.
 | `InstanceClass`     | Instance class for database nodes                               |
 | `Password`          | Server password                                                 |
 
-#### Outputs
+###### Outputs
 
 | Name       | Description       |
 |------------|-------------------|
@@ -27,13 +29,9 @@ Create a CloudFormation stack for a Convox service.
 | `Database` | Database name     |
 | `Password` | Database password |
 
-## redis
+### redis
 
-#### Usage
-
-    $ docker run convox/service redis
-
-#### Parameters
+###### Parameters
 
 | Name                | Description                                                     |
 |---------------------|-----------------------------------------------------------------|
@@ -42,7 +40,7 @@ Create a CloudFormation stack for a Convox service.
 | `Password`          | Server password                                                 |
 | `SSHKey`            | Key name for SSH access                                         |
 
-#### Outputs
+###### Outputs
 
 | Name       | Description    |
 |------------|----------------|
