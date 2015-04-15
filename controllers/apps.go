@@ -228,8 +228,6 @@ func AppLogStream(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Success("step=app.get app=%q", app.Name)
-
 	logs := make(chan []byte)
 	done := make(chan bool)
 
