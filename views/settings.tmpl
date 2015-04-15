@@ -1,0 +1,21 @@
+{{ define "title" }} Convox {{ end }}
+
+{{ define "body" }}
+
+	<ol class="breadcrumb">
+		<li class="active">Settings</li>
+	</ol>
+
+	<form method="post" action="/settings">
+		<div class="form-group">
+			<label for="github">Github Token</label>
+			<input type="text" class="form-control" name="github" placeholder="Personal Access Token" value="{{ .Github }}">
+		</div>
+		<div class="form-group">
+			<label for="heroku">Heroku API Key</label>
+			<input type="text" class="form-control" name="heroku" placeholder="API Key" value="{{ .Heroku }}">
+		</div>
+		<input type="submit" class="btn btn-default" value="Save">
+	</form>
+
+{{ end }}

@@ -92,6 +92,9 @@ func main() {
 	router.HandleFunc("/apps/{app}/services", controllers.AppServices).Methods("GET")
 	router.HandleFunc("/apps/{app}/status", controllers.AppStatus).Methods("GET")
 
+	router.HandleFunc("/settings", controllers.SettingsList).Methods("GET")
+	router.HandleFunc("/settings", controllers.SettingsUpdate).Methods("POST")
+
 	n := negroni.New(
 		negroni.NewRecovery(),
 		nlogger.New("ns=kernel", nil),

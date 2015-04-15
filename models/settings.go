@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -17,6 +18,10 @@ func SettingGet(name string) (string, error) {
 
 	res, err := S3.GetObject(req)
 
+	if err != nil && err.Error() == "The specified key does not exist." {
+		return "", nil
+	}
+
 	if err != nil {
 		return "", err
 	}
@@ -26,6 +31,8 @@ func SettingGet(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	fmt.Printf("value %+v\n", value)
 
 	return string(value), nil
 }
