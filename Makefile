@@ -9,7 +9,7 @@ dev:
 
 ami:
 	docker pull convox/build
-	docker run -v $(shell pwd):/build --env-file .env convox/build /build convox
+	docker run -v $(shell pwd):/build --env-file .env convox/build convox /build
 
 build:
 	docker build -t convox/kernel .
