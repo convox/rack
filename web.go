@@ -64,6 +64,10 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 	next(rw, r)
 }
 
+func check(rw http.ResponseWriter, r *http.Request) {
+	rw.Write([]byte("ok"))
+}
+
 func main() {
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
@@ -72,6 +76,8 @@ func main() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", redirect("/apps")).Methods("GET")
+
+	router.HandleFunc("/check", check).Methods("GET")
 
 	router.HandleFunc("/apps", controllers.AppList).Methods("GET")
 	router.HandleFunc("/apps", controllers.AppCreate).Methods("POST")
