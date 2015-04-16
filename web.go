@@ -34,6 +34,11 @@ func authRequired(rw http.ResponseWriter) {
 }
 
 func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	if r.RequestURI == "/check" {
+		next(rw, r)
+		return
+	}
+
 	if password := os.Getenv("HTTP_PASSWORD"); password != "" {
 		auth := r.Header.Get("Authorization")
 
