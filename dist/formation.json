@@ -878,13 +878,16 @@
                   ]
                 },
                 "  ],",
-                "  \"services\": {",
-                { "Fn::Join": [ "", [ "    \"AWS_REGION\": \"", { "Ref": "AWS::Region" }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"AWS_ACCESS\": \"", { "Ref": "BaseAccess" }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"AWS_SECRET\": \"", { "Fn::GetAtt": [ "BaseAccess", "SecretAccessKey" ] }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET\": \"", { "Ref": "BaseSettings" }, "\"," ] ] },
-                "    \"RUNTIME\": \"convox\"",
-                "  }",
+                "  \"services\": [",
+                { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "BaseAccess" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "BaseAccess", "SecretAccessKey" ] }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "BaseSettings" }, "\"," ] ] },
+                "    \"RUNTIME=convox\"",
+                "  ],",
+                "  \"volumes\": [",
+                "    \"/var/run/docker.sock:/var/run/docker.sock\"",
+                "  ]",
                 "}"
               ]
             ]
