@@ -20,7 +20,7 @@
   },
   "Parameters": {
     "AMI": {
-      "Default": "",
+      "Default": "ami-9aba80f2",
       "Description": "Application AMI",
       "Type": "String"
     },
@@ -37,16 +37,6 @@
     "Environment": {
       "Default": "",
       "Description": "Environment URL",
-      "Type": "String"
-    },
-    "Release": {
-      "Default": "",
-      "Description": "Current Release",
-      "Type": "String"
-    },
-    "Repository": {
-      "Default": "",
-      "Description": "Source code repository",
       "Type": "String"
     },
     "SSHKey": {
@@ -75,6 +65,29 @@
     }
   },
   "Resources": {
+    "BaseUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "Administrator",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+            }
+          }
+        ]
+      }
+    },
+    "BaseAccess": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": { "Ref": "BaseUser" }
+      }
+    },
     "BaseDynamoBuilds": {
       "Properties": {
         "AttributeDefinitions": [
@@ -410,10 +423,8 @@
             "Value": "convox"
           },
           {
-            "Key": "app",
-            "Value": {
-              "Ref": "AWS::StackName"
-            }
+            "Key": "type",
+            "Value": "kernel"
           }
         ],
         "VersioningConfiguration": {
@@ -868,6 +879,10 @@
                 },
                 "  ],",
                 "  \"services\": {",
+                { "Fn::Join": [ "", [ "    \"AWS_REGION\": \"", { "Ref": "AWS::Region" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_ACCESS\": \"", { "Ref": "BaseAccess" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_SECRET\": \"", { "Fn::GetAtt": [ "BaseAccess", "SecretAccessKey" ] }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET\": \"", { "Ref": "BaseSettings" }, "\"," ] ] },
                 "    \"RUNTIME\": \"convox\"",
                 "  }",
                 "}"
