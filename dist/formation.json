@@ -557,9 +557,9 @@
         "Listeners": [
           {
             "InstancePort": "3000",
-            "InstanceProtocol": "HTTP",
+            "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
-            "Protocol": "HTTP"
+            "Protocol": "TCP"
           }
         ],
         "LoadBalancerName": {
