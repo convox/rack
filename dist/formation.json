@@ -1,0 +1,882 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Outputs": {
+    "BaseSecurityGroup": {
+      "Value": {
+        "Ref": "BaseSecurityGroup"
+      }
+    },
+    "Processes": {
+      "Value": "web"
+    },
+    "WebBalancerHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "WebBalancer",
+          "DNSName"
+        ]
+      }
+    }
+  },
+  "Parameters": {
+    "AMI": {
+      "Default": "",
+      "Description": "Application AMI",
+      "Type": "String"
+    },
+    "AllowSSHFrom": {
+      "Default": "0.0.0.0/0",
+      "Description": "Allow SSH From (CIDR notation)",
+      "Type": "String"
+    },
+    "AvailabilityZones": {
+      "Default": "",
+      "Description": "Availability Zones (specify 3)",
+      "Type": "CommaDelimitedList"
+    },
+    "Environment": {
+      "Default": "",
+      "Description": "Environment URL",
+      "Type": "String"
+    },
+    "Release": {
+      "Default": "",
+      "Description": "Current Release",
+      "Type": "String"
+    },
+    "Repository": {
+      "Default": "",
+      "Description": "Source code repository",
+      "Type": "String"
+    },
+    "SSHKey": {
+      "Description": "Key name for SSH access",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "WebCommand": {
+      "Default": "",
+      "Description": "Override the default command for the web process",
+      "Type": "String"
+    },
+    "WebPorts": {
+      "Default": "",
+      "Description": "Port mappings for web process",
+      "Type": "CommaDelimitedList"
+    },
+    "WebScale": {
+      "Default": "1",
+      "Description": "Number of web processes to run",
+      "Type": "Number"
+    },
+    "WebSize": {
+      "Default": "t2.micro",
+      "Description": "Size of instance to use for web processes",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "BaseDynamoBuilds": {
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "app",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "created",
+            "AttributeType": "S"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "app.created",
+            "KeySchema": [
+              {
+                "AttributeName": "app",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "created",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "id",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
+        },
+        "TableName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "builds"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::DynamoDB::Table"
+    },
+    "BaseDynamoChanges": {
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "app",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "created",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "app",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "created",
+            "KeyType": "RANGE"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
+        },
+        "TableName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "changes"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::DynamoDB::Table"
+    },
+    "BaseDynamoEnv": {
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "name",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "name",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
+        },
+        "TableName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "env"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::DynamoDB::Table"
+    },
+    "BaseDynamoProcesses": {
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "name",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "name",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
+        },
+        "TableName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "processes"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::DynamoDB::Table"
+    },
+    "BaseDynamoReleases": {
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "id",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "app",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "created",
+            "AttributeType": "S"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "app.created",
+            "KeySchema": [
+              {
+                "AttributeName": "app",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "created",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "id",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
+        },
+        "TableName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "releases"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::DynamoDB::Table"
+    },
+    "BaseDynamoServices": {
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "name",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "name",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
+        },
+        "TableName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "services"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::DynamoDB::Table"
+    },
+    "BaseGateway": {
+      "Properties": {},
+      "Type": "AWS::EC2::InternetGateway"
+    },
+    "BaseGatewayAttachment": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "BaseGateway"
+        },
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment"
+    },
+    "BaseLogGroup": {
+      "Properties": {
+        "RetentionInDays": 7
+      },
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "BaseRouteDefault": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "BaseGateway"
+        },
+        "RouteTableId": {
+          "Ref": "BaseRoutes"
+        }
+      },
+      "Type": "AWS::EC2::Route"
+    },
+    "BaseRoutes": {
+      "Properties": {
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::RouteTable"
+    },
+    "BaseSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Instances",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Ref": "AllowSSHFrom"
+            },
+            "FromPort": "22",
+            "IpProtocol": "tcp",
+            "ToPort": "22"
+          },
+          {
+            "CidrIp": "10.0.0.0/8",
+            "FromPort": "0",
+            "IpProtocol": "tcp",
+            "ToPort": "65535"
+          }
+        ],
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BaseSettings": {
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ],
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "BaseSubnet0": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "0",
+            {
+              "Ref": "AvailabilityZones"
+            }
+          ]
+        },
+        "CidrBlock": "10.0.1.0/24",
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::Subnet"
+    },
+    "BaseSubnet0Routes": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "BaseRoutes"
+        },
+        "SubnetId": {
+          "Ref": "BaseSubnet0"
+        }
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+    },
+    "BaseSubnet1": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "1",
+            {
+              "Ref": "AvailabilityZones"
+            }
+          ]
+        },
+        "CidrBlock": "10.0.2.0/24",
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::Subnet"
+    },
+    "BaseSubnet1Routes": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "BaseRoutes"
+        },
+        "SubnetId": {
+          "Ref": "BaseSubnet1"
+        }
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+    },
+    "BaseSubnet2": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "2",
+            {
+              "Ref": "AvailabilityZones"
+            }
+          ]
+        },
+        "CidrBlock": "10.0.3.0/24",
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::Subnet"
+    },
+    "BaseSubnet2Routes": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "BaseRoutes"
+        },
+        "SubnetId": {
+          "Ref": "BaseSubnet2"
+        }
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+    },
+    "BaseVpc": {
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::EC2::VPC"
+    },
+    "WebBalancer": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 60
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": "HTTP:3000/",
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": "3000",
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": "80",
+            "Protocol": "HTTP"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "WebBalancerSecurityGroup"
+          }
+        ],
+        "Subnets": [
+          {
+            "Ref": "BaseSubnet0"
+          },
+          {
+            "Ref": "BaseSubnet1"
+          },
+          {
+            "Ref": "BaseSubnet2"
+          }
+        ]
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "WebBalancerSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "web Balancer",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "80",
+            "IpProtocol": "tcp",
+            "ToPort": "80"
+          }
+        ],
+        "VpcId": {
+          "Ref": "BaseVpc"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "WebIamRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "logs:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "arn:aws:logs:*:*:*"
+                  ]
+                },
+                {
+                  "Action": [
+                    "kinesis:PutRecords"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:kinesis:*:*:stream/",
+                          {
+                            "Ref": "AWS::StackName"
+                          },
+                          "-*"
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Action": [
+                    "cloudwatch:PutMetricData"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "WebRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "WebInstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "WebIamRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
+    },
+    "WebInstances": {
+      "Properties": {
+        "AvailabilityZones": {
+          "Ref": "AvailabilityZones"
+        },
+        "Cooldown": 5,
+        "DesiredCapacity": {
+          "Ref": "WebScale"
+        },
+        "HealthCheckGracePeriod": 30,
+        "HealthCheckType": "EC2",
+        "LaunchConfigurationName": {
+          "Ref": "WebLaunchConfiguration"
+        },
+        "LoadBalancerNames": [
+          {
+            "Ref": "WebBalancer"
+          }
+        ],
+        "MaxSize": "10",
+        "MetricsCollection": [
+          {
+            "Granularity": "1Minute"
+          }
+        ],
+        "MinSize": "1",
+        "Tags": [
+          {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "web"
+                ]
+              ]
+            }
+          }
+        ],
+        "VPCZoneIdentifier": [
+          {
+            "Ref": "BaseSubnet0"
+          },
+          {
+            "Ref": "BaseSubnet1"
+          },
+          {
+            "Ref": "BaseSubnet2"
+          }
+        ]
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": 1,
+          "MinInstancesInService": 1
+        }
+      }
+    },
+    "WebKinesis": {
+      "Properties": {
+        "ShardCount": 1
+      },
+      "Type": "AWS::Kinesis::Stream"
+    },
+    "WebLaunchConfiguration": {
+      "Properties": {
+        "AssociatePublicIpAddress": true,
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "10",
+              "VolumeType": "standard"
+            }
+          }
+        ],
+        "EbsOptimized": false,
+        "IamInstanceProfile": {
+          "Ref": "WebInstanceProfile"
+        },
+        "ImageId": {
+          "Ref": "AMI"
+        },
+        "InstanceMonitoring": true,
+        "InstanceType": {
+          "Ref": "WebSize"
+        },
+        "KeyName": {
+          "Ref": "SSHKey"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BaseSecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "\n",
+              [
+                "{",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "  \"app\": \"",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "\","
+                    ]
+                  ]
+                },
+                "  \"process\": \"web\",",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "  \"command\": \"",
+                      {
+                        "Ref": "WebCommand"
+                      },
+                      "\","
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "  \"env\": \"",
+                      {
+                        "Ref": "Environment"
+                      },
+                      "\","
+                    ]
+                  ]
+                },
+                "  \"logs\": {",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "    \"kinesis\": \"",
+                      {
+                        "Ref": "WebKinesis"
+                      },
+                      "\","
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "    \"cloudwatch\": \"",
+                      {
+                        "Ref": "BaseLogGroup"
+                      },
+                      "\""
+                    ]
+                  ]
+                },
+                "  },",
+                "  \"ports\": [",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "    \"",
+                      {
+                        "Fn::Join": [
+                          "\",\n    \"",
+                          {
+                            "Ref": "WebPorts"
+                          }
+                        ]
+                      },
+                      "\""
+                    ]
+                  ]
+                },
+                "  ],",
+                "  \"services\": {",
+                "    \"RUNTIME\": \"convox\"",
+                "  }",
+                "}"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::AutoScaling::LaunchConfiguration"
+    }
+  }
+}
