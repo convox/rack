@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/codegangsta/cli"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 )
 
 var (
