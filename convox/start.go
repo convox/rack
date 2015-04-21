@@ -1,14 +1,11 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/convox/start"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -34,57 +31,16 @@ func cmdStart(c *cli.Context) {
 		panic(err)
 	}
 
-	if exists(filepath.Join(base, "Dockerfile")) {
-		err := startDockerfile(base)
-
-		if err != nil {
-			panic(err)
-		}
+	switch {
+	case exists(filepath.Join(base, "Dockerfile")):
+		err = start.Dockerfile(base)
+	case exists(filepath.Join(base, "Procfile")):
+		err = start.Procfile(base)
 	}
-}
-
-func startDockerfile(base string) error {
-	app := filepath.Base(base)
-	container := fmt.Sprintf("%s-app", app)
-
-	err := run("docker", "build", "-t", container, base)
 
 	if err != nil {
-		return err
+		panic(err)
 	}
-
-	data, err := query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", container)
-
-	if err != nil {
-		return err
-	}
-
-	var ports map[string]interface{}
-
-	err = json.Unmarshal(data, &ports)
-
-	if err != nil {
-		return err
-	}
-
-	args := []string{"run"}
-	cur := 5000
-
-	for port, _ := range ports {
-		args = append(args, "-p")
-		args = append(args, fmt.Sprintf("%d:%s", cur, strings.Split(port, "/")[0]))
-		cur += 100
-	}
-
-	args = append(args, container)
-
-	err = run("docker", args...)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func exists(filename string) bool {
@@ -93,15 +49,4 @@ func exists(filename string) bool {
 	}
 
 	return true
-}
-
-func query(bin string, args ...string) ([]byte, error) {
-	return exec.Command(bin, args...).CombinedOutput()
-}
-
-func run(bin string, args ...string) error {
-	cmd := exec.Command(bin, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
