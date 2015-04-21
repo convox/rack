@@ -44,13 +44,16 @@ func cmdStart(c *cli.Context) {
 }
 
 func startDockerfile(base string) error {
-	err := run("docker", "build", "-t", "convox-app", base)
+	app := filepath.Base(base)
+	container := fmt.Sprintf("%s-app", app)
+
+	err := run("docker", "build", "-t", container, base)
 
 	if err != nil {
 		return err
 	}
 
-	data, err := query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", "convox-app")
+	data, err := query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", container)
 
 	if err != nil {
 		return err
@@ -73,7 +76,7 @@ func startDockerfile(base string) error {
 		cur += 100
 	}
 
-	args = append(args, "convox-app")
+	args = append(args, container)
 
 	err = run("docker", args...)
 
