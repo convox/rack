@@ -35,7 +35,11 @@ func cmdStart(c *cli.Context) {
 	}
 
 	if exists(filepath.Join(base, "Dockerfile")) {
-		startDockerfile(base)
+		err := startDockerfile(base)
+
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

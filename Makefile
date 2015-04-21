@@ -1,7 +1,7 @@
 all: build
 
 build: 
-	go get cmd/convox
+	go get ./convox
 
 vendor:
 	godep save -r ./...
