@@ -29,11 +29,6 @@
       "Description": "Allow SSH From (CIDR notation)",
       "Type": "String"
     },
-    "AvailabilityZones": {
-      "Default": "",
-      "Description": "Availability Zones (specify 3)",
-      "Type": "CommaDelimitedList"
-    },
     "Environment": {
       "Default": "",
       "Description": "Environment URL",
@@ -439,7 +434,7 @@
           "Fn::Select": [
             "0",
             {
-              "Ref": "AvailabilityZones"
+              "Fn::GetAZs": ""
             }
           ]
         },
@@ -467,7 +462,7 @@
           "Fn::Select": [
             "1",
             {
-              "Ref": "AvailabilityZones"
+              "Fn::GetAZs": ""
             }
           ]
         },
@@ -495,7 +490,7 @@
           "Fn::Select": [
             "2",
             {
-              "Ref": "AvailabilityZones"
+              "Fn::GetAZs": ""
             }
           ]
         },
@@ -692,9 +687,11 @@
     },
     "WebInstances": {
       "Properties": {
-        "AvailabilityZones": {
-          "Ref": "AvailabilityZones"
-        },
+        "AvailabilityZones": [
+          { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
+        ],
         "Cooldown": 5,
         "DesiredCapacity": {
           "Ref": "WebScale"
