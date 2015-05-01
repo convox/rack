@@ -47,7 +47,7 @@
       "Type": "String"
     },
     "WebPorts": {
-      "Default": "",
+      "Default": "3000:3000",
       "Description": "Port mappings for web process",
       "Type": "CommaDelimitedList"
     },
