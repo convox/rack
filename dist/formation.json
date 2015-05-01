@@ -1,5 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] }
+  },
   "Outputs": {
     "BaseSecurityGroup": {
       "Value": {
@@ -36,7 +39,7 @@
     },
     "SSHKey": {
       "Description": "Key name for SSH access",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Type": "String"
     },
     "WebCommand": {
       "Default": "",
@@ -779,9 +782,7 @@
         "InstanceType": {
           "Ref": "WebSize"
         },
-        "KeyName": {
-          "Ref": "SSHKey"
-        },
+        "KeyName": { "Fn::If": [ "BlankSSHKey", { "Ref": "AWS::NoValue" }, { "Ref": "SSHKey" } ] },
         "SecurityGroups": [
           {
             "Ref": "BaseSecurityGroup"
