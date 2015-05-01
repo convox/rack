@@ -543,7 +543,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:3000/",
+          "Target": "HTTP:3000/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
