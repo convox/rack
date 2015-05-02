@@ -9,7 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
 )
+
+var ()
 
 type Builder struct {
 	AwsRegion string
@@ -21,21 +26,17 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, name, ref string) error {
-	ami, err := buildAmi(repo, name, ref)
-	fmt.Printf("ami %+v\n", ami)
-	fmt.Printf("err %+v\n", err)
+func (b *Builder) Build(repo, name, ref string, public bool) error {
+	_, err := b.buildAmi(repo, name, ref, public)
 
 	if err != nil {
 		return err
 	}
 
-	// cloudformation
-
 	return nil
 }
 
-func buildAmi(repo, name, ref string) (string, error) {
+func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) {
 	dir, err := ioutil.TempDir("", "repo")
 
 	if err != nil {
@@ -130,6 +131,27 @@ func buildAmi(repo, name, ref string) (string, error) {
 
 	if err != nil {
 		return "", err
+	}
+
+	if public {
+		EC2 := ec2.New(aws.Creds(b.AwsAccess, b.AwsSecret, ""), b.AwsRegion, nil)
+
+		req := &ec2.ModifyImageAttributeRequest{
+			ImageID: aws.String(ami),
+			LaunchPermission: &ec2.LaunchPermissionModifications{
+				Add: []ec2.LaunchPermission{
+					ec2.LaunchPermission{
+						Group: aws.String("all"),
+					},
+				},
+			},
+		}
+
+		err := EC2.ModifyImageAttribute(req)
+
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return ami, nil
