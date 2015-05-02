@@ -37,6 +37,17 @@
       "Description": "Environment URL",
       "Type": "String"
     },
+    "GitHubAccessToken": {
+      "Default": "",
+      "Description": "Token generated on https://github.com/settings/tokens",
+      "Type": "String"
+    },
+    "HTTPPassword": {
+      "Default": "",
+      "Description": "Basic Auth password for the UI (required)",
+      "NoEcho": "true",
+      "Type": "String"
+    },
     "SSHKey": {
       "Description": "Key name for SSH access",
       "Type": "String"
@@ -880,6 +891,8 @@
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "BaseAccess" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "BaseAccess", "SecretAccessKey" ] }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"GITHUB_ACCESS_TOKEN=", { "Ref": "GitHubAccessToken" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"HTTP_PASSWORD=", { "Ref": "HTTPPassword" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "BaseSettings" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"STACK_NAME=", { "Ref": "AWS::StackName" }, "\"," ] ] },
                 "    \"RUNTIME=convox\"",
