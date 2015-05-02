@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -31,8 +30,6 @@ func SettingGet(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Printf("value %+v\n", value)
 
 	return string(value), nil
 }
