@@ -12,7 +12,7 @@ import (
 
 func SettingGet(name string) (string, error) {
 	req := &s3.GetObjectRequest{
-		Bucket: aws.String(os.Getenv("S3_BUCKET")),
+		Bucket: aws.String(os.Getenv("SETTINGS_BUCKET")),
 		Key:    aws.String(name),
 	}
 
@@ -40,7 +40,7 @@ func SettingGet(name string) (string, error) {
 func SettingSet(name, value string) error {
 	req := &s3.PutObjectRequest{
 		Body:          ioutil.NopCloser(strings.NewReader(value)),
-		Bucket:        aws.String(os.Getenv("S3_BUCKET")),
+		Bucket:        aws.String(os.Getenv("SETTINGS_BUCKET")),
 		ContentLength: aws.Long(int64(len(value))),
 		Key:           aws.String(name),
 	}
