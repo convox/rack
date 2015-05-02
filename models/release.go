@@ -155,12 +155,6 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	azs, err := ListAvailabilityZones()
-
-	if err != nil {
-		return err
-	}
-
 	formation, err := r.Formation()
 
 	if err != nil {
@@ -174,7 +168,6 @@ func (r *Release) Promote() error {
 		Capabilities: []string{"CAPABILITY_IAM"},
 		Parameters: []cloudformation.Parameter{
 			cloudformation.Parameter{ParameterKey: aws.String("AMI"), ParameterValue: aws.String(r.Ami)},
-			cloudformation.Parameter{ParameterKey: aws.String("AvailabilityZones"), ParameterValue: aws.String(strings.Join(azs.Names(), ","))},
 			cloudformation.Parameter{ParameterKey: aws.String("Environment"), ParameterValue: aws.String("http://convox-temp-ui8ae2rie8ie.s3.amazonaws.com/env")},
 			cloudformation.Parameter{ParameterKey: aws.String("Release"), ParameterValue: aws.String(r.Id)},
 			cloudformation.Parameter{ParameterKey: aws.String("Repository"), ParameterValue: aws.String(app.Repository)},

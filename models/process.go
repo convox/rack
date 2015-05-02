@@ -80,18 +80,6 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 	return nil
 }
 
-func (p *Process) AvailabilityZones() []string {
-	azs := []string{}
-
-	subnets, _ := ListSubnets()
-
-	for _, subnet := range subnets {
-		azs = append(azs, subnet.AvailabilityZone)
-	}
-
-	return azs
-}
-
 func (p *Process) Balancer() bool {
 	return p.Name == "web"
 }

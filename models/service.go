@@ -52,18 +52,6 @@ func (r *Service) Save() error {
 	return err
 }
 
-func (r Service) AvailabilityZones() []string {
-	azs := []string{}
-
-	subnets, _ := ListSubnets()
-
-	for _, subnet := range subnets {
-		azs = append(azs, subnet.AvailabilityZone)
-	}
-
-	return azs
-}
-
 func (s *Service) ManagementUrl() string {
 	region := os.Getenv("AWS_REGION")
 

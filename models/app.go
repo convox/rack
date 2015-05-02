@@ -72,16 +72,9 @@ func (a *App) Create() error {
 		return err
 	}
 
-	azs, err := ListAvailabilityZones()
-
-	if err != nil {
-		return err
-	}
-
 	params := map[string]string{
-		"AvailabilityZones": strings.Join(azs.Names(), ","),
-		"Repository":        a.Repository,
-		"SSHKey":            "production",
+		"Repository": a.Repository,
+		"SSHKey":     "production",
 	}
 
 	tags := map[string]string{
@@ -305,11 +298,6 @@ func (a *App) Services() Services {
 	}
 
 	return services
-}
-
-func (a *App) Subnets() Subnets {
-	subnets, _ := ListSubnets()
-	return subnets
 }
 
 func appFromStack(stack cloudformation.Stack) *App {
