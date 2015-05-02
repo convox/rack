@@ -19,6 +19,13 @@ AWS_SECRET=bar
 
 `make dev`
 
+
+##### Release
+
+Publish formation.json to public S3, and push the kernel image to Docker Hub. If necessary, `export AWS_DEFAULT_PROFILE=...` for proper credentials.
+
+`make release`
+
 ## License
 
 Apache 2.0 &copy; 2015 Convox, Inc.
