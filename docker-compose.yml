@@ -5,7 +5,7 @@ web:
     - AWS_ACCESS
     - AWS_SECRET
     - AWS_REGION
-    - S3_BUCKET
+    - SETTINGS_BUCKET
   ports:
     - 5000:3000
   volumes:
