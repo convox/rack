@@ -3,7 +3,7 @@ package models
 import (
 	"os"
 
-	aaws "github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
@@ -15,7 +15,7 @@ import (
 var SortableTime = "20060102.150405.000000000"
 
 var (
-	auth = aaws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
+	auth = aws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
 )
 
 var (
