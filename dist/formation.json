@@ -881,6 +881,7 @@
                 { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "BaseAccess" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "BaseAccess", "SecretAccessKey" ] }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "BaseSettings" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"STACK_NAME=", { "Ref": "AWS::StackName" }, "\"," ] ] },
                 "    \"RUNTIME=convox\"",
                 "  ],",
                 "  \"volumes\": [",
