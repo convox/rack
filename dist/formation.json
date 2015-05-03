@@ -139,6 +139,10 @@
           {
             "AttributeName": "id",
             "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "app",
+            "KeyType": "RANGE"
           }
         ],
         "ProvisionedThroughput": {
@@ -199,70 +203,6 @@
       },
       "Type": "AWS::DynamoDB::Table"
     },
-    "BaseDynamoEnv": {
-      "Properties": {
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "name",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "name",
-            "KeyType": "HASH"
-          }
-        ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        },
-        "TableName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "env"
-            ]
-          ]
-        }
-      },
-      "Type": "AWS::DynamoDB::Table"
-    },
-    "BaseDynamoProcesses": {
-      "Properties": {
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "name",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "name",
-            "KeyType": "HASH"
-          }
-        ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        },
-        "TableName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "processes"
-            ]
-          ]
-        }
-      },
-      "Type": "AWS::DynamoDB::Table"
-    },
     "BaseDynamoReleases": {
       "Properties": {
         "AttributeDefinitions": [
@@ -305,6 +245,10 @@
           {
             "AttributeName": "id",
             "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "app",
+            "KeyType": "RANGE"
           }
         ],
         "ProvisionedThroughput": {
