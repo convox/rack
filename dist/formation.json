@@ -4,9 +4,9 @@
     "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] }
   },
   "Outputs": {
-    "BaseSecurityGroup": {
+    "SecurityGroup": {
       "Value": {
-        "Ref": "BaseSecurityGroup"
+        "Ref": "SecurityGroup"
       }
     },
     "Processes": {
@@ -74,7 +74,7 @@
     }
   },
   "Resources": {
-    "BaseUser": {
+    "User": {
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
@@ -89,15 +89,15 @@
         ]
       }
     },
-    "BaseAccess": {
+    "Access": {
       "Type": "AWS::IAM::AccessKey",
       "Properties": {
         "Serial": "1",
         "Status": "Active",
-        "UserName": { "Ref": "BaseUser" }
+        "UserName": { "Ref": "User" }
       }
     },
-    "BaseDynamoBuilds": {
+    "DynamoBuilds": {
       "Properties": {
         "AttributeDefinitions": [
           { "AttributeName": "id", "AttributeType": "S" },
@@ -124,7 +124,7 @@
       },
       "Type": "AWS::DynamoDB::Table"
     },
-    "BaseDynamoChanges": {
+    "DynamoChanges": {
       "Properties": {
         "AttributeDefinitions": [
           { "AttributeName": "app", "AttributeType": "S" },
@@ -139,7 +139,7 @@
       },
       "Type": "AWS::DynamoDB::Table"
     },
-    "BaseDynamoReleases": {
+    "DynamoReleases": {
       "Properties": {
         "AttributeDefinitions": [
           { "AttributeName": "id", "AttributeType": "S" },
@@ -166,48 +166,48 @@
       },
       "Type": "AWS::DynamoDB::Table"
     },
-    "BaseGateway": {
+    "Gateway": {
       "Properties": {},
       "Type": "AWS::EC2::InternetGateway"
     },
-    "BaseGatewayAttachment": {
+    "GatewayAttachment": {
       "Properties": {
         "InternetGatewayId": {
-          "Ref": "BaseGateway"
+          "Ref": "Gateway"
         },
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::VPCGatewayAttachment"
     },
-    "BaseLogGroup": {
+    "LogGroup": {
       "Properties": {
         "RetentionInDays": 7
       },
       "Type": "AWS::Logs::LogGroup"
     },
-    "BaseRouteDefault": {
+    "RouteDefault": {
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": {
-          "Ref": "BaseGateway"
+          "Ref": "Gateway"
         },
         "RouteTableId": {
-          "Ref": "BaseRoutes"
+          "Ref": "Routes"
         }
       },
       "Type": "AWS::EC2::Route"
     },
-    "BaseRoutes": {
+    "Routes": {
       "Properties": {
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::RouteTable"
     },
-    "BaseSecurityGroup": {
+    "SecurityGroup": {
       "Properties": {
         "GroupDescription": "Instances",
         "SecurityGroupIngress": [
@@ -227,12 +227,12 @@
           }
         ],
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "BaseSettings": {
+    "Settings": {
       "Properties": {
         "AccessControl": "Private",
         "Tags": [
@@ -251,7 +251,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "BaseSubnet0": {
+    "Subnet0": {
       "Properties": {
         "AvailabilityZone": {
           "Fn::Select": [
@@ -263,23 +263,23 @@
         },
         "CidrBlock": "10.0.1.0/24",
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::Subnet"
     },
-    "BaseSubnet0Routes": {
+    "Subnet0Routes": {
       "Properties": {
         "RouteTableId": {
-          "Ref": "BaseRoutes"
+          "Ref": "Routes"
         },
         "SubnetId": {
-          "Ref": "BaseSubnet0"
+          "Ref": "Subnet0"
         }
       },
       "Type": "AWS::EC2::SubnetRouteTableAssociation"
     },
-    "BaseSubnet1": {
+    "Subnet1": {
       "Properties": {
         "AvailabilityZone": {
           "Fn::Select": [
@@ -291,23 +291,23 @@
         },
         "CidrBlock": "10.0.2.0/24",
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::Subnet"
     },
-    "BaseSubnet1Routes": {
+    "Subnet1Routes": {
       "Properties": {
         "RouteTableId": {
-          "Ref": "BaseRoutes"
+          "Ref": "Routes"
         },
         "SubnetId": {
-          "Ref": "BaseSubnet1"
+          "Ref": "Subnet1"
         }
       },
       "Type": "AWS::EC2::SubnetRouteTableAssociation"
     },
-    "BaseSubnet2": {
+    "Subnet2": {
       "Properties": {
         "AvailabilityZone": {
           "Fn::Select": [
@@ -319,23 +319,23 @@
         },
         "CidrBlock": "10.0.3.0/24",
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::Subnet"
     },
-    "BaseSubnet2Routes": {
+    "Subnet2Routes": {
       "Properties": {
         "RouteTableId": {
-          "Ref": "BaseRoutes"
+          "Ref": "Routes"
         },
         "SubnetId": {
-          "Ref": "BaseSubnet2"
+          "Ref": "Subnet2"
         }
       },
       "Type": "AWS::EC2::SubnetRouteTableAssociation"
     },
-    "BaseVpc": {
+    "Vpc": {
       "Properties": {
         "CidrBlock": "10.0.0.0/16",
         "InstanceTenancy": "default",
@@ -398,13 +398,13 @@
         ],
         "Subnets": [
           {
-            "Ref": "BaseSubnet0"
+            "Ref": "Subnet0"
           },
           {
-            "Ref": "BaseSubnet1"
+            "Ref": "Subnet1"
           },
           {
-            "Ref": "BaseSubnet2"
+            "Ref": "Subnet2"
           }
         ]
       },
@@ -422,7 +422,7 @@
           }
         ],
         "VpcId": {
-          "Ref": "BaseVpc"
+          "Ref": "Vpc"
         }
       },
       "Type": "AWS::EC2::SecurityGroup"
@@ -555,13 +555,13 @@
         ],
         "VPCZoneIdentifier": [
           {
-            "Ref": "BaseSubnet0"
+            "Ref": "Subnet0"
           },
           {
-            "Ref": "BaseSubnet1"
+            "Ref": "Subnet1"
           },
           {
-            "Ref": "BaseSubnet2"
+            "Ref": "Subnet2"
           }
         ]
       },
@@ -605,7 +605,7 @@
         "KeyName": { "Fn::If": [ "BlankSSHKey", { "Ref": "AWS::NoValue" }, { "Ref": "SSHKey" } ] },
         "SecurityGroups": [
           {
-            "Ref": "BaseSecurityGroup"
+            "Ref": "SecurityGroup"
           }
         ],
         "UserData": {
@@ -670,7 +670,7 @@
                     [
                       "    \"cloudwatch\": \"",
                       {
-                        "Ref": "BaseLogGroup"
+                        "Ref": "LogGroup"
                       },
                       "\""
                     ]
@@ -698,11 +698,11 @@
                 "  ],",
                 "  \"services\": [",
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "BaseAccess" }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "BaseAccess", "SecretAccessKey" ] }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "Access" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "Access", "SecretAccessKey" ] }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"GITHUB_ACCESS_TOKEN=", { "Ref": "GitHubAccessToken" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"HTTP_PASSWORD=", { "Ref": "HTTPPassword" }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "BaseSettings" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "Settings" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"STACK_NAME=", { "Ref": "AWS::StackName" }, "\"," ] ] },
                 "    \"RUNTIME=convox\"",
                 "  ],",
