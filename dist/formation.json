@@ -100,204 +100,69 @@
     "BaseDynamoBuilds": {
       "Properties": {
         "AttributeDefinitions": [
-          {
-            "AttributeName": "id",
-            "AttributeType": "S"
-          },
-          {
-            "AttributeName": "app",
-            "AttributeType": "S"
-          },
-          {
-            "AttributeName": "created",
-            "AttributeType": "S"
-          }
+          { "AttributeName": "id", "AttributeType": "S" },
+          { "AttributeName": "app", "AttributeType": "S" },
+          { "AttributeName": "created", "AttributeType": "S" }
         ],
         "GlobalSecondaryIndexes": [
           {
             "IndexName": "app.created",
             "KeySchema": [
-              {
-                "AttributeName": "app",
-                "KeyType": "HASH"
-              },
-              {
-                "AttributeName": "created",
-                "KeyType": "RANGE"
-              }
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
             ],
-            "Projection": {
-              "ProjectionType": "ALL"
-            },
-            "ProvisionedThroughput": {
-              "ReadCapacityUnits": "5",
-              "WriteCapacityUnits": "5"
-            }
+            "Projection": { "ProjectionType": "ALL" },
+            "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
           }
         ],
         "KeySchema": [
-          {
-            "AttributeName": "id",
-            "KeyType": "HASH"
-          },
-          {
-            "AttributeName": "app",
-            "KeyType": "RANGE"
-          }
+          { "AttributeName": "id", "KeyType": "HASH" },
+          { "AttributeName": "app", "KeyType": "RANGE" }
         ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        },
-        "TableName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "builds"
-            ]
-          ]
-        }
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" },
+        "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "builds" ] ] }
       },
       "Type": "AWS::DynamoDB::Table"
     },
     "BaseDynamoChanges": {
       "Properties": {
         "AttributeDefinitions": [
-          {
-            "AttributeName": "app",
-            "AttributeType": "S"
-          },
-          {
-            "AttributeName": "created",
-            "AttributeType": "S"
-          }
+          { "AttributeName": "app", "AttributeType": "S" },
+          { "AttributeName": "created", "AttributeType": "S" }
         ],
         "KeySchema": [
-          {
-            "AttributeName": "app",
-            "KeyType": "HASH"
-          },
-          {
-            "AttributeName": "created",
-            "KeyType": "RANGE"
-          }
+          { "AttributeName": "app", "KeyType": "HASH" },
+          { "AttributeName": "created", "KeyType": "RANGE" }
         ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        },
-        "TableName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "changes"
-            ]
-          ]
-        }
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" },
+        "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "changes" ] ] }
       },
       "Type": "AWS::DynamoDB::Table"
     },
     "BaseDynamoReleases": {
       "Properties": {
         "AttributeDefinitions": [
-          {
-            "AttributeName": "id",
-            "AttributeType": "S"
-          },
-          {
-            "AttributeName": "app",
-            "AttributeType": "S"
-          },
-          {
-            "AttributeName": "created",
-            "AttributeType": "S"
-          }
+          { "AttributeName": "id", "AttributeType": "S" },
+          { "AttributeName": "app", "AttributeType": "S" },
+          { "AttributeName": "created", "AttributeType": "S" }
         ],
         "GlobalSecondaryIndexes": [
           {
             "IndexName": "app.created",
             "KeySchema": [
-              {
-                "AttributeName": "app",
-                "KeyType": "HASH"
-              },
-              {
-                "AttributeName": "created",
-                "KeyType": "RANGE"
-              }
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
             ],
-            "Projection": {
-              "ProjectionType": "ALL"
-            },
-            "ProvisionedThroughput": {
-              "ReadCapacityUnits": "5",
-              "WriteCapacityUnits": "5"
-            }
+            "Projection": { "ProjectionType": "ALL" },
+            "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
           }
         ],
         "KeySchema": [
-          {
-            "AttributeName": "id",
-            "KeyType": "HASH"
-          },
-          {
-            "AttributeName": "app",
-            "KeyType": "RANGE"
-          }
+          { "AttributeName": "id", "KeyType": "HASH" },
+          { "AttributeName": "app", "KeyType": "RANGE" }
         ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        },
-        "TableName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "releases"
-            ]
-          ]
-        }
-      },
-      "Type": "AWS::DynamoDB::Table"
-    },
-    "BaseDynamoServices": {
-      "Properties": {
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "name",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "name",
-            "KeyType": "HASH"
-          }
-        ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        },
-        "TableName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "services"
-            ]
-          ]
-        }
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" },
+        "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "releases" ] ] }
       },
       "Type": "AWS::DynamoDB::Table"
     },
