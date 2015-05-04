@@ -1,10 +1,15 @@
 package models
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
 )
 
 type Process struct {
@@ -18,50 +23,91 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	res, err := DynamoDB.Scan(&dynamodb.ScanInput{TableName: aws.String(processesTable(app))})
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	processes := make(Processes, len(res.Items))
+	req := &s3.ListObjectsRequest{
+		Bucket: aws.String(a.Outputs["Settings"]),
+		Prefix: aws.String("process/"),
+	}
 
-	for i, item := range res.Items {
-		processes[i] = *processFromItem(item)
+	res, err := S3.ListObjects(req)
+
+	processes := make(Processes, len(res.Contents))
+
+	for i, p := range res.Contents {
+		name := strings.TrimPrefix(*p.Key, "process/")
+		ps, err := GetProcess(app, name)
+
+		if err != nil {
+			return nil, err
+		}
+
+		processes[i] = *ps
 	}
 
 	return processes, nil
 }
 
 func GetProcess(app, name string) (*Process, error) {
-	req := &dynamodb.GetItemInput{
-		ConsistentRead: aws.Boolean(true),
-		Key: map[string]dynamodb.AttributeValue{
-			"name": dynamodb.AttributeValue{S: aws.String(name)},
-		},
-		TableName: aws.String(processesTable(app)),
-	}
-
-	res, err := DynamoDB.GetItem(req)
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return processFromItem(res.Item), nil
+	req := &s3.GetObjectRequest{
+		Bucket: aws.String(a.Outputs["Settings"]),
+		Key:    aws.String(fmt.Sprintf("process/%s", name)),
+	}
+
+	res, err := S3.GetObject(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var process *Process
+
+	err = json.Unmarshal([]byte(value), &process)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return process, nil
 }
 
 func (p *Process) Save() error {
-	req := &dynamodb.PutItemInput{
-		Item: map[string]dynamodb.AttributeValue{
-			"name":  dynamodb.AttributeValue{S: aws.String(p.Name)},
-			"count": dynamodb.AttributeValue{S: aws.String(p.Count)},
-			"app":   dynamodb.AttributeValue{S: aws.String(p.App)},
-		},
-		TableName: aws.String(processesTable(p.App)),
+	app, err := GetApp(p.App)
+
+	if err != nil {
+		return err
 	}
 
-	_, err := DynamoDB.PutItem(req)
+	data, err := json.Marshal(p)
+
+	if err != nil {
+		return err
+	}
+
+	req := &s3.PutObjectRequest{
+		Body:          ioutil.NopCloser(bytes.NewReader(data)),
+		Bucket:        aws.String(app.Outputs["Settings"]),
+		ContentLength: aws.Long(int64(len(data))),
+		Key:           aws.String(fmt.Sprintf("process/%s", p.Name)),
+	}
+
+	_, err = S3.PutObject(req)
 
 	return err
 }
