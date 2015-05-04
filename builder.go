@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -57,19 +58,23 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 
 	if err != nil {
-		return "", fmt.Errorf("%s", out)
+		return "", err
 	}
 
 	if ref != "" {
 		cmd = exec.Command("git", "checkout", ref)
 		cmd.Dir = clone
-		out, err := cmd.CombinedOutput()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
 
 		if err != nil {
-			return "", fmt.Errorf("%s", out)
+			return "", err
 		}
 	}
 
