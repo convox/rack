@@ -113,7 +113,7 @@ func (b *Build) Execute(repo string) {
 
 	env := filepath.Join(base, ".env")
 
-	if err = ioutil.WriteFile(env, []byte(awsEnvironment()), 0400); err != nil {
+	if err = ioutil.WriteFile(env, []byte(buildEnvironment()), 0400); err != nil {
 		log.Error(err)
 		return
 	}
