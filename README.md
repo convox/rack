@@ -8,7 +8,7 @@ Turn a Compose-enabled application into an AMI.
       -e AWS_REGION=us-east-1 \
       -e AWS_ACCESS=foo \
       -e AWS_SECRET=bar \
-      convox/build https://github.com/convox-examples/sinatra sinatra-example
+      convox/build sinatra-example https://github.com/convox-examples/sinatra
 
 ## Userdata
 
