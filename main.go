@@ -24,7 +24,7 @@ func main() {
 
 	flag.Parse()
 
-	if len(flag.Args()) != 2 {
+	if !(len(flag.Args()) == 2 || len(flag.Args()) == 3) {
 		flag.Usage()
 		os.Exit(0)
 	}
