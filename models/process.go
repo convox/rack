@@ -26,6 +26,10 @@ func ListProcesses(app string) (Processes, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
+		if strings.Index(err.Error(), "does not exist") != -1 {
+			return Processes{}, nil
+		}
+
 		return nil, err
 	}
 

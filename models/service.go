@@ -26,6 +26,10 @@ func ListServices(app string) (Services, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
+		if strings.Index(err.Error(), "does not exist") != -1 {
+			return Services{}, nil
+		}
+
 		return nil, err
 	}
 
