@@ -11,11 +11,12 @@ type Manifest []ManifestEntry
 type ManifestEntry struct {
 	Name string
 
-	Build string   `yaml:"build"`
-	Env   []string `yaml:"env"`
-	Image string   `yaml:"image"`
-	Links []string `yaml:"links"`
-	Ports []string `yaml:"ports"`
+	Build   string   `yaml:"build"`
+	Command string   `yaml:"command"`
+	Env     []string `yaml:"env"`
+	Image   string   `yaml:"image"`
+	Links   []string `yaml:"links"`
+	Ports   []string `yaml:"ports"`
 }
 
 type ManifestEntries map[string]ManifestEntry

@@ -120,34 +120,6 @@ func (r *Release) Save() error {
 	return err
 }
 
-func (r *Release) Formation() (string, error) {
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return "", err
-	}
-
-	manifest, err := LoadManifest(r.Manifest)
-
-	if err != nil {
-		return "", err
-	}
-
-	err = manifest.Apply(app)
-
-	if err != nil {
-		return "", err
-	}
-
-	formation, err := app.Formation()
-
-	if err != nil {
-		return "", err
-	}
-
-	return formation, nil
-}
-
 func (r *Release) Promote() error {
 	app, err := GetApp(r.App)
 
@@ -155,10 +127,41 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	formation, err := r.Formation()
+	manifest, err := LoadManifest(r.Manifest)
 
 	if err != nil {
 		return err
+	}
+
+	// update process and service list
+	err = manifest.Apply(app)
+
+	if err != nil {
+		return err
+	}
+
+	formation, err := app.Formation()
+
+	if err != nil {
+		return err
+	}
+
+	params := app.Parameters
+
+	params["AMI"] = r.Ami
+	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/env", app.Outputs["Settings"])
+	params["Release"] = r.Id
+
+	for _, entry := range manifest {
+		if entry.ServiceType() == "" {
+			params[fmt.Sprintf("%sCommand", upperName(entry.Name))] = entry.Command
+		}
+	}
+
+	stackParams := []cloudformation.Parameter{}
+
+	for key, value := range params {
+		stackParams = append(stackParams, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
 	// TODO: remove hardcoded Environment
@@ -166,16 +169,10 @@ func (r *Release) Promote() error {
 		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
 		Capabilities: []string{"CAPABILITY_IAM"},
-		Parameters: []cloudformation.Parameter{
-			cloudformation.Parameter{ParameterKey: aws.String("AMI"), ParameterValue: aws.String(r.Ami)},
-			cloudformation.Parameter{ParameterKey: aws.String("Environment"), ParameterValue: aws.String("http://convox-temp-ui8ae2rie8ie.s3.amazonaws.com/env")},
-			cloudformation.Parameter{ParameterKey: aws.String("Release"), ParameterValue: aws.String(r.Id)},
-			cloudformation.Parameter{ParameterKey: aws.String("Repository"), ParameterValue: aws.String(app.Repository)},
-			cloudformation.Parameter{ParameterKey: aws.String("SSHKey"), ParameterValue: aws.String("production")},
-		},
+		Parameters:   stackParams,
 	}
 
-	manifest, err := LoadManifest(r.Manifest)
+	manifest, err = LoadManifest(r.Manifest)
 
 	if err != nil {
 		return err

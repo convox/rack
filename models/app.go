@@ -74,7 +74,6 @@ func (a *App) Create() error {
 
 	params := map[string]string{
 		"Repository": a.Repository,
-		"SSHKey":     "production",
 	}
 
 	tags := map[string]string{
