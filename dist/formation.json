@@ -57,11 +57,6 @@
       "Description": "Override the default command for the web process",
       "Type": "String"
     },
-    "WebPorts": {
-      "Default": "3000:3000",
-      "Description": "Port mappings for web process",
-      "Type": "CommaDelimitedList"
-    },
     "WebScale": {
       "Default": "1",
       "Description": "Number of web processes to run",
@@ -609,23 +604,7 @@
                 },
                 "  },",
                 "  \"ports\": [",
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "    \"",
-                      {
-                        "Fn::Join": [
-                          "\",\n    \"",
-                          {
-                            "Ref": "WebPorts"
-                          }
-                        ]
-                      },
-                      "\""
-                    ]
-                  ]
-                },
+                "    \"3000:3000\"",
                 "  ],",
                 "  \"services\": [",
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
