@@ -57,7 +57,6 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
-
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
