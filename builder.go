@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net/url"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -17,9 +19,10 @@ import (
 var ()
 
 type Builder struct {
-	AwsRegion string
-	AwsAccess string
-	AwsSecret string
+	AwsRegion   string
+	AwsAccess   string
+	AwsSecret   string
+	GitHubToken string
 }
 
 func NewBuilder() *Builder {
@@ -45,8 +48,18 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 
 	clone := filepath.Join(dir, "clone")
 
+	u, err := url.Parse(repo)
+	if err != nil {
+		panic(err)
+	}
+
+	u.User = url.UserPassword("u", b.GitHubToken)
+	repo = u.String()
+
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 
 	if err != nil {
@@ -56,6 +69,8 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 	if ref != "" {
 		cmd = exec.Command("git", "checkout", ref)
 		cmd.Dir = clone
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 
 		if err != nil {

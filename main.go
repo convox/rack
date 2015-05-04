@@ -19,11 +19,13 @@ func main() {
 	region := flag.String("region", "us-east-1", "aws region")
 	access := flag.String("access", os.Getenv("AWS_ACCESS"), "aws access id")
 	secret := flag.String("secret", os.Getenv("AWS_SECRET"), "aws secret key")
+	token := flag.String("token", os.Getenv("GITHUB_ACCESS_TOKEN"), "github access token")
 	public := flag.Bool("public", false, "make ami public")
 
 	flag.Parse()
 
-	if len(flag.Args()) != 2 {
+	l := len(flag.Args())
+	if l < 2 || l > 3 {
 		flag.Usage()
 		os.Exit(0)
 	}
@@ -34,6 +36,7 @@ func main() {
 	builder.AwsRegion = *region
 	builder.AwsAccess = *access
 	builder.AwsSecret = *secret
+	builder.GitHubToken = *token
 
 	app := positional(args, 0)
 	repo := positional(args, 1)
