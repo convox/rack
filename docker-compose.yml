@@ -6,6 +6,7 @@ web:
     - AWS_SECRET
     - AWS_REGION
     - SETTINGS_BUCKET
+    - STACK_NAME
   ports:
     - 5000:3000
   volumes:
