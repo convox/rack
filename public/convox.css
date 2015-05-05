@@ -318,6 +318,10 @@ ul.nav-tabs {
 	border-bottom: 0px;
 }
 
+ul.nav.pull-right {
+	margin-right: -20px;
+}
+
 ul.nav-tabs li a {
 	font-size: 1.1em;
 	padding: 8px 20px;
