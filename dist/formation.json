@@ -45,7 +45,6 @@
     "HTTPPassword": {
       "Default": "",
       "Description": "Basic Auth password for the UI (required)",
-      "NoEcho": "true",
       "Type": "String"
     },
     "SSHKey": {
