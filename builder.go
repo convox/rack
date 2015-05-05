@@ -53,8 +53,10 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 		panic(err)
 	}
 
-	u.User = url.UserPassword("u", b.GitHubToken)
-	repo = u.String()
+	if u.Scheme == "https" && u.Host == "github.com" {
+		u.User = url.UserPassword("u", b.GitHubToken)
+		repo = u.String()
+	}
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
