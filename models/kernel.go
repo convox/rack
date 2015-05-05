@@ -26,13 +26,35 @@ func KernelUpdate() error {
 
 		stack := res.Stacks[0]
 
-		fmt.Printf("stack %+v\n", stack)
+		params := map[string]string{}
+
+		for _, p := range stack.Parameters {
+			params[*p.ParameterKey] = *p.ParameterValue
+		}
+
+		latest, err := latestAmi()
+
+		if err != nil {
+			return err
+		}
+
+		params["AMI"] = latest
+
+		// backwards compatibility
+		delete(params, "WebCommand")
+		delete(params, "WebPorts")
+
+		stackParams := []cloudformation.Parameter{}
+
+		for key, value := range params {
+			stackParams = append(stackParams, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		}
 
 		req := &cloudformation.UpdateStackInput{
 			StackName:    aws.String(stackName),
 			TemplateURL:  aws.String("http://convox.s3.amazonaws.com/formation.json"),
 			Capabilities: []string{"CAPABILITY_IAM"},
-			Parameters:   stack.Parameters,
+			Parameters:   stackParams,
 		}
 
 		for _, p := range req.Parameters {
