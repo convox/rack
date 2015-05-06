@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 )
 
 type Environment map[string]string
@@ -20,6 +22,12 @@ func GetEnvironment(app string) (Environment, error) {
 	data, err := s3Get(a.Outputs["Settings"], "env")
 
 	if err != nil {
+
+		// if we get a 404 from aws just return an empty environment
+		if awsError, ok := err.(aws.APIError); ok && awsError.StatusCode == 404 {
+			return Environment{}, nil
+		}
+
 		return nil, err
 	}
 
