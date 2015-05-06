@@ -131,12 +131,16 @@ func s3Get(bucket, key string) ([]byte, error) {
 	return ioutil.ReadAll(res.Body)
 }
 
-func s3Put(bucket, key string, data []byte) error {
+func s3Put(bucket, key string, data []byte, public bool) error {
 	req := &s3.PutObjectRequest{
 		Body:          ioutil.NopCloser(bytes.NewReader(data)),
 		Bucket:        aws.String(bucket),
 		ContentLength: aws.Long(int64(len(data))),
 		Key:           aws.String(key),
+	}
+
+	if public {
+		req.ACL = aws.String("public-read")
 	}
 
 	_, err := S3.PutObject(req)

@@ -74,6 +74,10 @@ form {
 	padding-left: 12px;
 }
 
+.table tfoot {
+	background-color: #ddd;
+}
+
 .panel {
 	margin-bottom: 16px;
 	border: 0;
@@ -377,6 +381,14 @@ table.scrollable > thead {
 	width: 1140px;
 }
 
+.app-environment tfoot input[type="text"] {
+	width: 100%;
+}
+
+.app-environment tfoot input[name="name"] {
+	min-width: 150px;
+}
+
 table.app-history td {
 	font-size: 0.9em;
 }
@@ -493,4 +505,27 @@ ul.transactions li .duration {
 
 .alert strong {
 	margin-right: 6px;
+}
+
+#environment-raw-content .panel {
+	padding: 8px;
+}
+
+textarea.environment {
+	font-family: monospace;
+	padding: 8px;
+	width: 100%;
+	height: 300px;
+}
+
+#environment-raw-content {
+	display: none;
+}
+
+#environment-raw-content .footer {
+	margin-top: 4px;
+}
+
+#environment-raw-content .footer button {
+	margin-left: 8px;
 }

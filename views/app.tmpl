@@ -70,6 +70,7 @@
 
 	<ul class="nav nav-tabs">
 		<li role="presentation"><a href="#changes" role="tab" data-source="/apps/{{ .Name }}/changes">Changes</a></li>
+		<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
 		<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
 		<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
 		<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
@@ -218,6 +219,48 @@
 
 {{ define "AWS::S3::Bucket" }}
 	<li>Update S3 Bucket {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "environment" }}
+	<div id="environment-basic-content">
+		<table class="table table-striped table-bordered app-environment">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th class="expand">Value</th>
+					<th><button id="environment-raw" class="btn btn-inverse btn-xs">Raw</button></th>
+				</tr>
+			</thead>
+			<tfoot>
+				<tr>
+					<td><input type="text" name="name"></td>
+					<td><input type="text" name="value"></td>
+					<td><button id="environment-add" data-app="{{ .App }}" class="btn btn-success btn-xs">Add</button></td>
+				</tr>
+			</tfoot>
+			<tbody>
+				{{ $root := . }}
+				{{ range .Environment.SortedNames }}
+					<tr>
+						<td>{{ . }}</td>
+						<td class="wrap expand">{{ index $root.Environment . }}</td>
+						<td>
+							<button data-app="{{ $root.App }}" data-name="{{ . }}" class="environment-delete btn btn-danger btn-xs">Delete</button>
+						</td>
+					</tr>
+				{{ end }}
+			</tbody>
+		</table>
+	</div>
+	<div id="environment-raw-content">
+		<div class="panel">
+			<textarea id="environment-content" class="environment">{{ .Environment.Raw }}</textarea>
+			<div class="clearfix footer">
+				<button id="environment-raw-save" class="btn btn-xs btn-primary pull-right" data-app="{{ .App }}">Save</button>
+				<button id="environment-raw-cancel" class="btn btn-xs btn-inverse pull-right">Cancel</button>
+			</div>
+		</div>
+	</div>
 {{ end }}
 
 {{ define "logs" }}
