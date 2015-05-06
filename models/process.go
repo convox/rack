@@ -91,7 +91,7 @@ func (p *Process) Save() error {
 		return err
 	}
 
-	return s3Put(app.Outputs["Settings"], fmt.Sprintf("process/%s", p.Name), data)
+	return s3Put(app.Outputs["Settings"], fmt.Sprintf("process/%s", p.Name), data, false)
 }
 
 func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {

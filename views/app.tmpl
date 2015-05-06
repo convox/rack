@@ -222,19 +222,30 @@
 {{ end }}
 
 {{ define "environment" }}
-	<table class="table table-striped table-bordered app-changes">
+	<table class="table table-striped table-bordered app-environment">
 		<thead>
 			<tr>
 				<th>Name</th>
 				<th class="expand">Value</th>
+				<th></th>
 			</tr>
 		</thead>
+		<tfoot>
+			<tr>
+				<td><input type="text" name="name"></td>
+				<td><input type="text" name="value"></td>
+				<td><button id="environment-add" data-app="{{ .App }}" class="btn btn-success btn-xs">Add</button></td>
+			</tr>
+		</tfoot>
 		<tbody>
-			{{ $env := . }}
-			{{ range .SortedNames }}
+			{{ $root := . }}
+			{{ range .Environment.SortedNames }}
 				<tr>
 					<td>{{ . }}</td>
-					<td class="wrap expand">{{ index $env . }}</td>
+					<td class="wrap expand">{{ index $root.Environment . }}</td>
+					<td>
+						<button data-app="{{ $root.App }}" data-name="{{ . }}" class="environment-delete btn btn-danger btn-xs">Delete</button>
+					</td>
 				</tr>
 			{{ end }}
 		</tbody>

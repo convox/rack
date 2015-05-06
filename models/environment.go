@@ -3,6 +3,7 @@ package models
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -30,11 +31,31 @@ func GetEnvironment(app string) (Environment, error) {
 		parts := strings.SplitN(scanner.Text(), "=", 2)
 
 		if len(parts) == 2 {
-			env[parts[0]] = parts[1]
+			if key := strings.TrimSpace(parts[0]); key != "" {
+				env[key] = parts[1]
+			}
 		}
 	}
 
 	return env, nil
+}
+
+func PutEnvironment(app string, env Environment) error {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return err
+	}
+
+	lines := make([]string, len(env))
+
+	for i, name := range env.SortedNames() {
+		lines[i] = fmt.Sprintf("%s=%s", name, env[name])
+	}
+
+	data := []byte(strings.Join(lines, "\n"))
+
+	return s3Put(a.Outputs["Settings"], "env", data, true)
 }
 
 func (e Environment) SortedNames() []string {

@@ -223,7 +223,12 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderPartial(rw, "app", "environment", env)
+	params := map[string]interface{}{
+		"App":         app,
+		"Environment": env,
+	}
+
+	RenderPartial(rw, "app", "environment", params)
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {

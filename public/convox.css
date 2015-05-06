@@ -74,6 +74,10 @@ form {
 	padding-left: 12px;
 }
 
+.table tfoot {
+	background-color: #ddd;
+}
+
 .panel {
 	margin-bottom: 16px;
 	border: 0;
@@ -375,6 +379,14 @@ table.scrollable > thead {
 	display: block;
 	overflow-y: scroll;
 	width: 1140px;
+}
+
+.app-environment tfoot input[type="text"] {
+	width: 100%;
+}
+
+.app-environment tfoot input[name="name"] {
+	min-width: 150px;
 }
 
 table.app-history td {

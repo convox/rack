@@ -96,6 +96,29 @@ function refresh_content(tab) {
     $('a[role="tab"]').parent().removeClass('disabled');
     $('#tab-content').find('.timeago').timeago();
     tabs_enabled = true;
+
+    apply_tab_events();
+  });
+}
+
+function apply_tab_events() {
+  $('#environment-add').on('click', function() {
+    var app = $(this).data('app');
+    var name = $('.app-environment tfoot input[name="name"]').val();
+    var value = $('.app-environment tfoot input[name="value"]').val();
+
+    $.post('/apps/' + app + '/environment', { name:name, value:value }, function() {
+      refresh_tab();
+    });
+  });
+
+  $('.environment-delete').on('click', function() {
+    var app = $(this).data('app');
+    var name = $(this).data('name');
+
+    $.ajax({ method:"DELETE", url:'/apps/' + app + '/environment/' + name }).done(function() {
+      refresh_tab();
+    });
   });
 }
 

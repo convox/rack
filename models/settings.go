@@ -13,5 +13,5 @@ func SettingGet(name string) (string, error) {
 }
 
 func SettingSet(name, value string) error {
-	return s3Put(os.Getenv("SETTINGS_BUCKET"), name, []byte(value))
+	return s3Put(os.Getenv("SETTINGS_BUCKET"), name, []byte(value), false)
 }
