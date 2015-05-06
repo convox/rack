@@ -5,6 +5,8 @@ web:
     - AWS_ACCESS
     - AWS_SECRET
     - AWS_REGION
+    - GITHUB_TOKEN
+    - HTTP_PASSWORD
     - SETTINGS_BUCKET
     - STACK_NAME
   ports:
