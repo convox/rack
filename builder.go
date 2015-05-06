@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,21 +47,29 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 
 	clone := filepath.Join(dir, "clone")
 
-	u, err := url.Parse(repo)
-	if err != nil {
-		panic(err)
-	}
-
-	if u.Scheme == "https" && u.Host == "github.com" {
-		u.User = url.UserPassword("u", b.GitHubToken)
-		repo = u.String()
+	if err = writeFile(os.Getenv("HOME"), ".netrc", map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
+		return "", err
 	}
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+
+	if err != nil {
+		return "", err
+	}
+
+	cmd.Start()
+
+	scanner := bufio.NewScanner(stdout)
+
+	for scanner.Scan() {
+		fmt.Printf("git|%s\n", scanner.Text())
+	}
+
+	err = cmd.Wait()
 
 	if err != nil {
 		return "", err
@@ -71,9 +78,23 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 	if ref != "" {
 		cmd = exec.Command("git", "checkout", ref)
 		cmd.Dir = clone
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err = cmd.Run()
+
+		stdout, err = cmd.StdoutPipe()
+		cmd.Stderr = cmd.Stdout
+
+		if err != nil {
+			return "", err
+		}
+
+		cmd.Start()
+
+		scanner := bufio.NewScanner(stdout)
+
+		for scanner.Scan() {
+			fmt.Printf("git|%s\n", scanner.Text())
+		}
+
+		err = cmd.Wait()
 
 		if err != nil {
 			return "", err
@@ -86,7 +107,7 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 		return "", err
 	}
 
-	scanner := bufio.NewScanner(bytes.NewReader(data))
+	scanner = bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
 		fmt.Printf("manifest|%s\n", scanner.Text())
@@ -107,7 +128,7 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "packer.json")
 	cmd.Dir = dir
 
-	stdout, err := cmd.StdoutPipe()
+	stdout, err = cmd.StdoutPipe()
 
 	if err != nil {
 		return "", err
