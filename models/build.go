@@ -146,8 +146,12 @@ func (b *Build) Execute(repo string) {
 		case "build":
 			log.Log("type=build text=%q", parts[1])
 			b.Logs += fmt.Sprintf("%s\n", parts[1])
+		case "git":
+			log.Log("type=git text=%q", parts[1])
+			b.Logs += fmt.Sprintf("%s\n", parts[1])
 		case "error":
 			log.Log("type=error text=%q", parts[1])
+			b.Logs += fmt.Sprintf("%s\n", parts[1])
 		case "ami":
 			release.Ami = parts[1]
 
