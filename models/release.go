@@ -158,6 +158,9 @@ func (r *Release) Promote() error {
 		}
 	}
 
+	// backwards compatibility
+	delete(params, "WebPorts")
+
 	stackParams := []cloudformation.Parameter{}
 
 	for key, value := range params {
@@ -180,10 +183,12 @@ func (r *Release) Promote() error {
 
 	for _, process := range manifest {
 		if len(process.Ports) > 0 {
-			req.Parameters = append(req.Parameters, cloudformation.Parameter{
-				ParameterKey:   aws.String(fmt.Sprintf("%sPorts", upperName(process.Name))),
-				ParameterValue: aws.String(strings.Join(process.Ports, ",")),
-			})
+			if pp := strings.Split(process.Ports[0], ":"); len(pp) == 2 {
+				req.Parameters = append(req.Parameters, cloudformation.Parameter{
+					ParameterKey:   aws.String(fmt.Sprintf("%sPort", upperName(process.Name))),
+					ParameterValue: aws.String(pp[1]),
+				})
+			}
 		}
 	}
 
