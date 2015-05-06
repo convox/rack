@@ -22,7 +22,7 @@ func buildEnvironment() string {
 		fmt.Sprintf("AWS_REGION=%s", os.Getenv("AWS_REGION")),
 		fmt.Sprintf("AWS_ACCESS=%s", os.Getenv("AWS_ACCESS")),
 		fmt.Sprintf("AWS_SECRET=%s", os.Getenv("AWS_SECRET")),
-		fmt.Sprintf("GITHUB_ACCESS_TOKEN=%s", os.Getenv("GITHUB_ACCESS_TOKEN")),
+		fmt.Sprintf("GITHUB_TOKEN=%s", os.Getenv("GITHUB_TOKEN")),
 	}
 	return strings.Join(env, "\n")
 }

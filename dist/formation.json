@@ -37,7 +37,7 @@
       "Description": "Environment URL",
       "Type": "String"
     },
-    "GitHubAccessToken": {
+    "GitHubToken": {
       "Default": "",
       "Description": "Token generated on https://github.com/settings/tokens",
       "Type": "String"
@@ -593,7 +593,7 @@
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "Access" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "Access", "SecretAccessKey" ] }, "\"," ] ] },
-                { "Fn::Join": [ "", [ "    \"GITHUB_ACCESS_TOKEN=", { "Ref": "GitHubAccessToken" }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"GITHUB_TOKEN=", { "Ref": "GitHubToken" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"HTTP_PASSWORD=", { "Ref": "HTTPPassword" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "Settings" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"STACK_NAME=", { "Ref": "AWS::StackName" }, "\"," ] ] },
