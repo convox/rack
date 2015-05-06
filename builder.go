@@ -60,9 +60,23 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 
 	cmd := exec.Command("git", "clone", repo, clone)
 	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+
+	if err != nil {
+		return "", err
+	}
+
+	cmd.Start()
+
+	scanner := bufio.NewScanner(stdout)
+
+	for scanner.Scan() {
+		fmt.Printf("git|%s\n", scanner.Text())
+	}
+
+	err = cmd.Wait()
 
 	if err != nil {
 		return "", err
@@ -71,9 +85,23 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 	if ref != "" {
 		cmd = exec.Command("git", "checkout", ref)
 		cmd.Dir = clone
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err = cmd.Run()
+
+		stdout, err = cmd.StdoutPipe()
+		cmd.Stderr = cmd.Stdout
+
+		if err != nil {
+			return "", err
+		}
+
+		cmd.Start()
+
+		scanner := bufio.NewScanner(stdout)
+
+		for scanner.Scan() {
+			fmt.Printf("git|%s\n", scanner.Text())
+		}
+
+		err = cmd.Wait()
 
 		if err != nil {
 			return "", err
@@ -86,7 +114,7 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 		return "", err
 	}
 
-	scanner := bufio.NewScanner(bytes.NewReader(data))
+	scanner = bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
 		fmt.Printf("manifest|%s\n", scanner.Text())
@@ -107,7 +135,7 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "packer.json")
 	cmd.Dir = dir
 
-	stdout, err := cmd.StdoutPipe()
+	stdout, err = cmd.StdoutPipe()
 
 	if err != nil {
 		return "", err
