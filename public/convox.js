@@ -128,5 +128,5 @@ $(window).ready(function() {
   $('.timeago').timeago();
 
   activate_tabs();
-  goto_anchor('#logs');
+  goto_anchor('#changes');
 });
