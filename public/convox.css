@@ -506,3 +506,26 @@ ul.transactions li .duration {
 .alert strong {
 	margin-right: 6px;
 }
+
+#environment-raw-content .panel {
+	padding: 8px;
+}
+
+textarea.environment {
+	font-family: monospace;
+	padding: 8px;
+	width: 100%;
+	height: 300px;
+}
+
+#environment-raw-content {
+	display: none;
+}
+
+#environment-raw-content .footer {
+	margin-top: 4px;
+}
+
+#environment-raw-content .footer button {
+	margin-left: 4px;
+}
