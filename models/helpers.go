@@ -1,9 +1,11 @@
 package models
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
 )
 
 func init() {
@@ -111,6 +114,34 @@ func printLines(data string) {
 	for i, line := range lines {
 		fmt.Printf("%d: %s\n", i, line)
 	}
+}
+
+func s3Get(bucket, key string) ([]byte, error) {
+	req := &s3.GetObjectRequest{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	res, err := S3.GetObject(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(res.Body)
+}
+
+func s3Put(bucket, key string, data []byte) error {
+	req := &s3.PutObjectRequest{
+		Body:          ioutil.NopCloser(bytes.NewReader(data)),
+		Bucket:        aws.String(bucket),
+		ContentLength: aws.Long(int64(len(data))),
+		Key:           aws.String(key),
+	}
+
+	_, err := S3.PutObject(req)
+
+	return err
 }
 
 func stackParameters(stack cloudformation.Stack) map[string]string {

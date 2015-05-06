@@ -1,10 +1,8 @@
 package models
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -63,18 +61,7 @@ func GetProcess(app, name string) (*Process, error) {
 		return nil, err
 	}
 
-	req := &s3.GetObjectRequest{
-		Bucket: aws.String(a.Outputs["Settings"]),
-		Key:    aws.String(fmt.Sprintf("process/%s", name)),
-	}
-
-	res, err := S3.GetObject(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := ioutil.ReadAll(res.Body)
+	value, err := s3Get(a.Outputs["Settings"], fmt.Sprintf("process/%s", name))
 
 	if err != nil {
 		return nil, err
@@ -104,16 +91,7 @@ func (p *Process) Save() error {
 		return err
 	}
 
-	req := &s3.PutObjectRequest{
-		Body:          ioutil.NopCloser(bytes.NewReader(data)),
-		Bucket:        aws.String(app.Outputs["Settings"]),
-		ContentLength: aws.Long(int64(len(data))),
-		Key:           aws.String(fmt.Sprintf("process/%s", p.Name)),
-	}
-
-	_, err = S3.PutObject(req)
-
-	return err
+	return s3Put(app.Outputs["Settings"], fmt.Sprintf("process/%s", p.Name), data)
 }
 
 func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
