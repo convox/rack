@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -120,7 +119,7 @@ func (b *Build) Execute(repo string) {
 
 	cmd := exec.Command("docker", "run", "--env-file", env, "convox/build", b.App, repo)
 	stdout, err := cmd.StdoutPipe()
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = cmd.Stdout
 
 	if err = cmd.Start(); err != nil {
 		log.Error(err)
@@ -135,6 +134,7 @@ func (b *Build) Execute(repo string) {
 
 		if len(parts) < 2 {
 			log.Log("type=unknown text=%q", scanner.Text())
+			b.Logs += fmt.Sprintf("%s\n", parts[0])
 			continue
 		}
 
@@ -168,6 +168,7 @@ func (b *Build) Execute(repo string) {
 			}
 		default:
 			log.Log("type=unknown text=%q", parts[1])
+			b.Logs += fmt.Sprintf("%s\n", parts[1])
 		}
 	}
 
