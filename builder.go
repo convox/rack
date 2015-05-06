@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,14 +47,8 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 
 	clone := filepath.Join(dir, "clone")
 
-	u, err := url.Parse(repo)
-	if err != nil {
-		panic(err)
-	}
-
-	if u.Scheme == "https" && u.Host == "github.com" {
-		u.User = url.UserPassword("u", b.GitHubToken)
-		repo = u.String()
+	if err = writeFile(os.Getenv("HOME"), ".netrc", map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
+		return "", err
 	}
 
 	cmd := exec.Command("git", "clone", repo, clone)
