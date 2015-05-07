@@ -59,7 +59,21 @@ func PutEnvironment(app string, env Environment) error {
 		return err
 	}
 
-	return s3Put(a.Outputs["Settings"], "env", []byte(env.Raw()), true)
+	release, err := a.ForkRelease()
+
+	if err != nil {
+		return err
+	}
+
+	release.Env = env.Raw()
+
+	err = release.Save()
+
+	if err != nil {
+		return err
+	}
+
+	return s3Put(a.Outputs["Settings"], "env", []byte(release.Env), true)
 }
 
 func (e Environment) SortedNames() []string {

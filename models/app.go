@@ -118,6 +118,23 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 	return nil
 }
 
+func (a *App) ForkRelease() (*Release, error) {
+	if a.Release == "" {
+		return nil, fmt.Errorf("could not determine current release for %s", a.Name)
+	}
+
+	release, err := GetRelease(a.Name, a.Release)
+
+	if err != nil {
+		return nil, err
+	}
+
+	release.Id = ""
+	release.Created = time.Time{}
+
+	return release, nil
+}
+
 func (a *App) Formation() (string, error) {
 	processes := strings.Join(a.ProcessNames(), ",")
 	balancers := strings.Join(a.BalancerNames(), ",")
