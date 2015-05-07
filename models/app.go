@@ -9,6 +9,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
 )
 
 type App struct {
@@ -100,7 +101,29 @@ func (a *App) Create() error {
 	return err
 }
 
+func (a *App) Cleanup() error {
+	err := cleanupBucket(a.Outputs["Settings"])
+
+	if err != nil {
+		return err
+	}
+
+	releases, err := ListReleases(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, release := range releases {
+		go cleanupRelease(release)
+	}
+
+	return nil
+}
+
 func (a *App) Delete() error {
+	go a.Cleanup()
+
 	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
 }
 
@@ -325,5 +348,49 @@ func appFromStack(stack cloudformation.Stack) *App {
 		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 		Release:    params["Release"],
+	}
+}
+
+func cleanupBucket(bucket string) error {
+	req := &s3.ListObjectVersionsRequest{
+		Bucket: aws.String(bucket),
+	}
+
+	res, err := S3.ListObjectVersions(req)
+
+	if err != nil {
+		return err
+	}
+
+	for _, d := range res.DeleteMarkers {
+		go cleanupBucketObject(bucket, *d.Key, *d.VersionID)
+	}
+
+	for _, v := range res.Versions {
+		go cleanupBucketObject(bucket, *v.Key, *v.VersionID)
+	}
+
+	return nil
+}
+
+func cleanupBucketObject(bucket, key, version string) {
+	req := &s3.DeleteObjectRequest{
+		Bucket:    aws.String(bucket),
+		Key:       aws.String(key),
+		VersionID: aws.String(version),
+	}
+
+	_, err := S3.DeleteObject(req)
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+}
+
+func cleanupRelease(release Release) {
+	err := release.Cleanup()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
 	}
 }

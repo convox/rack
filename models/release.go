@@ -8,6 +8,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
 )
 
 type Release struct {
@@ -88,6 +89,34 @@ func GetRelease(app, id string) (*Release, error) {
 	release.Active = (a.Release == release.Id)
 
 	return release, nil
+}
+
+func (r *Release) Cleanup() error {
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return err
+	}
+
+	// delete ami
+	req := &ec2.DeregisterImageRequest{
+		ImageID: aws.String(r.Ami),
+	}
+
+	err = EC2.DeregisterImage(req)
+
+	if err != nil {
+		return err
+	}
+
+	// delete env
+	err = s3Delete(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Release) Save() error {
