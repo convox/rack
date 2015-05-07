@@ -288,7 +288,7 @@
 					<td>{{ .Ami }}</td>
 					<td>{{ timeago .Created }}</td>
 					<td class="buttons">
-						<button class="btn btn-xs btn-info" title="CloudFormation Template" data-toggle="modal" data-target="#release-formation-{{ .Id }}">Manifest</button>
+						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
 					</td>
 					<td class="buttons">
 						{{ if .Active }}
@@ -301,6 +301,9 @@
 			{{ end }}
 		</tbody>
 	</table>
+	{{ range . }}
+		{{ template "release" . }}
+	{{ end }}
 	<script>
 		$('.timeago').timeago();
 
@@ -316,15 +319,15 @@
 {{ end }}
 
 {{ define "release" }}
-	<div id="release-formation-{{ .Id }}" class="modal fade">
-		<div class="modal-dialog modal-lg">
+	<div id="release-env-{{ .Id }}" class="modal fade">
+		<div class="modal-dialog modal-sm">
 			<div class="modal-content">
 				<div class="modal-header">
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-					<h4 class="modal-title">CloudFormation Template: {{ .Id }}</h4>
+					<h4 class="modal-title">Env for {{ .Id }}</h4>
 				</div>
 				<div class="modal-body">
-					<pre class="modal-scroll">{{ .Formation }}</pre>
+					<pre>{{ .Env }}</pre>
 				</div>
 			</div>
 		</div>
