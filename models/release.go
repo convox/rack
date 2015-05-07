@@ -17,6 +17,7 @@ type Release struct {
 
 	Active   bool
 	Ami      string
+	Env      string
 	Manifest string
 
 	Created time.Time
@@ -111,13 +112,27 @@ func (r *Release) Save() error {
 		req.Item["ami"] = dynamodb.AttributeValue{S: aws.String(r.Ami)}
 	}
 
+	if r.Env != "" {
+		req.Item["env"] = dynamodb.AttributeValue{S: aws.String(r.Env)}
+	}
+
 	if r.Manifest != "" {
 		req.Item["manifest"] = dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
 	_, err := DynamoDB.PutItem(req)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return err
+	}
+
+	return s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), []byte(r.Env), true)
 }
 
 func (r *Release) Promote() error {
@@ -149,7 +164,7 @@ func (r *Release) Promote() error {
 	params := app.Parameters
 
 	params["AMI"] = r.Ami
-	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/env", app.Outputs["Settings"])
+	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", app.Outputs["Settings"], r.Id)
 	params["Release"] = r.Id
 
 	for _, entry := range manifest {
@@ -206,9 +221,10 @@ func releaseFromItem(item map[string]dynamodb.AttributeValue) *Release {
 
 	return &Release{
 		Id:       coalesce(item["id"].S, ""),
-		Ami:      coalesce(item["ami"].S, ""),
-		Manifest: coalesce(item["manifest"].S, ""),
 		App:      coalesce(item["app"].S, ""),
+		Ami:      coalesce(item["ami"].S, ""),
+		Env:      coalesce(item["env"].S, ""),
+		Manifest: coalesce(item["manifest"].S, ""),
 		Created:  created,
 	}
 }

@@ -126,7 +126,22 @@ func (b *Build) Execute(repo string) {
 		return
 	}
 
-	release := &Release{App: b.App}
+	app, err := GetApp(b.App)
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	release, err := app.ForkRelease()
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	release.Ami = ""
+	release.Manifest = ""
 
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
