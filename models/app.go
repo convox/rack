@@ -108,6 +108,16 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
+	builds, err := ListBuilds(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, build := range builds {
+		go cleanupBuild(build)
+	}
+
 	releases, err := ListReleases(a.Name)
 
 	if err != nil {
@@ -122,9 +132,15 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
+	err := CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
+
+	if err != nil {
+		return err
+	}
+
 	go a.Cleanup()
 
-	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
+	return nil
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
@@ -395,6 +411,14 @@ func cleanupBucketObject(bucket, key, version string) {
 	}
 
 	_, err := S3.DeleteObject(req)
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+}
+
+func cleanupBuild(build Build) {
+	err := build.Cleanup()
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)

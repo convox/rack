@@ -98,6 +98,26 @@ func (b *Build) Save() error {
 	return err
 }
 
+func (b *Build) Cleanup() error {
+	// TODO: store Ami on build and clean up from here
+	// and remove the ami cleanup in release.Cleanup()
+
+	// app, err := GetApp(b.App)
+
+	// if err != nil {
+	//   return err
+	// }
+
+	// // delete ami
+	// req := &ec2.DeregisterImageRequest{
+	//   ImageID: aws.String(b.Ami),
+	// }
+
+	// return EC2.DeregisterImage(req)
+
+	return nil
+}
+
 func (b *Build) Execute(repo string) {
 	log = log.At("execute").Start()
 
