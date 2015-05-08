@@ -22,12 +22,14 @@ func init() {
 	RegisterPartial("app", "resources")
 	RegisterPartial("app", "services")
 
+	RegisterPartial("app", "AMI")
 	RegisterPartial("app", "AWS::AutoScaling::AutoScalingGroup")
 	RegisterPartial("app", "AWS::AutoScaling::LaunchConfiguration")
 	RegisterPartial("app", "AWS::CloudFormation::Stack")
 	RegisterPartial("app", "AWS::EC2::VPC")
 	RegisterPartial("app", "AWS::RDS::DBInstance")
 	RegisterPartial("app", "AWS::S3::Bucket")
+	RegisterPartial("app", "Env::Diff")
 
 	RegisterTemplate("apps", "layout", "apps")
 	RegisterTemplate("app", "layout", "app")
@@ -137,7 +139,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 		TargetId: release.Id,
 		Type:     "PROMOTE",
 		Status:   "changing",
-		User:     "web",
+		User:     "convox",
 	}
 
 	change.Save()

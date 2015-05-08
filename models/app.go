@@ -160,26 +160,16 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 func (a *App) ForkRelease() (*Release, error) {
 	var release *Release
 
-	if a.Release == "" {
-		releases, err := ListReleases(a.Name)
+	releases, err := ListReleases(a.Name)
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		if len(releases) == 0 {
-			release = &Release{App: a.Name}
-		} else {
-			release = &releases[0]
-		}
+	if len(releases) == 0 {
+		release = &Release{App: a.Name}
 	} else {
-		r, err := GetRelease(a.Name, a.Release)
-
-		if err != nil {
-			return nil, err
-		}
-
-		release = r
+		release = &releases[0]
 	}
 
 	release.Id = ""

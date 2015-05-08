@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/aryann/difflib",
+			"Rev": "035af7c09b120b0909dd998c92745b82f61e0b1c"
+		},
+		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},

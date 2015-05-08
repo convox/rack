@@ -197,6 +197,10 @@
 	</script>
 {{ end }}
 
+{{ define "AMI" }}
+	<li>AMI changed from {{ name .Status }} to {{ name .Name }}</li>
+{{ end }}
+
 {{ define "AWS::AutoScaling::AutoScalingGroup" }}
 	<li>Roll Auto Scaling Group {{ name .Name }} {{ duration .Start .End }}</li>
 {{ end }}
@@ -219,6 +223,10 @@
 
 {{ define "AWS::S3::Bucket" }}
 	<li>Update S3 Bucket {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "Env::Diff" }}
+	<li>Env {{ name .Name }} {{ .Status }}</li>
 {{ end }}
 
 {{ define "environment" }}

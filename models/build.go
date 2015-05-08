@@ -2,6 +2,7 @@ package models
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -160,6 +161,8 @@ func (b *Build) Execute(repo string) {
 		return
 	}
 
+	oldami := release.Ami
+
 	release.Ami = ""
 	release.Manifest = ""
 
@@ -204,6 +207,39 @@ func (b *Build) Execute(repo string) {
 			if err != nil {
 				log.Error(err)
 				return
+			}
+
+			if oldami == "" {
+				oldami = "<none>"
+			}
+
+			meta := ChangeMetadata{
+				Transactions: []Transaction{
+					Transaction{Type: "AMI", Name: release.Ami, Status: oldami},
+				},
+			}
+
+			data, err := json.Marshal(meta)
+
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			change := &Change{
+				App:      app.Name,
+				Created:  time.Now(),
+				Metadata: string(data),
+				TargetId: release.Id,
+				Type:     "RELEASE",
+				Status:   "complete",
+				User:     "convox",
+			}
+
+			err = change.Save()
+
+			if err != nil {
+				log.Error(err)
 			}
 		default:
 			log.Log("type=unknown text=%q", parts[1])

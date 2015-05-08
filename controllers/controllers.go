@@ -61,6 +61,9 @@ func displayHelpers() template.FuncMap {
 		"timeago": func(t time.Time) template.HTML {
 			return template.HTML(fmt.Sprintf(`<span class="timeago" title="%s">%s</span>`, t.Format(time.RFC3339), t.Format("2006-01-02 15:04:05 UTC")))
 		},
+		"upper": func(s string) string {
+			return strings.ToUpper(s[0:1]) + s[1:]
+		},
 		"splitcaps": func(name string) string {
 			var words []string
 			l := 0
