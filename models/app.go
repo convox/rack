@@ -142,14 +142,28 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
+	var release *Release
+
 	if a.Release == "" {
-		return nil, fmt.Errorf("could not determine current release for %s", a.Name)
-	}
+		releases, err := ListReleases(a.Name)
 
-	release, err := GetRelease(a.Name, a.Release)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		return nil, err
+		if len(releases) == 0 {
+			release = &Release{App: a.Name}
+		} else {
+			release = &releases[0]
+		}
+	} else {
+		r, err := GetRelease(a.Name, a.Release)
+
+		if err != nil {
+			return nil, err
+		}
+
+		release = r
 	}
 
 	release.Id = ""
