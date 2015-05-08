@@ -16,8 +16,8 @@ Create a CloudFormation stack for a Convox service.
 |---------------------|-----------------------------------------------------------------|
 | `AllocatedStorage`  | Allocated storage size (GB)                                     |
 | `AvailabilityZones` | A comma-delimited list of availability zones to use (specify 3) |
-| `Database`          | Default database name                                           |
 | `InstanceClass`     | Instance class for database nodes                               |
+| `Name`              | Default database name                                           |
 | `Password`          | Server password                                                 |
 
 ###### Outputs
@@ -26,7 +26,7 @@ Create a CloudFormation stack for a Convox service.
 |------------|-------------------|
 | `Addr`     | Database hostname |
 | `Port`     | Database port     |
-| `Database` | Database name     |
+| `Name`     | Database name     |
 | `Password` | Database password |
 
 ### redis
