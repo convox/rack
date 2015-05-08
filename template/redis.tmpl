@@ -13,9 +13,12 @@
         "Description" : "Server password"
       },
       "SSHKey": {
-        "Type": "AWS::EC2::KeyPair::KeyName",
+        "Type": "String",
         "Description" : "Key name for SSH access"
       }
+    },
+    "Conditions": {
+      "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] }
     },
     "Outputs": {
       "Addr": { "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
@@ -162,7 +165,7 @@
           "ImageId": "ami-8ce49ee4",
           "InstanceMonitoring": true,
           "InstanceType": "t2.micro",
-          "KeyName": { "Ref": "SSHKey" },
+          "KeyName": { "Fn::If": [ "BlankSSHKey", { "Ref": "AWS::NoValue" }, { "Ref": "SSHKey" } ] },
           "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
           "UserData": ""
         }
