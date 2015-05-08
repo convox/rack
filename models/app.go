@@ -9,6 +9,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
 )
 
 type App struct {
@@ -100,8 +101,46 @@ func (a *App) Create() error {
 	return err
 }
 
+func (a *App) Cleanup() error {
+	err := cleanupBucket(a.Outputs["Settings"])
+
+	if err != nil {
+		return err
+	}
+
+	builds, err := ListBuilds(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, build := range builds {
+		go cleanupBuild(build)
+	}
+
+	releases, err := ListReleases(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, release := range releases {
+		go cleanupRelease(release)
+	}
+
+	return nil
+}
+
 func (a *App) Delete() error {
-	return CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
+	err := CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
+
+	if err != nil {
+		return err
+	}
+
+	go a.Cleanup()
+
+	return nil
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
@@ -119,14 +158,28 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
+	var release *Release
+
 	if a.Release == "" {
-		return nil, fmt.Errorf("could not determine current release for %s", a.Name)
-	}
+		releases, err := ListReleases(a.Name)
 
-	release, err := GetRelease(a.Name, a.Release)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		return nil, err
+		if len(releases) == 0 {
+			release = &Release{App: a.Name}
+		} else {
+			release = &releases[0]
+		}
+	} else {
+		r, err := GetRelease(a.Name, a.Release)
+
+		if err != nil {
+			return nil, err
+		}
+
+		release = r
 	}
 
 	release.Id = ""
@@ -325,5 +378,57 @@ func appFromStack(stack cloudformation.Stack) *App {
 		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 		Release:    params["Release"],
+	}
+}
+
+func cleanupBucket(bucket string) error {
+	req := &s3.ListObjectVersionsRequest{
+		Bucket: aws.String(bucket),
+	}
+
+	res, err := S3.ListObjectVersions(req)
+
+	if err != nil {
+		return err
+	}
+
+	for _, d := range res.DeleteMarkers {
+		go cleanupBucketObject(bucket, *d.Key, *d.VersionID)
+	}
+
+	for _, v := range res.Versions {
+		go cleanupBucketObject(bucket, *v.Key, *v.VersionID)
+	}
+
+	return nil
+}
+
+func cleanupBucketObject(bucket, key, version string) {
+	req := &s3.DeleteObjectRequest{
+		Bucket:    aws.String(bucket),
+		Key:       aws.String(key),
+		VersionID: aws.String(version),
+	}
+
+	_, err := S3.DeleteObject(req)
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+}
+
+func cleanupBuild(build Build) {
+	err := build.Cleanup()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+}
+
+func cleanupRelease(release Release) {
+	err := release.Cleanup()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
 	}
 }

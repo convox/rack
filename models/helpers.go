@@ -116,6 +116,17 @@ func printLines(data string) {
 	}
 }
 
+func s3Delete(bucket, key string) error {
+	req := &s3.DeleteObjectRequest{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	_, err := S3.DeleteObject(req)
+
+	return err
+}
+
 func s3Get(bucket, key string) ([]byte, error) {
 	req := &s3.GetObjectRequest{
 		Bucket: aws.String(bucket),
