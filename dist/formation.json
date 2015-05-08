@@ -601,6 +601,11 @@
                 { "Fn::Join": [ "", [ "    \"STACK_NAME=", { "Ref": "AWS::StackName" }, "\"," ] ] },
                 "    \"RUNTIME=convox\"",
                 "  ],",
+                "  \"signal\": {",
+                { "Fn::Join": [ "", [ "    \"stack\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
+                "    \"resource\": \"WebInstances\"",
+                "  }",
+                "}"
                 "  \"volumes\": [",
                 "    \"/var/run/docker.sock:/var/run/docker.sock\"",
                 "  ]",
