@@ -6,12 +6,15 @@ Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
 
 #### CLI
 
+    ```shell
     $ KEY=arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000
 
     $ cat .env | docker run convox/env encrypt $KEY | docker run convox/env decrypt $KEY
+    ```
 
 #### Golang
 
+    ```golang
     import "github.com/convox/env/crypt"
 
     const (
@@ -27,6 +30,7 @@ Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
     // decrypt an envelope
     envelope, err := crypt.UnmarshalEnvelope(data)
     decrypted, err := cr.Decrypt(Key, envelope)
+    ```
 
 ## License
 
