@@ -1,6 +1,6 @@
 # convox/env
 
-Encrypt and decrypt environments.
+Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
 
 ## Usage
 
