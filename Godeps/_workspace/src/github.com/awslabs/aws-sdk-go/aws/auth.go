@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vaughan0/go-ini"
+	"github.com/convox/env/Godeps/_workspace/src/github.com/vaughan0/go-ini"
 )
 
 // Credentials are used to authenticate and authorize calls that you make to

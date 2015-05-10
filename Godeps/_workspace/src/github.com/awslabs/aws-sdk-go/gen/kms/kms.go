@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/gen/endpoints"
 	"github.com/convox/env/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/env/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/endpoints"
 )
 
 // KMS is a client for AWS Key Management Service.

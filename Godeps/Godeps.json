@@ -10,6 +10,10 @@
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/endpoints",
+			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+		},
+		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kms",
 			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
 		},
@@ -19,7 +23,19 @@
 			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
 		},
 		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
+			"Rev": "24ffb5feb3312a39054178a4b0a4554fc2201248"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/poly1305",
+			"Rev": "24ffb5feb3312a39054178a4b0a4554fc2201248"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
 			"Rev": "24ffb5feb3312a39054178a4b0a4554fc2201248"
 		}
 	]
