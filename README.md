@@ -24,7 +24,7 @@ Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
 
     // decrypt an envelope
     envelope, err := crypt.UnmarshalEnvelope(data)
-    decrypted, err := crypt.Decrypt(Key, envelope)
+    decrypted, err := cr.Decrypt(Key, envelope)
 
 ## License
 
