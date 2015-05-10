@@ -1,0 +1,2 @@
+DATABASE_URL=postgres://user:pass@example.org:5432/test
+FOO=bar
