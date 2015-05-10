@@ -1,11 +1,10 @@
 all: build
 
 build: 
-	go get .
+	docker build -t convox/env .
 
 test: build
-	export $(shell cat .env)
-	cat eg/env | $(GOPATH)/bin/env encrypt | $(GOPATH)/bin/env decrypt
+	cat eg/env | docker run --env-file .env -i convox/env encrypt $(KEY) | docker run --env-file .env -i convox/env decrypt $(KEY)
 
 vendor:
 	godep save -r ./...
