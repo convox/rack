@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/convox/env/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/env/crypt"
 )
 
 func main() {
@@ -30,4 +31,12 @@ func main() {
 	app.Usage = "env management"
 
 	app.Run(os.Args)
+}
+
+func buildCrypt(c *cli.Context) *crypt.Crypt {
+	region := c.GlobalString("region")
+	access := c.GlobalString("access")
+	secret := c.GlobalString("secret")
+
+	return crypt.New(region, access, secret)
 }

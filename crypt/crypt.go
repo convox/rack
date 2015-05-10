@@ -1,4 +1,4 @@
-package main
+package crypt
 
 import (
 	"encoding/json"
@@ -20,13 +20,21 @@ type Crypt struct {
 	AwsSecret string
 }
 
-type EncryptedData struct {
+type Envelope struct {
 	Ciphertext   []byte `json:"c"`
 	EncryptedKey []byte `json:"k"`
 	Nonce        []byte `json:"n"`
 }
 
-func (c *Crypt) Encrypt(keyArn string, dec []byte) (*EncryptedData, error) {
+func New(region, access, secret string) *Crypt {
+	return &Crypt{
+		AwsRegion: region,
+		AwsAccess: access,
+		AwsSecret: secret,
+	}
+}
+
+func (c *Crypt) Encrypt(keyArn string, dec []byte) (*Envelope, error) {
 	req := &kms.GenerateDataKeyRequest{
 		KeyID:         aws.String(keyArn),
 		NumberOfBytes: aws.Integer(KeyLength),
@@ -53,7 +61,7 @@ func (c *Crypt) Encrypt(keyArn string, dec []byte) (*EncryptedData, error) {
 	var enc []byte
 	enc = secretbox.Seal(enc, dec, &nonce, &key)
 
-	data := &EncryptedData{
+	data := &Envelope{
 		Ciphertext:   enc,
 		EncryptedKey: res.CiphertextBlob,
 		Nonce:        nonce[:],
@@ -62,7 +70,7 @@ func (c *Crypt) Encrypt(keyArn string, dec []byte) (*EncryptedData, error) {
 	return data, nil
 }
 
-func (c *Crypt) Decrypt(keyArn string, data *EncryptedData) ([]byte, error) {
+func (c *Crypt) Decrypt(keyArn string, data *Envelope) ([]byte, error) {
 	req := &kms.DecryptRequest{
 		CiphertextBlob: data.EncryptedKey,
 	}
@@ -103,12 +111,12 @@ func (c *Crypt) generateNonce() ([]byte, error) {
 	return res.Plaintext, nil
 }
 
-func (ed *EncryptedData) Marshal() ([]byte, error) {
+func (ed *Envelope) Marshal() ([]byte, error) {
 	return json.Marshal(ed)
 }
 
-func UnmarshalEncryptedData(data []byte) (*EncryptedData, error) {
-	var ed *EncryptedData
+func UnmarshalEnvelope(data []byte) (*Envelope, error) {
+	var ed *Envelope
 
 	err := json.Unmarshal(data, &ed)
 
