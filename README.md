@@ -6,7 +6,7 @@ Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
 
 #### CLI
 
-```shell-session
+```shell
 $ KEY=arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000
 
 $ cat .env | docker run convox/env encrypt $KEY | docker run convox/env decrypt $KEY
