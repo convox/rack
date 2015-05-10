@@ -4,19 +4,9 @@ Encrypt and decrypt environments.
 
 ## Usage
 
-    $ cat .env | docker run convox/env encrypt arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000 > env.kms
+    $ KEY=arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000
 
-    $ cat env.kms | docker run convox/env decrypt arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000
-
-## Test
-
-    $ cat .env
-    AWS_REGION=...
-    AWS_ACCESS=...
-    AWS_SECRET=...
-    KEY=...
-
-    $ forego run make test
+    $ cat .env | docker run convox/env encrypt $KEY | docker run convox/env decrypt $KEY
 
 ## License
 
