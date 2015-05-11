@@ -28,7 +28,7 @@ cr := crypt.NewIamRole()
 // encrypt a secret
 enc, err := cr.Encrypt(Key, []byte("some sensitive data"))
 
-// decrypt an envelope
+// decrypt a secret
 dec, err := cr.Decrypt(Key, enc)
 ```
 
