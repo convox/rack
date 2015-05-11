@@ -17,9 +17,7 @@ $ cat .env | docker run -i convox/env encrypt $KEY | docker run -i convox/env de
 ```go
 import "github.com/convox/env/crypt"
 
-const (
-  Key = "arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000"
-)
+const Key = "arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000"
 
 // specify aws credentials
 cr := crypt.New("region", "access", "secret")
