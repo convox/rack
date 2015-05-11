@@ -45,13 +45,7 @@ func cmdEncrypt(c *cli.Context) {
 		AwsSecret: c.GlobalString("secret"),
 	}
 
-	enc, err := cr.Encrypt(key, env)
-
-	if err != nil {
-		panic(err)
-	}
-
-	data, err := enc.Marshal()
+	data, err := cr.Encrypt(key, env)
 
 	if err != nil {
 		panic(err)

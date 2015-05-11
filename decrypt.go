@@ -39,19 +39,13 @@ func cmdDecrypt(c *cli.Context) {
 		panic(err)
 	}
 
-	e, err := crypt.UnmarshalEnvelope(data)
-
-	if err != nil {
-		panic(err)
-	}
-
 	cr := &crypt.Crypt{
 		AwsRegion: c.GlobalString("region"),
 		AwsAccess: c.GlobalString("access"),
 		AwsSecret: c.GlobalString("secret"),
 	}
 
-	dec, err := cr.Decrypt(key, e)
+	dec, err := cr.Decrypt(key, data)
 
 	if err != nil {
 		panic(err)

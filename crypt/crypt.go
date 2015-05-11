@@ -34,7 +34,7 @@ func New(region, access, secret string) *Crypt {
 	}
 }
 
-func (c *Crypt) Encrypt(keyArn string, dec []byte) (*Envelope, error) {
+func (c *Crypt) Encrypt(keyArn string, dec []byte) ([]byte, error) {
 	req := &kms.GenerateDataKeyRequest{
 		KeyID:         aws.String(keyArn),
 		NumberOfBytes: aws.Integer(KeyLength),
@@ -61,18 +61,24 @@ func (c *Crypt) Encrypt(keyArn string, dec []byte) (*Envelope, error) {
 	var enc []byte
 	enc = secretbox.Seal(enc, dec, &nonce, &key)
 
-	data := &Envelope{
+	e := &Envelope{
 		Ciphertext:   enc,
 		EncryptedKey: res.CiphertextBlob,
 		Nonce:        nonce[:],
 	}
 
-	return data, nil
+	return e.Marshal()
 }
 
-func (c *Crypt) Decrypt(keyArn string, data *Envelope) ([]byte, error) {
+func (c *Crypt) Decrypt(keyArn string, data []byte) ([]byte, error) {
+	e, err := unmarshalEnvelope(data)
+
+	if err != nil {
+		return nil, err
+	}
+
 	req := &kms.DecryptRequest{
-		CiphertextBlob: data.EncryptedKey,
+		CiphertextBlob: e.EncryptedKey,
 	}
 
 	res, err := c.kms().Decrypt(req)
@@ -85,10 +91,10 @@ func (c *Crypt) Decrypt(keyArn string, data *Envelope) ([]byte, error) {
 	copy(key[:], res.Plaintext[0:KeyLength])
 
 	var nonce [NonceLength]byte
-	copy(nonce[:], data.Nonce[0:NonceLength])
+	copy(nonce[:], e.Nonce[0:NonceLength])
 
 	var dec []byte
-	dec, ok := secretbox.Open(dec, data.Ciphertext, &nonce, &key)
+	dec, ok := secretbox.Open(dec, e.Ciphertext, &nonce, &key)
 
 	if !ok {
 		return nil, fmt.Errorf("failed decryption")
@@ -115,7 +121,7 @@ func (ed *Envelope) Marshal() ([]byte, error) {
 	return json.Marshal(ed)
 }
 
-func UnmarshalEnvelope(data []byte) (*Envelope, error) {
+func unmarshalEnvelope(data []byte) (*Envelope, error) {
 	var ed *Envelope
 
 	err := json.Unmarshal(data, &ed)
