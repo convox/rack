@@ -67,11 +67,12 @@ func (c *Crypt) Encrypt(keyArn string, dec []byte) ([]byte, error) {
 		Nonce:        nonce[:],
 	}
 
-	return e.Marshal()
+	return json.Marshal(e)
 }
 
 func (c *Crypt) Decrypt(keyArn string, data []byte) ([]byte, error) {
-	e, err := unmarshalEnvelope(data)
+	var e *Envelope
+	err := json.Unmarshal(data, &e)
 
 	if err != nil {
 		return nil, err
@@ -115,20 +116,4 @@ func (c *Crypt) generateNonce() ([]byte, error) {
 	}
 
 	return res.Plaintext, nil
-}
-
-func (ed *Envelope) Marshal() ([]byte, error) {
-	return json.Marshal(ed)
-}
-
-func unmarshalEnvelope(data []byte) (*Envelope, error) {
-	var ed *Envelope
-
-	err := json.Unmarshal(data, &ed)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return ed, nil
 }
