@@ -7,7 +7,7 @@
         "Default" : "10",
         "Description" : "Allocated storage size (GB)"
       },
-      "Name": {
+      "Database": {
         "Type" : "String",
         "Default" : "app",
         "Description" : "Default database name"
@@ -19,15 +19,20 @@
       },
       "Password": {
         "Type" : "String",
-        "Default" : "",
         "Description" : "Server password"
+      },
+      "Username": {
+        "Type" : "String",
+        "Default" : "postgres",
+        "Description" : "Server username"
       }
     },
     "Outputs": {
-      "Addr": { "Value": { "Fn::GetAtt": [ "Database", "Endpoint.Address" ] } },
-      "Port": { "Value": { "Fn::GetAtt": [ "Database", "Endpoint.Port" ] } },
-      "Name": { "Value": { "Ref": "Name" } },
-      "Password": { "Value": { "Ref": "Password" } }
+      "Port5432TcpAddr": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Address" ] } },
+      "Port5432TcpPort": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Port" ] } },
+      "EnvPostgresDatabase": { "Value": { "Ref": "Database" } },
+      "EnvPostgresPassword": { "Value": { "Ref": "Password" } },
+      "EnvPostgresUsername": { "Value": { "Ref": "Username" } }
     },
     "Resources": {
       "Vpc": {
@@ -133,7 +138,7 @@
           ]
         }
       },
-      "Database": {
+      "Instance": {
         "Type": "AWS::RDS::DBInstance",
         "Properties": {
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
@@ -142,7 +147,7 @@
           "DBName": "app",
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
-          "MasterUsername": "app",
+          "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "Port": "5432",
           "PubliclyAccessible": "true",
