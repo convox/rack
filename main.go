@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/convox/env/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/env/crypt"
 )
 
