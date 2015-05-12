@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 )
 
 type Release struct {
@@ -161,7 +163,19 @@ func (r *Release) Save() error {
 		return err
 	}
 
-	return s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), []byte(r.Env), true)
+	env := []byte(r.Env)
+
+	if app.Parameters["Key"] != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		env, err = cr.Encrypt(app.Parameters["Key"], []byte(env))
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
 func (r *Release) Promote() error {
