@@ -7,13 +7,18 @@
         "Default" : "0.0.0.0/0",
         "Description" : "Allow SSH From (CIDR notation)"
       },
+      "Database": {
+        "Type" : "String",
+        "Default" : "0",
+        "Description" : "Default database index"
+      },
       "Password": {
         "Type" : "String",
-        "Default" : "",
         "Description" : "Server password"
       },
       "SSHKey": {
-        "Type": "String",
+        "Type" : "String",
+        "Default" : "",
         "Description" : "Key name for SSH access"
       }
     },
@@ -21,9 +26,10 @@
       "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] }
     },
     "Outputs": {
-      "Addr": { "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
-      "Port": { "Value": "6379" },
-      "Password": { "Value": { "Ref": "Password" } }
+      "Port6379TcpAddr": { "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
+      "Port6379TcpPort": { "Value": "6379" },
+      "EnvRedisDatabase": { "Value": { "Ref": "Database" } },
+      "EnvRedisPassword": { "Value": { "Ref": "Password" } }
     },
     "Resources": {
       "Vpc": {
