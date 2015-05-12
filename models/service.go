@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -112,17 +111,5 @@ func (s *Service) ManagementUrl() string {
 		return fmt.Sprintf("https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:id=%s;view=details", region, id)
 	default:
 		return ""
-	}
-}
-
-func servicesTable(app string) string {
-	return fmt.Sprintf("%s-services", app)
-}
-
-func serviceFromItem(item map[string]dynamodb.AttributeValue) *Service {
-	return &Service{
-		Name: coalesce(item["name"].S, ""),
-		Type: coalesce(item["type"].S, ""),
-		App:  coalesce(item["app"].S, ""),
 	}
 }

@@ -260,14 +260,14 @@ func releasesTable(app string) string {
 }
 
 func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
-	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
+	created, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 
 	return &Release{
-		Id:       coalesce(item["id"].S, ""),
-		App:      coalesce(item["app"].S, ""),
-		Ami:      coalesce(item["ami"].S, ""),
-		Env:      coalesce(item["env"].S, ""),
-		Manifest: coalesce(item["manifest"].S, ""),
+		Id:       coalesce(item["id"], ""),
+		App:      coalesce(item["app"], ""),
+		Ami:      coalesce(item["ami"], ""),
+		Env:      coalesce(item["env"], ""),
+		Manifest: coalesce(item["manifest"], ""),
 		Created:  created,
 	}
 }

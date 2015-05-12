@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -154,16 +153,4 @@ func (p *Process) Resources() Resources {
 
 func (p *Process) Userdata() string {
 	return `""`
-}
-
-func processesTable(app string) string {
-	return fmt.Sprintf("%s-processes", app)
-}
-
-func processFromItem(item map[string]dynamodb.AttributeValue) *Process {
-	return &Process{
-		Name:  coalesce(item["name"].S, ""),
-		Count: coalesce(item["count"].S, "0"),
-		App:   coalesce(item["app"].S, ""),
-	}
 }

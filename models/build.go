@@ -277,15 +277,15 @@ func buildsTable(app string) string {
 }
 
 func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
-	started, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
-	ended, _ := time.Parse(SortableTime, coalesce(item["ended"].S, ""))
+	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
+	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
 	return &Build{
-		Id:      coalesce(item["id"].S, ""),
-		App:     coalesce(item["app"].S, ""),
-		Logs:    coalesce(item["logs"].S, ""),
-		Release: coalesce(item["release"].S, ""),
-		Status:  coalesce(item["status"].S, ""),
+		Id:      coalesce(item["id"], ""),
+		App:     coalesce(item["app"], ""),
+		Logs:    coalesce(item["logs"], ""),
+		Release: coalesce(item["release"], ""),
+		Status:  coalesce(item["status"], ""),
 		Started: started,
 		Ended:   ended,
 	}

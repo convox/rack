@@ -88,23 +88,23 @@ func changesTable(app string) string {
 }
 
 func changeFromItem(item map[string]*dynamodb.AttributeValue) *Change {
-	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
+	created, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 
 	metadata := ChangeMetadata{}
 
-	err := json.Unmarshal([]byte(coalesce(item["metadata"].S, "{}")), &metadata)
+	err := json.Unmarshal([]byte(coalesce(item["metadata"], "{}")), &metadata)
 	if err != nil {
 		panic(err)
 	}
 
 	return &Change{
-		App:      coalesce(item["app"].S, ""),
+		App:      coalesce(item["app"], ""),
 		Created:  created,
-		Metadata: coalesce(item["metadata"].S, ""),
+		Metadata: coalesce(item["metadata"], ""),
 		M:        metadata,
-		Status:   coalesce(item["status"].S, ""),
-		Type:     coalesce(item["type"].S, ""),
-		TargetId: coalesce(item["target_id"].S, ""),
-		User:     coalesce(item["user"].S, ""),
+		Status:   coalesce(item["status"], ""),
+		Type:     coalesce(item["type"], ""),
+		TargetId: coalesce(item["target_id"], ""),
+		User:     coalesce(item["user"], ""),
 	}
 }

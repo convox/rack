@@ -69,10 +69,10 @@ func ListEvents(app string) (Events, error) {
 		for _, event := range res.StackEvents {
 			events = append(events, Event{
 				Id:     *event.EventID,
-				Name:   coalesce(event.LogicalResourceID, ""),
-				Status: coalesce(event.ResourceStatus, ""),
-				Type:   coalesce(event.ResourceType, ""),
-				Reason: coalesce(event.ResourceStatusReason, ""),
+				Name:   *event.LogicalResourceID,
+				Status: *event.ResourceStatus,
+				Type:   *event.ResourceType,
+				Reason: *event.ResourceStatusReason,
 				Time:   *event.Timestamp,
 			})
 		}
