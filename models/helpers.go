@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 func init() {
@@ -30,7 +30,7 @@ func buildEnvironment() string {
 	return strings.Join(env, "\n")
 }
 
-func coalesce(s aws.StringValue, def string) string {
+func coalesce(s *string, def string) string {
 	if s != nil {
 		return *s
 	} else {
@@ -117,23 +117,23 @@ func printLines(data string) {
 }
 
 func s3Delete(bucket, key string) error {
-	req := &s3.DeleteObjectRequest{
+	req := &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}
 
-	_, err := S3.DeleteObject(req)
+	_, err := S3().DeleteObject(req)
 
 	return err
 }
 
 func s3Get(bucket, key string) ([]byte, error) {
-	req := &s3.GetObjectRequest{
+	req := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	}
 
-	res, err := S3.GetObject(req)
+	res, err := S3().GetObject(req)
 
 	if err != nil {
 		return nil, err
@@ -143,8 +143,8 @@ func s3Get(bucket, key string) ([]byte, error) {
 }
 
 func s3Put(bucket, key string, data []byte, public bool) error {
-	req := &s3.PutObjectRequest{
-		Body:          ioutil.NopCloser(bytes.NewReader(data)),
+	req := &s3.PutObjectInput{
+		Body:          bytes.NewReader(data),
 		Bucket:        aws.String(bucket),
 		ContentLength: aws.Long(int64(len(data))),
 		Key:           aws.String(key),
@@ -154,12 +154,12 @@ func s3Put(bucket, key string, data []byte, public bool) error {
 		req.ACL = aws.String("public-read")
 	}
 
-	_, err := S3.PutObject(req)
+	_, err := S3().PutObject(req)
 
 	return err
 }
 
-func stackParameters(stack cloudformation.Stack) map[string]string {
+func stackParameters(stack *cloudformation.Stack) map[string]string {
 	parameters := make(map[string]string)
 
 	for _, parameter := range stack.Parameters {
@@ -169,7 +169,7 @@ func stackParameters(stack cloudformation.Stack) map[string]string {
 	return parameters
 }
 
-func stackOutputs(stack cloudformation.Stack) map[string]string {
+func stackOutputs(stack *cloudformation.Stack) map[string]string {
 	outputs := make(map[string]string)
 
 	for _, output := range stack.Outputs {
@@ -179,7 +179,7 @@ func stackOutputs(stack cloudformation.Stack) map[string]string {
 	return outputs
 }
 
-func stackTags(stack cloudformation.Stack) map[string]string {
+func stackTags(stack *cloudformation.Stack) map[string]string {
 	tags := make(map[string]string)
 
 	for _, tag := range stack.Tags {

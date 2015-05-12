@@ -7,14 +7,14 @@ import (
 	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 )
 
 func KernelUpdate() error {
 	stackName := os.Getenv("STACK_NAME")
 
 	if stackName != "" {
-		res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(stackName)})
+		res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(stackName)})
 
 		if err != nil {
 			return err
@@ -44,16 +44,19 @@ func KernelUpdate() error {
 		delete(params, "WebCommand")
 		delete(params, "WebPorts")
 
-		stackParams := []cloudformation.Parameter{}
+		stackParams := []*cloudformation.Parameter{}
 
 		for key, value := range params {
-			stackParams = append(stackParams, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+			stackParams = append(stackParams, &cloudformation.Parameter{
+				ParameterKey:   aws.String(key),
+				ParameterValue: aws.String(value),
+			})
 		}
 
 		req := &cloudformation.UpdateStackInput{
 			StackName:    aws.String(stackName),
 			TemplateURL:  aws.String("http://convox.s3.amazonaws.com/formation.json"),
-			Capabilities: []string{"CAPABILITY_IAM"},
+			Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 			Parameters:   stackParams,
 		}
 
@@ -69,7 +72,7 @@ func KernelUpdate() error {
 			}
 		}
 
-		_, err = CloudFormation.UpdateStack(req)
+		_, err = CloudFormation().UpdateStack(req)
 
 		if err != nil {
 			return err

@@ -11,48 +11,80 @@
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudformation",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/endpoints",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudwatch",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/ec2query",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/dynamodb",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/json/jsonutil",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/ec2",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/jsonrpc",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/endpoints",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/query",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kinesis",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/rest",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kms",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/restxml",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/s3",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/xml/xmlutil",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/signer/v4",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/cloudformation",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/cloudwatch",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/dynamodb",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/ec2",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/kinesis",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/kms",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/s3",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-32-gc64702c",
-			"Rev": "c64702ca03d0f858ab7866638b69e85f0d4c6ee7"
+			"Comment": "v0.1-55-g1dd3ab0",
+			"Rev": "1dd3ab0ff59e13f5b73dcbf70703710aebe50d2f"
 		},
 		{
 			"ImportPath": "github.com/convox/env/crypt",
-			"Rev": "a0f4fda1ea27e568ab0bbb5dc001fff5440a89d2"
+			"Rev": "b1610c7cb3360ec4bb4fdd0906151efb645ea0f0"
 		},
 		{
 			"ImportPath": "github.com/ddollar/logger",
@@ -80,6 +112,14 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/poly1305",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
 			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
 		},
 		{

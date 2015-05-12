@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/convox/env/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/env/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kms"
-	"github.com/convox/env/Godeps/_workspace/src/golang.org/x/crypto/nacl/secretbox"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kms"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/crypto/nacl/secretbox"
 )
 
 const (
@@ -99,12 +99,12 @@ func NewIam(role string) (*Crypt, error) {
 }
 
 func (c *Crypt) Encrypt(keyArn string, dec []byte) ([]byte, error) {
-	req := &kms.GenerateDataKeyRequest{
+	req := &kms.GenerateDataKeyInput{
 		KeyID:         aws.String(keyArn),
-		NumberOfBytes: aws.Integer(KeyLength),
+		NumberOfBytes: aws.Long(KeyLength),
 	}
 
-	res, err := c.kms().GenerateDataKey(req)
+	res, err := KMS(c).GenerateDataKey(req)
 
 	if err != nil {
 		return nil, err
@@ -142,11 +142,11 @@ func (c *Crypt) Decrypt(keyArn string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	req := &kms.DecryptRequest{
+	req := &kms.DecryptInput{
 		CiphertextBlob: e.EncryptedKey,
 	}
 
-	res, err := c.kms().Decrypt(req)
+	res, err := KMS(c).Decrypt(req)
 
 	if err != nil {
 		return nil, err
@@ -168,12 +168,8 @@ func (c *Crypt) Decrypt(keyArn string, data []byte) ([]byte, error) {
 	return dec, nil
 }
 
-func (c *Crypt) kms() *kms.KMS {
-	return kms.New(aws.Creds(c.AwsAccess, c.AwsSecret, c.AwsToken), c.AwsRegion, nil)
-}
-
 func (c *Crypt) generateNonce() ([]byte, error) {
-	res, err := c.kms().GenerateRandom(&kms.GenerateRandomRequest{NumberOfBytes: aws.Integer(NonceLength)})
+	res, err := KMS(c).GenerateRandom(&kms.GenerateRandomInput{NumberOfBytes: aws.Long(NonceLength)})
 
 	if err != nil {
 		return nil, err

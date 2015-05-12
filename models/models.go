@@ -4,54 +4,71 @@ import (
 	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 var SortableTime = "20060102.150405.000000000"
 
-var (
-	auth = aws.Creds(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
-)
-
-var (
-	CloudFormation = cloudformation.New(auth, os.Getenv("AWS_REGION"), nil)
-	Cloudwatch     = cloudwatch.New(auth, os.Getenv("AWS_REGION"), nil)
-	DynamoDB       = dynamodb.New(auth, os.Getenv("AWS_REGION"), nil)
-	EC2            = ec2.New(auth, os.Getenv("AWS_REGION"), nil)
-	Kinesis        = kinesis.New(auth, os.Getenv("AWS_REGION"), nil)
-	S3             = s3.New(auth, os.Getenv("AWS_REGION"), nil)
-)
-
-type Cluster struct {
-	Name   string
-	Status string
-
-	CpuUsed     int
-	CpuTotal    int
-	MemoryUsed  int
-	MemoryTotal int
-	DiskUsed    int
-	DiskTotal   int
-
-	Apps Apps
+type AwsCredentials struct {
 }
 
-type Clusters []Cluster
-
-type Container struct {
-	Name string
-
-	CpuUsed     int
-	CpuTotal    int
-	MemoryUsed  int
-	MemoryTotal int
-	DiskUsed    int
-	DiskTotal   int
+func (ec *AwsCredentials) IsExpired() bool {
+	return false
 }
 
-type Containers []Container
+func (ec *AwsCredentials) Retrieve() (credentials.Value, error) {
+	creds := credentials.Value{
+		AccessKeyID:     os.Getenv("AWS_ACCESS"),
+		SecretAccessKey: os.Getenv("AWS_SECRET"),
+	}
+
+	return creds, nil
+}
+
+func CloudFormation() *cloudformation.CloudFormation {
+	return cloudformation.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func CloudWatch() *cloudwatch.CloudWatch {
+	return cloudwatch.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func DynamoDB() *dynamodb.DynamoDB {
+	return dynamodb.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func EC2() *ec2.EC2 {
+	return ec2.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func Kinesis() *kinesis.Kinesis {
+	return kinesis.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func S3() *s3.S3 {
+	return s3.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}

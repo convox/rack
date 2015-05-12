@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudwatch"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
 )
 
 type Metrics struct {
@@ -14,10 +14,10 @@ type Metrics struct {
 }
 
 func AppMetrics(app string) (*Metrics, error) {
-	dimensions := []cloudwatch.Dimension{
-		cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
-		cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String("<all>")},
-		cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String("<all>")},
+	dimensions := []*cloudwatch.Dimension{
+		&cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
+		&cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String("<all>")},
+		&cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String("<all>")},
 	}
 
 	cpu, err := getMetric("CpuUtilization", dimensions, 1, 1)
@@ -42,10 +42,10 @@ func AppMetrics(app string) (*Metrics, error) {
 }
 
 func ProcessMetrics(app, process string) (*Metrics, error) {
-	dimensions := []cloudwatch.Dimension{
-		cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
-		cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
-		cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String("<all>")},
+	dimensions := []*cloudwatch.Dimension{
+		&cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
+		&cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
+		&cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String("<all>")},
 	}
 
 	cpu, err := getMetric("CpuUtilization", dimensions, 1, 1)
@@ -70,10 +70,10 @@ func ProcessMetrics(app, process string) (*Metrics, error) {
 }
 
 func InstanceMetrics(app, process, instance string) (*Metrics, error) {
-	dimensions := []cloudwatch.Dimension{
-		cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
-		cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
-		cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String(instance)},
+	dimensions := []*cloudwatch.Dimension{
+		&cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
+		&cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
+		&cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String(instance)},
 	}
 
 	cpu, err := getMetric("CpuUtilization", dimensions, 1, 1)
@@ -97,18 +97,18 @@ func InstanceMetrics(app, process, instance string) (*Metrics, error) {
 	return &Metrics{Cpu: getLastAverage(cpu), Memory: getLastAverage(memory), Disk: getLastAverage(disk)}, nil
 }
 
-func getMetric(metric string, dimensions []cloudwatch.Dimension, span, precision int) ([]cloudwatch.Datapoint, error) {
+func getMetric(metric string, dimensions []*cloudwatch.Dimension, span, precision int64) ([]*cloudwatch.Datapoint, error) {
 	req := &cloudwatch.GetMetricStatisticsInput{
 		Dimensions: dimensions,
-		EndTime:    time.Now(),
+		EndTime:    aws.Time(time.Now()),
 		MetricName: aws.String(metric),
 		Namespace:  aws.String("Convox"),
-		Period:     aws.Integer(precision * 60),
-		StartTime:  time.Now().Add(time.Duration(-1*span) * time.Minute),
-		Statistics: []string{"Average"},
+		Period:     aws.Long(precision * 60),
+		StartTime:  aws.Time(time.Now().Add(time.Duration(-1*span) * time.Minute)),
+		Statistics: []*string{aws.String("Average")},
 	}
 
-	res, err := Cloudwatch.GetMetricStatistics(req)
+	res, err := CloudWatch().GetMetricStatistics(req)
 
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func getMetric(metric string, dimensions []cloudwatch.Dimension, span, precision
 	return res.Datapoints, nil
 }
 
-func getLastAverage(data []cloudwatch.Datapoint) float64 {
+func getLastAverage(data []*cloudwatch.Datapoint) float64 {
 	if len(data) < 1 {
 		return 0
 	} else {

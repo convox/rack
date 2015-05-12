@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 )
 
 type Resource struct {
@@ -22,7 +22,7 @@ type Resource struct {
 type Resources map[string]Resource
 
 func ListResources(app string) (Resources, error) {
-	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{StackName: aws.String(app)})
+	res, err := CloudFormation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{StackName: aws.String(app)})
 
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func ListResources(app string) (Resources, error) {
 			Reason: coalesce(r.ResourceStatusReason, ""),
 			Status: coalesce(r.ResourceStatus, ""),
 			Type:   coalesce(r.ResourceType, ""),
-			Time:   r.Timestamp,
+			Time:   *r.Timestamp,
 		}
 	}
 

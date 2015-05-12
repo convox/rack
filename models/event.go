@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 )
 
 type Event struct {
@@ -60,7 +60,7 @@ func ListEvents(app string) (Events, error) {
 			req.NextToken = aws.String(next)
 		}
 
-		res, err := CloudFormation.DescribeStackEvents(req)
+		res, err := CloudFormation().DescribeStackEvents(req)
 
 		if err != nil {
 			return nil, err
@@ -73,7 +73,7 @@ func ListEvents(app string) (Events, error) {
 				Status: coalesce(event.ResourceStatus, ""),
 				Type:   coalesce(event.ResourceType, ""),
 				Reason: coalesce(event.ResourceStatusReason, ""),
-				Time:   event.Timestamp,
+				Time:   *event.Timestamp,
 			})
 		}
 

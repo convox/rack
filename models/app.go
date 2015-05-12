@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type App struct {
@@ -27,7 +27,7 @@ type App struct {
 type Apps []App
 
 func ListApps() (Apps, error) {
-	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{})
+	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{})
 
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
 
 	if err != nil {
 		return nil, err
@@ -89,14 +89,20 @@ func (a *App) Create() error {
 	}
 
 	for key, value := range params {
-		req.Parameters = append(req.Parameters, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
 	}
 
 	for key, value := range tags {
-		req.Tags = append(req.Tags, cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
+		req.Tags = append(req.Tags, &cloudformation.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
 	}
 
-	_, err = CloudFormation.CreateStack(req)
+	_, err = CloudFormation().CreateStack(req)
 
 	return err
 }
@@ -132,7 +138,7 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
-	err := CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
 
 	if err != nil {
 		return err
@@ -194,7 +200,8 @@ func (a *App) Formation() (string, error) {
 func (a *App) WatchForCompletion(change *Change, original Events) {
 	for {
 		req := &cloudformation.DescribeStacksInput{StackName: aws.String(a.Name)}
-		res, err := CloudFormation.DescribeStacks(req)
+
+		res, err := CloudFormation().DescribeStacks(req)
 
 		if err != nil {
 			panic(err)
@@ -360,7 +367,7 @@ func (a *App) Services() Services {
 	return services
 }
 
-func appFromStack(stack cloudformation.Stack) *App {
+func appFromStack(stack *cloudformation.Stack) *App {
 	params := stackParameters(stack)
 
 	return &App{
@@ -372,11 +379,11 @@ func appFromStack(stack cloudformation.Stack) *App {
 }
 
 func cleanupBucket(bucket string) error {
-	req := &s3.ListObjectVersionsRequest{
+	req := &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
 
-	res, err := S3.ListObjectVersions(req)
+	res, err := S3().ListObjectVersions(req)
 
 	if err != nil {
 		return err
@@ -394,13 +401,13 @@ func cleanupBucket(bucket string) error {
 }
 
 func cleanupBucketObject(bucket, key, version string) {
-	req := &s3.DeleteObjectRequest{
+	req := &s3.DeleteObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(key),
 		VersionID: aws.String(version),
 	}
 
-	_, err := S3.DeleteObject(req)
+	_, err := S3().DeleteObject(req)
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)

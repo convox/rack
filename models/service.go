@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type Service struct {
@@ -31,12 +31,12 @@ func ListServices(app string) (Services, error) {
 		return nil, err
 	}
 
-	req := &s3.ListObjectsRequest{
+	req := &s3.ListObjectsInput{
 		Bucket: aws.String(a.Outputs["Settings"]),
 		Prefix: aws.String("service/"),
 	}
 
-	res, err := S3.ListObjects(req)
+	res, err := S3().ListObjects(req)
 
 	services := make(Services, len(res.Contents))
 

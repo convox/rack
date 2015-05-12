@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 type Instance struct {
@@ -26,14 +26,14 @@ func ListInstances(app, process string) (Instances, error) {
 
 	asg := resources[fmt.Sprintf("%sInstances", upperName(process))].Id
 
-	req := &ec2.DescribeInstancesRequest{
-		Filters: []ec2.Filter{
-			ec2.Filter{Name: aws.String("instance-state-name"), Values: []string{"running", "pending"}},
-			ec2.Filter{Name: aws.String("tag:aws:autoscaling:groupName"), Values: []string{asg}},
+	req := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-state-name"), Values: []*string{aws.String("running"), aws.String("pending")}},
+			&ec2.Filter{Name: aws.String("tag:aws:autoscaling:groupName"), Values: []*string{aws.String(asg)}},
 		},
 	}
 
-	res, err := EC2.DescribeInstances(req)
+	res, err := EC2().DescribeInstances(req)
 
 	if err != nil {
 		return nil, err

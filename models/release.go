@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 )
 
@@ -30,16 +30,16 @@ type Releases []Release
 
 func ListReleases(app string) (Releases, error) {
 	req := &dynamodb.QueryInput{
-		KeyConditions: map[string]dynamodb.Condition{
-			"app": dynamodb.Condition{
-				AttributeValueList: []dynamodb.AttributeValue{
-					dynamodb.AttributeValue{S: aws.String(app)},
+		KeyConditions: &map[string]*dynamodb.Condition{
+			"app": &dynamodb.Condition{
+				AttributeValueList: []*dynamodb.AttributeValue{
+					&dynamodb.AttributeValue{S: aws.String(app)},
 				},
 				ComparisonOperator: aws.String("EQ"),
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Integer(10),
+		Limit:            aws.Long(10),
 		ScanIndexForward: aws.Boolean(false),
 		TableName:        aws.String(releasesTable(app)),
 	}
@@ -50,7 +50,7 @@ func ListReleases(app string) (Releases, error) {
 		return nil, err
 	}
 
-	res, err := DynamoDB.Query(req)
+	res, err := DynamoDB().Query(req)
 
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func ListReleases(app string) (Releases, error) {
 	releases := make(Releases, len(res.Items))
 
 	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
+		releases[i] = *releaseFromItem(*item)
 		releases[i].Active = (a.Release == releases[i].Id)
 	}
 
@@ -69,8 +69,8 @@ func ListReleases(app string) (Releases, error) {
 func GetRelease(app, id string) (*Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Boolean(true),
-		Key: map[string]dynamodb.AttributeValue{
-			"id": dynamodb.AttributeValue{S: aws.String(id)},
+		Key: &map[string]*dynamodb.AttributeValue{
+			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
 		TableName: aws.String(releasesTable(app)),
 	}
@@ -81,13 +81,13 @@ func GetRelease(app, id string) (*Release, error) {
 		return nil, err
 	}
 
-	res, err := DynamoDB.GetItem(req)
+	res, err := DynamoDB().GetItem(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	release := releaseFromItem(res.Item)
+	release := releaseFromItem(*res.Item)
 	release.Active = (a.Release == release.Id)
 
 	return release, nil
@@ -101,11 +101,11 @@ func (r *Release) Cleanup() error {
 	}
 
 	// delete ami
-	req := &ec2.DeregisterImageRequest{
+	req := &ec2.DeregisterImageInput{
 		ImageID: aws.String(r.Ami),
 	}
 
-	err = EC2.DeregisterImage(req)
+	_, err = EC2().DeregisterImage(req)
 
 	if err != nil {
 		return err
@@ -131,27 +131,27 @@ func (r *Release) Save() error {
 	}
 
 	req := &dynamodb.PutItemInput{
-		Item: map[string]dynamodb.AttributeValue{
-			"id":      dynamodb.AttributeValue{S: aws.String(r.Id)},
-			"app":     dynamodb.AttributeValue{S: aws.String(r.App)},
-			"created": dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
+		Item: &map[string]*dynamodb.AttributeValue{
+			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
+			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
+			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
 		},
 		TableName: aws.String(releasesTable(r.App)),
 	}
 
 	if r.Ami != "" {
-		req.Item["ami"] = dynamodb.AttributeValue{S: aws.String(r.Ami)}
+		(*req.Item)["ami"] = &dynamodb.AttributeValue{S: aws.String(r.Ami)}
 	}
 
 	if r.Env != "" {
-		req.Item["env"] = dynamodb.AttributeValue{S: aws.String(r.Env)}
+		(*req.Item)["env"] = &dynamodb.AttributeValue{S: aws.String(r.Env)}
 	}
 
 	if r.Manifest != "" {
-		req.Item["manifest"] = dynamodb.AttributeValue{S: aws.String(r.Manifest)}
+		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
-	_, err := DynamoDB.PutItem(req)
+	_, err := DynamoDB().PutItem(req)
 
 	if err != nil {
 		return err
@@ -219,17 +219,17 @@ func (r *Release) Promote() error {
 	// backwards compatibility
 	delete(params, "WebPorts")
 
-	stackParams := []cloudformation.Parameter{}
+	stackParams := []*cloudformation.Parameter{}
 
 	for key, value := range params {
-		stackParams = append(stackParams, cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		stackParams = append(stackParams, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
 	// TODO: remove hardcoded Environment
 	req := &cloudformation.UpdateStackInput{
 		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
-		Capabilities: []string{"CAPABILITY_IAM"},
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters:   stackParams,
 	}
 
@@ -242,7 +242,7 @@ func (r *Release) Promote() error {
 	for _, process := range manifest {
 		if len(process.Ports) > 0 {
 			if pp := strings.Split(process.Ports[0], ":"); len(pp) == 2 {
-				req.Parameters = append(req.Parameters, cloudformation.Parameter{
+				req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 					ParameterKey:   aws.String(fmt.Sprintf("%sPort", upperName(process.Name))),
 					ParameterValue: aws.String(pp[1]),
 				})
@@ -250,7 +250,7 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	_, err = CloudFormation.UpdateStack(req)
+	_, err = CloudFormation().UpdateStack(req)
 
 	return err
 }
@@ -259,7 +259,7 @@ func releasesTable(app string) string {
 	return fmt.Sprintf("%s-releases", app)
 }
 
-func releaseFromItem(item map[string]dynamodb.AttributeValue) *Release {
+func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
 	created, _ := time.Parse(SortableTime, coalesce(item["created"].S, ""))
 
 	return &Release{

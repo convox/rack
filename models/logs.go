@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/kinesis"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
 )
 
 func subscribeKinesis(prefix, stream string, output chan []byte, quit chan bool) {
 	sreq := &kinesis.DescribeStreamInput{
 		StreamName: aws.String(stream),
 	}
-	sres, err := Kinesis.DescribeStream(sreq)
+	sres, err := Kinesis().DescribeStream(sreq)
 
 	if err != nil {
 		fmt.Printf("err1 %+v\n", err)
@@ -35,13 +35,13 @@ func subscribeKinesis(prefix, stream string, output chan []byte, quit chan bool)
 }
 
 func subscribeKinesisShard(prefix, stream, shard string, output chan []byte, quit chan bool) {
-
 	ireq := &kinesis.GetShardIteratorInput{
 		ShardID:           aws.String(shard),
 		ShardIteratorType: aws.String("LATEST"),
 		StreamName:        aws.String(stream),
 	}
-	ires, err := Kinesis.GetShardIterator(ireq)
+
+	ires, err := Kinesis().GetShardIterator(ireq)
 
 	if err != nil {
 		fmt.Printf("err2 %+v\n", err)
@@ -60,7 +60,7 @@ func subscribeKinesisShard(prefix, stream, shard string, output chan []byte, qui
 			greq := &kinesis.GetRecordsInput{
 				ShardIterator: aws.String(iter),
 			}
-			gres, err := Kinesis.GetRecords(greq)
+			gres, err := Kinesis().GetRecords(greq)
 
 			if err != nil {
 				fmt.Printf("err3 %+v\n", err)
