@@ -12,41 +12,43 @@ Create a CloudFormation stack for a Convox service.
 
 ###### Parameters
 
-| Name                | Description                                                     |
-|---------------------|-----------------------------------------------------------------|
-| `AllocatedStorage`  | Allocated storage size (GB)                                     |
-| `AvailabilityZones` | A comma-delimited list of availability zones to use (specify 3) |
-| `InstanceClass`     | Instance class for database nodes                               |
-| `Name`              | Default database name                                           |
-| `Password`          | Server password                                                 |
+| Name               | Description                           |
+|--------------------|---------------------------------------|
+| `AllocatedStorage` | Allocated storage size (GB)           |
+| `InstanceClass`    | Instance class for database nodes     |
+| `Database`         | Default database name (default 'app') |
+| `Username`         | Server username (default 'postgres')  |
+| `Password`         | Server password (required)            |
 
 ###### Outputs
 
-| Name       | Description       |
-|------------|-------------------|
-| `Addr`     | Database hostname |
-| `Port`     | Database port     |
-| `Name`     | Database name     |
-| `Password` | Database password |
+| Name                  | Description           |
+|-----------------------|-----------------------|
+| `EnvPostgresDatabase` | Default database name |
+| `EnvPostgresUsername` | Database username     |
+| `EnvPostgresPassword` | Database password     |
+| `Port5432TcpAddr`     | Database hostname     |
+| `Port5432TcpPort`     | Database port         |
 
 ### redis
 
 ###### Parameters
 
-| Name                | Description                                                     |
-|---------------------|-----------------------------------------------------------------|
-| `AllowSSHFrom`      | Allow SSH from this CIDR block                                  |
-| `AvailabilityZones` | A comma-delimited list of availability zones to use (specify 3) |
-| `Password`          | Server password                                                 |
-| `SSHKey`            | Key name for SSH access                                         |
+| Name                | Description                          |
+|---------------------|--------------------------------------|
+| `AllowSSHFrom`      | Allow SSH from this CIDR block       |
+| `SSHKey`            | Key name for SSH access              |
+| `Database`          | Default database index (default '0') |
+| `Password`          | Server password (required)           |
 
 ###### Outputs
 
-| Name       | Description    |
-|------------|----------------|
-| `Addr`     | Redis hostname |
-| `Port`     | Redis port     |
-| `Password` | Redis password |
+| Name               | Description                  |
+|--------------------|------------------------------|
+| `EnvRedisDatabase` | Redis default database index |
+| `EnvRedisPassword` | Redis password               |
+| `Port6379TcpAddr`  | Redis hostname               |
+| `Port6379TcpPort`  | Redis port                   |
 
 ## License
 
