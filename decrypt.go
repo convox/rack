@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/convox/env/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/env/crypt"
 )
 
 func init() {
@@ -39,10 +38,10 @@ func cmdDecrypt(c *cli.Context) {
 		panic(err)
 	}
 
-	cr := &crypt.Crypt{
-		AwsRegion: c.GlobalString("region"),
-		AwsAccess: c.GlobalString("access"),
-		AwsSecret: c.GlobalString("secret"),
+	cr, err := buildCrypt(c)
+
+	if err != nil {
+		panic(err)
 	}
 
 	dec, err := cr.Decrypt(key, data)

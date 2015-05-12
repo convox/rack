@@ -12,6 +12,11 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:   "role",
+			Usage:  "iam role",
+			EnvVar: "AWS_ROLE",
+		},
+		cli.StringFlag{
 			Name:   "region",
 			Usage:  "aws region",
 			EnvVar: "AWS_REGION",
@@ -33,10 +38,14 @@ func main() {
 	app.Run(os.Args)
 }
 
-func buildCrypt(c *cli.Context) *crypt.Crypt {
-	region := c.GlobalString("region")
-	access := c.GlobalString("access")
-	secret := c.GlobalString("secret")
+func buildCrypt(c *cli.Context) (*crypt.Crypt, error) {
+	if role := c.GlobalString("role"); role != "" {
+		return crypt.NewIam(role)
+	} else {
+		region := c.GlobalString("region")
+		access := c.GlobalString("access")
+		secret := c.GlobalString("secret")
 
-	return crypt.New(region, access, secret)
+		return crypt.New(region, access, secret), nil
+	}
 }
