@@ -50,8 +50,6 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 	s := models.Services{}
 
 	for _, item := range services {
-		fmt.Println("%s %s\n", item.Type, t)
-
 		if item.Tags["Service"] == t {
 			s = append(s, item)
 		}
