@@ -27,5 +27,6 @@ func (cc *Credentials) Retrieve() (credentials.Value, error) {
 func KMS(c *Crypt) *kms.KMS {
 	return kms.New(&aws.Config{
 		Credentials: credentials.NewCredentials(&Credentials{Crypt: c}),
+		Region:      c.AwsRegion,
 	})
 }
