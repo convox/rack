@@ -12,7 +12,7 @@ import (
 	"text/template"
 
 	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/gen/ec2"
+	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 var ()
@@ -172,20 +172,18 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 	}
 
 	if public {
-		EC2 := ec2.New(aws.Creds(b.AwsAccess, b.AwsSecret, ""), b.AwsRegion, nil)
-
-		req := &ec2.ModifyImageAttributeRequest{
+		req := &ec2.ModifyImageAttributeInput{
 			ImageID: aws.String(ami),
 			LaunchPermission: &ec2.LaunchPermissionModifications{
-				Add: []ec2.LaunchPermission{
-					ec2.LaunchPermission{
+				Add: []*ec2.LaunchPermission{
+					&ec2.LaunchPermission{
 						Group: aws.String("all"),
 					},
 				},
 			},
 		}
 
-		err := EC2.ModifyImageAttribute(req)
+		_, err := EC2(b).ModifyImageAttribute(req)
 
 		if err != nil {
 			return "", err
