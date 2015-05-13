@@ -371,7 +371,7 @@ func appFromStack(stack *cloudformation.Stack) *App {
 	params := stackParameters(stack)
 
 	return &App{
-		Name:       *stack.StackName,
+		Name:       cs(stack.StackName, "<unknown>"),
 		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 		Release:    params["Release"],

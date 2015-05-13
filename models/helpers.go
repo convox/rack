@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -29,6 +29,22 @@ func buildEnvironment() string {
 		fmt.Sprintf("GITHUB_TOKEN=%s", os.Getenv("GITHUB_TOKEN")),
 	}
 	return strings.Join(env, "\n")
+}
+
+func cs(s *string, def string) string {
+	if s != nil {
+		return *s
+	} else {
+		return def
+	}
+}
+
+func ct(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	} else {
+		return time.Time{}
+	}
 }
 
 func coalesce(s *dynamodb.AttributeValue, def string) string {

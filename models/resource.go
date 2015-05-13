@@ -32,12 +32,12 @@ func ListResources(app string) (Resources, error) {
 
 	for _, r := range res.StackResources {
 		resources[*r.LogicalResourceID] = Resource{
-			Id:     *r.PhysicalResourceID,
-			Name:   *r.LogicalResourceID,
-			Reason: *r.ResourceStatusReason,
-			Status: *r.ResourceStatus,
-			Type:   *r.ResourceType,
-			Time:   *r.Timestamp,
+			Id:     cs(r.PhysicalResourceID, ""),
+			Name:   cs(r.LogicalResourceID, ""),
+			Reason: cs(r.ResourceStatusReason, ""),
+			Status: cs(r.ResourceStatus, ""),
+			Type:   cs(r.ResourceType, ""),
+			Time:   ct(r.Timestamp),
 		}
 	}
 
