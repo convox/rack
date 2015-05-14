@@ -4,17 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 )
 
 type Service struct {
-	Name string
-	Type string
+	Name     string
+	Password string
+	Type     string
+	Status   string
+	URL      string
 
 	App string
+
+	Stack string
+
+	Outputs    map[string]string
+	Parameters map[string]string
+	Tags       map[string]string
 }
 
 type Services []Service
@@ -53,6 +65,26 @@ func ListServices(app string) (Services, error) {
 	return services, nil
 }
 
+func ListServiceStacks() (Services, error) {
+	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	services := make(Services, 0)
+
+	for _, stack := range res.Stacks {
+		tags := stackTags(stack)
+
+		if tags["System"] == "convox" && tags["Type"] == "service" {
+			services = append(services, *serviceFromStack(stack))
+		}
+	}
+
+	return services, nil
+}
+
 func GetService(app, name string) (*Service, error) {
 	a, err := GetApp(app)
 
@@ -75,6 +107,65 @@ func GetService(app, name string) (*Service, error) {
 	}
 
 	return service, nil
+}
+
+func GetServiceFromName(name string) (*Service, error) {
+	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return serviceFromStack(res.Stacks[0]), nil
+}
+
+func (s *Service) Create() error {
+	formation, err := s.Formation()
+
+	if err != nil {
+		return err
+	}
+
+	params := map[string]string{
+		"Password": s.Password,
+	}
+
+	if s.Type == "redis" {
+		params["SSHKey"] = ""
+	}
+
+	tags := map[string]string{
+		"System":  "convox",
+		"Type":    "service",
+		"Service": s.Type,
+	}
+
+	req := &cloudformation.CreateStackInput{
+		StackName:    aws.String(s.Name),
+		TemplateBody: aws.String(formation),
+	}
+
+	for key, value := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+	}
+
+	for key, value := range tags {
+		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
+	}
+
+	_, err = CloudFormation().CreateStack(req)
+
+	return err
+}
+
+func (s *Service) Formation() (string, error) {
+	data, err := exec.Command("docker", "run", "convox/service", s.Type).CombinedOutput()
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 func (s *Service) Save() error {
@@ -111,5 +202,38 @@ func (s *Service) ManagementUrl() string {
 		return fmt.Sprintf("https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:id=%s;view=details", region, id)
 	default:
 		return ""
+	}
+}
+
+func servicesTable(app string) string {
+	return fmt.Sprintf("%s-services", app)
+}
+
+func serviceFromItem(item map[string]*dynamodb.AttributeValue) *Service {
+	return &Service{
+		Name: coalesce(item["name"], ""),
+		Type: coalesce(item["type"], ""),
+		App:  coalesce(item["app"], ""),
+	}
+}
+
+func serviceFromStack(stack *cloudformation.Stack) *Service {
+	outputs := stackOutputs(stack)
+	parameters := stackParameters(stack)
+	tags := stackTags(stack)
+
+	url := fmt.Sprintf("redis://u:%s@%s:%s/%s", outputs["EnvRedisPassword"], outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+
+	if tags["Service"] == "postgres" {
+		url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
+	}
+
+	return &Service{
+		Name:       cs(stack.StackName, "<unknown>"),
+		Status:     humanStatus(*stack.StackStatus),
+		Outputs:    outputs,
+		Parameters: parameters,
+		Tags:       tags,
+		URL:        url,
 	}
 }
