@@ -215,7 +215,14 @@
           "MaxSize" : "2",
           "LoadBalancerNames": [ { "Ref": "Balancer" } ],
           "HealthCheckType": "EC2",
-          "HealthCheckGracePeriod": 30
+          "HealthCheckGracePeriod": 30,
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Ref": "AWS::StackName" },
+              "PropagateAtLaunch": true
+            }
+          ]
         },
         "UpdatePolicy": {
           "AutoScalingRollingUpdate": {
