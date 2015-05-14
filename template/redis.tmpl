@@ -168,12 +168,31 @@
             { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
           ],
           "EbsOptimized": false,
-          "ImageId": "ami-8ce49ee4",
+          "ImageId": "ami-9c889af4",
           "InstanceMonitoring": true,
           "InstanceType": "t2.micro",
           "KeyName": { "Fn::If": [ "BlankSSHKey", { "Ref": "AWS::NoValue" }, { "Ref": "SSHKey" } ] },
           "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
-          "UserData": ""
+          "UserData":   {
+            "Fn::Base64": {
+              "Fn::Join": [ "\n", [
+                "{",
+                { "Fn::Join": [ "", [ "  \"app\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
+                "  \"process\": \"redis\",",
+                "  \"ports\": [",
+                "    \"6379:6379\"",
+                "  ],",
+                "  \"services\": [",
+                  { "Fn::Join": [ "", [ "    \"REDIS_PASSWORD=", { "Ref": "Password" }, "\"" ] ] },
+                "  ],",
+                "  \"signal\": {",
+                  { "Fn::Join": [ "", [ "    \"stack\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
+                "    \"resource\": \"Instances\"",
+                "  }",
+                "}"
+              ] ]
+            }
+          }
         }
       },
       "Instances": {
@@ -196,12 +215,21 @@
           "MaxSize" : "2",
           "LoadBalancerNames": [ { "Ref": "Balancer" } ],
           "HealthCheckType": "EC2",
-          "HealthCheckGracePeriod": 30
+          "HealthCheckGracePeriod": 30,
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": { "Ref": "AWS::StackName" },
+              "PropagateAtLaunch": true
+            }
+          ]
         },
         "UpdatePolicy": {
           "AutoScalingRollingUpdate": {
             "MaxBatchSize": 1,
-            "MinInstancesInService": 1
+            "MinInstancesInService": 1,
+            "PauseTime": "PT2M",
+            "WaitOnResourceSignals": "true"
           }
         }
       }
