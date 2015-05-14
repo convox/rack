@@ -168,12 +168,37 @@
             { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
           ],
           "EbsOptimized": false,
-          "ImageId": "ami-8ce49ee4",
+          "ImageId": "ami-9c889af4",
           "InstanceMonitoring": true,
           "InstanceType": "t2.micro",
           "KeyName": { "Fn::If": [ "BlankSSHKey", { "Ref": "AWS::NoValue" }, { "Ref": "SSHKey" } ] },
           "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
-          "UserData": ""
+          "UserData":   {
+            "Fn::Base64": {
+              "Fn::Join": [ "\n", [
+                "{",
+                { "Fn::Join": [ "", [ "  \"app\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
+                "  \"process\": \"redis\",",
+                { "Fn::Join": [ "", [ "  \"check\": \"", "", "\"," ] ] },
+                { "Fn::Join": [ "", [ "  \"command\": \"", "", "\"," ] ] },
+                { "Fn::Join": [ "", [ "  \"env\": \"", "\"," ] ] },
+                { "Fn::Join": [ "", [ "  \"key\": \"", "\"," ] ] },
+                "  \"logs\": {",
+                "  },",
+                "  \"ports\": [",
+                  { "Fn::Join": [ "", [ "    \"6379:6379", "\"" ] ] },
+                "  ],",
+                "  \"services\": [",
+                  { "Fn::Join": [ "", [ "    \"REDIS_PASSWORD=", { "Ref": "Password" }, "\"" ] ] },
+                "  ],",
+                "  \"signal\": {",
+                  { "Fn::Join": [ "", [ "    \"stack\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
+                "    \"resource\": \"RedisInstances\"",
+                "  }",
+                "}"
+              ] ]
+            }
+          }
         }
       },
       "Instances": {
