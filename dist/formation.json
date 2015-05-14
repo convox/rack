@@ -23,7 +23,7 @@
   },
   "Parameters": {
     "AMI": {
-      "Default": "ami-545d4e3c",
+      "Default": "ami-04acbe6c",
       "Description": "Application AMI",
       "Type": "String"
     },
