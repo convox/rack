@@ -179,21 +179,15 @@
                 "{",
                 { "Fn::Join": [ "", [ "  \"app\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
                 "  \"process\": \"redis\",",
-                { "Fn::Join": [ "", [ "  \"check\": \"", "", "\"," ] ] },
-                { "Fn::Join": [ "", [ "  \"command\": \"", "", "\"," ] ] },
-                { "Fn::Join": [ "", [ "  \"env\": \"", "\"," ] ] },
-                { "Fn::Join": [ "", [ "  \"key\": \"", "\"," ] ] },
-                "  \"logs\": {",
-                "  },",
                 "  \"ports\": [",
-                  { "Fn::Join": [ "", [ "    \"6379:6379", "\"" ] ] },
+                "    \"6379:6379\"",
                 "  ],",
                 "  \"services\": [",
                   { "Fn::Join": [ "", [ "    \"REDIS_PASSWORD=", { "Ref": "Password" }, "\"" ] ] },
                 "  ],",
                 "  \"signal\": {",
                   { "Fn::Join": [ "", [ "    \"stack\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
-                "    \"resource\": \"RedisInstances\"",
+                "    \"resource\": \"Instances\"",
                 "  }",
                 "}"
               ] ]
@@ -226,7 +220,9 @@
         "UpdatePolicy": {
           "AutoScalingRollingUpdate": {
             "MaxBatchSize": 1,
-            "MinInstancesInService": 1
+            "MinInstancesInService": 1,
+            "PauseTime": "PT2M",
+            "WaitOnResourceSignals": "true"
           }
         }
       }
