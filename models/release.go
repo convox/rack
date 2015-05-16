@@ -191,13 +191,6 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	// update process and service list
-	err = manifest.Apply(app)
-
-	if err != nil {
-		return err
-	}
-
 	formation, err := app.Formation()
 
 	if err != nil {

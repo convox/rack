@@ -47,7 +47,7 @@ func (m *Manifest) Processes() Processes {
 		if st := entry.ServiceType(); st == "" {
 			processes = append(processes, Process{
 				Name:  entry.Name,
-				Count: "1",
+				Count: 1,
 			})
 		}
 	}
@@ -68,20 +68,6 @@ func (m *Manifest) Services() Services {
 	}
 
 	return services
-}
-
-func (m *Manifest) Apply(app *App) error {
-	for _, p := range m.Processes() {
-		p.App = app.Name
-
-		err := p.Save()
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (me *ManifestEntry) ServiceType() string {

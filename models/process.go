@@ -1,17 +1,16 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 type Process struct {
 	Name  string
-	Count string
+	Count int
 	Ports []int
 
 	App string
@@ -20,77 +19,88 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	a, err := GetApp(app)
+	req := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
+			&ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
+			&ec2.Filter{Name: aws.String("tag:App"), Values: []*string{aws.String(app)}},
+		},
+	}
+
+	res, err := EC2().DescribeInstances(req)
 
 	if err != nil {
-		if strings.Index(err.Error(), "does not exist") != -1 {
-			return Processes{}, nil
-		}
-
 		return nil, err
 	}
 
-	req := &s3.ListObjectsInput{
-		Bucket: aws.String(a.Outputs["Settings"]),
-		Prefix: aws.String("process/"),
-	}
+	processes := map[string]Process{}
 
-	res, err := S3().ListObjects(req)
+	for _, r := range res.Reservations {
+		for _, i := range r.Instances {
+			tags := map[string]string{}
 
-	processes := make(Processes, len(res.Contents))
+			for _, t := range i.Tags {
+				tags[*t.Key] = *t.Value
+			}
 
-	for i, p := range res.Contents {
-		name := strings.TrimPrefix(*p.Key, "process/")
-		ps, err := GetProcess(app, name)
+			parts := strings.SplitN(tags["Name"], "-", 2)
 
-		if err != nil {
-			return nil, err
+			if len(parts) != 2 {
+				continue
+			}
+
+			name := parts[1]
+
+			if p, ok := processes[name]; ok {
+				p.Count += 1
+				processes[name] = p
+			} else {
+				processes[name] = Process{
+					Name:  name,
+					Count: 1,
+					App:   app,
+				}
+			}
 		}
-
-		processes[i] = *ps
 	}
 
-	return processes, nil
+	pp := Processes{}
+
+	for _, process := range processes {
+		pp = append(pp, process)
+	}
+
+	return pp, nil
 }
 
 func GetProcess(app, name string) (*Process, error) {
-	a, err := GetApp(app)
+	req := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
+			&ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
+			&ec2.Filter{Name: aws.String("tag:App"), Values: []*string{aws.String(app)}},
+		},
+	}
+
+	res, err := EC2().DescribeInstances(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := s3Get(a.Outputs["Settings"], fmt.Sprintf("process/%s", name))
+	count := 0
 
-	if err != nil {
-		return nil, err
+	for _, r := range res.Reservations {
+		count += len(r.Instances)
 	}
 
-	var process *Process
-
-	err = json.Unmarshal([]byte(value), &process)
-
-	if err != nil {
-		return nil, err
+	process := &Process{
+		Name:  name,
+		Count: count,
+		App:   app,
 	}
 
 	return process, nil
-}
-
-func (p *Process) Save() error {
-	app, err := GetApp(p.App)
-
-	if err != nil {
-		return err
-	}
-
-	data, err := json.Marshal(p)
-
-	if err != nil {
-		return err
-	}
-
-	return s3Put(app.Outputs["Settings"], fmt.Sprintf("process/%s", p.Name), data, false)
 }
 
 func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
