@@ -10,7 +10,7 @@ Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
 # create a key in KMS
 KEY=arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000
 
-# set up IAM credentials with access to Decrypt and GenerateDataKey on the aforementioned key
+# set up IAM credentials with access to Decrypt and GenerateDataKey on that key
 $ cat <<EOF >.env
 AWS_REGION=...
 AWS_ACCESS=...
