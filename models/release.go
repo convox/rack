@@ -255,6 +255,22 @@ func (r *Release) Promote() error {
 	return err
 }
 
+func (r *Release) Services() (Services, error) {
+	manifest, err := LoadManifest(r.Manifest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	services := manifest.Services()
+
+	for i := range services {
+		services[i].App = r.App
+	}
+
+	return services, nil
+}
+
 func releasesTable(app string) string {
 	return fmt.Sprintf("%s-releases", app)
 }

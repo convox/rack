@@ -164,18 +164,14 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	var release *Release
-
-	releases, err := ListReleases(a.Name)
+	release, err := a.LatestRelease()
 
 	if err != nil {
 		return nil, err
 	}
 
-	if len(releases) == 0 {
+	if release == nil {
 		release = &Release{App: a.Name}
-	} else {
-		release = &releases[0]
 	}
 
 	release.Id = ""
@@ -195,6 +191,20 @@ func (a *App) Formation() (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (a *App) LatestRelease() (*Release, error) {
+	releases, err := ListReleases(a.Name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(releases) == 0 {
+		return nil, nil
+	}
+
+	return &releases[0], nil
 }
 
 func (a *App) WatchForCompletion(change *Change, original Events) {

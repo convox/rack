@@ -40,38 +40,54 @@ func LoadManifest(data string) (Manifest, error) {
 	return manifest, nil
 }
 
-func (m *Manifest) Apply(app *App) error {
-	original, err := ListProcesses(app.Name)
+func (m *Manifest) Processes() Processes {
+	processes := Processes{}
 
-	if err != nil {
-		return err
+	for _, entry := range *m {
+		if st := entry.ServiceType(); st == "" {
+			processes = append(processes, Process{
+				Name:  entry.Name,
+				Count: "1",
+			})
+		}
 	}
+
+	return processes
+}
+
+func (m *Manifest) Services() Services {
+	services := Services{}
 
 	for _, entry := range *m {
 		if st := entry.ServiceType(); st != "" {
-			service := Service{
+			services = append(services, Service{
 				Name: entry.Name,
 				Type: st,
-				App:  app.Name,
-			}
+			})
+		}
+	}
 
-			service.Save()
-		} else {
-			count := "1"
+	return services
+}
 
-			for _, p := range original {
-				if p.Name == entry.Name {
-					count = p.Count
-				}
-			}
+func (m *Manifest) Apply(app *App) error {
+	for _, p := range m.Processes() {
+		p.App = app.Name
 
-			process := &Process{
-				Name:  entry.Name,
-				Count: count,
-				App:   app.Name,
-			}
+		err := p.Save()
 
-			process.Save()
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, s := range m.Services() {
+		s.App = app.Name
+
+		err := s.Save()
+
+		if err != nil {
+			return err
 		}
 	}
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type Service struct {
@@ -60,6 +60,24 @@ func ListServices(app string) (Services, error) {
 		}
 
 		services[i] = *svc
+	}
+
+	if len(services) == 0 {
+		release, err := a.LatestRelease()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if release == nil {
+			return Services{}, nil
+		}
+
+		services, err = release.Services()
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return services, nil
