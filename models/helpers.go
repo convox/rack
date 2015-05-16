@@ -65,6 +65,28 @@ func flattenTags(tags []cloudformation.Tag) map[string]string {
 	return f
 }
 
+type Template struct {
+	Parameters map[string]TemplateParameter
+}
+
+type TemplateParameter struct {
+	Default     string
+	Description string
+	Type        string
+}
+
+func formationParameters(formation string) (map[string]TemplateParameter, error) {
+	var t Template
+
+	err := json.Unmarshal([]byte(formation), &t)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return t.Parameters, nil
+}
+
 var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func generateId(prefix string, size int) string {

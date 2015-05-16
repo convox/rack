@@ -216,6 +216,19 @@ func (r *Release) Promote() error {
 		stackParams = append(stackParams, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
+	existing, err := formationParameters(formation)
+
+	if err != nil {
+		return err
+	}
+
+	// remove any params that do not exist in the formation
+	for i, sp := range stackParams {
+		if _, ok := existing[*sp.ParameterKey]; !ok {
+			stackParams = append(stackParams[:i], stackParams[i+1:]...)
+		}
+	}
+
 	// TODO: remove hardcoded Environment
 	req := &cloudformation.UpdateStackInput{
 		StackName:    aws.String(r.App),
