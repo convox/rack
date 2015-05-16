@@ -50,6 +50,7 @@ func ListServices(app string) (Services, error) {
 	res, err := S3().ListObjects(req)
 
 	services := make(Services, len(res.Contents))
+	servicesByName := map[string]Service{}
 
 	for i, s := range res.Contents {
 		name := strings.TrimPrefix(*s.Key, "service/")
@@ -60,23 +61,26 @@ func ListServices(app string) (Services, error) {
 		}
 
 		services[i] = *svc
+		servicesByName[name] = *svc
 	}
 
-	if len(services) == 0 {
-		release, err := a.LatestRelease()
+	release, err := a.LatestRelease()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if release != nil {
+		rss, err := release.Services()
 
 		if err != nil {
 			return nil, err
 		}
 
-		if release == nil {
-			return Services{}, nil
-		}
-
-		services, err = release.Services()
-
-		if err != nil {
-			return nil, err
+		for _, rs := range rss {
+			if _, ok := servicesByName[rs.Name]; !ok {
+				services = append(services, rs)
+			}
 		}
 	}
 
