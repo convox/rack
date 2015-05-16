@@ -9,9 +9,10 @@ import (
 )
 
 type Process struct {
-	Name  string
-	Count int
-	Ports []int
+	Name    string
+	Command string
+	Count   int
+	Ports   []int
 
 	App string
 }
@@ -19,6 +20,28 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if a.Release == "" {
+		release, err := a.LatestRelease()
+
+		if err != nil {
+			return nil, err
+		}
+
+		manifest, err := LoadManifest(release.Manifest)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return manifest.Processes(), nil
+	}
+
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},

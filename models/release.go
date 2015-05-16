@@ -203,10 +203,8 @@ func (r *Release) Promote() error {
 	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", app.Outputs["Settings"], r.Id)
 	params["Release"] = r.Id
 
-	for _, entry := range manifest {
-		if entry.ServiceType() == "" {
-			params[fmt.Sprintf("%sCommand", upperName(entry.Name))] = entry.Command
-		}
+	for _, p := range manifest.Processes() {
+		params[fmt.Sprintf("%sCommand", upperName(p.Name))] = p.Command
 	}
 
 	// backwards compatibility

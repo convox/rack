@@ -46,8 +46,9 @@ func (m *Manifest) Processes() Processes {
 	for _, entry := range *m {
 		if st := entry.ServiceType(); st == "" {
 			processes = append(processes, Process{
-				Name:  entry.Name,
-				Count: 1,
+				Name:    entry.Name,
+				Command: entry.Command,
+				Count:   1,
 			})
 		}
 	}
