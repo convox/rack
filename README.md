@@ -34,8 +34,8 @@ const Key = "arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-0000
 // specify aws credentials
 cr := crypt.New("region", "access", "secret")
 
-// use iam role on an instance (not implemented yet)
-cr := crypt.NewIamRole()
+// use iam role on an instance
+cr := crypt.NewIam("role-name")
 
 // encrypt a secret
 enc, err := cr.Encrypt(Key, []byte("some sensitive data"))
