@@ -81,16 +81,6 @@ func (m *Manifest) Apply(app *App) error {
 		}
 	}
 
-	for _, s := range m.Services() {
-		s.App = app.Name
-
-		err := s.Save()
-
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
