@@ -16,7 +16,7 @@ build:
 
 release:
 	aws s3 cp dist/ami.latest     s3://convox/ami.latest     --acl public-read
-	aws s3 cp dist/formation.json s3://convox/formation.json --acl public-read
+	aws s3 cp dist/formation.json s3://convox/kernel.json --acl public-read
 
 vendor:
 	godep save -r -copy=true ./...
