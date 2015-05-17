@@ -224,10 +224,7 @@ func (r *Release) Promote() error {
 	// remove any params that do not exist in the formation
 	for _, sp := range stackParams {
 		if _, ok := existing[*sp.ParameterKey]; ok {
-			fmt.Printf("YES *sp.ParameterKey %+v\n", *sp.ParameterKey)
 			finalParams = append(finalParams, sp)
-		} else {
-			fmt.Printf("NO *sp.ParameterKey %+v\n", *sp.ParameterKey)
 		}
 	}
 
