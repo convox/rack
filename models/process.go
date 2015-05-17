@@ -68,13 +68,9 @@ func ListProcesses(app string) (Processes, error) {
 				tags[*t.Key] = *t.Value
 			}
 
-			parts := strings.SplitN(tags["Name"], "-", 2)
+			parts := strings.Split(tags["Name"], "-")
 
-			if len(parts) != 2 {
-				continue
-			}
-
-			name := parts[1]
+			name := parts[len(parts)-1]
 
 			if p, ok := processes[name]; ok {
 				p.Count += 1
