@@ -42,11 +42,13 @@ func ListProcesses(app string) (Processes, error) {
 		return manifest.Processes(), nil
 	}
 
+	// TODO: change the last filter to tag:App eventually
+
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
 			&ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
-			&ec2.Filter{Name: aws.String("tag:App"), Values: []*string{aws.String(app)}},
+			&ec2.Filter{Name: aws.String("tag:aws:cloudformation:stack-name"), Values: []*string{aws.String(app)}},
 		},
 	}
 

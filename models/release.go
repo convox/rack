@@ -207,9 +207,6 @@ func (r *Release) Promote() error {
 		params[fmt.Sprintf("%sCommand", upperName(p.Name))] = p.Command
 	}
 
-	// backwards compatibility
-	delete(params, "WebPorts")
-
 	stackParams := []*cloudformation.Parameter{}
 
 	for key, value := range params {
@@ -222,10 +219,15 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	finalParams := []*cloudformation.Parameter{}
+
 	// remove any params that do not exist in the formation
-	for i, sp := range stackParams {
-		if _, ok := existing[*sp.ParameterKey]; !ok {
-			stackParams = append(stackParams[:i], stackParams[i+1:]...)
+	for _, sp := range stackParams {
+		if _, ok := existing[*sp.ParameterKey]; ok {
+			fmt.Printf("YES *sp.ParameterKey %+v\n", *sp.ParameterKey)
+			finalParams = append(finalParams, sp)
+		} else {
+			fmt.Printf("NO *sp.ParameterKey %+v\n", *sp.ParameterKey)
 		}
 	}
 
@@ -234,7 +236,7 @@ func (r *Release) Promote() error {
 		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		Parameters:   stackParams,
+		Parameters:   finalParams,
 	}
 
 	manifest, err = LoadManifest(r.Manifest)
