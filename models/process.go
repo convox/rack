@@ -33,13 +33,15 @@ func ListProcesses(app string) (Processes, error) {
 			return nil, err
 		}
 
-		manifest, err := LoadManifest(release.Manifest)
+		if release != nil {
+			manifest, err := LoadManifest(release.Manifest)
 
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+
+			return manifest.Processes(), nil
 		}
-
-		return manifest.Processes(), nil
 	}
 
 	// TODO: change the last filter to tag:App eventually
