@@ -291,6 +291,10 @@ func (a *App) Changes() Changes {
 	return changes
 }
 
+func (a *App) Created() bool {
+	return a.Status != "creating"
+}
+
 func (a *App) Metrics() *Metrics {
 	metrics, err := AppMetrics(a.Name)
 

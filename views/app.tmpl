@@ -23,91 +23,95 @@
 		</div>
 	</div>
 
-	<div class="table-title">
-		<table class="table table-striped table-bordered">
-			<thead>
-				<tr class="title">
-					<th colspan="6">
-						Processes
-					</th>
-				</tr>
-				<tr>
-					<th class="expand">Name</th>
-					<th>Count</th>
-					<th>CPU</th>
-					<th>Memory</th>
-					<th>Disk</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{ range .Processes }}
-					<tr>
-						<td class="meta-buttons">
-							{{ if .Balancer }}
-								<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="<a href='http://{{ .BalancerUrl }}/'>{{ .BalancerUrl }}</a>">
-									<span class="glyphicon glyphicon-random">
-								</button>
-							{{ end }}
-							<a href="/apps/{{ .App }}/processes/{{ .Name }}">
-								{{ .Name }}
-							</a>
-						</td>
-						<td class="text-center">{{.Count}}</td>
-						{{ $metrics := .Metrics }}
-						<td>{{ meter "cpu"    $metrics.Cpu    100 }}</td>
-						<td>{{ meter "memory" $metrics.Memory 100 }}</td>
-						<td>{{ meter "disk"   $metrics.Disk   100 }}</td>
+	{{ if .Created }}
+
+		<div class="table-title">
+			<table class="table table-striped table-bordered">
+				<thead>
+					<tr class="title">
+						<th colspan="6">
+							Processes
+						</th>
 					</tr>
-				{{ end }}
-			</tbody>
-		</table>
-	</div>
+					<tr>
+						<th class="expand">Name</th>
+						<th>Count</th>
+						<th>CPU</th>
+						<th>Memory</th>
+						<th>Disk</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{ range .Processes }}
+						<tr>
+							<td class="meta-buttons">
+								{{ if .Balancer }}
+									<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="<a href='http://{{ .BalancerUrl }}/'>{{ .BalancerUrl }}</a>">
+										<span class="glyphicon glyphicon-random">
+									</button>
+								{{ end }}
+								<a href="/apps/{{ .App }}/processes/{{ .Name }}">
+									{{ .Name }}
+								</a>
+							</td>
+							<td class="text-center">{{.Count}}</td>
+							{{ $metrics := .Metrics }}
+							<td>{{ meter "cpu"    $metrics.Cpu    100 }}</td>
+							<td>{{ meter "memory" $metrics.Memory 100 }}</td>
+							<td>{{ meter "disk"   $metrics.Disk   100 }}</td>
+						</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		</div>
 
-	<div class="nav-buttons pull-right">
-		<img id="spinner" src="/spinner.gif">
-		<a href="#" class="btn btn-xs btn-primary" id="refresh">Refresh</a>
-	</div>
+		<div class="nav-buttons pull-right">
+			<img id="spinner" src="/spinner.gif">
+			<a href="#" class="btn btn-xs btn-primary" id="refresh">Refresh</a>
+		</div>
 
-	<ul class="nav nav-tabs">
-		<li role="presentation"><a href="#changes" role="tab" data-source="/apps/{{ .Name }}/changes">Changes</a></li>
-		<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
-		<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
-		<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
-		<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
-		<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
-		<!--li role="presentation"><a href="#resources" role="tab" data-source="/apps/{{ .Name }}/resources">Resources</a></li-->
-	</ul>
+		<ul class="nav nav-tabs">
+			<li role="presentation"><a href="#changes" role="tab" data-source="/apps/{{ .Name }}/changes">Changes</a></li>
+			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
+			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
+			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
+			<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
+			<!--li role="presentation"><a href="#resources" role="tab" data-source="/apps/{{ .Name }}/resources">Resources</a></li-->
+		</ul>
 
-	<div id="tab-content">
-	</div>
+		<div id="tab-content">
+		</div>
 
-	<script>
-		$(window).ready(function() {
-			$('#build-app').on('click', function() {
-				$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
-					change_to_tab('#builds');
-				}).fail(function(msg) {
-					$('#alert .message').html(msg.responseText);
-					$('#alert').show();
+		<script>
+			$(window).ready(function() {
+				$('#build-app').on('click', function() {
+					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
+						change_to_tab('#builds');
+					}).fail(function(msg) {
+						$('#alert .message').html(msg.responseText);
+						$('#alert').show();
+					});
 				});
+
+				$('#destroy-app').on('click', function() {
+					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
+						window.location = '/apps';
+					}).fail(function(msg) {
+						$('#alert .message').html(msg.responseText);
+						$('#alert').show();
+					});
+				});
+
+				window.setInterval(function() {
+					$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
+						$('#label-status .value').text(data);
+					});
+				}, 10000);
 			});
+		</script>
 
-			$('#destroy-app').on('click', function() {
-				$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
-					window.location = '/apps';
-				}).fail(function(msg) {
-					$('#alert .message').html(msg.responseText);
-					$('#alert').show();
-				});
-			});
-
-			window.setInterval(function() {
-				$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
-					$('#label-status .value').text(data);
-				});
-			}, 10000);
-		});
-	</script>
+	{{ end }}
 
 {{ end }}
 
