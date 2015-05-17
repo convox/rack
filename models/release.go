@@ -228,7 +228,6 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	// TODO: remove hardcoded Environment
 	req := &cloudformation.UpdateStackInput{
 		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
