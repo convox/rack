@@ -305,7 +305,7 @@ func (a *App) Processes() Processes {
 	processes, err := ListProcesses(a.Name)
 
 	if err != nil {
-		if err.(aws.APIError).Message == "Requested resource not found" {
+		if err.(aws.APIError).StatusCode == 400 {
 			return Processes{}
 		} else {
 			panic(err)
