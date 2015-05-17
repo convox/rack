@@ -213,8 +213,28 @@
 	<li>Update Stack {{ name .Name }} {{ duration .Start .End }}</li>
 {{ end }}
 
+{{ define "AWS::EC2::SecurityGroup" }}
+	<li>Update Security Group {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
 {{ define "AWS::EC2::VPC" }}
 	<li>Update VPC {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::ElasticLoadBalancing::LoadBalancer" }}
+	<li>Update Load Balancer {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::IAM::InstanceProfile" }}
+	<li>Update Instance Profile {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::IAM::Role" }}
+	<li>Update IAM Role {{ name .Name }} {{ duration .Start .End }}</li>
+{{ end }}
+
+{{ define "AWS::Kinesis::Stream" }}
+	<li>Update Kinesis Stream {{ name .Name }} {{ duration .Start .End }}</li>
 {{ end }}
 
 {{ define "AWS::RDS::DBInstance" }}
