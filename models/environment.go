@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/env/crypt"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aryann/difflib"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 )
@@ -51,6 +52,14 @@ func GetEnvironment(app string) (Environment, error) {
 		}
 
 		return nil, err
+	}
+
+	if a.Parameters["Key"] != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
+			data = d
+		}
 	}
 
 	return LoadEnvironment(data), nil
@@ -103,7 +112,19 @@ func PutEnvironment(app string, env Environment) error {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 	}
 
-	return s3Put(a.Outputs["Settings"], "env", []byte(release.Env), true)
+	e := []byte(release.Env)
+
+	if a.Parameters["Key"] != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		e, err = cr.Encrypt(a.Parameters["Key"], e)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return s3Put(a.Outputs["Settings"], "env", []byte(e), true)
 }
 
 func (e Environment) SortedNames() []string {
