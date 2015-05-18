@@ -26,28 +26,11 @@ func ListProcesses(app string) (Processes, error) {
 		return nil, err
 	}
 
-	if a.Release == "" {
-		release, err := a.LatestRelease()
-
-		if err != nil {
-			return nil, err
-		}
-
-		if release != nil {
-			manifest, err := LoadManifest(release.Manifest)
-
-			if err != nil {
-				return nil, err
-			}
-
-			return manifest.Processes(), nil
-		}
-	}
-
 	// TODO: change the last filter to tag:App eventually
 
 	req := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running")}},
 			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
 			&ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
 			&ec2.Filter{Name: aws.String("tag:aws:cloudformation:stack-name"), Values: []*string{aws.String(app)}},
@@ -62,6 +45,27 @@ func ListProcesses(app string) (Processes, error) {
 
 	processes := map[string]Process{}
 
+	// start with the processes from the latest release
+	release, err := a.LatestRelease()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if release != nil {
+		manifest, err := LoadManifest(release.Manifest)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p := range manifest.Processes() {
+			p.Count = 0
+			processes[p.Name] = p
+		}
+	}
+
+	// override with the processes that are actually running
 	for _, r := range res.Reservations {
 		for _, i := range r.Instances {
 			tags := map[string]string{}
