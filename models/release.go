@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -178,6 +179,42 @@ func (r *Release) Save() error {
 	return s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
+func (r *Release) Formation() (string, error) {
+	processes, err := r.Processes()
+
+	pp := []string{}
+	bb := []string{}
+
+	for _, p := range processes {
+		pp = append(pp, p.Name)
+
+		if p.Balancer() {
+			bb = append(bb, p.Name)
+		}
+	}
+
+	pps := strings.Join(pp, ",")
+	bbs := strings.Join(bb, ",")
+
+	data, err := exec.Command("docker", "run", "convox/architect", "-processes", pps, "-balancers", bbs).CombinedOutput()
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func (r *Release) Processes() (Processes, error) {
+	manifest, err := LoadManifest(r.Manifest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return manifest.Processes(), nil
+}
+
 func (r *Release) Promote() error {
 	app, err := GetApp(r.App)
 
@@ -191,7 +228,7 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	formation, err := app.Formation()
+	formation, err := r.Formation()
 
 	if err != nil {
 		return err

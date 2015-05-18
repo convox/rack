@@ -20,12 +20,6 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	a, err := GetApp(app)
-
-	if err != nil {
-		return nil, err
-	}
-
 	// TODO: change the last filter to tag:App eventually
 
 	req := &ec2.DescribeInstancesInput{
@@ -45,27 +39,6 @@ func ListProcesses(app string) (Processes, error) {
 
 	processes := map[string]Process{}
 
-	// start with the processes from the latest release
-	release, err := a.LatestRelease()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if release != nil {
-		manifest, err := LoadManifest(release.Manifest)
-
-		if err != nil {
-			return nil, err
-		}
-
-		for _, p := range manifest.Processes() {
-			p.Count = 0
-			processes[p.Name] = p
-		}
-	}
-
-	// override with the processes that are actually running
 	for _, r := range res.Reservations {
 		for _, i := range r.Instances {
 			tags := map[string]string{}

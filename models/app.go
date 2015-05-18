@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -149,6 +148,16 @@ func (a *App) Delete() error {
 	return nil
 }
 
+func (a *App) Formation() (string, error) {
+	data, err := exec.Command("docker", "run", "convox/architect").CombinedOutput()
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 	resources := a.Resources()
 	processes := a.Processes()
@@ -178,19 +187,6 @@ func (a *App) ForkRelease() (*Release, error) {
 	release.Created = time.Time{}
 
 	return release, nil
-}
-
-func (a *App) Formation() (string, error) {
-	processes := strings.Join(a.ProcessNames(), ",")
-	balancers := strings.Join(a.BalancerNames(), ",")
-
-	data, err := exec.Command("docker", "run", "convox/architect", "-processes", processes, "-balancers", balancers).CombinedOutput()
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
 }
 
 func (a *App) LatestRelease() (*Release, error) {
@@ -317,30 +313,6 @@ func (a *App) Processes() Processes {
 	}
 
 	return processes
-}
-
-func (a *App) BalancerNames() []string {
-	pp := []string{}
-
-	for _, p := range a.Processes() {
-		if p.Balancer() {
-			pp = append(pp, p.Name)
-		}
-	}
-
-	return pp
-}
-
-func (a *App) ProcessNames() []string {
-	processes := a.Processes()
-
-	pp := make([]string, len(processes))
-
-	for i, p := range processes {
-		pp[i] = p.Name
-	}
-
-	return pp
 }
 
 func (a *App) Releases() Releases {
