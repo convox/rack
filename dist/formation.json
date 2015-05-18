@@ -1,7 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] }
+    "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] },
+    "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
   },
   "Outputs": {
     "SecurityGroup": {
@@ -31,6 +32,11 @@
       "Default": "0.0.0.0/0",
       "Description": "Allow SSH From (CIDR notation)",
       "Type": "String"
+    },
+    "AvailabilityZones": {
+      "Default": "",
+      "Description": "Override default availability zones",
+      "Type": "CommaDelimitedList"
     },
     "Environment": {
       "Default": "",
@@ -172,88 +178,58 @@
       "Type": "AWS::S3::Bucket"
     },
     "Subnet0": {
+      "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "0", { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": "10.0.1.0/24",
-        "VpcId": {
-          "Ref": "Vpc"
-        }
-      },
-      "Type": "AWS::EC2::Subnet"
-    },
-    "Subnet0Routes": {
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "Routes"
-        },
-        "SubnetId": {
-          "Ref": "Subnet0"
-        }
-      },
-      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+        "VpcId": { "Ref": "Vpc" }
+      }
     },
     "Subnet1": {
+      "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            "1",
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "1", { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": "10.0.2.0/24",
-        "VpcId": {
-          "Ref": "Vpc"
-        }
-      },
-      "Type": "AWS::EC2::Subnet"
-    },
-    "Subnet1Routes": {
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "Routes"
-        },
-        "SubnetId": {
-          "Ref": "Subnet1"
-        }
-      },
-      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+        "VpcId": { "Ref": "Vpc" }
+      }
     },
     "Subnet2": {
+      "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            "2",
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "2", { "Ref": "AvailabilityZones" } ] }
+        ] },
         "CidrBlock": "10.0.3.0/24",
-        "VpcId": {
-          "Ref": "Vpc"
-        }
-      },
-      "Type": "AWS::EC2::Subnet"
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet0Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": { "Ref": "Routes" },
+        "SubnetId": { "Ref": "Subnet0" }
+      }
+    },
+    "Subnet1Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": { "Ref": "Routes" },
+        "SubnetId": { "Ref": "Subnet1" }
+      }
     },
     "Subnet2Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
-        "RouteTableId": {
-          "Ref": "Routes"
-        },
-        "SubnetId": {
-          "Ref": "Subnet2"
-        }
-      },
-      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+        "RouteTableId": { "Ref": "Routes" },
+        "SubnetId": { "Ref": "Subnet2" }
+      }
     },
     "Vpc": {
       "Properties": {
@@ -430,10 +406,19 @@
     },
     "WebInstances": {
       "Properties": {
+        "AvailabilityZones": { "Fn::If": [ "DefaultAvailabilityZones",
+          [
+            { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+            { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
+          ],
+          [
+            { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
+            { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
+            { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
+          ]
+        ] },
         "AvailabilityZones": [
-          { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
         ],
         "Cooldown": 5,
         "DesiredCapacity": {
@@ -595,6 +580,14 @@
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_ACCESS=", { "Ref": "Access" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"AWS_SECRET=", { "Fn::GetAtt": [ "Access", "SecretAccessKey" ] }, "\"," ] ] },
+                { "Fn::Join": [ "", [ "    \"AWS_AZS=", { "Fn::If": [ "DefaultAvailabilityZones",
+                  { "Fn::Join": [ ",", [
+                    { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+                    { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+                    { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
+                  ] ] },
+                  { "Fn::Join": [ ",", { "Ref": "AvailabilityZones" } ] }
+                ] }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"GITHUB_TOKEN=", { "Ref": "GitHubToken" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"HTTP_PASSWORD=", { "Ref": "HTTPPassword" }, "\"," ] ] },
                 { "Fn::Join": [ "", [ "    \"SETTINGS_BUCKET=", { "Ref": "Settings" }, "\"," ] ] },
