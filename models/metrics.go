@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -111,7 +112,9 @@ func getMetric(metric string, dimensions []*cloudwatch.Dimension, span, precisio
 	res, err := CloudWatch().GetMetricStatistics(req)
 
 	if err != nil {
-		return nil, err
+		// TODO log error
+		fmt.Printf("error fetching metrics: %s\n", err)
+		return []*cloudwatch.Datapoint{}, nil
 	}
 
 	return res.Datapoints, nil
