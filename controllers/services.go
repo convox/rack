@@ -14,7 +14,7 @@ import (
 
 func init() {
 	RegisterTemplate("services", "layout", "services")
-	RegisterPartial("services", "link")
+	RegisterPartial("services", "names")
 	// RegisterTemplate("app", "layout", "app")
 }
 
@@ -34,7 +34,7 @@ func ServiceList(rw http.ResponseWriter, r *http.Request) {
 	RenderTemplate(rw, "services", services)
 }
 
-func ServiceShow(rw http.ResponseWriter, r *http.Request) {
+func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
 	log := servicesLogger("show").Start()
 
 	t := mux.Vars(r)["type"]
@@ -55,7 +55,7 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	RenderPartial(rw, "services", "link", s)
+	RenderPartial(rw, "services", "names", s)
 }
 
 func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
