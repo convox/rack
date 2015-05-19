@@ -418,8 +418,6 @@
             { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
           ]
         ] },
-        "AvailabilityZones": [
-        ],
         "Cooldown": 5,
         "DesiredCapacity": {
           "Ref": "WebScale"
