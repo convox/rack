@@ -5,6 +5,7 @@ web:
     - AWS_ACCESS
     - AWS_SECRET
     - AWS_REGION
+    - AWS_AZS
     - GITHUB_TOKEN
     - HTTP_PASSWORD
     - SETTINGS_BUCKET

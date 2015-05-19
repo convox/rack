@@ -236,6 +236,7 @@ func (r *Release) Promote() error {
 
 	params := app.Parameters
 
+	params["AvailabilityZones"] = os.Getenv("AWS_AZS")
 	params["AMI"] = r.Ami
 	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", app.Outputs["Settings"], r.Id)
 	params["Release"] = r.Id

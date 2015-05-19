@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -73,8 +74,9 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"Repository": a.Repository,
-		"SSHKey":     "production",
+		"AvailabilityZones": os.Getenv("AWS_AZS"),
+		"Repository":        a.Repository,
+		"SSHKey":            "production",
 	}
 
 	tags := map[string]string{
