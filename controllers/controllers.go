@@ -81,6 +81,12 @@ func displayHelpers() template.FuncMap {
 
 			return strings.Join(words, " ")
 		},
+		"truncate": func(s string, l int) string {
+			if len(s) < l {
+				return s
+			}
+			return s[0:l] + "..."
+		},
 	}
 }
 
