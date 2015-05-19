@@ -38,11 +38,6 @@
       "Description": "Override default availability zones",
       "Type": "CommaDelimitedList"
     },
-    "Environment": {
-      "Default": "",
-      "Description": "Environment URL",
-      "Type": "String"
-    },
     "GitHubToken": {
       "Default": "",
       "Description": "Token generated on https://github.com/settings/tokens",
@@ -533,18 +528,7 @@
                 },
                 "  \"process\": \"web\",",
                 "  \"command\": \"\",",
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "  \"env\": \"",
-                      {
-                        "Ref": "Environment"
-                      },
-                      "\","
-                    ]
-                  ]
-                },
+                "  \"env\": \"\",",
                 "  \"logs\": {",
                 {
                   "Fn::Join": [
