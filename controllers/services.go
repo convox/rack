@@ -182,7 +182,6 @@ func ServiceStream(rw http.ResponseWriter, r *http.Request) {
 	service.SubscribeLogs(logs, done)
 
 	ws, err := upgrader.Upgrade(rw, r, nil)
-	ws.WriteMessage(websocket.TextMessage, []byte("bytes"))
 
 	if err != nil {
 		log.Error(err)
