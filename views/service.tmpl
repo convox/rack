@@ -15,4 +15,23 @@
     <li class="active">{{ .Name }}</li>
   </ol>
 
+  <div class="panel panel-default">
+    <div class="panel-body">
+      {{ label "Service" .Tags.Service }}
+      {{ label "Status" .Status }}
+    </div>
+  </div>
+
+  {{ if .Created }}
+    <ul class="nav nav-tabs">
+      <li role="presentation"><a href="#logs"  role="tab" data-source="/services/{{ .Name }}/logs">Logs</a></li>
+    </ul>
+
+    <div id="tab-content">
+    </div>
+  {{ end }}
+{{ end }}
+
+{{ define "logs" }}
+  <pre id="service-logs" class="logs"><p>Connecting...</p></pre>
 {{ end }}

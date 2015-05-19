@@ -227,6 +227,10 @@ func (s *Service) ManagementUrl() string {
 	}
 }
 
+func (s *Service) Created() bool {
+	return s.Status != "creating"
+}
+
 func servicesTable(app string) string {
 	return fmt.Sprintf("%s-services", app)
 }

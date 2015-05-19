@@ -13,9 +13,11 @@ import (
 )
 
 func init() {
+	RegisterPartial("service", "logs")
+	RegisterPartial("services", "names")
+
 	RegisterTemplate("service", "layout", "service")
 	RegisterTemplate("services", "layout", "services")
-	RegisterPartial("services", "names")
 	// RegisterTemplate("app", "layout", "app")
 }
 
@@ -148,6 +150,20 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s#services", app))
 }
+
+func ServiceLogs(rw http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["service"]
+
+	service, err := models.GetServiceFromName(name)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "service", "logs", service)
+}
+
 
 func servicesLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=services").At(at)
