@@ -8,6 +8,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
 	"github.com/convox/kernel/models"
 )
@@ -164,6 +165,41 @@ func ServiceLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "service", "logs", service)
 }
 
+func ServiceStream(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("stream").Start()
+
+	service, err := models.GetServiceFromName(mux.Vars(r)["service"])
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	logs := make(chan []byte)
+	done := make(chan bool)
+
+	service.SubscribeLogs(logs, done)
+
+	ws, err := upgrader.Upgrade(rw, r, nil)
+	ws.WriteMessage(websocket.TextMessage, []byte("bytes"))
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	log.Success("step=upgrade service=%q", service.Name)
+
+	defer ws.Close()
+
+	for data := range logs {
+		ws.WriteMessage(websocket.TextMessage, data)
+	}
+
+	log.Success("step=ended service=%q", service.Name)
+}
 
 func servicesLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=services").At(at)

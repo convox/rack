@@ -34,4 +34,8 @@
 
 {{ define "logs" }}
   <pre id="service-logs" class="logs"><p>Connecting...</p></pre>
+
+  <script>
+    connect_log_socket($('#service-logs'), '/services/{{ .Name }}/logs/stream');
+  </script>
 {{ end }}

@@ -153,7 +153,7 @@ func (s *Service) Create() error {
 	}
 
 	if s.Type == "redis" {
-		params["SSHKey"] = ""
+		params["SSHKey"] = "production"
 	}
 
 	tags := map[string]string{
@@ -165,6 +165,7 @@ func (s *Service) Create() error {
 	req := &cloudformation.CreateStackInput{
 		StackName:    aws.String(s.Name),
 		TemplateBody: aws.String(formation),
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 	}
 
 	for key, value := range params {
@@ -230,6 +231,22 @@ func (s *Service) ManagementUrl() string {
 func (s *Service) Created() bool {
 	return s.Status != "creating"
 }
+
+func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
+	resources, err := ListResources(s.Name)
+
+	fmt.Printf("%+v\n", resources)
+
+	if err != nil {
+		return err
+	}
+
+	done := make(chan bool)
+	go subscribeKinesis(s.Name, resources["Kinesis"].Id, output, done)
+
+	return nil
+}
+
 
 func servicesTable(app string) string {
 	return fmt.Sprintf("%s-services", app)
