@@ -13,6 +13,7 @@ import (
 )
 
 func init() {
+	RegisterTemplate("service", "layout", "service")
 	RegisterTemplate("services", "layout", "services")
 	RegisterPartial("services", "names")
 	// RegisterTemplate("app", "layout", "app")
@@ -34,8 +35,26 @@ func ServiceList(rw http.ResponseWriter, r *http.Request) {
 	RenderTemplate(rw, "services", services)
 }
 
-func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
+func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 	log := servicesLogger("show").Start()
+
+	name := mux.Vars(r)["service"]
+
+	service, err := models.GetServiceFromName(name)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	// sort.Sort(services)
+
+	RenderTemplate(rw, "service", service)
+}
+
+func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("nameList").Start()
 
 	t := mux.Vars(r)["type"]
 
