@@ -160,6 +160,62 @@
           "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
         }
       },
+      "Kinesis": {
+        "Type": "AWS::Kinesis::Stream",
+        "Properties": {
+          "ShardCount": 1
+        }
+      },
+      "IamRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [ "ec2.amazonaws.com" ]
+                },
+                "Action": [ "sts:AssumeRole" ]
+              }
+            ]
+          },
+          "Path": "/",
+          "Policies": [
+            {
+              "PolicyName": "Role",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [ "logs:*" ],
+                    "Resource": [ "arn:aws:logs:*:*:*" ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [ "kinesis:PutRecords" ],
+                    "Resource": [ { "Fn::Join": [ "", [ "arn:aws:kinesis:*:*:stream/", { "Ref": "AWS::StackName" }, "-*" ] ] } ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [ "cloudwatch:PutMetricData" ],
+                    "Resource": [ "*" ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "InstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+          "Path": "/",
+          "Roles": [ { "Ref": "IamRole" } ]
+        }
+      },
       "LaunchConfiguration": {
         "Type": "AWS::AutoScaling::LaunchConfiguration",
         "Properties": {
@@ -168,6 +224,7 @@
             { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
           ],
           "EbsOptimized": false,
+          "IamInstanceProfile": { "Ref": "InstanceProfile" },
           "ImageId": "ami-9c889af4",
           "InstanceMonitoring": true,
           "InstanceType": "t2.micro",
@@ -178,6 +235,9 @@
               "Fn::Join": [ "\n", [
                 "{",
                 { "Fn::Join": [ "", [ "  \"app\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
+                "  \"logs\": {",
+                { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "Kinesis" }, "\"" ] ] },
+                "  },",
                 "  \"process\": \"redis\",",
                 "  \"ports\": [",
                 "    \"6379:6379\"",
