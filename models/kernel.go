@@ -53,11 +53,40 @@ func KernelUpdate() error {
 			})
 		}
 
+		gr, err := http.Get("http://convox.s3.amazonaws.com/formation.json")
+
+		if err != nil {
+			return err
+		}
+
+		defer gr.Body.Close()
+
+		formation, err := ioutil.ReadAll(gr.Body)
+
+		if err != nil {
+			return err
+		}
+
+		existing, err := formationParameters(string(formation))
+
+		if err != nil {
+			return err
+		}
+
+		finalParams := []*cloudformation.Parameter{}
+
+		// remove any params that do not exist in the formation
+		for _, sp := range stackParams {
+			if _, ok := existing[*sp.ParameterKey]; ok {
+				finalParams = append(finalParams, sp)
+			}
+		}
+
 		req := &cloudformation.UpdateStackInput{
 			StackName:    aws.String(stackName),
 			TemplateURL:  aws.String("http://convox.s3.amazonaws.com/formation.json"),
 			Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-			Parameters:   stackParams,
+			Parameters:   finalParams,
 		}
 
 		for _, p := range req.Parameters {
