@@ -3,7 +3,7 @@
   "variables": {
     "NAME": null,
     "SOURCE": null,
-    "BASE_AMI": "ami-b06f76d8",
+    "BASE_AMI": "ami-86cad3ee",
     "AWS_REGION": "us-east-1",
     "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
     "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
