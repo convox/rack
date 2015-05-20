@@ -113,7 +113,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 
 	// Get last 50 log lines
 	params := &rds.DownloadDBLogFilePortionInput{
-		DBInstanceIdentifier: aws.String("p"),
+		DBInstanceIdentifier: aws.String(id),
 		LogFileName:          aws.String(*details.LogFileName),
 		NumberOfLines:        aws.Long(50),
 	}
