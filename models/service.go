@@ -233,17 +233,20 @@ func (s *Service) Created() bool {
 }
 
 func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
-	resources, err := ListResources(s.Name)
-
-	fmt.Printf("%+v\n", resources)
-
-	if err != nil {
-		return err
-	}
-
 	done := make(chan bool)
-	go subscribeKinesis(s.Name, resources["Kinesis"].Id, output, done)
 
+	switch s.Tags["Service"] {
+	case "postgres":
+		go subscribeRDS(s.Name, s.Name, output, done)
+	case "redis":
+		resources, err := ListResources(s.Name)
+
+		if err != nil {
+			return err
+		}
+
+		go subscribeKinesis(s.Name, resources["Kinesis"].Id, output, done)
+	}
 	return nil
 }
 
