@@ -16,11 +16,8 @@ func init() {
 }
 
 func main() {
-	region := flag.String("region", "us-east-1", "aws region")
-	access := flag.String("access", os.Getenv("AWS_ACCESS"), "aws access id")
-	secret := flag.String("secret", os.Getenv("AWS_SECRET"), "aws secret key")
+	push := flag.String("push", "", "push build to this prefix when done")
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "github access token")
-	public := flag.Bool("public", false, "make ami public")
 
 	flag.Parse()
 
@@ -33,16 +30,13 @@ func main() {
 	args := flag.Args()
 
 	builder := NewBuilder()
-	builder.AwsRegion = *region
-	builder.AwsAccess = *access
-	builder.AwsSecret = *secret
 	builder.GitHubToken = *token
 
 	app := positional(args, 0)
 	repo := positional(args, 1)
 	ref := positional(args, 2)
 
-	err := builder.Build(repo, app, ref, *public)
+	err := builder.Build(repo, app, ref, *push)
 
 	if err != nil {
 		fmt.Printf("error|%s\n", err)

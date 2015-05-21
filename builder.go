@@ -2,25 +2,17 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"text/template"
-
-	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/build/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 var ()
 
 type Builder struct {
-	AwsRegion   string
-	AwsAccess   string
-	AwsSecret   string
 	GitHubToken string
 }
 
@@ -28,205 +20,130 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, name, ref string, public bool) error {
-	_, err := b.buildAmi(repo, name, ref, public)
+func (b *Builder) Build(repo, name, ref, push string) error {
+	clone, err := b.compose(repo, name, ref)
 
 	if err != nil {
 		return err
 	}
 
+	if push != "" {
+		b.push(clone, push, name)
+	}
+
 	return nil
 }
 
-func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) {
-	dir, err := ioutil.TempDir("", "repo")
+func (b *Builder) clone(repo, name, ref string) (string, error) {
+	tmp, err := ioutil.TempDir("", "repo")
 
 	if err != nil {
 		return "", err
 	}
 
-	clone := filepath.Join(dir, "clone")
+	clone := filepath.Join(tmp, "clone")
 
-	if err = writeFile(os.Getenv("HOME"), ".netrc", map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
+	if err = writeFile(os.Getenv("HOME"), ".netrc", 0600, map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command("git", "clone", repo, clone)
-	cmd.Dir = dir
-
-	stdout, err := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
-
-	if err != nil {
+	if err = writeFile("/usr/local/bin", "git-restore-mtime", 0755, nil); err != nil {
 		return "", err
 	}
 
-	cmd.Start()
-
-	scanner := bufio.NewScanner(stdout)
-
-	for scanner.Scan() {
-		fmt.Printf("git|%s\n", scanner.Text())
-	}
-
-	err = cmd.Wait()
+	err = b.run("git", tmp, "git", "clone", repo, clone)
 
 	if err != nil {
 		return "", err
 	}
 
 	if ref != "" {
-		cmd = exec.Command("git", "checkout", ref)
-		cmd.Dir = clone
-
-		stdout, err = cmd.StdoutPipe()
-		cmd.Stderr = cmd.Stdout
-
-		if err != nil {
-			return "", err
-		}
-
-		cmd.Start()
-
-		scanner := bufio.NewScanner(stdout)
-
-		for scanner.Scan() {
-			fmt.Printf("git|%s\n", scanner.Text())
-		}
-
-		err = cmd.Wait()
+		err = b.run("git", clone, "git", "checkout", ref)
 
 		if err != nil {
 			return "", err
 		}
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(clone, "docker-compose.yml"))
+	err = b.run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
 
 	if err != nil {
 		return "", err
 	}
 
-	scanner = bufio.NewScanner(bytes.NewReader(data))
+	return clone, nil
+}
 
-	for scanner.Scan() {
-		fmt.Printf("manifest|%s\n", scanner.Text())
-	}
+func (b *Builder) compose(repo, name, ref string) (string, error) {
+	dir, err := b.clone(repo, name, ref)
 
-	if err = writeFile(dir, "app.conf", nil); err != nil {
+	if err != nil {
 		return "", err
 	}
 
-	if err = writeFile(dir, "packer.json", nil); err != nil {
-		return "", err
-	}
+	b.run("compose", dir, "docker-compose", "-p", "app", "build")
+	b.run("compose", dir, "docker-compose", "-p", "app", "pull")
 
-	if err = writeFile(dir, "cloudwatch-logs.conf", map[string]string{"{{APP}}": name}); err != nil {
-		return "", err
-	}
+	return dir, nil
+}
 
-	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "packer.json")
+func (b *Builder) run(prefix, dir string, command string, args ...string) error {
+	cmd := exec.Command(command, args...)
 	cmd.Dir = dir
 
-	stdout, err = cmd.StdoutPipe()
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
 
 	if err != nil {
-		return "", err
+		return err
 	}
+
+	fmt.Printf("%s|RUNNING: %s %s\n", prefix, command, strings.Join(args, " "))
 
 	cmd.Start()
 
-	scanner = bufio.NewScanner(stdout)
-
-	ami := ""
+	scanner := bufio.NewScanner(stdout)
 
 	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), ",", 6)
-
-		switch {
-		case len(parts) < 5:
-			fmt.Printf("unknown|%s\n", scanner.Text())
-		case parts[3] == "error":
-			fmt.Printf("error|%s\n", cleanupPackerString(parts[4]))
-		case parts[2] == "ui" && parts[3] == "say":
-			fmt.Printf("packer|%s\n", parts[4])
-		case strings.HasPrefix(parts[4], "    amazon-ebs: Instance ID:"):
-			fmt.Printf("packer|==> amazon-ebs: %s\n", strings.SplitN(parts[4], ": ", 2)[1])
-		case parts[2] == "ui" && parts[3] == "message":
-			mparts := strings.SplitN(parts[4], ": ", 2)
-			if len(mparts) > 1 {
-				fmt.Printf("build|%s\n", cleanupPackerString(mparts[1]))
-			}
-		case parts[1] == "amazon-ebs" && parts[2] == "artifact" && parts[3] == "0" && parts[4] == "id":
-			if len(parts) > 5 {
-				ami = strings.Split(parts[5], ":")[1]
-				fmt.Printf("ami|%s\n", ami)
-			}
-		}
+		fmt.Printf("%s|%s\n", prefix, scanner.Text())
 	}
 
 	err = cmd.Wait()
 
 	if err != nil {
-		return "", err
+		fmt.Printf("%s|error: %s\n", prefix, err)
 	}
 
-	if public {
-		req := &ec2.ModifyImageAttributeInput{
-			ImageID: aws.String(ami),
-			LaunchPermission: &ec2.LaunchPermissionModifications{
-				Add: []*ec2.LaunchPermission{
-					&ec2.LaunchPermission{
-						Group: aws.String("all"),
-					},
-				},
-			},
-		}
-
-		_, err := EC2(b).ModifyImageAttribute(req)
-
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return ami, nil
+	return err
 }
 
-func cleanupPackerString(s string) string {
-	return strings.Replace(s, "%!(PACKER_COMMA)", ",", -1)
+func (b *Builder) push(dir, target, name string) error {
+	manifest, err := ReadManifest(dir)
+
+	if err != nil {
+		return err
+	}
+
+	for ps, entry := range *manifest {
+		image := fmt.Sprintf("app_%s", ps)
+
+		if entry.Image != "" {
+			image = entry.Image
+		}
+
+		b.run("push", dir, "docker", "tag", "-f", image, fmt.Sprintf("%s/%s-%s", target, name, ps))
+		b.run("push", dir, "docker", "push", fmt.Sprintf("%s/%s-%s", target, name, ps))
+	}
+
+	return nil
 }
 
 func dataRaw(path string) ([]byte, error) {
 	return Asset(fmt.Sprintf("data/%s", path))
 }
 
-func dataTemplate(path, section string, object interface{}) ([]byte, error) {
-	data, err := dataRaw(path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	tmpl, err := template.New(section).Parse(string(data))
-
-	if err != nil {
-		return nil, err
-	}
-
-	var output bytes.Buffer
-
-	err = tmpl.Execute(&output, object)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return output.Bytes(), nil
-}
-
-func writeFile(dir, name string, replacements map[string]string) error {
-	data, err := dataRaw(name)
+func writeFile(dir, name string, perms os.FileMode, replacements map[string]string) error {
+	data, err := Asset(fmt.Sprintf("data/%s", name))
 
 	if err != nil {
 		return err
@@ -240,5 +157,5 @@ func writeFile(dir, name string, replacements map[string]string) error {
 		}
 	}
 
-	return ioutil.WriteFile(filepath.Join(dir, name), []byte(sdata), 0644)
+	return ioutil.WriteFile(filepath.Join(dir, name), []byte(sdata), perms)
 }

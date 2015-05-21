@@ -1,18 +1,13 @@
-FROM convox/alpine:3.1
+FROM gliderlabs/alpine:edge
 
-RUN apk-install curl go git zip
+RUN apk-install curl docker go git python py-setuptools zip
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
 
-RUN curl -L https://dl.bintray.com/mitchellh/packer/packer_0.7.5_linux_amd64.zip -o /tmp/packer.zip
-RUN mkdir -p /tmp/packer
-RUN unzip /tmp/packer.zip -d /tmp/packer/
-RUN cp /tmp/packer/packer /usr/local/bin/
-RUN cp /tmp/packer/packer-builder-amazon-ebs /usr/local/bin/
-RUN cp /tmp/packer/packer-provisioner-file /usr/local/bin/
-RUN cp /tmp/packer/packer-provisioner-shell /usr/local/bin/
-RUN rm -rf /tmp/packer*
+RUN git clone https://github.com/docker/compose /tmp/compose
+WORKDIR /tmp/compose
+RUN python setup.py install
 
 RUN go get github.com/jteeuwen/go-bindata/...
 
@@ -21,4 +16,4 @@ WORKDIR /go/src/github.com/convox/build
 RUN go-bindata data/
 RUN go get .
 
-ENTRYPOINT ["build"]
+ENTRYPOINT ["/go/src/github.com/convox/build/bin/entrypoint"]
