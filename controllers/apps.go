@@ -43,7 +43,9 @@ func init() {
 func AppList(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("list").Start()
 
-	apps, err := models.ListApps()
+	cluster := mux.Vars(r)["cluster"]
+
+	apps, err := models.ListApps(cluster)
 
 	if err != nil {
 		log.Error(err)
@@ -59,9 +61,10 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 func AppShow(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("show").Start()
 
-	name := mux.Vars(r)["app"]
+	cluster := mux.Vars(r)["cluster"]
+	app := mux.Vars(r)["app"]
 
-	app, err := models.GetApp(name)
+	a, err := models.GetApp(cluster, app)
 
 	if err != nil {
 		log.Error(err)
@@ -69,16 +72,18 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderTemplate(rw, "app", app)
+	RenderTemplate(rw, "app", a)
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("create").Start()
 
+	cluster := mux.Vars(r)["cluster"]
 	name := GetForm(r, "name")
 	repo := GetForm(r, "repo")
 
 	app := &models.App{
+		Cluster:    cluster,
 		Name:       name,
 		Repository: repo,
 	}
@@ -91,16 +96,17 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Redirect(rw, r, "/apps")
+	Redirect(rw, r, fmt.Sprintf("/clusters/%s", cluster))
 }
 
 func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("delete").Start()
 
 	vars := mux.Vars(r)
+	cluster := vars["cluster"]
 	name := vars["app"]
 
-	app, err := models.GetApp(name)
+	app, err := models.GetApp(cluster, name)
 
 	if err != nil {
 		log.Error(err)
@@ -176,7 +182,7 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 
-	a, err := models.GetApp(app)
+	a, err := models.GetApp("", app)
 	if err != nil {
 		log.Error(err)
 		panic(err)
@@ -220,9 +226,10 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("environment").Start()
 
+	cluster := mux.Vars(r)["cluster"]
 	app := mux.Vars(r)["app"]
 
-	env, err := models.GetEnvironment(app)
+	env, err := models.GetEnvironment(cluster, app)
 
 	if err != nil {
 		log.Error(err)
@@ -231,6 +238,7 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	params := map[string]interface{}{
+		"Cluster":     cluster,
 		"App":         app,
 		"Environment": env,
 	}
@@ -249,7 +257,7 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 func AppStream(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("stream").Start()
 
-	app, err := models.GetApp(mux.Vars(r)["app"])
+	app, err := models.GetApp("", mux.Vars(r)["app"])
 
 	if err != nil {
 		log.Error(err)
@@ -316,9 +324,10 @@ func AppResources(rw http.ResponseWriter, r *http.Request) {
 func AppServices(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("services").Start()
 
+	cluster := mux.Vars(r)["cluster"]
 	app := mux.Vars(r)["app"]
 
-	services, err := models.ListServices(app)
+	services, err := models.ListServices(cluster, app)
 
 	if err != nil {
 		log.Error(err)
@@ -332,7 +341,7 @@ func AppServices(rw http.ResponseWriter, r *http.Request) {
 func AppStatus(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("status").Start()
 
-	app, err := models.GetApp(mux.Vars(r)["app"])
+	app, err := models.GetApp("", mux.Vars(r)["app"])
 
 	if err != nil {
 		log.Error(err)

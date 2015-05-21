@@ -147,7 +147,7 @@ func (b *Build) Execute(repo string) {
 		return
 	}
 
-	app, err := GetApp(b.App)
+	app, err := GetApp("", b.App)
 
 	if err != nil {
 		log.Error(err)

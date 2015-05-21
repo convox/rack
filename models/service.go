@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type Service struct {
@@ -20,7 +18,8 @@ type Service struct {
 	Status   string
 	URL      string
 
-	App string
+	Cluster string
+	App     string
 
 	Stack string
 
@@ -31,60 +30,65 @@ type Service struct {
 
 type Services []Service
 
-func ListServices(app string) (Services, error) {
-	a, err := GetApp(app)
+func ListServices(cluster, app string) (Services, error) {
+	// fmt.Printf("cluster %+v\n", cluster)
+	// fmt.Printf("app %+v\n", app)
 
-	if err != nil {
-		if strings.Index(err.Error(), "does not exist") != -1 {
-			return Services{}, nil
-		}
+	// a, err := GetApp(cluster, app)
 
-		return nil, err
-	}
+	// if err != nil {
+	//   if strings.Index(err.Error(), "does not exist") != -1 {
+	//     return Services{}, nil
+	//   }
 
-	req := &s3.ListObjectsInput{
-		Bucket: aws.String(a.Outputs["Settings"]),
-		Prefix: aws.String("service/"),
-	}
+	//   return nil, err
+	// }
 
-	res, err := S3().ListObjects(req)
+	// req := &s3.ListObjectsInput{
+	//   Bucket: aws.String(a.Outputs["Settings"]),
+	//   Prefix: aws.String("service/"),
+	// }
 
-	services := make(Services, len(res.Contents))
-	servicesByName := map[string]Service{}
+	// res, err := S3().ListObjects(req)
 
-	for i, s := range res.Contents {
-		name := strings.TrimPrefix(*s.Key, "service/")
-		svc, err := GetService(app, name)
+	// services := make(Services, len(res.Contents))
+	// servicesByName := map[string]Service{}
 
-		if err != nil {
-			return nil, err
-		}
+	// for i, s := range res.Contents {
+	//   name := strings.TrimPrefix(*s.Key, "service/")
+	//   svc, err := GetService(cluster, app, name)
 
-		services[i] = *svc
-		servicesByName[name] = *svc
-	}
+	//   if err != nil {
+	//     fmt.Printf("err %+v\n", err)
+	//     return nil, err
+	//   }
 
-	release, err := a.LatestRelease()
+	//   services[i] = *svc
+	//   servicesByName[name] = *svc
+	// }
 
-	if err != nil {
-		return nil, err
-	}
+	// release, err := a.LatestRelease()
 
-	if release != nil {
-		rss, err := release.Services()
+	// if err != nil {
+	//   return nil, err
+	// }
 
-		if err != nil {
-			return nil, err
-		}
+	// if release != nil {
+	//   rss, err := release.Services()
 
-		for _, rs := range rss {
-			if _, ok := servicesByName[rs.Name]; !ok {
-				services = append(services, rs)
-			}
-		}
-	}
+	//   if err != nil {
+	//     return nil, err
+	//   }
 
-	return services, nil
+	//   for _, rs := range rss {
+	//     if _, ok := servicesByName[rs.Name]; !ok {
+	//       services = append(services, rs)
+	//     }
+	//   }
+	// }
+
+	// return services, nil
+	return Services{}, nil
 }
 
 func ListServiceStacks() (Services, error) {
@@ -107,8 +111,8 @@ func ListServiceStacks() (Services, error) {
 	return services, nil
 }
 
-func GetService(app, name string) (*Service, error) {
-	a, err := GetApp(app)
+func GetService(cluster, app, name string) (*Service, error) {
+	a, err := GetApp(cluster, app)
 
 	if err != nil {
 		return nil, err
@@ -127,6 +131,9 @@ func GetService(app, name string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	service.Cluster = cluster
+	service.App = app
 
 	return service, nil
 }
@@ -192,7 +199,7 @@ func (s *Service) Formation() (string, error) {
 }
 
 func (s *Service) Save() error {
-	app, err := GetApp(s.App)
+	app, err := GetApp(s.Cluster, s.App)
 
 	if err != nil {
 		return err

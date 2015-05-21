@@ -3,8 +3,8 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -13,7 +13,8 @@ import (
 )
 
 type App struct {
-	Name string
+	Cluster string
+	Name    string
 
 	Status     string
 	Release    string
@@ -26,7 +27,7 @@ type App struct {
 
 type Apps []App
 
-func ListApps() (Apps, error) {
+func ListApps(cluster string) (Apps, error) {
 	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{})
 
 	if err != nil {
@@ -38,7 +39,7 @@ func ListApps() (Apps, error) {
 	for _, stack := range res.Stacks {
 		tags := stackTags(stack)
 
-		if tags["System"] == "convox" && tags["Type"] == "app" {
+		if tags["System"] == "convox" && tags["Type"] == "app" && tags["Cluster"] == cluster {
 			apps = append(apps, *appFromStack(stack))
 		}
 	}
@@ -46,8 +47,8 @@ func ListApps() (Apps, error) {
 	return apps, nil
 }
 
-func GetApp(name string) (*App, error) {
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+func GetApp(cluster, name string) (*App, error) {
+	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(fmt.Sprintf("%s-%s", cluster, name))})
 
 	if err != nil {
 		return nil, err
@@ -67,6 +68,12 @@ func GetApp(name string) (*App, error) {
 }
 
 func (a *App) Create() error {
+	cluster, err := GetCluster(a.Cluster)
+
+	if err != nil {
+		return err
+	}
+
 	formation, err := a.Formation()
 
 	if err != nil {
@@ -74,18 +81,19 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"AvailabilityZones": os.Getenv("AWS_AZS"),
-		"Repository":        a.Repository,
-		"SSHKey":            "production",
+		"Repository": a.Repository,
+		"Subnets":    cluster.Subnets,
+		"VPC":        cluster.Vpc,
 	}
 
 	tags := map[string]string{
-		"System": "convox",
-		"Type":   "app",
+		"Cluster": a.Cluster,
+		"System":  "convox",
+		"Type":    "app",
 	}
 
 	req := &cloudformation.CreateStackInput{
-		StackName:    aws.String(a.Name),
+		StackName:    aws.String(fmt.Sprintf("%s-%s", a.Cluster, a.Name)),
 		TemplateBody: aws.String(formation),
 	}
 
@@ -139,7 +147,9 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
-	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.Name)})
+	name := fmt.Sprintf("%s-%s", a.Cluster, a.Name)
+
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
 
 	if err != nil {
 		return err
@@ -151,7 +161,7 @@ func (a *App) Delete() error {
 }
 
 func (a *App) Formation() (string, error) {
-	data, err := exec.Command("docker", "run", "convox/architect").CombinedOutput()
+	data, err := exec.Command("docker", "run", "convox/app").CombinedOutput()
 
 	if err != nil {
 		return "", err
@@ -342,7 +352,7 @@ func (a *App) Resources() Resources {
 }
 
 func (a *App) Services() Services {
-	services, err := ListServices(a.Name)
+	services, err := ListServices(a.Cluster, a.Name)
 
 	if err != nil {
 		if err.(aws.APIError).Message == "Requested resource not found" {
@@ -357,9 +367,11 @@ func (a *App) Services() Services {
 
 func appFromStack(stack *cloudformation.Stack) *App {
 	params := stackParameters(stack)
+	tags := stackTags(stack)
 
 	return &App{
-		Name:       cs(stack.StackName, "<unknown>"),
+		Name:       strings.SplitN(*stack.StackName, "-", 2)[1],
+		Cluster:    tags["Cluster"],
 		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 		Release:    params["Release"],

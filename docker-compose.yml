@@ -16,3 +16,14 @@ web:
   volumes:
     - ./:/go/src/github.com/convox/kernel
     - /var/run/docker.sock:/var/run/docker.sock
+registry:
+  environment:
+    - REGISTRY_CERT_PUBLIC
+    - REGISTRY_CERT_PRIVATE
+  image: convox/registry
+  links:
+    - s3
+  ports:
+    - 5100:443
+s3:
+  image: convox/aws-s3

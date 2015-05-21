@@ -12,7 +12,7 @@
 	<ol class="breadcrumb">
 		<button id="destroy-app" class="btn btn-danger btn-xs">Destroy App</button>
 		<button id="build-app" class="btn btn-success btn-xs">Build</button>
-		<li><a href="/apps">Apps</a></li>
+		<li><a href="/clusters/{{ .Cluster }}">{{ .Cluster }}</a></li>
 		<li class="active">{{ .Name }}</li>
 	</ol>
 
@@ -71,13 +71,11 @@
 		</div>
 
 		<ul class="nav nav-tabs">
-			<li role="presentation"><a href="#changes" role="tab" data-source="/apps/{{ .Name }}/changes">Changes</a></li>
-			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
-			<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
-			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
-			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
-			<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
-			<!--li role="presentation"><a href="#resources" role="tab" data-source="/apps/{{ .Name }}/resources">Resources</a></li-->
+			<li role="presentation"><a href="#environment" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#builds" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/builds">Builds</a></li>
+			<li role="presentation"><a href="#logs"  role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/logs">Logs</a></li>
+			<li role="presentation"><a href="#releases" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/releases">Releases</a></li>
+			<li role="presentation"><a href="#services" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/services">Services</a></li>
 		</ul>
 
 		<div id="tab-content">
@@ -95,19 +93,19 @@
 				});
 
 				$('#destroy-app').on('click', function() {
-					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
-						window.location = '/apps';
+					$.ajax({ type: 'DELETE', url:'/clusters/{{ .Cluster }}/apps/{{ .Name }}'}).done(function(msg) {
+						window.location = '/clusters/{{ .Cluster }}';
 					}).fail(function(msg) {
 						$('#alert .message').html(msg.responseText);
 						$('#alert').show();
 					});
 				});
 
-				window.setInterval(function() {
-					$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
-						$('#label-status .value').text(data);
-					});
-				}, 10000);
+				//window.setInterval(function() {
+				//	$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
+				//		$('#label-status .value').text(data);
+				//	});
+				//}, 10000);
 			});
 		</script>
 
@@ -267,7 +265,7 @@
 				<tr>
 					<td><input type="text" name="name"></td>
 					<td><input type="text" name="value"></td>
-					<td><button id="environment-add" data-app="{{ .App }}" class="btn btn-success btn-xs">Add</button></td>
+					<td><button id="environment-add" data-cluster="{{ .Cluster }}" data-app="{{ .App }}" class="btn btn-success btn-xs">Add</button></td>
 				</tr>
 			</tfoot>
 			<tbody>
@@ -277,7 +275,7 @@
 						<td>{{ . }}</td>
 						<td class="wrap expand">{{ index $root.Environment . }}</td>
 						<td>
-							<button data-app="{{ $root.App }}" data-name="{{ . }}" class="environment-delete btn btn-danger btn-xs">Delete</button>
+							<button data-cluster="{{ $root.Cluster }}" data-app="{{ $root.App }}" data-name="{{ . }}" class="environment-delete btn btn-danger btn-xs">Delete</button>
 						</td>
 					</tr>
 				{{ end }}
@@ -288,7 +286,7 @@
 		<div class="panel">
 			<textarea id="environment-content" class="environment">{{ .Environment.Raw }}</textarea>
 			<div class="clearfix footer">
-				<button id="environment-raw-save" class="btn btn-xs btn-primary pull-right" data-app="{{ .App }}">Save</button>
+				<button id="environment-raw-save" class="btn btn-xs btn-primary pull-right" data-cluster="{{ .Cluster }}" data-app="{{ .App }}">Save</button>
 				<button id="environment-raw-cancel" class="btn btn-xs btn-inverse pull-right">Cancel</button>
 			</div>
 		</div>

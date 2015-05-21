@@ -1,0 +1,258 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters" : {
+    "Ami": {
+      "Type" : "String",
+      "Default" : "ami-d0b9acb8",
+      "Description" : "Cluster AMI"
+    },
+    "AvailabilityZones": {
+      "Type" : "CommaDelimitedList",
+      "Default" : "",
+      "Description" : "Override default availability zones"
+    },
+    "Count": {
+      "Type": "Number",
+      "Default": "1",
+      "Description" : "Instance count for the ECS cluster"
+    },
+    "Key": {
+      "Type": "String",
+      "Default": "",
+      "Description" : "Key name for SSH access"
+    },
+    "Size": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "Description" : "Instance size for the ECS cluster"
+    }
+  },
+  "Conditions": {
+    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
+    "Gateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+      }
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "Gateway" },
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet0": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "0", { "Ref": "AvailabilityZones" } ] }
+        ] },
+        "CidrBlock": "10.0.1.0/24",
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "1", { "Ref": "AvailabilityZones" } ] }
+        ] },
+        "CidrBlock": "10.0.2.0/24",
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "2", { "Ref": "AvailabilityZones" } ] }
+        ] },
+        "CidrBlock": "10.0.3.0/24",
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Routes": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "RouteDefault": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "Gateway" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet0Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet0" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet1Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet1" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet2Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet2" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Instances",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": "10.0.0.0/8" }
+        ],
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "IamRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "ClusterInstanceRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:CreateCluster",
+                    "ecs:DeregisterContainerInstance",
+                    "ecs:DiscoverPollEndpoint",
+                    "ecs:Poll",
+                    "ecs:RegisterContainerInstance",
+                    "ecs:Submit*"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "IamRole" } ]
+      }
+    },
+    "LaunchConfiguration": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": true,
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "ImageId": { "Ref": "Ami" },
+        "InstanceMonitoring": true,
+        "InstanceType": { "Ref": "Size" },
+        "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "UserData": { "Fn::Base64": 
+          { "Fn::Join": [ "\n", [
+            "#!/bin/bash",
+            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] }
+          ] ] } 
+        }
+      }
+    },
+    "Instances": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
+        "AvailabilityZones": { "Fn::If": [ "DefaultAvailabilityZones",
+          [
+            { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+            { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
+          ],
+          [
+            { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
+            { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
+            { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
+          ]
+        ] },
+        "VPCZoneIdentifier": [ 
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Ref": "Subnet2" }
+        ],
+        "Cooldown": 5,
+        "DesiredCapacity": { "Ref": "Count" },
+        "HealthCheckType": "EC2",
+        "HealthCheckGracePeriod": 0,
+        "MinSize" : "1",
+        "MaxSize" : "10",
+        "MetricsCollection": [ { "Granularity": "1Minute" } ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Join": [ "-", [ "cluster", { "Ref": "AWS::StackName" } ] ] },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Cluster",
+            "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          }
+        ]
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": 1,
+          "MinInstancesInService": 1
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "Subnets": {
+      "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
+    },
+    "Vpc": {
+      "Value": { "Ref": "Vpc" }
+    }
+  }
+}

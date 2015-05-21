@@ -1,0 +1,89 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters" : {
+    "BalancerPorts": {
+      "Type" : "CommaDelimitedList",
+      "Default" : "",
+      "Description" : "List of ports to open on the load balancer"
+    },
+    "ContainerPorts": {
+      "Type" : "CommaDelimitedList",
+      "Default" : "",
+      "Description" : "List of external ports"
+    },
+    "HealthCheck": {
+      "Type" : "String",
+      "Default" : "HTTP:{{ upper .Port }}/",
+      "Description" : "Health check endpoint"
+    },
+    "Repository": {
+      "Type" : "String",
+      "Default" : "",
+      "Description" : "Source code repository"
+    },
+    "Subnets": {
+      "Type" : "List<AWS::EC2::Subnet::Id>",
+      "Default" : "",
+      "Description" : "VPC subnets for this app"
+    },
+    "VPC": {
+      "Type" : "AWS::EC2::VPC::Id",
+      "Default" : "",
+      "Description" : "VPC for this app"
+    }
+  },
+  "Resources": {
+    {{ range .Balancers }}
+      "{{ upper .Name }}BalancerSecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" }
+          ],
+          "VpcId": { "Ref": "VPC" }
+        }
+      },
+      "{{ upper .Name }}Balancer": {
+        "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+        "Properties": {
+          "Subnets": { "Ref": "Subnets" },
+          "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+          "ConnectionSettings": { "IdleTimeout": 60 },
+          "CrossZone": true,
+          "HealthCheck": {
+            "HealthyThreshold": "2",
+            "Interval": 5,
+            "Target": { "Ref": "{{ upper .Name }}Check" },
+            "Timeout": 3,
+            "UnhealthyThreshold": "2"
+          },
+          "Listeners": [
+            { "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "{{ .Port }}" }
+          ],
+          "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+          "LoadBalancerName": { "Ref": "AWS::StackName" },
+          "SecurityGroups": [ { "Ref": "{{ upper .Name }}BalancerSecurityGroup" } ]
+        }
+      },
+    {{ end }}
+    "Settings": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "Private",
+        "VersioningConfiguration": {
+          "Status": "Suspended"
+        },
+        "Tags": [
+          { "Key": "system", "Value": "convox" },
+          { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "Settings": {
+      "Value": { "Ref": "Settings" }
+    }
+  }
+}

@@ -103,20 +103,22 @@ function refresh_content(tab) {
 
 function apply_tab_events() {
   $('#environment-add').on('click', function() {
+    var cluster = $(this).data('cluster');
     var app = $(this).data('app');
     var name = $('.app-environment tfoot input[name="name"]').val();
     var value = $('.app-environment tfoot input[name="value"]').val();
 
-    $.post('/apps/' + app + '/environment/' + name, { value:value }, function() {
+    $.post('/clusters/' + cluster + '/apps/' + app + '/environment/' + name, { value:value }, function() {
       refresh_tab();
     });
   });
 
   $('.environment-delete').on('click', function() {
+    var cluster = $(this).data('cluster');
     var app = $(this).data('app');
     var name = $(this).data('name');
 
-    $.ajax({ method:"DELETE", url:'/apps/' + app + '/environment/' + name }).done(function() {
+    $.ajax({ method:"DELETE", url:'/clusters/' + cluster + '/apps/' + app + '/environment/' + name }).done(function() {
       refresh_tab();
     });
   });
@@ -132,9 +134,10 @@ function apply_tab_events() {
   });
 
   $('#environment-raw-save').on('click', function() {
+    var cluster = $(this).data('cluster');
     var app = $(this).data('app');
 
-    $.post('/apps/' + app + '/environment', $('#environment-content').val(), function() {
+    $.post('/clusters/' + cluster + '/apps/' + app + '/environment', $('#environment-content').val(), function() {
       refresh_tab();
     });
   });
@@ -169,5 +172,5 @@ $(window).ready(function() {
   $('.timeago').timeago();
 
   activate_tabs();
-  goto_anchor('#changes');
+  goto_anchor('#environment');
 });

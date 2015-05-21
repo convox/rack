@@ -8,7 +8,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aryann/difflib"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -35,8 +34,8 @@ func LoadEnvironment(data []byte) Environment {
 	return env
 }
 
-func GetEnvironment(app string) (Environment, error) {
-	a, err := GetApp(app)
+func GetEnvironment(cluster, app string) (Environment, error) {
+	a, err := GetApp(cluster, app)
 
 	if err != nil {
 		return nil, err
@@ -65,54 +64,54 @@ func GetEnvironment(app string) (Environment, error) {
 	return LoadEnvironment(data), nil
 }
 
-func PutEnvironment(app string, env Environment) error {
-	a, err := GetApp(app)
+func PutEnvironment(cluster, app string, env Environment) error {
+	a, err := GetApp(cluster, app)
 
 	if err != nil {
 		return err
 	}
 
-	release, err := a.ForkRelease()
+	// release, err := a.ForkRelease()
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	//   return err
+	// }
 
-	eold := strings.Split(release.Env, "\n")
-	enew := strings.Split(env.Raw(), "\n")
-	diff := difflib.Diff(eold, enew)
+	// eold := strings.Split(release.Env, "\n")
+	// enew := strings.Split(env.Raw(), "\n")
+	// diff := difflib.Diff(eold, enew)
 
-	metadata, err := diffMetadata(diff)
+	// metadata, err := diffMetadata(diff)
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	//   return err
+	// }
 
-	release.Env = env.Raw()
+	// release.Env = env.Raw()
 
-	err = release.Save()
+	// err = release.Save()
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	//   return err
+	// }
 
-	change := &Change{
-		App:      app,
-		Created:  time.Now(),
-		Metadata: metadata,
-		TargetId: release.Id,
-		Type:     "RELEASE",
-		Status:   "complete",
-		User:     "convox",
-	}
+	// change := &Change{
+	//   App:      app,
+	//   Created:  time.Now(),
+	//   Metadata: metadata,
+	//   TargetId: release.Id,
+	//   Type:     "RELEASE",
+	//   Status:   "complete",
+	//   User:     "convox",
+	// }
 
-	err = change.Save()
+	// err = change.Save()
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-	}
+	// if err != nil {
+	//   fmt.Fprintf(os.Stderr, "error: %s\n", err)
+	// }
 
-	e := []byte(release.Env)
+	e := []byte(env.Raw())
 
 	if a.Parameters["Key"] != "" {
 		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))

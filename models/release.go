@@ -45,7 +45,7 @@ func ListReleases(app string) (Releases, error) {
 		TableName:        aws.String(releasesTable(app)),
 	}
 
-	a, err := GetApp(app)
+	a, err := GetApp("", app)
 
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func GetRelease(app, id string) (*Release, error) {
 		TableName: aws.String(releasesTable(app)),
 	}
 
-	a, err := GetApp(app)
+	a, err := GetApp("", app)
 
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func GetRelease(app, id string) (*Release, error) {
 }
 
 func (r *Release) Cleanup() error {
-	app, err := GetApp(r.App)
+	app, err := GetApp("", r.App)
 
 	if err != nil {
 		return err
@@ -158,7 +158,7 @@ func (r *Release) Save() error {
 		return err
 	}
 
-	app, err := GetApp(r.App)
+	app, err := GetApp("", r.App)
 
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (r *Release) Formation() (string, error) {
 	pps := strings.Join(pp, ",")
 	bbs := strings.Join(bb, ",")
 
-	data, err := exec.Command("docker", "run", "convox/architect", "-processes", pps, "-balancers", bbs).CombinedOutput()
+	data, err := exec.Command("docker", "run", "convox/app", "-processes", pps, "-balancers", bbs).CombinedOutput()
 
 	if err != nil {
 		return "", err
@@ -216,7 +216,7 @@ func (r *Release) Processes() (Processes, error) {
 }
 
 func (r *Release) Promote() error {
-	app, err := GetApp(r.App)
+	app, err := GetApp("", r.App)
 
 	if err != nil {
 		return err
