@@ -1,0 +1,162 @@
+{{ define "app" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters" : {
+      {{ if .HasPorts }}
+        "HealthCheck": {
+          "Type" : "String",
+          "Default" : "HTTP:{{ .FirstContainerPort }}/",
+          "Description" : "Health check endpoint"
+        },
+      {{ end }}
+      "Repository": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Source code repository"
+      },
+      "Subnets": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC subnets for this app"
+      },
+      "VPC": {
+        "Type" : "AWS::EC2::VPC::Id",
+        "Default" : "",
+        "Description" : "VPC for this app"
+      }
+    },
+    "Resources": {
+      {{ if .HasPorts }}
+        "BalancerSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+            "SecurityGroupIngress": [
+              {{ securityGroups .Ports }}
+            ],
+            "VpcId": { "Ref": "VPC" }
+          }
+        },
+        "Balancer": {
+          "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+          "Properties": {
+            "Subnets": { "Ref": "Subnets" },
+            "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+            "ConnectionSettings": { "IdleTimeout": 60 },
+            "CrossZone": true,
+            "HealthCheck": {
+              "HealthyThreshold": "2",
+              "Interval": 5,
+              "Target": { "Ref": "HealthCheck" },
+              "Timeout": 3,
+              "UnhealthyThreshold": "2"
+            },
+            "Listeners": [
+              {{ listeners .Ports }}
+            ],
+            "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+            "LoadBalancerName": { "Ref": "AWS::StackName" },
+            "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
+          }
+        },
+      {{ end }}
+      "DynamoBuilds": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "builds" ] ] },
+          "AttributeDefinitions": [
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "id", "KeyType": "HASH" }
+          ],
+          "GlobalSecondaryIndexes": [{
+            "IndexName": "app.created",
+            "KeySchema": [
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoChanges": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "changes" ] ] },
+          "AttributeDefinitions": [
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "app", "KeyType": "HASH" },
+            { "AttributeName": "created", "KeyType": "RANGE" }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "DynamoReleases": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "releases" ] ] },
+          "AttributeDefinitions": [
+            { "AttributeName": "id", "AttributeType": "S" },
+            { "AttributeName": "app", "AttributeType": "S" },
+            { "AttributeName": "created", "AttributeType": "S" }
+          ],
+          "KeySchema": [
+            { "AttributeName": "id", "KeyType": "HASH" }
+          ],
+          "GlobalSecondaryIndexes": [{
+            "IndexName": "app.created",
+            "KeySchema": [
+              { "AttributeName": "app", "KeyType": "HASH" },
+              { "AttributeName": "created", "KeyType": "RANGE" }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            }
+          }],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": "5",
+            "WriteCapacityUnits": "5"
+          }
+        }
+      },
+      "Settings": {
+        "Type": "AWS::S3::Bucket",
+        "Properties": {
+          "AccessControl": "Private",
+          "Tags": [
+            { "Key": "system", "Value": "convox" },
+            { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
+          ]
+        }
+      }
+    },
+    "Outputs": {
+      "Settings": {
+        "Value": { "Ref": "Settings" }
+      }
+    }
+  }
+{{ end }}
