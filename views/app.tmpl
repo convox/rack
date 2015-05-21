@@ -436,7 +436,7 @@
 
 			$('#service-link-stack').html("")
 
-			$.ajax({ type: 'GET', url:'/services/' + type.split("/")[1] }).done(function(msg) {
+			$.ajax({ type: 'GET', url:'/services/types/' + type.split("/")[1] }).done(function(msg) {
 				$('#service-link-stack').html(msg)
 			}).fail(function(msg) {
 				$('#alert .message').html(msg.responseText);

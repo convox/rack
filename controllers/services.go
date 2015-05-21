@@ -8,13 +8,17 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
 	"github.com/convox/kernel/models"
 )
 
 func init() {
+	RegisterPartial("service", "logs")
+	RegisterPartial("services", "names")
+
+	RegisterTemplate("service", "layout", "service")
 	RegisterTemplate("services", "layout", "services")
-	RegisterPartial("services", "link")
 	// RegisterTemplate("app", "layout", "app")
 }
 
@@ -37,6 +41,24 @@ func ServiceList(rw http.ResponseWriter, r *http.Request) {
 func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 	log := servicesLogger("show").Start()
 
+	name := mux.Vars(r)["service"]
+
+	service, err := models.GetServiceFromName(name)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	// sort.Sort(services)
+
+	RenderTemplate(rw, "service", service)
+}
+
+func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("nameList").Start()
+
 	t := mux.Vars(r)["type"]
 
 	services, err := models.ListServiceStacks()
@@ -55,7 +77,7 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	RenderPartial(rw, "services", "link", s)
+	RenderPartial(rw, "services", "names", s)
 }
 
 func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
@@ -128,6 +150,54 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 	service.Save()
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s#services", app))
+}
+
+func ServiceLogs(rw http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["service"]
+
+	service, err := models.GetServiceFromName(name)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "service", "logs", service)
+}
+
+func ServiceStream(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("stream").Start()
+
+	service, err := models.GetServiceFromName(mux.Vars(r)["service"])
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	logs := make(chan []byte)
+	done := make(chan bool)
+
+	service.SubscribeLogs(logs, done)
+
+	ws, err := upgrader.Upgrade(rw, r, nil)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	log.Success("step=upgrade service=%q", service.Name)
+
+	defer ws.Close()
+
+	for data := range logs {
+		ws.WriteMessage(websocket.TextMessage, data)
+	}
+
+	log.Success("step=ended service=%q", service.Name)
 }
 
 func servicesLogger(at string) *logger.Logger {

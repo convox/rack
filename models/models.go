@@ -10,6 +10,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -61,6 +62,13 @@ func EC2() *ec2.EC2 {
 
 func Kinesis() *kinesis.Kinesis {
 	return kinesis.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func RDS() *rds.RDS {
+	return rds.New(&aws.Config{
 		Credentials: credentials.NewCredentials(&AwsCredentials{}),
 		Region:      os.Getenv("AWS_REGION"),
 	})

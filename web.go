@@ -110,7 +110,11 @@ func main() {
 
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
-	router.HandleFunc("/services/{type}", controllers.ServiceShow).Methods("GET")
+	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")
+	router.HandleFunc("/services/{service}/logs", controllers.ServiceLogs).Methods("GET")
+	router.HandleFunc("/services/{service}/logs/stream", controllers.ServiceStream).Methods("GET")
+
+	router.HandleFunc("/services/types/{type}", controllers.ServiceNameList).Methods("GET")
 
 	router.HandleFunc("/settings", controllers.SettingsList).Methods("GET")
 	router.HandleFunc("/settings", controllers.SettingsUpdate).Methods("POST")

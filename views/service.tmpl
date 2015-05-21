@@ -1,0 +1,48 @@
+{{ define "title" }} Convox {{ end }}
+
+{{ define "body" }}
+
+  {{ $service := . }}
+
+  <div id="alert" class="alert alert-danger  alert-dismissible" role="alert" style="display:none;">
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    <strong>Error:</strong><span class="message"></span>
+  </div>
+
+  <ol class="breadcrumb">
+    <button id="destroy-service" class="btn btn-danger btn-xs">Destroy Service</button>
+    <li><a href="/services">Services</a></li>
+    <li class="active">{{ .Name }}</li>
+  </ol>
+
+  <div class="panel panel-default">
+    <div class="panel-body">
+      {{ label "Service" .Tags.Service }}
+      {{ label "Status" .Status }}
+    </div>
+  </div>
+
+  {{ if .Created }}
+    <ul class="nav nav-tabs">
+      <li role="presentation"><a href="#logs"  role="tab" data-source="/services/{{ .Name }}/logs">Logs</a></li>
+    </ul>
+
+    <div id="tab-content">
+    </div>
+  {{ end }}
+
+  <script>
+    $(window).ready(function() {
+      activate_tabs();
+      goto_anchor('#logs');
+    })
+  </script>
+{{ end }}
+
+{{ define "logs" }}
+  <pre id="service-logs" class="logs"><p>Connecting...</p></pre>
+
+  <script>
+    connect_log_socket($('#service-logs'), '/services/{{ .Name }}/logs/stream');
+  </script>
+{{ end }}
