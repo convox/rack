@@ -11,10 +11,12 @@ import (
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("create").Start()
 
-	app := mux.Vars(r)["app"]
+	vars := mux.Vars(r)
+	cluster := vars["cluster"]
+	app := vars["app"]
 	repo := GetForm(r, "repo")
 
-	build := &models.Build{App: app, Status: "building"}
+	build := models.NewBuild(cluster, app)
 
 	err := build.Save()
 

@@ -132,9 +132,11 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("promote").Start()
 
-	app := mux.Vars(r)["app"]
+	vars := mux.Vars(r)
+	cluster := vars["cluster"]
+	app := vars["app"]
 
-	release, err := models.GetRelease(app, GetForm(r, "release"))
+	release, err := models.GetRelease(cluster, app, GetForm(r, "release"))
 
 	if err != nil {
 		log.Error(err)
@@ -194,9 +196,11 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("builds").Start()
 
-	app := mux.Vars(r)["app"]
+	vars := mux.Vars(r)
+	cluster := vars["cluster"]
+	app := vars["app"]
 
-	builds, err := models.ListBuilds(app)
+	builds, err := models.ListBuilds(cluster, app)
 
 	if err != nil {
 		log.Error(err)
@@ -292,9 +296,11 @@ func AppStream(rw http.ResponseWriter, r *http.Request) {
 func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("releases").Start()
 
-	app := mux.Vars(r)["app"]
+	vars := mux.Vars(r)
+	cluster := vars["cluster"]
+	app := vars["app"]
 
-	releases, err := models.ListReleases(app)
+	releases, err := models.ListReleases(cluster, app)
 
 	if err != nil {
 		log.Error(err)

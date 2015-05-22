@@ -8,8 +8,7 @@ web:
     - AWS_AZS
     - GITHUB_TOKEN
     - HTTP_PASSWORD
-    - SETTINGS_BUCKET
-    - STACK_NAME
+    - REGISTRY
   ports:
     - 5000:3000
     - 4443:4443
@@ -20,10 +19,7 @@ registry:
   environment:
     - REGISTRY_CERT_PUBLIC
     - REGISTRY_CERT_PRIVATE
+    - SETTINGS_FLAVOR=local
   image: convox/registry
-  links:
-    - s3
   ports:
     - 5100:443
-s3:
-  image: convox/aws-s3

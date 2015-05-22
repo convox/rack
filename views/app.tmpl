@@ -84,7 +84,7 @@
 		<script>
 			$(window).ready(function() {
 				$('#build-app').on('click', function() {
-					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
+					$.ajax({ type: 'POST', url:'/clusters/{{ .Cluster }}/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
 						change_to_tab('#builds');
 					}).fail(function(msg) {
 						$('#alert .message').html(msg.responseText);
@@ -305,8 +305,8 @@
 		<thead>
 			<tr>
 				<th>ID</th>
-				<th>AMI</th>
 				<th class="expand">Created</th>
+				<th>Build</th>
 				<th></th>
 				<th></th>
 			</tr>
@@ -315,8 +315,8 @@
 			{{ range . }}
 				<tr>
 					<td class="id">{{ .Id }}</td>
-					<td>{{ .Ami }}</td>
 					<td>{{ timeago .Created }}</td>
+					<td>{{ .Build }}</td>
 					<td class="buttons">
 						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
 					</td>

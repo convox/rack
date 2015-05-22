@@ -10,17 +10,17 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 )
 
 type Release struct {
 	Id string
 
-	App string
+	Cluster string
+	App     string
 
 	Active   bool
-	Ami      string
+	Build    string
 	Env      string
 	Manifest string
 
@@ -29,7 +29,15 @@ type Release struct {
 
 type Releases []Release
 
-func ListReleases(app string) (Releases, error) {
+func NewRelease(cluster, app string) Release {
+	return Release{
+		Id:      generateId("R", 10),
+		Cluster: cluster,
+		App:     app,
+	}
+}
+
+func ListReleases(cluster, app string) (Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
@@ -42,10 +50,10 @@ func ListReleases(app string) (Releases, error) {
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Long(10),
 		ScanIndexForward: aws.Boolean(false),
-		TableName:        aws.String(releasesTable(app)),
+		TableName:        aws.String(releasesTable(cluster, app)),
 	}
 
-	a, err := GetApp("", app)
+	a, err := GetApp(cluster, app)
 
 	if err != nil {
 		return nil, err
@@ -67,16 +75,16 @@ func ListReleases(app string) (Releases, error) {
 	return releases, nil
 }
 
-func GetRelease(app, id string) (*Release, error) {
+func GetRelease(cluster, app, id string) (*Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Boolean(true),
 		Key: &map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(releasesTable(app)),
+		TableName: aws.String(releasesTable(cluster, app)),
 	}
 
-	a, err := GetApp("", app)
+	a, err := GetApp(cluster, app)
 
 	if err != nil {
 		return nil, err
@@ -95,18 +103,7 @@ func GetRelease(app, id string) (*Release, error) {
 }
 
 func (r *Release) Cleanup() error {
-	app, err := GetApp("", r.App)
-
-	if err != nil {
-		return err
-	}
-
-	// delete ami
-	req := &ec2.DeregisterImageInput{
-		ImageID: aws.String(r.Ami),
-	}
-
-	_, err = EC2().DeregisterImage(req)
+	app, err := GetApp(r.Cluster, r.App)
 
 	if err != nil {
 		return err
@@ -124,7 +121,7 @@ func (r *Release) Cleanup() error {
 
 func (r *Release) Save() error {
 	if r.Id == "" {
-		r.Id = generateId("R", 10)
+		return fmt.Errorf("Id must not be blank")
 	}
 
 	if r.Created.IsZero() {
@@ -134,14 +131,15 @@ func (r *Release) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: &map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
+			"cluster": &dynamodb.AttributeValue{S: aws.String(r.Cluster)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
 			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
 		},
-		TableName: aws.String(releasesTable(r.App)),
+		TableName: aws.String(releasesTable(r.Cluster, r.App)),
 	}
 
-	if r.Ami != "" {
-		(*req.Item)["ami"] = &dynamodb.AttributeValue{S: aws.String(r.Ami)}
+	if r.Build != "" {
+		(*req.Item)["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
 	}
 
 	if r.Env != "" {
@@ -158,7 +156,7 @@ func (r *Release) Save() error {
 		return err
 	}
 
-	app, err := GetApp("", r.App)
+	app, err := GetApp(r.Cluster, r.App)
 
 	if err != nil {
 		return err
@@ -216,7 +214,7 @@ func (r *Release) Processes() (Processes, error) {
 }
 
 func (r *Release) Promote() error {
-	app, err := GetApp("", r.App)
+	app, err := GetApp(r.Cluster, r.App)
 
 	if err != nil {
 		return err
@@ -237,7 +235,6 @@ func (r *Release) Promote() error {
 	params := app.Parameters
 
 	params["AvailabilityZones"] = os.Getenv("AWS_AZS")
-	params["AMI"] = r.Ami
 	params["Environment"] = fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", app.Outputs["Settings"], r.Id)
 	params["Release"] = r.Id
 
@@ -311,8 +308,8 @@ func (r *Release) Services() (Services, error) {
 	return services, nil
 }
 
-func releasesTable(app string) string {
-	return fmt.Sprintf("%s-releases", app)
+func releasesTable(cluster, app string) string {
+	return fmt.Sprintf("%s-%s-releases", cluster, app)
 }
 
 func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
@@ -320,8 +317,9 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
 
 	return &Release{
 		Id:       coalesce(item["id"], ""),
+		Cluster:  coalesce(item["cluster"], ""),
 		App:      coalesce(item["app"], ""),
-		Ami:      coalesce(item["ami"], ""),
+		Build:    coalesce(item["build"], ""),
 		Env:      coalesce(item["env"], ""),
 		Manifest: coalesce(item["manifest"], ""),
 		Created:  created,

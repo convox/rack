@@ -123,7 +123,7 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
-	builds, err := ListBuilds(a.Name)
+	builds, err := ListBuilds(a.Cluster, a.Name)
 
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (a *App) Cleanup() error {
 		go cleanupBuild(build)
 	}
 
-	releases, err := ListReleases(a.Name)
+	releases, err := ListReleases(a.Cluster, a.Name)
 
 	if err != nil {
 		return err
@@ -192,17 +192,17 @@ func (a *App) ForkRelease() (*Release, error) {
 	}
 
 	if release == nil {
-		release = &Release{App: a.Name}
+		*release = NewRelease(a.Cluster, a.Name)
 	}
 
-	release.Id = ""
+	release.Id = generateId("R", 10)
 	release.Created = time.Time{}
 
 	return release, nil
 }
 
 func (a *App) LatestRelease() (*Release, error) {
-	releases, err := ListReleases(a.Name)
+	releases, err := ListReleases(a.Cluster, a.Name)
 
 	if err != nil {
 		return nil, err
@@ -265,18 +265,8 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 	change.Save()
 }
 
-func (a *App) Ami() string {
-	release, err := GetRelease(a.Name, a.Release)
-
-	if err != nil {
-		return ""
-	}
-
-	return release.Ami
-}
-
 func (a *App) Builds() Builds {
-	builds, err := ListBuilds(a.Name)
+	builds, err := ListBuilds(a.Cluster, a.Name)
 
 	if err != nil {
 		if err.(aws.APIError).Message == "Requested resource not found" {
@@ -328,7 +318,7 @@ func (a *App) Processes() Processes {
 }
 
 func (a *App) Releases() Releases {
-	releases, err := ListReleases(a.Name)
+	releases, err := ListReleases(a.Cluster, a.Name)
 
 	if err != nil {
 		if err.(aws.APIError).Message == "Requested resource not found" {

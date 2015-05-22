@@ -2,27 +2,21 @@ package models
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
-)
-
-var (
-	log = logger.New("ns=kernel md=build")
 )
 
 type Build struct {
 	Id string
 
-	App string
+	Cluster string
+	App     string
 
 	Logs    string
 	Release string
@@ -34,7 +28,17 @@ type Build struct {
 
 type Builds []Build
 
-func ListBuilds(app string) (Builds, error) {
+func NewBuild(cluster, app string) Build {
+	return Build{
+		Id:      generateId("B", 10),
+		Cluster: cluster,
+		App:     app,
+
+		Status: "created",
+	}
+}
+
+func ListBuilds(cluster, app string) (Builds, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
@@ -45,7 +49,7 @@ func ListBuilds(app string) (Builds, error) {
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Long(10),
 		ScanIndexForward: aws.Boolean(false),
-		TableName:        aws.String(buildsTable(app)),
+		TableName:        aws.String(buildsTable(cluster, app)),
 	}
 
 	res, err := DynamoDB().Query(req)
@@ -65,7 +69,7 @@ func ListBuilds(app string) (Builds, error) {
 
 func (b *Build) Save() error {
 	if b.Id == "" {
-		b.Id = generateId("B", 10)
+		return fmt.Errorf("Id can not be blank")
 	}
 
 	if b.Started.IsZero() {
@@ -75,11 +79,12 @@ func (b *Build) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: &map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
+			"cluster": &dynamodb.AttributeValue{S: aws.String(b.Cluster)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
 			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
 		},
-		TableName: aws.String(buildsTable(b.App)),
+		TableName: aws.String(buildsTable(b.Cluster, b.App)),
 	}
 
 	if b.Logs != "" {
@@ -120,129 +125,42 @@ func (b *Build) Cleanup() error {
 }
 
 func (b *Build) Execute(repo string) {
-	log = log.At("execute").Start()
+	b.Status = "building"
+	b.Save()
 
-	defer b.recoverBuild(log)
+	name := fmt.Sprintf("%s-%s", b.Cluster, b.App)
 
-	base, err := ioutil.TempDir("", "build")
-
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	env := filepath.Join(base, ".env")
-
-	if err = ioutil.WriteFile(env, []byte(buildEnvironment()), 0400); err != nil {
-		log.Error(err)
-		return
-	}
-
-	cmd := exec.Command("docker", "run", "--env-file", env, "convox/build", b.App, repo)
+	cmd := exec.Command("docker", "run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY"), name, repo)
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
 
 	if err = cmd.Start(); err != nil {
-		log.Error(err)
+		// TODO log error
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		return
 	}
 
-	app, err := GetApp("", b.App)
-
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	release, err := app.ForkRelease()
-
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	oldami := release.Ami
-
-	release.Ami = ""
-	release.Manifest = ""
-
+	manifest := ""
+	success := true
 	scanner := bufio.NewScanner(stdout)
+
 	for scanner.Scan() {
 		parts := strings.SplitN(scanner.Text(), "|", 2)
 
 		if len(parts) < 2 {
-			log.Log("type=unknown text=%q", scanner.Text())
 			b.Logs += fmt.Sprintf("%s\n", parts[0])
 			continue
 		}
 
 		switch parts[0] {
 		case "manifest":
-			release.Manifest += fmt.Sprintf("%s\n", parts[1])
-		case "packer":
-			log.Log("type=packer text=%q", parts[1])
-		case "build":
-			log.Log("type=build text=%q", parts[1])
-			b.Logs += fmt.Sprintf("%s\n", parts[1])
-		case "git":
-			log.Log("type=git text=%q", parts[1])
-			b.Logs += fmt.Sprintf("%s\n", parts[1])
+			manifest += fmt.Sprintf("%s\n", parts[1])
 		case "error":
-			log.Log("type=error text=%q", parts[1])
+			success = false
+			fmt.Println(parts[1])
 			b.Logs += fmt.Sprintf("%s\n", parts[1])
-		case "ami":
-			release.Ami = parts[1]
-
-			if err := release.Save(); err != nil {
-				log.Error(err)
-				b.Fail(err)
-				return
-			}
-
-			b.Release = release.Id
-			b.Status = "complete"
-			b.Ended = time.Now()
-			b.Save()
-
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if oldami == "" {
-				oldami = "<none>"
-			}
-
-			meta := ChangeMetadata{
-				Transactions: []Transaction{
-					Transaction{Type: "AMI", Name: release.Ami, Status: oldami},
-				},
-			}
-
-			data, err := json.Marshal(meta)
-
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			change := &Change{
-				App:      app.Name,
-				Created:  time.Now(),
-				Metadata: string(data),
-				TargetId: release.Id,
-				Type:     "RELEASE",
-				Status:   "complete",
-				User:     "convox",
-			}
-
-			err = change.Save()
-
-			if err != nil {
-				log.Error(err)
-			}
 		default:
-			log.Log("type=unknown text=%q", parts[1])
+			fmt.Println(parts[1])
 			b.Logs += fmt.Sprintf("%s\n", parts[1])
 		}
 	}
@@ -250,30 +168,58 @@ func (b *Build) Execute(repo string) {
 	err = cmd.Wait()
 
 	if err != nil {
-		log.Error(err)
 		b.Fail(err)
 		return
 	}
 
-	if release.Ami == "" {
-		err = fmt.Errorf("build did not create ami")
-		log.Error(err)
+	if !success {
+		b.Fail(fmt.Errorf("error from builder"))
+		return
+	}
+
+	app, err := GetApp(b.Cluster, b.App)
+
+	if err != nil {
 		b.Fail(err)
 		return
 	}
+
+	release, err := app.ForkRelease()
+
+	if err != nil {
+		b.Fail(err)
+		return
+	}
+
+	release.Build = b.Id
+	release.Manifest = manifest
+
+	err = release.Save()
+
+	if err != nil {
+		b.Fail(err)
+		return
+	}
+
+	b.Release = release.Id
+	b.Status = "complete"
+	b.Ended = time.Now()
+	b.Save()
 }
 
 func (b *Build) Fail(err error) {
 	b.Status = "failed"
-	b.Logs += fmt.Sprintf("\nBuild Error:\n %s", err)
+	b.Ended = time.Now()
+	b.Logs += fmt.Sprintf("Build Error: %s\n", err)
 	b.Save()
 }
 
-func (b *Build) recoverBuild(log *logger.Logger) {
+func (b *Build) Image(process string) string {
+	return fmt.Sprintf("%s/%s-%s-%s:%s", os.Getenv("REGISTRY"), b.Cluster, b.App, process, b.Id)
 }
 
-func buildsTable(app string) string {
-	return fmt.Sprintf("%s-builds", app)
+func buildsTable(cluster, app string) string {
+	return fmt.Sprintf("%s-%s-builds", cluster, app)
 }
 
 func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
@@ -283,6 +229,7 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	return &Build{
 		Id:      coalesce(item["id"], ""),
 		App:     coalesce(item["app"], ""),
+		Cluster: coalesce(item["cluster"], ""),
 		Logs:    coalesce(item["logs"], ""),
 		Release: coalesce(item["release"], ""),
 		Status:  coalesce(item["status"], ""),
