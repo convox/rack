@@ -67,6 +67,26 @@ func ListBuilds(cluster, app string) (Builds, error) {
 	return builds, nil
 }
 
+func GetBuild(cluster, app, id string) (*Build, error) {
+	req := &dynamodb.GetItemInput{
+		ConsistentRead: aws.Boolean(true),
+		Key: &map[string]*dynamodb.AttributeValue{
+			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		TableName: aws.String(buildsTable(cluster, app)),
+	}
+
+	res, err := DynamoDB().GetItem(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	build := buildFromItem(*res.Item)
+
+	return build, nil
+}
+
 func (b *Build) Save() error {
 	if b.Id == "" {
 		return fmt.Errorf("Id can not be blank")

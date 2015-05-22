@@ -1,6 +1,9 @@
 package models
 
 import (
+	"fmt"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/gopkg.in/yaml.v2"
@@ -45,11 +48,31 @@ func (m *Manifest) Processes() Processes {
 
 	for _, entry := range *m {
 		if st := entry.ServiceType(); st == "" {
-			processes = append(processes, Process{
+			ps := Process{
 				Name:    entry.Name,
 				Command: entry.Command,
 				Count:   1,
-			})
+			}
+
+			for _, p := range entry.Ports {
+				pp := strings.Split(p, ":")
+				sp := pp[0]
+
+				if len(pp) > 1 {
+					sp = pp[1]
+				}
+
+				port, err := strconv.Atoi(sp)
+
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "error: %s\n", err)
+					continue
+				}
+
+				ps.Ports = append(ps.Ports, port)
+			}
+
+			processes = append(processes, ps)
 		}
 	}
 

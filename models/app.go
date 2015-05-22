@@ -192,7 +192,8 @@ func (a *App) ForkRelease() (*Release, error) {
 	}
 
 	if release == nil {
-		*release = NewRelease(a.Cluster, a.Name)
+		r := NewRelease(a.Cluster, a.Name)
+		release = &r
 	}
 
 	release.Id = generateId("R", 10)

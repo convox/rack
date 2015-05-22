@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -130,8 +129,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("promote").Start()
-
 	vars := mux.Vars(r)
 	cluster := vars["cluster"]
 	app := vars["app"]
@@ -139,58 +136,61 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	release, err := models.GetRelease(cluster, app, GetForm(r, "release"))
 
 	if err != nil {
-		log.Error(err)
 		RenderError(rw, err)
 		return
 	}
-	log.Success("step=release.get app=%q release=%q", release.App, release.Id)
 
-	change := &models.Change{
-		App:      app,
-		Created:  time.Now(),
-		Metadata: "{}",
-		TargetId: release.Id,
-		Type:     "PROMOTE",
-		Status:   "changing",
-		User:     "convox",
-	}
+	// change := &models.Change{
+	//   App:      app,
+	//   Created:  time.Now(),
+	//   Metadata: "{}",
+	//   TargetId: release.Id,
+	//   Type:     "PROMOTE",
+	//   Status:   "changing",
+	//   User:     "convox",
+	// }
 
-	change.Save()
+	// change.Save()
 
-	events, err := models.ListEvents(app)
-	if err != nil {
-		log.Error(err)
-		change.Status = "failed"
-		change.Metadata = err.Error()
-		change.Save()
+	// events, err := models.ListEvents(app)
+	// if err != nil {
+	//   log.Error(err)
+	//   change.Status = "failed"
+	//   change.Metadata = err.Error()
+	//   change.Save()
 
-		RenderError(rw, err)
-		return
-	}
-	log.Success("step=events.list app=%q release=%q", release.App, release.Id)
+	//   RenderError(rw, err)
+	//   return
+	// }
+	// log.Success("step=events.list app=%q release=%q", release.App, release.Id)
 
 	err = release.Promote()
 
 	if err != nil {
-		log.Error(err)
-		change.Status = "failed"
-		change.Metadata = fmt.Sprintf("{\"error\": \"%s\"}", err.Error())
-		change.Save()
-
 		RenderError(rw, err)
 		return
 	}
-	log.Success("step=release.promote app=%q release=%q", release.App, release.Id)
+
+	// if err != nil {
+	//   log.Error(err)
+	//   change.Status = "failed"
+	//   change.Metadata = fmt.Sprintf("{\"error\": \"%s\"}", err.Error())
+	//   change.Save()
+
+	//   RenderError(rw, err)
+	//   return
+	// }
+	// log.Success("step=release.promote app=%q release=%q", release.App, release.Id)
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 
-	a, err := models.GetApp("", app)
-	if err != nil {
-		log.Error(err)
-		panic(err)
-	}
-	log.Success("step=app.get app=%q", release.App)
-	go a.WatchForCompletion(change, events)
+	// a, err := models.GetApp("", app)
+	// if err != nil {
+	//   log.Error(err)
+	//   panic(err)
+	// }
+	// log.Success("step=app.get app=%q", release.App)
+	// go a.WatchForCompletion(change, events)
 }
 
 func AppBuilds(rw http.ResponseWriter, r *http.Request) {

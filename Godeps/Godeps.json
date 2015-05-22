@@ -66,6 +66,10 @@
 			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/ecs",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/kinesis",
 			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},

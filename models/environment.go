@@ -71,25 +71,25 @@ func PutEnvironment(cluster, app string, env Environment) error {
 		return err
 	}
 
-	// release, err := a.ForkRelease()
+	release, err := a.ForkRelease()
 
-	// if err != nil {
-	//   return err
-	// }
+	if err != nil {
+		return err
+	}
+
+	release.Env = env.Raw()
+
+	err = release.Save()
+
+	if err != nil {
+		return err
+	}
 
 	// eold := strings.Split(release.Env, "\n")
 	// enew := strings.Split(env.Raw(), "\n")
 	// diff := difflib.Diff(eold, enew)
 
 	// metadata, err := diffMetadata(diff)
-
-	// if err != nil {
-	//   return err
-	// }
-
-	// release.Env = env.Raw()
-
-	// err = release.Save()
 
 	// if err != nil {
 	//   return err
@@ -111,19 +111,7 @@ func PutEnvironment(cluster, app string, env Environment) error {
 	//   fmt.Fprintf(os.Stderr, "error: %s\n", err)
 	// }
 
-	e := []byte(env.Raw())
-
-	if a.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
-
-		e, err = cr.Encrypt(a.Parameters["Key"], e)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return s3Put(a.Outputs["Settings"], "env", []byte(e), true)
+	return nil
 }
 
 func (e Environment) SortedNames() []string {

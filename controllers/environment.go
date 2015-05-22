@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -17,8 +16,6 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) {
 	app := vars["app"]
 
 	body, err := ioutil.ReadAll(r.Body)
-
-	fmt.Printf("string(body) %+v\n", string(body))
 
 	if err != nil {
 		RenderError(rw, err)

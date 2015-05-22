@@ -99,6 +99,7 @@ func main() {
 	router.HandleFunc("/clusters/{cluster}/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 	router.HandleFunc("/clusters/{cluster}/apps/{app}/environment/{name}", controllers.EnvironmentDelete).Methods("DELETE")
 	router.HandleFunc("/clusters/{cluster}/apps/{app}/releases", controllers.AppReleases).Methods("GET")
+	router.HandleFunc("/clusters/{cluster}/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/clusters/{cluster}/apps/{app}/services", controllers.AppServices).Methods("GET")
 
 	// router.HandleFunc("/apps", controllers.AppList).Methods("GET")
@@ -118,7 +119,6 @@ func main() {
 	// router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
 	// router.HandleFunc("/apps/{app}/processes/{process}/logs/stream", controllers.ProcessStream)
 	// router.HandleFunc("/apps/{app}/processes/{process}/resources", controllers.ProcessResources).Methods("GET")
-	// router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	// router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	// router.HandleFunc("/apps/{app}/resources", controllers.AppResources).Methods("GET")
 	// router.HandleFunc("/apps/{app}/services", controllers.AppServices).Methods("GET")
