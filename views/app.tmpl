@@ -12,12 +12,13 @@
 	<ol class="breadcrumb">
 		<button id="destroy-app" class="btn btn-danger btn-xs">Destroy App</button>
 		<button id="build-app" class="btn btn-success btn-xs">Build</button>
-		<li><a href="/clusters/{{ .Cluster }}">{{ .Cluster }}</a></li>
+		<li><a href="/apps">Apps</a></li>
 		<li class="active">{{ .Name }}</li>
 	</ol>
 
 	<div class="panel panel-default">
 		<div class="panel-body">
+		  {{ label "Cluster" .Cluster }}
 			{{ label "Repository" .Repository }}
 			{{ label "Status" .Status }}
 		</div>
@@ -71,11 +72,11 @@
 		</div>
 
 		<ul class="nav nav-tabs">
-			<li role="presentation"><a href="#environment" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/environment">Environment</a></li>
-			<li role="presentation"><a href="#builds" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/builds">Builds</a></li>
-			<li role="presentation"><a href="#logs"  role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/logs">Logs</a></li>
-			<li role="presentation"><a href="#releases" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/releases">Releases</a></li>
-			<li role="presentation"><a href="#services" role="tab" data-source="/clusters/{{ .Cluster }}/apps/{{ .Name }}/services">Services</a></li>
+			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
+			<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
+			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
+			<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
 		</ul>
 
 		<div id="tab-content">
@@ -84,7 +85,7 @@
 		<script>
 			$(window).ready(function() {
 				$('#build-app').on('click', function() {
-					$.ajax({ type: 'POST', url:'/clusters/{{ .Cluster }}/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
+					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
 						change_to_tab('#builds');
 					}).fail(function(msg) {
 						$('#alert .message').html(msg.responseText);
@@ -93,8 +94,8 @@
 				});
 
 				$('#destroy-app').on('click', function() {
-					$.ajax({ type: 'DELETE', url:'/clusters/{{ .Cluster }}/apps/{{ .Name }}'}).done(function(msg) {
-						window.location = '/clusters/{{ .Cluster }}';
+					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
+						window.location = '/apps';
 					}).fail(function(msg) {
 						$('#alert .message').html(msg.responseText);
 						$('#alert').show();

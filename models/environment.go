@@ -34,8 +34,8 @@ func LoadEnvironment(data []byte) Environment {
 	return env
 }
 
-func GetEnvironment(cluster, app string) (Environment, error) {
-	a, err := GetApp(cluster, app)
+func GetEnvironment(app string) (Environment, error) {
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
@@ -64,8 +64,8 @@ func GetEnvironment(cluster, app string) (Environment, error) {
 	return LoadEnvironment(data), nil
 }
 
-func PutEnvironment(cluster, app string, env Environment) error {
-	a, err := GetApp(cluster, app)
+func PutEnvironment(app string, env Environment) error {
+	a, err := GetApp(app)
 
 	if err != nil {
 		return err
@@ -111,7 +111,19 @@ func PutEnvironment(cluster, app string, env Environment) error {
 	//   fmt.Fprintf(os.Stderr, "error: %s\n", err)
 	// }
 
-	return nil
+	e := []byte(env.Raw())
+
+	if a.Parameters["Key"] != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		e, err = cr.Encrypt(a.Parameters["Key"], e)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return s3Put(a.Outputs["Settings"], "env", []byte(e), true)
 }
 
 func (e Environment) SortedNames() []string {

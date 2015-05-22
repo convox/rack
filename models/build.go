@@ -15,8 +15,7 @@ import (
 type Build struct {
 	Id string
 
-	Cluster string
-	App     string
+	App string
 
 	Logs    string
 	Release string
@@ -28,17 +27,16 @@ type Build struct {
 
 type Builds []Build
 
-func NewBuild(cluster, app string) Build {
+func NewBuild(app string) Build {
 	return Build{
-		Id:      generateId("B", 10),
-		Cluster: cluster,
-		App:     app,
+		Id:  generateId("B", 10),
+		App: app,
 
 		Status: "created",
 	}
 }
 
-func ListBuilds(cluster, app string) (Builds, error) {
+func ListBuilds(app string) (Builds, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
@@ -49,7 +47,7 @@ func ListBuilds(cluster, app string) (Builds, error) {
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Long(10),
 		ScanIndexForward: aws.Boolean(false),
-		TableName:        aws.String(buildsTable(cluster, app)),
+		TableName:        aws.String(buildsTable(app)),
 	}
 
 	res, err := DynamoDB().Query(req)
@@ -67,13 +65,13 @@ func ListBuilds(cluster, app string) (Builds, error) {
 	return builds, nil
 }
 
-func GetBuild(cluster, app, id string) (*Build, error) {
+func GetBuild(app, id string) (*Build, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Boolean(true),
 		Key: &map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(cluster, app)),
+		TableName: aws.String(buildsTable(app)),
 	}
 
 	res, err := DynamoDB().GetItem(req)
@@ -99,12 +97,11 @@ func (b *Build) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: &map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
-			"cluster": &dynamodb.AttributeValue{S: aws.String(b.Cluster)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
 			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
 		},
-		TableName: aws.String(buildsTable(b.Cluster, b.App)),
+		TableName: aws.String(buildsTable(b.App)),
 	}
 
 	if b.Logs != "" {
@@ -148,7 +145,7 @@ func (b *Build) Execute(repo string) {
 	b.Status = "building"
 	b.Save()
 
-	name := fmt.Sprintf("%s-%s", b.Cluster, b.App)
+	name := b.App
 
 	cmd := exec.Command("docker", "run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY"), name, repo)
 	stdout, err := cmd.StdoutPipe()
@@ -197,7 +194,7 @@ func (b *Build) Execute(repo string) {
 		return
 	}
 
-	app, err := GetApp(b.Cluster, b.App)
+	app, err := GetApp(b.App)
 
 	if err != nil {
 		b.Fail(err)
@@ -235,11 +232,11 @@ func (b *Build) Fail(err error) {
 }
 
 func (b *Build) Image(process string) string {
-	return fmt.Sprintf("%s/%s-%s-%s:%s", os.Getenv("REGISTRY"), b.Cluster, b.App, process, b.Id)
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY"), b.App, process, b.Id)
 }
 
-func buildsTable(cluster, app string) string {
-	return fmt.Sprintf("%s-%s-builds", cluster, app)
+func buildsTable(app string) string {
+	return fmt.Sprintf("%s-builds", app)
 }
 
 func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
@@ -249,7 +246,6 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	return &Build{
 		Id:      coalesce(item["id"], ""),
 		App:     coalesce(item["app"], ""),
-		Cluster: coalesce(item["cluster"], ""),
 		Logs:    coalesce(item["logs"], ""),
 		Release: coalesce(item["release"], ""),
 		Status:  coalesce(item["status"], ""),

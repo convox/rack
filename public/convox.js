@@ -108,7 +108,7 @@ function apply_tab_events() {
     var name = $('.app-environment tfoot input[name="name"]').val();
     var value = $('.app-environment tfoot input[name="value"]').val();
 
-    $.post('/clusters/' + cluster + '/apps/' + app + '/environment/' + name, { value:value }, function() {
+    $.post('/apps/' + app + '/environment/' + name, { value:value }, function() {
       refresh_tab();
     });
   });
@@ -118,7 +118,7 @@ function apply_tab_events() {
     var app = $(this).data('app');
     var name = $(this).data('name');
 
-    $.ajax({ method:"DELETE", url:'/clusters/' + cluster + '/apps/' + app + '/environment/' + name }).done(function() {
+    $.ajax({ method:"DELETE", url:'/apps/' + app + '/environment/' + name }).done(function() {
       refresh_tab();
     });
   });
@@ -137,7 +137,7 @@ function apply_tab_events() {
     var cluster = $(this).data('cluster');
     var app = $(this).data('app');
 
-    $.post('/clusters/' + cluster + '/apps/' + app + '/environment', $('#environment-content').val(), function() {
+    $.post('/apps/' + app + '/environment', $('#environment-content').val(), function() {
       refresh_tab();
     });
   });

@@ -18,8 +18,7 @@ type Service struct {
 	Status   string
 	URL      string
 
-	Cluster string
-	App     string
+	App string
 
 	Stack string
 
@@ -30,7 +29,7 @@ type Service struct {
 
 type Services []Service
 
-func ListServices(cluster, app string) (Services, error) {
+func ListServices(app string) (Services, error) {
 	// fmt.Printf("cluster %+v\n", cluster)
 	// fmt.Printf("app %+v\n", app)
 
@@ -111,8 +110,8 @@ func ListServiceStacks() (Services, error) {
 	return services, nil
 }
 
-func GetService(cluster, app, name string) (*Service, error) {
-	a, err := GetApp(cluster, app)
+func GetService(app, name string) (*Service, error) {
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
@@ -132,7 +131,6 @@ func GetService(cluster, app, name string) (*Service, error) {
 		return nil, err
 	}
 
-	service.Cluster = cluster
 	service.App = app
 
 	return service, nil
@@ -199,7 +197,7 @@ func (s *Service) Formation() (string, error) {
 }
 
 func (s *Service) Save() error {
-	app, err := GetApp(s.Cluster, s.App)
+	app, err := GetApp(s.App)
 
 	if err != nil {
 		return err

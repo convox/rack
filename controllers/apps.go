@@ -42,9 +42,7 @@ func init() {
 func AppList(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("list").Start()
 
-	cluster := mux.Vars(r)["cluster"]
-
-	apps, err := models.ListApps(cluster)
+	apps, err := models.ListApps()
 
 	if err != nil {
 		log.Error(err)
@@ -54,16 +52,28 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 
 	sort.Sort(apps)
 
-	RenderTemplate(rw, "apps", apps)
+	clusters, err := models.ListClusters()
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	params := map[string]interface{}{
+		"Apps":     apps,
+		"Clusters": clusters,
+	}
+
+	RenderTemplate(rw, "apps", params)
 }
 
 func AppShow(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("show").Start()
 
-	cluster := mux.Vars(r)["cluster"]
 	app := mux.Vars(r)["app"]
 
-	a, err := models.GetApp(cluster, app)
+	a, err := models.GetApp(app)
 
 	if err != nil {
 		log.Error(err)
@@ -77,7 +87,7 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("create").Start()
 
-	cluster := mux.Vars(r)["cluster"]
+	cluster := GetForm(r, "cluster")
 	name := GetForm(r, "name")
 	repo := GetForm(r, "repo")
 
@@ -95,17 +105,16 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Redirect(rw, r, fmt.Sprintf("/clusters/%s", cluster))
+	Redirect(rw, r, fmt.Sprintf("/apps/%s", name))
 }
 
 func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("delete").Start()
 
 	vars := mux.Vars(r)
-	cluster := vars["cluster"]
 	name := vars["app"]
 
-	app, err := models.GetApp(cluster, name)
+	app, err := models.GetApp(name)
 
 	if err != nil {
 		log.Error(err)
@@ -130,10 +139,9 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	cluster := vars["cluster"]
 	app := vars["app"]
 
-	release, err := models.GetRelease(cluster, app, GetForm(r, "release"))
+	release, err := models.GetRelease(app, GetForm(r, "release"))
 
 	if err != nil {
 		RenderError(rw, err)
@@ -197,10 +205,9 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("builds").Start()
 
 	vars := mux.Vars(r)
-	cluster := vars["cluster"]
 	app := vars["app"]
 
-	builds, err := models.ListBuilds(cluster, app)
+	builds, err := models.ListBuilds(app)
 
 	if err != nil {
 		log.Error(err)
@@ -230,10 +237,9 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("environment").Start()
 
-	cluster := mux.Vars(r)["cluster"]
 	app := mux.Vars(r)["app"]
 
-	env, err := models.GetEnvironment(cluster, app)
+	env, err := models.GetEnvironment(app)
 
 	if err != nil {
 		log.Error(err)
@@ -242,7 +248,6 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	params := map[string]interface{}{
-		"Cluster":     cluster,
 		"App":         app,
 		"Environment": env,
 	}
@@ -261,7 +266,7 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 func AppStream(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("stream").Start()
 
-	app, err := models.GetApp("", mux.Vars(r)["app"])
+	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
 		log.Error(err)
@@ -297,10 +302,9 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("releases").Start()
 
 	vars := mux.Vars(r)
-	cluster := vars["cluster"]
 	app := vars["app"]
 
-	releases, err := models.ListReleases(cluster, app)
+	releases, err := models.ListReleases(app)
 
 	if err != nil {
 		log.Error(err)
@@ -330,10 +334,9 @@ func AppResources(rw http.ResponseWriter, r *http.Request) {
 func AppServices(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("services").Start()
 
-	cluster := mux.Vars(r)["cluster"]
 	app := mux.Vars(r)["app"]
 
-	services, err := models.ListServices(cluster, app)
+	services, err := models.ListServices(app)
 
 	if err != nil {
 		log.Error(err)
@@ -347,7 +350,7 @@ func AppServices(rw http.ResponseWriter, r *http.Request) {
 func AppStatus(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("status").Start()
 
-	app, err := models.GetApp("", mux.Vars(r)["app"])
+	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
 		log.Error(err)

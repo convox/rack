@@ -21,6 +21,11 @@
       "Default": "",
       "Description" : "Key name for SSH access"
     },
+    "Registry": {
+      "Type": "String",
+      "Default": "",
+      "Description" : "Docker registry"
+    },
     "Size": {
       "Type": "String",
       "Default": "t2.micro",
@@ -193,7 +198,10 @@
         "UserData": { "Fn::Base64": 
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
-            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] }
+            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
+            { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Ref": "Registry" }, " >> /etc/sysconfig/docker" ] ] },
+            "service docker restart",
+            "docker start ecs-agent"
           ] ] } 
         }
       }

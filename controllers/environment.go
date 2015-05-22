@@ -12,7 +12,6 @@ import (
 func EnvironmentSet(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	cluster := vars["cluster"]
 	app := vars["app"]
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -22,7 +21,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.PutEnvironment(cluster, app, models.LoadEnvironment(body))
+	err = models.PutEnvironment(app, models.LoadEnvironment(body))
 
 	if err != nil {
 		RenderError(rw, err)
@@ -35,12 +34,11 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) {
 func EnvironmentCreate(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	cluster := vars["cluster"]
 	app := vars["app"]
 	name := vars["name"]
 	value := GetForm(r, "value")
 
-	env, err := models.GetEnvironment(cluster, app)
+	env, err := models.GetEnvironment(app)
 
 	if err != nil {
 		RenderError(rw, err)
@@ -49,7 +47,7 @@ func EnvironmentCreate(rw http.ResponseWriter, r *http.Request) {
 
 	env[strings.ToUpper(name)] = value
 
-	err = models.PutEnvironment(cluster, app, env)
+	err = models.PutEnvironment(app, env)
 
 	if err != nil {
 		RenderError(rw, err)
@@ -62,11 +60,10 @@ func EnvironmentCreate(rw http.ResponseWriter, r *http.Request) {
 func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	cluster := vars["cluster"]
 	app := vars["app"]
 	name := vars["name"]
 
-	env, err := models.GetEnvironment(cluster, app)
+	env, err := models.GetEnvironment(app)
 
 	if err != nil {
 		RenderError(rw, err)
@@ -75,7 +72,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) {
 
 	delete(env, name)
 
-	err = models.PutEnvironment(cluster, app, env)
+	err = models.PutEnvironment(app, env)
 
 	if err != nil {
 		RenderError(rw, err)

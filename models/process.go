@@ -122,7 +122,7 @@ func (p *Process) Balancer() bool {
 }
 
 func (p *Process) BalancerUrl() string {
-	app, err := GetApp("", p.App)
+	app, err := GetApp(p.App)
 
 	if err != nil {
 		return ""

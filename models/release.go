@@ -15,8 +15,7 @@ import (
 type Release struct {
 	Id string
 
-	Cluster string
-	App     string
+	App string
 
 	Active   bool
 	Build    string
@@ -29,15 +28,14 @@ type Release struct {
 
 type Releases []Release
 
-func NewRelease(cluster, app string) Release {
+func NewRelease(app string) Release {
 	return Release{
-		Id:      generateId("R", 10),
-		Cluster: cluster,
-		App:     app,
+		Id:  generateId("R", 10),
+		App: app,
 	}
 }
 
-func ListReleases(cluster, app string) (Releases, error) {
+func ListReleases(app string) (Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
@@ -50,10 +48,10 @@ func ListReleases(cluster, app string) (Releases, error) {
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Long(10),
 		ScanIndexForward: aws.Boolean(false),
-		TableName:        aws.String(releasesTable(cluster, app)),
+		TableName:        aws.String(releasesTable(app)),
 	}
 
-	a, err := GetApp(cluster, app)
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
@@ -75,16 +73,16 @@ func ListReleases(cluster, app string) (Releases, error) {
 	return releases, nil
 }
 
-func GetRelease(cluster, app, id string) (*Release, error) {
+func GetRelease(app, id string) (*Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Boolean(true),
 		Key: &map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(releasesTable(cluster, app)),
+		TableName: aws.String(releasesTable(app)),
 	}
 
-	a, err := GetApp(cluster, app)
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
@@ -103,7 +101,7 @@ func GetRelease(cluster, app, id string) (*Release, error) {
 }
 
 func (r *Release) Cleanup() error {
-	app, err := GetApp(r.Cluster, r.App)
+	app, err := GetApp(r.App)
 
 	if err != nil {
 		return err
@@ -137,11 +135,10 @@ func (r *Release) Save() error {
 	req := &dynamodb.PutItemInput{
 		Item: &map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
-			"cluster": &dynamodb.AttributeValue{S: aws.String(r.Cluster)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
 			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
 		},
-		TableName: aws.String(releasesTable(r.Cluster, r.App)),
+		TableName: aws.String(releasesTable(r.App)),
 	}
 
 	if r.Build != "" {
@@ -186,7 +183,7 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	app, err := GetApp(r.Cluster, r.App)
+	app, err := GetApp(r.App)
 
 	if err != nil {
 		return err
@@ -201,7 +198,7 @@ func (r *Release) Promote() error {
 	}
 
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(fmt.Sprintf("%s-%s", r.Cluster, r.App)),
+		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
 		Parameters:   params,
 	}
@@ -265,7 +262,7 @@ func (r *Release) Services() (Services, error) {
 }
 
 func (r *Release) registerServices() error {
-	app, err := GetApp(r.Cluster, r.App)
+	app, err := GetApp(r.App)
 
 	if err != nil {
 		return err
@@ -278,43 +275,62 @@ func (r *Release) registerServices() error {
 	}
 
 	for _, ps := range pss {
+		fmt.Printf("%s-%s\n", r.App, ps.Name)
+
 		gres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-			Cluster:  aws.String(r.Cluster),
-			Services: []*string{aws.String(fmt.Sprintf("%s-%s-%s", r.Cluster, r.App, ps.Name))},
+			Cluster:  aws.String(app.Cluster),
+			Services: []*string{aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name))},
 		})
 
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("r.Tasks %+v\n", r.Tasks)
+		var existing *ecs.Service
 
-		if len(gres.Services) < 1 {
-			creq := &ecs.CreateServiceInput{
-				Cluster:        aws.String(r.Cluster),
+		for _, service := range gres.Services {
+			if *service.Status == "ACTIVE" {
+				existing = service
+				break
+			}
+		}
+
+		if existing == nil {
+			req := &ecs.CreateServiceInput{
+				Cluster:        aws.String(app.Cluster),
 				DesiredCount:   aws.Long(int64(ps.Count)),
 				Role:           aws.String("arn:aws:iam::778743527532:role/ecsServiceRole"),
-				ServiceName:    aws.String(fmt.Sprintf("%s-%s-%s", r.Cluster, r.App, ps.Name)),
+				ServiceName:    aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
 				TaskDefinition: aws.String(r.Tasks[ps.Name]),
 			}
 
 			for _, port := range ps.Ports {
-				fmt.Printf("port %+v\n", port)
-				creq.LoadBalancers = append(creq.LoadBalancers, &ecs.LoadBalancer{
+				req.LoadBalancers = append(req.LoadBalancers, &ecs.LoadBalancer{
 					ContainerName:    aws.String("main"),
 					ContainerPort:    aws.Long(int64(port)),
 					LoadBalancerName: aws.String(app.Outputs["Balancer"]),
 				})
 			}
 
-			cres, err := ECS().CreateService(creq)
+			_, err := ECS().CreateService(req)
 
-			fmt.Printf("cres %+v\n", cres)
-			fmt.Printf("err %+v\n", err)
+			if err != nil {
+				return err
+			}
 		} else {
-		}
+			req := &ecs.UpdateServiceInput{
+				Cluster:        aws.String(app.Cluster),
+				Service:        existing.ServiceName,
+				DesiredCount:   aws.Long(int64(ps.Count)),
+				TaskDefinition: aws.String(r.Tasks[ps.Name]),
+			}
 
-		fmt.Printf("gres %+v\n", gres)
+			_, err := ECS().UpdateService(req)
+
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -330,7 +346,7 @@ func (r *Release) registerTasks() error {
 	}
 
 	for _, ps := range pss {
-		build, err := GetBuild(r.Cluster, r.App, r.Build)
+		build, err := GetBuild(r.App, r.Build)
 
 		req := &ecs.RegisterTaskDefinitionInput{
 			ContainerDefinitions: []*ecs.ContainerDefinition{
@@ -342,7 +358,7 @@ func (r *Release) registerTasks() error {
 					Name:      aws.String("main"),
 				},
 			},
-			Family: aws.String(fmt.Sprintf("%s-%s-%s", r.Cluster, r.App, ps.Name)),
+			Family: aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
 		}
 
 		if ps.Command != "" {
@@ -382,8 +398,8 @@ func (r *Release) registerTasks() error {
 	return nil
 }
 
-func releasesTable(cluster, app string) string {
-	return fmt.Sprintf("%s-%s-releases", cluster, app)
+func releasesTable(app string) string {
+	return fmt.Sprintf("%s-releases", app)
 }
 
 func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
@@ -391,7 +407,6 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
 
 	release := &Release{
 		Id:       coalesce(item["id"], ""),
-		Cluster:  coalesce(item["cluster"], ""),
 		App:      coalesce(item["app"], ""),
 		Build:    coalesce(item["build"], ""),
 		Env:      coalesce(item["env"], ""),

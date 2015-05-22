@@ -113,7 +113,7 @@ func (c *Cluster) Delete() error {
 }
 
 func (c *Cluster) Apps() (Apps, error) {
-	return ListApps(c.Name)
+	return ListAppsByCluster(c.Name)
 }
 
 func (c *Cluster) Created() bool {

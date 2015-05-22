@@ -109,7 +109,6 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 
-	cluster := vars["cluster"]
 	app := vars["app"]
 	name := GetForm(r, "name")
 	t := GetForm(r, "type")
@@ -129,7 +128,7 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env, err := models.GetEnvironment(cluster, app)
+	env, err := models.GetEnvironment(app)
 
 	if err != nil {
 		RenderError(rw, err)
@@ -149,7 +148,7 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 		env[u] = v
 	}
 
-	err = models.PutEnvironment(cluster, app, env)
+	err = models.PutEnvironment(app, env)
 	service.Save()
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s#services", app))
