@@ -1,0 +1,19 @@
+#!/bin/sh
+set -ex
+
+# Script inspired by:
+# http://crohr.me/journal/2014/generate-self-signed-ssl-certificate-without-prompt-noninteractive-mode.html
+# https://serversforhackers.com/using-ssl-certificates-with-haproxy
+
+mkdir -p /etc/ssl/convox
+
+openssl genrsa -des3 -passout pass:x -out /etc/ssl/convox/server.pass.key 2048
+openssl rsa -passin pass:x -in /etc/ssl/convox/server.pass.key -out /etc/ssl/convox/server.key
+
+rm /etc/ssl/convox/server.pass.key
+
+openssl req -new -key /etc/ssl/convox/server.key -out /etc/ssl/convox/server.csr \
+  -subj "/C=US/ST=California/L=San Francisco/O=Convox/OU=Kernel/CN=convox.io"
+openssl x509 -req -days 365 -in /etc/ssl/convox/server.csr -signkey /etc/ssl/convox/server.key -out /etc/ssl/convox/server.crt
+
+cat /etc/ssl/convox/server.crt /etc/ssl/convox/server.key > /etc/ssl/convox/server.pem

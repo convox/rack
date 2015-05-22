@@ -10,6 +10,9 @@ pull_image convox/architect
 pull_image convox/build
 pull_image convox/service
 
+./bin/gen-cert
+haproxy -f /etc/haproxy/haproxy.cfg &
+
 if [ "$DEVELOPMENT" == "true" ]; then
   $GOPATH/bin/rerun -build github.com/convox/kernel
 else
