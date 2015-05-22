@@ -53,7 +53,7 @@ func KernelUpdate() error {
 			})
 		}
 
-		gr, err := http.Get("http://convox.s3.amazonaws.com/formation.json")
+		gr, err := http.Get("http://convox.s3.amazonaws.com/kernel.json")
 
 		if err != nil {
 			return err
@@ -84,7 +84,7 @@ func KernelUpdate() error {
 
 		req := &cloudformation.UpdateStackInput{
 			StackName:    aws.String(stackName),
-			TemplateURL:  aws.String("http://convox.s3.amazonaws.com/formation.json"),
+			TemplateURL:  aws.String("http://convox.s3.amazonaws.com/kernel.json"),
 			Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 			Parameters:   finalParams,
 		}
