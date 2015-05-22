@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
@@ -69,6 +70,7 @@ func (c *Cluster) Create() error {
 		"AvailabilityZones": c.AvailabilityZones,
 		"Count":             c.Count,
 		"Key":               c.Key,
+		"Registry":          os.Getenv("REGISTRY"),
 		"Size":              c.Size,
 	}
 
