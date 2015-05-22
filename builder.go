@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,7 +21,7 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, name, ref, push string) error {
+func (b *Builder) Build(repo, name, ref, push, id string) error {
 	clone, err := b.compose(repo, name, ref)
 
 	if err != nil {
@@ -28,7 +29,7 @@ func (b *Builder) Build(repo, name, ref, push string) error {
 	}
 
 	if push != "" {
-		b.push(clone, push, name)
+		b.push(clone, push, name, id)
 	}
 
 	return nil
@@ -81,6 +82,18 @@ func (b *Builder) compose(repo, name, ref string) (string, error) {
 		return "", err
 	}
 
+	manifest, err := ioutil.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+
+	if err != nil {
+		return "", err
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(manifest))
+
+	for scanner.Scan() {
+		fmt.Printf("manifest|%s\n", scanner.Text())
+	}
+
 	b.run("compose", dir, "docker-compose", "-p", "app", "build")
 	b.run("compose", dir, "docker-compose", "-p", "app", "pull")
 
@@ -117,7 +130,7 @@ func (b *Builder) run(prefix, dir string, command string, args ...string) error 
 	return err
 }
 
-func (b *Builder) push(dir, target, name string) error {
+func (b *Builder) push(dir, target, name, id string) error {
 	manifest, err := ReadManifest(dir)
 
 	if err != nil {
@@ -125,14 +138,20 @@ func (b *Builder) push(dir, target, name string) error {
 	}
 
 	for ps, entry := range *manifest {
-		image := fmt.Sprintf("app_%s", ps)
+		from := fmt.Sprintf("app_%s", ps)
 
 		if entry.Image != "" {
-			image = entry.Image
+			from = entry.Image
 		}
 
-		b.run("push", dir, "docker", "tag", "-f", image, fmt.Sprintf("%s/%s-%s", target, name, ps))
-		b.run("push", dir, "docker", "push", fmt.Sprintf("%s/%s-%s", target, name, ps))
+		to := fmt.Sprintf("%s/%s-%s", target, name, ps)
+
+		if id != "" {
+			to = fmt.Sprintf("%s:%s", to, id)
+		}
+
+		b.run("push", dir, "docker", "tag", "-f", from, to)
+		b.run("push", dir, "docker", "push", to)
 	}
 
 	return nil
