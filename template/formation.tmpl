@@ -5,7 +5,7 @@
       {{ if .HasPorts }}
         "HealthCheck": {
           "Type" : "String",
-          "Default" : "HTTP:{{ .FirstContainerPort }}/",
+          "Default" : "HTTP:{{ .FirstHostPort }}/",
           "Description" : "Health check endpoint"
         },
       {{ end }}
@@ -154,6 +154,11 @@
       }
     },
     "Outputs": {
+      {{ if .HasPorts }}
+      "Balancer": {
+        "Value": { "Ref": "Balancer" }
+      },
+      {{ end }}
       "Settings": {
         "Value": { "Ref": "Settings" }
       }

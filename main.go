@@ -26,8 +26,8 @@ func init() {
 }
 
 type Port struct {
-	Balancer  string
-	Container string
+	Balancer string
+	Host     string
 }
 
 type StringSet []string
@@ -67,7 +67,7 @@ func main() {
 
 	if len(ports) > 0 {
 		params["HasPorts"] = true
-		params["FirstContainerPort"] = ports[0].Container
+		params["FirstHostPort"] = ports[0].Host
 	}
 
 	data, err := buildTemplate("formation", "app", params)
@@ -135,7 +135,7 @@ func parsePorts(ss StringSet) []Port {
 			die(fmt.Errorf("error: must specify balancer:container mapping\n"))
 		}
 
-		pp[i] = Port{Balancer: sp[0], Container: sp[1]}
+		pp[i] = Port{Balancer: sp[0], Host: sp[1]}
 	}
 
 	return pp
@@ -183,7 +183,7 @@ func templateHelpers() template.FuncMap {
 			ss := make([]string, len(pp))
 
 			for i, p := range pp {
-				ss[i] = fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": "%s", "InstanceProtocol": "TCP", "InstancePort": "%s" }`, p.Balancer, p.Container)
+				ss[i] = fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": "%s", "InstanceProtocol": "TCP", "InstancePort": "%s" }`, p.Balancer, p.Host)
 			}
 
 			return template.HTML(strings.Join(ss, ","))
