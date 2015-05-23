@@ -52,6 +52,10 @@
       "Description": "Key name for SSH access",
       "Type": "String"
     },
+    "SSLCertificate": {
+      "Description": "ARN of SSL cert added with `aws iam upload-server-certificate`",
+      "Type": "String"
+    },
     "WebScale": {
       "Default": "1",
       "Description": "Number of web processes to run",
@@ -266,9 +270,22 @@
         "Listeners": [
           {
             "InstancePort": "3000",
-            "InstanceProtocol": "TCP",
+            "InstanceProtocol": "HTTP",
             "LoadBalancerPort": "80",
-            "Protocol": "TCP"
+            "Protocol": "HTTP"
+          },
+          {
+            "InstancePort": "4443",
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": "4443",
+            "Protocol": "HTTP"
+          },
+          {
+            "InstancePort": "3000",
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": "443",
+            "Protocol": "HTTPS",
+            "SSLCertificateId": { "Ref": "SSLCertificate" }
           }
         ],
         "LoadBalancerName": {
@@ -310,6 +327,12 @@
             "FromPort": "80",
             "IpProtocol": "tcp",
             "ToPort": "80"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "4443",
+            "IpProtocol": "tcp",
+            "ToPort": "4443"
           }
         ],
         "VpcId": {
@@ -556,7 +579,8 @@
                 },
                 "  },",
                 "  \"ports\": [",
-                "    \"3000:3000\"",
+                "    \"3000:3000\",",
+                "    \"4443:4443\"",
                 "  ],",
                 "  \"services\": [",
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },
