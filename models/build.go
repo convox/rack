@@ -147,7 +147,20 @@ func (b *Build) Execute(repo string) {
 
 	name := b.App
 
-	cmd := exec.Command("docker", "run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY"), name, repo)
+	args := []string{"run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY"), name}
+
+	parts := strings.Split(repo, "#")
+
+	if len(parts) > 1 {
+		args = append(args, strings.Join(parts[0:len(parts)-1], "#"), parts[len(parts)-1])
+		fmt.Printf("args %+v\n", args)
+	} else {
+		args = append(args, repo)
+		fmt.Printf("args %+v\n", args)
+	}
+
+	cmd := exec.Command("docker", args...)
+
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
 
