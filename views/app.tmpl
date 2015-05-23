@@ -317,7 +317,7 @@
 				<tr>
 					<td class="id">{{ .Id }}</td>
 					<td>{{ timeago .Created }}</td>
-					<td>{{ .Build }}</td>
+					<td class="id">{{ .Build }}</td>
 					<td class="buttons">
 						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
 					</td>
