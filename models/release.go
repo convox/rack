@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -17,7 +18,6 @@ type Release struct {
 
 	App string
 
-	Active   bool
 	Build    string
 	Env      string
 	Manifest string
@@ -51,12 +51,6 @@ func ListReleases(app string) (Releases, error) {
 		TableName:        aws.String(releasesTable(app)),
 	}
 
-	a, err := GetApp(app)
-
-	if err != nil {
-		return nil, err
-	}
-
 	res, err := DynamoDB().Query(req)
 
 	if err != nil {
@@ -67,7 +61,6 @@ func ListReleases(app string) (Releases, error) {
 
 	for i, item := range res.Items {
 		releases[i] = *releaseFromItem(*item)
-		releases[i].Active = (a.Release == releases[i].Id)
 	}
 
 	return releases, nil
@@ -82,12 +75,6 @@ func GetRelease(app, id string) (*Release, error) {
 		TableName: aws.String(releasesTable(app)),
 	}
 
-	a, err := GetApp(app)
-
-	if err != nil {
-		return nil, err
-	}
-
 	res, err := DynamoDB().GetItem(req)
 
 	if err != nil {
@@ -95,7 +82,6 @@ func GetRelease(app, id string) (*Release, error) {
 	}
 
 	release := releaseFromItem(*res.Item)
-	release.Active = (a.Release == release.Id)
 
 	return release, nil
 }
@@ -209,9 +195,47 @@ func (r *Release) Promote() error {
 
 	// TODO: wait for stack
 
-	r.registerServices()
+	err = r.registerServices()
 
 	return err
+}
+
+func (r *Release) Active() bool {
+	if r.Build == "" {
+		return false
+	}
+
+	pss, err := r.Processes()
+
+	if err != nil {
+		// TODO better
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return false
+	}
+
+	for _, ps := range pss {
+		existing, err := r.ecsTask(ps.Name)
+
+		if err != nil {
+			// TODO better
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			return false
+		}
+
+		if existing == nil {
+			return false
+		}
+
+		fmt.Printf("ps %+v\n", ps)
+		fmt.Printf("%s:%d\n", *existing.Family, *existing.Revision)
+		fmt.Println(r.Tasks[ps.Name])
+
+		if fmt.Sprintf("%s:%d", *existing.Family, *existing.Revision) != r.Tasks[ps.Name] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (r *Release) Formation() (string, error) {
@@ -261,13 +285,109 @@ func (r *Release) Services() (Services, error) {
 	return services, nil
 }
 
-func (r *Release) registerServices() error {
+func (r *Release) ecsService(ps string) (*ecs.Service, error) {
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return nil, err
+	}
+
+	gres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(app.Cluster),
+		Services: []*string{aws.String(fmt.Sprintf("%s-%s", r.App, ps))},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(gres.Services) != 1 {
+		return nil, fmt.Errorf("could not find service: %s-%s", r.App, ps)
+	}
+
+	if *gres.Services[0].Status != "ACTIVE" {
+		return nil, nil
+	}
+
+	return gres.Services[0], nil
+}
+
+func (r *Release) ecsTask(ps string) (*ecs.TaskDefinition, error) {
+	service, err := r.ecsService(ps)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if service == nil {
+		return nil, nil
+	}
+
+	req := &ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: service.TaskDefinition,
+	}
+
+	res, err := ECS().DescribeTaskDefinition(req)
+
+	return res.TaskDefinition, nil
+}
+
+func (r *Release) ecsCreate(ps Process) error {
 	app, err := GetApp(r.App)
 
 	if err != nil {
 		return err
 	}
 
+	req := &ecs.CreateServiceInput{
+		Cluster:        aws.String(app.Cluster),
+		DesiredCount:   aws.Long(int64(ps.Count)),
+		Role:           aws.String("arn:aws:iam::778743527532:role/ecsServiceRole"),
+		ServiceName:    aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
+		TaskDefinition: aws.String(r.Tasks[ps.Name]),
+	}
+
+	for _, port := range ps.Ports {
+		req.LoadBalancers = append(req.LoadBalancers, &ecs.LoadBalancer{
+			ContainerName:    aws.String("main"),
+			ContainerPort:    aws.Long(int64(port)),
+			LoadBalancerName: aws.String(app.Outputs["Balancer"]),
+		})
+	}
+
+	_, err = ECS().CreateService(req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Release) ecsUpdate(ps Process, existing *ecs.Service) error {
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return err
+	}
+
+	req := &ecs.UpdateServiceInput{
+		Cluster:        aws.String(app.Cluster),
+		Service:        existing.ServiceName,
+		DesiredCount:   aws.Long(int64(ps.Count)),
+		TaskDefinition: aws.String(r.Tasks[ps.Name]),
+	}
+
+	_, err = ECS().UpdateService(req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Release) registerServices() error {
 	pss, err := r.Processes()
 
 	if err != nil {
@@ -275,61 +395,16 @@ func (r *Release) registerServices() error {
 	}
 
 	for _, ps := range pss {
-		fmt.Printf("%s-%s\n", r.App, ps.Name)
-
-		gres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-			Cluster:  aws.String(app.Cluster),
-			Services: []*string{aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name))},
-		})
+		existing, err := r.ecsService(ps.Name)
 
 		if err != nil {
 			return err
 		}
 
-		var existing *ecs.Service
-
-		for _, service := range gres.Services {
-			if *service.Status == "ACTIVE" {
-				existing = service
-				break
-			}
-		}
-
 		if existing == nil {
-			req := &ecs.CreateServiceInput{
-				Cluster:        aws.String(app.Cluster),
-				DesiredCount:   aws.Long(int64(ps.Count)),
-				Role:           aws.String("arn:aws:iam::778743527532:role/ecsServiceRole"),
-				ServiceName:    aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
-				TaskDefinition: aws.String(r.Tasks[ps.Name]),
-			}
-
-			for _, port := range ps.Ports {
-				req.LoadBalancers = append(req.LoadBalancers, &ecs.LoadBalancer{
-					ContainerName:    aws.String("main"),
-					ContainerPort:    aws.Long(int64(port)),
-					LoadBalancerName: aws.String(app.Outputs["Balancer"]),
-				})
-			}
-
-			_, err := ECS().CreateService(req)
-
-			if err != nil {
-				return err
-			}
+			r.ecsCreate(ps)
 		} else {
-			req := &ecs.UpdateServiceInput{
-				Cluster:        aws.String(app.Cluster),
-				Service:        existing.ServiceName,
-				DesiredCount:   aws.Long(int64(ps.Count)),
-				TaskDefinition: aws.String(r.Tasks[ps.Name]),
-			}
-
-			_, err := ECS().UpdateService(req)
-
-			if err != nil {
-				return err
-			}
+			r.ecsUpdate(ps, existing)
 		}
 	}
 
