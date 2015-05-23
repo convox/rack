@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -214,7 +215,7 @@ func (r *Release) Active() bool {
 	}
 
 	for _, ps := range pss {
-		existing, err := r.ecsTask(ps.Name)
+		existing, err := r.ecsService(ps.Name)
 
 		if err != nil {
 			// TODO better
@@ -226,11 +227,14 @@ func (r *Release) Active() bool {
 			return false
 		}
 
-		fmt.Printf("ps %+v\n", ps)
-		fmt.Printf("%s:%d\n", *existing.Family, *existing.Revision)
-		fmt.Println(r.Tasks[ps.Name])
+		if existing.TaskDefinition == nil {
+			return false
+		}
 
-		if fmt.Sprintf("%s:%d", *existing.Family, *existing.Revision) != r.Tasks[ps.Name] {
+		parts := strings.Split(*existing.TaskDefinition, "/")
+		id := parts[len(parts)-1]
+
+		if id != r.Tasks[ps.Name] {
 			return false
 		}
 	}
