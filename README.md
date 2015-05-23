@@ -15,7 +15,7 @@ The stacks created by this tool will have the following parameters:
 ##### Global Parameters
 
 | Name      | Default      | Description                                        |
-|-----------|-------------------------------------------------------------------|
+|-----------|--------------|----------------------------------------------------|
 | `Ami`     | **required** | AMI to use for this application                    |
 | `EnvUrl`  | *optional*   | URL to an environment for this app (`.env` format) |
 | `EnvKey`  | *optional*   | ARN of KMS key used to encrypt the environment     |
@@ -24,13 +24,13 @@ The stacks created by this tool will have the following parameters:
 ##### Balancer Parameters
 
 | Name         | Default    | Description                                                          |
-|--------------|-----------------------------------------------------------------------------------|
+|--------------|------------|----------------------------------------------------------------------|
 | `FrontCheck` | *optional* | If left blank will default to checking `GET /` on the first listener |
 
 ##### Process Parameters
 
 | Name         | Default      |                                          |
-|-----------------------------|------------------------------------------|
+|--------------|--------------|------------------------------------------|
 | `WebCommand` | *optional*   | Override the default command             |
 | `WebImage`   | **required** | The docker image to use for this process |
 | `WebScale`   | 1            | Number of instances to run               |
@@ -38,8 +38,8 @@ The stacks created by this tool will have the following parameters:
 
 ##### Listener Parameters
 
-| Name                   | Default    | Description                 |
-|------------------------|------------|-----------------------------|
+| Name                   | Default      | Description                 |
+|------------------------|--------------|-----------------------------|
 | `FrontWebBalancerPort` | **required** | Listen port on the balancer |
 | `FrontWebProcessPort`  | **required** | Listen port on the process  |
 
@@ -48,7 +48,7 @@ The stacks created by this tool will have the following parameters:
 ##### Global Parameters
 
 | Name      | Default      | Description                                        |
-|-----------|-------------------------------------------------------------------|
+|-----------|--------------|----------------------------------------------------|
 | `EnvUrl`  | *optional*   | URL to an environment for this app (`.env` format) |
 | `EnvKey`  | *optional*   | ARN of KMS key used to encrypt the environment     |
 | `Subnets` | **required** | VPC subnets for this app                           |
@@ -57,21 +57,21 @@ The stacks created by this tool will have the following parameters:
 ##### Balancer Parameters
 
 | Name         | Default    | Description                                                          |
-|--------------|-----------------------------------------------------------------------------------|
+|--------------|------------|----------------------------------------------------------------------|
 | `FrontCheck` | *optional* | If left blank will default to checking `GET /` on the first listener |
 
 ##### Process Parameters
 
 | Name         | Default      |                                          |
-|-----------------------------|------------------------------------------|
+|--------------|--------------|------------------------------------------|
 | `WebCommand` | *optional*   | Override the default command             |
 | `WebImage`   | **required** | The docker image to use for this process |
 | `WebScale`   | 1            | Number of instances to run               |
 
 ##### Listener Parameters
 
-| Name                   | Default    | Description                 |
-|------------------------|------------|-----------------------------|
+| Name                   | Default      | Description                 |
+|------------------------|--------------|-----------------------------|
 | `FrontWebBalancerPort` | **required** | Listen port on the balancer |
 | `FrontWebProcessPort`  | **required** | Listen port on the process  |
 
