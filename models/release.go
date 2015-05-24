@@ -192,8 +192,6 @@ func (r *Release) Promote() error {
 
 	_, err = CloudFormation().UpdateStack(req)
 
-	fmt.Printf("err %+v\n", err)
-
 	// TODO: wait for stack
 
 	err = r.registerServices()
@@ -270,7 +268,21 @@ func (r *Release) Processes() (Processes, error) {
 		return nil, err
 	}
 
-	return manifest.Processes(), nil
+	ps := manifest.Processes()
+
+	ss, err := ListServices(r.App)
+
+	for _, s := range ss {
+		if s.Stack == "" {
+			ps = append(ps, Process{
+				App:   r.App,
+				Name:  s.Name,
+				Count: 1,
+			})
+		}
+	}
+
+	return ps, nil
 }
 
 func (r *Release) Services() (Services, error) {
@@ -306,7 +318,7 @@ func (r *Release) ecsService(ps string) (*ecs.Service, error) {
 	}
 
 	if len(gres.Services) != 1 {
-		return nil, fmt.Errorf("could not find service: %s-%s", r.App, ps)
+		return nil, nil
 	}
 
 	if *gres.Services[0].Status != "ACTIVE" {
@@ -409,9 +421,17 @@ func (r *Release) registerServices() error {
 		}
 
 		if existing == nil {
-			r.ecsCreate(ps)
+			err := r.ecsCreate(ps)
+
+			if err != nil {
+				return err
+			}
 		} else {
-			r.ecsUpdate(ps, existing)
+			err := r.ecsUpdate(ps, existing)
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 
