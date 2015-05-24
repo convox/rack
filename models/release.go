@@ -346,9 +346,12 @@ func (r *Release) ecsCreate(ps Process) error {
 	req := &ecs.CreateServiceInput{
 		Cluster:        aws.String(app.Cluster),
 		DesiredCount:   aws.Long(int64(ps.Count)),
-		Role:           aws.String("arn:aws:iam::778743527532:role/ecsServiceRole"),
 		ServiceName:    aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
 		TaskDefinition: aws.String(r.Tasks[ps.Name]),
+	}
+
+	if len(ps.Ports) > 0 {
+		req.Role = aws.String("arn:aws:iam::778743527532:role/ecsServiceRole")
 	}
 
 	for _, port := range ps.Ports {
