@@ -165,8 +165,7 @@ func (b *Build) Execute(repo string) {
 	cmd.Stderr = cmd.Stdout
 
 	if err = cmd.Start(); err != nil {
-		// TODO log error
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		b.Fail(err)
 		return
 	}
 
