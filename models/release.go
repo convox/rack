@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -197,47 +196,6 @@ func (r *Release) Promote() error {
 	err = r.registerServices()
 
 	return err
-}
-
-func (r *Release) Active() bool {
-	if r.Build == "" {
-		return false
-	}
-
-	pss, err := r.Processes()
-
-	if err != nil {
-		// TODO better
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return false
-	}
-
-	for _, ps := range pss {
-		existing, err := r.ecsService(ps.Name)
-
-		if err != nil {
-			// TODO better
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-			return false
-		}
-
-		if existing == nil {
-			return false
-		}
-
-		if existing.TaskDefinition == nil {
-			return false
-		}
-
-		parts := strings.Split(*existing.TaskDefinition, "/")
-		id := parts[len(parts)-1]
-
-		if id != r.Tasks[ps.Name] {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (r *Release) Formation() (string, error) {

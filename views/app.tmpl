@@ -302,6 +302,7 @@
 {{ end }}
 
 {{ define "releases" }}
+	{{ $active := .App.ActiveRelease }}
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
@@ -313,7 +314,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{{ range . }}
+			{{ range .Releases }}
 				<tr>
 					<td class="id">{{ .Id }}</td>
 					<td>{{ timeago .Created }}</td>
@@ -322,7 +323,7 @@
 						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
 					</td>
 					<td class="buttons">
-						{{ if .Active }}
+						{{ if eq .Id $active }}
 							<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
 						{{ else }}
 							<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
@@ -332,7 +333,7 @@
 			{{ end }}
 		</tbody>
 	</table>
-	{{ range . }}
+	{{ range .Releases }}
 		{{ template "release" . }}
 	{{ end }}
 	<script>

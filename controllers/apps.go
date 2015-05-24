@@ -304,6 +304,14 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
+	a, err := models.GetApp(app)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
 	releases, err := models.ListReleases(app)
 
 	if err != nil {
@@ -312,7 +320,12 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderPartial(rw, "app", "releases", releases)
+	params := map[string]interface{}{
+		"App":      a,
+		"Releases": releases,
+	}
+
+	RenderPartial(rw, "app", "releases", params)
 }
 
 func AppResources(rw http.ResponseWriter, r *http.Request) {
