@@ -6,6 +6,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 )
 
 type Process struct {
@@ -20,57 +21,96 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	// TODO: change the last filter to tag:App eventually
-
-	req := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running")}},
-			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
-			&ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
-			&ec2.Filter{Name: aws.String("tag:aws:cloudformation:stack-name"), Values: []*string{aws.String(app)}},
-		},
-	}
-
-	res, err := EC2().DescribeInstances(req)
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	processes := map[string]Process{}
+	res, err := ECS().ListServices(&ecs.ListServicesInput{Cluster: aws.String(a.Cluster)})
 
-	for _, r := range res.Reservations {
-		for _, i := range r.Instances {
-			tags := map[string]string{}
+	if err != nil {
+		return nil, err
+	}
 
-			for _, t := range i.Tags {
-				tags[*t.Key] = *t.Value
-			}
+	req := &ecs.DescribeServicesInput{
+		Cluster:  aws.String(a.Cluster),
+		Services: res.ServiceARNs,
+	}
 
-			parts := strings.Split(tags["Name"], "-")
+	sres, err := ECS().DescribeServices(req)
 
-			name := parts[len(parts)-1]
+	if err != nil {
+		return nil, err
+	}
 
-			if p, ok := processes[name]; ok {
-				p.Count += 1
-				processes[name] = p
-			} else {
-				processes[name] = Process{
-					Name:  name,
-					Count: 1,
-					App:   app,
-				}
-			}
+	ps := Processes{}
+
+	for _, s := range sres.Services {
+		parts := strings.Split(*s.ServiceName, "-")
+		app := strings.Join(parts[0:len(parts)-1], "-")
+		name := parts[len(parts)-1]
+
+		if app == a.Name {
+			ps = append(ps, Process{
+				App:   app,
+				Name:  name,
+				Count: int(*s.DesiredCount),
+			})
 		}
 	}
 
-	pp := Processes{}
+	return ps, nil
 
-	for _, process := range processes {
-		pp = append(pp, process)
-	}
+	// req := &ec2.DescribeInstancesInput{
+	//   Filters: []*ec2.Filter{
+	//     &ec2.Filter{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running")}},
+	//     &ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
+	//     &ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
+	//     &ec2.Filter{Name: aws.String("tag:App"), Values: []*string{aws.String(app)}},
+	//   },
+	// }
 
-	return pp, nil
+	// res, err := EC2().DescribeInstances(req)
+
+	// if err != nil {
+	//   return nil, err
+	// }
+
+	// processes := map[string]Process{}
+
+	// for _, r := range res.Reservations {
+	//   for _, i := range r.Instances {
+	//     tags := map[string]string{}
+
+	//     for _, t := range i.Tags {
+	//       tags[*t.Key] = *t.Value
+	//     }
+
+	//     parts := strings.Split(tags["Name"], "-")
+
+	//     name := parts[len(parts)-1]
+
+	//     if p, ok := processes[name]; ok {
+	//       p.Count += 1
+	//       processes[name] = p
+	//     } else {
+	//       processes[name] = Process{
+	//         Name:  name,
+	//         Count: 1,
+	//         App:   app,
+	//       }
+	//     }
+	//   }
+	// }
+
+	// pp := Processes{}
+
+	// for _, process := range processes {
+	//   pp = append(pp, process)
+	// }
+
+	// return pp, nil
 }
 
 func GetProcess(app, name string) (*Process, error) {
