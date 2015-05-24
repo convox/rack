@@ -364,11 +364,83 @@ func (r *Release) ecsUpdate(ps Process, existing *ecs.Service) error {
 	return nil
 }
 
+func (r *Release) ecsDelete(existing *ecs.Service) error {
+	req := &ecs.UpdateServiceInput{
+		Cluster:      existing.ClusterARN,
+		Service:      existing.ServiceName,
+		DesiredCount: aws.Long(0),
+	}
+
+	_, err := ECS().UpdateService(req)
+
+	if err != nil {
+		return err
+	}
+
+	res, err := ECS().DeleteService(&ecs.DeleteServiceInput{
+		Cluster: existing.ClusterARN,
+		Service: existing.ServiceName,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("res %+v\n", res)
+
+	return nil
+}
+
 func (r *Release) registerServices() error {
+	a, err := GetApp(r.App)
+
+	if err != nil {
+		return err
+	}
+
+	res, err := ECS().ListServices(&ecs.ListServicesInput{Cluster: aws.String(a.Cluster)})
+
+	if err != nil {
+		return err
+	}
+
+	sres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(a.Cluster),
+		Services: res.ServiceARNs,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	running := map[string]*ecs.Service{}
+
+	for _, service := range sres.Services {
+		parts := strings.Split(*service.ServiceName, "-")
+		app := strings.Join(parts[0:len(parts)-1], "-")
+		ps := parts[len(parts)-1]
+
+		if app == r.App {
+			running[ps] = service
+		}
+	}
+
 	pss, err := r.Processes()
 
 	if err != nil {
 		return err
+	}
+
+	existing := map[string]string{}
+
+	for _, ps := range pss {
+		existing[ps.Name] = ps.Name
+	}
+
+	for name, service := range running {
+		if _, ok := existing[name]; !ok {
+			r.ecsDelete(service)
+		}
 	}
 
 	for _, ps := range pss {
