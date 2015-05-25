@@ -12,16 +12,16 @@ import (
 
 var (
 	flagMode      string
-	flagBalancers StringSet
-	flagProcesses StringSet
-	flagListeners StringSet
+	flagBalancers string
+	flagProcesses string
+	flagListeners string
 )
 
 func init() {
 	flag.StringVar(&flagMode, "mode", "production", "deployment mode")
-	flag.Var(&flagBalancers, "balancers", "load balancer list")
-	flag.Var(&flagProcesses, "processes", "process list")
-	flag.Var(&flagListeners, "listeners", "links between load balancers and processes")
+	flag.StringVar(&flagBalancers, "balancers", "", "load balancer list")
+	flag.StringVar(&flagProcesses, "processes", "", "process list")
+	flag.StringVar(&flagListeners, "listeners", "", "links between load balancers and processes")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: convox/app [options]\n\noptions:\n")
@@ -32,20 +32,9 @@ func init() {
 	}
 }
 
-type Port struct {
+type Listener struct {
 	Balancer string
-	Host     string
-}
-
-type StringSet []string
-
-func (ss *StringSet) Set(value string) error {
-	*ss = append(*ss, value)
-	return nil
-}
-
-func (ss *StringSet) String() string {
-	return fmt.Sprintf("[%s]", strings.Join(*ss, ","))
+	Process  string
 }
 
 func die(err error) {
@@ -66,32 +55,27 @@ Options:
 func main() {
 	flag.Parse()
 
-	// ports := parsePorts(flagPorts)
+	params := map[string]interface{}{
+		"Balancers": parseList(flagBalancers),
+		"Processes": parseList(flagProcesses),
+		"Listeners": parseListeners(flagListeners),
+	}
 
-	// params := map[string]interface{}{
-	//   "Ports": ports,
-	// }
+	data, err := buildTemplate(flagMode, "formation", params)
 
-	// if len(ports) > 0 {
-	//   params["HasPorts"] = true
-	//   params["FirstHostPort"] = ports[0].Host
-	// }
+	if err != nil {
+		displaySyntaxError(data, err)
+		die(err)
+	}
 
-	// data, err := buildTemplate("formation", "app", params)
+	pretty, err := prettyJson(data)
 
-	// if err != nil {
-	//   displaySyntaxError(data, err)
-	//   die(err)
-	// }
+	if err != nil {
+		displaySyntaxError(data, err)
+		die(err)
+	}
 
-	// pretty, err := prettyJson(data)
-
-	// if err != nil {
-	//   displaySyntaxError(data, err)
-	//   die(err)
-	// }
-
-	// fmt.Println(pretty)
+	fmt.Println(pretty)
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
@@ -132,20 +116,26 @@ func displaySyntaxError(data string, err error) {
 	fmt.Printf("%s\n%s^\n", data[start:end], strings.Repeat(" ", pos))
 }
 
-func parsePorts(ss StringSet) []Port {
-	pp := make([]Port, len(ss))
+func parseList(list string) []string {
+	return strings.Split(list, ",")
+}
 
-	for i, s := range ss {
-		sp := strings.SplitN(s, ":", 2)
+func parseListeners(list string) []Listener {
+	items := parseList(list)
 
-		if len(sp) != 2 {
-			die(fmt.Errorf("error: must specify balancer:container mapping\n"))
+	listeners := make([]Listener, len(items))
+
+	for i, l := range items {
+		parts := strings.SplitN(l, ":", 2)
+
+		if len(parts) != 2 {
+			die(fmt.Errorf("listeners must be balancer:process pairs"))
 		}
 
-		pp[i] = Port{Balancer: sp[0], Host: sp[1]}
+		listeners[i] = Listener{Balancer: parts[0], Process: parts[1]}
 	}
 
-	return pp
+	return listeners
 }
 
 func prettyJson(raw string) (string, error) {
@@ -176,68 +166,89 @@ func printLines(data string) {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"array": func(ss []string) template.HTML {
-			as := make([]string, len(ss))
-			for i, s := range ss {
-				as[i] = fmt.Sprintf("%q", s)
-			}
-			return template.HTML(strings.Join(as, ", "))
-		},
-		"join": func(s []string, t string) string {
-			return strings.Join(s, t)
-		},
-		"listeners": func(pp []Port) template.HTML {
-			ss := make([]string, len(pp))
+		"ingress": func(balancer string, listeners []Listener) template.HTML {
+			ls := []string{}
 
-			for i, p := range pp {
-				ss[i] = fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": "%s", "InstanceProtocol": "TCP", "InstancePort": "%s" }`, p.Balancer, p.Host)
+			for _, l := range listeners {
+				if l.Balancer == balancer {
+					b := upperName(l.Balancer)
+					p := upperName(l.Process)
+					ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%s%sBalancerPort" }, "ToPort": { "Ref": "%s%sBalancerPort" } }`, b, p, b, p))
+				}
 			}
 
-			return template.HTML(strings.Join(ss, ","))
+			return template.HTML(strings.Join(ls, ","))
 		},
-		"ports": func(nn []int) template.HTML {
-			as := make([]string, len(nn))
-			for i, n := range nn {
-				as[i] = fmt.Sprintf("%d", n)
+		"listeners": func(balancer string, listeners []Listener) template.HTML {
+			ls := []string{}
+
+			for _, l := range listeners {
+				if l.Balancer == balancer {
+					b := upperName(l.Balancer)
+					p := upperName(l.Process)
+					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%s%sBalancerPort" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%s%sHostPort" } }`, b, p, b, p))
+				}
 			}
-			return template.HTML(strings.Join(as, ","))
+
+			return template.HTML(strings.Join(ls, ","))
+		},
+		"loadbalancers": func(process string, listeners []Listener) template.HTML {
+			ls := []string{}
+
+			for _, l := range listeners {
+				if l.Process == process {
+					b := upperName(l.Balancer)
+					p := upperName(l.Process)
+					ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sBalancer" }, { "Ref": "%s%sContainerPort" } ] ] }`, b, b, p))
+				}
+			}
+
+			return template.HTML(strings.Join(ls, ","))
+		},
+		"portmappings": func(process string, listeners []Listener) template.HTML {
+			ls := []string{}
+
+			for _, l := range listeners {
+				if l.Process == process {
+					b := upperName(l.Balancer)
+					p := upperName(l.Process)
+					ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%s%sHostPort" }, { "Ref": "%s%sContainerPort" } ] ] }`, b, p, b, p))
+				}
+			}
+
+			return template.HTML(strings.Join(ls, ","))
 		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
 		},
-		"securityGroups": func(pp []Port) template.HTML {
-			ss := make([]string, len(pp))
-
-			for i, p := range pp {
-				ss[i] = fmt.Sprintf(`{ "IpProtocol": "tcp", "FromPort": "%s", "ToPort": "%s", "CidrIp": "0.0.0.0/0" }`, p.Balancer, p.Balancer)
-			}
-
-			return template.HTML(strings.Join(ss, ","))
-		},
 		"upper": func(name string) string {
-			us := strings.ToUpper(name[0:1]) + name[1:]
-
-			for {
-				i := strings.Index(us, "-")
-
-				if i == -1 {
-					break
-				}
-
-				s := us[0:i]
-
-				if len(us) > i+1 {
-					s += strings.ToUpper(us[i+1 : i+2])
-				}
-
-				if len(us) > i+2 {
-					s += us[i+2:]
-				}
-
-				us = s
-			}
-
-			return us
+			return upperName(name)
 		},
 	}
+}
+
+func upperName(name string) string {
+	us := strings.ToUpper(name[0:1]) + name[1:]
+
+	for {
+		i := strings.Index(us, "-")
+
+		if i == -1 {
+			break
+		}
+
+		s := us[0:i]
+
+		if len(us) > i+1 {
+			s += strings.ToUpper(us[i+1 : i+2])
+		}
+
+		if len(us) > i+2 {
+			s += us[i+2:]
+		}
+
+		us = s
+	}
+
+	return us
 }
