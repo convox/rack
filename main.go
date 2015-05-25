@@ -11,17 +11,24 @@ import (
 )
 
 var (
-	flagPorts     StringSet
-	flagBalancers string
+	flagMode      string
+	flagBalancers StringSet
+	flagProcesses StringSet
+	flagListeners StringSet
 )
 
 func init() {
-	flag.Var(&flagPorts, "p", "port mapping")
+	flag.StringVar(&flagMode, "mode", "production", "deployment mode")
+	flag.Var(&flagBalancers, "balancers", "load balancer list")
+	flag.Var(&flagProcesses, "processes", "process list")
+	flag.Var(&flagListeners, "listeners", "links between load balancers and processes")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "app: build convox app stack\n\nUsage:\n")
+		fmt.Fprintf(os.Stderr, "usage: convox/app [options]\n\noptions:\n")
 		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nExample:\n  app -p 80:3000 -p 443:4000\n")
+		fmt.Fprintf(os.Stderr, "\nexamples:\n")
+		fmt.Fprintf(os.Stderr, "  docker run convox/app -balancers front -processes web,worker -listeners front:web\n")
+		fmt.Fprintf(os.Stderr, "  docker run convox/app -mode staging -processes worker\n")
 	}
 }
 
@@ -59,32 +66,32 @@ Options:
 func main() {
 	flag.Parse()
 
-	ports := parsePorts(flagPorts)
+	// ports := parsePorts(flagPorts)
 
-	params := map[string]interface{}{
-		"Ports": ports,
-	}
+	// params := map[string]interface{}{
+	//   "Ports": ports,
+	// }
 
-	if len(ports) > 0 {
-		params["HasPorts"] = true
-		params["FirstHostPort"] = ports[0].Host
-	}
+	// if len(ports) > 0 {
+	//   params["HasPorts"] = true
+	//   params["FirstHostPort"] = ports[0].Host
+	// }
 
-	data, err := buildTemplate("formation", "app", params)
+	// data, err := buildTemplate("formation", "app", params)
 
-	if err != nil {
-		displaySyntaxError(data, err)
-		die(err)
-	}
+	// if err != nil {
+	//   displaySyntaxError(data, err)
+	//   die(err)
+	// }
 
-	pretty, err := prettyJson(data)
+	// pretty, err := prettyJson(data)
 
-	if err != nil {
-		displaySyntaxError(data, err)
-		die(err)
-	}
+	// if err != nil {
+	//   displaySyntaxError(data, err)
+	//   die(err)
+	// }
 
-	fmt.Println(pretty)
+	// fmt.Println(pretty)
 }
 
 func buildTemplate(name, section string, data interface{}) (string, error) {
