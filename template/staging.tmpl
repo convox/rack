@@ -2,24 +2,27 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Parameters" : {
-      {{ template "balancer-params" . }}
       {{ template "process-params" . }}
-      {{ template "listener-params" . }}
 
       "Cluster": {
         "Type" : "String",
         "Default" : "",
         "Description" : ""
       },
-      "EnvKey": {
+      "Environment": {
         "Type": "String",
         "Default": "",
-        "Description": "",
+        "Description": ""
       },
-      "EnvUrl": {
+      "EnvironmentKey": {
         "Type": "String",
         "Default": "",
-        "Description": "",
+        "Description": ""
+      },
+      "HealthCheck": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : ""
       },
       "Kernel": {
         "Type" : "String",
@@ -43,13 +46,16 @@
       }
     },
     "Resources": {
-      {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
+
+      {{ template "balancer" . }}
       {{ template "security" }}
       {{ template "state" }}
     },
     "Outputs": {
-      {{ template "balancer-outputs" . }}
+      "BalancerHost": {
+        "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+      },
       "Settings": {
         "Value": { "Ref": "Settings" }
       }
@@ -57,127 +63,94 @@
   }
 {{ end }}
 
-{{ define "balancer-params" }}
-  {{ range .Balancers }}
-    "{{ upper . }}Check": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
-    },
-  {{ end }}
-{{ end }}
-
-{{ define "balancer-resources" }}
-  {{ $listeners := .Listeners }}
-  {{ range .Balancers }}
-    "{{ upper . }}BalancerSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-        "SecurityGroupIngress": [ {{ ingress . $listeners }} ],
-        "VpcId": { "Ref": "VPC" }
-      }
-    },
-    "{{ upper . }}Balancer": {
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Properties": {
-        "Subnets": { "Ref": "Subnets" },
-        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-        "ConnectionSettings": { "IdleTimeout": 60 },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": { "Ref": "{{ upper . }}Check" },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
-        },
-        "Listeners": [ {{ listeners . $listeners }} ],
-        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": { "Ref": "AWS::StackName" },
-        "SecurityGroups": [ { "Ref": "{{ upper . }}BalancerSecurityGroup" } ]
-      }
-    },
-  {{ end }}
-{{ end }}
-
-{{ define "balancer-outputs" }}
-  {{ range .Balancers }}
-    "{{ upper . }}Host": {
-      "Value": { "Fn::GetAtt": [ "{{ upper . }}Balancer", "DNSName" ] }
-    },
-  {{ end }}
-{{ end }}
-
 {{ define "process-params" }}
-  {{ range .Processes }}
-    "{{ upper . }}Command": {
+  {{ range $k, $e := . }}
+    {{ range $e.Ports }}
+      {{ $parts := (split . ":") }}
+      "{{ upper $k }}Port{{ index $parts 0 }}": {
+        "Type" : "String",
+        "Default" : "{{ index $parts 0 }}",
+        "Description" : ""
+      },
+    {{ end }}
+    "{{ upper $k }}Command": {
+      "Type" : "String",
+      "Default" : "{{ $e.Command }}",
+      "Description" : ""
+    },
+    "{{ upper $k }}Image": {
       "Type" : "String",
       "Default" : "",
       "Description" : ""
     },
-    "{{ upper . }}Image": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
-    },
-    "{{ upper . }}Scale": {
-      "Type" : "String",
-      "Default" : "",
+    "{{ upper $k }}Scale": {
+      "Type" : "Number",
+      "Default" : "1",
       "Description" : ""
     },
   {{ end }}
 {{ end }}
 
 {{ define "process-resources" }}
-  {{ $listeners := .Listeners }}
-  {{ range .Processes }}
-    "{{ upper . }}TaskDefinition": {
+  {{ range $ps, $entry := . }}
+    "{{ upper $ps }}TaskDefinition": {
       "Type": "Custom::ECSTaskDefinition",
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ . }}" ] ] },
-        "Image": { "Ref": "{{ upper . }}Image" },
-        "Command": { "Ref": "{{ upper . }}Command" },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
+        "Image": { "Ref": "{{ upper $ps }}Image" },
+        "Command": { "Ref": "{{ upper $ps }}Command" },
         "CPU": "200",
         "Memory": "300",
-        "PortMappings": [ {{ portmappings . $listeners }} ]
+        "PortMappings": [ {{ portmappings $entry }} ]
       }
     },
-    "{{ upper . }}Service": {
+    "{{ upper $ps }}Service": {
       "Type": "Custom::ECSService",
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
         "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": { "Ref": "{{ upper . }}Scale" },
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ . }}" ] ] },
-        "TaskDefinition": { "Ref": "{{ upper . }}TaskDefinition" },
+        "DesiredCount": { "Ref": "{{ upper $ps }}Scale" },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
+        "TaskDefinition": { "Ref": "{{ upper $ps }}TaskDefinition" },
         "Role": { "Ref": "ServiceRole" },
-        "LoadBalancers": [ {{ loadbalancers . $listeners }} ]
+        "LoadBalancers": [ {{ loadbalancers $entry }} ]
       }
     },
   {{ end }}
 {{ end }}
 
-{{ define "listener-params" }}
-  {{ range .Listeners }}
-    "{{ upper .Balancer }}{{ upper .Process}}BalancerPort": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
-    },
-    "{{ upper .Balancer }}{{ upper .Process}}HostPort": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
-    },
-    "{{ upper .Balancer }}{{ upper .Process}}ContainerPort": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
-    },
-  {{ end }}
+{{ define "balancer" }}
+  "BalancerSecurityGroup": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+      "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+      "SecurityGroupIngress": [ {{ ingress . }} ],
+      "VpcId": { "Ref": "VPC" }
+    }
+  },
+  "Balancer": {
+    "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+    "Properties": {
+      "Subnets": { "Ref": "Subnets" },
+      "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+      "ConnectionSettings": { "IdleTimeout": 60 },
+      "CrossZone": true,
+      "HealthCheck": {
+        "HealthyThreshold": "2",
+        "Interval": 5,
+        "Target": { "Ref": "HealthCheck" },
+        "Timeout": 3,
+        "UnhealthyThreshold": "2"
+      },
+      "Listeners": [ {{ listeners . }} ],
+      "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+      "LoadBalancerName": { "Ref": "AWS::StackName" },
+      "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
+    }
+  },
 {{ end }}
+
 
 {{ define "security" }}
   "ServiceRole": {

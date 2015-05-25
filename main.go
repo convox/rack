@@ -6,31 +6,36 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 var (
-	flagMode      string
-	flagBalancers string
-	flagProcesses string
-	flagListeners string
+	flagMode string
 )
 
 func init() {
 	flag.StringVar(&flagMode, "mode", "production", "deployment mode")
-	flag.StringVar(&flagBalancers, "balancers", "", "load balancer list")
-	flag.StringVar(&flagProcesses, "processes", "", "process list")
-	flag.StringVar(&flagListeners, "listeners", "", "links between load balancers and processes")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: convox/app [options]\n\noptions:\n")
+		fmt.Fprintf(os.Stderr, "usage: convox/app [options]\n")
+		fmt.Fprintf(os.Stderr, "  expects a docker-compose.yml on stdin\n\n")
+		fmt.Fprintf(os.Stderr, "options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nexamples:\n")
-		fmt.Fprintf(os.Stderr, "  docker run convox/app -balancers front -processes web,worker -listeners front:web\n")
-		fmt.Fprintf(os.Stderr, "  docker run convox/app -mode staging -processes worker\n")
+		fmt.Fprintf(os.Stderr, "  cat docker-compose.yml | docker run -i convox/app -mode staging\n")
 	}
 }
+
+type ManifestEntry struct {
+	Command string   `yaml:"command"`
+	Ports   []string `yaml:"ports"`
+}
+
+type Manifest map[string]ManifestEntry
 
 type Listener struct {
 	Balancer string
@@ -55,13 +60,21 @@ Options:
 func main() {
 	flag.Parse()
 
-	params := map[string]interface{}{
-		"Balancers": parseList(flagBalancers),
-		"Processes": parseList(flagProcesses),
-		"Listeners": parseListeners(flagListeners),
+	man, err := ioutil.ReadAll(os.Stdin)
+
+	if err != nil {
+		die(err)
 	}
 
-	data, err := buildTemplate(flagMode, "formation", params)
+	var manifest Manifest
+
+	err = yaml.Unmarshal(man, &manifest)
+
+	if err != nil {
+		die(err)
+	}
+
+	data, err := buildTemplate(flagMode, "formation", manifest)
 
 	if err != nil {
 		displaySyntaxError(data, err)
@@ -166,60 +179,87 @@ func printLines(data string) {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"ingress": func(balancer string, listeners []Listener) template.HTML {
+		"ingress": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for _, l := range listeners {
-				if l.Balancer == balancer {
-					b := upperName(l.Balancer)
-					p := upperName(l.Process)
-					ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%s%sBalancerPort" }, "ToPort": { "Ref": "%s%sBalancerPort" } }`, b, p, b, p))
+			for ps, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
+
+					if len(parts) != 2 {
+						continue
+					}
+
+					ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%sPort%s" }, "ToPort": { "Ref": "%sPort%s" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 				}
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"listeners": func(balancer string, listeners []Listener) template.HTML {
+		"listeners": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for _, l := range listeners {
-				if l.Balancer == balancer {
-					b := upperName(l.Balancer)
-					p := upperName(l.Process)
-					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%s%sBalancerPort" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%s%sHostPort" } }`, b, p, b, p))
+			for ps, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
+
+					if len(parts) != 2 {
+						continue
+					}
+
+					host := 9000
+
+					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%s" }, "InstanceProtocol": "TCP", "InstancePort": "%d" }`, upperName(ps), parts[0], host))
 				}
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"loadbalancers": func(process string, listeners []Listener) template.HTML {
+		"loadbalancers": func(e ManifestEntry) template.HTML {
 			ls := []string{}
 
-			for _, l := range listeners {
-				if l.Process == process {
-					b := upperName(l.Balancer)
-					p := upperName(l.Process)
-					ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sBalancer" }, { "Ref": "%s%sContainerPort" } ] ] }`, b, b, p))
+			for _, port := range e.Ports {
+				parts := strings.SplitN(port, ":", 2)
+
+				if len(parts) != 2 {
+					continue
 				}
+
+				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "%s" ] ] }`, parts[1]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"portmappings": func(process string, listeners []Listener) template.HTML {
+		"portmappings": func(e ManifestEntry) template.HTML {
 			ls := []string{}
 
-			for _, l := range listeners {
-				if l.Process == process {
-					b := upperName(l.Balancer)
-					p := upperName(l.Process)
-					ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%s%sHostPort" }, { "Ref": "%s%sContainerPort" } ] ] }`, b, p, b, p))
+			for _, port := range e.Ports {
+				parts := strings.SplitN(port, ":", 2)
+
+				if len(parts) != 2 {
+					continue
 				}
+
+				host := "9000"
+
+				ls = append(ls, fmt.Sprintf(`"%s:%s"`, host, parts[1]))
 			}
+
+			// for _, l := range listeners {
+			//   if l.Process == process {
+			//     b := upperName(l.Balancer)
+			//     p := upperName(l.Process)
+			//     ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%s%sHostPort" }, { "Ref": "%s%sContainerPort" } ] ] }`, b, p, b, p))
+			//   }
+			// }
 
 			return template.HTML(strings.Join(ls, ","))
 		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
+		},
+		"split": func(ss string, t string) []string {
+			return strings.Split(ss, t)
 		},
 		"upper": func(name string) string {
 			return upperName(name)

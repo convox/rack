@@ -4,23 +4,17 @@ Build Convox application stacks.
 
 ## Usage
 
-    $ docker run convox/app -balancers front -processes web,worker -listeners front:web
+    $ cat docker-compose.yml | docker run convox/app
 
 ## Parameters ([Production Mode](doc:deployment-modes)) 
 
-| Name         | Default      | Description                                        |
-|--------------|--------------|----------------------------------------------------|
-| `Ami`        | **required** | AMI to use for this application                    |
-| `EnvUrl`     | *optional*   | URL to an environment for this app (`.env` format) |
-| `EnvKey`     | *optional*   | ARN of KMS key used to encrypt the environment     |
-| `Repository` | *optional*   | The canonical source repository for this app       |
-| `SshKey`     | *optional*   | SSH key name to use to allow access to this app    |
-
-These parameters will appear once per balancer:
-
-| Name         | Default    | Description                                                          |
-|--------------|------------|----------------------------------------------------------------------|
-| `FrontCheck` | *optional* | If left blank will default to checking `GET /` on the first listener |
+| Name             | Default      | Description                                     |
+|------------------|--------------|-------------------------------------------------|
+| `Ami`            | **required** | AMI to use for this application                 |
+| `Environment`    | *optional*   | Encrypted environment                           |
+| `EnvironmentKey` | *optional*   | ARN of KMS key used to encrypt the environment  |
+| `Repository`     | *optional*   | The canonical source repository for this app    |
+| `SshKey`         | *optional*   | SSH key name to use to allow access to this app |
 
 These parameters will appear once per process:
 
@@ -31,28 +25,27 @@ These parameters will appear once per process:
 | `WebScale`   | 1            | Number of instances to run               |
 | `WebSize`    | t2.micro     | Instance size to use for this process    |
 
-These parameters will appear once per listener:
+These parameters will appear if there are any port mappings:
 
-| Name                   | Default      | Description                 |
-|------------------------|--------------|-----------------------------|
-| `FrontWebBalancerPort` | **required** | Listen port on the balancer |
-| `FrontWebProcessPort`  | **required** | Listen port on the process  |
+| Name          | Default    | Description          |
+|---------------|------------|----------------------|
+| `HealthCheck` | *optional* | Healthcheck endpoint |
+
+These parameters will appear once per port mapping:
+
+| Name          | Default      | Description                                             |
+|---------------|--------------|---------------------------------------------------------|
+| `WebPort5000` | 5000         | Port to listen on the load balancer for a given mapping |
 
 ## Parameters ([Staging Mode](doc:deployment-modes)) 
 
-| Name      | Default      | Description                                        |
-|-----------|--------------|----------------------------------------------------|
-| `Cluster`  | **required**   | Cluster for this app (see convox/cluster)       |
-| `EnvUrl`  | *optional*   | URL to an environment for this app (`.env` format) |
-| `EnvKey`  | *optional*   | ARN of KMS key used to encrypt the environment     |
-| `Kernel` | **required** | Kernel notification endpoint (see convox/kernel)    |
-| `Repository` | *optional* | The canonical source repository for this app      |
-
-These parameters will appear once per balancer:
-
-| Name         | Default    | Description                                                          |
-|--------------|------------|----------------------------------------------------------------------|
-| `FrontCheck` | *optional* | If left blank will default to checking `GET /` on the first listener |
+| Name             | Default      | Description                                      |
+|------------------|--------------|--------------------------------------------------|
+| `Cluster`        | **required**   | Cluster for this app (see convox/cluster)      |
+| `Environment`    | *optional*   | Encrypted environment                            |
+| `EnvironmentKey` | *optional*   | ARN of KMS key used to encrypt the environment   |
+| `Kernel`         | **required** | Kernel notification endpoint (see convox/kernel) |
+| `Repository`     | *optional* | The canonical source repository for this app       |
 
 These parameters will appear once per process:
 
@@ -62,24 +55,25 @@ These parameters will appear once per process:
 | `WebImage`   | **required** | The docker image to use for this process |
 | `WebScale`   | 1            | Number of instances to run               |
 
-These parameters will appear once per listener:
+These parameters will appear if there are any port mappings:
 
-| Name                   | Default      | Description                           |
-|------------------------|--------------|---------------------------------------|
-| `FrontWebBalancerPort` | **required** | Port the load balancer will listed on |
-| `FrontWebHostPort`  | **required** | Host port (must be unique per cluster)   |
-| `FrontWebContainerPort`  | **required** | Port that container exposes         |
+| Name          | Default    | Description          |
+|---------------|------------|----------------------|
+| `HealthCheck` | *optional* | Healthcheck endpoint |
+
+These parameters will appear once per port mapping:
+
+| Name          | Default      | Description                                             |
+|---------------|--------------|---------------------------------------------------------|
+| `WebPort5000` | 5000         | Port to listen on the load balancer for a given mapping |
 
 ## Help
 
     usage: convox/app [options]
+      expects a docker-compose.yml on stdin
 
     options:
       -mode="production": deployment mode
-      -balancers="": load balancer list
-      -processes="": process list
-      -listeners="": links between load balancers and processes
 
     examples:
-      $ docker run convox/app -balancers front -processes web,worker -listeners front:web
-      $ docker run convox/app -mode staging -processes worker
+      $ cat docker-compose.yml | docker run -i convox/app -mode staging
