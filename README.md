@@ -8,12 +8,13 @@ Build Convox application stacks.
 
 ## Parameters ([Production Mode](doc:deployment-modes)) 
 
-| Name      | Default      | Description                                        |
-|-----------|--------------|----------------------------------------------------|
-| `Ami`     | **required** | AMI to use for this application                    |
-| `EnvUrl`  | *optional*   | URL to an environment for this app (`.env` format) |
-| `EnvKey`  | *optional*   | ARN of KMS key used to encrypt the environment     |
-| `SshKey`  | *optional*   | SSH key name to use to allow access to this app    |
+| Name         | Default      | Description                                        |
+|--------------|--------------|----------------------------------------------------|
+| `Ami`        | **required** | AMI to use for this application                    |
+| `EnvUrl`     | *optional*   | URL to an environment for this app (`.env` format) |
+| `EnvKey`     | *optional*   | ARN of KMS key used to encrypt the environment     |
+| `Repository` | *optional*   | The canonical source repository for this app       |
+| `SshKey`     | *optional*   | SSH key name to use to allow access to this app    |
 
 These parameters will appear once per balancer:
 
@@ -45,7 +46,7 @@ These parameters will appear once per listener:
 | `EnvUrl`  | *optional*   | URL to an environment for this app (`.env` format) |
 | `EnvKey`  | *optional*   | ARN of KMS key used to encrypt the environment     |
 | `Kernel` | **required** | Kernel notification endpoint (see convox/kernel)    |
-| `Repository` | *optional* | The canonical repository for this app             |
+| `Repository` | *optional* | The canonical source repository for this app      |
 
 These parameters will appear once per balancer:
 
