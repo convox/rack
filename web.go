@@ -73,7 +73,7 @@ func check(rw http.ResponseWriter, r *http.Request) {
 	rw.Write([]byte("ok"))
 }
 
-func main() {
+func startWeb() {
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
 	}

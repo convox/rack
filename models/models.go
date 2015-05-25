@@ -13,6 +13,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
 var SortableTime = "20060102.150405.000000000"
@@ -84,6 +85,13 @@ func RDS() *rds.RDS {
 
 func S3() *s3.S3 {
 	return s3.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
+}
+
+func SQS() *sqs.SQS {
+	return sqs.New(&aws.Config{
 		Credentials: credentials.NewCredentials(&AwsCredentials{}),
 		Region:      os.Getenv("AWS_REGION"),
 	})

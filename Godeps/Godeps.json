@@ -86,6 +86,10 @@
 			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/sqs",
+			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+		},
+		{
 			"ImportPath": "github.com/codegangsta/negroni",
 			"Comment": "v0.1-55-g1dd3ab0",
 			"Rev": "1dd3ab0ff59e13f5b73dcbf70703710aebe50d2f"

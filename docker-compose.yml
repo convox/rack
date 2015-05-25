@@ -6,6 +6,7 @@ web:
     - AWS_SECRET
     - AWS_REGION
     - AWS_AZS
+    - FORMATION_QUEUE_URL
     - GITHUB_TOKEN
     - HTTP_PASSWORD
     - REGISTRY
