@@ -295,6 +295,16 @@ func upperName(name string) string {
 	return us
 }
 
+func (m Manifest) FirstPort() string {
+	for _, entry := range m {
+		if len(entry.Ports) > 0 {
+			return strings.Split(entry.Ports[0], ":")[0]
+		}
+	}
+
+	return ""
+}
+
 func (m Manifest) HasPortMappings() bool {
 	for _, entry := range m {
 		if len(entry.Ports) > 0 {

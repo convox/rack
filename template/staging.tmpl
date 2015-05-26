@@ -52,6 +52,11 @@
         "Description" : "VPC for this app"
       }
     },
+    "Conditions": {
+      {{ if .HasPortMappings }}
+        "BlankHealthCheck": { "Fn::Equals": [ { "Ref": "HealthCheck" }, "" ] }
+      {{ end }}
+    },
     "Resources": {
       {{ template "process-resources" . }}
 
@@ -149,7 +154,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": { "Ref": "HealthCheck" },
+          "Target": { "Fn::If": [ "BlankHealthCheck", "HTTP:{{ .FirstPort }}/", { "Ref": "HealthCheck" } ] },
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
