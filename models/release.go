@@ -192,6 +192,7 @@ func (r *Release) Promote() error {
 		app.Parameters[fmt.Sprintf("%sScale", upperName(ps.Name))] = strconv.Itoa(ps.Count)
 	}
 
+	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Release"] = r.Id
 
 	params := []*cloudformation.Parameter{}
@@ -212,6 +213,17 @@ func (r *Release) Promote() error {
 	_, err = CloudFormation().UpdateStack(req)
 
 	return err
+}
+
+func (r *Release) EnvironmentUrl() string {
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return ""
+	}
+
+	return fmt.Sprintf("https://%s.s3.amazonaws.com/releases/%s/env", app.Outputs["Settings"], r.Id)
 }
 
 func (r *Release) Formation() (string, error) {
