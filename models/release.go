@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -160,6 +161,20 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	pss, err := r.Processes()
+
+	if err != nil {
+		return err
+	}
+
+	for _, ps := range pss {
+		app.Parameters[fmt.Sprintf("%sCommand", upperName(ps.Name))] = ps.Command
+		app.Parameters[fmt.Sprintf("%sImage", upperName(ps.Name))] = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY"), r.App, ps.Name, r.Build)
+		app.Parameters[fmt.Sprintf("%sScale", upperName(ps.Name))] = strconv.Itoa(ps.Count)
+	}
+
+	app.Parameters["Release"] = r.Id
+
 	params := []*cloudformation.Parameter{}
 
 	for key, value := range app.Parameters {
@@ -189,7 +204,6 @@ func (r *Release) Formation() (string, error) {
 	in, err := cmd.StdinPipe()
 
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
 		return "", err
 	}
 
@@ -202,11 +216,8 @@ func (r *Release) Formation() (string, error) {
 	err = cmd.Start()
 
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
 		return "", err
 	}
-
-	fmt.Printf("r.Manifest %+v\n", r.Manifest)
 
 	io.WriteString(in, r.Manifest)
 	in.Close()
@@ -214,18 +225,14 @@ func (r *Release) Formation() (string, error) {
 	data, err := ioutil.ReadAll(out)
 
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
 		return "", err
 	}
 
 	err = cmd.Wait()
 
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
 		return "", err
 	}
-
-	fmt.Printf("string(data) %+v\n", string(data))
 
 	return string(data), nil
 }
