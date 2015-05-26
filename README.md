@@ -13,6 +13,7 @@ Build Convox application stacks.
 | `Ami`            | **required** | AMI to use for this application                 |
 | `Environment`    | *optional*   | Encrypted environment                           |
 | `EnvironmentKey` | *optional*   | ARN of KMS key used to encrypt the environment  |
+| `Release`        | *optional*   | The current release id (see convox/kernel)      |
 | `Repository`     | *optional*   | The canonical source repository for this app    |
 | `SshKey`         | *optional*   | SSH key name to use to allow access to this app |
 
