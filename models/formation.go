@@ -16,7 +16,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
-var MessageQueueUrl = os.Getenv("FORMATION_QUEUE_URL")
+var MessageQueueUrl = os.Getenv("FORMATION_QUEUE")
 
 type Message struct {
 	MessageID     *string
@@ -52,9 +52,10 @@ type FormationResponse struct {
 	StackId           string
 	LogicalResourceId string
 
-	Status             string
-	PhysicalResourceId string
 	Data               map[string]string
+	PhysicalResourceId string
+	Reason             string
+	Status             string
 }
 
 func ListenFormation() {
@@ -87,7 +88,7 @@ func ListenFormation() {
 	}
 }
 
-func handleECSService(freq FormationRequest) (string, bool) {
+func handleECSService(freq FormationRequest) (string, error) {
 	switch freq.RequestType {
 	case "Create":
 		fmt.Println("CREATING SERVICE")
@@ -96,7 +97,7 @@ func handleECSService(freq FormationRequest) (string, bool) {
 		count, err := strconv.Atoi(freq.ResourceProperties["DesiredCount"].(string))
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
 		req := &ecs.CreateServiceInput{
@@ -125,10 +126,10 @@ func handleECSService(freq FormationRequest) (string, bool) {
 		res, err := ECS().CreateService(req)
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
-		return *res.Service.ServiceARN, true
+		return *res.Service.ServiceARN, nil
 	case "Update":
 		fmt.Println("UPDATING SERVICE")
 		fmt.Printf("freq %+v\n", freq)
@@ -145,10 +146,10 @@ func handleECSService(freq FormationRequest) (string, bool) {
 		res, err := ECS().UpdateService(req)
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
-		return *res.Service.ServiceARN, true
+		return *res.Service.ServiceARN, nil
 	case "Delete":
 		fmt.Println("DELETING SERVICE")
 		fmt.Printf("freq %+v\n", freq)
@@ -164,8 +165,15 @@ func handleECSService(freq FormationRequest) (string, bool) {
 
 		_, err := ECS().UpdateService(req)
 
+		// go ahead and mark the delete good if the service is not found
+		if ae, ok := err.(aws.APIError); ok {
+			if ae.Code == "ServiceNotFoundException" {
+				return "", nil
+			}
+		}
+
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
 		_, err = ECS().DeleteService(&ecs.DeleteServiceInput{
@@ -174,16 +182,16 @@ func handleECSService(freq FormationRequest) (string, bool) {
 		})
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
-		return "", true
+		return "", nil
 	}
 
-	return "", false
+	return "", fmt.Errorf("unknown RequestType: %s", freq.RequestType)
 }
 
-func handleECSTaskDefinition(freq FormationRequest) (string, bool) {
+func handleECSTaskDefinition(freq FormationRequest) (string, error) {
 	switch freq.RequestType {
 	case "Create", "Update":
 		fmt.Printf("%sing TASK\n", freq.RequestType)
@@ -238,10 +246,10 @@ func handleECSTaskDefinition(freq FormationRequest) (string, bool) {
 		res, err := ECS().RegisterTaskDefinition(req)
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
-		return *res.TaskDefinition.TaskDefinitionARN, true
+		return *res.TaskDefinition.TaskDefinitionARN, nil
 	case "Delete":
 		fmt.Println("DELETING TASK")
 		fmt.Printf("freq %+v\n", freq)
@@ -249,10 +257,10 @@ func handleECSTaskDefinition(freq FormationRequest) (string, bool) {
 		// TODO: currently unsupported by ECS
 		// res, err := ECS().DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(freq.PhysicalResourceId)})
 
-		return "", true
+		return "", nil
 	}
 
-	return "", false
+	return "", fmt.Errorf("unknown RequestType: %s", freq.RequestType)
 }
 
 func handleFormation(message Message) {
@@ -265,32 +273,33 @@ func handleFormation(message Message) {
 		return
 	}
 
-	success := true
 	physical := ""
 
 	switch freq.ResourceType {
 	case "Custom::ECSService":
-		physical, success = handleECSService(freq)
+		physical, err = handleECSService(freq)
 	case "Custom::ECSTaskDefinition":
-		physical, success = handleECSTaskDefinition(freq)
+		physical, err = handleECSTaskDefinition(freq)
 	}
 
-	fmt.Printf("success %+v\n", success)
 	fmt.Printf("physical %+v\n", physical)
+	fmt.Printf("err %+v\n", err)
 
 	fres := FormationResponse{
 		RequestId:          freq.RequestId,
 		StackId:            freq.StackId,
 		LogicalResourceId:  freq.LogicalResourceId,
 		PhysicalResourceId: physical,
-		Status:             "FAILED",
+		Status:             "SUCCESS",
 		Data: map[string]string{
 			"Output1": "Value1",
 		},
 	}
 
-	if success {
-		fres.Status = "SUCCESS"
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fres.Reason = err.Error()
+		fres.Status = "FAILED"
 	}
 
 	data, err := json.Marshal(fres)

@@ -3,15 +3,16 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
+
+var CustomTopic = os.Getenv("CUSTOM_TOPIC")
 
 type App struct {
 	Cluster string
@@ -101,6 +102,8 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
+		"Cluster":    a.Cluster,
+		"Kernel":     CustomTopic,
 		"Repository": a.Repository,
 		"Subnets":    cluster.Subnets,
 		"VPC":        cluster.Vpc,
@@ -113,6 +116,7 @@ func (a *App) Create() error {
 	}
 
 	req := &cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(a.Name),
 		TemplateBody: aws.String(formation),
 	}
@@ -181,7 +185,7 @@ func (a *App) Delete() error {
 }
 
 func (a *App) Formation() (string, error) {
-	data, err := exec.Command("docker", "run", "convox/app").CombinedOutput()
+	data, err := exec.Command("docker", "run", "convox/app", "-mode", "staging").CombinedOutput()
 
 	if err != nil {
 		return "", err

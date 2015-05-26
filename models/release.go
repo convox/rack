@@ -1,16 +1,16 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 )
 
 type Release struct {
@@ -21,7 +21,6 @@ type Release struct {
 	Build    string
 	Env      string
 	Manifest string
-	Tasks    map[string]string
 
 	Created time.Time
 }
@@ -112,12 +111,6 @@ func (r *Release) Save() error {
 		r.Created = time.Now()
 	}
 
-	err := r.registerTasks()
-
-	if err != nil {
-		return err
-	}
-
 	req := &dynamodb.PutItemInput{
 		Item: &map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
@@ -139,15 +132,7 @@ func (r *Release) Save() error {
 		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
-	tasks, err := json.Marshal(r.Tasks)
-
-	if err != nil {
-		return err
-	}
-
-	(*req.Item)["tasks"] = &dynamodb.AttributeValue{S: aws.String(string(tasks))}
-
-	_, err = DynamoDB().PutItem(req)
+	_, err := DynamoDB().PutItem(req)
 
 	if err != nil {
 		return err
@@ -184,6 +169,7 @@ func (r *Release) Promote() error {
 	}
 
 	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(r.App),
 		TemplateBody: aws.String(formation),
 		Parameters:   params,
@@ -191,30 +177,55 @@ func (r *Release) Promote() error {
 
 	_, err = CloudFormation().UpdateStack(req)
 
-	// TODO: wait for stack
-
-	err = r.registerServices()
-
 	return err
 }
 
 func (r *Release) Formation() (string, error) {
-	processes, err := r.Processes()
+	args := []string{"run", "-i", "convox/app", "-mode", "staging"}
 
-	args := []string{"run", "convox/app"}
+	cmd := exec.Command("docker", args...)
+	cmd.Stderr = os.Stderr
 
-	for _, ps := range processes {
-		for i, _ := range ps.Ports {
-			// TODO fix base port
-			args = append(args, "-p", fmt.Sprintf("%d:%d", 8000+i, 8000+i))
-		}
+	in, err := cmd.StdinPipe()
+
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+		return "", err
 	}
 
-	data, err := exec.Command("docker", args...).CombinedOutput()
+	out, err := cmd.StdoutPipe()
 
 	if err != nil {
 		return "", err
 	}
+
+	err = cmd.Start()
+
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+		return "", err
+	}
+
+	fmt.Printf("r.Manifest %+v\n", r.Manifest)
+
+	io.WriteString(in, r.Manifest)
+	in.Close()
+
+	data, err := ioutil.ReadAll(out)
+
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+		return "", err
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+		return "", err
+	}
+
+	fmt.Printf("string(data) %+v\n", string(data))
 
 	return string(data), nil
 }
@@ -259,277 +270,6 @@ func (r *Release) Services() (Services, error) {
 	return services, nil
 }
 
-func (r *Release) ecsService(ps string) (*ecs.Service, error) {
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return nil, err
-	}
-
-	gres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(app.Cluster),
-		Services: []*string{aws.String(fmt.Sprintf("%s-%s", r.App, ps))},
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(gres.Services) != 1 {
-		return nil, nil
-	}
-
-	if *gres.Services[0].Status != "ACTIVE" {
-		return nil, nil
-	}
-
-	return gres.Services[0], nil
-}
-
-func (r *Release) ecsTask(ps string) (*ecs.TaskDefinition, error) {
-	service, err := r.ecsService(ps)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if service == nil {
-		return nil, nil
-	}
-
-	req := &ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: service.TaskDefinition,
-	}
-
-	res, err := ECS().DescribeTaskDefinition(req)
-
-	return res.TaskDefinition, nil
-}
-
-func (r *Release) ecsCreate(ps Process) error {
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return err
-	}
-
-	req := &ecs.CreateServiceInput{
-		Cluster:        aws.String(app.Cluster),
-		DesiredCount:   aws.Long(int64(ps.Count)),
-		ServiceName:    aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
-		TaskDefinition: aws.String(r.Tasks[ps.Name]),
-	}
-
-	if len(ps.Ports) > 0 {
-		req.Role = aws.String("arn:aws:iam::778743527532:role/ecsServiceRole")
-	}
-
-	for _, port := range ps.Ports {
-		req.LoadBalancers = append(req.LoadBalancers, &ecs.LoadBalancer{
-			ContainerName:    aws.String("main"),
-			ContainerPort:    aws.Long(int64(port)),
-			LoadBalancerName: aws.String(app.Outputs["Balancer"]),
-		})
-	}
-
-	_, err = ECS().CreateService(req)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *Release) ecsUpdate(ps Process, existing *ecs.Service) error {
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return err
-	}
-
-	req := &ecs.UpdateServiceInput{
-		Cluster:        aws.String(app.Cluster),
-		Service:        existing.ServiceName,
-		DesiredCount:   aws.Long(int64(ps.Count)),
-		TaskDefinition: aws.String(r.Tasks[ps.Name]),
-	}
-
-	_, err = ECS().UpdateService(req)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *Release) ecsDelete(existing *ecs.Service) error {
-	req := &ecs.UpdateServiceInput{
-		Cluster:      existing.ClusterARN,
-		Service:      existing.ServiceName,
-		DesiredCount: aws.Long(0),
-	}
-
-	_, err := ECS().UpdateService(req)
-
-	if err != nil {
-		return err
-	}
-
-	res, err := ECS().DeleteService(&ecs.DeleteServiceInput{
-		Cluster: existing.ClusterARN,
-		Service: existing.ServiceName,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("res %+v\n", res)
-
-	return nil
-}
-
-func (r *Release) registerServices() error {
-	a, err := GetApp(r.App)
-
-	if err != nil {
-		return err
-	}
-
-	res, err := ECS().ListServices(&ecs.ListServicesInput{Cluster: aws.String(a.Cluster)})
-
-	if err != nil {
-		return err
-	}
-
-	sres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(a.Cluster),
-		Services: res.ServiceARNs,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	running := map[string]*ecs.Service{}
-
-	for _, service := range sres.Services {
-		parts := strings.Split(*service.ServiceName, "-")
-		app := strings.Join(parts[0:len(parts)-1], "-")
-		ps := parts[len(parts)-1]
-
-		if app == r.App {
-			running[ps] = service
-		}
-	}
-
-	pss, err := r.Processes()
-
-	if err != nil {
-		return err
-	}
-
-	existing := map[string]string{}
-
-	for _, ps := range pss {
-		existing[ps.Name] = ps.Name
-	}
-
-	for name, service := range running {
-		if _, ok := existing[name]; !ok {
-			r.ecsDelete(service)
-		}
-	}
-
-	for _, ps := range pss {
-		existing, err := r.ecsService(ps.Name)
-
-		if err != nil {
-			return err
-		}
-
-		if existing == nil {
-			err := r.ecsCreate(ps)
-
-			if err != nil {
-				return err
-			}
-		} else {
-			err := r.ecsUpdate(ps, existing)
-
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (r *Release) registerTasks() error {
-	tasks := map[string]string{}
-
-	pss, err := r.Processes()
-
-	if err != nil {
-		return err
-	}
-
-	for _, ps := range pss {
-		build, err := GetBuild(r.App, r.Build)
-
-		req := &ecs.RegisterTaskDefinitionInput{
-			ContainerDefinitions: []*ecs.ContainerDefinition{
-				{
-					CPU:       aws.Long(200),
-					Essential: aws.Boolean(true),
-					Image:     aws.String(build.Image(ps.Name)),
-					Memory:    aws.Long(300),
-					Name:      aws.String("main"),
-				},
-			},
-			Family: aws.String(fmt.Sprintf("%s-%s", r.App, ps.Name)),
-		}
-
-		if ps.Command != "" {
-			req.ContainerDefinitions[0].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(ps.Command)}
-		}
-
-		// set environment
-		env := LoadEnvironment([]byte(r.Env))
-
-		for key, val := range env {
-			req.ContainerDefinitions[0].Environment = append(req.ContainerDefinitions[0].Environment, &ecs.KeyValuePair{
-				Name:  aws.String(key),
-				Value: aws.String(val),
-			})
-		}
-
-		// set portmappings
-		// TODO: fix base port
-		for i, p := range ps.Ports {
-			req.ContainerDefinitions[0].PortMappings = append(req.ContainerDefinitions[0].PortMappings, &ecs.PortMapping{
-				ContainerPort: aws.Long(int64(p)),
-				HostPort:      aws.Long(int64(8000 + i)),
-			})
-		}
-
-		res, err := ECS().RegisterTaskDefinition(req)
-
-		if err != nil {
-			return err
-		}
-
-		tasks[ps.Name] = fmt.Sprintf("%s:%d", *res.TaskDefinition.Family, *res.TaskDefinition.Revision)
-	}
-
-	r.Tasks = tasks
-
-	return nil
-}
-
 func releasesTable(app string) string {
 	return fmt.Sprintf("%s-releases", app)
 }
@@ -545,10 +285,6 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
 		Manifest: coalesce(item["manifest"], ""),
 		Created:  created,
 	}
-
-	var tasks map[string]string
-	json.Unmarshal([]byte(coalesce(item["tasks"], "{}")), &tasks)
-	release.Tasks = tasks
 
 	return release
 }
