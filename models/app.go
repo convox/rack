@@ -204,63 +204,8 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 	return nil
 }
 
-func (a *App) ActiveRelease() (string, error) {
-	res, err := ECS().ListServices(&ecs.ListServicesInput{Cluster: aws.String(a.Cluster)})
-
-	if err != nil {
-		return "", err
-	}
-
-	sres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(a.Cluster),
-		Services: res.ServiceARNs,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	releases, err := ListReleases(a.Name)
-
-	if err != nil {
-		return "", err
-	}
-
-	running := map[string]string{}
-
-	for _, s := range sres.Services {
-		parts := strings.Split(*s.TaskDefinition, "/")
-		familyrev := parts[len(parts)-1]
-		aps := strings.Split(familyrev, ":")[0]
-		apsp := strings.Split(aps, "-")
-		app := strings.Join(apsp[0:len(apsp)-1], "-")
-		ps := apsp[len(apsp)-1]
-
-		if app == a.Name {
-			running[ps] = familyrev
-		}
-	}
-
-	for _, r := range releases {
-		if len(r.Tasks) == 0 {
-			continue
-		}
-
-		match := true
-
-		for name, fr := range running {
-			if r.Tasks[name] != fr {
-				match = false
-				break
-			}
-		}
-
-		if match {
-			return r.Id, nil
-		}
-	}
-
-	return "", nil
+func (a *App) ActiveRelease() string {
+	return a.Parameters["Release"]
 }
 
 func (a *App) ForkRelease() (*Release, error) {
