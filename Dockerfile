@@ -1,6 +1,11 @@
-FROM gliderlabs/alpine:edge
+FROM convox/alpine:3.1
 
-RUN apk-install docker git haproxy
+RUN apk-install docker git
+
+COPY pkg/haproxy-1.5.10-r0.apk /tmp/haproxy-1.5.10-r0.apk
+RUN apk add --allow-untrusted /tmp/haproxy-1.5.10-r0.apk
+RUN rm /tmp/haproxy-1.5.10-r0.apk
+COPY data/haproxy.cfg /etc/haproxy/haproxy.cfg
 
 RUN apk-install go
 ENV GOPATH /go
@@ -13,8 +18,6 @@ ENV PORT 3000
 WORKDIR /go/src/github.com/convox/kernel
 COPY . /go/src/github.com/convox/kernel
 RUN go get .
-
-COPY data/haproxy.cfg /etc/haproxy/haproxy.cfg
 
 ENTRYPOINT ["/go/bin/init"]
 CMD ["bin/web"]
