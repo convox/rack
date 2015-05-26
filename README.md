@@ -41,11 +41,13 @@ These parameters will appear once per port mapping:
 
 | Name             | Default      | Description                                      |
 |------------------|--------------|--------------------------------------------------|
-| `Cluster`        | **required**   | Cluster for this app (see convox/cluster)      |
+| `Cluster`        | **required** | Cluster for this app (see convox/cluster)        |
 | `Environment`    | *optional*   | Encrypted environment                            |
 | `EnvironmentKey` | *optional*   | ARN of KMS key used to encrypt the environment   |
 | `Kernel`         | **required** | Kernel notification endpoint (see convox/kernel) |
-| `Repository`     | *optional* | The canonical source repository for this app       |
+| `Repository`     | *optional*   | The canonical source repository for this app     |
+| `Subnets`        | **required** | The VPC subnets for this app's cluster           |
+| `Vpc`            | **required** | The VPC for this app's cluster                   |
 
 These parameters will appear once per process:
 
@@ -70,7 +72,7 @@ These parameters will appear once per port mapping:
 ## Help
 
     usage: convox/app [options]
-      expects a docker-compose.yml on stdin
+      expects an optional docker-compose.yml on stdin
 
     options:
       -mode="production": deployment mode

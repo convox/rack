@@ -22,7 +22,7 @@ func init() {
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: convox/app [options]\n")
-		fmt.Fprintf(os.Stderr, "  expects a docker-compose.yml on stdin\n\n")
+		fmt.Fprintf(os.Stderr, "  expects an optional docker-compose.yml on stdin\n\n")
 		fmt.Fprintf(os.Stderr, "options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nexamples:\n")
@@ -60,18 +60,20 @@ Options:
 func main() {
 	flag.Parse()
 
-	man, err := ioutil.ReadAll(os.Stdin)
-
-	if err != nil {
-		die(err)
-	}
-
 	var manifest Manifest
 
-	err = yaml.Unmarshal(man, &manifest)
+	if stat, _ := os.Stdin.Stat(); stat.Mode()&os.ModeCharDevice == 0 {
+		man, err := ioutil.ReadAll(os.Stdin)
 
-	if err != nil {
-		die(err)
+		if err != nil {
+			die(err)
+		}
+
+		err = yaml.Unmarshal(man, &manifest)
+
+		if err != nil {
+			die(err)
+		}
 	}
 
 	data, err := buildTemplate(flagMode, "formation", manifest)
@@ -291,4 +293,14 @@ func upperName(name string) string {
 	}
 
 	return us
+}
+
+func (m Manifest) HasPortMappings() bool {
+	for _, entry := range m {
+		if len(entry.Ports) > 0 {
+			return true
+		}
+	}
+
+	return false
 }

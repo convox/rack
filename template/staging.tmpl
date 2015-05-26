@@ -19,11 +19,13 @@
         "Default": "",
         "Description": ""
       },
-      "HealthCheck": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
+      {{ if .HasPortMappings }}
+        "HealthCheck": {
+          "Type" : "String",
+          "Default" : "",
+          "Description" : ""
+        },
+      {{ end }}
       "Kernel": {
         "Type" : "String",
         "Default" : "",
@@ -53,9 +55,11 @@
       {{ template "state" }}
     },
     "Outputs": {
-      "BalancerHost": {
-        "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
-      },
+      {{ if .HasPortMappings }}
+        "BalancerHost": {
+          "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+        },
+      {{ end }}
       "Settings": {
         "Value": { "Ref": "Settings" }
       }
@@ -121,34 +125,36 @@
 {{ end }}
 
 {{ define "balancer" }}
-  "BalancerSecurityGroup": {
-    "Type": "AWS::EC2::SecurityGroup",
-    "Properties": {
-      "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-      "SecurityGroupIngress": [ {{ ingress . }} ],
-      "VpcId": { "Ref": "VPC" }
-    }
-  },
-  "Balancer": {
-    "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-    "Properties": {
-      "Subnets": { "Ref": "Subnets" },
-      "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-      "ConnectionSettings": { "IdleTimeout": 60 },
-      "CrossZone": true,
-      "HealthCheck": {
-        "HealthyThreshold": "2",
-        "Interval": 5,
-        "Target": { "Ref": "HealthCheck" },
-        "Timeout": 3,
-        "UnhealthyThreshold": "2"
-      },
-      "Listeners": [ {{ listeners . }} ],
-      "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-      "LoadBalancerName": { "Ref": "AWS::StackName" },
-      "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
-    }
-  },
+  {{ if .HasPortMapppings }}
+    "BalancerSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+        "SecurityGroupIngress": [ {{ ingress . }} ],
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+    "Balancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": { "Ref": "Subnets" },
+        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+        "ConnectionSettings": { "IdleTimeout": 60 },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": { "Ref": "HealthCheck" },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "Listeners": [ {{ listeners . }} ],
+        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+        "LoadBalancerName": { "Ref": "AWS::StackName" },
+        "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
+      }
+    },
+  {{ end }}
 {{ end }}
 
 
