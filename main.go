@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -18,6 +20,8 @@ var (
 )
 
 func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	flag.StringVar(&flagMode, "mode", "production", "deployment mode")
 
 	flag.Usage = func() {
@@ -181,43 +185,37 @@ func printLines(data string) {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"ingress": func(m Manifest) template.HTML {
+		"ingress": func(ps string, entry ManifestEntry) template.HTML {
 			ls := []string{}
 
-			for ps, entry := range m {
-				for _, port := range entry.Ports {
-					parts := strings.SplitN(port, ":", 2)
+			for _, port := range entry.Ports {
+				parts := strings.SplitN(port, ":", 2)
 
-					if len(parts) != 2 {
-						continue
-					}
-
-					ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%sPort%s" }, "ToPort": { "Ref": "%sPort%s" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
+				if len(parts) != 2 {
+					continue
 				}
+
+				ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%sPort%sBalancer" }, "ToPort": { "Ref": "%sPort%sBalancer" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"listeners": func(m Manifest) template.HTML {
+		"listeners": func(ps string, entry ManifestEntry) template.HTML {
 			ls := []string{}
 
-			for ps, entry := range m {
-				for _, port := range entry.Ports {
-					parts := strings.SplitN(port, ":", 2)
+			for _, port := range entry.Ports {
+				parts := strings.SplitN(port, ":", 2)
 
-					if len(parts) != 2 {
-						continue
-					}
-
-					host := 9000
-
-					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%s" }, "InstanceProtocol": "TCP", "InstancePort": "%d" }`, upperName(ps), parts[0], host))
+				if len(parts) != 2 {
+					continue
 				}
+
+				ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%sBalancer" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%sPort%sHost" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"loadbalancers": func(e ManifestEntry) template.HTML {
+		"loadbalancers": func(ps string, e ManifestEntry) template.HTML {
 			ls := []string{}
 
 			for _, port := range e.Ports {
@@ -227,12 +225,12 @@ func templateHelpers() template.FuncMap {
 					continue
 				}
 
-				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "%s" ] ] }`, parts[1]))
+				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sBalancer" }, "%s" ] ] }`, upperName(ps), parts[1]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"portmappings": func(e ManifestEntry) template.HTML {
+		"portmappings": func(ps string, e ManifestEntry) template.HTML {
 			ls := []string{}
 
 			for _, port := range e.Ports {
@@ -242,9 +240,7 @@ func templateHelpers() template.FuncMap {
 					continue
 				}
 
-				host := "9000"
-
-				ls = append(ls, fmt.Sprintf(`"%s:%s"`, host, parts[1]))
+				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, upperName(ps), parts[0], parts[1]))
 			}
 
 			// for _, l := range listeners {
@@ -256,6 +252,9 @@ func templateHelpers() template.FuncMap {
 			// }
 
 			return template.HTML(strings.Join(ls, ","))
+		},
+		"randomport": func() int {
+			return rand.Intn(50000) + 5000
 		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
@@ -295,22 +294,14 @@ func upperName(name string) string {
 	return us
 }
 
-func (m Manifest) FirstPort() string {
-	for _, entry := range m {
-		if len(entry.Ports) > 0 {
-			return strings.Split(entry.Ports[0], ":")[0]
-		}
+func (me ManifestEntry) FirstPort() string {
+	if len(me.Ports) > 0 {
+		return strings.Split(me.Ports[0], ":")[0]
 	}
 
 	return ""
 }
 
-func (m Manifest) HasPortMappings() bool {
-	for _, entry := range m {
-		if len(entry.Ports) > 0 {
-			return true
-		}
-	}
-
-	return false
+func (me ManifestEntry) HasPorts() bool {
+	return len(me.Ports) > 0
 }

@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Parameters" : {
+      {{ template "balancer-params" . }}
       {{ template "process-params" . }}
 
       "Cluster": {
@@ -19,13 +20,6 @@
         "Default": "",
         "Description": ""
       },
-      {{ if .HasPortMappings }}
-        "HealthCheck": {
-          "Type" : "String",
-          "Default" : "",
-          "Description" : ""
-        },
-      {{ end }}
       "Kernel": {
         "Type" : "String",
         "Default" : "",
@@ -53,25 +47,20 @@
       }
     },
     "Conditions": {
-      {{ if .HasPortMappings }}
-        "BlankHealthCheck": { "Fn::Equals": [ { "Ref": "HealthCheck" }, "" ] }
-      {{ end }}
+      {{ template "balancer-conditions" . }}
+
+      "BlankEnvironment": { "Fn::Equals": [ { "Ref": "Environment" }, "" ] }
     },
     "Resources": {
+      {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
 
-      {{ template "balancer" . }}
       {{ template "security" }}
       {{ template "state" }}
     },
     "Outputs": {
-      {{ template "process-outputs" . }}
+      {{ template "balancer-outputs" . }}
 
-      {{ if .HasPortMappings }}
-        "BalancerHost": {
-          "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
-        },
-      {{ end }}
       "Settings": {
         "Value": { "Ref": "Settings" }
       }
@@ -79,27 +68,8 @@
   }
 {{ end }}
 
-{{ define "process-outputs" }}
-  {{ range $k, $e := . }}
-    {{ range $e.Ports }}
-      {{ $parts := (split . ":") }}
-      "{{ upper $k }}Port{{ index $parts 0 }}": {
-        "Value": { "Ref": "{{ upper $k }}Port{{ index $parts 0 }}" }
-      },
-    {{ end }}
-  {{ end }}
-{{ end }}
-
 {{ define "process-params" }}
   {{ range $k, $e := . }}
-    {{ range $e.Ports }}
-      {{ $parts := (split . ":") }}
-      "{{ upper $k }}Port{{ index $parts 0 }}": {
-        "Type" : "String",
-        "Default" : "{{ index $parts 0 }}",
-        "Description" : ""
-      },
-    {{ end }}
     "{{ upper $k }}Command": {
       "Type" : "String",
       "Default" : "{{ $e.Command }}",
@@ -129,7 +99,7 @@
         "Command": { "Ref": "{{ upper $ps }}Command" },
         "CPU": "200",
         "Memory": "300",
-        "PortMappings": [ {{ portmappings $entry }} ]
+        "PortMappings": [ {{ portmappings $ps $entry }} ]
       }
     },
     "{{ upper $ps }}Service": {
@@ -141,42 +111,93 @@
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
         "TaskDefinition": { "Ref": "{{ upper $ps }}TaskDefinition" },
         "Role": { "Ref": "ServiceRole" },
-        "LoadBalancers": [ {{ loadbalancers $entry }} ]
+        "LoadBalancers": [ {{ loadbalancers $ps $entry }} ]
       }
     },
   {{ end }}
 {{ end }}
 
-{{ define "balancer" }}
-  {{ if .HasPortMappings }}
-    "BalancerSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-        "SecurityGroupIngress": [ {{ ingress . }} ],
-        "VpcId": { "Ref": "VPC" }
-      }
-    },
-    "Balancer": {
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Properties": {
-        "Subnets": { "Ref": "Subnets" },
-        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-        "ConnectionSettings": { "IdleTimeout": 60 },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": { "Fn::If": [ "BlankHealthCheck", "HTTP:{{ .FirstPort }}/", { "Ref": "HealthCheck" } ] },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
+{{ define "balancer-conditions" }}
+  {{ range $ps, $entry := . }}
+    {{ if $entry.HasPorts }}
+      "Blank{{ upper $ps }}Check": { "Fn::Equals": [ { "Ref": "{{ upper $ps }}Check" }, "" ] },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "balancer-params" }}
+  {{ range $ps, $entry := . }}
+    {{ if $entry.HasPorts }}
+      "{{ upper $ps }}Check": {
+        "Type": "String",
+        "Default": "/",
+        "Description": ""
+      },
+      {{ range $entry.Ports }}
+        {{ $parts := (split . ":") }}
+        "{{ upper $ps }}Port{{ index $parts 0 }}Balancer": {
+          "Type" : "String",
+          "Default" : "{{ index $parts 0 }}",
+          "Description" : ""
         },
-        "Listeners": [ {{ listeners . }} ],
-        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": { "Ref": "AWS::StackName" },
-        "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
-      }
-    },
+        "{{ upper $ps }}Port{{ index $parts 0 }}Host": {
+          "Type" : "String",
+          "Default" : "{{ randomport }}",
+          "Description" : ""
+        },
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "balancer-outputs" }}
+  {{ range $ps, $entry := . }}
+    {{ if $entry.HasPorts }}
+      "{{ upper $ps }}BalancerHost": {
+        "Value": { "Fn::GetAtt": [ "{{ upper $ps }}Balancer", "DNSName" ] }
+      },
+      {{ range $entry.Ports }}
+        {{ $parts := (split . ":") }}
+        "{{ upper $ps }}Port{{ index $parts 0 }}Balancer": {
+          "Value": { "Ref": "{{ upper $ps }}Port{{ index $parts 0 }}Balancer" }
+        },
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "balancer-resources" }}
+  {{ range $ps, $entry := . }}
+    {{ if $entry.HasPorts }}
+      "{{ upper $ps }}BalancerSecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+          "SecurityGroupIngress": [ {{ ingress $ps $entry }} ],
+          "VpcId": { "Ref": "VPC" }
+        }
+      },
+      "{{ upper $ps }}Balancer": {
+        "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+        "Properties": {
+          "Subnets": { "Ref": "Subnets" },
+          "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+          "ConnectionSettings": { "IdleTimeout": 60 },
+          "CrossZone": true,
+          "HealthCheck": {
+            "HealthyThreshold": "2",
+            "Interval": 5,
+            "Target": { "Fn::Join": [ "", [ "HTTP:", { "Ref": "{{ upper $ps }}Port{{ $entry.FirstPort }}Host" }, { "Ref": "{{ upper $ps }}Check" } ] ] },
+            "Timeout": 3,
+            "UnhealthyThreshold": "2"
+          },
+          "Listeners": [ {{ listeners $ps $entry }} ],
+          "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+          "LoadBalancerName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
+          "SecurityGroups": [ { "Ref": "{{ upper $ps }}BalancerSecurityGroup" } ]
+        }
+      },
+    {{ end }}
   {{ end }}
 {{ end }}
 
