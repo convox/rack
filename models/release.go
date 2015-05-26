@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/convox/env/crypt"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
@@ -139,7 +140,25 @@ func (r *Release) Save() error {
 		return err
 	}
 
-	return nil
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return err
+	}
+
+	env := []byte(r.Env)
+
+	if app.Parameters["Key"] != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		env, err = cr.Encrypt(app.Parameters["Key"], []byte(env))
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
 func (r *Release) Promote() error {
