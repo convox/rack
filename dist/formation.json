@@ -2,6 +2,7 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
     "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] },
+    "BlankSSLCertificate": { "Fn::Equals": [ { "Ref": "SSLCertificate" }, "" ] },
     "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
   },
   "Outputs": {
@@ -50,6 +51,11 @@
     },
     "SSHKey": {
       "Description": "Key name for SSH access",
+      "Type": "String"
+    },
+    "SSLCertificate": {
+      "Default": "",
+      "Description": "ARN of SSL cert added with `aws iam upload-server-certificate`",
       "Type": "String"
     },
     "WebScale": {
@@ -269,7 +275,22 @@
             "InstanceProtocol": "TCP",
             "LoadBalancerPort": "80",
             "Protocol": "TCP"
-          }
+          },
+          { "Fn::If": [ "BlankSSLCertificate",
+            {
+              "InstancePort": "4443",
+              "InstanceProtocol": "TCP",
+              "LoadBalancerPort": "443",
+              "Protocol": "TCP"
+            },
+            {
+              "InstancePort": "3000",
+              "InstanceProtocol": "HTTP",
+              "LoadBalancerPort": "443",
+              "Protocol": "HTTPS",
+              "SSLCertificateId": { "Ref": "SSLCertificate" }
+            }
+          ] }
         ],
         "LoadBalancerName": {
           "Fn::Join": [
@@ -310,6 +331,12 @@
             "FromPort": "80",
             "IpProtocol": "tcp",
             "ToPort": "80"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "443",
+            "IpProtocol": "tcp",
+            "ToPort": "443"
           }
         ],
         "VpcId": {
@@ -556,7 +583,8 @@
                 },
                 "  },",
                 "  \"ports\": [",
-                "    \"3000:3000\"",
+                "    \"3000:3000\",",
+                "    \"4443:4443\"",
                 "  ],",
                 "  \"services\": [",
                 { "Fn::Join": [ "", [ "    \"AWS_REGION=", { "Ref": "AWS::Region" }, "\"," ] ] },

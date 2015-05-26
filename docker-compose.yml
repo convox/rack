@@ -12,6 +12,7 @@ web:
     - STACK_NAME
   ports:
     - 5000:3000
+    - 4443:4443
   volumes:
     - ./:/go/src/github.com/convox/kernel
     - /var/run/docker.sock:/var/run/docker.sock
