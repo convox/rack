@@ -2,12 +2,15 @@ package formation
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/convox/kernel/models"
 )
 
 func HandleECSService(req Request) (string, error) {
@@ -164,15 +167,27 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 		r.ContainerDefinitions[0].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
 	}
 
-	// set environment
-	// env := LoadEnvironment([]byte(r.Env))
+	if envUrl := req.ResourceProperties["Environment"].(string); envUrl != "" {
+		res, err := http.Get(envUrl)
 
-	// for key, val := range env {
-	//   req.ContainerDefinitions[0].Environment = append(req.ContainerDefinitions[0].Environment, &ecs.KeyValuePair{
-	//     Name:  aws.String(key),
-	//     Value: aws.String(val),
-	//   })
-	// }
+		if err != nil {
+			return "", err
+		}
+
+		defer res.Body.Close()
+
+		data, err := ioutil.ReadAll(res.Body)
+
+		// set environment
+		env := models.LoadEnvironment(data)
+
+		for key, val := range env {
+			r.ContainerDefinitions[0].Environment = append(r.ContainerDefinitions[0].Environment, &ecs.KeyValuePair{
+				Name:  aws.String(key),
+				Value: aws.String(val),
+			})
+		}
+	}
 
 	// set portmappings
 	ports := req.ResourceProperties["PortMappings"].([]interface{})
