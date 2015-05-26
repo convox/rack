@@ -2,6 +2,7 @@ package formation
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -59,10 +60,13 @@ func ECSServiceCreate(req Request) (string, error) {
 		DesiredCount:   aws.Long(int64(count)),
 		ServiceName:    aws.String(req.ResourceProperties["Name"].(string)),
 		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
-		Role:           aws.String(req.ResourceProperties["Role"].(string)),
 	}
 
 	balancers := req.ResourceProperties["LoadBalancers"].([]interface{})
+
+	if len(balancers) > 0 {
+		r.Role = aws.String(req.ResourceProperties["Role"].(string))
+	}
 
 	r.LoadBalancers = make([]*ecs.LoadBalancer, len(balancers))
 
@@ -129,8 +133,11 @@ func ECSServiceDelete(req Request) (string, error) {
 		Service: aws.String(name),
 	})
 
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
 	if err != nil {
-		return "", err
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil
 	}
 
 	return "", nil

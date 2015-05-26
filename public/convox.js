@@ -172,5 +172,4 @@ $(window).ready(function() {
   $('.timeago').timeago();
 
   activate_tabs();
-  goto_anchor('#environment');
 });

@@ -52,9 +52,11 @@
 								</a>
 							</td>
 							<td>
-								<button class="btn btn-xs btn-success glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="{{ .BalancerHost }}">
-									Host
-								</button>
+								{{ if not (eq .BalancerHost "") }}
+									<button class="btn btn-xs btn-success glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="{{ .BalancerHost }}">
+										Host
+									</button>
+								{{ end }}
 								{{ range $port, $url := .BalancerPorts }}
 									<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
 										{{ $port }}
@@ -78,10 +80,10 @@
 		</div>
 
 		<ul class="nav nav-tabs">
-			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
 			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
 			<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
-			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
+			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
 			<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
 		</ul>
 
@@ -117,6 +119,8 @@
 				window.setInterval(function() {
 					refresh_tab();
 				}, 10000);
+
+				goto_anchor('#releases');
 			});
 		</script>
 
