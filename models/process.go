@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -13,7 +14,6 @@ type Process struct {
 	Name    string
 	Command string
 	Count   int
-	Ports   []int
 
 	App string
 }
@@ -50,6 +50,8 @@ func ListProcesses(app string) (Processes, error) {
 		parts := strings.Split(*s.ServiceName, "-")
 		app := strings.Join(parts[0:len(parts)-1], "-")
 		name := parts[len(parts)-1]
+
+		fmt.Printf("s %+v\n", s)
 
 		if app == a.Name {
 			ps = append(ps, Process{
@@ -157,18 +159,46 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 	return nil
 }
 
-func (p *Process) Balancer() bool {
-	return p.Name == "web"
+func (p *Process) Ports() map[string]string {
+	app, err := GetApp(p.App)
+
+	if err != nil {
+		return map[string]string{}
+	}
+
+	ports := map[string]string{}
+
+	for key, value := range app.Outputs {
+		r := regexp.MustCompile(fmt.Sprintf("%sPort([0-9]+)Balancer", upperName(p.Name)))
+
+		if matches := r.FindStringSubmatch(key); len(matches) == 2 {
+			ports[matches[1]] = value
+		}
+	}
+
+	return ports
 }
 
-func (p *Process) BalancerUrl() string {
+func (p *Process) BalancerHost() string {
 	app, err := GetApp(p.App)
 
 	if err != nil {
 		return ""
 	}
 
-	return app.Outputs[upperName(p.Name)+"BalancerHost"]
+	return app.Outputs[fmt.Sprintf("%sBalancerHost", upperName(p.Name))]
+}
+
+func (p *Process) BalancerPorts() map[string]string {
+	host := p.BalancerHost()
+
+	bp := map[string]string{}
+
+	for original, current := range p.Ports() {
+		bp[original] = fmt.Sprintf("%s:%s", host, current)
+	}
+
+	return bp
 }
 
 func (p *Process) Instances() Instances {

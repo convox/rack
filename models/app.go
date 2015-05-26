@@ -322,6 +322,10 @@ func (a *App) Created() bool {
 	return a.Status != "creating"
 }
 
+func (a *App) HealthCheck() string {
+	return a.Outputs["HealthCheck"]
+}
+
 func (a *App) Metrics() *Metrics {
 	metrics, err := AppMetrics(a.Name)
 

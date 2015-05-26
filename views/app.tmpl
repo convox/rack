@@ -19,8 +19,8 @@
 	<div class="panel panel-default">
 		<div class="panel-body">
 		  {{ label "Cluster" .Cluster }}
-			{{ label "Repository" .Repository }}
 			{{ label "Status" .Status }}
+			{{ label "Repository" .Repository }}
 		</div>
 	</div>
 
@@ -30,12 +30,13 @@
 			<table class="table table-striped table-bordered">
 				<thead>
 					<tr class="title">
-						<th colspan="6">
+						<th colspan="7">
 							Processes
 						</th>
 					</tr>
 					<tr>
 						<th class="expand">Name</th>
+						<th>Balancer</th>
 						<th>Count</th>
 						<th>CPU</th>
 						<th>Memory</th>
@@ -46,14 +47,19 @@
 					{{ range .Processes }}
 						<tr>
 							<td class="meta-buttons">
-								{{ if .Balancer }}
-									<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="<a href='http://{{ .BalancerUrl }}/'>{{ .BalancerUrl }}</a>">
-										<span class="glyphicon glyphicon-random">
-									</button>
-								{{ end }}
 								<a href="/apps/{{ .App }}/processes/{{ .Name }}">
 									{{ .Name }}
 								</a>
+							</td>
+							<td>
+								<button class="btn btn-xs btn-success glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="{{ .BalancerHost }}">
+									Host
+								</button>
+								{{ range $port, $url := .BalancerPorts }}
+									<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
+										{{ $port }}
+									</a>
+								{{ end }}
 							</td>
 							<td class="text-center">{{.Count}}</td>
 							{{ $metrics := .Metrics }}
@@ -106,6 +112,10 @@
 					$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
 						$('#label-status .value').text(data);
 					});
+				}, 10000);
+
+				window.setInterval(function() {
+					refresh_tab();
 				}, 10000);
 			});
 		</script>
