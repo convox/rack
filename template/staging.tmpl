@@ -15,7 +15,7 @@
         "Default": "",
         "Description": ""
       },
-      "EnvironmentKey": {
+      "Key": {
         "Type": "String",
         "Default": "",
         "Description": ""
@@ -97,6 +97,8 @@
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
         "Image": { "Ref": "{{ upper $ps }}Image" },
         "Command": { "Ref": "{{ upper $ps }}Command" },
+        "Environment": { "Ref": "Environment" },
+        "Key": { "Ref": "Key" },
         "CPU": "200",
         "Memory": "300",
         "PortMappings": [ {{ portmappings $ps $entry }} ]
