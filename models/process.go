@@ -51,8 +51,6 @@ func ListProcesses(app string) (Processes, error) {
 		app := strings.Join(parts[0:len(parts)-1], "-")
 		name := parts[len(parts)-1]
 
-		fmt.Printf("s %+v\n", s)
-
 		if app == a.Name {
 			ps = append(ps, Process{
 				App:   app,
@@ -63,56 +61,6 @@ func ListProcesses(app string) (Processes, error) {
 	}
 
 	return ps, nil
-
-	// req := &ec2.DescribeInstancesInput{
-	//   Filters: []*ec2.Filter{
-	//     &ec2.Filter{Name: aws.String("instance-state-name"), Values: []*string{aws.String("pending"), aws.String("running")}},
-	//     &ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
-	//     &ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
-	//     &ec2.Filter{Name: aws.String("tag:App"), Values: []*string{aws.String(app)}},
-	//   },
-	// }
-
-	// res, err := EC2().DescribeInstances(req)
-
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// processes := map[string]Process{}
-
-	// for _, r := range res.Reservations {
-	//   for _, i := range r.Instances {
-	//     tags := map[string]string{}
-
-	//     for _, t := range i.Tags {
-	//       tags[*t.Key] = *t.Value
-	//     }
-
-	//     parts := strings.Split(tags["Name"], "-")
-
-	//     name := parts[len(parts)-1]
-
-	//     if p, ok := processes[name]; ok {
-	//       p.Count += 1
-	//       processes[name] = p
-	//     } else {
-	//       processes[name] = Process{
-	//         Name:  name,
-	//         Count: 1,
-	//         App:   app,
-	//       }
-	//     }
-	//   }
-	// }
-
-	// pp := Processes{}
-
-	// for _, process := range processes {
-	//   pp = append(pp, process)
-	// }
-
-	// return pp, nil
 }
 
 func GetProcess(app, name string) (*Process, error) {

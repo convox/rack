@@ -1,7 +1,7 @@
 package main
 
-import "github.com/convox/kernel/models"
+import "github.com/convox/kernel/formation"
 
 func startWorker() {
-	models.ListenFormation()
+	formation.Listen()
 }
