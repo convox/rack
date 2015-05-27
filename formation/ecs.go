@@ -211,10 +211,10 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 		}
 
 		// put release in environment
-		if task["Release"] != nil {
+		if req.ResourceProperties["Release"] != nil {
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String("RELEASE"),
-				Value: aws.String(task["Release"].(string)),
+				Value: aws.String(req.ResourceProperties["Release"].(string)),
 			})
 		}
 
