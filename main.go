@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,7 +37,10 @@ func init() {
 
 type ManifestEntry struct {
 	Command string   `yaml:"command"`
+	Links   []string `yaml:"links"`
 	Ports   []string `yaml:"ports"`
+
+	Randoms []string
 }
 
 type Manifest map[string]ManifestEntry
@@ -78,6 +82,13 @@ func main() {
 		if err != nil {
 			die(err)
 		}
+	}
+
+	for i, e := range manifest {
+		for _ = range e.Ports {
+			e.Randoms = append(e.Randoms, randomPort())
+		}
+		manifest[i] = e
 	}
 
 	data, err := buildTemplate(flagMode, "formation", manifest)
@@ -185,76 +196,56 @@ func printLines(data string) {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
-		"ingress": func(ps string, entry ManifestEntry) template.HTML {
+		"ingress": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for _, port := range entry.Ports {
-				parts := strings.SplitN(port, ":", 2)
+			for ps, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
 
-				if len(parts) != 2 {
-					continue
+					if len(parts) != 2 {
+						continue
+					}
+
+					ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%sPort%sBalancer" }, "ToPort": { "Ref": "%sPort%sBalancer" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 				}
-
-				ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%sPort%sBalancer" }, "ToPort": { "Ref": "%sPort%sBalancer" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"listeners": func(ps string, entry ManifestEntry) template.HTML {
+		"listeners": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for _, port := range entry.Ports {
-				parts := strings.SplitN(port, ":", 2)
+			for ps, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
 
-				if len(parts) != 2 {
-					continue
+					if len(parts) != 2 {
+						continue
+					}
+
+					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%sBalancer" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%sPort%sHost" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 				}
-
-				ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%sBalancer" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%sPort%sHost" } }`, upperName(ps), parts[0], upperName(ps), parts[0]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"loadbalancers": func(ps string, e ManifestEntry) template.HTML {
+		"loadbalancers": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for _, port := range e.Ports {
-				parts := strings.SplitN(port, ":", 2)
+			for ps, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
 
-				if len(parts) != 2 {
-					continue
+					if len(parts) != 2 {
+						continue
+					}
+
+					ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "%s", "%s" ] ] }`, ps, parts[1]))
 				}
-
-				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sBalancer" }, "%s" ] ] }`, upperName(ps), parts[1]))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
-		},
-		"portmappings": func(ps string, e ManifestEntry) template.HTML {
-			ls := []string{}
-
-			for _, port := range e.Ports {
-				parts := strings.SplitN(port, ":", 2)
-
-				if len(parts) != 2 {
-					continue
-				}
-
-				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, upperName(ps), parts[0], parts[1]))
-			}
-
-			// for _, l := range listeners {
-			//   if l.Process == process {
-			//     b := upperName(l.Balancer)
-			//     p := upperName(l.Process)
-			//     ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%s%sHostPort" }, { "Ref": "%s%sContainerPort" } ] ] }`, b, p, b, p))
-			//   }
-			// }
-
-			return template.HTML(strings.Join(ls, ","))
-		},
-		"randomport": func() int {
-			return rand.Intn(50000) + 5000
 		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
@@ -262,10 +253,51 @@ func templateHelpers() template.FuncMap {
 		"split": func(ss string, t string) []string {
 			return strings.Split(ss, t)
 		},
+		"tasks": func(m Manifest) template.HTML {
+			ls := []string{}
+
+			for ps, entry := range m {
+				mappings := []string{}
+
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
+
+					if len(parts) != 2 {
+						continue
+					}
+
+					mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, upperName(ps), parts[0], parts[1]))
+				}
+
+				links := make([]string, len(entry.Links))
+
+				for i, link := range entry.Links {
+					links[i] = fmt.Sprintf(fmt.Sprintf(`"%s:%s"`, link, link))
+				}
+
+				ls = append(ls, fmt.Sprintf(`{
+					"Name": "%s",
+					"Image": { "Ref": "%sImage" },
+					"Command": { "Ref": "%sCommand" },
+					"Environment": { "Ref": "Environment" },
+					"Key": { "Ref": "Key" },
+					"CPU": "200",
+					"Memory": "300",
+					"Links": [ %s ],
+					"PortMappings": [ %s ]
+				}`, ps, upperName(ps), upperName(ps), strings.Join(links, ","), strings.Join(mappings, ",")))
+			}
+
+			return template.HTML(strings.Join(ls, ","))
+		},
 		"upper": func(name string) string {
 			return upperName(name)
 		},
 	}
+}
+
+func randomPort() string {
+	return strconv.Itoa(rand.Intn(50000) + 5000)
 }
 
 func upperName(name string) string {
@@ -294,12 +326,38 @@ func upperName(name string) string {
 	return us
 }
 
-func (me ManifestEntry) FirstPort() string {
-	if len(me.Ports) > 0 {
-		return strings.Split(me.Ports[0], ":")[0]
+func (m Manifest) FirstPort() string {
+	for _, me := range m {
+		if len(me.Ports) > 0 {
+			return strings.Split(me.Ports[0], ":")[0]
+		}
 	}
 
 	return ""
+}
+
+func (m Manifest) FirstRandom() string {
+	for _, me := range m {
+		if len(me.Randoms) > 0 {
+			return me.Randoms[0]
+		}
+	}
+
+	return ""
+}
+
+func (m Manifest) HasPorts() bool {
+	for _, me := range m {
+		if len(me.Ports) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m Manifest) HasProcesses() bool {
+	return len(m) > 0
 }
 
 func (me ManifestEntry) HasPorts() bool {

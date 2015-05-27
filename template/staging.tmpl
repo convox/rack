@@ -46,11 +46,6 @@
         "Description" : "VPC for this app"
       }
     },
-    "Conditions": {
-      {{ template "balancer-conditions" . }}
-
-      "BlankEnvironment": { "Fn::Equals": [ { "Ref": "Environment" }, "" ] }
-    },
     "Resources": {
       {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
@@ -80,63 +75,47 @@
       "Default" : "",
       "Description" : ""
     },
-    "{{ upper $k }}Scale": {
-      "Type" : "Number",
-      "Default" : "1",
-      "Description" : ""
-    },
   {{ end }}
 {{ end }}
 
 {{ define "process-resources" }}
-  {{ range $ps, $entry := . }}
-    "{{ upper $ps }}TaskDefinition": {
+  {{ if .HasProcesses }}
+    "TaskDefinition": {
       "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0",
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
-        "Image": { "Ref": "{{ upper $ps }}Image" },
-        "Command": { "Ref": "{{ upper $ps }}Command" },
+        "Name": { "Ref": "AWS::StackName" },
         "Environment": { "Ref": "Environment" },
-        "Key": { "Ref": "Key" },
-        "CPU": "200",
-        "Memory": "300",
-        "PortMappings": [ {{ portmappings $ps $entry }} ]
+        "Tasks": [ {{ tasks . }} ]
       }
     },
-    "{{ upper $ps }}Service": {
+    "Service": {
       "Type": "Custom::ECSService",
+      "Version": "1.0",
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
         "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": { "Ref": "{{ upper $ps }}Scale" },
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
-        "TaskDefinition": { "Ref": "{{ upper $ps }}TaskDefinition" },
+        "DesiredCount": "1",
+        "Name": { "Ref": "AWS::StackName" },
+        "TaskDefinition": { "Ref": "TaskDefinition" },
         "Role": { "Ref": "ServiceRole" },
-        "LoadBalancers": [ {{ loadbalancers $ps $entry }} ]
+        "LoadBalancers": [ {{ loadbalancers . }} ]
       }
     },
-  {{ end }}
-{{ end }}
-
-{{ define "balancer-conditions" }}
-  {{ range $ps, $entry := . }}
-    {{ if $entry.HasPorts }}
-      "Blank{{ upper $ps }}Check": { "Fn::Equals": [ { "Ref": "{{ upper $ps }}Check" }, "" ] },
-    {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-params" }}
-  {{ range $ps, $entry := . }}
-    {{ if $entry.HasPorts }}
-      "{{ upper $ps }}Check": {
-        "Type": "String",
-        "Default": "/",
-        "Description": ""
-      },
-      {{ range $entry.Ports }}
-        {{ $parts := (split . ":") }}
+  {{ if .HasPorts }}
+    "Check": {
+      "Type": "String",
+      "Default": "HTTP:{{ .FirstRandom }}/",
+      "Description": ""
+    },
+    {{ range $ps, $entry := . }}
+      {{ range $i, $port := $entry.Ports }}
+        {{ $parts := (split $port ":") }}
         "{{ upper $ps }}Port{{ index $parts 0 }}Balancer": {
           "Type" : "String",
           "Default" : "{{ index $parts 0 }}",
@@ -144,7 +123,7 @@
         },
         "{{ upper $ps }}Port{{ index $parts 0 }}Host": {
           "Type" : "String",
-          "Default" : "{{ randomport }}",
+          "Default" : "{{ index $entry.Randoms $i }}",
           "Description" : ""
         },
       {{ end }}
@@ -153,11 +132,13 @@
 {{ end }}
 
 {{ define "balancer-outputs" }}
+  {{ if .HasPorts }}
+    "BalancerHost": {
+      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+    },
+  {{ end }}
   {{ range $ps, $entry := . }}
     {{ if $entry.HasPorts }}
-      "{{ upper $ps }}BalancerHost": {
-        "Value": { "Fn::GetAtt": [ "{{ upper $ps }}Balancer", "DNSName" ] }
-      },
       {{ range $entry.Ports }}
         {{ $parts := (split . ":") }}
         "{{ upper $ps }}Port{{ index $parts 0 }}Balancer": {
@@ -169,37 +150,35 @@
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ range $ps, $entry := . }}
-    {{ if $entry.HasPorts }}
-      "{{ upper $ps }}BalancerSecurityGroup": {
-        "Type": "AWS::EC2::SecurityGroup",
-        "Properties": {
-          "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-          "SecurityGroupIngress": [ {{ ingress $ps $entry }} ],
-          "VpcId": { "Ref": "VPC" }
-        }
-      },
-      "{{ upper $ps }}Balancer": {
-        "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-        "Properties": {
-          "Subnets": { "Ref": "Subnets" },
-          "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-          "ConnectionSettings": { "IdleTimeout": 60 },
-          "CrossZone": true,
-          "HealthCheck": {
-            "HealthyThreshold": "2",
-            "Interval": 5,
-            "Target": { "Fn::Join": [ "", [ "HTTP:", { "Ref": "{{ upper $ps }}Port{{ $entry.FirstPort }}Host" }, { "Ref": "{{ upper $ps }}Check" } ] ] },
-            "Timeout": 3,
-            "UnhealthyThreshold": "2"
-          },
-          "Listeners": [ {{ listeners $ps $entry }} ],
-          "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-          "LoadBalancerName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $ps }}" ] ] },
-          "SecurityGroups": [ { "Ref": "{{ upper $ps }}BalancerSecurityGroup" } ]
-        }
-      },
-    {{ end }}
+  {{ if .HasPorts }}
+    "BalancerSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+        "SecurityGroupIngress": [ {{ ingress . }} ],
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+    "Balancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": { "Ref": "Subnets" },
+        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+        "ConnectionSettings": { "IdleTimeout": 60 },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": { "Ref": "Check" },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "Listeners": [ {{ listeners . }} ],
+        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+        "LoadBalancerName": { "Ref": "AWS::StackName" },
+        "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
+      }
+    },
   {{ end }}
 {{ end }}
 
