@@ -21,3 +21,4 @@ if [ "$ROLE" == "" ]; then
 fi
 
 aws lambda get-function --function-name formation >/dev/null 2>&1 && update_function || create_function
+aws s3 cp lambda.zip s3://convox/lambda-formation.zip --acl public-read
