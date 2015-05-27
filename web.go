@@ -80,7 +80,7 @@ func startWeb() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", redirect("/clusters")).Methods("GET")
+	router.HandleFunc("/", redirect("/apps")).Methods("GET")
 
 	router.HandleFunc("/check", check).Methods("GET")
 
