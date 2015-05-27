@@ -311,7 +311,7 @@
 				{{ range .Environment.SortedNames }}
 					<tr>
 						<td>{{ . }}</td>
-						<td class="wrap expand">{{ index $root.Environment . }}</td>
+						<td class="wrap expand">{{ truncate (index $root.Environment .) 70 }}</td>
 						<td>
 							<button data-cluster="{{ $root.Cluster }}" data-app="{{ $root.App }}" data-name="{{ . }}" class="environment-delete btn btn-danger btn-xs">Delete</button>
 						</td>
