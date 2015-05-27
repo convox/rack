@@ -103,6 +103,11 @@ func handleFormation(message Message) {
 		physical, err = HandleECSService(freq)
 	case "Custom::ECSTaskDefinition":
 		physical, err = HandleECSTaskDefinition(freq)
+	case "Custom::LambdaFunction":
+		physical, err = HandleLambdaFunction(freq)
+	default:
+		physical = ""
+		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
 	}
 
 	fres := Response{

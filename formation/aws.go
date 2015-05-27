@@ -6,6 +6,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/lambda"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
@@ -23,6 +24,13 @@ func (ec *AwsCredentials) Retrieve() (credentials.Value, error) {
 	}
 
 	return creds, nil
+}
+
+func Lambda() *lambda.Lambda {
+	return lambda.New(&aws.Config{
+		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Region:      os.Getenv("AWS_REGION"),
+	})
 }
 
 func ECS() *ecs.ECS {
