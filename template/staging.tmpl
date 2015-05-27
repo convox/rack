@@ -86,6 +86,7 @@
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
         "Name": { "Ref": "AWS::StackName" },
+        "Release": { "Ref": "Release" },
         "Environment": { "Ref": "Environment" },
         "Tasks": [ {{ tasks . }} ]
       }
