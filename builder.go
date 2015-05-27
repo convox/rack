@@ -44,11 +44,11 @@ func (b *Builder) clone(repo, name, ref string) (string, error) {
 
 	clone := filepath.Join(tmp, "clone")
 
-	if err = writeFile(os.Getenv("HOME"), ".netrc", 0600, map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
+	if err = writeFile(filepath.Join(os.Getenv("HOME"), ".netrc"), "netrc", 0600, map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
 		return "", err
 	}
 
-	if err = writeFile("/usr/local/bin", "git-restore-mtime", 0755, nil); err != nil {
+	if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
 		return "", err
 	}
 
@@ -161,7 +161,7 @@ func dataRaw(path string) ([]byte, error) {
 	return Asset(fmt.Sprintf("data/%s", path))
 }
 
-func writeFile(dir, name string, perms os.FileMode, replacements map[string]string) error {
+func writeFile(target, name string, perms os.FileMode, replacements map[string]string) error {
 	data, err := Asset(fmt.Sprintf("data/%s", name))
 
 	if err != nil {
@@ -176,5 +176,5 @@ func writeFile(dir, name string, perms os.FileMode, replacements map[string]stri
 		}
 	}
 
-	return ioutil.WriteFile(filepath.Join(dir, name), []byte(sdata), perms)
+	return ioutil.WriteFile(target, []byte(sdata), perms)
 }
