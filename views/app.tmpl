@@ -76,9 +76,10 @@
 		</div>
 
 		<ul class="nav nav-tabs">
-			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
-			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
+			<li role="presentation"><a href="#deployments" role="tab" data-source="/apps/{{ .Name }}/deployments">Deployments</a></li>
 			<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
+			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
+			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
 			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
 			<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
 		</ul>
@@ -116,7 +117,7 @@
 					refresh_tab();
 				}, 10000);
 
-				goto_anchor('#releases');
+				goto_anchor('#deployments');
 			});
 		</script>
 
@@ -260,6 +261,33 @@
 
 {{ define "Env::Diff" }}
 	<li>Env {{ name .Name }} {{ .Status }}</li>
+{{ end }}
+
+{{ define "deployments" }}
+	<div class="table-title">
+		<table class="table table-striped table-bordered">
+			<thead>
+				<tr>
+					<th class="expand">Release</th>
+					<th>Status</th>
+					<th>Desired</th>
+					<th>Pending</th>
+					<th>Running</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{ range . }}
+					<tr>
+						<td class="id expand">{{ .Release }}</td>
+						<td>{{ .Status }}</td>
+						<td>{{ .Desired }}</td>
+						<td>{{ .Pending }}</td>
+						<td>{{ .Running }}</td>
+					</tr>
+				{{ end }}
+			</tbody>
+		</table>
+	</div>
 {{ end }}
 
 {{ define "environment" }}

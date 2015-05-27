@@ -353,6 +353,16 @@ func (a *App) Created() bool {
 	return a.Status != "creating"
 }
 
+func (a *App) Deployments() Deployments {
+	deployments, err := ListDeployments(a.Name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return deployments
+}
+
 func (a *App) HealthCheck() string {
 	return a.Outputs["HealthCheck"]
 }

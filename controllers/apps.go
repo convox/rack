@@ -15,6 +15,7 @@ import (
 func init() {
 	RegisterPartial("app", "builds")
 	RegisterPartial("app", "changes")
+	RegisterPartial("app", "deployments")
 	RegisterPartial("app", "environment")
 	RegisterPartial("app", "logs")
 	RegisterPartial("app", "releases")
@@ -232,6 +233,22 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderPartial(rw, "app", "changes", changes)
+}
+
+func AppDeployments(rw http.ResponseWriter, r *http.Request) {
+	log := appsLogger("changes").Start()
+
+	app := mux.Vars(r)["app"]
+
+	deployments, err := models.ListDeployments(app)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "deployments", deployments)
 }
 
 func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
