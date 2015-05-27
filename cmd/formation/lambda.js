@@ -9,19 +9,14 @@ exports.external = function(event, context) {
   child.stdin.write(JSON.stringify(event));
   child.stdin.end();
 
-  child.stderr.pipe(process.stdout);
-
-  var output = "";
-
-  child.stdout.on('data', function(data) {
-    output += data.toString();
-  });
+  child.stdout.pipe(process.stdout);
+  child.stderr.pipe(process.stderr);
 
   child.on('close', function(code) {
     if (code !== 0 ) {
       return context.done(new Error("Process exited with non-zero status code: " + code));
     } else {
-      context.done(null, output);
+      context.done(null);
     }
   });
 }
