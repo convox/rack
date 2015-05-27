@@ -6,7 +6,7 @@ pull_image() {
   docker pull $image &
 }
 
-pull_image convox/architect
+pull_image convox/app
 pull_image convox/build
 pull_image convox/service
 
