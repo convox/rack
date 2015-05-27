@@ -39,6 +39,7 @@ type ManifestEntry struct {
 	Command string   `yaml:"command"`
 	Links   []string `yaml:"links"`
 	Ports   []string `yaml:"ports"`
+	Volumes []string `yaml:"volumes"`
 
 	Randoms []string
 }
@@ -275,6 +276,14 @@ func templateHelpers() template.FuncMap {
 					links[i] = fmt.Sprintf(fmt.Sprintf(`"%s:%s"`, link, link))
 				}
 
+				volumes := []string{}
+
+				for _, volume := range entry.Volumes {
+					if strings.HasPrefix(volume, "/var/run/docker.sock") {
+						volumes = append(volumes, fmt.Sprintf(`"%s"`, volume))
+					}
+				}
+
 				ls = append(ls, fmt.Sprintf(`{
 					"Name": "%s",
 					"Image": { "Ref": "%sImage" },
@@ -284,8 +293,9 @@ func templateHelpers() template.FuncMap {
 					"CPU": "200",
 					"Memory": "300",
 					"Links": [ %s ],
+					"Volumes": [ %s ],
 					"PortMappings": [ %s ]
-				}`, ps, upperName(ps), upperName(ps), strings.Join(links, ","), strings.Join(mappings, ",")))
+				}`, ps, upperName(ps), upperName(ps), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(mappings, ",")))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
