@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 	"unicode"
@@ -44,6 +45,9 @@ func displayHelpers() template.FuncMap {
 			}
 
 			return template.HTML(partial)
+		},
+		"release": func() string {
+			return os.Getenv("RELEASE")
 		},
 		"status": func(s string) string {
 			state := "default"

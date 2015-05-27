@@ -11,6 +11,7 @@ web:
     - GITHUB_TOKEN
     - HTTP_PASSWORD
     - REGISTRY
+    - RELEASE=local
   ports:
     - 5000:3000
     - 4443:4443
