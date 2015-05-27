@@ -237,6 +237,28 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 			}
 		}
 
+		// set volumes
+		if task["Volumes"] != nil {
+			volumes := task["Volumes"].([]interface{})
+
+			for i, volume := range volumes {
+				name := fmt.Sprintf("%s-%d", task["Name"].(string), i)
+				parts := strings.Split(volume.(string), ":")
+
+				r.Volumes = append(r.Volumes, &ecs.Volume{
+					Name: aws.String(name),
+					Host: &ecs.HostVolumeProperties{
+						SourcePath: aws.String(parts[0]),
+					},
+				})
+
+				r.ContainerDefinitions[i].MountPoints = append(r.ContainerDefinitions[i].MountPoints, &ecs.MountPoint{
+					SourceVolume:  aws.String(name),
+					ContainerPath: aws.String(parts[1]),
+					ReadOnly:      aws.Boolean(false),
+				})
+			}
+		}
 	}
 
 	res, err := ECS().RegisterTaskDefinition(r)
