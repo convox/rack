@@ -81,7 +81,6 @@
 			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
 			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
 			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
-			<li role="presentation"><a href="#services" role="tab" data-source="/apps/{{ .Name }}/services">Services</a></li>
 		</ul>
 
 		<div id="tab-content">
@@ -430,102 +429,4 @@
 
 		table_scroll($('.app-resources'), '365px');
 	</script>
-{{ end }}
-
-{{ define "services" }}
-	<table class="table table-striped table-bordered">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Type</th>
-				<th class="expand">Service Stack</th>
-				<th></th>
-			</tr>
-		</thead>
-		<tbody>
-			{{ range . }}
-				<tr>
-					<td>{{ .Name }}</td>
-					<td>{{ .Type }}</td>
-					<td>{{ .Stack }}</td>
-					<td>
-						<button class="btn btn-xs btn-info service-link" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .Type }}" data-toggle="modal" data-target="#service-link">Link</button>
-					</td>
-				</tr>
-			{{ end }}
-		</tbody>
-	</table>
-
-	{{ template "service" . }}
-
-	<script>
-		$('.service-link').on('click', function() {
-			var app = $(this).data("app")
-			var name = $(this).data("name")
-			var type = $(this).data("type")
-			var target = $(this).data("target")
-
-			$('#service-link .modal-title').html("Link Service for " + name)
-
-			$('#service-link form').attr("action", "/apps/" + app + "/services");
-			$('#service-link-app').val(app)
-			$('#service-link-name').val(name)
-			$('#service-link-type').val(type)
-
-			$('#service-link-stack').html("")
-
-			$.ajax({ type: 'GET', url:'/services/types/' + type.split("/")[1] }).done(function(msg) {
-				$('#service-link-stack').html(msg)
-			}).fail(function(msg) {
-				$('#alert .message').html(msg.responseText);
-				$('#alert').show();
-			});
-		})
-	</script>
-{{ end }}
-
-{{ define "service" }}
-	<div class="modal fade" id="service-link" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<form method="post" action="#" class="form-horizontal">
-					<div class="modal-header">
-						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-						<h4 class="modal-title" id="myModalLabel">Link Service</h4>
-					</div>
-					<div class="modal-body">
-						<div class="form-group">
-							<label for="service-link-app" class="col-sm-3 control-label">App</label>
-							<div class="col-sm-8">
-								<input name="app" type="text" class="form-control" id="service-link-app">
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="service-link-name" class="col-sm-3 control-label">Name</label>
-							<div class="col-sm-8">
-								<input name="name" type="text" class="form-control" id="service-link-name">
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="service-link-type" class="col-sm-3 control-label">Type</label>
-							<div class="col-sm-8">
-								<input name="type" type="text" class="form-control" id="service-link-type">
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="stack" class="col-sm-3 control-label">Service Stack</label>
-							<div class="col-sm-8">
-								<select name="stack" class="form-control" id="service-link-stack">
-								</select>
-							</div>
-						</div>
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-						<input type="submit" class="btn btn-primary" value="Link Service">
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
 {{ end }}

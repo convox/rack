@@ -3,7 +3,7 @@ all: build
 build: formation lambda.zip
 
 upload: build
-	@bin/upload
+	@export $(shell cat .env); bin/upload
 
 formation: *.go
 	GOOS=linux GOARCH=amd64 go build

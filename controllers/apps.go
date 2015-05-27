@@ -20,7 +20,6 @@ func init() {
 	RegisterPartial("app", "logs")
 	RegisterPartial("app", "releases")
 	RegisterPartial("app", "resources")
-	RegisterPartial("app", "services")
 
 	RegisterPartial("app", "AMI")
 	RegisterPartial("app", "AWS::AutoScaling::AutoScalingGroup")
@@ -359,22 +358,6 @@ func AppResources(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderPartial(rw, "app", "resources", resources)
-}
-
-func AppServices(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("services").Start()
-
-	app := mux.Vars(r)["app"]
-
-	services, err := models.ListServices(app)
-
-	if err != nil {
-		log.Error(err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderPartial(rw, "app", "services", services)
 }
 
 func AppStatus(rw http.ResponseWriter, r *http.Request) {
