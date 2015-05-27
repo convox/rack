@@ -193,6 +193,7 @@ func (r *Release) Promote() error {
 	}
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
+	app.Parameters["Kernel"] = CustomTopic
 	app.Parameters["Release"] = r.Id
 
 	params := []*cloudformation.Parameter{}
