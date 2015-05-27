@@ -38,6 +38,7 @@
 					<tr>
 						<th class="expand">Name</th>
 						<th>Ports</th>
+						<th>Link</th>
 						<th>Count</th>
 						<th>CPU</th>
 						<th>Memory</th>
@@ -59,6 +60,7 @@
 									</a>
 								{{ end }}
 							</td>
+							<td>{{ .Linkable }}</td>
 							<td class="text-center">{{.Count}}</td>
 							{{ $metrics := .Metrics }}
 							<td>{{ meter "cpu"    $metrics.Cpu    100 }}</td>
