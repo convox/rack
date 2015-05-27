@@ -21,6 +21,7 @@
 		  {{ label "Cluster" .Cluster }}
 			{{ label "Status" .Status }}
 			{{ label "Repository" .Repository }}
+			{{ label "Host" .BalancerHost }}
 		</div>
 	</div>
 
@@ -52,12 +53,7 @@
 								</a>
 							</td>
 							<td>
-								{{ if not (eq .BalancerHost "") }}
-									<button class="btn btn-xs btn-success glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="{{ .BalancerHost }}">
-										Host
-									</button>
-								{{ end }}
-								{{ range $port, $url := .BalancerPorts }}
+								{{ range $port, $url := ($app.BalancerPorts .Name) }}
 									<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
 										{{ $port }}
 									</a>

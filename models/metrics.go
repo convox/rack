@@ -43,31 +43,32 @@ func AppMetrics(app string) (*Metrics, error) {
 }
 
 func ProcessMetrics(app, process string) (*Metrics, error) {
-	dimensions := []*cloudwatch.Dimension{
-		&cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
-		&cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
-		&cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String("<all>")},
-	}
+	// dimensions := []*cloudwatch.Dimension{
+	//   &cloudwatch.Dimension{Name: aws.String("App"), Value: aws.String(app)},
+	//   &cloudwatch.Dimension{Name: aws.String("Process"), Value: aws.String(process)},
+	//   &cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: aws.String("<all>")},
+	// }
 
-	cpu, err := getMetric("CpuUtilization", dimensions, 1, 1)
+	// cpu, err := getMetric("CpuUtilization", dimensions, 1, 1)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	memory, err := getMetric("MemoryUtilization", dimensions, 1, 1)
+	// memory, err := getMetric("MemoryUtilization", dimensions, 1, 1)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	disk, err := getMetric("DiskUtilization", dimensions, 1, 1)
+	// disk, err := getMetric("DiskUtilization", dimensions, 1, 1)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	return &Metrics{Cpu: getLastAverage(cpu), Memory: getLastAverage(memory), Disk: getLastAverage(disk)}, nil
+	// return &Metrics{Cpu: getLastAverage(cpu), Memory: getLastAverage(memory), Disk: getLastAverage(disk)}, nil
+	return &Metrics{Cpu: 0, Memory: 0, Disk: 0}, nil
 }
 
 func InstanceMetrics(app, process, instance string) (*Metrics, error) {

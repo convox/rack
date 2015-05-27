@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -294,6 +295,36 @@ func (a *App) WatchForCompletion(change *Change, original Events) {
 	change.Save()
 }
 
+func (a *App) BalancerHost() string {
+	return a.Outputs["BalancerHost"]
+}
+
+func (a *App) BalancerPorts(ps string) map[string]string {
+	host := a.BalancerHost()
+
+	bp := map[string]string{}
+
+	for original, current := range a.ProcessPorts(ps) {
+		bp[original] = fmt.Sprintf("%s:%s", host, current)
+	}
+
+	return bp
+}
+
+func (a *App) ProcessPorts(ps string) map[string]string {
+	ports := map[string]string{}
+
+	for key, value := range a.Outputs {
+		r := regexp.MustCompile(fmt.Sprintf("%sPort([0-9]+)Balancer", upperName(ps)))
+
+		if matches := r.FindStringSubmatch(key); len(matches) == 2 {
+			ports[matches[1]] = value
+		}
+	}
+
+	return ports
+}
+
 func (a *App) Builds() Builds {
 	builds, err := ListBuilds(a.Name)
 
@@ -340,10 +371,10 @@ func (a *App) Processes() Processes {
 	processes, err := ListProcesses(a.Name)
 
 	if err != nil {
-		if err.(aws.APIError).StatusCode == 400 {
+		if aerr, ok := err.(aws.APIError); ok && aerr.StatusCode == 400 {
 			return Processes{}
 		} else {
-			panic(err)
+			// panic(err)
 		}
 	}
 

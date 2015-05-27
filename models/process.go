@@ -2,8 +2,6 @@ package models
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
@@ -27,15 +25,9 @@ func ListProcesses(app string) (Processes, error) {
 		return nil, err
 	}
 
-	res, err := ECS().ListServices(&ecs.ListServicesInput{Cluster: aws.String(a.Cluster)})
-
-	if err != nil {
-		return nil, err
-	}
-
 	req := &ecs.DescribeServicesInput{
 		Cluster:  aws.String(a.Cluster),
-		Services: res.ServiceARNs,
+		Services: []*string{aws.String(app)},
 	}
 
 	sres, err := ECS().DescribeServices(req)
@@ -44,20 +36,30 @@ func ListProcesses(app string) (Processes, error) {
 		return nil, err
 	}
 
+	if len(sres.Services) != 1 {
+		return nil, fmt.Errorf("could not find service: %s", app)
+	}
+
+	service := sres.Services[0]
+
+	tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: service.TaskDefinition,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("tres.TaskDefinition %+v\n", tres.TaskDefinition)
+
 	ps := Processes{}
 
-	for _, s := range sres.Services {
-		parts := strings.Split(*s.ServiceName, "-")
-		app := strings.Join(parts[0:len(parts)-1], "-")
-		name := parts[len(parts)-1]
-
-		if app == a.Name {
-			ps = append(ps, Process{
-				App:   app,
-				Name:  name,
-				Count: int(*s.DesiredCount),
-			})
-		}
+	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
+		ps = append(ps, Process{
+			App:   app,
+			Name:  *cd.Name,
+			Count: 1,
+		})
 	}
 
 	return ps, nil
@@ -105,48 +107,6 @@ func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
 	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
 
 	return nil
-}
-
-func (p *Process) Ports() map[string]string {
-	app, err := GetApp(p.App)
-
-	if err != nil {
-		return map[string]string{}
-	}
-
-	ports := map[string]string{}
-
-	for key, value := range app.Outputs {
-		r := regexp.MustCompile(fmt.Sprintf("%sPort([0-9]+)Balancer", upperName(p.Name)))
-
-		if matches := r.FindStringSubmatch(key); len(matches) == 2 {
-			ports[matches[1]] = value
-		}
-	}
-
-	return ports
-}
-
-func (p *Process) BalancerHost() string {
-	app, err := GetApp(p.App)
-
-	if err != nil {
-		return ""
-	}
-
-	return app.Outputs[fmt.Sprintf("%sBalancerHost", upperName(p.Name))]
-}
-
-func (p *Process) BalancerPorts() map[string]string {
-	host := p.BalancerHost()
-
-	bp := map[string]string{}
-
-	for original, current := range p.Ports() {
-		bp[original] = fmt.Sprintf("%s:%s", host, current)
-	}
-
-	return bp
 }
 
 func (p *Process) Instances() Instances {

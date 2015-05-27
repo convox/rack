@@ -71,17 +71,24 @@ func ECSServiceCreate(req Request) (string, error) {
 		r.Role = aws.String(req.ResourceProperties["Role"].(string))
 	}
 
-	r.LoadBalancers = make([]*ecs.LoadBalancer, len(balancers))
+	for _, balancer := range balancers {
+		parts := strings.SplitN(balancer.(string), ":", 3)
 
-	for i, balancer := range balancers {
-		parts := strings.Split(balancer.(string), ":")
-		name := parts[0]
-		port, _ := strconv.Atoi(parts[1])
-		r.LoadBalancers[i] = &ecs.LoadBalancer{
-			ContainerName:    aws.String("main"),
-			LoadBalancerName: aws.String(name),
-			ContainerPort:    aws.Long(int64(port)),
+		if len(parts) != 3 {
+			return "", fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
 		}
+
+		name := parts[0]
+		ps := parts[1]
+		port, _ := strconv.Atoi(parts[2])
+
+		r.LoadBalancers = append(r.LoadBalancers, &ecs.LoadBalancer{
+			LoadBalancerName: aws.String(name),
+			ContainerName:    aws.String(ps),
+			ContainerPort:    aws.Long(int64(port)),
+		})
+
+		break
 	}
 
 	res, err := ECS().CreateService(r)
@@ -127,8 +134,11 @@ func ECSServiceDelete(req Request) (string, error) {
 		}
 	}
 
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
 	if err != nil {
-		return "", err
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil
 	}
 
 	_, err = ECS().DeleteService(&ecs.DeleteServiceInput{
@@ -147,25 +157,16 @@ func ECSServiceDelete(req Request) (string, error) {
 }
 
 func ECSTaskDefinitionCreate(req Request) (string, error) {
-	cpu, _ := strconv.Atoi(req.ResourceProperties["CPU"].(string))
-	memory, _ := strconv.Atoi(req.ResourceProperties["Memory"].(string))
+	// return "", fmt.Errorf("fail")
+
+	tasks := req.ResourceProperties["Tasks"].([]interface{})
 
 	r := &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions: []*ecs.ContainerDefinition{
-			{
-				CPU:       aws.Long(int64(cpu)),
-				Essential: aws.Boolean(true),
-				Image:     aws.String(req.ResourceProperties["Image"].(string)),
-				Memory:    aws.Long(int64(memory)),
-				Name:      aws.String("main"),
-			},
-		},
 		Family: aws.String(req.ResourceProperties["Name"].(string)),
 	}
 
-	if command := req.ResourceProperties["Command"].(string); command != "" {
-		r.ContainerDefinitions[0].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
-	}
+	// download environment
+	var env models.Environment
 
 	if envUrl := req.ResourceProperties["Environment"].(string); envUrl != "" {
 		res, err := http.Get(envUrl)
@@ -178,31 +179,64 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 
 		data, err := ioutil.ReadAll(res.Body)
 
-		// set environment
-		env := models.LoadEnvironment(data)
+		env = models.LoadEnvironment(data)
+	}
 
+	r.ContainerDefinitions = make([]*ecs.ContainerDefinition, len(tasks))
+
+	for i, itask := range tasks {
+		task := itask.(map[string]interface{})
+
+		cpu, _ := strconv.Atoi(task["CPU"].(string))
+		memory, _ := strconv.Atoi(task["Memory"].(string))
+
+		r.ContainerDefinitions[i] = &ecs.ContainerDefinition{
+			Name:      aws.String(task["Name"].(string)),
+			Essential: aws.Boolean(true),
+			Image:     aws.String(task["Image"].(string)),
+			CPU:       aws.Long(int64(cpu)),
+			Memory:    aws.Long(int64(memory)),
+		}
+
+		if command := task["Command"].(string); command != "" {
+			r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
+		}
+
+		// set environment
 		for key, val := range env {
-			r.ContainerDefinitions[0].Environment = append(r.ContainerDefinitions[0].Environment, &ecs.KeyValuePair{
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[0].Environment, &ecs.KeyValuePair{
 				Name:  aws.String(key),
 				Value: aws.String(val),
 			})
 		}
-	}
 
-	// set portmappings
-	ports := req.ResourceProperties["PortMappings"].([]interface{})
+		// set links
+		if task["Links"] != nil {
+			links := task["Links"].([]interface{})
 
-	r.ContainerDefinitions[0].PortMappings = make([]*ecs.PortMapping, len(ports))
+			r.ContainerDefinitions[i].Links = make([]*string, len(links))
 
-	for i, port := range ports {
-		parts := strings.Split(port.(string), ":")
-		host, _ := strconv.Atoi(parts[0])
-		container, _ := strconv.Atoi(parts[1])
-
-		r.ContainerDefinitions[0].PortMappings[i] = &ecs.PortMapping{
-			ContainerPort: aws.Long(int64(container)),
-			HostPort:      aws.Long(int64(host)),
+			for j, link := range links {
+				r.ContainerDefinitions[i].Links[j] = aws.String(link.(string))
+			}
 		}
+
+		// set portmappings
+		ports := task["PortMappings"].([]interface{})
+
+		r.ContainerDefinitions[i].PortMappings = make([]*ecs.PortMapping, len(ports))
+
+		for j, port := range ports {
+			parts := strings.Split(port.(string), ":")
+			host, _ := strconv.Atoi(parts[0])
+			container, _ := strconv.Atoi(parts[1])
+
+			r.ContainerDefinitions[i].PortMappings[j] = &ecs.PortMapping{
+				ContainerPort: aws.Long(int64(container)),
+				HostPort:      aws.Long(int64(host)),
+			}
+		}
+
 	}
 
 	res, err := ECS().RegisterTaskDefinition(r)
