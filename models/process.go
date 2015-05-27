@@ -50,8 +50,6 @@ func ListProcesses(app string) (Processes, error) {
 		return nil, err
 	}
 
-	fmt.Printf("tres.TaskDefinition %+v\n", tres.TaskDefinition)
-
 	ps := Processes{}
 
 	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
