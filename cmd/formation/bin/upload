@@ -1,0 +1,18 @@
+#!/bin/sh
+
+create_function() {
+  aws lambda create-function \
+    --function-name formation \
+    --runtime nodejs \
+    --role arn:aws:iam::778743527532:role/lambda_basic_execution \
+    --handler lambda.external \
+    --zip-file fileb://lambda.zip
+}
+
+update_function() {
+  aws lambda update-function-code \
+    --function-name formation \
+    --zip-file fileb://lambda.zip
+}
+
+aws lambda get-function --function-name formation >/dev/null 2>&1 && update_function || create_function
