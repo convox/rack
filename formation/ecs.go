@@ -204,9 +204,17 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 
 		// set environment
 		for key, val := range env {
-			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[0].Environment, &ecs.KeyValuePair{
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String(key),
 				Value: aws.String(val),
+			})
+		}
+
+		// put release in environment
+		if task["Release"] != nil {
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String("RELEASE"),
+				Value: aws.String(task["Release"].(string)),
 			})
 		}
 
