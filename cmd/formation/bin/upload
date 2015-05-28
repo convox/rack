@@ -1,10 +1,18 @@
 #!/bin/sh
 
 create_function() {
+  aws iam delete-role-policy --role-name convox-formation --policy-name all >/dev/null 2>&1
+  aws iam delete-role --role-name convox-formation >/dev/null 2>&1
+
+  role=$(aws iam create-role --role-name convox-formation --assume-role-policy-document file://data/role-assume.json | jq -r .Role.Arn)
+
+  aws iam put-role-policy --role-name convox-formation --policy-name all --policy-document file://data/role-policy.json
+  sleep 2
+
   aws lambda create-function \
     --function-name convox-formation \
     --runtime nodejs \
-    --role $ROLE \
+    --role $role \
     --handler lambda.external \
     --zip-file fileb://lambda.zip
 }
@@ -14,11 +22,6 @@ update_function() {
     --function-name convox-formation \
     --zip-file fileb://lambda.zip
 }
-
-if [ "$ROLE" == "" ]; then
-  echo "ROLE required"
-  exit 1
-fi
 
 aws lambda get-function --function-name convox-formation >/dev/null 2>&1 && update_function || create_function
 # aws s3 cp lambda.zip s3://convox/lambda-formation.zip --acl public-read
