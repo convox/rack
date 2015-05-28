@@ -2,7 +2,7 @@
 
 create_function() {
   aws lambda create-function \
-    --function-name formation \
+    --function-name convox-formation \
     --runtime nodejs \
     --role $ROLE \
     --handler lambda.external \
@@ -11,7 +11,7 @@ create_function() {
 
 update_function() {
   aws lambda update-function-code \
-    --function-name formation \
+    --function-name convox-formation \
     --zip-file fileb://lambda.zip
 }
 
@@ -20,5 +20,5 @@ if [ "$ROLE" == "" ]; then
   exit 1
 fi
 
-aws lambda get-function --function-name formation >/dev/null 2>&1 && update_function || create_function
-aws s3 cp lambda.zip s3://convox/lambda-formation.zip --acl public-read
+aws lambda get-function --function-name convox-formation >/dev/null 2>&1 && update_function || create_function
+# aws s3 cp lambda.zip s3://convox/lambda-formation.zip --acl public-read
