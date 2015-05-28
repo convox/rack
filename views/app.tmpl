@@ -89,6 +89,7 @@
 		<script>
 			$(window).ready(function() {
 				$('#build-app').on('click', function() {
+					mixpanel.track("Build click");
 					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
 						change_to_tab('#builds');
 					}).fail(function(msg) {
