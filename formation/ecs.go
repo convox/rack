@@ -263,6 +263,16 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 			})
 		}
 
+		// set task environment overrides
+		if oenv, ok := task["Environment"].(map[string]interface{}); ok {
+			for key, val := range oenv {
+				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+					Name:  aws.String(key),
+					Value: aws.String(val.(string)),
+				})
+			}
+		}
+
 		// put release in environment
 		if release, ok := req.ResourceProperties["Release"].(string); ok {
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
