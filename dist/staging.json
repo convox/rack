@@ -563,7 +563,7 @@
               "Ref": "Key"
             },
             "Links": [],
-            "Memory": "256",
+            "Memory": "128",
             "Name": "registry",
             "PortMappings": [
               "5100:443"
