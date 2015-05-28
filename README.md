@@ -4,7 +4,7 @@ Build Convox application stacks.
 
 ## Usage
 
-    $ cat docker-compose.yml | docker run convox/app
+    $ cat docker-compose.yml | docker run -i convox/app
 
 ## Parameters ([Production Mode](doc:deployment-modes)) 
 
