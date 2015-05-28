@@ -50,7 +50,6 @@
       {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
 
-      {{ template "lambda" }}
       {{ template "security" }}
       {{ template "state" }}
     },
@@ -184,59 +183,6 @@
   {{ end }}
 {{ end }}
 
-{{ define "lambda" }}
-  "CustomHandler": {
-    "Type": "Custom::LambdaFunction",
-    "Version": "1.0",
-    "Properties": {
-      "ServiceToken": { "Ref": "Kernel" },
-      "AccountId": { "Ref": "AWS::AccountId" },
-      "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "formation" ] ] },
-      "Zip": "http://convox.s3.amazonaws.com/lambda-formation.zip",
-      "Runtime": "nodejs",
-      "Handler": "lambda.external",
-      "Role": { "Ref": "CustomHandlerRole" },
-      "MemorySize": "128",
-      "Timeout": "5"
-    }
-  },
-  "CustomHandlerRole": {
-    "Type": "AWS::IAM::Role",
-    "Properties": {
-      "AssumeRolePolicyDocument": {
-        "Statement": [
-          {
-            "Action": [
-              "sts:AssumeRole"
-            ],
-            "Effect": "Allow",
-            "Principal": {
-              "Service": [
-                "lambda.amazonaws.com"
-              ]
-            }
-          }
-        ],
-        "Version": "2012-10-17"
-      },
-      "Path": "/",
-      "Policies": [
-        {
-          "PolicyName": "CustomHandlerRole",
-          "PolicyDocument": {
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [ "*" ],
-                "Resource": [ "*" ]
-              }
-            ]
-          }
-        }
-      ]
-    }
-  },
-{{ end }}
 
 {{ define "security" }}
   "ServiceRole": {
