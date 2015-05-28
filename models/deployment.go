@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -37,8 +36,9 @@ func ListDeployments(app string) (Deployments, error) {
 		return nil, err
 	}
 
+	// no service yet, so no deployments
 	if len(res.Services) != 1 {
-		return nil, fmt.Errorf("could not find service: %s", app)
+		return Deployments{}, nil
 	}
 
 	service := res.Services[0]
