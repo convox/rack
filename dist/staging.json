@@ -283,7 +283,7 @@
           { "Ref": "Subnet2" }
         ],
         "Cooldown": 5,
-        "DesiredCapacity": "1",
+        "DesiredCapacity": "2",
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": 0,
         "MinSize" : "1",
@@ -563,7 +563,7 @@
               "Ref": "Key"
             },
             "Links": [],
-            "Memory": "128",
+            "Memory": "256",
             "Name": "registry",
             "PortMappings": [
               "5100:443"
