@@ -8,11 +8,30 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/models"
 )
+
+func HandleECSCluster(req Request) (string, error) {
+	switch req.RequestType {
+	case "Create":
+		fmt.Println("CREATING CLUSTER")
+		fmt.Printf("req %+v\n", req)
+		return ECSClusterCreate(req)
+	case "Update":
+		fmt.Println("UPDATING CLUSTER")
+		fmt.Printf("req %+v\n", req)
+		return ECSClusterUpdate(req)
+	case "Delete":
+		fmt.Println("DELETING CLUSTER")
+		fmt.Printf("req %+v\n", req)
+		return ECSClusterDelete(req)
+	}
+
+	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
 
 func HandleECSService(req Request) (string, error) {
 	switch req.RequestType {
@@ -50,6 +69,37 @@ func HandleECSTaskDefinition(req Request) (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
+
+func ECSClusterCreate(req Request) (string, error) {
+	res, err := ECS().CreateCluster(&ecs.CreateClusterInput{
+		ClusterName: aws.String(req.ResourceProperties["Name"].(string)),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return *res.Cluster.ClusterARN, nil
+}
+
+func ECSClusterUpdate(req Request) (string, error) {
+	return "", fmt.Errorf("could not update")
+}
+
+func ECSClusterDelete(req Request) (string, error) {
+	_, err := ECS().DeleteCluster(&ecs.DeleteClusterInput{
+		Cluster: aws.String(req.PhysicalResourceId),
+	})
+
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil
+	}
+
+	return "", nil
 }
 
 func ECSServiceCreate(req Request) (string, error) {

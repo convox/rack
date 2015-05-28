@@ -99,6 +99,8 @@ func handleFormation(message Message) {
 	physical := ""
 
 	switch freq.ResourceType {
+	case "Custom::ECSCluster":
+		physical, err = HandleECSCluster(freq)
 	case "Custom::ECSService":
 		physical, err = HandleECSService(freq)
 	case "Custom::ECSTaskDefinition":
