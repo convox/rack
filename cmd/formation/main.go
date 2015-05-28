@@ -51,55 +51,50 @@ func main() {
 		die(err)
 	}
 
-	var message Message
+	var req formation.Request
 
-	err = json.Unmarshal(data, &message)
+	err = json.Unmarshal(data, &req)
 
 	if err != nil {
 		die(err)
 	}
 
-	fmt.Printf("message %+v\n", message)
+	fmt.Printf("req %+v\n", req)
 
-	for _, record := range message.Records {
-		var req formation.Request
+	physical := ""
 
-		fmt.Printf("record.Sns.Message %+v\n", record.Sns.Message)
+	switch req.ResourceType {
+	case "Custom::ECSCluster":
+		physical, err = formation.HandleECSCluster(req)
+	case "Custom::ECSService":
+		physical, err = formation.HandleECSService(req)
+	case "Custom::ECSTaskDefinition":
+		physical, err = formation.HandleECSTaskDefinition(req)
+	default:
+		physical = ""
+		err = fmt.Errorf("unknown ResourceType: %s", req.ResourceType)
+	}
 
-		err = json.Unmarshal([]byte(record.Sns.Message), &req)
+	res := formation.Response{
+		RequestId:          req.RequestId,
+		StackId:            req.StackId,
+		LogicalResourceId:  req.LogicalResourceId,
+		PhysicalResourceId: physical,
+		Status:             "SUCCESS",
+	}
 
-		fmt.Printf("req %+v\n", req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		res.Reason = err.Error()
+		res.Status = "FAILED"
+	}
 
-		physical := ""
+	fmt.Printf("res %+v\n", res)
 
-		switch req.ResourceType {
-		case "Custom::ECSService":
-			physical, err = formation.HandleECSService(req)
-		case "Custom::ECSTaskDefinition":
-			physical, err = formation.HandleECSTaskDefinition(req)
-		}
+	err = sendResponse(req.ResponseURL, res)
 
-		res := formation.Response{
-			RequestId:          req.RequestId,
-			StackId:            req.StackId,
-			LogicalResourceId:  req.LogicalResourceId,
-			PhysicalResourceId: physical,
-			Status:             "SUCCESS",
-		}
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-			res.Reason = err.Error()
-			res.Status = "FAILED"
-		}
-
-		fmt.Printf("res %+v\n", res)
-
-		err = sendResponse(req.ResponseURL, res)
-
-		if err != nil {
-			die(err)
-		}
+	if err != nil {
+		die(err)
 	}
 }
 
