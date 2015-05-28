@@ -96,67 +96,12 @@ func handleFormation(message Message) {
 		return
 	}
 
-	physical := ""
-
-	switch freq.ResourceType {
-	case "Custom::ECSCluster":
-		physical, err = HandleECSCluster(freq)
-	case "Custom::ECSService":
-		physical, err = HandleECSService(freq)
-	case "Custom::ECSTaskDefinition":
-		physical, err = HandleECSTaskDefinition(freq)
-	case "Custom::LambdaFunction":
-		physical, err = HandleLambdaFunction(freq)
-	default:
-		physical = ""
-		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
-	}
-
-	fres := Response{
-		RequestId:          freq.RequestId,
-		StackId:            freq.StackId,
-		LogicalResourceId:  freq.LogicalResourceId,
-		PhysicalResourceId: physical,
-		Status:             "SUCCESS",
-		Data: map[string]string{
-			"Output1": "Value1",
-		},
-	}
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		fres.Reason = err.Error()
-		fres.Status = "FAILED"
-	}
-
-	data, err := json.Marshal(fres)
+	err = HandleRequest(freq)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		return
 	}
-
-	req, _ := http.NewRequest("PUT", "", bytes.NewBuffer(data))
-
-	// golang's http methods munge the %3A in amazon urls so we build it manually using Opaque
-	rurl := freq.ResponseURL
-	parts := strings.SplitN(rurl, "/", 4)
-	req.URL.Scheme = parts[0][0 : len(parts[0])-1]
-	req.URL.Host = parts[2]
-	req.URL.Opaque = fmt.Sprintf("//%s/%s", parts[2], parts[3])
-
-	client := &http.Client{}
-
-	res, err := client.Do(req)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return
-	}
-
-	rr, _ := ioutil.ReadAll(res.Body)
-
-	fmt.Printf("string(rr) %+v\n", string(rr))
 }
 
 func dequeueMessage() ([]Message, error) {
@@ -209,4 +154,94 @@ func ackMessage(messages []Message) (int, error) {
 	_, err := SQS().DeleteMessageBatch(dreq)
 
 	return len(messages), err
+}
+
+func HandleRequest(freq Request) error {
+	defer recoverFailure(freq)
+
+	var err error
+	var physical string
+
+	switch freq.ResourceType {
+	case "Custom::ECSCluster":
+		physical, err = HandleECSCluster(freq)
+	case "Custom::ECSService":
+		physical, err = HandleECSService(freq)
+	case "Custom::ECSTaskDefinition":
+		physical, err = HandleECSTaskDefinition(freq)
+	case "Custom::LambdaFunction":
+		physical, err = HandleLambdaFunction(freq)
+	default:
+		physical = ""
+		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
+	}
+
+	fres := Response{
+		RequestId:          freq.RequestId,
+		StackId:            freq.StackId,
+		LogicalResourceId:  freq.LogicalResourceId,
+		PhysicalResourceId: physical,
+		Status:             "SUCCESS",
+		Data: map[string]string{
+			"Output1": "Value1",
+		},
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fres.Reason = err.Error()
+		fres.Status = "FAILED"
+	}
+
+	err = putResponse(freq.ResponseURL, fres)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func putResponse(rurl string, fres Response) error {
+	data, err := json.Marshal(fres)
+
+	if err != nil {
+		return err
+	}
+
+	req, _ := http.NewRequest("PUT", "", bytes.NewBuffer(data))
+
+	parts := strings.SplitN(rurl, "/", 4)
+	req.URL.Scheme = parts[0][0 : len(parts[0])-1]
+	req.URL.Host = parts[2]
+	req.URL.Opaque = fmt.Sprintf("//%s/%s", parts[2], parts[3])
+
+	client := &http.Client{}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	rr, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Printf("string(rr) %+v\n", string(rr))
+
+	return nil
+}
+
+func recoverFailure(req Request) {
+	if r := recover(); r != nil {
+		res := Response{
+			RequestId:          req.RequestId,
+			StackId:            req.StackId,
+			LogicalResourceId:  req.LogicalResourceId,
+			PhysicalResourceId: "",
+			Status:             "FAILED",
+			Reason:             r.(error).Error(),
+		}
+
+		putResponse(req.ResponseURL, res)
+	}
 }

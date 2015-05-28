@@ -1,3 +1,6 @@
+# always rebuild
+.PHONY: formation
+
 all: build
 
 build: formation lambda.zip
