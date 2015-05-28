@@ -536,7 +536,7 @@
         },
         "Tasks": [
           {
-            "CPU": "200",
+            "CPU": "100",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "Access" },
@@ -546,7 +546,7 @@
             },
             "Image": { "Ref": "WebImage" },
             "Links": [],
-            "Memory": "300",
+            "Memory": "128",
             "Name": "web",
             "PortMappings": [
               "5000:3000",
@@ -557,13 +557,13 @@
             ]
           },
           {
-            "CPU": "200",
+            "CPU": "100",
             "Image": { "Ref": "RegistryImage" },
             "Key": {
               "Ref": "Key"
             },
             "Links": [],
-            "Memory": "300",
+            "Memory": "256",
             "Name": "registry",
             "PortMappings": [
               "5100:443"
