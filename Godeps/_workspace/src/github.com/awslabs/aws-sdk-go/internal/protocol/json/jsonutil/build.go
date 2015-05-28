@@ -176,6 +176,18 @@ func writeString(s string, buf *bytes.Buffer) {
 	for _, r := range s {
 		if r == '"' {
 			buf.WriteString(`\"`)
+		} else if r == '\\' {
+			buf.WriteString(`\\`)
+		} else if r == '\b' {
+			buf.WriteString(`\b`)
+		} else if r == '\f' {
+			buf.WriteString(`\f`)
+		} else if r == '\r' {
+			buf.WriteString(`\r`)
+		} else if r == '\t' {
+			buf.WriteString(`\t`)
+		} else if r == '\n' {
+			buf.WriteString(`\n`)
 		} else if r < 32 {
 			fmt.Fprintf(buf, "\\u%0.4x", r)
 		} else {

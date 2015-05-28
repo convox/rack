@@ -6,8 +6,8 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
-// Kinesis is a client for Kinesis.
-type Kinesis struct {
+type Kinesis struct // Kinesis is a client for Kinesis.
+{
 	*aws.Service
 }
 

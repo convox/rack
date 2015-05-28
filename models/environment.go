@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aryann/difflib"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 )
 
@@ -46,7 +46,7 @@ func GetEnvironment(app string) (Environment, error) {
 	if err != nil {
 
 		// if we get a 404 from aws just return an empty environment
-		if awsError, ok := err.(aws.APIError); ok && awsError.StatusCode == 404 {
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == 404 {
 			return Environment{}, nil
 		}
 

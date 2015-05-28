@@ -6,8 +6,8 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
-// KMS is a client for KMS.
-type KMS struct {
+type KMS struct // KMS is a client for KMS.
+{
 	*aws.Service
 }
 

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
-
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/rest"
 )
 
 const (
@@ -241,6 +241,10 @@ func (v4 *signer) buildCanonicalString() {
 	}
 	if uri == "" {
 		uri = "/"
+	}
+
+	if v4.ServiceName != "s3" {
+		uri = rest.EscapePath(uri, false)
 	}
 
 	v4.canonicalString = strings.Join([]string{

@@ -3,11 +3,11 @@ package s3_test
 import (
 	"bytes"
 	"fmt"
-	"time"
-
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"time"
 )
 
 var _ time.Duration
@@ -24,12 +24,19 @@ func ExampleS3_AbortMultipartUpload() {
 	}
 	resp, err := svc.AbortMultipartUpload(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -56,12 +63,19 @@ func ExampleS3_CompleteMultipartUpload() {
 	}
 	resp, err := svc.CompleteMultipartUpload(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -109,12 +123,19 @@ func ExampleS3_CopyObject() {
 	}
 	resp, err := svc.CopyObject(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -138,12 +159,19 @@ func ExampleS3_CreateBucket() {
 	}
 	resp, err := svc.CreateBucket(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -182,12 +210,19 @@ func ExampleS3_CreateMultipartUpload() {
 	}
 	resp, err := svc.CreateMultipartUpload(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -202,12 +237,19 @@ func ExampleS3_DeleteBucket() {
 	}
 	resp, err := svc.DeleteBucket(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -222,12 +264,19 @@ func ExampleS3_DeleteBucketCORS() {
 	}
 	resp, err := svc.DeleteBucketCORS(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -242,12 +291,19 @@ func ExampleS3_DeleteBucketLifecycle() {
 	}
 	resp, err := svc.DeleteBucketLifecycle(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -262,12 +318,19 @@ func ExampleS3_DeleteBucketPolicy() {
 	}
 	resp, err := svc.DeleteBucketPolicy(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -282,12 +345,19 @@ func ExampleS3_DeleteBucketReplication() {
 	}
 	resp, err := svc.DeleteBucketReplication(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -302,12 +372,19 @@ func ExampleS3_DeleteBucketTagging() {
 	}
 	resp, err := svc.DeleteBucketTagging(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -322,12 +399,19 @@ func ExampleS3_DeleteBucketWebsite() {
 	}
 	resp, err := svc.DeleteBucketWebsite(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -346,12 +430,19 @@ func ExampleS3_DeleteObject() {
 	}
 	resp, err := svc.DeleteObject(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -378,12 +469,19 @@ func ExampleS3_DeleteObjects() {
 	}
 	resp, err := svc.DeleteObjects(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -398,12 +496,19 @@ func ExampleS3_GetBucketACL() {
 	}
 	resp, err := svc.GetBucketACL(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -418,12 +523,19 @@ func ExampleS3_GetBucketCORS() {
 	}
 	resp, err := svc.GetBucketCORS(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -438,12 +550,19 @@ func ExampleS3_GetBucketLifecycle() {
 	}
 	resp, err := svc.GetBucketLifecycle(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -458,12 +577,19 @@ func ExampleS3_GetBucketLocation() {
 	}
 	resp, err := svc.GetBucketLocation(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -478,12 +604,19 @@ func ExampleS3_GetBucketLogging() {
 	}
 	resp, err := svc.GetBucketLogging(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -498,12 +631,19 @@ func ExampleS3_GetBucketNotification() {
 	}
 	resp, err := svc.GetBucketNotification(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -518,12 +658,19 @@ func ExampleS3_GetBucketPolicy() {
 	}
 	resp, err := svc.GetBucketPolicy(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -538,12 +685,19 @@ func ExampleS3_GetBucketReplication() {
 	}
 	resp, err := svc.GetBucketReplication(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -558,12 +712,19 @@ func ExampleS3_GetBucketRequestPayment() {
 	}
 	resp, err := svc.GetBucketRequestPayment(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -578,12 +739,19 @@ func ExampleS3_GetBucketTagging() {
 	}
 	resp, err := svc.GetBucketTagging(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -598,12 +766,19 @@ func ExampleS3_GetBucketVersioning() {
 	}
 	resp, err := svc.GetBucketVersioning(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -618,12 +793,19 @@ func ExampleS3_GetBucketWebsite() {
 	}
 	resp, err := svc.GetBucketWebsite(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -655,12 +837,19 @@ func ExampleS3_GetObject() {
 	}
 	resp, err := svc.GetObject(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -678,12 +867,19 @@ func ExampleS3_GetObjectACL() {
 	}
 	resp, err := svc.GetObjectACL(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -700,12 +896,19 @@ func ExampleS3_GetObjectTorrent() {
 	}
 	resp, err := svc.GetObjectTorrent(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -720,12 +923,19 @@ func ExampleS3_HeadBucket() {
 	}
 	resp, err := svc.HeadBucket(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -751,12 +961,19 @@ func ExampleS3_HeadObject() {
 	}
 	resp, err := svc.HeadObject(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -769,12 +986,19 @@ func ExampleS3_ListBuckets() {
 	var params *s3.ListBucketsInput
 	resp, err := svc.ListBuckets(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -795,12 +1019,19 @@ func ExampleS3_ListMultipartUploads() {
 	}
 	resp, err := svc.ListMultipartUploads(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -821,12 +1052,19 @@ func ExampleS3_ListObjectVersions() {
 	}
 	resp, err := svc.ListObjectVersions(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -846,12 +1084,19 @@ func ExampleS3_ListObjects() {
 	}
 	resp, err := svc.ListObjects(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -871,12 +1116,19 @@ func ExampleS3_ListParts() {
 	}
 	resp, err := svc.ListParts(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -916,12 +1168,19 @@ func ExampleS3_PutBucketACL() {
 	}
 	resp, err := svc.PutBucketACL(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -960,12 +1219,19 @@ func ExampleS3_PutBucketCORS() {
 	}
 	resp, err := svc.PutBucketCORS(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1006,12 +1272,19 @@ func ExampleS3_PutBucketLifecycle() {
 	}
 	resp, err := svc.PutBucketLifecycle(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1045,12 +1318,19 @@ func ExampleS3_PutBucketLogging() {
 	}
 	resp, err := svc.PutBucketLogging(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1095,12 +1375,19 @@ func ExampleS3_PutBucketNotification() {
 	}
 	resp, err := svc.PutBucketNotification(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1116,12 +1403,19 @@ func ExampleS3_PutBucketPolicy() {
 	}
 	resp, err := svc.PutBucketPolicy(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1150,12 +1444,19 @@ func ExampleS3_PutBucketReplication() {
 	}
 	resp, err := svc.PutBucketReplication(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1173,12 +1474,19 @@ func ExampleS3_PutBucketRequestPayment() {
 	}
 	resp, err := svc.PutBucketRequestPayment(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1202,12 +1510,19 @@ func ExampleS3_PutBucketTagging() {
 	}
 	resp, err := svc.PutBucketTagging(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1227,12 +1542,19 @@ func ExampleS3_PutBucketVersioning() {
 	}
 	resp, err := svc.PutBucketVersioning(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1275,12 +1597,19 @@ func ExampleS3_PutBucketWebsite() {
 	}
 	resp, err := svc.PutBucketWebsite(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1321,12 +1650,19 @@ func ExampleS3_PutObject() {
 	}
 	resp, err := svc.PutObject(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1368,12 +1704,19 @@ func ExampleS3_PutObjectACL() {
 	}
 	resp, err := svc.PutObjectACL(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1394,12 +1737,19 @@ func ExampleS3_RestoreObject() {
 	}
 	resp, err := svc.RestoreObject(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1423,12 +1773,19 @@ func ExampleS3_UploadPart() {
 	}
 	resp, err := svc.UploadPart(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.
@@ -1459,12 +1816,19 @@ func ExampleS3_UploadPartCopy() {
 	}
 	resp, err := svc.UploadPartCopy(params)
 
-	if awserr := aws.Error(err); awserr != nil {
-		// A service error occurred.
-		fmt.Println("Error:", awserr.Code, awserr.Message)
-	} else if err != nil {
-		// A non-service error occurred.
-		panic(err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Generic AWS Error with Code, Message, and original error (if any)
+			fmt.Println(awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				// A service error occurred
+				fmt.Println(reqErr.Code(), reqErr.Message(), reqErr.StatusCode(), reqErr.RequestID())
+			}
+		} else {
+			// This case should never be hit, The SDK should alwsy return an
+			// error which satisfies the awserr.Error interface.
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Pretty-print the response data.

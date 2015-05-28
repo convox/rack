@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/models"
@@ -128,8 +129,8 @@ func ECSServiceDelete(req Request) (string, error) {
 	})
 
 	// go ahead and mark the delete good if the service is not found
-	if ae, ok := err.(aws.APIError); ok {
-		if ae.Code == "ServiceNotFoundException" {
+	if ae, ok := err.(awserr.Error); ok {
+		if ae.Code() == "ServiceNotFoundException" {
 			return "", nil
 		}
 	}

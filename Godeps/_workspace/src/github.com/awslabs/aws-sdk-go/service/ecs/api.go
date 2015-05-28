@@ -38,11 +38,10 @@ func (c *ECS) CreateClusterRequest(input *CreateClusterInput) (req *aws.Request,
 // Creates a new Amazon ECS cluster. By default, your account will receive a
 // default cluster when you launch your first container instance. However, you
 // can create your own cluster with a unique name with the CreateCluster action.
-func (c *ECS) CreateCluster(input *CreateClusterInput) (output *CreateClusterOutput, err error) {
+func (c *ECS) CreateCluster(input *CreateClusterInput) (*CreateClusterOutput, error) {
 	req, out := c.CreateClusterRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opCreateCluster *aws.Operation
@@ -73,11 +72,10 @@ func (c *ECS) CreateServiceRequest(input *CreateServiceInput) (req *aws.Request,
 // Runs and maintains a desired number of tasks from a specified task definition.
 // If the number of tasks running in a service drops below desiredCount, Amazon
 // ECS will spawn another instantiation of the task in the specified cluster.
-func (c *ECS) CreateService(input *CreateServiceInput) (output *CreateServiceOutput, err error) {
+func (c *ECS) CreateService(input *CreateServiceInput) (*CreateServiceOutput, error) {
 	req, out := c.CreateServiceRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opCreateService *aws.Operation
@@ -108,11 +106,10 @@ func (c *ECS) DeleteClusterRequest(input *DeleteClusterInput) (req *aws.Request,
 // Deletes the specified cluster. You must deregister all container instances
 // from this cluster before you may delete it. You can list the container instances
 // in a cluster with ListContainerInstances and deregister them with DeregisterContainerInstance.
-func (c *ECS) DeleteCluster(input *DeleteClusterInput) (output *DeleteClusterOutput, err error) {
+func (c *ECS) DeleteCluster(input *DeleteClusterInput) (*DeleteClusterOutput, error) {
 	req, out := c.DeleteClusterRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDeleteCluster *aws.Operation
@@ -141,11 +138,10 @@ func (c *ECS) DeleteServiceRequest(input *DeleteServiceInput) (req *aws.Request,
 }
 
 // Deletes a specified service within a cluster.
-func (c *ECS) DeleteService(input *DeleteServiceInput) (output *DeleteServiceOutput, err error) {
+func (c *ECS) DeleteService(input *DeleteServiceInput) (*DeleteServiceOutput, error) {
 	req, out := c.DeleteServiceRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDeleteService *aws.Operation
@@ -175,11 +171,10 @@ func (c *ECS) DeregisterContainerInstanceRequest(input *DeregisterContainerInsta
 
 // Deregisters an Amazon ECS container instance from the specified cluster.
 // This instance will no longer be available to run tasks.
-func (c *ECS) DeregisterContainerInstance(input *DeregisterContainerInstanceInput) (output *DeregisterContainerInstanceOutput, err error) {
+func (c *ECS) DeregisterContainerInstance(input *DeregisterContainerInstanceInput) (*DeregisterContainerInstanceOutput, error) {
 	req, out := c.DeregisterContainerInstanceRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDeregisterContainerInstance *aws.Operation
@@ -211,11 +206,10 @@ func (c *ECS) DeregisterTaskDefinitionRequest(input *DeregisterTaskDefinitionInp
 //
 // Deregisters the specified task definition. You will no longer be able to
 // run tasks from this definition after deregistration.
-func (c *ECS) DeregisterTaskDefinition(input *DeregisterTaskDefinitionInput) (output *DeregisterTaskDefinitionOutput, err error) {
+func (c *ECS) DeregisterTaskDefinition(input *DeregisterTaskDefinitionInput) (*DeregisterTaskDefinitionOutput, error) {
 	req, out := c.DeregisterTaskDefinitionRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDeregisterTaskDefinition *aws.Operation
@@ -244,11 +238,10 @@ func (c *ECS) DescribeClustersRequest(input *DescribeClustersInput) (req *aws.Re
 }
 
 // Describes one or more of your clusters.
-func (c *ECS) DescribeClusters(input *DescribeClustersInput) (output *DescribeClustersOutput, err error) {
+func (c *ECS) DescribeClusters(input *DescribeClustersInput) (*DescribeClustersOutput, error) {
 	req, out := c.DescribeClustersRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDescribeClusters *aws.Operation
@@ -278,11 +271,10 @@ func (c *ECS) DescribeContainerInstancesRequest(input *DescribeContainerInstance
 
 // Describes Amazon EC2 Container Service container instances. Returns metadata
 // about registered and remaining resources on each container instance requested.
-func (c *ECS) DescribeContainerInstances(input *DescribeContainerInstancesInput) (output *DescribeContainerInstancesOutput, err error) {
+func (c *ECS) DescribeContainerInstances(input *DescribeContainerInstancesInput) (*DescribeContainerInstancesOutput, error) {
 	req, out := c.DescribeContainerInstancesRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDescribeContainerInstances *aws.Operation
@@ -311,11 +303,10 @@ func (c *ECS) DescribeServicesRequest(input *DescribeServicesInput) (req *aws.Re
 }
 
 // Describes the specified services running in your cluster.
-func (c *ECS) DescribeServices(input *DescribeServicesInput) (output *DescribeServicesOutput, err error) {
+func (c *ECS) DescribeServices(input *DescribeServicesInput) (*DescribeServicesOutput, error) {
 	req, out := c.DescribeServicesRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDescribeServices *aws.Operation
@@ -346,11 +337,10 @@ func (c *ECS) DescribeTaskDefinitionRequest(input *DescribeTaskDefinitionInput) 
 // Describes a task definition. You can specify a family and revision to find
 // information on a specific task definition, or you can simply specify the
 // family to find the latest revision in that family.
-func (c *ECS) DescribeTaskDefinition(input *DescribeTaskDefinitionInput) (output *DescribeTaskDefinitionOutput, err error) {
+func (c *ECS) DescribeTaskDefinition(input *DescribeTaskDefinitionInput) (*DescribeTaskDefinitionOutput, error) {
 	req, out := c.DescribeTaskDefinitionRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDescribeTaskDefinition *aws.Operation
@@ -379,11 +369,10 @@ func (c *ECS) DescribeTasksRequest(input *DescribeTasksInput) (req *aws.Request,
 }
 
 // Describes a specified task or tasks.
-func (c *ECS) DescribeTasks(input *DescribeTasksInput) (output *DescribeTasksOutput, err error) {
+func (c *ECS) DescribeTasks(input *DescribeTasksInput) (*DescribeTasksOutput, error) {
 	req, out := c.DescribeTasksRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDescribeTasks *aws.Operation
@@ -416,11 +405,10 @@ func (c *ECS) DiscoverPollEndpointRequest(input *DiscoverPollEndpointInput) (req
 //
 // Returns an endpoint for the Amazon EC2 Container Service agent to poll for
 // updates.
-func (c *ECS) DiscoverPollEndpoint(input *DiscoverPollEndpointInput) (output *DiscoverPollEndpointOutput, err error) {
+func (c *ECS) DiscoverPollEndpoint(input *DiscoverPollEndpointInput) (*DiscoverPollEndpointOutput, error) {
 	req, out := c.DiscoverPollEndpointRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDiscoverPollEndpoint *aws.Operation
@@ -449,11 +437,10 @@ func (c *ECS) ListClustersRequest(input *ListClustersInput) (req *aws.Request, o
 }
 
 // Returns a list of existing clusters.
-func (c *ECS) ListClusters(input *ListClustersInput) (output *ListClustersOutput, err error) {
+func (c *ECS) ListClusters(input *ListClustersInput) (*ListClustersOutput, error) {
 	req, out := c.ListClustersRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opListClusters *aws.Operation
@@ -482,11 +469,10 @@ func (c *ECS) ListContainerInstancesRequest(input *ListContainerInstancesInput) 
 }
 
 // Returns a list of container instances in a specified cluster.
-func (c *ECS) ListContainerInstances(input *ListContainerInstancesInput) (output *ListContainerInstancesOutput, err error) {
+func (c *ECS) ListContainerInstances(input *ListContainerInstancesInput) (*ListContainerInstancesOutput, error) {
 	req, out := c.ListContainerInstancesRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opListContainerInstances *aws.Operation
@@ -515,11 +501,10 @@ func (c *ECS) ListServicesRequest(input *ListServicesInput) (req *aws.Request, o
 }
 
 // Lists the services that are running in a specified cluster.
-func (c *ECS) ListServices(input *ListServicesInput) (output *ListServicesOutput, err error) {
+func (c *ECS) ListServices(input *ListServicesInput) (*ListServicesOutput, error) {
 	req, out := c.ListServicesRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opListServices *aws.Operation
@@ -549,11 +534,10 @@ func (c *ECS) ListTaskDefinitionFamiliesRequest(input *ListTaskDefinitionFamilie
 
 // Returns a list of task definition families that are registered to your account.
 // You can filter the results with the familyPrefix parameter.
-func (c *ECS) ListTaskDefinitionFamilies(input *ListTaskDefinitionFamiliesInput) (output *ListTaskDefinitionFamiliesOutput, err error) {
+func (c *ECS) ListTaskDefinitionFamilies(input *ListTaskDefinitionFamiliesInput) (*ListTaskDefinitionFamiliesOutput, error) {
 	req, out := c.ListTaskDefinitionFamiliesRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opListTaskDefinitionFamilies *aws.Operation
@@ -583,11 +567,10 @@ func (c *ECS) ListTaskDefinitionsRequest(input *ListTaskDefinitionsInput) (req *
 
 // Returns a list of task definitions that are registered to your account. You
 // can filter the results by family name with the familyPrefix parameter.
-func (c *ECS) ListTaskDefinitions(input *ListTaskDefinitionsInput) (output *ListTaskDefinitionsOutput, err error) {
+func (c *ECS) ListTaskDefinitions(input *ListTaskDefinitionsInput) (*ListTaskDefinitionsOutput, error) {
 	req, out := c.ListTaskDefinitionsRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opListTaskDefinitions *aws.Operation
@@ -618,11 +601,10 @@ func (c *ECS) ListTasksRequest(input *ListTasksInput) (req *aws.Request, output 
 // Returns a list of tasks for a specified cluster. You can filter the results
 // by family name or by a particular container instance with the family and
 // containerInstance parameters.
-func (c *ECS) ListTasks(input *ListTasksInput) (output *ListTasksOutput, err error) {
+func (c *ECS) ListTasks(input *ListTasksInput) (*ListTasksOutput, error) {
 	req, out := c.ListTasksRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opListTasks *aws.Operation
@@ -655,11 +637,10 @@ func (c *ECS) RegisterContainerInstanceRequest(input *RegisterContainerInstanceI
 //
 // Registers an Amazon EC2 instance into the specified cluster. This instance
 // will become available to place containers on.
-func (c *ECS) RegisterContainerInstance(input *RegisterContainerInstanceInput) (output *RegisterContainerInstanceOutput, err error) {
+func (c *ECS) RegisterContainerInstance(input *RegisterContainerInstanceInput) (*RegisterContainerInstanceOutput, error) {
 	req, out := c.RegisterContainerInstanceRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opRegisterContainerInstance *aws.Operation
@@ -692,11 +673,10 @@ func (c *ECS) RegisterTaskDefinitionRequest(input *RegisterTaskDefinitionInput) 
 // parameter. For more information on task definition parameters and defaults,
 // see Amazon ECS Task Definitions (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_defintions.html)
 // in the Amazon EC2 Container Service Developer Guide.
-func (c *ECS) RegisterTaskDefinition(input *RegisterTaskDefinitionInput) (output *RegisterTaskDefinitionOutput, err error) {
+func (c *ECS) RegisterTaskDefinition(input *RegisterTaskDefinitionInput) (*RegisterTaskDefinitionOutput, error) {
 	req, out := c.RegisterTaskDefinitionRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opRegisterTaskDefinition *aws.Operation
@@ -729,11 +709,10 @@ func (c *ECS) RunTaskRequest(input *RunTaskInput) (req *aws.Request, output *Run
 // instance, use StartTask instead.
 //
 //  The count parameter is limited to 10 tasks per call.
-func (c *ECS) RunTask(input *RunTaskInput) (output *RunTaskOutput, err error) {
+func (c *ECS) RunTask(input *RunTaskInput) (*RunTaskOutput, error) {
 	req, out := c.RunTaskRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opRunTask *aws.Operation
@@ -766,11 +745,10 @@ func (c *ECS) StartTaskRequest(input *StartTaskInput) (req *aws.Request, output 
 // to place your task, use RunTask instead.
 //
 //  The list of container instances to start tasks on is limited to 10.
-func (c *ECS) StartTask(input *StartTaskInput) (output *StartTaskOutput, err error) {
+func (c *ECS) StartTask(input *StartTaskInput) (*StartTaskOutput, error) {
 	req, out := c.StartTaskRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opStartTask *aws.Operation
@@ -799,11 +777,10 @@ func (c *ECS) StopTaskRequest(input *StopTaskInput) (req *aws.Request, output *S
 }
 
 // Stops a running task.
-func (c *ECS) StopTask(input *StopTaskInput) (output *StopTaskOutput, err error) {
+func (c *ECS) StopTask(input *StopTaskInput) (*StopTaskOutput, error) {
 	req, out := c.StopTaskRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opStopTask *aws.Operation
@@ -835,11 +812,10 @@ func (c *ECS) SubmitContainerStateChangeRequest(input *SubmitContainerStateChang
 // is not intended for use outside of the agent.
 //
 // Sent to acknowledge that a container changed states.
-func (c *ECS) SubmitContainerStateChange(input *SubmitContainerStateChangeInput) (output *SubmitContainerStateChangeOutput, err error) {
+func (c *ECS) SubmitContainerStateChange(input *SubmitContainerStateChangeInput) (*SubmitContainerStateChangeOutput, error) {
 	req, out := c.SubmitContainerStateChangeRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opSubmitContainerStateChange *aws.Operation
@@ -871,11 +847,10 @@ func (c *ECS) SubmitTaskStateChangeRequest(input *SubmitTaskStateChangeInput) (r
 // is not intended for use outside of the agent.
 //
 // Sent to acknowledge that a task changed states.
-func (c *ECS) SubmitTaskStateChange(input *SubmitTaskStateChangeInput) (output *SubmitTaskStateChangeOutput, err error) {
+func (c *ECS) SubmitTaskStateChange(input *SubmitTaskStateChangeInput) (*SubmitTaskStateChangeOutput, error) {
 	req, out := c.SubmitTaskStateChangeRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opSubmitTaskStateChange *aws.Operation
@@ -918,11 +893,10 @@ func (c *ECS) UpdateServiceRequest(input *UpdateServiceInput) (req *aws.Request,
 // of the task when UpdateService is run. If your cluster cannot support another
 // instantiation of the task used in your service, you can reduce the desired
 // count of your service by one before modifying the task definition.
-func (c *ECS) UpdateService(input *UpdateServiceInput) (output *UpdateServiceOutput, err error) {
+func (c *ECS) UpdateService(input *UpdateServiceInput) (*UpdateServiceOutput, error) {
 	req, out := c.UpdateServiceRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opUpdateService *aws.Operation

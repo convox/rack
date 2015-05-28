@@ -11,91 +11,95 @@
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/apierr",
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/endpoints",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/ec2query",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/json/jsonutil",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/jsonrpc",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/query",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/rest",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/restjson",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/restxml",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/protocol/xml/xmlutil",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/internal/signer/v4",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/cloudformation",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/cloudwatch",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/dynamodb",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/ec2",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/ecs",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/kinesis",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/kms",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/lambda",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/rds",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/s3",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/sqs",
-			"Rev": "dcbb30018ec1d54e6127cf3f2cf900b35235b1b1"
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",

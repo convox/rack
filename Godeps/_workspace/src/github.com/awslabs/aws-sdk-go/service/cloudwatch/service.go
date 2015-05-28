@@ -6,8 +6,8 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
-// CloudWatch is a client for CloudWatch.
-type CloudWatch struct {
+type // CloudWatch is a client for CloudWatch.
+CloudWatch struct {
 	*aws.Service
 }
 

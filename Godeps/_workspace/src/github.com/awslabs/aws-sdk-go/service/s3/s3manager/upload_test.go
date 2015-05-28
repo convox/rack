@@ -9,9 +9,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
 	"github.com/awslabs/aws-sdk-go/internal/test/unit"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3/s3manager"
 	"github.com/stretchr/testify/assert"
@@ -70,9 +71,11 @@ func buflen(i interface{}) int {
 func TestUploadOrderMulti(t *testing.T) {
 	s, ops, args := loggingSvc()
 	resp, err := s3manager.Upload(s, &s3manager.UploadInput{
-		Bucket: aws.String("Bucket"),
-		Key:    aws.String("Key"),
-		Body:   bytes.NewReader(buf12MB),
+		Bucket:               aws.String("Bucket"),
+		Key:                  aws.String("Key"),
+		Body:                 bytes.NewReader(buf12MB),
+		ServerSideEncryption: aws.String("AES256"),
+		ContentType:          aws.String("content/type"),
 	}, nil)
 
 	assert.NoError(t, err)
@@ -95,6 +98,10 @@ func TestUploadOrderMulti(t *testing.T) {
 	assert.Regexp(t, `^ETAG\d+$`, val((*args)[4], "MultipartUpload.Parts[0].ETag"))
 	assert.Regexp(t, `^ETAG\d+$`, val((*args)[4], "MultipartUpload.Parts[1].ETag"))
 	assert.Regexp(t, `^ETAG\d+$`, val((*args)[4], "MultipartUpload.Parts[2].ETag"))
+
+	// Custom headers
+	assert.Equal(t, "AES256", val((*args)[0], "ServerSideEncryption"))
+	assert.Equal(t, "content/type", val((*args)[0], "ContentType"))
 }
 
 func TestUploadOrderMultiDifferentPartSize(t *testing.T) {
@@ -114,17 +121,21 @@ func TestUploadOrderMultiDifferentPartSize(t *testing.T) {
 }
 
 func TestUploadOrderSingle(t *testing.T) {
-	s, ops, _ := loggingSvc()
+	s, ops, args := loggingSvc()
 	resp, err := s3manager.Upload(s, &s3manager.UploadInput{
-		Bucket: aws.String("Bucket"),
-		Key:    aws.String("Key"),
-		Body:   bytes.NewReader(buf2MB),
+		Bucket:               aws.String("Bucket"),
+		Key:                  aws.String("Key"),
+		Body:                 bytes.NewReader(buf2MB),
+		ServerSideEncryption: aws.String("AES256"),
+		ContentType:          aws.String("content/type"),
 	}, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"PutObject"}, *ops)
 	assert.NotEqual(t, "", resp.Location)
 	assert.Equal(t, "", resp.UploadID)
+	assert.Equal(t, "AES256", val((*args)[0], "ServerSideEncryption"))
+	assert.Equal(t, "content/type", val((*args)[0], "ContentType"))
 }
 
 func TestUploadOrderSingleFailure(t *testing.T) {
@@ -256,7 +267,8 @@ func TestUploadOrderReadFail1(t *testing.T) {
 		Body:   failreader{1},
 	}, nil)
 
-	assert.EqualError(t, err, "random failure")
+	assert.Equal(t, "ReadRequestBody", err.(awserr.Error).Code())
+	assert.EqualError(t, err.(awserr.Error).OrigErr(), "random failure")
 	assert.Equal(t, []string{}, *ops)
 }
 
@@ -269,6 +281,8 @@ func TestUploadOrderReadFail2(t *testing.T) {
 		Body:   failreader{2},
 	}, nil)
 
-	assert.EqualError(t, err, "random failure")
+	assert.Equal(t, "MultipartUpload", err.(awserr.Error).Code())
+	assert.Equal(t, "ReadRequestBody", err.(awserr.Error).OrigErr().(awserr.Error).Code())
+	assert.EqualError(t, err.(awserr.Error).OrigErr().(awserr.Error).OrigErr(), "random failure")
 	assert.Equal(t, []string{"CreateMultipartUpload", "AbortMultipartUpload"}, *ops)
 }
