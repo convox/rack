@@ -542,7 +542,8 @@
               "AWS_ACCESS": { "Ref": "Access" },
               "AWS_SECRET": { "Fn::GetAtt": [ "Access", "SecretAccessKey" ] },
               "CUSTOM_TOPIC": { "Ref": "Kernel" },
-              "HTTP_PASSWORD": { "Ref": "Password" }
+              "HTTP_PASSWORD": { "Ref": "Password" },
+              "REGISTRY": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
             },
             "Image": { "Ref": "WebImage" },
             "Links": [],
