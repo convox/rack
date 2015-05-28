@@ -6,8 +6,8 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
-// DynamoDB is a client for DynamoDB.
-type DynamoDB struct {
+type DynamoDB struct // DynamoDB is a client for DynamoDB.
+{
 	*aws.Service
 }
 

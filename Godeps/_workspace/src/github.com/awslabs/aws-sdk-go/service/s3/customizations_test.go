@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/internal/test/unit"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,6 +50,15 @@ func TestMD5InPutBucketLifecycle(t *testing.T) {
 				},
 			},
 		},
+	})
+	assertMD5(t, req)
+}
+
+func TestMD5InPutBucketPolicy(t *testing.T) {
+	svc := s3.New(nil)
+	req, _ := svc.PutBucketPolicyRequest(&s3.PutBucketPolicyInput{
+		Bucket: aws.String("bucketname"),
+		Policy: aws.String("{}"),
 	})
 	assertMD5(t, req)
 }

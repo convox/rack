@@ -2,11 +2,15 @@ package s3manager
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -21,6 +25,63 @@ var DefaultUploadOptions = &UploadOptions{
 	PartSize:          DefaultPartSize,
 	Concurrency:       DefaultConcurrency,
 	LeavePartsOnError: false,
+}
+
+// A MultiUploadFailure wraps a failed S3 multipart upload. An error returned
+// will satisfy this interface when a multi part upload failed to upload all
+// chucks to S3. In the case of a failure the UploadID is needed to operate on
+// the chunks, if any, which were uploaded.
+//
+// Example:
+//
+//     output, err := s3manager.Upload(svc, input, opts)
+//     if err != nil {
+//         if multierr, ok := err.(MultiUploadFailure); ok {
+//             // Process error and its associated uploadID
+//             fmt.Println("Error:", multierr.Code(), multierr.Message(), multierr.UploadID())
+//         } else {
+//             // Process error generically
+//             fmt.Println("Error:", err.Error())
+//         }
+//     }
+//
+type MultiUploadFailure interface {
+	awserr.Error
+
+	// Returns the upload id for the S3 multipart upload that failed.
+	UploadID() string
+}
+
+// A multiUploadError wraps the upload ID of a failed s3 multipart upload.
+// Composed of BaseError for code, message, and original error
+//
+// Should be used for an error that occurred failing a S3 multipart upload,
+// and a upload ID is available. If an uploadID is not available a more relevant
+type multiUploadError struct {
+	*apierr.BaseError
+
+	// ID for multipart upload which failed.
+	uploadID string
+}
+
+// Error returns the string representation of the error.
+//
+// See apierr.BaseError ErrorWithExtra for output format
+//
+// Satisfies the error interface.
+func (m *multiUploadError) Error() string {
+	return m.ErrorWithExtra(fmt.Sprintf("upload id: %s", m.uploadID))
+}
+
+// String returns the string representation of the error.
+// Alias for Error to satisfy the stringer interface.
+func (m *multiUploadError) String() string {
+	return m.Error()
+}
+
+// UploadID returns the id of the S3 upload which failed.
+func (m *multiUploadError) UploadID() string {
+	return m.uploadID
 }
 
 // UploadInput contains all input for upload requests to Amazon S3.
@@ -116,8 +177,8 @@ type UploadOutput struct {
 	// The URL where the object was uploaded to.
 	Location string
 
-	// The ID for a multipart upload to S3. In the case of an error, this ID
-	// can be used to manually recover or abort an upload.
+	// The ID for a multipart upload to S3. In the case of an error the error
+	// can be cast to the MultiUploadFailure interface to extract the upload ID.
 	UploadID string
 }
 
@@ -181,7 +242,7 @@ func (u *uploader) upload() (*UploadOutput, error) {
 	if err == io.EOF || err == io.ErrUnexpectedEOF { // single part
 		return u.singlePart(packet[0:n])
 	} else if err != nil {
-		return nil, err
+		return nil, apierr.New("ReadRequestBody", "read upload data failed", err)
 	}
 
 	mu := multiuploader{uploader: u}
@@ -192,11 +253,11 @@ func (u *uploader) upload() (*UploadOutput, error) {
 // a regular PutObject request. Multipart requests require at least two
 // parts, or at least 5MB of data.
 func (u *uploader) singlePart(part []byte) (*UploadOutput, error) {
-	req, _ := u.s.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: u.in.Bucket,
-		Key:    u.in.Key,
-		Body:   bytes.NewReader(part),
-	})
+	params := &s3.PutObjectInput{}
+	awsutil.Copy(params, u.in)
+	params.Body = bytes.NewReader(part)
+
+	req, _ := u.s.PutObjectRequest(params)
 	if err := req.Send(); err != nil {
 		return nil, err
 	}
@@ -232,11 +293,11 @@ func (a completedParts) Less(i, j int) bool { return *a[i].PartNumber < *a[j].Pa
 // upload will perform a multipart upload using the firstPart buffer containing
 // the first chunk of data.
 func (u *multiuploader) upload(firstPart []byte) (*UploadOutput, error) {
+	params := &s3.CreateMultipartUploadInput{}
+	awsutil.Copy(params, u.in)
+
 	// Create the multipart
-	resp, err := u.s.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
-		Bucket: u.in.Bucket,
-		Key:    u.in.Key,
-	})
+	resp, err := u.s.CreateMultipartUpload(params)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +323,7 @@ func (u *multiuploader) upload(firstPart []byte) (*UploadOutput, error) {
 		ch <- chunk{buf: packet[0:n], num: num}
 		if err != nil {
 			if err != io.EOF && err != io.ErrUnexpectedEOF {
-				u.seterr(err)
+				u.seterr(apierr.New("ReadRequestBody", "read multipart upload data failed", err))
 			}
 			break
 		}
@@ -274,7 +335,10 @@ func (u *multiuploader) upload(firstPart []byte) (*UploadOutput, error) {
 	complete := u.complete()
 
 	if err := u.geterr(); err != nil {
-		return &UploadOutput{UploadID: u.uploadID}, err
+		return nil, &multiUploadError{
+			BaseError: apierr.New("MultipartUpload", "upload multipart failed", err),
+			uploadID:  u.uploadID,
+		}
 	}
 	return &UploadOutput{
 		Location: *complete.Location,

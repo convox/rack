@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/endpoints"
 )
 
@@ -145,9 +146,11 @@ func shouldRetry(r *Request) bool {
 	if r.HTTPResponse.StatusCode >= 500 {
 		return true
 	}
-	if err := Error(r.Error); err != nil {
-		if _, ok := retryableCodes[err.Code]; ok {
-			return true
+	if r.Error != nil {
+		if err, ok := r.Error.(awserr.Error); ok {
+			if _, ok := retryableCodes[err.Code()]; ok {
+				return true
+			}
 		}
 	}
 	return false

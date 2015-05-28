@@ -6,8 +6,8 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
-// S3 is a client for Amazon S3.
-type S3 struct {
+type S3 struct // S3 is a client for Amazon S3.
+{
 	*aws.Service
 }
 

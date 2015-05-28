@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
@@ -329,7 +330,7 @@ func (a *App) Builds() Builds {
 	builds, err := ListBuilds(a.Name)
 
 	if err != nil {
-		if err.(aws.APIError).Message == "Requested resource not found" {
+		if err.(awserr.Error).Message() == "Requested resource not found" {
 			return Builds{}
 		} else {
 			panic(err)
@@ -381,7 +382,7 @@ func (a *App) Processes() Processes {
 	processes, err := ListProcesses(a.Name)
 
 	if err != nil {
-		if aerr, ok := err.(aws.APIError); ok && aerr.StatusCode == 400 {
+		if aerr, ok := err.(awserr.RequestFailure); ok && aerr.StatusCode() == 400 {
 			return Processes{}
 		} else {
 			// panic(err)
@@ -395,7 +396,7 @@ func (a *App) Releases() Releases {
 	releases, err := ListReleases(a.Name)
 
 	if err != nil {
-		if err.(aws.APIError).Message == "Requested resource not found" {
+		if err.(awserr.Error).Message() == "Requested resource not found" {
 			return Releases{}
 		} else {
 			panic(err)
@@ -419,7 +420,7 @@ func (a *App) Services() Services {
 	services, err := ListServices(a.Name)
 
 	if err != nil {
-		if err.(aws.APIError).Message == "Requested resource not found" {
+		if err.(awserr.Error).Message() == "Requested resource not found" {
 			return Services{}
 		} else {
 			panic(err)

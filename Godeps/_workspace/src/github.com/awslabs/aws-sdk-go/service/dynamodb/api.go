@@ -63,7 +63,7 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *aws.Reque
 // tables. If you delay the batch operation using exponential backoff, the individual
 // requests in the batch are much more likely to succeed.
 //
-// For more information, go to Batch Operations and Error Handling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#BatchOperations)
+// For more information, see Batch Operations and Error Handling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#BatchOperations)
 // in the Amazon DynamoDB Developer Guide.
 //
 //  By default, BatchGetItem performs eventually consistent reads on every
@@ -81,11 +81,10 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *aws.Reque
 // for nonexistent items consume the minimum read capacity units according to
 // the type of read. For more information, see Capacity Units Calculations (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html#CapacityUnitCalculations)
 // in the Amazon DynamoDB Developer Guide.
-func (c *DynamoDB) BatchGetItem(input *BatchGetItemInput) (output *BatchGetItemOutput, err error) {
+func (c *DynamoDB) BatchGetItem(input *BatchGetItemInput) (*BatchGetItemOutput, error) {
 	req, out := c.BatchGetItemRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opBatchGetItem *aws.Operation
@@ -141,7 +140,7 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *aws.R
 // tables. If you delay the batch operation using exponential backoff, the individual
 // requests in the batch are much more likely to succeed.
 //
-// For more information, go to Batch Operations and Error Handling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#BatchOperations)
+// For more information, see Batch Operations and Error Handling (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#BatchOperations)
 // in the Amazon DynamoDB Developer Guide.
 //
 //  With BatchWriteItem, you can efficiently write or delete large amounts
@@ -155,8 +154,9 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *aws.R
 // If you use a programming language that supports concurrency, such as Java,
 // you can use threads to write items in parallel. Your application must include
 // the necessary logic to manage the threads. With languages that don't support
-// threading, such as PHP, you must update provides an alternative where the
-// API performs the specified put and delete operations in parallel, giving
+// threading, such as PHP, you must update or delete the specified items one
+// at a time. In both situations, BatchWriteItem provides an alternative where
+// the API performs the specified put and delete operations in parallel, giving
 // you the power of the thread pool approach without having to introduce complexity
 // into your application.
 //
@@ -182,11 +182,10 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *aws.R
 //   Any individual item in a batch exceeds 400 KB.
 //
 //   The total request size exceeds 16 MB.
-func (c *DynamoDB) BatchWriteItem(input *BatchWriteItemInput) (output *BatchWriteItemOutput, err error) {
+func (c *DynamoDB) BatchWriteItem(input *BatchWriteItemInput) (*BatchWriteItemOutput, error) {
 	req, out := c.BatchWriteItemRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opBatchWriteItem *aws.Operation
@@ -229,11 +228,10 @@ func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *aws.Request
 // with secondary indexes can be in the CREATING state at any given time.
 //
 // You can use the DescribeTable API to check the table status.
-func (c *DynamoDB) CreateTable(input *CreateTableInput) (output *CreateTableOutput, err error) {
+func (c *DynamoDB) CreateTable(input *CreateTableInput) (*CreateTableOutput, error) {
 	req, out := c.CreateTableRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opCreateTable *aws.Operation
@@ -275,11 +273,10 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *aws.Request, 
 // Conditional deletes are useful for deleting items only if specific conditions
 // are met. If those conditions are met, DynamoDB performs the delete. Otherwise,
 // the item is not deleted.
-func (c *DynamoDB) DeleteItem(input *DeleteItemInput) (output *DeleteItemOutput, err error) {
+func (c *DynamoDB) DeleteItem(input *DeleteItemInput) (*DeleteItemOutput, error) {
 	req, out := c.DeleteItemRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDeleteItem *aws.Operation
@@ -321,11 +318,10 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *aws.Request
 //  When you delete a table, any indexes on that table are also deleted.
 //
 // Use the DescribeTable API to check the status of the table.
-func (c *DynamoDB) DeleteTable(input *DeleteTableInput) (output *DeleteTableOutput, err error) {
+func (c *DynamoDB) DeleteTable(input *DeleteTableInput) (*DeleteTableOutput, error) {
 	req, out := c.DeleteTableRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDeleteTable *aws.Operation
@@ -362,11 +358,10 @@ func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *aws.Req
 // uses an eventually consistent query, and the metadata for your table might
 // not be available at that moment. Wait for a few seconds, and then try the
 // DescribeTable request again.
-func (c *DynamoDB) DescribeTable(input *DescribeTableInput) (output *DescribeTableOutput, err error) {
+func (c *DynamoDB) DescribeTable(input *DescribeTableInput) (*DescribeTableOutput, error) {
 	req, out := c.DescribeTableRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opDescribeTable *aws.Operation
@@ -401,11 +396,10 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *aws.Request, output
 // requires a strongly consistent read, set ConsistentRead to true. Although
 // a strongly consistent read might take more time than an eventually consistent
 // read, it always returns the last updated value.
-func (c *DynamoDB) GetItem(input *GetItemInput) (output *GetItemOutput, err error) {
+func (c *DynamoDB) GetItem(input *GetItemInput) (*GetItemOutput, error) {
 	req, out := c.GetItemRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opGetItem *aws.Operation
@@ -420,6 +414,12 @@ func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *aws.Request, 
 			Name:       "ListTables",
 			HTTPMethod: "POST",
 			HTTPPath:   "/",
+			Paginator: &aws.Paginator{
+				InputTokens:     []string{"ExclusiveStartTableName"},
+				OutputTokens:    []string{"LastEvaluatedTableName"},
+				LimitToken:      "Limit",
+				TruncationToken: "",
+			},
 		}
 	}
 
@@ -436,11 +436,15 @@ func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *aws.Request, 
 // Returns an array of table names associated with the current account and endpoint.
 // The output from ListTables is paginated, with each page returning a maximum
 // of 100 table names.
-func (c *DynamoDB) ListTables(input *ListTablesInput) (output *ListTablesOutput, err error) {
+func (c *DynamoDB) ListTables(input *ListTablesInput) (*ListTablesOutput, error) {
 	req, out := c.ListTablesRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
+}
+
+func (c *DynamoDB) ListTablesPages(input *ListTablesInput, fn func(p *ListTablesOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListTablesRequest(input)
+	return page.EachPage(fn)
 }
 
 var opListTables *aws.Operation
@@ -493,11 +497,10 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *aws.Request, output
 //
 //  For more information about using this API, see Working with Items (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html)
 // in the Amazon DynamoDB Developer Guide.
-func (c *DynamoDB) PutItem(input *PutItemInput) (output *PutItemOutput, err error) {
+func (c *DynamoDB) PutItem(input *PutItemInput) (*PutItemOutput, error) {
 	req, out := c.PutItemRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opPutItem *aws.Operation
@@ -512,6 +515,12 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *aws.Request, output *Qu
 			Name:       "Query",
 			HTTPMethod: "POST",
 			HTTPPath:   "/",
+			Paginator: &aws.Paginator{
+				InputTokens:     []string{"ExclusiveStartKey"},
+				OutputTokens:    []string{"LastEvaluatedKey"},
+				LimitToken:      "Limit",
+				TruncationToken: "",
+			},
 		}
 	}
 
@@ -525,12 +534,15 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *aws.Request, output *Qu
 	return
 }
 
-// A Query operation directly accesses items from a table using the table primary
-// key, or from an index using the index key. You must provide a specific hash
-// key value. You can narrow the scope of the query by using comparison operators
-// on the range key value, or on the index key. You can use the ScanIndexForward
-// parameter to get results in forward or reverse order, by range key or by
-// index key.
+// A Query operation uses the primary key of a table or a secondary index to
+// directly access items from that table or index.
+//
+// Use the KeyConditionExpression parameter to provide a specific hash key
+// value. The Query operation will return all of the items from the table or
+// index with that hash key value. You can optionally narrow the scope of the
+// Query by specifying a range key value and a comparison operator in the KeyConditionExpression.
+// You can use the ScanIndexForward parameter to get results in forward or reverse
+// order, by range key or by index key.
 //
 // Queries that do not return results consume the minimum number of read capacity
 // units for that type of read operation.
@@ -547,11 +559,15 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *aws.Request, output *Qu
 // to true and obtain a strongly consistent result. Global secondary indexes
 // support eventually consistent reads only, so do not specify ConsistentRead
 // when querying a global secondary index.
-func (c *DynamoDB) Query(input *QueryInput) (output *QueryOutput, err error) {
+func (c *DynamoDB) Query(input *QueryInput) (*QueryOutput, error) {
 	req, out := c.QueryRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
+}
+
+func (c *DynamoDB) QueryPages(input *QueryInput, fn func(p *QueryOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.QueryRequest(input)
+	return page.EachPage(fn)
 }
 
 var opQuery *aws.Operation
@@ -566,6 +582,12 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *aws.Request, output *Scan
 			Name:       "Scan",
 			HTTPMethod: "POST",
 			HTTPPath:   "/",
+			Paginator: &aws.Paginator{
+				InputTokens:     []string{"ExclusiveStartKey"},
+				OutputTokens:    []string{"LastEvaluatedKey"},
+				LimitToken:      "Limit",
+				TruncationToken: "",
+			},
 		}
 	}
 
@@ -596,11 +618,15 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *aws.Request, output *Scan
 // Scan operation by providing the Segment and TotalSegments parameters. For
 // more information, see Parallel Scan (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#QueryAndScanParallelScan)
 // in the Amazon DynamoDB Developer Guide.
-func (c *DynamoDB) Scan(input *ScanInput) (output *ScanOutput, err error) {
+func (c *DynamoDB) Scan(input *ScanInput) (*ScanOutput, error) {
 	req, out := c.ScanRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
+}
+
+func (c *DynamoDB) ScanPages(input *ScanInput, fn func(p *ScanOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ScanRequest(input)
+	return page.EachPage(fn)
 }
 
 var opScan *aws.Operation
@@ -638,11 +664,10 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *aws.Request, 
 //
 // You can also return the item's attribute values in the same UpdateItem operation
 // using the ReturnValues parameter.
-func (c *DynamoDB) UpdateItem(input *UpdateItemInput) (output *UpdateItemOutput, err error) {
+func (c *DynamoDB) UpdateItem(input *UpdateItemInput) (*UpdateItemOutput, error) {
 	req, out := c.UpdateItemRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opUpdateItem *aws.Operation
@@ -688,11 +713,10 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *aws.Request
 // still has the provisioned throughput from before the call. The table's new
 // provisioned throughput settings go into effect when the table returns to
 // the ACTIVE state; at that point, the UpdateTable operation is complete.
-func (c *DynamoDB) UpdateTable(input *UpdateTableInput) (output *UpdateTableOutput, err error) {
+func (c *DynamoDB) UpdateTable(input *UpdateTableInput) (*UpdateTableOutput, error) {
 	req, out := c.UpdateTableRequest(input)
-	output = out
-	err = req.Send()
-	return
+	err := req.Send()
+	return out, err
 }
 
 var opUpdateTable *aws.Operation
@@ -850,10 +874,50 @@ type metadataAttributeValueUpdate struct {
 
 // Represents the input of a BatchGetItem operation.
 type BatchGetItemInput struct {
-	// A map of one or more table names and, for each table, the corresponding primary
-	// keys for the items to retrieve. Each table name can be invoked only once.
+	// A map of one or more table names and, for each table, a map that describes
+	// one or more items to retrieve from that table. Each table name can be used
+	// only once per BatchGetItem request.
 	//
-	// Each element in the map consists of the following:
+	// Each element in the map of items to retrieve consists of the following:
+	//
+	//   ConsistentRead - If true, a strongly consistent read is used; if false
+	// (the default), an eventually consistent read is used.
+	//
+	//    ExpressionAttributeNames - One or more substitution tokens for attribute
+	// names in the ProjectionExpression parameter. The following are some use cases
+	// for using ExpressionAttributeNames:
+	//
+	//   To access an attribute whose name conflicts with a DynamoDB reserved word.
+	//
+	//   To create a placeholder for repeating occurrences of an attribute name
+	// in an expression.
+	//
+	//   To prevent special characters in an attribute name from being misinterpreted
+	// in an expression.
+	//
+	//   Use the # character in an expression to dereference an attribute name.
+	// For example, consider the following attribute name:
+	//
+	// Percentile
+	//
+	// The name of this attribute conflicts with a reserved word, so it cannot
+	// be used directly in an expression. (For the complete list of reserved words,
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
+	// the following for ExpressionAttributeNames:
+	//
+	// {"#P":"Percentile"}
+	//
+	// You could then use this substitution in an expression, as in this example:
+	//
+	// #P = :val
+	//
+	//  Tokens that begin with the : character are expression attribute values,
+	// which are placeholders for the actual value at runtime.
+	//
+	// For more information on expression attribute names, see Accessing Item Attributes
+	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// in the Amazon DynamoDB Developer Guide.
 	//
 	//   Keys - An array of primary key attribute values that define specific items
 	// in the table. For each primary key, you must provide all of the key attributes.
@@ -861,16 +925,35 @@ type BatchGetItemInput struct {
 	// attribute. For a hash-and-range type primary key, you must provide both the
 	// hash attribute and the range attribute.
 	//
-	//   AttributesToGet - One or more attributes to be retrieved from the table.
-	// By default, all attributes are returned. If a specified attribute is not
-	// found, it does not appear in the result.
+	//   ProjectionExpression - A string that identifies one or more attributes
+	// to retrieve from the table. These attributes can include scalars, sets, or
+	// elements of a JSON document. The attributes in the expression must be separated
+	// by commas.
+	//
+	// If no attribute names are specified, then all attributes will be returned.
+	// If any of the requested attributes are not found, they will not appear in
+	// the result.
+	//
+	// For more information, see Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// in the Amazon DynamoDB Developer Guide.
+	//
+	//    AttributesToGet -
+	//
+	//  This is a legacy parameter, for backward compatibility. New applications
+	// should use ProjectionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
+	//
+	// This parameter allows you to retrieve attributes of type List or Map; however,
+	// it cannot retrieve individual elements within a List or a Map.
+	//
+	//  The names of one or more attributes to retrieve. If no attribute names
+	// are provided, then all attributes will be returned. If any of the requested
+	// attributes are not found, they will not appear in the result.
 	//
 	// Note that AttributesToGet has no effect on provisioned throughput consumption.
 	// DynamoDB determines capacity units consumed based on item size, not on the
 	// amount of data that is returned to an application.
-	//
-	//   ConsistentRead - If true, a strongly consistent read is used; if false
-	// (the default), an eventually consistent read is used.
 	RequestItems *map[string]*KeysAndAttributes `type:"map" required:"true"`
 
 	// A value that if set to TOTAL, the response includes ConsumedCapacity data
@@ -1438,14 +1521,18 @@ type DeleteItemInput struct {
 	//
 	//    Logical operators: AND | OR | NOT
 	//
-	//   For more information on condition expressions, go to Specifying Conditions
+	//   For more information on condition expressions, see Specifying Conditions
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// ConditionExpression replaces the legacy ConditionalOperator and Expected
+	// parameters.
 	ConditionExpression *string `type:"string"`
 
-	// There is a newer parameter available. Use ConditionExpression instead. Note
-	// that if you use ConditionalOperator and  ConditionExpression  at the same
-	// time, DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ConditionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	//  A logical operator to apply to the conditions in the Expected map:
 	//
@@ -1462,9 +1549,10 @@ type DeleteItemInput struct {
 	// This parameter does not support attributes of type List or Map.
 	ConditionalOperator *string `type:"string"`
 
-	// There is a newer parameter available. Use ConditionExpression instead. Note
-	// that if you use Expected and  ConditionExpression  at the same time, DynamoDB
-	// will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ConditionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	//  A map of attribute/condition pairs. Expected provides a conditional block
 	// for the DeleteItem operation.
@@ -1674,7 +1762,7 @@ type DeleteItemInput struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -1687,8 +1775,8 @@ type DeleteItemInput struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -1709,8 +1797,8 @@ type DeleteItemInput struct {
 	//
 	// ProductStatus IN (:avail, :back, :disc)
 	//
-	// For more information on expression attribute values, go to Specifying Conditions
-	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
+	// For more information on expression attribute values, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeValues *map[string]*AttributeValue `type:"map"`
 
@@ -1868,7 +1956,7 @@ type metadataDescribeTableOutput struct {
 // comparison. If the comparison evaluates to true, then the conditional operation
 // succeeds.
 //
-//   >Use Value to specify a value that DynamoDB will compare against an attribute.
+//   Use Value to specify a value that DynamoDB will compare against an attribute.
 // If the values match, then ExpectedAttributeValue evaluates to true and the
 // conditional operation succeeds. Optionally, you can also set Exists to false,
 // indicating that you do not expect to find the attribute value in the table.
@@ -2067,9 +2155,10 @@ type metadataExpectedAttributeValue struct {
 
 // Represents the input of a GetItem operation.
 type GetItemInput struct {
-	// There is a newer parameter available. Use ProjectionExpression instead. Note
-	// that if you use AttributesToGet and ProjectionExpression at the same time,
-	// DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ProjectionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	// This parameter allows you to retrieve attributes of type List or Map; however,
 	// it cannot retrieve individual elements within a List or a Map.
@@ -2105,7 +2194,7 @@ type GetItemInput struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -2118,8 +2207,8 @@ type GetItemInput struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -2140,8 +2229,10 @@ type GetItemInput struct {
 	// If any of the requested attributes are not found, they will not appear in
 	// the result.
 	//
-	// For more information, go to Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information, see Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// ProjectionExpression replaces the legacy AttributesToGet parameter.
 	ProjectionExpression *string `type:"string"`
 
 	// A value that if set to TOTAL, the response includes ConsumedCapacity data
@@ -2385,7 +2476,7 @@ type KeysAndAttributes struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -2398,8 +2489,8 @@ type KeysAndAttributes struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -2415,8 +2506,10 @@ type KeysAndAttributes struct {
 	// If any of the requested attributes are not found, they will not appear in
 	// the result.
 	//
-	// For more information, go to Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information, see Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// ProjectionExpression replaces the legacy AttributesToGet parameter.
 	ProjectionExpression *string `type:"string"`
 
 	metadataKeysAndAttributes `json:"-" xml:"-"`
@@ -2624,14 +2717,18 @@ type PutItemInput struct {
 	//
 	//    Logical operators: AND | OR | NOT
 	//
-	//   For more information on condition expressions, go to Specifying Conditions
+	//   For more information on condition expressions, see Specifying Conditions
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	//  ConditionExpression replaces the legacy ConditionalOperator and Expected
+	// parameters.
 	ConditionExpression *string `type:"string"`
 
-	// There is a newer parameter available. Use ConditionExpression instead. Note
-	// that if you use ConditionalOperator and  ConditionExpression  at the same
-	// time, DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ConditionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	//  A logical operator to apply to the conditions in the Expected map:
 	//
@@ -2648,9 +2745,10 @@ type PutItemInput struct {
 	// This parameter does not support attributes of type List or Map.
 	ConditionalOperator *string `type:"string"`
 
-	// There is a newer parameter available. Use ConditionExpression instead. Note
-	// that if you use Expected and  ConditionExpression  at the same time, DynamoDB
-	// will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ConditionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	//  A map of attribute/condition pairs. Expected provides a conditional block
 	// for the PutItem operation.
@@ -2860,7 +2958,7 @@ type PutItemInput struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -2873,8 +2971,8 @@ type PutItemInput struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -2895,8 +2993,8 @@ type PutItemInput struct {
 	//
 	// ProductStatus IN (:avail, :back, :disc)
 	//
-	// For more information on expression attribute values, go to Specifying Conditions
-	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
+	// For more information on expression attribute values, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeValues *map[string]*AttributeValue `type:"map"`
 
@@ -3012,9 +3110,10 @@ type metadataPutRequest struct {
 
 // Represents the input of a Query operation.
 type QueryInput struct {
-	// There is a newer parameter available. Use ProjectionExpression instead. Note
-	// that if you use AttributesToGet and ProjectionExpression at the same time,
-	// DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ProjectionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	// This parameter allows you to retrieve attributes of type List or Map; however,
 	// it cannot retrieve individual elements within a List or a Map.
@@ -3043,7 +3142,12 @@ type QueryInput struct {
 	// attributes from the parent table.
 	AttributesToGet []*string `type:"list"`
 
-	// A logical operator to apply to the conditions in a QueryFilter map:
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use FilterExpression instead. Do not combine legacy parameters and
+	// expression parameters in a single API call; otherwise, DynamoDB will return
+	// a ValidationException exception.
+	//
+	//  A logical operator to apply to the conditions in a QueryFilter map:
 	//
 	//  AND - If all of the conditions evaluate to true, then the entire map evaluates
 	// to true.
@@ -3091,7 +3195,7 @@ type QueryInput struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -3104,8 +3208,8 @@ type QueryInput struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -3126,8 +3230,8 @@ type QueryInput struct {
 	//
 	// ProductStatus IN (:avail, :back, :disc)
 	//
-	// For more information on expression attribute values, go to Specifying Conditions
-	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
+	// For more information on expression attribute values, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeValues *map[string]*AttributeValue `type:"map"`
 
@@ -3135,23 +3239,95 @@ type QueryInput struct {
 	// but before the data is returned to you. Items that do not satisfy the FilterExpression
 	// criteria are not returned.
 	//
-	// A FilterExpression is applied after the items have already been read; the
+	//  A FilterExpression is applied after the items have already been read; the
 	// process of filtering does not consume any additional read capacity units.
 	//
-	// For more information, go to Filter Expressions (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#FilteringResults)
+	//  For more information, see Filter Expressions (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#FilteringResults)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// FilterExpression replaces the legacy QueryFilter and ConditionalOperator
+	// parameters.
 	FilterExpression *string `type:"string"`
 
 	// The name of an index to query. This index can be any local secondary index
-	// or global secondary index on the table.
+	// or global secondary index on the table. Note that if you use the IndexName
+	// parameter, you must also provide TableName.
 	IndexName *string `type:"string"`
 
-	// The selection criteria for the query. For a query on a table, you can have
+	// The condition that specifies the key value(s) for items to be retrieved by
+	// the Query action.
+	//
+	// The condition must perform an equality test on a single hash key value.
+	// The condition can also test for one or more range key values. A Query can
+	// use KeyConditionExpression to retrieve a single item with a given hash and
+	// range key value, or several items that have the same hash key value but different
+	// range key values.
+	//
+	// The hash key equality test is required, and must be specified in the following
+	// format:
+	//
+	//  hashAttributeName = :hashval
+	//
+	// If you also want to provide a range key condition, it must be combined using
+	// AND with the hash key condition. Following is an example, using the = comparison
+	// operator for the range key:
+	//
+	//  hashAttributeName = :hashval AND rangeAttributeName = :rangeval
+	//
+	// Valid comparisons for the range key condition are as follows:
+	//
+	//   rangeAttributeName = :rangeval - true if the range key is equal to :rangeval.
+	//
+	//   rangeAttributeName < :rangeval - true if the range key is less than :rangeval.
+	//
+	//   rangeAttributeName <= :rangeval - true if the range key is less than or
+	// equal to :rangeval.
+	//
+	//   rangeAttributeName > :rangeval - true if the range key is greater than
+	// :rangeval.
+	//
+	//   rangeAttributeName >= :rangeval - true if the range key is greater than
+	// or equal to :rangeval.
+	//
+	//   rangeAttributeName BETWEEN :rangeval1 AND :rangeval2 - true if the range
+	// key is less than or greater than :rangeval1, and less than or equal to :rangeval2.
+	//
+	//   begins_with (rangeAttributeName, :rangeval) - true if the range key begins
+	// with a particular operand. Note that the function name begins_with is case-sensitive.
+	//
+	//   Use the ExpressionAttributeValues parameter to replace tokens such as
+	// :hashval and :rangeval with actual values at runtime.
+	//
+	// You can optionally use the ExpressionAttributeNames parameter to replace
+	// the names of the hash and range attributes with placeholder tokens. This
+	// might be necessary if an attribute name conflicts with a DynamoDB reserved
+	// word. For example, the following KeyConditionExpression causes an error because
+	// Size is a reserved word:
+	//
+	//   Size = :myval   To work around this, define a placeholder (such a #myval)
+	// to represent the attribute name Size. KeyConditionExpression then is as follows:
+	//
+	//   #S = :myval   For a list of reserved words, see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// in the Amazon DynamoDB Developer Guide.
+	//
+	// For more information on ExpressionAttributeNames and ExpressionAttributeValues,
+	// see Using Placeholders for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
+	// in the Amazon DynamoDB Developer Guide.
+	//
+	//  KeyConditionExpression replaces the legacy KeyConditions parameter.
+	KeyConditionExpression *string `type:"string"`
+
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use KeyConditionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
+	//
+	//  The selection criteria for the query. For a query on a table, you can have
 	// conditions only on the table primary key attributes. You must provide the
 	// hash key attribute name and value as an EQ condition. You can optionally
 	// provide a second condition, referring to the range key attribute.
 	//
-	// If you do not provide a range key condition, all of the items that match
+	//  If you don't provide a range key condition, all of the items that match
 	// the hash key will be retrieved. If a FilterExpression or QueryFilter is present,
 	// it will be applied after the items are retrieved.
 	//
@@ -3246,7 +3422,7 @@ type QueryInput struct {
 	//     For usage examples of AttributeValueList and ComparisonOperator, see
 	// Legacy Conditional Parameters (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.html)
 	// in the Amazon DynamoDB Developer Guide.
-	KeyConditions *map[string]*Condition `type:"map" required:"true"`
+	KeyConditions *map[string]*Condition `type:"map"`
 
 	// The maximum number of items to evaluate (not necessarily the number of matching
 	// items). If DynamoDB processes the number of items up to the limit while processing
@@ -3267,20 +3443,23 @@ type QueryInput struct {
 	// If any of the requested attributes are not found, they will not appear in
 	// the result.
 	//
-	// For more information, go to Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information, see Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// ProjectionExpression replaces the legacy AttributesToGet parameter.
 	ProjectionExpression *string `type:"string"`
 
-	// There is a newer parameter available. Use FilterExpression instead. Note
-	// that if you use QueryFilter and FilterExpression at the same time, DynamoDB
-	// will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use FilterExpression instead. Do not combine legacy parameters and
+	// expression parameters in a single API call; otherwise, DynamoDB will return
+	// a ValidationException exception.
 	//
 	//  A condition that evaluates the query results after the items are read and
 	// returns only the desired values.
 	//
 	// This parameter does not support attributes of type List or Map.
 	//
-	// A QueryFilter is applied after the items have already been read; the process
+	//  A QueryFilter is applied after the items have already been read; the process
 	// of filtering does not consume any additional read capacity units.
 	//
 	// If you provide more than one condition in the QueryFilter map, then by default
@@ -3381,6 +3560,10 @@ type QueryInput struct {
 	// in a single request, unless the value for Select is SPECIFIC_ATTRIBUTES.
 	// (This usage is equivalent to specifying AttributesToGet without any value
 	// for Select.)
+	//
+	// If you use the ProjectionExpression parameter, then the value for Select
+	// can only be SPECIFIC_ATTRIBUTES. Any other value for Select will return an
+	// error.
 	Select *string `type:"string"`
 
 	// The name of the table containing the requested items.
@@ -3447,9 +3630,10 @@ type metadataQueryOutput struct {
 
 // Represents the input of a Scan operation.
 type ScanInput struct {
-	// There is a newer parameter available. Use ProjectionExpression instead. Note
-	// that if you use AttributesToGet and ProjectionExpression at the same time,
-	// DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ProjectionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	// This parameter allows you to retrieve attributes of type List or Map; however,
 	// it cannot retrieve individual elements within a List or a Map.
@@ -3463,9 +3647,10 @@ type ScanInput struct {
 	// amount of data that is returned to an application.
 	AttributesToGet []*string `type:"list"`
 
-	// There is a newer parameter available. Use ConditionExpression instead. Note
-	// that if you use ConditionalOperator and  ConditionExpression  at the same
-	// time, DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use FilterExpression instead. Do not combine legacy parameters and
+	// expression parameters in a single API call; otherwise, DynamoDB will return
+	// a ValidationException exception.
 	//
 	//  A logical operator to apply to the conditions in a ScanFilter map:
 	//
@@ -3511,7 +3696,7 @@ type ScanInput struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -3524,8 +3709,8 @@ type ScanInput struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -3546,8 +3731,8 @@ type ScanInput struct {
 	//
 	// ProductStatus IN (:avail, :back, :disc)
 	//
-	// For more information on expression attribute values, go to Specifying Conditions
-	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
+	// For more information on expression attribute values, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeValues *map[string]*AttributeValue `type:"map"`
 
@@ -3555,11 +3740,14 @@ type ScanInput struct {
 	// but before the data is returned to you. Items that do not satisfy the FilterExpression
 	// criteria are not returned.
 	//
-	// A FilterExpression is applied after the items have already been read; the
+	//  A FilterExpression is applied after the items have already been read; the
 	// process of filtering does not consume any additional read capacity units.
 	//
-	// For more information, go to Filter Expressions (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#FilteringResults)
+	// For more information, see Filter Expressions (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#FilteringResults)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// FilterExpression replaces the legacy ScanFilter and ConditionalOperator
+	// parameters.
 	FilterExpression *string `type:"string"`
 
 	// The name of a secondary index to scan. This index can be any local secondary
@@ -3586,8 +3774,10 @@ type ScanInput struct {
 	// If any of the requested attributes are not found, they will not appear in
 	// the result.
 	//
-	// For more information, go to Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information, see Accessing Item Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// ProjectionExpression replaces the legacy AttributesToGet parameter.
 	ProjectionExpression *string `type:"string"`
 
 	// A value that if set to TOTAL, the response includes ConsumedCapacity data
@@ -3596,9 +3786,10 @@ type ScanInput struct {
 	// in the response.
 	ReturnConsumedCapacity *string `type:"string"`
 
-	// There is a newer parameter available. Use FilterExpression instead. Note
-	// that if you use ScanFilter and FilterExpression at the same time, DynamoDB
-	// will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use FilterExpression instead. Do not combine legacy parameters and
+	// expression parameters in a single API call; otherwise, DynamoDB will return
+	// a ValidationException exception.
 	//
 	//  A condition that evaluates the scan results and returns only the desired
 	// values.
@@ -3942,9 +4133,10 @@ type metadataUpdateGlobalSecondaryIndexAction struct {
 
 // Represents the input of an UpdateItem operation.
 type UpdateItemInput struct {
-	// There is a newer parameter available. Use UpdateExpression instead. Note
-	// that if you use AttributeUpdates and UpdateExpression at the same time, DynamoDB
-	// will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use UpdateExpression instead. Do not combine legacy parameters and
+	// expression parameters in a single API call; otherwise, DynamoDB will return
+	// a ValidationException exception.
 	//
 	// This parameter can be used for modifying top-level attributes; however,
 	// it does not support individual list or map elements.
@@ -4044,14 +4236,18 @@ type UpdateItemInput struct {
 	//
 	//    Logical operators: AND | OR | NOT
 	//
-	//   For more information on condition expressions, go to Specifying Conditions
+	//   For more information on condition expressions, see Specifying Conditions
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// ConditionExpression replaces the legacy ConditionalOperator and Expected
+	// parameters.
 	ConditionExpression *string `type:"string"`
 
-	// There is a newer parameter available. Use ConditionExpression instead. Note
-	// that if you use ConditionalOperator and  ConditionExpression  at the same
-	// time, DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use ConditionExpression instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	//  A logical operator to apply to the conditions in the Expected map:
 	//
@@ -4068,9 +4264,10 @@ type UpdateItemInput struct {
 	// This parameter does not support attributes of type List or Map.
 	ConditionalOperator *string `type:"string"`
 
-	// There is a newer parameter available. Use  ConditionExpression  instead.
-	// Note that if you use Expected and  ConditionExpression  at the same time,
-	// DynamoDB will return a ValidationException exception.
+	// This is a legacy parameter, for backward compatibility. New applications
+	// should use  ConditionExpression  instead. Do not combine legacy parameters
+	// and expression parameters in a single API call; otherwise, DynamoDB will
+	// return a ValidationException exception.
 	//
 	//  A map of attribute/condition pairs. Expected provides a conditional block
 	// for the UpdateItem operation.
@@ -4280,7 +4477,7 @@ type UpdateItemInput struct {
 	//
 	// The name of this attribute conflicts with a reserved word, so it cannot
 	// be used directly in an expression. (For the complete list of reserved words,
-	// go to Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
+	// see Reserved Words (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html)
 	// in the Amazon DynamoDB Developer Guide). To work around this, you could specify
 	// the following for ExpressionAttributeNames:
 	//
@@ -4293,8 +4490,8 @@ type UpdateItemInput struct {
 	// Tokens that begin with the : character are expression attribute values,
 	// which are placeholders for the actual value at runtime.
 	//
-	// For more information on expression attribute names, go to Accessing Item
-	// Attributes (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.AccessingItemAttributes.html)
+	// For more information on expression attribute names, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeNames *map[string]*string `type:"map"`
 
@@ -4315,8 +4512,8 @@ type UpdateItemInput struct {
 	//
 	// ProductStatus IN (:avail, :back, :disc)
 	//
-	// For more information on expression attribute values, go to Specifying Conditions
-	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html)
+	// For more information on expression attribute values, see Using Placeholders
+	// for Attribute Names and Values (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionPlaceholders.html)
 	// in the Amazon DynamoDB Developer Guide.
 	ExpressionAttributeValues *map[string]*AttributeValue `type:"map"`
 
@@ -4428,9 +4625,11 @@ type UpdateItemInput struct {
 	//    You can have many actions in a single expression, such as the following:
 	// SET a=:value1, b=:value2 DELETE :value3, :value4, :value5
 	//
-	// For more information on update expressions, go to Modifying Items and Attributes
+	// For more information on update expressions, see Modifying Items and Attributes
 	// (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.Modifying.html)
 	// in the Amazon DynamoDB Developer Guide.
+	//
+	// UpdateExpression replaces the legacy AttributeUpdates parameter.
 	UpdateExpression *string `type:"string"`
 
 	metadataUpdateItemInput `json:"-" xml:"-"`

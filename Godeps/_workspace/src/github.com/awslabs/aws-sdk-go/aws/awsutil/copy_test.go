@@ -77,6 +77,23 @@ func TestCopy(t *testing.T) {
 	assert.NotEqual(t, f2.C, f1.C)
 }
 
+func TestCopyIgnoreNilMembers(t *testing.T) {
+	type Foo struct {
+		A *string
+	}
+
+	f := &Foo{}
+	assert.Nil(t, f.A)
+
+	var f2 Foo
+	awsutil.Copy(&f2, f)
+	assert.Nil(t, f2.A)
+
+	fcopy := awsutil.CopyOf(f)
+	f3 := fcopy.(*Foo)
+	assert.Nil(t, f3.A)
+}
+
 func TestCopyPrimitive(t *testing.T) {
 	str := "hello"
 	var s string
@@ -102,6 +119,52 @@ func TestCopyReader(t *testing.T) {
 	b, err = ioutil.ReadAll(buf)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte(""), b)
+}
+
+func TestCopyDifferentStructs(t *testing.T) {
+	type SrcFoo struct {
+		A                int
+		B                []*string
+		C                map[string]*int
+		SrcUnique        string
+		SameNameDiffType int
+	}
+	type DstFoo struct {
+		A                int
+		B                []*string
+		C                map[string]*int
+		DstUnique        int
+		SameNameDiffType string
+	}
+
+	// Create the initial value
+	str1 := "hello"
+	str2 := "bye bye"
+	int1 := 1
+	int2 := 2
+	f1 := &SrcFoo{
+		A: 1,
+		B: []*string{&str1, &str2},
+		C: map[string]*int{
+			"A": &int1,
+			"B": &int2,
+		},
+		SrcUnique:        "unique",
+		SameNameDiffType: 1,
+	}
+
+	// Do the copy
+	var f2 DstFoo
+	awsutil.Copy(&f2, f1)
+
+	// Values are equal
+	assert.Equal(t, f2.A, f1.A)
+	assert.Equal(t, f2.B, f1.B)
+	assert.Equal(t, f2.C, f1.C)
+	assert.Equal(t, "unique", f1.SrcUnique)
+	assert.Equal(t, 1, f1.SameNameDiffType)
+	assert.Equal(t, 0, f2.DstUnique)
+	assert.Equal(t, "", f2.SameNameDiffType)
 }
 
 func ExampleCopyOf() {
