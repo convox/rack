@@ -1,0 +1,579 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
+  },
+  "Outputs": {
+    "BalancerHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Balancer",
+          "DNSName"
+        ]
+      }
+    },
+    "Settings": {
+      "Value": {
+        "Ref": "Settings"
+      }
+    }
+  },
+  "Parameters": {
+    "Ami": {
+      "Type" : "String",
+      "Default" : "ami-d0b9acb8",
+      "Description" : "ECS Cluster AMI (do not change unless you know what you're doing)"
+    },
+    "AvailabilityZones": {
+      "Type" : "CommaDelimitedList",
+      "Default" : "",
+      "Description" : "Override default availability zones"
+    },
+    "Kernel": {
+      "Default": "arn:aws:lambda:us-east-1:778743527532:function:convox-formation",
+      "Description": "TODO replace this",
+      "Type": "String"
+    },
+    "Key": {
+      "Default": "",
+      "Description": "SSH key name for access to cluster instances",
+      "Type": "String"
+    },
+    "Password": {
+      "Default": "",
+      "Description": "Kernel HTTP password",
+      "Type": "String"
+    },
+    "RegistryImage": {
+      "Default": "convox/registry:latest",
+      "Description": "Docker image for the registry",
+      "Type": "String"
+    },
+    "WebImage": {
+      "Default": "convox/kernel:latest",
+      "Description": "Docker image for the kernel",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "User": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "Administrator",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+            }
+          }
+        ]
+      }
+    },
+    "Access": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": { "Ref": "User" }
+      }
+    },
+    "Cluster": {
+      "Properties": {
+        "ServiceToken": {
+          "Ref": "Kernel"
+        },
+        "Name": {
+          "Ref": "AWS::StackName"
+        }
+      },
+      "Type": "Custom::ECSCluster",
+      "Version": "1.0"
+    },
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "Tags": [
+          { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
+        ]
+      }
+    },
+    "Gateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+      }
+    },
+    "GatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "Gateway" },
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet0": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "0", { "Ref": "AvailabilityZones" } ] }
+        ] },
+        "CidrBlock": "10.0.1.0/24",
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "1", { "Ref": "AvailabilityZones" } ] }
+        ] },
+        "CidrBlock": "10.0.2.0/24",
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
+          { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
+          { "Fn::Select": [ "2", { "Ref": "AvailabilityZones" } ] }
+        ] },
+        "CidrBlock": "10.0.3.0/24",
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Routes": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "RouteDefault": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "Gateway" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet0Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet0" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet1Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet1" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet2Routes": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet2" },
+        "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Instances",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": "10.0.0.0/8" }
+        ],
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "IamRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ec2.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "ClusterInstanceRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:CreateCluster",
+                    "ecs:DeregisterContainerInstance",
+                    "ecs:DiscoverPollEndpoint",
+                    "ecs:Poll",
+                    "ecs:RegisterContainerInstance",
+                    "ecs:Submit*"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "IamRole" } ]
+      }
+    },
+    "LaunchConfiguration": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": true,
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "ImageId": { "Ref": "Ami" },
+        "InstanceMonitoring": true,
+        "InstanceType": "t2.micro",
+        "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "UserData": { "Fn::Base64": 
+          { "Fn::Join": [ "\n", [
+            "#!/bin/bash",
+            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
+            { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " >> /etc/sysconfig/docker" ] ] },
+            "service docker restart",
+            "docker start ecs-agent"
+          ] ] } 
+        }
+      }
+    },
+    "Instances": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
+        "AvailabilityZones": { "Fn::If": [ "DefaultAvailabilityZones",
+          [
+            { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
+            { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
+            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
+          ],
+          [
+            { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
+            { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
+            { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
+          ]
+        ] },
+        "VPCZoneIdentifier": [ 
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Ref": "Subnet2" }
+        ],
+        "Cooldown": 5,
+        "DesiredCapacity": "1",
+        "HealthCheckType": "EC2",
+        "HealthCheckGracePeriod": 0,
+        "MinSize" : "1",
+        "MaxSize" : "10",
+        "MetricsCollection": [ { "Granularity": "1Minute" } ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Join": [ "-", [ "cluster", { "Ref": "AWS::StackName" } ] ] },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Cluster",
+            "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          }
+        ]
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": 1,
+          "MinInstancesInService": 1
+        }
+      }
+    },
+    "Balancer": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 60
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": "HTTP:5000/check",
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": "5000",
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "80",
+            "Protocol": "TCP"
+          },
+          {
+            "InstancePort": "4443",
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "443",
+            "Protocol": "TCP"
+          },
+          {
+            "InstancePort": "5100",
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "5000",
+            "Protocol": "TCP"
+          }
+        ],
+        "LoadBalancerName": {
+          "Ref": "AWS::StackName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerSecurityGroup"
+          }
+        ],
+        "Subnets": [
+          { "Ref": "Subnet0" },
+          { "Ref": "Subnet1" },
+          { "Ref": "Subnet2" }
+        ]
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "IpProtocol": "tcp",
+            "FromPort": "5000",
+            "ToPort": "5000"
+          }
+        ],
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "Service": {
+      "Properties": {
+        "Cluster": {
+          "Ref": "AWS::StackName"
+        },
+        "DesiredCount": "1",
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "Balancer"
+                },
+                "web",
+                "3000"
+              ]
+            ]
+          },
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "Balancer"
+                },
+                "web",
+                "4443"
+              ]
+            ]
+          },
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "Balancer"
+                },
+                "registry",
+                "443"
+              ]
+            ]
+          }
+        ],
+        "Name": "kernel",
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Ref": "Kernel"
+        },
+        "TaskDefinition": {
+          "Ref": "TaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "ServiceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "elasticloadbalancing:Describe*",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "ec2:Describe*",
+                    "ec2:AuthorizeSecurityGroupIngress"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            },
+            "PolicyName": "ServiceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Settings": {
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "TaskDefinition": {
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceToken": {
+          "Ref": "Kernel"
+        },
+        "Tasks": [
+          {
+            "CPU": "200",
+            "Environment": {
+              "AWS_REGION": { "Ref": "AWS::Region" },
+              "AWS_ACCESS": { "Ref": "Access" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "Access", "SecretAccessKey" ] },
+              "CUSTOM_TOPIC": { "Ref": "Kernel" },
+              "HTTP_PASSWORD": { "Ref": "Password" }
+            },
+            "Image": { "Ref": "WebImage" },
+            "Links": [],
+            "Memory": "300",
+            "Name": "web",
+            "PortMappings": [
+              "5000:3000",
+              "4443:4443"
+            ],
+            "Volumes": [
+              "/var/run/docker.sock:/var/run/docker.sock"
+            ]
+          },
+          {
+            "CPU": "200",
+            "Image": { "Ref": "RegistryImage" },
+            "Key": {
+              "Ref": "Key"
+            },
+            "Links": [],
+            "Memory": "300",
+            "Name": "registry",
+            "PortMappings": [
+              "5100:443"
+            ],
+            "Volumes": []
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    }
+  }
+}
