@@ -221,7 +221,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 	// download environment
 	var env models.Environment
 
-	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok {
+	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
 		res, err := http.Get(envUrl)
 
 		if err != nil {
@@ -251,7 +251,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 			Memory:    aws.Long(int64(memory)),
 		}
 
-		if command, ok := task["Command"].(string); ok {
+		if command, ok := task["Command"].(string); ok && command != "" {
 			r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
 		}
 
