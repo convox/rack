@@ -197,15 +197,9 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
-	resources := a.Resources()
-	processes := a.Processes()
+	done := make(chan bool)
 
-	done := make([](chan bool), len(processes))
-
-	for i, ps := range processes {
-		done[i] = make(chan bool)
-		go subscribeKinesis(ps.Name, resources[fmt.Sprintf("%sKinesis", upperName(ps.Name))].Id, output, done[i])
-	}
+	go subscribeKinesis(a.Outputs["Kinesis"], output, done)
 
 	return nil
 }

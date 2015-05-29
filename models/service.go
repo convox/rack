@@ -261,7 +261,7 @@ func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
 			return err
 		}
 
-		go subscribeKinesis(s.Name, resources["Kinesis"].Id, output, done)
+		go subscribeKinesis(resources["Kinesis"].Id, output, done)
 	}
 	return nil
 }

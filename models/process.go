@@ -109,15 +109,15 @@ func GetProcess(app, name string) (*Process, error) {
 }
 
 func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
-	resources, err := ListResources(p.App)
-	fmt.Printf("err %+v\n", err)
+	// resources, err := ListResources(p.App)
+	// fmt.Printf("err %+v\n", err)
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	//   return err
+	// }
 
-	done := make(chan bool)
-	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
+	// done := make(chan bool)
+	// go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
 
 	return nil
 }
