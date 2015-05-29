@@ -309,8 +309,8 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 
 		// set volumes
 		if volumes, ok := task["Volumes"].([]interface{}); ok {
-			for i, volume := range volumes {
-				name := fmt.Sprintf("%s-%d", task["Name"].(string), i)
+			for j, volume := range volumes {
+				name := fmt.Sprintf("%s-%d-%d", task["Name"].(string), i, j)
 				parts := strings.Split(volume.(string), ":")
 
 				r.Volumes = append(r.Volumes, &ecs.Volume{
