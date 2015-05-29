@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -279,6 +280,35 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 				Name:  aws.String("RELEASE"),
 				Value: aws.String(release),
 			})
+		}
+
+		// link to Service Stacks via environment
+		if task["Services"] != nil {
+			services := task["Services"].([]interface{})
+
+			for _, service := range services {
+				s, err := models.GetServiceFromName(service.(string))
+
+				if err != nil {
+					return "", err
+				}
+
+				// convert Port5432TcpAddr to POSTGRES_PORT_5432_TCP_ADDR
+				re := regexp.MustCompile("([a-z])([A-Z0-9])") // lower case letter followed by upper case or number, i.e. Port5432
+				re2 := regexp.MustCompile("([0-9])([A-Z])")   // number followed by upper case letter, i.e. 5432Tcp
+
+				for k, v := range s.Outputs {
+					u := re.ReplaceAllString(k, "${1}_${2}")
+					u = re2.ReplaceAllString(u, "${1}_${2}")
+					u = service.(string) + "_" + u
+					u = strings.ToUpper(u)
+
+					r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+						Name:  aws.String(u),
+						Value: aws.String(v),
+					})
+				}
+			}
 		}
 
 		// set links
