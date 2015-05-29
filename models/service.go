@@ -10,7 +10,6 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type Service struct {
@@ -35,53 +34,20 @@ func ListServices(app string) (Services, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
-		if strings.Index(err.Error(), "does not exist") != -1 {
-			return Services{}, nil
-		}
-
 		return nil, err
 	}
 
-	req := &s3.ListObjectsInput{
-		Bucket: aws.String(a.Outputs["Settings"]),
-		Prefix: aws.String("service/"),
-	}
+	services := make(Services, 0)
 
-	res, err := S3().ListObjects(req)
+	for key, value := range a.Parameters {
+		if strings.HasSuffix(key, "Service") && value != "" {
+			s, err := GetServiceFromName(value)
 
-	services := make(Services, len(res.Contents))
-	servicesByName := map[string]Service{}
-
-	for i, s := range res.Contents {
-		name := strings.TrimPrefix(*s.Key, "service/")
-		svc, err := GetService(app, name)
-
-		if err != nil {
-			fmt.Printf("err %+v\n", err)
-			return nil, err
-		}
-
-		services[i] = *svc
-		servicesByName[name] = *svc
-	}
-
-	release, err := a.LatestRelease()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if release != nil {
-		rss, err := release.Services()
-
-		if err != nil {
-			return nil, err
-		}
-
-		for _, rs := range rss {
-			if _, ok := servicesByName[rs.Name]; !ok {
-				services = append(services, rs)
+			if err != nil {
+				return nil, err
 			}
+
+			services = append(services, *s)
 		}
 	}
 

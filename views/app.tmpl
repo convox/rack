@@ -70,6 +70,34 @@
 			</table>
 		</div>
 
+		{{ if .Services }}
+			<div class="table-title">
+				<table class="table table-striped table-bordered">
+					<thead>
+						<tr class="title">
+							<th colspan="1">
+								Services
+							</th>
+						</tr>
+						<tr>
+							<th class="expand">Name</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{ range .Services }}
+							<tr>
+								<td class="meta-buttons">
+									<a href="/services/{{ .Name }}">
+										{{ .Name }}
+									</a>
+								</td>
+							</tr>
+						{{ end }}
+					</tbody>
+				</table>
+			</div>
+		{{ end }}
+
 		<div class="nav-buttons pull-right">
 			<img id="spinner" src="/spinner.gif">
 			<a href="#" class="btn btn-xs btn-primary" id="refresh">Refresh</a>
