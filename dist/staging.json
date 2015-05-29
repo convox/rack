@@ -560,9 +560,6 @@
           {
             "CPU": "100",
             "Image": { "Ref": "RegistryImage" },
-            "Key": {
-              "Ref": "Key"
-            },
             "Links": [],
             "Memory": "256",
             "Name": "registry",
