@@ -235,7 +235,7 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppDeployments(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("changes").Start()
+	log := appsLogger("deployments").Start()
 
 	app := mux.Vars(r)["app"]
 
