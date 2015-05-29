@@ -80,6 +80,14 @@
 
 {{ define "process-resources" }}
   {{ if .HasProcesses }}
+    {{ range $k, $e := . }}
+      "{{ upper $k }}Kinesis": {
+        "Type": "AWS::Kinesis::Stream",
+        "Properties": {
+          "ShardCount": 1
+        }
+      },
+    {{ end }}
     "TaskDefinition": {
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0",
@@ -88,7 +96,22 @@
         "Name": { "Ref": "AWS::StackName" },
         "Release": { "Ref": "Release" },
         "Environment": { "Ref": "Environment" },
-        "Tasks": [ {{ tasks . }} ]
+        "Tasks": [
+          {{ tasks . }},
+          {
+            "Name": "convox-logs",
+            "Image": "convox/logs",
+            "Environment": {
+              {{ range $k, $e := . }}
+                "KINESIS_{{ upperenv $k }}": { "Ref": "{{ upper $k }}Kinesis" },
+              {{ end }}
+              "CONTAINERS": "{{ names . }}"
+            },
+            "CPU": "20",
+            "Memory": "64",
+            "Links": [ {{ keys . }} ]
+          }
+        ]
       }
     },
     "Service": {
