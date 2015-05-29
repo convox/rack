@@ -14,7 +14,7 @@ type Process struct {
 	Command string
 	Count   int
 
-	Linkable bool
+	ServiceType string
 
 	App string
 }
@@ -66,13 +66,12 @@ func ListProcesses(app string) (Processes, error) {
 			App:      app,
 			Name:     *cd.Name,
 			Count:    1,
-			Linkable: false,
 		})
 	}
 
 	for i, p := range ps {
 		if _, ok := links[p.Name]; ok {
-			ps[i].Linkable = true
+			ps[i].ServiceType = links[p.Name]
 		}
 	}
 

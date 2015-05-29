@@ -38,7 +38,6 @@
 					<tr>
 						<th class="expand">Name</th>
 						<th>Ports</th>
-						<th>Link</th>
 						<th>Count</th>
 						<th>CPU</th>
 						<th>Memory</th>
@@ -52,17 +51,16 @@
 								<a href="/apps/{{ .App }}/processes/{{ .Name }}">
 									{{ .Name }}
 								</a>
+
+								{{ if .ServiceType }}
+									<button class="btn btn-xs btn-info service-link" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
+								{{ end }}
 							</td>
 							<td>
 								{{ range $port, $url := ($app.BalancerPorts .Name) }}
 									<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
 										{{ $port }}
 									</a>
-								{{ end }}
-							</td>
-							<td>
-								{{ if .Linkable }}
-									<button class="btn btn-xs btn-info service-link" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data- data-toggle="modal" data-target="#service-link">Link</button>
 								{{ end }}
 							</td>
 							<td class="text-center">{{.Count}}</td>
@@ -146,6 +144,33 @@
 						$('#label-status .value').text(data);
 					});
 				}, 10000);
+
+				window.setInterval(function() {
+					refresh_tab();
+				}, 10000);
+
+				$('.service-link').on('click', function() {
+					var app = $(this).data("app")
+					var name = $(this).data("name")
+					var type = $(this).data("type")
+					// var target = $(this).data("target")
+
+					$('#service-link .modal-title').html("Link Service for " + name)
+
+					$('#service-link form').attr("action", "/apps/" + app + "/services");
+					$('#service-link-app').val(app)
+					$('#service-link-name').val(name)
+					$('#service-link-type').val(type)
+
+					$('#service-link-stack').html("")
+
+					$.ajax({ type: 'GET', url:'/services/types/' + type }).done(function(msg) {
+						$('#service-link-stack').html(msg)
+					}).fail(function(msg) {
+						$('#alert .message').html(msg.responseText);
+						$('#alert').show();
+					});
+				})
 
 				goto_anchor('#deployments');
 			});
