@@ -10,39 +10,32 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
-type AwsCredentials struct {
-}
-
-func (ec *AwsCredentials) IsExpired() bool {
-	return false
-}
-
-func (ec *AwsCredentials) Retrieve() (credentials.Value, error) {
-	creds := credentials.Value{
-		AccessKeyID:     os.Getenv("AWS_ACCESS"),
-		SecretAccessKey: os.Getenv("AWS_SECRET"),
+func Credentials() *credentials.Credentials {
+	if os.Getenv("AWS_ACCESS") != "" {
+		return credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), "")
 	}
 
-	return creds, nil
+	// return credentials.NewCredentials(&credentials.EC2RoleProvider{})
+	return credentials.NewEnvCredentials()
 }
 
 func Lambda() *lambda.Lambda {
 	return lambda.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Credentials: Credentials(),
 		Region:      os.Getenv("AWS_REGION"),
 	})
 }
 
 func ECS() *ecs.ECS {
 	return ecs.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Credentials: Credentials(),
 		Region:      os.Getenv("AWS_REGION"),
 	})
 }
 
 func SQS() *sqs.SQS {
 	return sqs.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+		Credentials: Credentials(),
 		Region:      os.Getenv("AWS_REGION"),
 	})
 }

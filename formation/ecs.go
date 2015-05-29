@@ -8,11 +8,32 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/models"
 )
+
+func HandleECSCluster(req Request) (string, error) {
+	defer recoverFailure(req)
+
+	switch req.RequestType {
+	case "Create":
+		fmt.Println("CREATING CLUSTER")
+		fmt.Printf("req %+v\n", req)
+		return ECSClusterCreate(req)
+	case "Update":
+		fmt.Println("UPDATING CLUSTER")
+		fmt.Printf("req %+v\n", req)
+		return ECSClusterUpdate(req)
+	case "Delete":
+		fmt.Println("DELETING CLUSTER")
+		fmt.Printf("req %+v\n", req)
+		return ECSClusterDelete(req)
+	}
+
+	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
 
 func HandleECSService(req Request) (string, error) {
 	switch req.RequestType {
@@ -50,6 +71,37 @@ func HandleECSTaskDefinition(req Request) (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
+
+func ECSClusterCreate(req Request) (string, error) {
+	res, err := ECS().CreateCluster(&ecs.CreateClusterInput{
+		ClusterName: aws.String(req.ResourceProperties["Name"].(string)),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return *res.Cluster.ClusterARN, nil
+}
+
+func ECSClusterUpdate(req Request) (string, error) {
+	return "", fmt.Errorf("could not update")
+}
+
+func ECSClusterDelete(req Request) (string, error) {
+	_, err := ECS().DeleteCluster(&ecs.DeleteClusterInput{
+		Cluster: aws.String(req.PhysicalResourceId),
+	})
+
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil
+	}
+
+	return "", nil
 }
 
 func ECSServiceCreate(req Request) (string, error) {
@@ -169,7 +221,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 	// download environment
 	var env models.Environment
 
-	if envUrl := req.ResourceProperties["Environment"].(string); envUrl != "" {
+	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok {
 		res, err := http.Get(envUrl)
 
 		if err != nil {
@@ -199,7 +251,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 			Memory:    aws.Long(int64(memory)),
 		}
 
-		if command := task["Command"].(string); command != "" {
+		if command, ok := task["Command"].(string); ok {
 			r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
 		}
 
@@ -211,18 +263,26 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 			})
 		}
 
+		// set task environment overrides
+		if oenv, ok := task["Environment"].(map[string]interface{}); ok {
+			for key, val := range oenv {
+				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+					Name:  aws.String(key),
+					Value: aws.String(val.(string)),
+				})
+			}
+		}
+
 		// put release in environment
-		if req.ResourceProperties["Release"] != nil {
+		if release, ok := req.ResourceProperties["Release"].(string); ok {
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String("RELEASE"),
-				Value: aws.String(req.ResourceProperties["Release"].(string)),
+				Value: aws.String(release),
 			})
 		}
 
 		// set links
-		if task["Links"] != nil {
-			links := task["Links"].([]interface{})
-
+		if links, ok := task["Links"].([]interface{}); ok {
 			r.ContainerDefinitions[i].Links = make([]*string, len(links))
 
 			for j, link := range links {
@@ -231,25 +291,24 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 		}
 
 		// set portmappings
-		ports := task["PortMappings"].([]interface{})
+		if ports, ok := task["PortMappings"].([]interface{}); ok {
 
-		r.ContainerDefinitions[i].PortMappings = make([]*ecs.PortMapping, len(ports))
+			r.ContainerDefinitions[i].PortMappings = make([]*ecs.PortMapping, len(ports))
 
-		for j, port := range ports {
-			parts := strings.Split(port.(string), ":")
-			host, _ := strconv.Atoi(parts[0])
-			container, _ := strconv.Atoi(parts[1])
+			for j, port := range ports {
+				parts := strings.Split(port.(string), ":")
+				host, _ := strconv.Atoi(parts[0])
+				container, _ := strconv.Atoi(parts[1])
 
-			r.ContainerDefinitions[i].PortMappings[j] = &ecs.PortMapping{
-				ContainerPort: aws.Long(int64(container)),
-				HostPort:      aws.Long(int64(host)),
+				r.ContainerDefinitions[i].PortMappings[j] = &ecs.PortMapping{
+					ContainerPort: aws.Long(int64(container)),
+					HostPort:      aws.Long(int64(host)),
+				}
 			}
 		}
 
 		// set volumes
-		if task["Volumes"] != nil {
-			volumes := task["Volumes"].([]interface{})
-
+		if volumes, ok := task["Volumes"].([]interface{}); ok {
 			for i, volume := range volumes {
 				name := fmt.Sprintf("%s-%d", task["Name"].(string), i)
 				parts := strings.Split(volume.(string), ":")
