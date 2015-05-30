@@ -169,6 +169,8 @@
 						$('#alert .message').html(msg.responseText);
 						$('#alert').show();
 					});
+
+					mixpanel.track('service-link-click');
 				})
 
 				goto_anchor('#deployments');
