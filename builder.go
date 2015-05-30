@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,14 +23,16 @@ func NewBuilder() *Builder {
 }
 
 func (b *Builder) Build(repo, name, ref, push, id string) error {
-	clone, err := b.compose(repo, name, ref)
+	prefix := generateId("a", 8)
+
+	clone, err := b.compose(prefix, repo, name, ref)
 
 	if err != nil {
 		return err
 	}
 
 	if push != "" {
-		b.push(clone, push, name, id)
+		b.push(prefix, clone, push, name, id)
 	}
 
 	return nil
@@ -75,7 +78,7 @@ func (b *Builder) clone(repo, name, ref string) (string, error) {
 	return clone, nil
 }
 
-func (b *Builder) compose(repo, name, ref string) (string, error) {
+func (b *Builder) compose(prefix, repo, name, ref string) (string, error) {
 	dir, err := b.clone(repo, name, ref)
 
 	if err != nil {
@@ -94,8 +97,8 @@ func (b *Builder) compose(repo, name, ref string) (string, error) {
 		fmt.Printf("manifest|%s\n", scanner.Text())
 	}
 
-	b.run("compose", dir, "docker-compose", "-p", "app", "build")
-	b.run("compose", dir, "docker-compose", "-p", "app", "pull")
+	b.run("compose", dir, "docker-compose", "-p", prefix, "build")
+	b.run("compose", dir, "docker-compose", "-p", prefix, "pull")
 
 	return dir, nil
 }
@@ -130,7 +133,7 @@ func (b *Builder) run(prefix, dir string, command string, args ...string) error 
 	return err
 }
 
-func (b *Builder) push(dir, target, name, id string) error {
+func (b *Builder) push(prefix, dir, target, name, id string) error {
 	manifest, err := ReadManifest(dir)
 
 	if err != nil {
@@ -138,7 +141,7 @@ func (b *Builder) push(dir, target, name, id string) error {
 	}
 
 	for ps, entry := range *manifest {
-		from := fmt.Sprintf("app_%s", ps)
+		from := fmt.Sprintf("%s_%s", prefix, ps)
 
 		if entry.Image != "" {
 			from = entry.Image
@@ -159,6 +162,16 @@ func (b *Builder) push(dir, target, name, id string) error {
 
 func dataRaw(path string) ([]byte, error) {
 	return Asset(fmt.Sprintf("data/%s", path))
+}
+
+var idAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
+
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+	}
+	return prefix + string(b)
 }
 
 func writeFile(target, name string, perms os.FileMode, replacements map[string]string) error {
