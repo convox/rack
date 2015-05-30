@@ -1,7 +1,13 @@
 package main
 
-import "github.com/convox/kernel/formation"
+import (
+	"os"
+
+	"github.com/convox/kernel/formation"
+)
 
 func startWorker() {
-	formation.Listen()
+	if os.Getenv("WORKER") == "true" {
+		formation.Listen()
+	}
 }
