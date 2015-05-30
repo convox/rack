@@ -1,6 +1,10 @@
 {{ define "formation" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      {{ template "process-conditions" . }}
+      "BlankCluster": { "Fn::Equals": [ { "Ref": "Cluster" }, "" ] }
+    },
     "Parameters" : {
       {{ template "balancer-params" . }}
       {{ template "process-params" . }}
@@ -63,6 +67,12 @@
   }
 {{ end }}
 
+{{ define "process-conditions" }}
+  {{ range $k, $e := . }}
+    "Blank{{ upper $k }}Service": { "Fn::Equals": [ { "Ref": "{{ upper $k }}Service" }, "" ] },
+  {{ end }}
+{{ end }}
+
 {{ define "process-params" }}
   {{ range $k, $e := . }}
     "{{ upper $k }}Command": {
@@ -71,6 +81,11 @@
       "Description" : ""
     },
     "{{ upper $k }}Image": {
+      "Type" : "String",
+      "Default" : "",
+      "Description" : ""
+    },
+    "{{ upper $k }}Service": {
       "Type" : "String",
       "Default" : "",
       "Description" : ""
