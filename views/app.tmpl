@@ -202,7 +202,7 @@
 					<td class="id">{{ .Release }}</td>
 					<td>{{ duration .Started .Ended }}</td>
 					<td class="buttons">
-						<button class="btn btn-xs btn-info" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
+						<button class="btn btn-xs btn-info build-logs" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
 					</td>
 				</tr>
 			{{ end }}
@@ -496,6 +496,10 @@
                         'page name' : 'app',
                         'url' : window.location.pathname
                 });
+
+		$('button.build-logs').click(function() {
+			mixpanel.track('build-logs-click');
+		});
 	</script>
 {{ end }}
 
