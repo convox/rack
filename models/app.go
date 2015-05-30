@@ -420,11 +420,7 @@ func (a *App) Services() Services {
 	services, err := ListServices(a.Name)
 
 	if err != nil {
-		if err.(awserr.Error).Message() == "Requested resource not found" {
-			return Services{}
-		} else {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	return services

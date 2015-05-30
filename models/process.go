@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
@@ -12,6 +13,8 @@ type Process struct {
 	Name    string
 	Command string
 	Count   int
+
+	ServiceType string
 
 	App string
 }
@@ -51,13 +54,25 @@ func ListProcesses(app string) (Processes, error) {
 	}
 
 	ps := Processes{}
+	links := make(map[string]string)
 
 	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
+		for _, l := range cd.Links {
+			ls := strings.Split(*l, ":")
+			links[ls[0]] = ls[1]
+		}
+
 		ps = append(ps, Process{
-			App:   app,
-			Name:  *cd.Name,
-			Count: 1,
+			App:      app,
+			Name:     *cd.Name,
+			Count:    1,
 		})
+	}
+
+	for i, p := range ps {
+		if _, ok := links[p.Name]; ok {
+			ps[i].ServiceType = links[p.Name]
+		}
 	}
 
 	return ps, nil
