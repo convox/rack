@@ -491,6 +491,11 @@
 		$('.timeago').timeago();
 
 		table_scroll($('.app-resources'), '365px');
+
+                mixpanel.track('page-viewed', {
+                        'page name' : 'app',
+                        'url' : window.location.pathname
+                });
 	</script>
 {{ end }}
 

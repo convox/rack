@@ -44,5 +44,10 @@
 
   <script>
     connect_log_socket($('#service-logs'), '/services/{{ .Name }}/logs/stream');
+
+    mixpanel.track('page-viewed', {
+      'page name' : 'services',
+      'url' : window.location.pathname
+    });
   </script>
 {{ end }}

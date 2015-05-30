@@ -76,5 +76,10 @@
 			</div>
 		</div>
 	</div>
-
+	<script>
+                mixpanel.track('page-viewed', {
+                        'page name' : 'clusters',
+                        'url' : window.location.pathname
+                });
+	</script>
 {{ end }}

@@ -108,6 +108,10 @@
 				$('#alert').show();
 			});
 		});
-	</script>
 
+                mixpanel.track('page-viewed', {
+                        'page name' : 'cluster',
+                        'url' : window.location.pathname
+                });
+	</script>
 {{ end }}

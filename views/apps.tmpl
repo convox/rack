@@ -71,5 +71,10 @@
 			</div>
 		</div>
 	</div>
-
+	<script>
+		mixpanel.track('page-viewed', {
+			'page name' : 'apps',
+			'url' : window.location.pathname
+		});
+	</script>
 {{ end }}
