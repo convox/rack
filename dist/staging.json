@@ -6,17 +6,16 @@
   },
   "Outputs": {
     "BalancerHost": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Balancer",
-          "DNSName"
-        ]
-      }
+      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
-    "Registry": {
-      "Value": {
-        "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ]
-      }
+    "CustomTopic": {
+      "Value": { "Ref": "KernelFormation" }
+    },
+    "RegistryAuth": {
+      "Value": ""
+    },
+    "RegistryHost": {
+      "Value": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
     },
     "Settings": {
       "Value": {
@@ -520,7 +519,7 @@
             ]
           }
         ],
-        "Name": "kernel",
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "kernel" ] ] },
         "Role": {
           "Ref": "ServiceRole"
         },
