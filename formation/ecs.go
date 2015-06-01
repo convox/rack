@@ -75,7 +75,7 @@ func HandleECSTaskDefinition(req Request) (string, error) {
 }
 
 func ECSClusterCreate(req Request) (string, error) {
-	res, err := ECS().CreateCluster(&ecs.CreateClusterInput{
+	res, err := ECS(req).CreateCluster(&ecs.CreateClusterInput{
 		ClusterName: aws.String(req.ResourceProperties["Name"].(string)),
 	})
 
@@ -91,7 +91,7 @@ func ECSClusterUpdate(req Request) (string, error) {
 }
 
 func ECSClusterDelete(req Request) (string, error) {
-	_, err := ECS().DeleteCluster(&ecs.DeleteClusterInput{
+	_, err := ECS(req).DeleteCluster(&ecs.DeleteClusterInput{
 		Cluster: aws.String(req.PhysicalResourceId),
 	})
 
@@ -145,7 +145,7 @@ func ECSServiceCreate(req Request) (string, error) {
 		break
 	}
 
-	res, err := ECS().CreateService(r)
+	res, err := ECS(req).CreateService(r)
 
 	if err != nil {
 		return "", err
@@ -157,7 +157,7 @@ func ECSServiceCreate(req Request) (string, error) {
 func ECSServiceUpdate(req Request) (string, error) {
 	count, _ := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
 
-	res, err := ECS().UpdateService(&ecs.UpdateServiceInput{
+	res, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
 		Service:        aws.String(req.ResourceProperties["Name"].(string)),
 		DesiredCount:   aws.Long(int64(count)),
@@ -175,7 +175,7 @@ func ECSServiceDelete(req Request) (string, error) {
 	cluster := req.ResourceProperties["Cluster"].(string)
 	name := req.ResourceProperties["Name"].(string)
 
-	_, err := ECS().UpdateService(&ecs.UpdateServiceInput{
+	_, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:      aws.String(cluster),
 		Service:      aws.String(name),
 		DesiredCount: aws.Long(0),
@@ -195,7 +195,7 @@ func ECSServiceDelete(req Request) (string, error) {
 		return "", nil
 	}
 
-	_, err = ECS().DeleteService(&ecs.DeleteServiceInput{
+	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
 		Cluster: aws.String(cluster),
 		Service: aws.String(name),
 	})
@@ -359,7 +359,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 		}
 	}
 
-	res, err := ECS().RegisterTaskDefinition(r)
+	res, err := ECS(req).RegisterTaskDefinition(r)
 
 	if err != nil {
 		return "", err

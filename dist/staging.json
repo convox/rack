@@ -23,16 +23,16 @@
     "Ami": {
       "Type" : "String",
       "Default" : "ami-d0b9acb8",
-      "Description" : "ECS Cluster AMI (do not change unless you know what you're doing)"
+      "Description" : "ECS Cluster AMI (only experts should change this)"
     },
     "AvailabilityZones": {
       "Type" : "CommaDelimitedList",
       "Default" : "",
       "Description" : "Override default availability zones"
     },
-    "Kernel": {
-      "Default": "arn:aws:lambda:us-east-1:778743527532:function:convox-formation",
-      "Description": "TODO replace this",
+    "Bootstrap": {
+      "Default": "arn:aws:sns:us-east-1:922560784203:convox-bootstrap",
+      "Description": "Bootstrap topic (only experts should change this)",
       "Type": "String"
     },
     "Key": {
@@ -57,7 +57,7 @@
     }
   },
   "Resources": {
-    "User": {
+    "BootstrapUser": {
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
@@ -72,18 +72,83 @@
         ]
       }
     },
-    "Access": {
+    "BootstrapAccess": {
       "Type": "AWS::IAM::AccessKey",
       "Properties": {
         "Serial": "1",
         "Status": "Active",
-        "UserName": { "Ref": "User" }
+        "UserName": { "Ref": "BootstrapUser" }
+      }
+    },
+    "KernelFormationRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "Administrator",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+            }
+          }
+        ]
+      }
+    },
+    "KernelFormation": {
+      "Type": "Custom::LambdaFunction",
+      "Properties": {
+        "ServiceToken": { "Ref": "Bootstrap" },
+        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" } ] ] },
+        "ZipFile": "http://convox.s3.amazonaws.com/lambda-formation.zip",
+        "Runtime": "nodejs",
+        "Handler": "lambda.external",
+        "Role": { "Ref": "KernelFormationRole" },
+        "Timeout": "30",
+        "Memory": "128",
+        "Region": { "Ref": "AWS::Region" },
+        "AccountId": { "Ref": "AWS::AccountId" },
+        "AccessId": { "Ref": "BootstrapAccess" },
+        "SecretAccessKey": { "Fn::GetAtt": [ "BootstrapAccess", "SecretAccessKey" ] }
+      }
+    },
+    "KernelUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "Administrator",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+            }
+          }
+        ]
+      }
+    },
+    "KernelAccess": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": { "Ref": "KernelUser" }
       }
     },
     "Cluster": {
       "Properties": {
         "ServiceToken": {
-          "Ref": "Kernel"
+          "Ref": "KernelFormation"
         },
         "Name": {
           "Ref": "AWS::StackName"
@@ -455,7 +520,7 @@
           "Ref": "ServiceRole"
         },
         "ServiceToken": {
-          "Ref": "Kernel"
+          "Ref": "KernelFormation"
         },
         "TaskDefinition": {
           "Ref": "TaskDefinition"
@@ -532,16 +597,16 @@
           "Ref": "AWS::StackName"
         },
         "ServiceToken": {
-          "Ref": "Kernel"
+          "Ref": "KernelFormation"
         },
         "Tasks": [
           {
             "CPU": "100",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
-              "AWS_ACCESS": { "Ref": "Access" },
-              "AWS_SECRET": { "Fn::GetAtt": [ "Access", "SecretAccessKey" ] },
-              "CUSTOM_TOPIC": { "Ref": "Kernel" },
+              "AWS_ACCESS": { "Ref": "KernelAccess" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "REGISTRY": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
             },
