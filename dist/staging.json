@@ -4,6 +4,15 @@
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
   },
+  "Mappings": {
+    "RegionConfig": {
+      "us-east-1": { "Ami": "ami-d0b9acb8" },
+      "us-west-2": { "Ami": "ami-6b88b95b" },
+      "eu-west-1": { "Ami": "ami-ed7c149a" },
+      "ap-northeast-1": { "Ami": "ami-c6c609c6" },
+      "ap-southeast-2": { "Ami": "ami-39017e03" }
+    }
+  },
   "Outputs": {
     "BalancerHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
@@ -24,11 +33,6 @@
     }
   },
   "Parameters": {
-    "Ami": {
-      "Type" : "String",
-      "Default" : "ami-d0b9acb8",
-      "Description" : "ECS Cluster AMI (only experts should change this)"
-    },
     "AvailabilityZones": {
       "Type" : "CommaDelimitedList",
       "Default" : "",
@@ -314,7 +318,7 @@
       "Properties": {
         "AssociatePublicIpAddress": true,
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
-        "ImageId": { "Ref": "Ami" },
+        "ImageId": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] },
         "InstanceMonitoring": true,
         "InstanceType": "t2.micro",
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
