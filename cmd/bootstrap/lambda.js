@@ -4,25 +4,7 @@ exports.external = function(event, context) {
     return context.done(err);
   });
 
-  console.log('spawning boostrap');
-  console.log(JSON.stringify(event));
-
   var child = require('child_process').spawn('./bootstrap', [JSON.stringify(event)], { stdio:'inherit' })
-
-  // child.stdout.on('data', function(data) {
-  //   console.log('data', data);
-  // });
-
-  // var child = require('child_process').spawn('ls', ['-la'], {stdio:'pipe'})
-
-  // child.stdin.write(JSON.stringify(event));
-  // child.stdin.end();
-
-  // console.log('spawning ls');
-  // var child = require('child_process').spawn('ls', ['-la']);
-
-  // child.stdout.pipe(process.stdout);
-  // child.stderr.pipe(process.stdout);
 
   child.on('exit', function(code) {
     if (code !== 0 ) {
