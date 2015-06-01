@@ -196,6 +196,8 @@ func (r *Release) Promote() error {
 	app.Parameters["Kernel"] = CustomTopic
 	app.Parameters["Release"] = r.Id
 
+	fmt.Printf("%+v\n%+v\n", pss, app.Parameters)
+
 	params := []*cloudformation.Parameter{}
 
 	for key, value := range app.Parameters {
@@ -271,6 +273,8 @@ func (r *Release) Formation() (string, error) {
 
 func (r *Release) Processes() (Processes, error) {
 	manifest, err := LoadManifest(r.Manifest)
+
+	fmt.Printf("%+v\n", manifest)
 
 	if err != nil {
 		return nil, err

@@ -69,6 +69,7 @@ func (c *Cluster) Create() error {
 	params := map[string]string{
 		"AvailabilityZones": c.AvailabilityZones,
 		"Count":             c.Count,
+		"Kernel": 					 CustomTopic,
 		"Key":               c.Key,
 		"Registry":          os.Getenv("REGISTRY"),
 		"Size":              c.Size,
