@@ -283,7 +283,7 @@ func templateHelpers() template.FuncMap {
 				for i, link := range entry.Links {
 					services[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService",
 						{ "Ref" : "AWS::NoValue" },
-						{ "Ref" : "%sService" } ] }`, upperName(link), upperName(link))
+						{ "Fn::Join": [ ":", [ { "Ref" : "%sService" }, "%s" ] ] } ] }`, upperName(link), upperName(link), link)
 				}
 
 				volumes := []string{}
