@@ -164,7 +164,7 @@ func (b *Builder) push(prefix, dir, target, name, auth, id string) error {
 		}
 
 		if auth != "" {
-			err := b.run("push", dir, "docker", "login", "-u", "convox", "-p", auth, target)
+			err := b.run("push", dir, "docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", auth, target)
 
 			if err != nil {
 				return err
