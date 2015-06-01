@@ -16,6 +16,11 @@
       "Default": "1",
       "Description" : "Instance count for the ECS cluster"
     },
+    "Kernel": {
+      "Type" : "String",
+      "Default" : "",
+      "Description" : ""
+    },
     "Key": {
       "Type": "String",
       "Default": "",
@@ -45,6 +50,14 @@
         "Tags": [
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
         ]
+      }
+    },
+    "Cluster": {
+      "Type": "Custom::ECSCluster",
+      "Version": "1.0",
+      "Properties": {
+        "ServiceToken": { "Ref": "Kernel" },
+        "Name": { "Ref": "AWS::StackName" }
       }
     },
     "Gateway": {

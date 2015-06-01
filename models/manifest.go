@@ -1,8 +1,6 @@
 package models
 
 import (
-	"strings"
-
 	"github.com/convox/kernel/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
@@ -44,39 +42,14 @@ func (m *Manifest) Processes() Processes {
 	processes := Processes{}
 
 	for _, entry := range *m {
-		if st := entry.ServiceType(); st == "" {
-			ps := Process{
-				Name:    entry.Name,
-				Command: entry.Command,
-				Count:   1,
-			}
-
-			processes = append(processes, ps)
+		ps := Process{
+			Name:    entry.Name,
+			Command: entry.Command,
+			Count:   1,
 		}
+
+		processes = append(processes, ps)
 	}
 
 	return processes
-}
-
-func (m *Manifest) Services() Services {
-	services := Services{}
-
-	for _, entry := range *m {
-		if st := entry.ServiceType(); st != "" {
-			services = append(services, Service{
-				Name: entry.Name,
-				Type: st,
-			})
-		}
-	}
-
-	return services
-}
-
-func (me *ManifestEntry) ServiceType() string {
-	if strings.HasPrefix(me.Image, "convox/") {
-		return me.Image
-	} else {
-		return ""
-	}
 }
