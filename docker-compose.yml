@@ -5,6 +5,7 @@ web:
     - AWS_ACCESS
     - AWS_SECRET
     - AWS_REGION
+    - AWS_ACCOUNTID=convox-dev
     - AWS_AZS
     - CUSTOM_TOPIC
     - GITHUB_TOKEN
