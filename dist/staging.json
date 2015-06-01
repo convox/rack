@@ -13,6 +13,11 @@
         ]
       }
     },
+    "Registry": {
+      "Value": {
+        "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ]
+      }
+    },
     "Settings": {
       "Value": {
         "Ref": "Settings"
