@@ -10,7 +10,7 @@
   </div>
 
   <ol class="breadcrumb">
-    <button id="destroy-service" class="btn btn-danger btn-xs">Destroy Service</button>
+    <button id="destroy-service" class="btn btn-danger btn-xs trackable">Destroy Service</button>
     <li><a href="/services">Services</a></li>
     <li class="active">{{ .Name }}</li>
   </ol>
@@ -44,5 +44,10 @@
 
   <script>
     connect_log_socket($('#service-logs'), '/services/{{ .Name }}/logs/stream');
+
+    mixpanel.track('page-viewed', {
+      'page name' : 'services',
+      'url' : window.location.pathname
+    });
   </script>
 {{ end }}

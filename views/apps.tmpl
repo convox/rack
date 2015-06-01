@@ -3,7 +3,7 @@
 {{ define "body" }}
 
 	<ol class="breadcrumb">
-		<button class="btn btn-success btn-xs" data-toggle="modal" data-target="#app-create">Create App</button>
+		<button class="btn btn-success btn-xs trackable" id="app-create" data-toggle="modal" data-target="#app-create">Create App</button>
 		<li class="active">Apps</li>
 	</ol>
 
@@ -71,5 +71,10 @@
 			</div>
 		</div>
 	</div>
-
+	<script>
+		mixpanel.track('page-viewed', {
+			'page name' : 'apps',
+			'url' : window.location.pathname
+		});
+	</script>
 {{ end }}

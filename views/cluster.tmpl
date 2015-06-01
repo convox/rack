@@ -10,7 +10,7 @@
 	</div>
 
 	<ol class="breadcrumb">
-		<button id="destroy-cluster" class="btn btn-danger btn-xs">Destroy Cluster</button>
+		<button id="destroy-cluster" class="btn btn-danger btn-xs trackable">Destroy Cluster</button>
 		<li class="active">{{ .Name }}</li>
 	</ol>
 
@@ -108,6 +108,10 @@
 				$('#alert').show();
 			});
 		});
-	</script>
 
+                mixpanel.track('page-viewed', {
+                        'page name' : 'cluster',
+                        'url' : window.location.pathname
+                });
+	</script>
 {{ end }}

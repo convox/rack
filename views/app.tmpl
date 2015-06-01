@@ -10,8 +10,8 @@
 	</div>
 
 	<ol class="breadcrumb">
-		<button id="destroy-app" class="btn btn-danger btn-xs">Destroy App</button>
-		<button id="build-app" class="btn btn-success btn-xs">Build</button>
+		<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
+		<button id="build-app" class="btn btn-success btn-xs trackable">Build</button>
 		<li><a href="/apps">Apps</a></li>
 		<li class="active">{{ .Name }}</li>
 	</ol>
@@ -108,11 +108,11 @@
 		</div>
 
 		<ul class="nav nav-tabs">
-			<li role="presentation"><a href="#deployments" role="tab" data-source="/apps/{{ .Name }}/deployments">Deployments</a></li>
-			<li role="presentation"><a href="#logs"  role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
-			<li role="presentation"><a href="#builds" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
-			<li role="presentation"><a href="#releases" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
-			<li role="presentation"><a href="#environment" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#deployments" id="deployments-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/deployments">Deployments</a></li>
+			<li role="presentation"><a href="#logs" id="logs-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
+			<li role="presentation"><a href="#builds" id="builds-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
+			<li role="presentation"><a href="#releases" id="releases-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
+			<li role="presentation"><a href="#environment" id="environment-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
 		</ul>
 
 		<div id="tab-content">
@@ -121,7 +121,6 @@
 		<script>
 			$(window).ready(function() {
 				$('#build-app').on('click', function() {
-					mixpanel.track("Build click");
 					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
 						change_to_tab('#builds');
 					}).fail(function(msg) {
@@ -166,6 +165,8 @@
 						$('#alert .message').html(msg.responseText);
 						$('#alert').show();
 					});
+
+					mixpanel.track('service-link-click');
 				})
 
 				goto_anchor('#deployments');
@@ -199,7 +200,7 @@
 					<td class="id">{{ .Release }}</td>
 					<td>{{ duration .Started .Ended }}</td>
 					<td class="buttons">
-						<button class="btn btn-xs btn-info" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
+						<button class="btn btn-xs btn-info build-logs" title="Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Logs</button>
 					</td>
 				</tr>
 			{{ end }}
@@ -350,14 +351,14 @@
 				<tr>
 					<th>Name</th>
 					<th class="expand">Value</th>
-					<th><button id="environment-raw" class="btn btn-inverse btn-xs">Raw</button></th>
+					<th><button id="environment-raw" class="btn btn-inverse btn-xs trackable">Raw</button></th>
 				</tr>
 			</thead>
 			<tfoot>
 				<tr>
 					<td><input type="text" name="name"></td>
 					<td><input type="text" name="value"></td>
-					<td><button id="environment-add" data-cluster="{{ .Cluster }}" data-app="{{ .App }}" class="btn btn-success btn-xs">Add</button></td>
+					<td><button id="environment-add" data-cluster="{{ .Cluster }}" data-app="{{ .App }}" class="btn btn-success btn-xs trackable">Add</button></td>
 				</tr>
 			</tfoot>
 			<tbody>
@@ -367,7 +368,7 @@
 						<td>{{ . }}</td>
 						<td class="wrap expand">{{ truncate (index $root.Environment .) 70 }}</td>
 						<td>
-							<button data-cluster="{{ $root.Cluster }}" data-app="{{ $root.App }}" data-name="{{ . }}" class="environment-delete btn btn-danger btn-xs">Delete</button>
+							<button data-cluster="{{ $root.Cluster }}" data-app="{{ $root.App }}" data-name="{{ . }}" id="environment-delete" class="environment-delete btn btn-danger btn-xs trackable">Delete</button>
 						</td>
 					</tr>
 				{{ end }}
@@ -378,8 +379,8 @@
 		<div class="panel">
 			<textarea id="environment-content" class="environment">{{ .Environment.Raw }}</textarea>
 			<div class="clearfix footer">
-				<button id="environment-raw-save" class="btn btn-xs btn-primary pull-right" data-cluster="{{ .Cluster }}" data-app="{{ .App }}">Save</button>
-				<button id="environment-raw-cancel" class="btn btn-xs btn-inverse pull-right">Cancel</button>
+				<button id="environment-raw-save" class="btn btn-xs btn-primary pull-right trackable" data-cluster="{{ .Cluster }}" data-app="{{ .App }}">Save</button>
+				<button id="environment-raw-cancel" class="btn btn-xs btn-inverse pull-right trackable">Cancel</button>
 			</div>
 		</div>
 	</div>
@@ -417,7 +418,7 @@
 						{{ if eq .Id $active }}
 							<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
 						{{ else }}
-							<button class="btn btn-warning btn-xs promote-release" data-release="{{ .Id }}">Promote</button>
+							<button class="btn btn-warning btn-xs promote-release trackable" id="promote-release" data-release="{{ .Id }}">Promote</button>
 						{{ end }}
 					</td>
 				</tr>
@@ -488,6 +489,15 @@
 		$('.timeago').timeago();
 
 		table_scroll($('.app-resources'), '365px');
+
+                mixpanel.track('page-viewed', {
+                        'page name' : 'app',
+                        'url' : window.location.pathname
+                });
+
+		$('button.build-logs').click(function() {
+			mixpanel.track('build-logs-click');
+		});
 	</script>
 {{ end }}
 

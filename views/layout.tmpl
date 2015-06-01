@@ -84,6 +84,11 @@ mixpanel.init("43fb68427548c5e99978a598a9b14e55");</script><!-- end Mixpanel -->
 				'numbers':   true,
 				'specialChars': true,
 			});
+
+			// Track clicks in mixpanel
+			$('.trackable').click(function() {
+				mixpanel.track($(this).attr('id') + '-click');
+			});
 		});
 	</script>
 {{ end }}
