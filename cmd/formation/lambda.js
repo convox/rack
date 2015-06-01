@@ -1,16 +1,13 @@
 exports.external = function(event, context) {
 
+  console.log('event', event);
+  console.log('context', context);
+
   process.on('uncaughtException', function(err) {
     return context.done(err);
   });
 
-  var child = require('child_process').spawn('./formation', []);
-
-  child.stdin.write(JSON.stringify(event));
-  child.stdin.end();
-
-  child.stdout.pipe(process.stdout);
-  child.stderr.pipe(process.stderr);
+  var child = require('child_process').spawn('./formation', [JSON.stringify(event)], { stdio:'inherit' });
 
   child.on('close', function(code) {
     if (code !== 0 ) {

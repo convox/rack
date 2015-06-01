@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -40,21 +39,21 @@ func die(err error) {
 }
 
 func main() {
-	data, err := ioutil.ReadAll(os.Stdin)
-
-	fmt.Printf("string(data) %+v\n", string(data))
-
-	if err != nil {
-		die(err)
+	if len(os.Args) < 2 {
+		die(fmt.Errorf("must specify event as argument"))
 	}
+
+	data := []byte(os.Args[1])
 
 	var req formation.Request
 
-	err = json.Unmarshal(data, &req)
+	err := json.Unmarshal(data, &req)
 
 	if err != nil {
 		die(err)
 	}
+
+	fmt.Printf("req = %+v\n", req)
 
 	err = formation.HandleRequest(req)
 

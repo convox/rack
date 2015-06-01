@@ -39,9 +39,6 @@ func die(err error) {
 }
 
 func main() {
-	defer os.Stdout.Sync()
-	defer os.Stderr.Sync()
-
 	if len(os.Args) < 2 {
 		die(fmt.Errorf("must specify event as argument"))
 	}
