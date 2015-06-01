@@ -18,6 +18,7 @@ func init() {
 func main() {
 	id := flag.String("id", "", "tag the build with this id")
 	push := flag.String("push", "", "push build to this prefix when done")
+	auth := flag.String("auth", "", "auth token for push")
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "github access token")
 
 	flag.Parse()
@@ -37,7 +38,7 @@ func main() {
 	repo := positional(args, 1)
 	ref := positional(args, 2)
 
-	err := builder.Build(repo, app, ref, *push, *id)
+	err := builder.Build(repo, app, ref, *push, *auth, *id)
 
 	if err != nil {
 		fmt.Printf("error|%s\n", err)

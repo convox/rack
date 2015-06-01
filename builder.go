@@ -22,7 +22,7 @@ func NewBuilder() *Builder {
 	return &Builder{}
 }
 
-func (b *Builder) Build(repo, name, ref, push, id string) error {
+func (b *Builder) Build(repo, name, ref, push, auth, id string) error {
 	prefix := generateId("a", 8)
 
 	clone, err := b.compose(prefix, repo, name, ref)
@@ -32,7 +32,11 @@ func (b *Builder) Build(repo, name, ref, push, id string) error {
 	}
 
 	if push != "" {
-		b.push(prefix, clone, push, name, id)
+		err := b.push(prefix, clone, push, name, auth, id)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -133,7 +137,7 @@ func (b *Builder) run(prefix, dir string, command string, args ...string) error 
 	return err
 }
 
-func (b *Builder) push(prefix, dir, target, name, id string) error {
+func (b *Builder) push(prefix, dir, target, name, auth, id string) error {
 	manifest, err := ReadManifest(dir)
 
 	if err != nil {
@@ -153,8 +157,25 @@ func (b *Builder) push(prefix, dir, target, name, id string) error {
 			to = fmt.Sprintf("%s:%s", to, id)
 		}
 
-		b.run("push", dir, "docker", "tag", "-f", from, to)
-		b.run("push", dir, "docker", "push", to)
+		err := b.run("push", dir, "docker", "tag", "-f", from, to)
+
+		if err != nil {
+			return err
+		}
+
+		if auth != "" {
+			err := b.run("login", "-u", "convox", "-p", auth, target)
+
+			if err != nil {
+				return err
+			}
+		}
+
+		err = b.run("push", dir, "docker", "push", to)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
