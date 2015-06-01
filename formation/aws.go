@@ -1,7 +1,6 @@
 package formation
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -15,8 +14,6 @@ func Credentials(req *Request) *credentials.Credentials {
 	if req != nil {
 		if access, ok := req.ResourceProperties["AccessId"].(string); ok && access != "" {
 			if secret, ok := req.ResourceProperties["SecretAccessKey"].(string); ok && secret != "" {
-				fmt.Printf("access = %+v\n", access)
-				fmt.Printf("secret = %+v\n", secret)
 				return credentials.NewStaticCredentials(access, secret, "")
 			}
 		}

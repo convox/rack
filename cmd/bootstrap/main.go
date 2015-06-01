@@ -42,16 +42,11 @@ func main() {
 	defer os.Stdout.Sync()
 	defer os.Stderr.Sync()
 
-	fmt.Println("what")
-
 	if len(os.Args) < 2 {
 		die(fmt.Errorf("must specify event as argument"))
 	}
 
-	// data, err := ioutil.ReadAll(os.Stdin)
 	data := []byte(os.Args[1])
-
-	fmt.Printf("string(data) %+v\n", string(data))
 
 	var message Message
 
@@ -60,8 +55,6 @@ func main() {
 	if err != nil {
 		die(err)
 	}
-
-	fmt.Println("wee")
 
 	fmt.Printf("message = %+v\n", message)
 
@@ -74,6 +67,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			return
 		}
+
+		fmt.Printf("req = %+v\n", req)
 
 		err = formation.HandleRequest(req)
 
