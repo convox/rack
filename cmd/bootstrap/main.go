@@ -45,20 +45,33 @@ func main() {
 
 	data := []byte(os.Args[1])
 
-	var req formation.Request
+	var message Message
 
-	err := json.Unmarshal(data, &req)
+	err := json.Unmarshal(data, &message)
 
 	if err != nil {
 		die(err)
 	}
 
-	fmt.Printf("req = %+v\n", req)
+	fmt.Printf("message = %+v\n", message)
 
-	err = formation.HandleRequest(req)
+	for _, record := range message.Records {
+		var req formation.Request
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return
+		err := json.Unmarshal([]byte(record.Sns.Message), &req)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			return
+		}
+
+		fmt.Printf("req = %+v\n", req)
+
+		err = formation.HandleRequest(req)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			return
+		}
 	}
 }

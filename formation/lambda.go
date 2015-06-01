@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -31,7 +32,7 @@ func HandleLambdaFunction(req Request) (string, error) {
 }
 
 func LambdaFunctionCreate(req Request) (string, error) {
-	bres, err := http.Get(req.ResourceProperties["Zip"].(string))
+	bres, err := http.Get(req.ResourceProperties["ZipFile"].(string))
 
 	if err != nil {
 		return "", err
@@ -41,26 +42,20 @@ func LambdaFunctionCreate(req Request) (string, error) {
 
 	body, err := ioutil.ReadAll(bres.Body)
 
-	// zip := make([]byte, base64.StdEncoding.EncodedLen(len(body)))
-
-	// base64.StdEncoding.Encode(zip, body)
-
-	// fmt.Printf("len(zip) %+v\n", len(zip))
-
 	memory := 128
 	timeout := 5
 
-	if m, ok := req.ResourceProperties["Memory"]; ok {
-		memory, _ = strconv.Atoi(m.(string))
+	if m, ok := req.ResourceProperties["Memory"].(string); ok && m != "" {
+		memory, _ = strconv.Atoi(m)
 	}
 
-	if t, ok := req.ResourceProperties["Timeout"]; ok {
-		timeout, _ = strconv.Atoi(t.(string))
+	if t, ok := req.ResourceProperties["Timeout"].(string); ok && t != "" {
+		timeout, _ = strconv.Atoi(t)
 	}
 
 	role := fmt.Sprintf("arn:aws:iam::%s:role/%s", req.ResourceProperties["AccountId"].(string), req.ResourceProperties["Role"].(string))
 
-	res, err := Lambda().CreateFunction(&lambda.CreateFunctionInput{
+	res, err := Lambda(req).CreateFunction(&lambda.CreateFunctionInput{
 		FunctionName: aws.String(req.ResourceProperties["Name"].(string)),
 		Handler:      aws.String(req.ResourceProperties["Handler"].(string)),
 		MemorySize:   aws.Long(int64(memory)),
@@ -90,12 +85,15 @@ func LambdaFunctionDelete(req Request) (string, error) {
 	parts := strings.Split(req.PhysicalResourceId, ":")
 	name := parts[len(parts)-1]
 
-	_, err := Lambda().DeleteFunction(&lambda.DeleteFunctionInput{
+	_, err := Lambda(req).DeleteFunction(&lambda.DeleteFunctionInput{
 		FunctionName: aws.String(name),
 	})
 
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
 	if err != nil {
-		return "", err
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil
 	}
 
 	return "", nil

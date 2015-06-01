@@ -1,0 +1,2 @@
+aws lambda update-function-code --function-name convox-formation --zip-file fileb://lambda.zip
+aws s3 cp lambda.zip s3://convox/lambda-formation.zip --acl public-read
