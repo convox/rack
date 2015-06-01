@@ -114,7 +114,7 @@ func ListServiceStacks() (Services, error) {
 		tags := stackTags(stack)
 
 		if tags["System"] == "convox" && tags["Type"] == "service" {
-			services = append(services, *serviceFromStack(stack))
+			services = append(services, *ServiceFromStack(stack))
 		}
 	}
 
@@ -154,7 +154,7 @@ func GetServiceFromName(name string) (*Service, error) {
 		return nil, err
 	}
 
-	return serviceFromStack(res.Stacks[0]), nil
+	return ServiceFromStack(res.Stacks[0]), nil
 }
 
 func (s *Service) Create() error {
@@ -266,19 +266,7 @@ func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
 	return nil
 }
 
-func servicesTable(app string) string {
-	return fmt.Sprintf("%s-services", app)
-}
-
-func serviceFromItem(item map[string]*dynamodb.AttributeValue) *Service {
-	return &Service{
-		Name: coalesce(item["name"], ""),
-		Type: coalesce(item["type"], ""),
-		App:  coalesce(item["app"], ""),
-	}
-}
-
-func serviceFromStack(stack *cloudformation.Stack) *Service {
+func ServiceFromStack(stack *cloudformation.Stack) *Service {
 	outputs := stackOutputs(stack)
 	parameters := stackParameters(stack)
 	tags := stackTags(stack)
@@ -296,5 +284,17 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		Parameters: parameters,
 		Tags:       tags,
 		URL:        url,
+	}
+}
+
+func servicesTable(app string) string {
+	return fmt.Sprintf("%s-services", app)
+}
+
+func serviceFromItem(item map[string]*dynamodb.AttributeValue) *Service {
+	return &Service{
+		Name: coalesce(item["name"], ""),
+		Type: coalesce(item["type"], ""),
+		App:  coalesce(item["app"], ""),
 	}
 }
