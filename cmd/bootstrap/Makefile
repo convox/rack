@@ -5,6 +5,9 @@ all: build
 
 build: bootstrap lambda.zip
 
+clean:
+	rm -f bootstrap lambda.zip
+
 create: build
 	bin/create
 	

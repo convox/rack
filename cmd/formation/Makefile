@@ -5,6 +5,9 @@ all: build
 
 build: formation lambda.zip
 
+clean:
+	rm -f formation lambda.zip
+
 release: build
 	aws s3 cp lambda.zip s3://convox/lambda-formation.zip --acl public-read
 
