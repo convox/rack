@@ -293,22 +293,6 @@ func (r *Release) Processes() (Processes, error) {
 	return ps, nil
 }
 
-func (r *Release) Services() (Services, error) {
-	manifest, err := LoadManifest(r.Manifest)
-
-	if err != nil {
-		return nil, err
-	}
-
-	services := manifest.Services()
-
-	for i := range services {
-		services[i].App = r.App
-	}
-
-	return services, nil
-}
-
 func releasesTable(app string) string {
 	return fmt.Sprintf("%s-releases", app)
 }
