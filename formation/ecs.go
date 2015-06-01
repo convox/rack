@@ -11,6 +11,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/models"
 )
@@ -287,11 +288,15 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 			services := task["Services"].([]interface{})
 
 			for _, service := range services {
-				s, err := models.GetServiceFromName(service.(string))
+				parts := strings.Split(service.(string), ":")
+
+				res, err := CloudFormation(req).DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(parts[0])})
 
 				if err != nil {
-					return "", err
+					return "", fmt.Errorf("SERVICE CREATION: %s", err)
 				}
+
+				s := models.ServiceFromStack(res.Stacks[0])
 
 				// convert Port5432TcpAddr to POSTGRES_PORT_5432_TCP_ADDR
 				re := regexp.MustCompile("([a-z])([A-Z0-9])") // lower case letter followed by upper case or number, i.e. Port5432
@@ -300,7 +305,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 				for k, v := range s.Outputs {
 					u := re.ReplaceAllString(k, "${1}_${2}")
 					u = re2.ReplaceAllString(u, "${1}_${2}")
-					u = service.(string) + "_" + u
+					u = parts[1] + "_" + u
 					u = strings.ToUpper(u)
 
 					r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
