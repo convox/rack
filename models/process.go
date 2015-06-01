@@ -57,16 +57,13 @@ func ListProcesses(app string) (Processes, error) {
 	links := make(map[string]string)
 
 	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
-		for _, l := range cd.Links {
-			ls := strings.Split(*l, ":")
-			links[ls[0]] = ls[1]
+		if !strings.HasPrefix(*cd.Name, "convox-") {
+			ps = append(ps, Process{
+				App:   app,
+				Name:  *cd.Name,
+				Count: 1,
+			})
 		}
-
-		ps = append(ps, Process{
-			App:      app,
-			Name:     *cd.Name,
-			Count:    1,
-		})
 	}
 
 	for i, p := range ps {
@@ -109,15 +106,15 @@ func GetProcess(app, name string) (*Process, error) {
 }
 
 func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
-	resources, err := ListResources(p.App)
-	fmt.Printf("err %+v\n", err)
+	// resources, err := ListResources(p.App)
+	// fmt.Printf("err %+v\n", err)
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	//   return err
+	// }
 
-	done := make(chan bool)
-	go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
+	// done := make(chan bool)
+	// go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
 
 	return nil
 }
