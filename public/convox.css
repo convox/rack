@@ -533,3 +533,8 @@ textarea.environment {
 #environment-raw-content .footer button {
 	margin-left: 8px;
 }
+
+#healthcheck {
+	color: #337ab7;
+	cursor: pointer;
+}

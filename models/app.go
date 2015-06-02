@@ -187,6 +187,34 @@ func (a *App) Delete() error {
 	return nil
 }
 
+func (a *App) UpdateParams(changes map[string]string) error {
+	req := &cloudformation.UpdateStackInput{
+		StackName:           aws.String(a.Name),
+		UsePreviousTemplate: aws.Boolean(true),
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+	}
+
+	params := a.Parameters
+
+	for key, val := range changes {
+		params[key] = val
+	}
+
+	for key, val := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(val),
+		})
+	}
+
+	res, err := CloudFormation().UpdateStack(req)
+
+	fmt.Printf("res = %+v\n", res)
+	fmt.Printf("err = %+v\n", err)
+
+	return err
+}
+
 func (a *App) Formation() (string, error) {
 	data, err := exec.Command("docker", "run", "convox/app", "-mode", "staging").CombinedOutput()
 
@@ -209,6 +237,12 @@ func (a *App) SetHealthCheck(endpoint, path string) error {
 	check := fmt.Sprintf("HTTP:%s%s", port, path)
 
 	fmt.Printf("check = %+v\n", check)
+
+	err := a.UpdateParams(map[string]string{"Check": check})
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

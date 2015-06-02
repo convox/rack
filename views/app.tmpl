@@ -25,7 +25,8 @@
 			<div class="labelled-value">
 				<span class="name">Check</span>
 				<span class="value">
-					<form class="form-inline" method="post" action="/apps/{{ .Name }}">
+					<div id="healthcheck">{{ .HealthCheckEndpoint }}{{ .HealthCheckPath }}</div>
+					<form id="healthcheck-edit" class="form-inline" method="post" action="/apps/{{ .Name }}" style="display:none">
 						<div class="form-group">
 							<select class="form-control input-sm" name="healthcheck[endpoint]">
 								{{ dropdown .HealthCheckEndpoints .HealthCheckEndpoint }}
@@ -34,7 +35,8 @@
 						<div class="form-group">
 							<input class="form-control input-sm" type="text" name="healthcheck[path]" value="{{ .HealthCheckPath }}">
 						</div>
-						<input type="submit" class="btn-xs btn-primary" value="Update">
+						<input id="healthcheck-edit-cancel" type="button" class="btn btn-xs" value="Cancel">
+						<input type="submit" class="btn btn-xs btn-primary" value="Update">
 					</form>
 				</span>
 			</div>
@@ -136,6 +138,16 @@
 
 		<script>
 			$(window).ready(function() {
+				$('#healthcheck').on('click', function() {
+					$('#healthcheck').hide();
+					$('#healthcheck-edit').show();
+				});
+
+				$('#healthcheck-edit').on('click', function() {
+					$('#healthcheck-edit').hide();
+					$('#healthcheck').show();
+				});
+
 				$('#build-app').on('click', function() {
 					var button = $(this);
 
