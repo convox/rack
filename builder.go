@@ -144,6 +144,14 @@ func (b *Builder) push(prefix, dir, target, name, auth, id string) error {
 		return err
 	}
 
+	if auth != "" {
+		err := b.run("push", dir, "docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", auth, target)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	for ps, entry := range *manifest {
 		from := fmt.Sprintf("%s_%s", prefix, ps)
 
@@ -161,14 +169,6 @@ func (b *Builder) push(prefix, dir, target, name, auth, id string) error {
 
 		if err != nil {
 			return err
-		}
-
-		if auth != "" {
-			err := b.run("push", dir, "docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", auth, target)
-
-			if err != nil {
-				return err
-			}
 		}
 
 		err = b.run("push", dir, "docker", "push", to)
