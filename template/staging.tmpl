@@ -149,7 +149,7 @@
           {{ tasks . }},
           {
             "Name": "convox-logs",
-            "Image": "convox/logs",
+            "Image": "index.docker.io/convox/logs",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "LogsAccess" },
@@ -159,7 +159,7 @@
             },
             "CPU": "20",
             "Memory": "64",
-            "Links": [ {{ keys . }} ],
+            "Links": [ {{ dkeys . }} ],
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"
             ]

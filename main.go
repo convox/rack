@@ -249,6 +249,15 @@ func templateHelpers() template.FuncMap {
 
 			return template.HTML(strings.Join(ls, ","))
 		},
+		"dkeys": func(m Manifest) template.HTML {
+			keys := []string{}
+
+			for k, _ := range m {
+				keys = append(keys, fmt.Sprintf(`"%s:%s"`, k, k))
+			}
+
+			return template.HTML(strings.Join(keys, ","))
+		},
 		"keys": func(m Manifest) template.HTML {
 			keys := []string{}
 
