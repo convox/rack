@@ -16,7 +16,7 @@
       "Default": "1",
       "Description" : "Instance count for the ECS cluster"
     },
-    "Kernel": {
+    "CustomTopic": {
       "Type" : "String",
       "Default" : "",
       "Description" : ""
@@ -56,7 +56,7 @@
       "Type": "Custom::ECSCluster",
       "Version": "1.0",
       "Properties": {
-        "ServiceToken": { "Ref": "Kernel" },
+        "ServiceToken": { "Ref": "CustomTopic" },
         "Name": { "Ref": "AWS::StackName" }
       }
     },
