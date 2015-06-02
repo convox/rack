@@ -537,4 +537,5 @@ textarea.environment {
 #healthcheck {
 	color: #337ab7;
 	cursor: pointer;
+	margin-left: -4px;
 }
