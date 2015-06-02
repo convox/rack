@@ -121,6 +121,14 @@
 		<script>
 			$(window).ready(function() {
 				$('#build-app').on('click', function() {
+					var button = $(this);
+
+					button.prop('disabled', true);
+
+					window.setTimeout(function() {
+						button.prop('disabled', false);
+					}, 500);
+
 					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
 						change_to_tab('#builds');
 					}).fail(function(msg) {
