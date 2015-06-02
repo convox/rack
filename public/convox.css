@@ -239,6 +239,10 @@ td.buttons {
 	width: 90px;
 }
 
+.labelled-value .value {
+	display: inline-block;
+}
+
 .labelled-value#repository .value {
 	font-family: monospace;
 }

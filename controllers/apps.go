@@ -108,6 +108,34 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", name))
 }
 
+func AppUpdate(rw http.ResponseWriter, r *http.Request) {
+	log := appsLogger("update").Start()
+
+	vars := mux.Vars(r)
+	name := vars["app"]
+
+	app, err := models.GetApp(name)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	endpoint := GetForm(r, "healthcheck[endpoint]")
+	path := GetForm(r, "healthcheck[path]")
+
+	err = app.SetHealthCheck(endpoint, path)
+
+	if err != nil {
+		log.Error(err)
+		RenderError(rw, err)
+		return
+	}
+
+	Redirect(rw, r, fmt.Sprintf("/apps/%s", name))
+}
+
 func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("delete").Start()
 

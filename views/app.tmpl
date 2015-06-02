@@ -22,6 +22,22 @@
 			{{ label "Status" .Status }}
 			{{ label "Repository" .Repository }}
 			{{ label "Host" .BalancerHost }}
+			<div class="labelled-value">
+				<span class="name">Check</span>
+				<span class="value">
+					<form class="form-inline" method="post" action="/apps/{{ .Name }}">
+						<div class="form-group">
+							<select class="form-control input-sm" name="healthcheck[endpoint]">
+								{{ dropdown .HealthCheckEndpoints .HealthCheckEndpoint }}
+							</select>
+						</div>
+						<div class="form-group">
+							<input class="form-control input-sm" type="text" name="healthcheck[path]" value="{{ .HealthCheckPath }}">
+						</div>
+						<input type="submit" class="btn-xs btn-primary" value="Update">
+					</form>
+				</span>
+			</div>
 		</div>
 	</div>
 
