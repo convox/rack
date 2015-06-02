@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -248,6 +249,24 @@ func templateHelpers() template.FuncMap {
 
 			return template.HTML(strings.Join(ls, ","))
 		},
+		"keys": func(m Manifest) template.HTML {
+			keys := []string{}
+
+			for k, _ := range m {
+				keys = append(keys, fmt.Sprintf(`"%s"`, k))
+			}
+
+			return template.HTML(strings.Join(keys, ","))
+		},
+		"names": func(m Manifest) template.HTML {
+			names := []string{}
+
+			for k, _ := range m {
+				names = append(names, k)
+			}
+
+			return template.HTML(strings.Join(names, ","))
+		},
 		"safe": func(s string) template.HTML {
 			return template.HTML(s)
 		},
@@ -299,7 +318,6 @@ func templateHelpers() template.FuncMap {
 					"Name": "%s",
 					"Image": { "Ref": "%sImage" },
 					"Command": { "Ref": "%sCommand" },
-					"Environment": { "Ref": "Environment" },
 					"Key": { "Ref": "Key" },
 					"CPU": "200",
 					"Memory": "300",
@@ -315,11 +333,20 @@ func templateHelpers() template.FuncMap {
 		"upper": func(name string) string {
 			return upperName(name)
 		},
+		"upperenv": func(name string) string {
+			return upperEnv(name)
+		},
 	}
 }
 
 func randomPort() string {
 	return strconv.Itoa(rand.Intn(50000) + 5000)
+}
+
+var regexpNonAlpha = regexp.MustCompile("[^a-zA-Z]")
+
+func upperEnv(name string) string {
+	return strings.ToUpper(regexpNonAlpha.ReplaceAllString(name, "_"))
 }
 
 func upperName(name string) string {

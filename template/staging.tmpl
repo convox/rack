@@ -59,6 +59,7 @@
     },
     "Outputs": {
       {{ template "balancer-outputs" . }}
+      {{ template "process-outputs" . }}
 
       "Settings": {
         "Value": { "Ref": "Settings" }
@@ -93,8 +94,49 @@
   {{ end }}
 {{ end }}
 
+{{ define "process-outputs" }}
+  "Kinesis": {
+    "Value": { "Ref": "Kinesis" }
+  },
+{{ end }}
+
 {{ define "process-resources" }}
   {{ if .HasProcesses }}
+    "Kinesis": {
+      "Type": "AWS::Kinesis::Stream",
+      "Properties": {
+        "ShardCount": 1
+      }
+    },
+    "LogsUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "LogsRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [ "kinesis:PutRecords" ],
+                  "Resource": [ { "Fn::Join": [ "", [ "arn:aws:kinesis:*:*:stream/", { "Ref": "AWS::StackName" }, "-*" ] ] } ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "LogsAccess": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": { "Ref": "LogsUser" }
+      }
+    },
     "TaskDefinition": {
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0",
@@ -103,7 +145,26 @@
         "Name": { "Ref": "AWS::StackName" },
         "Release": { "Ref": "Release" },
         "Environment": { "Ref": "Environment" },
-        "Tasks": [ {{ tasks . }} ]
+        "Tasks": [
+          {{ tasks . }},
+          {
+            "Name": "convox-logs",
+            "Image": "convox/logs",
+            "Environment": {
+              "AWS_REGION": { "Ref": "AWS::Region" },
+              "AWS_ACCESS": { "Ref": "LogsAccess" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "LogsAccess", "SecretAccessKey" ] },
+              "KINESIS": { "Ref": "Kinesis" },
+              "CONTAINERS": "{{ names . }}"
+            },
+            "CPU": "20",
+            "Memory": "64",
+            "Links": [ {{ keys . }} ],
+            "Volumes": [
+              "/var/run/docker.sock:/var/run/docker.sock"
+            ]
+          }
+        ]
       }
     },
     "Service": {
