@@ -647,7 +647,7 @@
               "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
               "HTTP_PASSWORD": { "Ref": "Password" },
-              "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+              "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "REGISTRY_PASSWORD": { "Ref": "Password" }
             },
             "Image": { "Ref": "WebImage" },
