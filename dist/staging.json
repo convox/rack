@@ -14,6 +14,15 @@
     }
   },
   "Outputs": {
+    "AwsRegion": {
+      "Value": { "Ref": "AWS::Region" }
+    },
+    "AwsAccess": {
+      "Value": { "Ref": "KernelAccess" }
+    },
+    "AwsSecret": {
+      "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
+    },
     "BalancerHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
