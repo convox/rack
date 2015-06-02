@@ -23,6 +23,21 @@ func displayHelpers() template.FuncMap {
 		"duration": func(start, end time.Time) template.HTML {
 			return template.HTML(fmt.Sprintf(`<span class="duration">%s</span>`, duration(start, end)))
 		},
+		"dropdown": func(options []string, selected string) template.HTML {
+			html := ""
+
+			for _, option := range options {
+				sel := ""
+
+				if selected == option {
+					sel = "selected"
+				}
+
+				html += fmt.Sprintf("<option %s>%s</option>", sel, option)
+			}
+
+			return template.HTML(html)
+		},
 		"env": func(variable string) string {
 			return os.Getenv(variable)
 		},

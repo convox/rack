@@ -59,7 +59,10 @@ func ListProcesses(app string) (Processes, error) {
 	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
 		for _, l := range cd.Links {
 			ls := strings.Split(*l, ":")
-			links[ls[0]] = ls[1]
+
+			if len(ls) == 2 {
+				links[ls[0]] = ls[1]
+			}
 		}
 
 		if !strings.HasPrefix(*cd.Name, "convox-") {

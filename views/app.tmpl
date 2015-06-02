@@ -22,6 +22,24 @@
 			{{ label "Status" .Status }}
 			{{ label "Repository" .Repository }}
 			{{ label "Host" .BalancerHost }}
+			<div class="labelled-value">
+				<span class="name">Check</span>
+				<span class="value">
+					<div id="healthcheck">{{ .HealthCheckEndpoint }}{{ .HealthCheckPath }}</div>
+					<form id="healthcheck-edit" class="form-inline" method="post" action="/apps/{{ .Name }}" style="display:none">
+						<div class="form-group">
+							<select class="form-control input-sm" name="healthcheck[endpoint]">
+								{{ dropdown .HealthCheckEndpoints .HealthCheckEndpoint }}
+							</select>
+						</div>
+						<div class="form-group">
+							<input class="form-control input-sm" type="text" name="healthcheck[path]" value="{{ .HealthCheckPath }}">
+						</div>
+						<input id="healthcheck-edit-cancel" type="button" class="btn btn-xs" value="Cancel">
+						<input type="submit" class="btn btn-xs btn-primary" value="Update">
+					</form>
+				</span>
+			</div>
 		</div>
 	</div>
 
@@ -120,6 +138,16 @@
 
 		<script>
 			$(window).ready(function() {
+				$('#healthcheck').on('click', function() {
+					$('#healthcheck').hide();
+					$('#healthcheck-edit').show();
+				});
+
+				$('#healthcheck-edit-cancel').on('click', function() {
+					$('#healthcheck-edit').hide();
+					$('#healthcheck').show();
+				});
+
 				$('#build-app').on('click', function() {
 					var button = $(this);
 

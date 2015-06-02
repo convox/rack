@@ -239,6 +239,10 @@ td.buttons {
 	width: 90px;
 }
 
+.labelled-value .value {
+	display: inline-block;
+}
+
 .labelled-value#repository .value {
 	font-family: monospace;
 }
@@ -528,4 +532,10 @@ textarea.environment {
 
 #environment-raw-content .footer button {
 	margin-left: 8px;
+}
+
+#healthcheck {
+	color: #337ab7;
+	cursor: pointer;
+	margin-left: -4px;
 }

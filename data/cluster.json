@@ -218,7 +218,7 @@
             "#!/bin/bash",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
-            { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"", { "Ref": "RegistryHost" }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "RegistryPassword" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
+            { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Ref": "RegistryHost" }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "RegistryPassword" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
             { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Ref": "RegistryHost" }, " >> /etc/sysconfig/docker" ] ] },
             "service docker restart",
             "docker start ecs-agent"

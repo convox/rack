@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -186,6 +187,34 @@ func (a *App) Delete() error {
 	return nil
 }
 
+func (a *App) UpdateParams(changes map[string]string) error {
+	req := &cloudformation.UpdateStackInput{
+		StackName:           aws.String(a.Name),
+		UsePreviousTemplate: aws.Boolean(true),
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+	}
+
+	params := a.Parameters
+
+	for key, val := range changes {
+		params[key] = val
+	}
+
+	for key, val := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(val),
+		})
+	}
+
+	res, err := CloudFormation().UpdateStack(req)
+
+	fmt.Printf("res = %+v\n", res)
+	fmt.Printf("err = %+v\n", err)
+
+	return err
+}
+
 func (a *App) Formation() (string, error) {
 	data, err := exec.Command("docker", "run", "convox/app", "-mode", "staging").CombinedOutput()
 
@@ -194,6 +223,28 @@ func (a *App) Formation() (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (a *App) SetHealthCheck(endpoint, path string) error {
+	parts := strings.Split(endpoint, ":")
+
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid endpoint")
+	}
+
+	port := a.Parameters[fmt.Sprintf("%sPort%sHost", upperName(parts[0]), parts[1])]
+
+	check := fmt.Sprintf("HTTP:%s%s", port, path)
+
+	fmt.Printf("check = %+v\n", check)
+
+	err := a.UpdateParams(map[string]string{"Check": check})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
@@ -360,6 +411,48 @@ func (a *App) Deployments() Deployments {
 
 func (a *App) HealthCheck() string {
 	return a.Outputs["HealthCheck"]
+}
+
+func (a *App) HealthCheckEndpoints() []string {
+	pp := []string{}
+
+	for _, ps := range a.Processes() {
+		for _, port := range a.ProcessPorts(ps.Name) {
+			pp = append(pp, fmt.Sprintf("%s:%s", ps.Name, port))
+		}
+	}
+
+	return pp
+}
+
+var regexpHealthCheckEndpoint = regexp.MustCompile(`HTTP:(\d+)(.*)`)
+
+func (a *App) HealthCheckEndpoint() string {
+	check := regexpHealthCheckEndpoint.FindStringSubmatch(a.Parameters["Check"])
+
+	if len(check) != 3 {
+		return ""
+	}
+
+	for _, ps := range a.Processes() {
+		for _, port := range a.ProcessPorts(ps.Name) {
+			if check[1] == a.Parameters[fmt.Sprintf("%sPort%sHost", upperName(ps.Name), port)] {
+				return fmt.Sprintf("%s:%s", ps.Name, port)
+			}
+		}
+	}
+
+	return ""
+}
+
+func (a *App) HealthCheckPath() string {
+	check := regexpHealthCheckEndpoint.FindStringSubmatch(a.Parameters["Check"])
+
+	if len(check) != 3 {
+		return ""
+	}
+
+	return check[2]
 }
 
 func (a *App) Metrics() *Metrics {
