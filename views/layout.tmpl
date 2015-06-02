@@ -5,6 +5,7 @@
 			<meta charset="utf-8">
 			<meta http-equiv="X-UA-Compatible" content="IE=edge">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta name="accountid" content="{{ env "AWS_ACCOUNTID" }}">
 			<title>{{ template "title" . }}</title>
 			<link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css"/>
 			<link rel="stylesheet" href="/convox.css"/>
@@ -86,6 +87,7 @@ mixpanel.init("43fb68427548c5e99978a598a9b14e55");</script><!-- end Mixpanel -->
 			});
 
 			// Track clicks in mixpanel
+			mixpanel.identify($('meta[name=accountid').attr('content'));
 			$('.trackable').click(function() {
 				mixpanel.track($(this).attr('id') + '-click');
 			});

@@ -23,6 +23,9 @@ func displayHelpers() template.FuncMap {
 		"duration": func(start, end time.Time) template.HTML {
 			return template.HTML(fmt.Sprintf(`<span class="duration">%s</span>`, duration(start, end)))
 		},
+		"env": func(variable string) string {
+			return os.Getenv(variable)
+		},
 		"join": func(s []string, t string) string {
 			return strings.Join(s, t)
 		},

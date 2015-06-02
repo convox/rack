@@ -614,6 +614,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "REGISTRY": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
