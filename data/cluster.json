@@ -26,7 +26,12 @@
       "Default": "",
       "Description" : "Key name for SSH access"
     },
-    "Registry": {
+    "RegistryHost": {
+      "Type": "String",
+      "Default": "",
+      "Description" : "Docker registry"
+    },
+    "RegistryPassword": {
       "Type": "String",
       "Default": "",
       "Description" : "Docker registry"
@@ -212,7 +217,9 @@
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
-            { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Ref": "Registry" }, " >> /etc/sysconfig/docker" ] ] },
+            "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
+            { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"", { "Ref": "RegistryHost" }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "RegistryPassword" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
+            { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Ref": "RegistryHost" }, " >> /etc/sysconfig/docker" ] ] },
             "service docker restart",
             "docker start ecs-agent"
           ] ] } 
