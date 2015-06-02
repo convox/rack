@@ -20,11 +20,11 @@
     "CustomTopic": {
       "Value": { "Ref": "KernelFormation" }
     },
-    "RegistryAuth": {
-      "Value": ""
-    },
     "RegistryHost": {
       "Value": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+    },
+    "RegistryPassword": {
+      "Value": { "Ref": "Password" }
     },
     "Settings": {
       "Value": {
@@ -329,6 +329,7 @@
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
             { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " >> /etc/sysconfig/docker" ] ] },
             "service docker restart",
+            { "Fn::Join": [ "", [ "docker login -u convox -p ", { "Ref": "Password" }, " ", { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, ":5000" ] ] },
             "docker start ecs-agent"
           ] ] } 
         }
@@ -380,6 +381,35 @@
           "MaxBatchSize": 1,
           "MinInstancesInService": 1
         }
+      }
+    },
+    "RegistryBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "Private"
+      }
+    },
+    "RegistryUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "Administrator",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+            }
+          }
+        ]
+      }
+    },
+    "RegistryAccess": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": { "Ref": "RegistryUser" }
       }
     },
     "Balancer": {
@@ -617,7 +647,8 @@
               "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
               "HTTP_PASSWORD": { "Ref": "Password" },
-              "REGISTRY": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+              "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+              "REGISTRY_PASSWORD": { "Ref": "Password" }
             },
             "Image": { "Ref": "WebImage" },
             "Links": [],
@@ -633,6 +664,14 @@
           },
           {
             "CPU": "100",
+            "Environment": {
+              "AWS_REGION": { "Ref": "AWS::Region" },
+              "AWS_ACCESS": { "Ref": "RegistryAccess" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
+              "BUCKET": { "Ref": "RegistryBucket" },
+              "PASSWORD": { "Ref": "Password" },
+              "SETTINGS_FLAVOR": "s3"
+            },
             "Image": { "Ref": "RegistryImage" },
             "Links": [],
             "Memory": "256",

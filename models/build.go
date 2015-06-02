@@ -147,7 +147,7 @@ func (b *Build) Execute(repo string) {
 
 	name := b.App
 
-	args := []string{"run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY"), name}
+	args := []string{"run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name}
 
 	parts := strings.Split(repo, "#")
 

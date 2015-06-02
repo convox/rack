@@ -10,7 +10,8 @@ web:
     - CUSTOM_TOPIC
     - GITHUB_TOKEN
     - HTTP_PASSWORD
-    - REGISTRY
+    - REGISTRY_HOST
+    - REGISTRY_PASSWORD
     - RELEASE=local
   ports:
     - 5000:3000
