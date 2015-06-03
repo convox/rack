@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -17,6 +18,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -24,6 +26,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) {
 	err = models.PutEnvironment(app, models.LoadEnvironment(body))
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -41,6 +44,7 @@ func EnvironmentCreate(rw http.ResponseWriter, r *http.Request) {
 	env, err := models.GetEnvironment(app)
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -50,6 +54,7 @@ func EnvironmentCreate(rw http.ResponseWriter, r *http.Request) {
 	err = models.PutEnvironment(app, env)
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -66,6 +71,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) {
 	env, err := models.GetEnvironment(app)
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -75,6 +81,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) {
 	err = models.PutEnvironment(app, env)
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}

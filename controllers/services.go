@@ -8,6 +8,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
+	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -26,7 +27,7 @@ func ServiceList(rw http.ResponseWriter, r *http.Request) {
 	services, err := models.ListServiceStacks()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -44,7 +45,7 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 	service, err := models.GetServiceFromName(name)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -62,7 +63,7 @@ func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
 	services, err := models.ListServiceStacks()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -94,7 +95,7 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
 	err := service.Create()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -114,7 +115,7 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 	err := models.LinkService(app, name, stack)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 	}
 
@@ -140,7 +141,7 @@ func ServiceStream(rw http.ResponseWriter, r *http.Request) {
 	service, err := models.GetServiceFromName(mux.Vars(r)["service"])
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -153,7 +154,7 @@ func ServiceStream(rw http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}

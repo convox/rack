@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -16,6 +17,7 @@ func ClusterList(rw http.ResponseWriter, r *http.Request) {
 	clusters, err := models.ListClusters()
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -29,6 +31,7 @@ func ClusterShow(rw http.ResponseWriter, r *http.Request) {
 	cluster, err := models.GetCluster(name)
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -52,6 +55,7 @@ func ClusterCreate(rw http.ResponseWriter, r *http.Request) {
 	err := cluster.Create()
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
@@ -73,6 +77,7 @@ func ClusterDelete(rw http.ResponseWriter, r *http.Request) {
 	err = cluster.Delete()
 
 	if err != nil {
+		helpers.Error(nil, err)
 		RenderError(rw, err)
 		return
 	}
