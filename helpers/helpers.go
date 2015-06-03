@@ -9,10 +9,11 @@ import (
 
 func init() {
 	rollbar.Token = os.Getenv("ROLLBAR_TOKEN")
-	// rollbar.Environment = "production" // defaults to "development"
 }
 
 func Error(log *logger.Logger, err error) {
-	log.Error(err)
+	if log == nil {
+		log.Error(err)
+	}
 	rollbar.Error(rollbar.ERR, err)
 }
