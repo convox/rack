@@ -24,7 +24,7 @@ var (
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	flag.StringVar(&flagMode, "mode", "production", "deployment mode")
+	flag.StringVar(&flagMode, "mode", "staging", "deployment mode")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: convox/app [options]\n")
