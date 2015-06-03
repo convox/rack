@@ -18,7 +18,7 @@
 <a name="availability-zones">
 **Availability Zones**
 
-If you have an older AWS account you may have some availability zones on which VPC does not function. If you see an error during installation referencing a list of valid availability zones then you can pick three of those and set the value of the `AvailabilityZone` parameter to `zone1,zone2,zone3`
+If you have an older AWS account you may have some availability zones on which VPC does not function. If you see an error during installation referencing a list of valid availability zones then you can pick three of those and set the value of the `AvailabilityZones` parameter to `zone1,zone2,zone3`
 
 ## Development
 
