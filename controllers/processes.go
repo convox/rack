@@ -8,6 +8,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
+	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -26,7 +27,7 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 	process, err := models.GetProcess(vars["app"], vars["process"])
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -57,7 +58,7 @@ func ProcessStream(rw http.ResponseWriter, r *http.Request) {
 	process, err := models.GetProcess(vars["app"], vars["process"])
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -71,7 +72,7 @@ func ProcessStream(rw http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -95,7 +96,7 @@ func ProcessResources(rw http.ResponseWriter, r *http.Request) {
 	resources, err := models.ListProcessResources(app, process)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
