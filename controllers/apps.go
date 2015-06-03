@@ -9,6 +9,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 
+	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -45,7 +46,7 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 	apps, err := models.ListApps()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
