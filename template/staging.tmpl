@@ -157,7 +157,7 @@
               "AWS_ACCESS": { "Ref": "LogsAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "LogsAccess", "SecretAccessKey" ] },
               "KINESIS": { "Ref": "Kinesis" },
-              "CONTAINERS": "{{ names . }}"
+              "CONTAINERS": { "Fn::Join": [ ",", [ {{ names . }} ] ] }
             },
             "CPU": "20",
             "Memory": "64",

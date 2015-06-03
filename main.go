@@ -279,8 +279,8 @@ func templateHelpers() template.FuncMap {
 		"names": func(m Manifest) template.HTML {
 			names := []string{}
 
-			for k, _ := range m {
-				names = append(names, k)
+			for ps, _ := range m {
+				names = append(names, fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s", { "Ref": "AWS::NoValue" } ] }`, upperName(ps), ps))
 			}
 
 			return template.HTML(strings.Join(names, ","))
