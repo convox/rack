@@ -7,16 +7,16 @@
 
 **Parameters**
 
-| Parameter           | Value        | Description                              |
-|---------------------|--------------|------------------------------------------|
-| `AvailabilityZones` | *optional*   | see [Availability Zones](#test)          |
-| `Key`               | *optional*   | name of ssh key in your aws account      |
-| `Password`          | **required** | password used to authorize kernel access |
-| `RegistryImage`     | *[image]*    | docker image for kernel registry         |
-| `WebImage`          | *[image]*    | docker image for kernel api              |
+| Parameter           | Value        | Description                                   |
+|---------------------|--------------|-----------------------------------------------|
+| `AvailabilityZones` | *optional*   | see [Availability Zones](#availability-zones) |
+| `Key`               | *optional*   | name of ssh key in your aws account           |
+| `Password`          | **required** | password used to authorize kernel access      |
+| `RegistryImage`     | *[image]*    | docker image for kernel registry              |
+| `WebImage`          | *[image]*    | docker image for kernel api                   |
 
 <a name="availability-zones">
-### Availability Zones
+**Availability Zones**
 
 If you have an older AWS account you may have some availability zones on which VPC does not function. If you see an error during installation referencing a list of valid availability zones then you can pick three of those and set the value of the `AvailabilityZone` parameter to `zone1,zone2,zone3`
 
