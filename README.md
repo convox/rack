@@ -1,42 +1,68 @@
 # convox/kernel
 
-##### Install docker-compose:
+<a name="installation">
+## Installation
+
+[![Install](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#cstack=sn%7Econvox%7Cturl%7Ehttp://convox.s3.amazonaws.com/kernel.json)
+
+**Parameters**
+
+| Parameter           | Value        | Description                              |
+|---------------------|--------------|------------------------------------------|
+| `AvailabilityZones` | *optional*   | see [Availability Zones](#test)          |
+| `Key`               | *optional*   | name of ssh key in your aws account      |
+| `Password`          | **required** | password used to authorize kernel access |
+| `RegistryImage`     | *[image]*    | docker image for kernel registry         |
+| `WebImage`          | *[image]*    | docker image for kernel api              |
+
+## Development
+
+**Prerequisites**
+
+* working [docker](https://docs.docker.com/installation/) environment (`docker ps` should work)
+* [docker-compose](https://docs.docker.com/compose/install/)
+
+**Install kernel into an AWS account**
+
+See [Installation](#installation)
+
+**Create `.env`**
+
+Look at the **Outputs** tab of the CloudFormation stack of the kernel you installed and build a `.env`  accordingly:
 
 ```
-curl -L https://github.com/docker/compose/releases/download/1.1.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+AWS_REGION=
+AWS_ACCESS=
+AWS_SECRET=
+CUSTOM_TOPIC=
+REGISTRY_HOST=
+REGISTRY_PASSWORD=
+```
+
+**Install docker-compose**
+
+```
+curl -L https://github.com/docker/compose/releases/download/1.2.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 ```
 
-#### Bootstrap
+**Configure an insecure registry with your docker daemon**
 
-Bootstrap a kernel on AWS. See dist/staging.json.
-
-##### Create `.env`:
-
-```
-AWS_REGION=us-east-1
-AWS_ACCESS=foo
-AWS_SECRET=bar
-CUSTOM_TOPIC=< Copy from staging stack CustomTopic Output >
-REGISTRY=< Copy from staging stack RegistryHost Output >
-```
-
-If using Boot2Docker, configure for an your insecure Registry:
+If you're using [boot2docker](http://boot2docker.io/) you can run:
 
 ```
 boot2docker ssh "echo $'EXTRA_ARGS=\"--insecure-registry kernel-staging-1392086461.us-east-1.elb.amazonaws.com:5000\"' | sudo tee -a /var/lib/boot2docker/profile && sudo /etc/init.d/docker stop && sleep 2 && sudo /etc/init.d/docker start"
 ```
 
-##### Run the kernel for local development:
+**Run the kernel in development mode**
+
+Development mode uses `docker-compose`. Changes you make to the local project will be synced into the running containers and the project will be reloaded as needed.
 
 `make dev`
 
+**Open in a browser**
 
-##### Release
-
-Publish formation.json to public S3, and push the kernel image to Docker Hub. If necessary, `export AWS_DEFAULT_PROFILE=...` for proper credentials.
-
-`make release`
+Go to `http://$DOCKER_HOST:5000` in your browser.
 
 ## License
 
