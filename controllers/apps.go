@@ -56,7 +56,7 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 	clusters, err := models.ListClusters()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -77,7 +77,7 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 	a, err := models.GetApp(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -101,7 +101,7 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	err := app.Create()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -118,7 +118,7 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	app, err := models.GetApp(name)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -128,7 +128,7 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	err = app.Delete()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -211,7 +211,7 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	builds, err := models.ListBuilds(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -227,7 +227,7 @@ func AppChanges(rw http.ResponseWriter, r *http.Request) {
 	changes, err := models.ListChanges(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -243,7 +243,7 @@ func AppDeployments(rw http.ResponseWriter, r *http.Request) {
 	deployments, err := models.ListDeployments(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -259,7 +259,7 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	env, err := models.GetEnvironment(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -286,7 +286,7 @@ func AppStream(rw http.ResponseWriter, r *http.Request) {
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -299,7 +299,7 @@ func AppStream(rw http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -324,7 +324,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	a, err := models.GetApp(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -332,7 +332,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	releases, err := models.ListReleases(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -353,7 +353,7 @@ func AppResources(rw http.ResponseWriter, r *http.Request) {
 	resources, err := models.ListResources(app)
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
@@ -367,7 +367,7 @@ func AppStatus(rw http.ResponseWriter, r *http.Request) {
 	app, err := models.GetApp(mux.Vars(r)["app"])
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
