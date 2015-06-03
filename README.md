@@ -7,13 +7,13 @@
 
 **Parameters**
 
-| Parameter           | Value        | Description                                   |
-|---------------------|--------------|-----------------------------------------------|
-| `AvailabilityZones` | *optional*   | see [Availability Zones](#availability-zones) |
-| `Key`               | *optional*   | name of ssh key in your aws account           |
-| `Password`          | **required** | password used to authorize kernel access      |
-| `RegistryImage`     | *[image]*    | docker image for kernel registry              |
-| `WebImage`          | *[image]*    | docker image for kernel api                   |
+| Parameter         | Value        | Description                              |
+|-------------------|--------------|------------------------------------------|
+| AvailabilityZones | *optional*   | see **Availability Zones** below         |
+| Key               | *optional*   | name of ssh key in your aws account      |
+| Password          | **required** | password used to authorize kernel access |
+| RegistryImage     | *[image]*    | docker image for kernel registry         |
+| WebImage          | *[image]*    | docker image for kernel api              |
 
 <a name="availability-zones">
 **Availability Zones**
