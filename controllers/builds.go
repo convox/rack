@@ -20,7 +20,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	err := build.Save()
 
 	if err != nil {
-		log.Error(err)
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
