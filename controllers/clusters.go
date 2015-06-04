@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/helpers"
@@ -46,10 +47,11 @@ func ClusterCreate(rw http.ResponseWriter, r *http.Request) {
 	key := GetForm(r, "key")
 
 	cluster := &models.Cluster{
-		Name:  name,
-		Count: count,
-		Key:   key,
-		Size:  size,
+		AvailabilityZones: os.Getenv("AWS_AZS"),
+		Name:              name,
+		Count:             count,
+		Key:               key,
+		Size:              size,
 	}
 
 	err := cluster.Create()

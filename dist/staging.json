@@ -639,6 +639,7 @@
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
+              "AWS_AZS": { "Ref": "AvailabilityZones" },
               "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
