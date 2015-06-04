@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/lambda"
@@ -80,13 +79,8 @@ func LambdaFunctionUpdate(req Request) (string, error) {
 }
 
 func LambdaFunctionDelete(req Request) (string, error) {
-	// work around bug in aws-sdk-go, sending an arn
-	// causes it to barf
-	parts := strings.Split(req.PhysicalResourceId, ":")
-	name := parts[len(parts)-1]
-
 	_, err := Lambda(req).DeleteFunction(&lambda.DeleteFunctionInput{
-		FunctionName: aws.String(name),
+		FunctionName: aws.String(req.PhysicalResourceId),
 	})
 
 	// TODO let the cloudformation finish thinking this deleted
