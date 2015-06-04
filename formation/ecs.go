@@ -16,7 +16,7 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-func HandleECSCluster(req Request) (string, error) {
+func HandleECSCluster(req Request) (string, map[string]string, error) {
 	defer recoverFailure(req)
 
 	switch req.RequestType {
@@ -34,10 +34,10 @@ func HandleECSCluster(req Request) (string, error) {
 		return ECSClusterDelete(req)
 	}
 
-	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
-func HandleECSService(req Request) (string, error) {
+func HandleECSService(req Request) (string, map[string]string, error) {
 	switch req.RequestType {
 	case "Create":
 		fmt.Println("CREATING SERVICE")
@@ -53,10 +53,10 @@ func HandleECSService(req Request) (string, error) {
 		return ECSServiceDelete(req)
 	}
 
-	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
-func HandleECSTaskDefinition(req Request) (string, error) {
+func HandleECSTaskDefinition(req Request) (string, map[string]string, error) {
 	switch req.RequestType {
 	case "Create":
 		fmt.Println("CREATING TASK")
@@ -72,26 +72,26 @@ func HandleECSTaskDefinition(req Request) (string, error) {
 		return ECSTaskDefinitionDelete(req)
 	}
 
-	return "", fmt.Errorf("unknown RequestType: %s", req.RequestType)
+	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
-func ECSClusterCreate(req Request) (string, error) {
+func ECSClusterCreate(req Request) (string, map[string]string, error) {
 	res, err := ECS(req).CreateCluster(&ecs.CreateClusterInput{
 		ClusterName: aws.String(req.ResourceProperties["Name"].(string)),
 	})
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return *res.Cluster.ClusterARN, nil
+	return *res.Cluster.ClusterARN, nil, nil
 }
 
-func ECSClusterUpdate(req Request) (string, error) {
-	return "", fmt.Errorf("could not update")
+func ECSClusterUpdate(req Request) (string, map[string]string, error) {
+	return "", nil, fmt.Errorf("could not update")
 }
 
-func ECSClusterDelete(req Request) (string, error) {
+func ECSClusterDelete(req Request) (string, map[string]string, error) {
 	_, err := ECS(req).DeleteCluster(&ecs.DeleteClusterInput{
 		Cluster: aws.String(req.PhysicalResourceId),
 	})
@@ -100,17 +100,17 @@ func ECSClusterDelete(req Request) (string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil
+		return "", nil, nil
 	}
 
-	return "", nil
+	return "", nil, nil
 }
 
-func ECSServiceCreate(req Request) (string, error) {
+func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	r := &ecs.CreateServiceInput{
@@ -130,7 +130,7 @@ func ECSServiceCreate(req Request) (string, error) {
 		parts := strings.SplitN(balancer.(string), ":", 3)
 
 		if len(parts) != 3 {
-			return "", fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
+			return "", nil, fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
 		}
 
 		name := parts[0]
@@ -149,13 +149,13 @@ func ECSServiceCreate(req Request) (string, error) {
 	res, err := ECS(req).CreateService(r)
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return *res.Service.ServiceARN, nil
+	return *res.Service.ServiceARN, nil, nil
 }
 
-func ECSServiceUpdate(req Request) (string, error) {
+func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	count, _ := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
 
 	res, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
@@ -166,13 +166,13 @@ func ECSServiceUpdate(req Request) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return *res.Service.ServiceARN, nil
+	return *res.Service.ServiceARN, nil, nil
 }
 
-func ECSServiceDelete(req Request) (string, error) {
+func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	cluster := req.ResourceProperties["Cluster"].(string)
 	name := req.ResourceProperties["Name"].(string)
 
@@ -185,7 +185,7 @@ func ECSServiceDelete(req Request) (string, error) {
 	// go ahead and mark the delete good if the service is not found
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ServiceNotFoundException" {
-			return "", nil
+			return "", nil, nil
 		}
 	}
 
@@ -193,7 +193,7 @@ func ECSServiceDelete(req Request) (string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil
+		return "", nil, nil
 	}
 
 	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
@@ -205,13 +205,13 @@ func ECSServiceDelete(req Request) (string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil
+		return "", nil, nil
 	}
 
-	return "", nil
+	return "", nil, nil
 }
 
-func ECSTaskDefinitionCreate(req Request) (string, error) {
+func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	// return "", fmt.Errorf("fail")
 
 	tasks := req.ResourceProperties["Tasks"].([]interface{})
@@ -227,7 +227,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 		res, err := http.Get(envUrl)
 
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 
 		defer res.Body.Close()
@@ -293,7 +293,7 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 				res, err := CloudFormation(req).DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(parts[0])})
 
 				if err != nil {
-					return "", fmt.Errorf("SERVICE CREATION: %s", err)
+					return "", nil, fmt.Errorf("SERVICE CREATION: %s", err)
 				}
 
 				s := models.ServiceFromStack(res.Stacks[0])
@@ -367,14 +367,14 @@ func ECSTaskDefinitionCreate(req Request) (string, error) {
 	res, err := ECS(req).RegisterTaskDefinition(r)
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return *res.TaskDefinition.TaskDefinitionARN, nil
+	return *res.TaskDefinition.TaskDefinitionARN, nil, nil
 }
 
-func ECSTaskDefinitionDelete(req Request) (string, error) {
+func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
 	// TODO: currently unsupported by ECS
 	// res, err := ECS().DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
-	return "", nil
+	return "", nil, nil
 }

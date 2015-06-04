@@ -160,15 +160,16 @@ func HandleRequest(freq Request) error {
 	defer recoverFailure(freq)
 
 	var err error
+	var outputs map[string]string
 	var physical string
 
 	switch freq.ResourceType {
 	case "Custom::ECSCluster":
-		physical, err = HandleECSCluster(freq)
+		physical, outputs, err = HandleECSCluster(freq)
 	case "Custom::ECSService":
-		physical, err = HandleECSService(freq)
+		physical, outputs, err = HandleECSService(freq)
 	case "Custom::ECSTaskDefinition":
-		physical, err = HandleECSTaskDefinition(freq)
+		physical, outputs, err = HandleECSTaskDefinition(freq)
 	case "Custom::LambdaFunction":
 		physical, err = HandleLambdaFunction(freq)
 	default:
@@ -182,9 +183,7 @@ func HandleRequest(freq Request) error {
 		LogicalResourceId:  freq.LogicalResourceId,
 		PhysicalResourceId: physical,
 		Status:             "SUCCESS",
-		Data: map[string]string{
-			"Output1": "Value1",
-		},
+		Data:               outputs,
 	}
 
 	if err != nil {

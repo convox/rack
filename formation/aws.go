@@ -6,6 +6,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/lambda"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
@@ -47,6 +48,13 @@ func CloudFormation(req Request) *cloudformation.CloudFormation {
 
 func Lambda(req Request) *lambda.Lambda {
 	return lambda.New(&aws.Config{
+		Credentials: Credentials(&req),
+		Region:      Region(&req),
+	})
+}
+
+func EC2(req Request) *ec2.EC2 {
+	return ec2.New(&aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
