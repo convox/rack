@@ -1,8 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
-    "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
+    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] }
   },
   "Mappings": {
     "RegionConfig": {
@@ -42,11 +41,6 @@
     }
   },
   "Parameters": {
-    "AvailabilityZones": {
-      "Type" : "CommaDelimitedList",
-      "Default" : "",
-      "Description" : "Override default availability zones"
-    },
     "Bootstrap": {
       "Default": "arn:aws:sns:us-east-1:922560784203:convox-bootstrap",
       "Description": "Bootstrap topic (only experts should change this)",
@@ -139,6 +133,13 @@
         "SecretAccessKey": { "Fn::GetAtt": [ "BootstrapAccess", "SecretAccessKey" ] }
       }
     },
+    "AvailabilityZones": {
+      "Type": "Custom::EC2AvailabilityZones",
+      "Properties": {
+        "ServiceToken": { "Ref": "KernelFormation" },
+        "Vpc": { "Ref": "Vpc" }
+      }
+    },
     "KernelUser": {
       "Type": "AWS::IAM::User",
       "Properties": {
@@ -199,10 +200,7 @@
     "Subnet0": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
-          { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ "0", { "Ref": "AvailabilityZones" } ] }
-        ] },
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
         "CidrBlock": "10.0.1.0/24",
         "VpcId": { "Ref": "Vpc" }
       }
@@ -210,10 +208,7 @@
     "Subnet1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
-          { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ "1", { "Ref": "AvailabilityZones" } ] }
-        ] },
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
         "CidrBlock": "10.0.2.0/24",
         "VpcId": { "Ref": "Vpc" }
       }
@@ -221,10 +216,7 @@
     "Subnet2": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
-          { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ "2", { "Ref": "AvailabilityZones" } ] }
-        ] },
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
         "CidrBlock": "10.0.3.0/24",
         "VpcId": { "Ref": "Vpc" }
       }
@@ -348,18 +340,11 @@
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
-        "AvailabilityZones": { "Fn::If": [ "DefaultAvailabilityZones",
-          [
-            { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
-            { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
-            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
-          ],
-          [
-            { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
-            { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
-            { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
-          ]
-        ] },
+        "AvailabilityZones": [
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
+        ],
         "VPCZoneIdentifier": [ 
           { "Ref": "Subnet0" },
           { "Ref": "Subnet1" },
