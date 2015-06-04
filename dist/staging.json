@@ -120,7 +120,7 @@
       "Type": "Custom::LambdaFunction",
       "Properties": {
         "ServiceToken": { "Ref": "Bootstrap" },
-        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" } ] ] },
+        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" }, { "Ref": "Vpc" } ] ] },
         "ZipFile": "http://convox.s3.amazonaws.com/lambda-formation.zip",
         "Runtime": "nodejs",
         "Handler": "lambda.external",
