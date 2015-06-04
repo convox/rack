@@ -1,8 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
-    "DefaultAvailabilityZones": { "Fn::Equals": [ { "Fn::Join": [ "", { "Ref": "AvailabilityZones" } ] }, "" ] }
+    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] }
   },
   "Mappings": {
     "RegionConfig": {
@@ -27,7 +26,7 @@
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "CustomTopic": {
-      "Value": { "Ref": "KernelFormation" }
+      "Value": { "Ref": "CustomTopic" }
     },
     "RegistryHost": {
       "Value": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
@@ -42,11 +41,6 @@
     }
   },
   "Parameters": {
-    "AvailabilityZones": {
-      "Type" : "CommaDelimitedList",
-      "Default" : "",
-      "Description" : "Override default availability zones"
-    },
     "Bootstrap": {
       "Default": "arn:aws:sns:us-east-1:922560784203:convox-bootstrap",
       "Description": "Bootstrap topic (only experts should change this)",
@@ -97,7 +91,7 @@
         "UserName": { "Ref": "BootstrapUser" }
       }
     },
-    "KernelFormationRole": {
+    "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -122,21 +116,28 @@
         ]
       }
     },
-    "KernelFormation": {
+    "CustomTopic": {
       "Type": "Custom::LambdaFunction",
       "Properties": {
         "ServiceToken": { "Ref": "Bootstrap" },
-        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" } ] ] },
+        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" }, { "Ref": "Vpc" } ] ] },
         "ZipFile": "http://convox.s3.amazonaws.com/lambda-formation.zip",
         "Runtime": "nodejs",
         "Handler": "lambda.external",
-        "Role": { "Ref": "KernelFormationRole" },
+        "Role": { "Ref": "CustomTopicRole" },
         "Timeout": "30",
         "Memory": "128",
         "Region": { "Ref": "AWS::Region" },
         "AccountId": { "Ref": "AWS::AccountId" },
         "AccessId": { "Ref": "BootstrapAccess" },
         "SecretAccessKey": { "Fn::GetAtt": [ "BootstrapAccess", "SecretAccessKey" ] }
+      }
+    },
+    "AvailabilityZones": {
+      "Type": "Custom::EC2AvailabilityZones",
+      "Properties": {
+        "ServiceToken": { "Ref": "CustomTopic" },
+        "Vpc": { "Ref": "Vpc" }
       }
     },
     "KernelUser": {
@@ -165,7 +166,7 @@
     "Cluster": {
       "Properties": {
         "ServiceToken": {
-          "Ref": "KernelFormation"
+          "Ref": "CustomTopic"
         },
         "Name": {
           "Ref": "AWS::StackName"
@@ -199,10 +200,7 @@
     "Subnet0": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
-          { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ "0", { "Ref": "AvailabilityZones" } ] }
-        ] },
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
         "CidrBlock": "10.0.1.0/24",
         "VpcId": { "Ref": "Vpc" }
       }
@@ -210,10 +208,7 @@
     "Subnet1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
-          { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ "1", { "Ref": "AvailabilityZones" } ] }
-        ] },
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
         "CidrBlock": "10.0.2.0/24",
         "VpcId": { "Ref": "Vpc" }
       }
@@ -221,10 +216,7 @@
     "Subnet2": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": { "Fn::If": [ "DefaultAvailabilityZones",
-          { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
-          { "Fn::Select": [ "2", { "Ref": "AvailabilityZones" } ] }
-        ] },
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
         "CidrBlock": "10.0.3.0/24",
         "VpcId": { "Ref": "Vpc" }
       }
@@ -348,18 +340,11 @@
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
-        "AvailabilityZones": { "Fn::If": [ "DefaultAvailabilityZones",
-          [
-            { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
-            { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
-            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
-          ],
-          [
-            { "Fn::Select": [ 0, { "Ref": "AvailabilityZones" } ] },
-            { "Fn::Select": [ 1, { "Ref": "AvailabilityZones" } ] },
-            { "Fn::Select": [ 2, { "Ref": "AvailabilityZones" } ] }
-          ]
-        ] },
+        "AvailabilityZones": [
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
+        ],
         "VPCZoneIdentifier": [ 
           { "Ref": "Subnet0" },
           { "Ref": "Subnet1" },
@@ -567,7 +552,7 @@
           "Ref": "ServiceRole"
         },
         "ServiceToken": {
-          "Ref": "KernelFormation"
+          "Ref": "CustomTopic"
         },
         "TaskDefinition": {
           "Ref": "TaskDefinition"
@@ -644,7 +629,7 @@
           "Ref": "AWS::StackName"
         },
         "ServiceToken": {
-          "Ref": "KernelFormation"
+          "Ref": "CustomTopic"
         },
         "Tasks": [
           {
@@ -654,7 +639,8 @@
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
-              "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
+              "AWS_AZS": { "Ref": "AvailabilityZones" },
+              "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "REGISTRY_PASSWORD": { "Ref": "Password" }
