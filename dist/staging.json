@@ -26,7 +26,7 @@
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "CustomTopic": {
-      "Value": { "Ref": "KernelFormation" }
+      "Value": { "Ref": "CustomTopic" }
     },
     "RegistryHost": {
       "Value": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
@@ -91,7 +91,7 @@
         "UserName": { "Ref": "BootstrapUser" }
       }
     },
-    "KernelFormationRole": {
+    "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -116,7 +116,7 @@
         ]
       }
     },
-    "KernelFormation": {
+    "CustomTopic": {
       "Type": "Custom::LambdaFunction",
       "Properties": {
         "ServiceToken": { "Ref": "Bootstrap" },
@@ -124,7 +124,7 @@
         "ZipFile": "http://convox.s3.amazonaws.com/lambda-formation.zip",
         "Runtime": "nodejs",
         "Handler": "lambda.external",
-        "Role": { "Ref": "KernelFormationRole" },
+        "Role": { "Ref": "CustomTopicRole" },
         "Timeout": "30",
         "Memory": "128",
         "Region": { "Ref": "AWS::Region" },
@@ -136,7 +136,7 @@
     "AvailabilityZones": {
       "Type": "Custom::EC2AvailabilityZones",
       "Properties": {
-        "ServiceToken": { "Ref": "KernelFormation" },
+        "ServiceToken": { "Ref": "CustomTopic" },
         "Vpc": { "Ref": "Vpc" }
       }
     },
@@ -166,7 +166,7 @@
     "Cluster": {
       "Properties": {
         "ServiceToken": {
-          "Ref": "KernelFormation"
+          "Ref": "CustomTopic"
         },
         "Name": {
           "Ref": "AWS::StackName"
@@ -552,7 +552,7 @@
           "Ref": "ServiceRole"
         },
         "ServiceToken": {
-          "Ref": "KernelFormation"
+          "Ref": "CustomTopic"
         },
         "TaskDefinition": {
           "Ref": "TaskDefinition"
@@ -629,7 +629,7 @@
           "Ref": "AWS::StackName"
         },
         "ServiceToken": {
-          "Ref": "KernelFormation"
+          "Ref": "CustomTopic"
         },
         "Tasks": [
           {
@@ -640,7 +640,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "AWS_AZS": { "Ref": "AvailabilityZones" },
-              "CUSTOM_TOPIC": { "Ref": "KernelFormation" },
+              "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "REGISTRY_PASSWORD": { "Ref": "Password" }
