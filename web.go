@@ -102,6 +102,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/environment", controllers.EnvironmentSet).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentDelete).Methods("Delete")
+	router.HandleFunc("/apps/{app}/events", controllers.AppEvents).Methods("GET")
 	router.HandleFunc("/apps/{app}/logs", controllers.AppLogs)
 	router.HandleFunc("/apps/{app}/logs/stream", controllers.AppStream)
 	router.HandleFunc("/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
