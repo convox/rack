@@ -23,8 +23,8 @@ type Event struct {
 type Events []Event
 
 type ServiceEvent struct {
-	Id string
-	Message string
+	Id        string
+	Message   string
 	CreatedAt time.Time
 }
 
@@ -112,9 +112,9 @@ func ListECSEvents(app string) (ServiceEvents, error) {
 
 	for _, event := range res.Services[0].Events {
 		events = append(events, ServiceEvent{
-			Id:      		cs(event.ID, ""),
-			Message: 		cs(event.Message, ""),
-			CreatedAt:  ct(event.CreatedAt),
+			Id:        cs(event.ID, ""),
+			Message:   cs(event.Message, ""),
+			CreatedAt: ct(event.CreatedAt),
 		})
 	}
 
