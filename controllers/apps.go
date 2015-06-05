@@ -314,6 +314,23 @@ func AppEvents(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	es, err := models.ListEvents(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	for _, e := range es {
+		events = append(events, models.ServiceEvent{
+			Message:   fmt.Sprintf("%s - %s - %s", e.Type, e.Status, e.Reason),
+			CreatedAt: e.Time,
+		})
+	}
+
+	sort.Sort(sort.Reverse(events))
+
 	params := map[string]interface{}{
 		"App":    app,
 		"Events": events,

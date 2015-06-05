@@ -120,3 +120,15 @@ func ListECSEvents(app string) (ServiceEvents, error) {
 
 	return events, nil
 }
+
+func (slice ServiceEvents) Len() int {
+	return len(slice)
+}
+
+func (slice ServiceEvents) Less(i, j int) bool {
+	return slice[i].CreatedAt.Before(slice[j].CreatedAt)
+}
+
+func (slice ServiceEvents) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
