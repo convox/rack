@@ -26,10 +26,7 @@ If you have an older AWS account you may have some availability zones on which V
 
 * working [docker](https://docs.docker.com/installation/) environment (`docker ps` should work)
 * [docker-compose](https://docs.docker.com/compose/install/)
-
-**Install kernel into an AWS account**
-
-See [Installation](#installation)
+* an installed kernel (see [Installation](#installation))
 
 **Create `.env`**
 
