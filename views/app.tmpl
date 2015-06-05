@@ -422,6 +422,14 @@
 	</div>
 {{ end }}
 
+{{ define "events" }}
+	<pre id="app-events" class="logs">
+		{{ range .Events }}
+			{{ .Message }}\n
+		{{ end }}
+	</pre>
+{{ end }}
+
 {{ define "logs" }}
 	<pre id="app-logs" class="logs"><p>Connecting...</p></pre>
 	<script>

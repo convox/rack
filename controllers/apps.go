@@ -18,6 +18,7 @@ func init() {
 	RegisterPartial("app", "changes")
 	RegisterPartial("app", "deployments")
 	RegisterPartial("app", "environment")
+	RegisterPartial("app", "events")
 	RegisterPartial("app", "logs")
 	RegisterPartial("app", "releases")
 	RegisterPartial("app", "resources")
@@ -298,6 +299,27 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderPartial(rw, "app", "environment", params)
+}
+
+func AppEvents(rw http.ResponseWriter, r *http.Request) {
+	log := appsLogger("events").Start()
+
+	app := mux.Vars(r)["app"]
+
+	events, err := models.ListECSEvents(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	params := map[string]interface{}{
+		"App":    app,
+		"Events": events,
+	}
+
+	RenderPartial(rw, "app", "events", params)
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
