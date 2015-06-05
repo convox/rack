@@ -37,9 +37,10 @@ func init() {
 }
 
 type ManifestEntry struct {
-	Links   []string `yaml:"links"`
-	Ports   []string `yaml:"ports"`
-	Volumes []string `yaml:"volumes"`
+	Command interface{} `yaml:"command"`
+	Links   []string    `yaml:"links"`
+	Ports   []string    `yaml:"ports"`
+	Volumes []string    `yaml:"volumes"`
 
 	Randoms []string
 }
@@ -197,6 +198,24 @@ func printLines(data string) {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"command": func(command interface{}) string {
+			switch cmd := command.(type) {
+			case string:
+				fmt.Println("string")
+				return cmd
+			case []interface{}:
+				parts := make([]string, len(cmd))
+
+				for i, c := range cmd {
+					parts[i] = c.(string)
+				}
+
+				return strings.Join(parts, " ")
+			default:
+				fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
+			}
+			return ""
+		},
 		"ingress": func(m Manifest) template.HTML {
 			ls := []string{}
 

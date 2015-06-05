@@ -78,7 +78,7 @@
   {{ range $k, $e := . }}
     "{{ upper $k }}Command": {
       "Type" : "String",
-      "Default" : "{{ $e.Command }}",
+      "Default" : "{{ command $e.Command }}",
       "Description" : ""
     },
     "{{ upper $k }}Image": {
