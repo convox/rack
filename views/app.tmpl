@@ -131,6 +131,7 @@
 			<li role="presentation"><a href="#builds" id="builds-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
 			<li role="presentation"><a href="#releases" id="releases-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
 			<li role="presentation"><a href="#environment" id="environment-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#events" id="event-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/events">Events</a></li>
 		</ul>
 
 		<div id="tab-content">
@@ -423,11 +424,8 @@
 {{ end }}
 
 {{ define "events" }}
-	<pre id="app-events" class="logs">
-		{{ range .Events }}
-			{{ .Message }}\n
-		{{ end }}
-	</pre>
+	<pre id="app-events" class="logs">{{ range .Events }}{{ .CreatedAt }} - {{ .Message }}
+{{ end }}</pre>
 {{ end }}
 
 {{ define "logs" }}
