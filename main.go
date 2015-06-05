@@ -200,8 +200,9 @@ func templateHelpers() template.FuncMap {
 	return template.FuncMap{
 		"command": func(command interface{}) string {
 			switch cmd := command.(type) {
+			case nil:
+				return ""
 			case string:
-				fmt.Println("string")
 				return cmd
 			case []interface{}:
 				parts := make([]string, len(cmd))
