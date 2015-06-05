@@ -55,7 +55,7 @@ func LinkService(app string, process string, stack string) error {
 		return err
 	}
 
-	a.Parameters[upperName(process) + "Service"] = stack
+	a.Parameters[upperName(process)+"Service"] = stack
 
 	params := []*cloudformation.Parameter{}
 
@@ -166,10 +166,6 @@ func (s *Service) Create() error {
 
 	params := map[string]string{
 		"Password": s.Password,
-	}
-
-	if s.Type == "redis" {
-		params["SSHKey"] = "production"
 	}
 
 	tags := map[string]string{
