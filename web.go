@@ -84,11 +84,6 @@ func startWeb() {
 
 	router.HandleFunc("/check", check).Methods("GET")
 
-	router.HandleFunc("/clusters", controllers.ClusterList).Methods("GET")
-	router.HandleFunc("/clusters", controllers.ClusterCreate).Methods("POST")
-	router.HandleFunc("/clusters/{cluster}", controllers.ClusterShow).Methods("GET")
-	router.HandleFunc("/clusters/{cluster}", controllers.ClusterDelete).Methods("DELETE")
-
 	router.HandleFunc("/apps", controllers.AppList).Methods("GET")
 	router.HandleFunc("/apps", controllers.AppCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}", controllers.AppShow).Methods("GET")
