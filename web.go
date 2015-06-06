@@ -92,6 +92,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/builds", controllers.AppBuilds).Methods("GET")
 	router.HandleFunc("/apps/{app}/build", controllers.BuildCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/builds/{build}/logs", controllers.BuildLogs).Methods("GET")
+	router.HandleFunc("/apps/{app}/builds/{build}/logs/stream", controllers.BuildStream)
 	router.HandleFunc("/apps/{app}/changes", controllers.AppChanges).Methods("GET")
 	router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
 	router.HandleFunc("/apps/{app}/deployments", controllers.AppDeployments).Methods("GET")
