@@ -1,6 +1,7 @@
 package models
 
 import (
+	"os"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -21,14 +22,8 @@ type Deployment struct {
 type Deployments []Deployment
 
 func ListDeployments(app string) (Deployments, error) {
-	a, err := GetApp(app)
-
-	if err != nil {
-		return nil, err
-	}
-
 	res, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(a.Cluster),
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
 		Services: []*string{aws.String(app)},
 	})
 

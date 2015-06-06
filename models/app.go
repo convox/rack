@@ -18,8 +18,7 @@ import (
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
 
 type App struct {
-	Cluster string
-	Name    string
+	Name string
 
 	Status     string
 	Repository string
@@ -51,26 +50,6 @@ func ListApps() (Apps, error) {
 	return apps, nil
 }
 
-func ListAppsByCluster(cluster string) (Apps, error) {
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	apps := make(Apps, 0)
-
-	for _, stack := range res.Stacks {
-		tags := stackTags(stack)
-
-		if tags["System"] == "convox" && tags["Type"] == "app" && tags["Cluster"] == cluster {
-			apps = append(apps, *appFromStack(stack))
-		}
-	}
-
-	return apps, nil
-}
-
 func GetApp(name string) (*App, error) {
 	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
 
@@ -92,12 +71,6 @@ func GetApp(name string) (*App, error) {
 }
 
 func (a *App) Create() error {
-	cluster, err := GetCluster(a.Cluster)
-
-	if err != nil {
-		return err
-	}
-
 	formation, err := a.Formation()
 
 	if err != nil {
@@ -105,17 +78,16 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"Cluster":    a.Cluster,
+		"Cluster":    os.Getenv("CLUSTER"),
 		"Kernel":     CustomTopic,
 		"Repository": a.Repository,
-		"Subnets":    cluster.Subnets,
-		"VPC":        cluster.Vpc,
+		"Subnets":    os.Getenv("SUBNETS"),
+		"VPC":        os.Getenv("VPC"),
 	}
 
 	tags := map[string]string{
-		"Cluster": a.Cluster,
-		"System":  "convox",
-		"Type":    "app",
+		"System": "convox",
+		"Type":   "app",
 	}
 
 	req := &cloudformation.CreateStackInput{
@@ -515,11 +487,9 @@ func (a *App) Services() Services {
 
 func appFromStack(stack *cloudformation.Stack) *App {
 	params := stackParameters(stack)
-	tags := stackTags(stack)
 
 	return &App{
 		Name:       *stack.StackName,
-		Cluster:    tags["Cluster"],
 		Status:     humanStatus(*stack.StackStatus),
 		Repository: params["Repository"],
 	}
