@@ -11,7 +11,6 @@
 		<thead>
 			<tr>
 				<th class="expand">Name</th>
-				<th>Cluster</th>
 				<th>Status</th>
 				<th>CPU</th>
 				<th>RAM</th>
@@ -22,7 +21,6 @@
 			{{ range .Apps }}
 				<tr>
 					<td><a href="/apps/{{ .Name }}">{{ .Name }}</a></td>
-					<td>{{ .Cluster }}</td>
 					<td>{{ .Status }}</td>
 					<td>{{ meter "cpu"    0 100 }}</td>
 					<td>{{ meter "memory" 0 100 }}</td>
