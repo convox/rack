@@ -33,6 +33,22 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	RenderText(rw, "ok")
 }
 
+func BuildLogs(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	id := vars["build"]
+
+	build, err := models.GetBuild(app, id)
+
+	if err != nil {
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, build.Logs)
+}
+
+
 func buildsLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=builds").At(at)
 }
