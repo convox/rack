@@ -169,6 +169,25 @@ func (b *Build) Execute(repo string) {
 		return
 	}
 
+	// Every 2 seconds check for new logs and save
+	ticker := time.NewTicker(2 * time.Second)
+	quit := make(chan struct{})
+	logs := ""
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if b.Logs != logs {
+					b.Save()
+					logs = b.Logs
+				}
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	manifest := ""
 	success := true
 	scanner := bufio.NewScanner(stdout)
@@ -195,6 +214,8 @@ func (b *Build) Execute(repo string) {
 	}
 
 	err = cmd.Wait()
+
+	close(quit)
 
 	if err != nil {
 		b.Fail(err)

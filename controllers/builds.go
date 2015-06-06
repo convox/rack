@@ -34,6 +34,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 }
 
 func BuildLogs(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("logs").Start()
+
 	vars := mux.Vars(r)
 	app := vars["app"]
 	id := vars["build"]
@@ -41,9 +43,12 @@ func BuildLogs(rw http.ResponseWriter, r *http.Request) {
 	build, err := models.GetBuild(app, id)
 
 	if err != nil {
+		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
+
+	log.Success("step=build.logs app=%q", build.App)
 
 	RenderText(rw, build.Logs)
 }
