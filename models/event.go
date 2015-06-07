@@ -1,6 +1,7 @@
 package models
 
 import (
+	"os"
 	"sort"
 	"time"
 
@@ -100,7 +101,7 @@ func ListECSEvents(app string) (ServiceEvents, error) {
 	events := ServiceEvents{}
 
 	req := &ecs.DescribeServicesInput{
-		Cluster:  aws.String("testing"),
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
 		Services: []*string{aws.String(app)},
 	}
 
