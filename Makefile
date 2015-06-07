@@ -15,7 +15,7 @@ build:
 	docker build -t convox/kernel .
 
 release:
-	aws s3 cp dist/staging.json s3://convox/kernel.json --acl public-read
+	aws s3 cp dist/kernel.json s3://convox/kernel.json --acl public-read
 
 vendor:
 	godep save -r -copy=true ./...

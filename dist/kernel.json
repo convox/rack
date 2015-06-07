@@ -13,6 +13,9 @@
     }
   },
   "Outputs": {
+    "AwsAccountid": {
+      "Value": { "Ref": "AWS::AccountId" }
+    },
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
     },
@@ -22,7 +25,10 @@
     "AwsSecret": {
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
     },
-    "BalancerHost": {
+    "Cluster": {
+      "Value": { "Ref": "AWS::StackName" }
+    },
+    "ConsoleHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "CustomTopic": {
@@ -34,10 +40,11 @@
     "RegistryPassword": {
       "Value": { "Ref": "Password" }
     },
-    "Settings": {
-      "Value": {
-        "Ref": "Settings"
-      }
+    "Subnets": {
+      "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
+    },
+    "Vpc": {
+      "Value": { "Ref": "Vpc" }
     }
   },
   "Parameters": {
@@ -66,14 +73,9 @@
       "Description": "Kernel HTTP password",
       "Type": "String"
     },
-    "RegistryImage": {
-      "Default": "convox/registry:latest",
-      "Description": "Docker image for the registry",
-      "Type": "String"
-    },
-    "WebImage": {
-      "Default": "convox/kernel:latest",
-      "Description": "Docker image for the kernel",
+    "Version": {
+      "Default": "latest",
+      "Description": "Convox release version",
       "Type": "String"
     }
   },
@@ -645,20 +647,22 @@
           {
             "CPU": "100",
             "Environment": {
+              "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
-              "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
-              "AWS_AZS": { "Ref": "AvailabilityZones" },
               "CLUSTER": { "Ref": "AWS::StackName" },
               "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
               "HTTP_PASSWORD": { "Ref": "Password" },
+              "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
               "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "REGISTRY_PASSWORD": { "Ref": "Password" },
+              "RELEASE": { "Ref": "Version" },
+              "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
               "VPC": { "Ref": "Vpc" }
             },
-            "Image": { "Ref": "WebImage" },
+            "Image": { "Fn::Join": [ ":", [ "convox/kernel", { "Ref": "Version" } ] ] },
             "Links": [],
             "Memory": "128",
             "Name": "web",
@@ -680,7 +684,7 @@
               "PASSWORD": { "Ref": "Password" },
               "SETTINGS_FLAVOR": "s3"
             },
-            "Image": { "Ref": "RegistryImage" },
+            "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
             "Links": [],
             "Memory": "256",
             "Name": "registry",
