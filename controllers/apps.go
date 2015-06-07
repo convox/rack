@@ -54,17 +54,8 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 
 	sort.Sort(apps)
 
-	clusters, err := models.ListClusters()
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
 	params := map[string]interface{}{
-		"Apps":     apps,
-		"Clusters": clusters,
+		"Apps": apps,
 	}
 
 	RenderTemplate(rw, "apps", params)
@@ -89,12 +80,10 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("create").Start()
 
-	cluster := GetForm(r, "cluster")
 	name := GetForm(r, "name")
 	repo := GetForm(r, "repo")
 
 	app := &models.App{
-		Cluster:    cluster,
 		Name:       name,
 		Repository: repo,
 	}

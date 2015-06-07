@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -22,14 +23,8 @@ type Process struct {
 type Processes []Process
 
 func ListProcesses(app string) (Processes, error) {
-	a, err := GetApp(app)
-
-	if err != nil {
-		return nil, err
-	}
-
 	req := &ecs.DescribeServicesInput{
-		Cluster:  aws.String(a.Cluster),
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
 		Services: []*string{aws.String(app)},
 	}
 

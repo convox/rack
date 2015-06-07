@@ -46,6 +46,16 @@
       "Description": "Bootstrap topic (only experts should change this)",
       "Type": "String"
     },
+    "ClusterCount": {
+      "Default": "3",
+      "Description": "The number of instances in the runtime cluster",
+      "Type": "Number"
+    },
+    "ClusterSize": {
+      "Default": "t2.small",
+      "Description": "The size of the instances in the runtime cluster",
+      "Type": "String"
+    },
     "Key": {
       "Default": "",
       "Description": "SSH key name for access to cluster instances",
@@ -321,7 +331,7 @@
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] },
         "InstanceMonitoring": true,
-        "InstanceType": "t2.micro",
+        "InstanceType": { "Ref": "ClusterSize" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "UserData": { "Fn::Base64": 
@@ -351,7 +361,7 @@
           { "Ref": "Subnet2" }
         ],
         "Cooldown": 5,
-        "DesiredCapacity": "2",
+        "DesiredCapacity": { "Ref": "ClusterCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": 0,
         "MinSize" : "1",
@@ -640,10 +650,13 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "AWS_AZS": { "Ref": "AvailabilityZones" },
+              "CLUSTER": { "Ref": "AWS::StackName" },
               "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
-              "REGISTRY_PASSWORD": { "Ref": "Password" }
+              "REGISTRY_PASSWORD": { "Ref": "Password" },
+              "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
+              "VPC": { "Ref": "Vpc" }
             },
             "Image": { "Ref": "WebImage" },
             "Links": [],
