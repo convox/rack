@@ -340,9 +340,10 @@
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
+            "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
+            { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
             { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " >> /etc/sysconfig/docker" ] ] },
             "service docker restart",
-            { "Fn::Join": [ "", [ "docker login -u convox -p ", { "Ref": "Password" }, " ", { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, ":5000" ] ] },
             "docker start ecs-agent"
           ] ] } 
         }
