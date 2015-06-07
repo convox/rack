@@ -125,11 +125,10 @@
 		</div>
 
 		<ul class="nav nav-tabs">
-			<li role="presentation"><a href="#deployments" id="deployments-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/deployments">Deployments</a></li>
-			<li role="presentation"><a href="#logs" id="logs-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
 			<li role="presentation"><a href="#builds" id="builds-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/builds">Builds</a></li>
-			<li role="presentation"><a href="#releases" id="releases-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
 			<li role="presentation"><a href="#environment" id="environment-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
+			<li role="presentation"><a href="#releases" id="releases-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
+			<li role="presentation"><a href="#logs" id="logs-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
 			<li role="presentation"><a href="#debug" id="debug-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/events">Debug</a></li>
 		</ul>
 
@@ -205,7 +204,7 @@
 					mixpanel.track('service-link-click');
 				})
 
-				goto_anchor('#deployments');
+				goto_anchor('#builds');
 			});
 		</script>
 
@@ -351,33 +350,6 @@
 
 {{ define "Env::Diff" }}
 	<li>Env {{ name .Name }} {{ .Status }}</li>
-{{ end }}
-
-{{ define "deployments" }}
-	<div class="table-title">
-		<table class="table table-striped table-bordered">
-			<thead>
-				<tr>
-					<th class="expand">Release</th>
-					<th>Status</th>
-					<th>Desired</th>
-					<th>Pending</th>
-					<th>Running</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{ range . }}
-					<tr>
-						<td class="id expand">{{ .Release }}</td>
-						<td>{{ .Status }}</td>
-						<td>{{ .Desired }}</td>
-						<td>{{ .Pending }}</td>
-						<td>{{ .Running }}</td>
-					</tr>
-				{{ end }}
-			</tbody>
-		</table>
-	</div>
 {{ end }}
 
 {{ define "environment" }}
