@@ -183,10 +183,9 @@
 					}, 500);
 
 					$.ajax({ type: 'POST', url:'/apps/{{ .Name }}/build', data: { repo: '{{ .Repository }}' }}).done(function(msg) {
-						change_to_tab('#builds');
-						window.setTimeout(function() {
+						change_to_tab('#builds', function() {
 							$('.build-logs').first().click();
-						}, 1000);
+						});
 					}).fail(function(msg) {
 						$('#alert .message').html(msg.responseText);
 						$('#alert').show();
@@ -308,15 +307,20 @@
 				window.clearInterval(build_ticker);
 				var modal = $(this);
 				var build_id = modal.data('build');
+				if (ticker !== null) {
+					window.clearInterval(ticker);
+					ticker = null;
+				}
 				ticker = window.setInterval(function() {
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
 						modal.find('pre').text(data);
 					});
-				}, 100);
+				}, 500);
 			});
 			$('.build-logs-modal').on('hide.bs.modal', function(e) {
 				refresh_content($('#builds-tab'));
 				window.clearInterval(ticker);
+				ticker = null;
 				build_ticker = build_timer();
 			});
 		});
