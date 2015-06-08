@@ -62,8 +62,6 @@ func ListProcesses(app string) (Processes, error) {
 			for _, l := range cd.Links {
 				ls := strings.Split(*l, ":")
 
-				fmt.Printf("%+v\n", ls)
-
 				if len(ls) == 2 {
 					links[ls[0]] = ls[1]
 				}
