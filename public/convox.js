@@ -168,6 +168,14 @@ function change_to_tab(hash) {
   $('a[href="'+hash+'"][role="tab"]').click();
 }
 
+function build_timer() {
+	return (window.setInterval(function() {
+		if ($('#builds-tab').parent().hasClass('active')) {
+			 refresh_content($('#builds-tab'));
+		}
+	}, 5000));
+}
+
 $(window).ready(function() {
   $('.timeago').timeago();
 

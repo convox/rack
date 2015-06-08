@@ -244,6 +244,8 @@
 					mixpanel.track('service-unlink-click');
 				})
 
+				build_ticker = build_timer();
+
 				goto_anchor('#builds');
 			});
 		</script>
@@ -300,16 +302,18 @@
 		$(window).ready(function() {
 			var ticker = null;
 			$('.build-logs-modal').on('show.bs.modal', function (e) {
+				window.clearInterval(build_ticker);
 				var modal = $(this);
 				var build_id = modal.data('build');
 				ticker = window.setInterval(function() {
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
 						modal.find('pre').text(data);
 					});
-				}, 100);
+				}, 1000);
 			});
 			$('.build-logs-modal').on('hide.bs.modal', function(e) {
 				window.clearInterval(ticker);
+				build_ticker = build_timer();
 			});
 		});
 	</script>	
