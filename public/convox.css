@@ -311,11 +311,15 @@ pre.logs {
 	border: 8px #555 solid;
 	padding: 0px;
 	padding-right: 8px;
-	border-bottom: 6px #555 solid;
+	padding-left: 4px;
+	border-bottom: 9px #555 solid;
+}
+
+pre.logs-indent {
 	padding-left: 12px;
 }
 
-pre.logs p {
+pre.logs-indent p {
 	text-indent: -10px;
 	margin-bottom: 2px;
 }

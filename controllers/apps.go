@@ -3,7 +3,9 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"sort"
+	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -16,9 +18,9 @@ import (
 func init() {
 	RegisterPartial("app", "builds")
 	RegisterPartial("app", "changes")
+	RegisterPartial("app", "debug")
 	RegisterPartial("app", "deployments")
 	RegisterPartial("app", "environment")
-	RegisterPartial("app", "events")
 	RegisterPartial("app", "logs")
 	RegisterPartial("app", "releases")
 	RegisterPartial("app", "resources")
@@ -290,6 +292,14 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "app", "environment", params)
 }
 
+func AppDebug(rw http.ResponseWriter, r *http.Request) {
+	app := mux.Vars(r)["app"]
+
+	RenderPartial(rw, "app", "debug", app)
+}
+
+var regexServiceCleaner = regexp.MustCompile(`\(service ([^)]+)\) (.*)`)
+
 func AppEvents(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("events").Start()
 
@@ -303,6 +313,14 @@ func AppEvents(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i, _ := range events {
+		match := regexServiceCleaner.FindStringSubmatch(events[i].Message)
+
+		if len(match) == 3 {
+			events[i].Message = fmt.Sprintf("[ECS] (%s) %s", match[1], match[2])
+		}
+	}
+
 	es, err := models.ListEvents(app)
 
 	if err != nil {
@@ -313,19 +331,20 @@ func AppEvents(rw http.ResponseWriter, r *http.Request) {
 
 	for _, e := range es {
 		events = append(events, models.ServiceEvent{
-			Message:   fmt.Sprintf("%s - %s - %s", e.Type, e.Status, e.Reason),
+			Message:   fmt.Sprintf("[CFM] (%s) %s %s", e.Name, e.Status, e.Reason),
 			CreatedAt: e.Time,
 		})
 	}
 
 	sort.Sort(sort.Reverse(events))
 
-	params := map[string]interface{}{
-		"App":    app,
-		"Events": events,
+	data := ""
+
+	for _, e := range events {
+		data += fmt.Sprintf("%s: %s\n", e.CreatedAt.Format(time.RFC3339), e.Message)
 	}
 
-	RenderPartial(rw, "app", "events", params)
+	RenderText(rw, data)
 }
 
 func AppLogs(rw http.ResponseWriter, r *http.Request) {
