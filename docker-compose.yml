@@ -7,6 +7,7 @@ web:
     - AWS_REGION
     - AWS_ACCOUNTID=convox-dev
     - AWS_AZS
+    - CLUSTER
     - CUSTOM_TOPIC
     - GITHUB_TOKEN
     - HTTP_PASSWORD
