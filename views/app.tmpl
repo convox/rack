@@ -70,7 +70,7 @@
 								</a>
 
 								{{ if .ServiceType }}
-									<button class="btn btn-xs btn-info service-link pull-right" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
+									<button class="btn btn-xs btn-primary service-link pull-right" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
 								{{ end }}
 							</td>
 							<td>
@@ -111,6 +111,8 @@
 									<a href="/services/{{ .Name }}">
 										{{ .Name }}
 									</a>
+
+									<button class="btn btn-xs btn-danger service-unlink pull-right" title="Unlink {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-toggle="modal" data-target="#service-unlink">Unlink</button>
 								</td>
 							</tr>
 						{{ end }}
@@ -202,6 +204,20 @@
 					});
 
 					mixpanel.track('service-link-click');
+				})
+
+				$('.service-unlink').on('click', function() {
+					var app = $(this).data("app")
+					var name = $(this).data("name")
+
+					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}/services/' + name}).done(function(msg) {
+						window.location = '/apps/{{ .Name }}';
+					}).fail(function(msg) {
+						$('#alert .message').html(msg.responseText);
+						$('#alert').show();
+					});
+
+					mixpanel.track('service-unlink-click');
 				})
 
 				goto_anchor('#builds');

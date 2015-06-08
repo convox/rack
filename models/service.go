@@ -89,6 +89,55 @@ func LinkService(app string, process string, stack string) error {
 	return err
 }
 
+func UnlinkService(app string, stack string) error {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return err
+	}
+
+	r, err := a.LatestRelease()
+
+	if err != nil {
+		return err
+	}
+
+	formation, err := r.Formation()
+
+	if err != nil {
+		return err
+	}
+
+	existing, err := formationParameters(formation)
+
+	if err != nil {
+		return err
+	}
+
+	params := []*cloudformation.Parameter{}
+
+	for key, value := range a.Parameters {
+		if _, ok := existing[key]; ok {
+			if strings.HasSuffix(key, "Service") && value == stack {
+				value = ""
+			}
+
+			params = append(params, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		}
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(app),
+		TemplateBody: aws.String(formation),
+		Parameters:   params,
+	}
+
+	_, err = CloudFormation().UpdateStack(req)
+
+	return err
+}
+
 func ListServices(app string) (Services, error) {
 	a, err := GetApp(app)
 

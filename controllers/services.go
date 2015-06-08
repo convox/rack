@@ -151,6 +151,24 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 }
 
+func ServiceUnlink(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("unlink").Start()
+
+	vars := mux.Vars(r)
+
+	app := vars["app"]
+	name := vars["name"]
+
+	err := models.UnlinkService(app, name)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+	}
+
+	RenderText(rw, "ok")
+}
+
 func ServiceLogs(rw http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["service"]
 
