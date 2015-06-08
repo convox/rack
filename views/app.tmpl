@@ -10,39 +10,61 @@
 	</div>
 
 	<ol class="breadcrumb">
-		<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
-		<button id="build-app" class="btn btn-success btn-xs trackable">Build</button>
+		{{ if .Created }}
+			<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
+			<button id="build-app" class="btn btn-success btn-xs trackable">Build</button>
+		{{ end }}
 		<li><a href="/apps">Apps</a></li>
 		<li class="active">{{ .Name }}</li>
 	</ol>
 
-	<div class="panel panel-default">
-		<div class="panel-body">
-			{{ label "Status" .Status }}
-			{{ label "Repository" .Repository }}
-			{{ label "Host" .BalancerHost }}
-			<div class="labelled-value">
-				<span class="name">Check</span>
-				<span class="value">
-					<div id="healthcheck">{{ .HealthCheckEndpoint }}{{ .HealthCheckPath }}</div>
-					<form id="healthcheck-edit" class="form-inline" method="post" action="/apps/{{ .Name }}" style="display:none">
-						<div class="form-group">
-							<select class="form-control input-sm" name="healthcheck[endpoint]">
-								{{ dropdown .HealthCheckEndpoints .HealthCheckEndpoint }}
-							</select>
-						</div>
-						<div class="form-group">
-							<input class="form-control input-sm" type="text" name="healthcheck[path]" value="{{ .HealthCheckPath }}">
-						</div>
-						<input id="healthcheck-edit-cancel" type="button" class="btn btn-xs" value="Cancel">
-						<input type="submit" class="btn btn-xs btn-primary" value="Update">
-					</form>
-				</span>
+	{{ if not .Created }}
+
+		<div class="panel panel-default">
+			<div class="panel-body">
+				Please wait while your application is initialized.
 			</div>
 		</div>
-	</div>
 
-	{{ if .Created }}
+		{{ template "debug" . }}
+
+		<script>
+			window.setInterval(function() {
+				$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(status) {
+					if (status !== 'creating') {
+						window.location.reload();
+					}
+				});
+			}, 2000);
+		</script>
+
+	{{ else }}
+
+		<div class="panel panel-default">
+			<div class="panel-body">
+				{{ label "Status" .Status }}
+				{{ label "Repository" .Repository }}
+				{{ label "Host" .BalancerHost }}
+				<div class="labelled-value">
+					<span class="name">Check</span>
+					<span class="value">
+						<div id="healthcheck">{{ .HealthCheckEndpoint }}{{ .HealthCheckPath }}</div>
+						<form id="healthcheck-edit" class="form-inline" method="post" action="/apps/{{ .Name }}" style="display:none">
+							<div class="form-group">
+								<select class="form-control input-sm" name="healthcheck[endpoint]">
+									{{ dropdown .HealthCheckEndpoints .HealthCheckEndpoint }}
+								</select>
+							</div>
+							<div class="form-group">
+								<input class="form-control input-sm" type="text" name="healthcheck[path]" value="{{ .HealthCheckPath }}">
+							</div>
+							<input id="healthcheck-edit-cancel" type="button" class="btn btn-xs" value="Cancel">
+							<input type="submit" class="btn btn-xs btn-primary" value="Update">
+						</form>
+					</span>
+				</div>
+			</div>
+		</div>
 
 		<div class="table-title">
 			<table class="table table-striped table-bordered">
@@ -129,7 +151,7 @@
 			<li role="presentation"><a href="#environment" id="environment-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/environment">Environment</a></li>
 			<li role="presentation"><a href="#releases" id="releases-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/releases">Releases</a></li>
 			<li role="presentation"><a href="#logs" id="logs-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/logs">Logs</a></li>
-			<li role="presentation"><a href="#debug" id="debug-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/events">Debug</a></li>
+			<li role="presentation"><a href="#debug" id="debug-tab" class="trackable" role="tab" data-source="/apps/{{ .Name }}/debug">Debug</a></li>
 		</ul>
 
 		<div id="tab-content">
@@ -394,13 +416,19 @@
 	</div>
 {{ end }}
 
-{{ define "events" }}
-	<pre id="app-debug" class="logs">{{ range .Events }}{{ times .CreatedAt }} - {{ .Message }}
-{{ end }}</pre>
+{{ define "debug" }}
+	<pre id="app-debug" class="logs"></pre>
+	<script>
+		window.setInterval(function() {
+			$.ajax({ url:'/apps/{{ .Name }}/events' }).done(function(data) {
+				$('#app-debug').text(data);
+			});
+		}, 2000);
+	</script>
 {{ end }}
 
 {{ define "logs" }}
-	<pre id="app-logs" class="logs"><p>Connecting...</p></pre>
+	<pre id="app-logs" class="logs logs-indent"><p>Connecting...</p></pre>
 	<script>
 		connect_log_socket($('#app-logs'), '/apps/{{ . }}/logs/stream');
 	</script>
@@ -503,10 +531,10 @@
 
 		table_scroll($('.app-resources'), '365px');
 
-                mixpanel.track('page-viewed', {
-                        'page name' : 'app',
-                        'url' : window.location.pathname
-                });
+								mixpanel.track('page-viewed', {
+												'page name' : 'app',
+												'url' : window.location.pathname
+								});
 
 		$('button.build-logs').click(function() {
 			mixpanel.track('build-logs-click');
