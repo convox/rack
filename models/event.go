@@ -111,6 +111,10 @@ func ListECSEvents(app string) (ServiceEvents, error) {
 		return nil, err
 	}
 
+	if len(res.Services) == 0 {
+		return events, nil
+	}
+
 	for _, event := range res.Services[0].Events {
 		events = append(events, ServiceEvent{
 			Id:        cs(event.ID, ""),
