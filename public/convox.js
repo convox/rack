@@ -99,7 +99,7 @@ function refresh_content(tab, cb) {
 
     apply_tab_events();
 
-    if (cb !== null) {
+    if (cb !== undefined) {
       cb(tab);
     }
   });
