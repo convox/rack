@@ -312,7 +312,7 @@
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
 						modal.find('pre').text(data);
 					});
-				}, 1000);
+				}, 100);
 			});
 			$('.build-logs-modal').on('hide.bs.modal', function(e) {
 				refresh_content($('#builds-tab'));
