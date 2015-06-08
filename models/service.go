@@ -30,6 +30,18 @@ type Service struct {
 
 type Services []Service
 
+func (s *Service) Delete() error {
+	name := s.Name
+
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func LinkService(app string, process string, stack string) error {
 	a, err := GetApp(app)
 
