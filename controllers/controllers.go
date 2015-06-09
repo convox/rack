@@ -45,6 +45,9 @@ func displayHelpers() template.FuncMap {
 			return strings.Join(s, t)
 		},
 		"label": func(name, value string) template.HTML {
+			if value == "" {
+				return template.HTML("")
+			}
 			return template.HTML(fmt.Sprintf(`<div class="labelled-value" id="label-%s"><span class="name">%s</span><span class="value">%s</span></div>`, strings.ToLower(name), name, value))
 		},
 		"meter": func(klass string, value float64, total int) template.HTML {
