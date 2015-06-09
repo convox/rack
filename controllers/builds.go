@@ -58,6 +58,24 @@ func BuildLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderText(rw, build.Logs)
 }
 
+func BuildStatus(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("status").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	id := vars["build"]
+
+	build, err := models.GetBuild(app, id)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, build.Status)
+}
+
 func BuildStream(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("stream").Start()
 
