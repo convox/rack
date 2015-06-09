@@ -295,6 +295,7 @@
 					</div>
 					<div class="modal-body">
 						<pre class="modal-scroll">{{ .Logs }}</pre>
+						<button title="Promote Build" class="btn {{ if .Status == "complete" }} btn-success {{ end }}" disabled="disabled">{{ .Status }}</button>
 					</div>
 				</div>
 			</div>
