@@ -52,20 +52,20 @@ func ListProcesses(app string) (Processes, error) {
 	links := make(map[string]string)
 
 	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
-		for _, l := range cd.Links {
-			ls := strings.Split(*l, ":")
-
-			if len(ls) == 2 {
-				links[ls[0]] = ls[1]
-			}
-		}
-
 		if !strings.HasPrefix(*cd.Name, "convox-") {
 			ps = append(ps, Process{
 				App:   app,
 				Name:  *cd.Name,
 				Count: 1,
 			})
+
+			for _, l := range cd.Links {
+				ls := strings.Split(*l, ":")
+
+				if len(ls) == 2 {
+					links[ls[0]] = ls[1]
+				}
+			}
 		}
 	}
 

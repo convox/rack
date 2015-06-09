@@ -109,11 +109,13 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/resources", controllers.AppResources).Methods("GET")
 	router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
+	router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/status", controllers.AppStatus).Methods("GET")
 
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
 	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")
+	router.HandleFunc("/services/{service}", controllers.ServiceDelete).Methods("DELETE")
 	router.HandleFunc("/services/{service}/logs", controllers.ServiceLogs).Methods("GET")
 	router.HandleFunc("/services/{service}/logs/stream", controllers.ServiceStream).Methods("GET")
 

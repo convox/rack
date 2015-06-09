@@ -103,6 +103,35 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
 	Redirect(rw, r, "/services")
 }
 
+func ServiceDelete(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("delete").Start()
+
+	vars := mux.Vars(r)
+	name := vars["service"]
+
+	service, err := models.GetServiceFromName(name)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	log.Success("step=services.get service=%q", service.Name)
+
+	err = service.Delete()
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	log.Success("step=service.delete service=%q", service.Name)
+
+	RenderText(rw, "ok")
+}
+
 func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 	log := servicesLogger("link").Start()
 
@@ -120,6 +149,24 @@ func ServiceLink(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
+}
+
+func ServiceUnlink(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("unlink").Start()
+
+	vars := mux.Vars(r)
+
+	app := vars["app"]
+	name := vars["name"]
+
+	err := models.UnlinkService(app, name)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+	}
+
+	RenderText(rw, "ok")
 }
 
 func ServiceLogs(rw http.ResponseWriter, r *http.Request) {

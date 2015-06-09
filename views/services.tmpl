@@ -18,10 +18,7 @@
 		<tbody>
 			{{ range . }}
 				<tr>
-					<td class="meta-buttons">
-						<button class="btn btn-xs btn-primary glyph" data-container="body" data-toggle="popover" data-placement="left" data-trigger="focus" data-content="<a href='{{ .URL }}'>{{ .URL }}</a>">
-							<span class="glyphicon glyphicon-random">
-						</button>
+					<td>
 						<a href="/services/{{ .Name }}">{{ .Name }}</a>
 					</td>
 					<td>{{ .Tags.Service }}</td>

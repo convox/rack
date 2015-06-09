@@ -94,7 +94,7 @@
 								</a>
 
 								{{ if .ServiceType }}
-									<button class="btn btn-xs btn-info service-link pull-right" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
+									<button class="btn btn-xs btn-primary service-link pull-right" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
 								{{ end }}
 							</td>
 							<td>
@@ -135,6 +135,8 @@
 									<a href="/services/{{ .Name }}">
 										{{ .Name }}
 									</a>
+
+									<button class="btn btn-xs btn-danger service-unlink pull-right" title="Unlink {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-toggle="modal" data-target="#service-unlink">Unlink</button>
 								</td>
 							</tr>
 						{{ end }}
@@ -226,6 +228,20 @@
 					});
 
 					mixpanel.track('service-link-click');
+				})
+
+				$('.service-unlink').on('click', function() {
+					var app = $(this).data("app")
+					var name = $(this).data("name")
+
+					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}/services/' + name}).done(function(msg) {
+						window.location = '/apps/{{ .Name }}';
+					}).fail(function(msg) {
+						$('#alert .message').html(msg.responseText);
+						$('#alert').show();
+					});
+
+					mixpanel.track('service-unlink-click');
 				})
 
 				goto_anchor('#builds');
@@ -549,29 +565,15 @@
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<form method="post" action="#" class="form-horizontal">
+					<input name="app"  type="hidden" class="form-control" id="service-link-app">
+					<input name="name" type="hidden" class="form-control" id="service-link-name">
+					<input name="type" type="hidden" class="form-control" id="service-link-type">
+
 					<div class="modal-header">
 						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
 						<h4 class="modal-title" id="myModalLabel">Link Service</h4>
 					</div>
 					<div class="modal-body">
-						<div class="form-group">
-							<label for="service-link-app" class="col-sm-3 control-label">App</label>
-							<div class="col-sm-8">
-								<input name="app" type="text" class="form-control" id="service-link-app">
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="service-link-name" class="col-sm-3 control-label">Name</label>
-							<div class="col-sm-8">
-								<input name="name" type="text" class="form-control" id="service-link-name">
-							</div>
-						</div>
-						<div class="form-group">
-							<label for="service-link-type" class="col-sm-3 control-label">Type</label>
-							<div class="col-sm-8">
-								<input name="type" type="text" class="form-control" id="service-link-type">
-							</div>
-						</div>
 						<div class="form-group">
 							<label for="stack" class="col-sm-3 control-label">Service Stack</label>
 							<div class="col-sm-8">

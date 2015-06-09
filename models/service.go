@@ -30,6 +30,18 @@ type Service struct {
 
 type Services []Service
 
+func (s *Service) Delete() error {
+	name := s.Name
+
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func LinkService(app string, process string, stack string) error {
 	a, err := GetApp(app)
 
@@ -37,44 +49,28 @@ func LinkService(app string, process string, stack string) error {
 		return err
 	}
 
-	r, err := a.LatestRelease()
+	return a.UpdateParams(map[string]string{
+		upperName(process)+"Service": stack,
+	})
+}
+
+func UnlinkService(app string, stack string) error {
+	a, err := GetApp(app)
 
 	if err != nil {
 		return err
 	}
 
-	formation, err := r.Formation()
-
-	if err != nil {
-		return err
-	}
-
-	existing, err := formationParameters(formation)
-
-	if err != nil {
-		return err
-	}
-
-	a.Parameters[upperName(process)+"Service"] = stack
-
-	params := []*cloudformation.Parameter{}
+	p := make(map[string]string)
 
 	for key, value := range a.Parameters {
-		if _, ok := existing[key]; ok {
-			params = append(params, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		if strings.HasSuffix(key, "Service") && value == stack {
+			p[key] = ""
+			break
 		}
 	}
 
-	req := &cloudformation.UpdateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(app),
-		TemplateBody: aws.String(formation),
-		Parameters:   params,
-	}
-
-	_, err = CloudFormation().UpdateStack(req)
-
-	return err
+	return a.UpdateParams(p)
 }
 
 func ListServices(app string) (Services, error) {

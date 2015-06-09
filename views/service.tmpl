@@ -35,6 +35,15 @@
     $(window).ready(function() {
       activate_tabs();
       goto_anchor('#logs');
+
+      $('#destroy-service').on('click', function() {
+        $.ajax({ type: 'DELETE', url:'/services/{{ .Name }}'}).done(function(msg) {
+          window.location = '/services';
+        }).fail(function(msg) {
+          $('#alert .message').html(msg.responseText);
+          $('#alert').show();
+        });
+      });
     })
   </script>
 {{ end }}
