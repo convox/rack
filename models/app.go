@@ -368,7 +368,7 @@ func (a *App) Changes() Changes {
 }
 
 func (a *App) Created() bool {
-	return a.Status != "creating"
+	return len(a.Outputs) != 0
 }
 
 func (a *App) Deployments() Deployments {
