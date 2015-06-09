@@ -293,9 +293,19 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 }
 
 func AppDebug(rw http.ResponseWriter, r *http.Request) {
+	log := appsLogger("environment").Start()
+
 	app := mux.Vars(r)["app"]
 
-	RenderPartial(rw, "app", "debug", app)
+	a, err := models.GetApp(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderPartial(rw, "app", "debug", a)
 }
 
 var regexServiceCleaner = regexp.MustCompile(`\(service ([^)]+)\) (.*)`)
