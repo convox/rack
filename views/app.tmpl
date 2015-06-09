@@ -271,17 +271,25 @@
 			</tr>
 		</thead>
 		<tbody>
-			{{ range .Builds }}
+			{{ if not .Builds }}
 				<tr>
-					<td class="statusicon">{{ statusicon .Status }}</td>
-					<td class="id">{{ .Id }}</td>
-					<td>{{ timeago .Started }}</td>
-					<td class="id">{{ .Release }}</td>
-					<td>{{ duration .Started .Ended }}</td>
-					<td class="buttons">
-						<button class="btn btn-xs btn-info build-logs" title="Build Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Build Logs</button>
+					<td colspan=6>
+						You don't have an builds yet. Click Build to create one.
 					</td>
 				</tr>
+			{{ else }}
+				{{ range .Builds }}
+					<tr>
+						<td class="statusicon">{{ statusicon .Status }}</td>
+						<td class="id">{{ .Id }}</td>
+						<td>{{ timeago .Started }}</td>
+						<td class="id">{{ .Release }}</td>
+						<td>{{ duration .Started .Ended }}</td>
+						<td class="buttons">
+							<button class="btn btn-xs btn-info build-logs" title="Build Logs" data-toggle="modal" data-target="#build-logs-{{ .Id }}">Build Logs</button>
+						</td>
+					</tr>
+				{{ end }}
 			{{ end }}
 		</tbody>
 	</table>
@@ -337,7 +345,7 @@
 				build_ticker = build_timer();
 			});
 		});
-	</script>	
+	</script>
 {{ end }}
 
 {{ define "changes" }}
