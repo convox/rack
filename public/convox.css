@@ -222,11 +222,34 @@ td.buttons {
 	font-family: monospace;
 }
 
-.release-active {
-	font-size: 0.9em;
-	padding-left: 10px;
-	padding-right: 11px;
-	padding-bottom: 3px;
+.release-buttons {
+	text-align: center;
+}
+
+.release-promote {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.release-promote-disabled {
+	cursor: not-allowed;
+}
+
+.release-live {
+	font-weight: 900;
+	padding: 0;
+	margin: 0;
+	margin-top: 1px;
+	text-align: center;
+}
+
+.release-promoting {
+	font-size: 0.7em;
+	font-weight: 900;
+	padding: 0;
+	margin: 0;
+	margin-top: 4px;
+	text-align: center;
 }
 
 .labelled-value {
@@ -296,8 +319,6 @@ pre.modal-scroll {
 }
 
 .release-active {
-	font-weight: bold;
-	padding: 1px 9px 1px 10px;
 }
 
 pre.logs {

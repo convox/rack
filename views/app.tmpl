@@ -199,9 +199,17 @@
 					});
 				});
 
+				var last_status = null;
+
 				window.setInterval(function() {
 					$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(data) {
 						$('#label-status .value').text(data);
+
+						if ((last_status !== null) && (data != last_status)) {
+							refresh_tab();
+						}
+
+						last_status = data;
 					});
 				}, 10000);
 
@@ -453,6 +461,7 @@
 {{ end }}
 
 {{ define "releases" }}
+	{{ $status := .App.Status }}
 	{{ $active := .App.ActiveRelease }}
 	<table class="table table-striped table-bordered">
 		<thead>
@@ -473,11 +482,19 @@
 					<td class="buttons">
 						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
 					</td>
-					<td class="buttons">
-						{{ if eq .Id $active }}
-							<button class="btn btn-success btn-xs promote-release release-active" data-release="{{ .Id }}">Active</button>
+					<td class="buttons release-buttons">
+						{{ if eq $status "updating" }}
+							{{ if eq .Id $active }}
+								<p class="text-warning release-promoting">Deploying</p>
+							{{ else }}
+								<button class="btn btn-xs release-promote-disabled">Deploy</button>
+							{{ end }}
 						{{ else }}
-							<button class="btn btn-warning btn-xs promote-release trackable" id="promote-release" data-release="{{ .Id }}">Promote</button>
+							{{ if eq .Id $active }}
+								<p class="text-success release-live">Live</p>
+							{{ else }}
+								<button class="btn btn-primary btn-xs promote-release trackable release-promote" id="promote-release" data-release="{{ .Id }}">Deploy</button>
+							{{ end }}
 						{{ end }}
 					</td>
 				</tr>
