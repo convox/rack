@@ -2,20 +2,22 @@ web:
   build: .
   environment:
     - DEVELOPMENT=true
+    - AWS_ACCOUNTID=convox-dev
+    - AWS_REGION
     - AWS_ACCESS
     - AWS_SECRET
-    - AWS_REGION
-    - AWS_ACCOUNTID=convox-dev
     - AWS_AZS
     - CLUSTER
     - CUSTOM_TOPIC
     - GITHUB_TOKEN
     - HTTP_PASSWORD
+    - MIXPANEL_TOKEN=43fb68427548c5e99978a598a9b14e55
     - REGISTRY_HOST
     - REGISTRY_PASSWORD
     - RELEASE=local
     - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
-    - MIXPANEL_TOKEN=43fb68427548c5e99978a598a9b14e55
+    - SUBNETS
+    - VPC
   ports:
     - 5000:3000
     - 4443:4443
