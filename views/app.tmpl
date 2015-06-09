@@ -306,9 +306,9 @@
 			$('.build-logs-modal').on('show.bs.modal', function (e) {
 				window.clearInterval(build_ticker);
 				var modal = $(this);
-        var modal_scroll = modal.find('.modal-scroll');
-        var scroll_postion = modal_scroll.scrollTop();
-        var autoscroll = true;
+				var modal_scroll = modal.find('.modal-scroll');
+				var scroll_postion = modal_scroll.scrollTop();
+				var autoscroll = true;
 				var build_id = modal.data('build');
 				if (ticker !== null) {
 					window.clearInterval(ticker);
@@ -317,18 +317,18 @@
 				ticker = window.setInterval(function() {
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
 						modal.find('pre').text(data);
-          });
-          if (autoscroll) {
-            modal_scroll.scrollTop(modal_scroll.prop("scrollHeight"));
-            scroll_position = modal_scroll.scrollTop();
-          }
+					});
+					if (autoscroll) {
+						modal_scroll.scrollTop(modal_scroll.prop("scrollHeight"));
+						scroll_position = modal_scroll.scrollTop();
+					}
 				}, 500);
-        // Turn off autoscrolling if the pane is scrolled up
-        modal_scroll.scroll(function() {
-          if(modal_scroll.scrollTop() < scroll_position) {
-            autoscroll = false
-          }
-        });
+				// Turn off autoscrolling if the pane is scrolled up
+				modal_scroll.scroll(function() {
+					if(modal_scroll.scrollTop() < scroll_position) {
+						autoscroll = false
+					}
+				});
 			});
 			$('.build-logs-modal').on('hide.bs.modal', function(e) {
 				refresh_content($('#builds-tab'));
