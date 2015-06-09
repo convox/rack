@@ -217,7 +217,7 @@
 
 						last_status = data;
 					});
-				}, 5000);
+				}, 2000);
 
 				$('.service-link').on('click', function() {
 					var app = $(this).data("app")
@@ -528,12 +528,12 @@
 					<td class="buttons">
 						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
 					</td>
-					<td class="buttons release-buttons">
+					<td class="buttons release-buttons" data-release="{{ .Id }}">
 						{{ if eq $status "updating" }}
 							{{ if eq .Id $active }}
 								<img id="release-spinner" src="/spinner-white.gif">
 							{{ else }}
-								<button class="btn btn-xs btn-primary release-promote-disabled" disabled>Deploy</button>
+								<button class="btn btn-xs btn-primary" disabled>Deploy</button>
 							{{ end }}
 						{{ else }}
 							{{ if eq .Id $active }}
@@ -554,8 +554,14 @@
 		$('.timeago').timeago();
 
 		$('.promote-release').on('click', function() {
-			$(this).prop('disabled', true);
+			var activeParent = $(this).parent();
+			console.log('activeParent', activeParent);
+
+			$('.release-buttons').html('<button class="btn btn-primary btn-xs release-promote" disabled>Deploy</button>');
+			$(activeParent).html('<img id="release-spinner" src="/spinner-white.gif">')
+
 			$('#spinner').show();
+
 			$.ajax({ type: 'POST', url:window.location.pathname+'/promote', data: { release: $(this).data('release') }}).done(function(msg) {
 				$('#alert').hide();
 				$('#spinner').hide();

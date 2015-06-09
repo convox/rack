@@ -231,13 +231,6 @@ td.buttons {
 	margin-right: auto;
 }
 
-.release-promote-disabled {
-	cursor: not-allowed;
-}
-
-.release-spinner {
-}
-
 .release-live {
 	font-weight: 900;
 	padding: 0;
