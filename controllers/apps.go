@@ -236,7 +236,20 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderPartial(rw, "app", "builds", builds)
+	a, err := models.GetApp(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	params := map[string]interface{}{
+		"App":    a,
+		"Builds": builds,
+	}
+
+	RenderPartial(rw, "app", "builds", params)
 }
 
 func AppChanges(rw http.ResponseWriter, r *http.Request) {

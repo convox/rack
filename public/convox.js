@@ -78,11 +78,11 @@ function activate_tab(tab) {
   refresh_content(tab);
 }
 
-function refresh_tab() {
-  refresh_content($('ul.nav-tabs li.active a'));
+function refresh_tab(cb) {
+  refresh_content($('ul.nav-tabs li.active a'), cb);
 }
 
-function refresh_content(tab) {
+function refresh_content(tab, cb) {
   if (!tab) {
     return;
   }
@@ -98,6 +98,10 @@ function refresh_content(tab) {
     tabs_enabled = true;
 
     apply_tab_events();
+
+    if (cb !== undefined) {
+      cb(tab);
+    }
   });
 }
 
@@ -164,8 +168,16 @@ function goto_anchor(default_hash) {
 
 var changer;
 
-function change_to_tab(hash) {
-  $('a[href="'+hash+'"][role="tab"]').click();
+function change_to_tab(hash, cb) {
+  refresh_content($('a[href="'+hash+'"][role="tab"]'), cb);
+}
+
+function build_timer() {
+	return (window.setInterval(function() {
+		if ($('#builds-tab').parent().hasClass('active')) {
+			 refresh_content($('#builds-tab'));
+		}
+	}, 5000));
 }
 
 $(window).ready(function() {
