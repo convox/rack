@@ -325,6 +325,7 @@
 					}
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
 						if (data == 'complete') {
+							window.clearInterval(ticker);
 							var button = modal.find('button')
 							button.removeAttr('disabled');
 							button.addClass('btn-success');
