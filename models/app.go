@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"regexp"
@@ -425,6 +426,12 @@ func (a *App) HealthCheckPath() string {
 	}
 
 	return check[2]
+}
+
+func (a *App) ELBReady() bool {
+	_, err := net.LookupCNAME(a.Outputs["BalancerHost"])
+
+	return err == nil
 }
 
 func (a *App) Metrics() *Metrics {
