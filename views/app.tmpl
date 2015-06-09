@@ -211,9 +211,13 @@
 							refresh_tab();
 						}
 
+						if ((last_status == 'updating') && (data == 'running')) {
+							window.location.refresh();
+						}
+
 						last_status = data;
 					});
-				}, 10000);
+				}, 5000);
 
 				$('.service-link').on('click', function() {
 					var app = $(this).data("app")
@@ -527,7 +531,7 @@
 					<td class="buttons release-buttons">
 						{{ if eq $status "updating" }}
 							{{ if eq .Id $active }}
-								<p class="text-warning release-promoting">Deploying</p>
+								<img id="release-spinner" src="/spinner-white.gif">
 							{{ else }}
 								<button class="btn btn-xs release-promote-disabled">Deploy</button>
 							{{ end }}
