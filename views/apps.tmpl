@@ -40,15 +40,15 @@
 					</div>
 					<div class="modal-body">
 						<div class="form-group">
-							<label for="app-name" class="col-sm-3 control-label">App Name</label>
-							<div class="col-sm-8">
-								<input name="name" type="text" class="form-control" id="app-name">
-							</div>
-						</div>
-						<div class="form-group">
 							<label for="app-repo" class="col-sm-3 control-label">Git Repository</label>
 							<div class="col-sm-8">
 								<input name="repo" type="text" class="form-control" id="app-repo" value="https://github.com/convox-examples/sinatra.git">
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="app-name" class="col-sm-3 control-label">App Name</label>
+							<div class="col-sm-8">
+								<input name="name" type="text" class="form-control" id="app-name">
 							</div>
 						</div>
 					</div>
@@ -64,6 +64,21 @@
 		mixpanel.track('page-viewed', {
 			'page name' : 'apps',
 			'url' : window.location.pathname
+		});
+
+		$(window).ready(function() {
+			$('#app-create').on('shown.bs.modal', function() {
+				$('#app-repo').focus();
+
+				$('#app-repo').on('blur', function() {
+					var parts = $('#app-repo').val().split('/');
+					var last = parts[parts.length-1].split('.');
+					var name = last[0];
+
+					$('#app-name').val(name);
+					$('#app-name').select();
+				});
+			});
 		});
 	</script>
 {{ end }}
