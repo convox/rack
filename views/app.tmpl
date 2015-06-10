@@ -329,6 +329,7 @@
 					</div>
 					<div class="modal-body">
 						<pre class="modal-scroll">{{ .Logs }}</pre>
+						<div class="build-status" data-build-id="{{ .Id }}" data-build-started="{{ .Started }}"></div>
 					</div>
 				</div>
 			</div>
@@ -344,6 +345,7 @@
 				var scroll_postion = modal_scroll.scrollTop();
 				var autoscroll = true;
 				var build_id = modal.data('build');
+				var build_status = modal.find('.build-status');
 				if (ticker !== null) {
 					window.clearInterval(ticker);
 					ticker = null;
@@ -356,6 +358,21 @@
 						modal_scroll.scrollTop(modal_scroll.prop("scrollHeight"));
 						scroll_position = modal_scroll.scrollTop();
 					}
+					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
+						switch (data) {
+							case 'building':
+								build_status.html('Your app started building ' + $.timeago(Date.parse(build_status.data('build-started'))) + '.');
+								break;
+							case 'complete':
+								window.clearInterval(ticker);
+								build_status.html('Build complete. Go to the <a href="#releases">Releases</a> tab to deploy it.');
+								break;
+							case 'failed':
+								window.clearInterval(ticker);
+								build_status.html("This build failed. Please inspect the logs above for errors.");
+								break;
+						}
+					});
 				}, 500);
 				// Turn off autoscrolling if the pane is scrolled up
 				modal_scroll.scroll(function() {
