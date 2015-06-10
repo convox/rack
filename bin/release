@@ -19,6 +19,5 @@ echo "releasing: $tag"
 docker build -t convox/kernel:$tag .
 docker push convox/kernel:$tag
 
-docker pull convox/registry
-docker tag convox/registry convox/registry:$tag
+docker build -t convox/registry:$tag ../registry
 docker push convox/registry:$tag
