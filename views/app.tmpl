@@ -331,7 +331,7 @@
 								break;
 							case 'complete':
 								window.clearInterval(ticker);
-								build_status.html('<button title="Promote Build" class="btn btn-success" id="build-promote">Promote Build</button>');
+								build_status.html('Build complete. Go to the <a href="#releases">Releases</a> tab to deploy it.');
 								break;
 							case 'failed':
 								window.clearInterval(ticker);
