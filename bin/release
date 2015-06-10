@@ -1,0 +1,20 @@
+#!/bin/sh
+
+latest=$(curl -s https://index.docker.io/v1/repositories/convox/kernel/tags | jq -r '.[].name' | sort -r | head -n 2 | tail -n 1)
+
+date=${latest:0:8}
+today=$(date +%Y%m%d)
+
+if [ "$date" == "$today" ]; then
+  crev=${latest:8:2}
+  rev=$(printf "%02d" $((crev+1)))
+else
+  rev="01"
+fi
+
+tag="$today$rev"
+
+echo "releasing: $tag"
+
+docker build -t convox/kernel:$tag .
+docker push convox/kernel:$tag
