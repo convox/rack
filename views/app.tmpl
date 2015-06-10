@@ -71,61 +71,63 @@
 			</div>
 		</div>
 
-		<div class="table-title">
-			<table class="table table-striped table-bordered">
-				<thead>
-					<tr class="title">
-						<th colspan="7">
-							Processes
-						</th>
-					</tr>
-					<tr>
-						<th class="expand">Name</th>
-						<th>Ports</th>
-						<th>Count</th>
-						<th>CPU</th>
-						<th>Memory</th>
-						<th>Disk</th>
-					</tr>
-				</thead>
-				<tbody>
-					{{ $ready := .ELBReady }}
-					{{ range .Processes }}
+		{{ if .Processes }}
+			<div class="table-title">
+				<table class="table table-striped table-bordered">
+					<thead>
+						<tr class="title">
+							<th colspan="7">
+								Processes
+							</th>
+						</tr>
 						<tr>
-							<td class="meta-buttons">
-								<a href="/apps/{{ .App }}/processes/{{ .Name }}">
-									{{ .Name }}
-								</a>
+							<th class="expand">Name</th>
+							<th>Ports</th>
+							<th>Count</th>
+							<th>CPU</th>
+							<th>Memory</th>
+							<th>Disk</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{ $ready := .ELBReady }}
+						{{ range .Processes }}
+							<tr>
+								<td class="meta-buttons">
+									<a href="/apps/{{ .App }}/processes/{{ .Name }}">
+										{{ .Name }}
+									</a>
 
-								{{ if .ServiceType }}
-									<button class="btn btn-xs btn-primary service-link pull-right" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
-								{{ end }}
-							</td>
-							<td>
-								{{ range $port, $url := ($app.BalancerPorts .Name) }}
-									{{ if $ready }}
-										<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
-											{{ $port }}
-										</a>
-									{{ else }}
-										<div data-container="body" data-toggle="popover" data-placement="left" data-content="The load balancer is not yet ready.">
-											<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph" disabled>
+									{{ if .ServiceType }}
+										<button class="btn btn-xs btn-primary service-link pull-right" title="Service for {{ .Name }}" data-app="{{ .App }}" data-name="{{ .Name }}" data-type="{{ .ServiceType }}" data-toggle="modal" data-target="#service-link">Link</button>
+									{{ end }}
+								</td>
+								<td>
+									{{ range $port, $url := ($app.BalancerPorts .Name) }}
+										{{ if $ready }}
+											<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
 												{{ $port }}
 											</a>
-										</div>
+										{{ else }}
+											<div data-container="body" data-toggle="popover" data-placement="left" data-content="The load balancer is not yet ready.">
+												<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph" disabled>
+													{{ $port }}
+												</a>
+											</div>
+										{{ end }}
 									{{ end }}
-								{{ end }}
-							</td>
-							<td class="text-center">{{.Count}}</td>
-							{{ $metrics := .Metrics }}
-							<td>{{ meter "cpu"    $metrics.Cpu    100 }}</td>
-							<td>{{ meter "memory" $metrics.Memory 100 }}</td>
-							<td>{{ meter "disk"   $metrics.Disk   100 }}</td>
-						</tr>
-					{{ end }}
-				</tbody>
-			</table>
-		</div>
+								</td>
+								<td class="text-center">{{.Count}}</td>
+								{{ $metrics := .Metrics }}
+								<td>{{ meter "cpu"    $metrics.Cpu    100 }}</td>
+								<td>{{ meter "memory" $metrics.Memory 100 }}</td>
+								<td>{{ meter "disk"   $metrics.Disk   100 }}</td>
+							</tr>
+						{{ end }}
+					</tbody>
+				</table>
+			</div>
+		{{ end }}
 
 		{{ if .Services }}
 			<div class="table-title">
