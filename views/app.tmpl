@@ -89,6 +89,7 @@
 					</tr>
 				</thead>
 				<tbody>
+					{{ $ready := .ELBReady }}
 					{{ range .Processes }}
 						<tr>
 							<td class="meta-buttons">
@@ -102,9 +103,17 @@
 							</td>
 							<td>
 								{{ range $port, $url := ($app.BalancerPorts .Name) }}
-									<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
-										{{ $port }}
-									</a>
+									{{ if $ready }}
+										<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph">
+											{{ $port }}
+										</a>
+									{{ else }}
+										<div data-container="body" data-toggle="popover" data-placement="left" data-content="The load balancer is not yet ready.">
+											<a target="preview" href="http://{{ $url }}" class="btn btn-xs btn-primary glyph" disabled>
+												{{ $port }}
+											</a>
+										</div>
+									{{ end }}
 								{{ end }}
 							</td>
 							<td class="text-center">{{.Count}}</td>
