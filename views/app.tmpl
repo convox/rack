@@ -207,12 +207,14 @@
 				});
 
 				$('#destroy-app').on('click', function() {
-					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
-						window.location = '/apps';
-					}).fail(function(msg) {
-						$('#alert .message').html(msg.responseText);
-						$('#alert').show();
-					});
+					if (confirm('Permanently delete the app {{ .Name}}?')) {
+						$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
+							window.location = '/apps';
+						}).fail(function(msg) {
+							$('#alert .message').html(msg.responseText);
+							$('#alert').show();
+						});
+					}
 				});
 
 				var last_status = null;
