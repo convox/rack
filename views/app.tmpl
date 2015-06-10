@@ -327,7 +327,7 @@
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
 						switch (data) {
 							case 'building':
-								build_status.html('Your app started building at ' + $.timeago(Date.parse(build_status.data('build-started'))) + '.');
+								build_status.html('Your app started building ' + $.timeago(Date.parse(build_status.data('build-started'))) + '.');
 								break;
 							case 'complete':
 								window.clearInterval(ticker);
