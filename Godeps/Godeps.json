@@ -1,54 +1,58 @@
 {
 	"ImportPath": "github.com/convox/agent",
-	"GoVersion": "go1.4.1",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
-			"ImportPath": "bitbucket.org/bertimus9/systemstat",
-			"Rev": "1468fd0db20598383c9393cccaa547de6ad99e5e"
+			"ImportPath": "github.com/aws/aws-sdk-go/aws",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/ActiveState/tail",
-			"Rev": "068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a"
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/apierr",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/endpoints",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/cloudwatch",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/json/jsonutil",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/endpoints",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/jsonrpc",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/kinesis",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/rest",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/logs",
-			"Rev": "0c3a13d290ad97e69f4e25651b14c6af41c98c50"
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/guillermo/go.procmeminfo",
-			"Rev": "be4355a9fb0e5340ebee5b05aafe85948eaccd1b"
+			"ImportPath": "github.com/aws/aws-sdk-go/service/kinesis",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/howeyc/fsnotify",
-			"Comment": "v0.9.0-11-g6b1ef89",
-			"Rev": "6b1ef893dc11e0447abda6da20a5203481878dda"
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Comment": "0.2.1-553-g419285e",
+			"Rev": "419285e90ed27813d1df4be3e47249f9eb215dcf"
 		},
 		{
 			"ImportPath": "github.com/vaughan0/go-ini",
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
-		},
-		{
-			"ImportPath": "gopkg.in/tomb.v1",
-			"Rev": "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
 		}
 	]
 }
