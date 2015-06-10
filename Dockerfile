@@ -1,9 +1,9 @@
 FROM golang:1.4
 
-RUN go get github.com/ddollar/init
-
 WORKDIR /go/src/github.com/convox/agent
 COPY . /go/src/github.com/convox/agent
 RUN go get .
 
-ENTRYPOINT ["init", "agent"]
+ENV DOCKER_HOST unix:///var/run/docker.sock
+
+ENTRYPOINT ["agent"]
