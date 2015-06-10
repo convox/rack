@@ -10,8 +10,9 @@
 	</div>
 
 	<ol class="breadcrumb">
+		<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
+
 		{{ if .Created }}
-			<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
 			<button id="build-app" class="btn btn-success btn-xs trackable">Build</button>
 		{{ end }}
 		<li><a href="/apps">Apps</a></li>
