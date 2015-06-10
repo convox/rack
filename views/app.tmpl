@@ -295,7 +295,7 @@
 					</div>
 					<div class="modal-body">
 						<pre class="modal-scroll">{{ .Logs }}</pre>
-						<div class="build-status" data-build-id="{{ .Id }}">Your app started building {{ timeago .Started }}.</div>
+						<div class="build-status" data-build-id="{{ .Id }}" data-build-started="{{ .Started }}"></div>
 					</div>
 				</div>
 			</div>
@@ -325,13 +325,18 @@
 						scroll_position = modal_scroll.scrollTop();
 					}
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
-						if (data == 'complete') {
-							window.clearInterval(ticker);
-						  build_status.html('<button title="Promote Build" class="btn btn-success" id="build-promote">Promote Build</button>');
-						}
-						if (data == 'failed') {
-							window.clearInterval(ticker);
-							build_status.html("This build failed. Please inspect the logs above for errors.");
+						switch (data) {
+							case 'building':
+								build_status.html('Your app started building at ' + $.timeago(Date.parse(build_status.data('build-started'))) + '.');
+								break;
+							case 'complete':
+								window.clearInterval(ticker);
+								build_status.html('<button title="Promote Build" class="btn btn-success" id="build-promote">Promote Build</button>');
+								break;
+							case 'failed':
+								window.clearInterval(ticker);
+								build_status.html("This build failed. Please inspect the logs above for errors.");
+								break;
 						}
 					});
 				}, 500);
