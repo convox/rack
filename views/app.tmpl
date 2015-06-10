@@ -542,7 +542,7 @@
 					<td class="buttons release-buttons" data-release="{{ .Id }}">
 						{{ if eq $status "updating" }}
 							{{ if eq .Id $active }}
-								<img id="release-spinner" src="/spinner-white.gif">
+								<p class="text-warning release-deploying">Deploying</p>
 							{{ else }}
 								<button class="btn btn-xs btn-primary" disabled>Deploy</button>
 							{{ end }}
@@ -569,7 +569,7 @@
 			console.log('activeParent', activeParent);
 
 			$('.release-buttons').html('<button class="btn btn-primary btn-xs release-promote" disabled>Deploy</button>');
-			$(activeParent).html('<img id="release-spinner" src="/spinner-white.gif">')
+			$(activeParent).html('<p class="text-warning release-deploying">Deploying</p>')
 
 			$('#spinner').show();
 
