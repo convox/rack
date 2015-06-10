@@ -126,6 +126,10 @@ func (m *Monitor) subscribeLogs(id, stream, process string) {
 		ErrorStream:  w,
 	})
 
+	if err != nil {
+		log.Printf("error: %s\n", err)
+	}
+
 	w.Close()
 }
 
