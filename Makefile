@@ -15,6 +15,7 @@ build:
 	docker build -t convox/kernel .
 
 release:
+	bin/release
 	aws s3 cp dist/kernel.json s3://convox/kernel.json --acl public-read
 
 vendor:
