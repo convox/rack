@@ -10,8 +10,9 @@
 	</div>
 
 	<ol class="breadcrumb">
+		<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
+
 		{{ if .Created }}
-			<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
 			<button id="build-app" class="btn btn-success btn-xs trackable">Build</button>
 		{{ end }}
 		<li><a href="/apps">Apps</a></li>
@@ -22,7 +23,7 @@
 
 		<div class="panel panel-default">
 			<div class="panel-body">
-				Please wait while your application is initialized.
+				Please wait while your application is initialized. Current status: <span id="status">{{ .Status }}</span>.
 			</div>
 		</div>
 
@@ -31,7 +32,9 @@
 		<script>
 			window.setInterval(function() {
 				$.ajax({ url:'/apps/{{ .Name }}/status' }).done(function(status) {
-					if (status !== 'creating') {
+					$("#status").html(status)
+
+					if (status == 'running') {
 						window.location.reload();
 					}
 				});
