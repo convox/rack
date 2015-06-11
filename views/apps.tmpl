@@ -104,7 +104,7 @@
 				var valid = (app_name.match(/([A-Z]|[a-z]|-)/g).length == app_name.length);
 				if (!valid) {
 					form_group.addClass('has-error');
-					help_block.html('Only alphanumeric numbers and dashes allowed in app names.');
+					help_block.html('Only alphanumeric characters and dashes allowed in app names.');
 					return;
 				}
 
@@ -114,7 +114,7 @@
 						$('#app-create form').unbind('submit').submit();
 					} else {
 						form_group.addClass('has-error');
-						help_block.html('The name ' + app_name + ' is already taken. Please choose another app name.');
+						help_block.html('The name <strong>' + app_name + '</strong> is already taken. Please choose another app name.');
 					}
 				});
 			});
