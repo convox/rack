@@ -52,7 +52,7 @@ func ListReleases(app string, last map[string]string) (Releases, error) {
 		TableName:        aws.String(releasesTable(app)),
 	}
 
-	if _, ok := last["id"]; ok {
+	if last["id"] != "" {
 		req.ExclusiveStartKey = &map[string]*dynamodb.AttributeValue{
 			"app":     &dynamodb.AttributeValue{S: aws.String(app)},
 			"id":      &dynamodb.AttributeValue{S: aws.String(last["id"])},
