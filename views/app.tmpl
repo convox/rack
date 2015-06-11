@@ -10,7 +10,9 @@
 	</div>
 
 	<ol class="breadcrumb">
-		<button id="destroy-app" class="btn btn-danger btn-xs trackable">Destroy App</button>
+		<button id="destroy-app" class="btn btn-danger btn-xs trackable" data-toggle="modal" data-target="#confirm-delete">
+			Destroy App
+		</button>
 
 		{{ if .Created }}
 			<button id="build-app" class="btn btn-success btn-xs trackable">Build</button>
@@ -18,6 +20,23 @@
 		<li><a href="/apps">Apps</a></li>
 		<li class="active">{{ .Name }}</li>
 	</ol>
+
+	<div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					Confirm app delete
+				</div>
+				<div class="modal-body">
+					Are you sure you want to permanently delete <strong>{{ .Name }}</strong>?
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<a id="confirm-delete-ok" class="btn btn-danger btn-ok">Delete</a>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	{{ if not .Created }}
 
@@ -206,7 +225,7 @@
 					});
 				});
 
-				$('#destroy-app').on('click', function() {
+				$('#confirm-delete-ok').on('click', function() {
 					$.ajax({ type: 'DELETE', url:'/apps/{{ .Name }}'}).done(function(msg) {
 						window.location = '/apps';
 					}).fail(function(msg) {
