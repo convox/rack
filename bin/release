@@ -16,12 +16,12 @@ tag="$today$rev"
 
 echo "releasing: $tag"
 
-mkdir -p /tmp/convox/releases
-git log --pretty=format:"%s%n" $latest..$tag > /tmp/convox/releases/$tag
-aws s3 cp /tmp/convox/releases/$tag s3://convox/releases/$tag/changes
-
 git tag $tag
 git push --tags
+
+mkdir -p /tmp/convox/releases
+git log --pretty=format:"%s" $latest..$tag > /tmp/convox/releases/$tag
+aws s3 cp /tmp/convox/releases/$tag s3://convox/releases/$tag/changes
 
 docker build -t convox/kernel:$tag .
 docker push convox/kernel:$tag
