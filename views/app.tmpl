@@ -354,6 +354,18 @@
 			</div>
 		</div>
 	{{ end }}
+
+	<nav>
+		<ul class="pager">
+			<li class="next"><a href="/apps/{{ .App.Name }}/builds">Latest</span></a></li>
+			{{ if .Last }}
+				<li class="next"><a href="/apps/{{ .App.Name }}/builds?id={{ .Last.Id }}&created={{ sortabletime .Last.Started }}"><span aria-hidden="true">&larr;</span> Older</a></li>
+			{{ else }}
+				<li class="next disabled"><a href=""><span aria-hidden="true">&larr;</span> Older</a></li>
+			{{ end }}
+		</ul>
+	</nav>
+
 	<script>
 		$(window).ready(function() {
 			var ticker = null;

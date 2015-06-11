@@ -228,7 +228,12 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
-	builds, err := models.ListBuilds(app)
+	l := map[string]string{
+		"id": r.URL.Query().Get("id"),
+		"created": r.URL.Query().Get("created"),
+	}
+
+	builds, err := models.ListBuilds(app, l)
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -247,6 +252,10 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	params := map[string]interface{}{
 		"App":    a,
 		"Builds": builds,
+	}
+
+	if len(builds) > 0 {
+		params["Last"] = builds[len(builds) - 1]
 	}
 
 	RenderPartial(rw, "app", "builds", params)
