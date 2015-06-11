@@ -612,7 +612,7 @@
 
 	<nav>
 		<ul class="pager">
-			<li class="previous"><a href="?id={{ .Last.Id }}&created={{ sortabletime .Last.Created }}"><span aria-hidden="true">&larr;</span> Older</a></li>
+			<li class="previous"><a href="/apps/{{ .App.Name }}/releases?id={{ .Last.Id }}&created={{ sortabletime .Last.Created }}"><span aria-hidden="true">&larr;</span> Older</a></li>
 		</ul>
 	</nav>
 
