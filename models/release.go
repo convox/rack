@@ -36,7 +36,7 @@ func NewRelease(app string) Release {
 	}
 }
 
-func ListReleases(app string) (Releases, error) {
+func ListReleases(app string, last map[string]string) (Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
@@ -47,9 +47,17 @@ func ListReleases(app string) (Releases, error) {
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Long(10),
+		Limit:            aws.Long(3),
 		ScanIndexForward: aws.Boolean(false),
 		TableName:        aws.String(releasesTable(app)),
+	}
+
+	if _, ok := last["id"]; ok {
+		req.ExclusiveStartKey = &map[string]*dynamodb.AttributeValue{
+			"app":     &dynamodb.AttributeValue{S: aws.String(app)},
+			"id":      &dynamodb.AttributeValue{S: aws.String(last["id"])},
+			"created": &dynamodb.AttributeValue{S: aws.String(last["created"])},
+		}
 	}
 
 	res, err := DynamoDB().Query(req)

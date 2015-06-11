@@ -133,7 +133,8 @@ func (a *App) Cleanup() error {
 		go cleanupBuild(build)
 	}
 
-	releases, err := ListReleases(a.Name)
+	l := make(map[string]string)
+	releases, err := ListReleases(a.Name, l)
 
 	if err != nil {
 		return err
@@ -251,7 +252,8 @@ func (a *App) ForkRelease() (*Release, error) {
 }
 
 func (a *App) LatestRelease() (*Release, error) {
-	releases, err := ListReleases(a.Name)
+	l := make(map[string]string)
+	releases, err := ListReleases(a.Name, l)
 
 	if err != nil {
 		return nil, err
@@ -459,7 +461,8 @@ func (a *App) Processes() Processes {
 }
 
 func (a *App) Releases() Releases {
-	releases, err := ListReleases(a.Name)
+	l := make(map[string]string)
+	releases, err := ListReleases(a.Name, l)
 
 	if err != nil {
 		if err.(awserr.Error).Message() == "Requested resource not found" {

@@ -429,6 +429,16 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
+	l := make(map[string]string)
+
+	if id := r.URL.Query().Get("id"); id != "" {
+		l["id"] = id
+	}
+
+	if created := r.URL.Query().Get("created"); created != "" {
+		l["created"] = created
+	}
+
 	a, err := models.GetApp(app)
 
 	if err != nil {
@@ -437,7 +447,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	releases, err := models.ListReleases(app)
+	releases, err := models.ListReleases(app, l)
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -448,6 +458,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	params := map[string]interface{}{
 		"App":      a,
 		"Releases": releases,
+		"Last":     releases[len(releases) - 1],
 	}
 
 	RenderPartial(rw, "app", "releases", params)

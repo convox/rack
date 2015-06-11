@@ -609,6 +609,13 @@
 			{{ end }}
 		</tbody>
 	</table>
+
+	<nav>
+		<ul class="pager">
+			<li class="previous"><a href="?id={{ .Last.Id }}&created={{ sortabletime .Last.Created }}"><span aria-hidden="true">&larr;</span> Older</a></li>
+		</ul>
+	</nav>
+
 	{{ range .Releases }}
 		{{ template "release" . }}
 	{{ end }}
