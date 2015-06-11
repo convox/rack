@@ -229,7 +229,7 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	app := vars["app"]
 
 	l := map[string]string{
-		"id": r.URL.Query().Get("id"),
+		"id":      r.URL.Query().Get("id"),
 		"created": r.URL.Query().Get("created"),
 	}
 
@@ -255,7 +255,7 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(builds) > 0 {
-		params["Last"] = builds[len(builds) - 1]
+		params["Last"] = builds[len(builds)-1]
 	}
 
 	RenderPartial(rw, "app", "builds", params)
@@ -439,7 +439,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	app := vars["app"]
 
 	l := map[string]string{
-		"id": r.URL.Query().Get("id"),
+		"id":      r.URL.Query().Get("id"),
 		"created": r.URL.Query().Get("created"),
 	}
 
@@ -465,7 +465,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(releases) > 0 {
-		params["Last"] = releases[len(releases) - 1]
+		params["Last"] = releases[len(releases)-1]
 	}
 
 	RenderPartial(rw, "app", "releases", params)
