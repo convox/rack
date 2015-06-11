@@ -1,6 +1,6 @@
 #!/bin/sh
 
-latest=$(curl -s https://index.docker.io/v1/repositories/convox/kernel/tags | jq -r '.[].name' | sort -r | head -n 2 | tail -n 1)
+latest=$(curl -s https://api.github.com/repos/convox/kernel/tags | jq -r '.[].name' | sort | tail -n 1)
 
 date=${latest:0:8}
 today=$(date +%Y%m%d)
