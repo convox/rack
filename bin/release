@@ -16,9 +16,14 @@ tag="$today$rev"
 
 echo "releasing: $tag"
 
+git tag $tag
+git push --tags
+
 docker build -t convox/kernel:$tag .
 docker push convox/kernel:$tag
 
 cd ../registry
 docker build -t convox/registry:$tag .
 docker push convox/registry:$tag
+
+echo "released: $tag"
