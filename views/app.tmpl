@@ -329,7 +329,7 @@
 					</div>
 					<div class="modal-body">
 						<pre class="modal-scroll">{{ .Logs }}</pre>
-						<div class="build-status" data-build-id="{{ .Id }}" data-build-started="{{ .Started }}"></div>
+						<div class="build-status alert" data-build-id="{{ .Id }}" data-build-started="{{ .Started }}"></div>
 					</div>
 				</div>
 			</div>
@@ -361,15 +361,19 @@
 					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
 						switch (data) {
 							case 'building':
-								build_status.html('Your app started building ' + $.timeago(Date.parse(build_status.data('build-started'))) + '.');
+								build_status.addClass('alert-info');
+								build_status.html('<span class="statusicon statusicon-changing"></span> Your app started building '
+									+ $.timeago(Date.parse(build_status.data('build-started'))) + '.');
 								break;
 							case 'complete':
 								window.clearInterval(ticker);
-								build_status.html('Build complete. Go to the <a href="#releases">Releases</a> tab to deploy it.');
+								build_status.removeClass('alert-info').addClass('alert-success');
+								build_status.html('<span class="statusicon statusicon-complete"></span> Build complete. Go to the <a href="#releases">Releases</a> tab to deploy it.');
 								break;
 							case 'failed':
 								window.clearInterval(ticker);
-								build_status.html("This build failed. Please inspect the logs above for errors.");
+								build_status.removeClass('alert-info').addClass('alert-danger');
+								build_status.html('<span class="statusicon statusicon-failed"></span> This build failed. Please inspect the logs above for errors.');
 								break;
 						}
 					});
