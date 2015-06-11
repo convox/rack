@@ -47,7 +47,7 @@ func ListReleases(app string, last map[string]string) (Releases, error) {
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Long(3),
+		Limit:            aws.Long(10),
 		ScanIndexForward: aws.Boolean(false),
 		TableName:        aws.String(releasesTable(app)),
 	}
