@@ -378,6 +378,16 @@ func AppLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "app", "logs", app)
 }
 
+func AppNameAvailable(rw http.ResponseWriter, r *http.Request) {
+	app, _ := models.GetApp(mux.Vars(r)["app"])
+
+	if app != nil {
+		RenderText(rw, "false")
+	} else {
+		RenderText(rw, "true")
+	}
+}
+
 func AppStream(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("stream").Start()
 

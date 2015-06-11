@@ -89,6 +89,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}", controllers.AppShow).Methods("GET")
 	router.HandleFunc("/apps/{app}", controllers.AppUpdate).Methods("POST")
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
+	router.HandleFunc("/apps/{app}/available", controllers.AppNameAvailable).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds", controllers.AppBuilds).Methods("GET")
 	router.HandleFunc("/apps/{app}/build", controllers.BuildCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/builds/{build}/logs", controllers.BuildLogs).Methods("GET")
