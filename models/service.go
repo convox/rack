@@ -50,7 +50,7 @@ func LinkService(app string, process string, stack string) error {
 	}
 
 	return a.UpdateParams(map[string]string{
-		upperName(process)+"Service": stack,
+		upperName(process) + "Service": stack,
 	})
 }
 
