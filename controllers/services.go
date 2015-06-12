@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"crypto/rand"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -83,12 +85,11 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
 	log := servicesLogger("create").Start()
 
 	name := GetForm(r, "name")
-	password := GetForm(r, "password")
 	t := GetForm(r, "type")
 
 	service := &models.Service{
 		Name:     name,
-		Password: password,
+		Password: rand_password(20),
 		Type:     t,
 	}
 
@@ -215,6 +216,34 @@ func ServiceStream(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Success("step=ended service=%q", service.Name)
+}
+
+func rand_password(length int) string {
+	// Take from https://github.com/cmiceli/password-generator-go
+
+	var chars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%^&*()-_=+,.?:;{}[]`~") // no /@" and space allowed for RDS password
+
+	new_pword := make([]byte, length)
+	random_data := make([]byte, length+(length/4)) // storage for random bytes.
+	clen := byte(len(chars))
+	maxrb := byte(256 - (256 % len(chars)))
+	i := 0
+	for {
+		if _, err := io.ReadFull(rand.Reader, random_data); err != nil {
+			panic(err)
+		}
+		for _, c := range random_data {
+			if c >= maxrb {
+				continue
+			}
+			new_pword[i] = chars[c%clen]
+			i++
+			if i == length {
+				return string(new_pword)
+			}
+		}
+	}
+	panic("unreachable")
 }
 
 func servicesLogger(at string) *logger.Logger {
