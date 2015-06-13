@@ -172,14 +172,6 @@ function change_to_tab(hash, cb) {
   refresh_content($('a[href="'+hash+'"][role="tab"]'), cb);
 }
 
-function build_timer() {
-	return (window.setInterval(function() {
-		if ($('#builds-tab').parent().hasClass('active')) {
-			 refresh_content($('#builds-tab'));
-		}
-	}, 5000));
-}
-
 $(window).ready(function() {
   $('.timeago').timeago();
 
