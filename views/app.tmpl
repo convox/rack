@@ -353,60 +353,50 @@
 		</div>
 	{{ end }}
 	<script>
-		$(window).ready(function() {
-			var ticker = null;
-			$('.build-logs-modal').on('show.bs.modal', function (e) {
-				window.clearInterval(build_ticker);
-				var modal = $(this);
-				var modal_scroll = modal.find('.modal-scroll');
-				var scroll_postion = modal_scroll.scrollTop();
-				var autoscroll = true;
-				var build_id = modal.data('build');
-				var build_status = modal.find('.build-status');
-				if (ticker !== null) {
-					window.clearInterval(ticker);
-					ticker = null;
+		function updateBuildModal(modal) {
+			var build_id = modal.data('build');
+			var build_status = modal.find('.build-status');
+
+			$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
+				switch (data) {
+					case 'building':
+						build_status.addClass('alert-info');
+						build_status.html('<span class="statusicon statusicon-changing"></span> Your app started building '
+							+ $.timeago(Date.parse(build_status.data('build-started'))) + '.');
+
+						$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
+							// test if scroll bar is currently at or near the bottom
+							var scroll = modal.find('.modal-scroll')
+							var autoscroll = (scroll.prop("scrollHeight") - scroll.height() - scroll.scrollTop() < 30)
+
+							modal.find('pre').text(data);
+
+							if (autoscroll)
+								scroll.scrollTop(scroll.prop("scrollHeight"));
+
+							setTimeout(function() { updateBuildModal(modal) }, 2000)
+						});
+
+						break;
+					case 'complete':
+						build_status.removeClass('alert-info').addClass('alert-success');
+						build_status.html('<span class="statusicon statusicon-complete"></span> Build complete. Go to the <a href="#releases">Releases</a> tab to deploy it.');
+						break;
+					case 'failed':
+						build_status.removeClass('alert-info').addClass('alert-danger');
+						build_status.html('<span class="statusicon statusicon-failed"></span> This build failed. Please inspect the logs above for errors.');
+						break;
 				}
-				ticker = window.setInterval(function() {
-					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
-						modal.find('pre').text(data);
-					});
-					if (autoscroll) {
-						modal_scroll.scrollTop(modal_scroll.prop("scrollHeight"));
-						scroll_position = modal_scroll.scrollTop();
-					}
-					$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/status' }).done(function(data) {
-						switch (data) {
-							case 'building':
-								build_status.addClass('alert-info');
-								build_status.html('<span class="statusicon statusicon-changing"></span> Your app started building '
-									+ $.timeago(Date.parse(build_status.data('build-started'))) + '.');
-								break;
-							case 'complete':
-								window.clearInterval(ticker);
-								build_status.removeClass('alert-info').addClass('alert-success');
-								build_status.html('<span class="statusicon statusicon-complete"></span> Build complete. Go to the <a href="#releases">Releases</a> tab to deploy it.');
-								break;
-							case 'failed':
-								window.clearInterval(ticker);
-								build_status.removeClass('alert-info').addClass('alert-danger');
-								build_status.html('<span class="statusicon statusicon-failed"></span> This build failed. Please inspect the logs above for errors.');
-								break;
-						}
-					});
-				}, 500);
-				// Turn off autoscrolling if the pane is scrolled up
-				modal_scroll.scroll(function() {
-					if(modal_scroll.scrollTop() < scroll_position) {
-						autoscroll = false
-					}
-				});
 			});
+		}
+
+		$(window).ready(function() {
+			$('.build-logs-modal').on('show.bs.modal', function (e) {
+				updateBuildModal($(this))
+			})
+
 			$('.build-logs-modal').on('hide.bs.modal', function(e) {
 				refresh_content($('#builds-tab'));
-				window.clearInterval(ticker);
-				ticker = null;
-				build_ticker = build_timer();
 			});
 		});
 	</script>
