@@ -582,30 +582,38 @@
 			</tr>
 		</thead>
 		<tbody>
-			{{ range .Releases }}
+			{{ if not .Releases }}
 				<tr>
-					<td class="id">{{ .Id }}</td>
-					<td>{{ timeago .Created }}</td>
-					<td class="id">{{ .Build }}</td>
-					<td class="buttons">
-						<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
-					</td>
-					<td class="buttons release-buttons" data-release="{{ .Id }}">
-						{{ if eq $status "updating" }}
-							{{ if eq .Id $active }}
-								<p class="text-warning release-deploying">Deploying</p>
-							{{ else }}
-								<button class="btn btn-xs btn-primary" disabled>Deploy</button>
-							{{ end }}
-						{{ else }}
-							{{ if eq .Id $active }}
-								<p class="text-success release-live">Live</p>
-							{{ else }}
-								<button class="btn btn-primary btn-xs promote-release trackable release-promote" id="promote-release" data-release="{{ .Id }}">Deploy</button>
-							{{ end }}
-						{{ end }}
+					<td colspan=6>
+						You don't have any releases yet. Click the <strong>Build</strong> button above to create one.
 					</td>
 				</tr>
+			{{ else }}
+				{{ range .Releases }}
+					<tr>
+						<td class="id">{{ .Id }}</td>
+						<td>{{ timeago .Created }}</td>
+						<td class="id">{{ .Build }}</td>
+						<td class="buttons">
+							<button class="btn btn-xs btn-info" title="Env for {{ .Id }}" data-toggle="modal" data-target="#release-env-{{ .Id }}">Env</button>
+						</td>
+						<td class="buttons release-buttons" data-release="{{ .Id }}">
+							{{ if eq $status "updating" }}
+								{{ if eq .Id $active }}
+									<p class="text-warning release-deploying">Deploying</p>
+								{{ else }}
+									<button class="btn btn-xs btn-primary" disabled>Deploy</button>
+								{{ end }}
+							{{ else }}
+								{{ if eq .Id $active }}
+									<p class="text-success release-live">Live</p>
+								{{ else }}
+									<button class="btn btn-primary btn-xs promote-release trackable release-promote" id="promote-release" data-release="{{ .Id }}">Deploy</button>
+								{{ end }}
+							{{ end }}
+						</td>
+					</tr>
+				{{ end }}
 			{{ end }}
 		</tbody>
 	</table>
