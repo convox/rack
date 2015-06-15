@@ -26,7 +26,6 @@ mixpanel.init("43fb68427548c5e99978a598a9b14e55");</script><!-- end Mixpanel -->
 			<script src="/bootstrap/js/bootstrap.min.js"></script>
 			<script src="/timeago.js"></script>
 			<script src="/convox.js"></script>
-			<script src="/pGenerator.jquery.js"></script>
 			{{ template "navbar" . }}
 			<div class="container">
 				{{ template "body" . }}
@@ -67,15 +66,6 @@ mixpanel.init("43fb68427548c5e99978a598a9b14e55");</script><!-- end Mixpanel -->
 			$('[data-toggle="popover"]').popover({html:true})
 
 			$('.timeago').timeago()
-			$('#btn-service-create').pGenerator({
-				'bind': 'click',
-				'passwordElement': '#service-password',
-				'passwordLength': 20,
-				'uppercase': true,
-				'lowercase': true,
-				'numbers':   true,
-				'specialChars': true,
-			});
 
 			// Track clicks in mixpanel
 			mixpanel.register({'aws_accountid': $('meta[name=accountid]').attr('content')});
