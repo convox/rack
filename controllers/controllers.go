@@ -89,6 +89,9 @@ func displayHelpers() template.FuncMap {
 		"times": func(t time.Time) string {
 			return t.Format(time.RFC3339)
 		},
+		"sortabletime": func(t time.Time) string {
+			return t.Format("20060102.150405.000000000")
+		},
 		"upper": func(s string) string {
 			return strings.ToUpper(s[0:1]) + s[1:]
 		},

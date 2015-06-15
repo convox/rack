@@ -184,4 +184,13 @@ $(window).ready(function() {
   $('.timeago').timeago();
 
   activate_tabs();
+
+  $(document).on("click", "#tab-content .pager a", function(e) {
+    e.preventDefault()
+
+    $.get($(e.target).attr("href"), function(data) {
+      $('#tab-content').html(data)
+    })
+  })
+
 });

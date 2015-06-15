@@ -228,7 +228,12 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
-	builds, err := models.ListBuilds(app)
+	l := map[string]string{
+		"id":      r.URL.Query().Get("id"),
+		"created": r.URL.Query().Get("created"),
+	}
+
+	builds, err := models.ListBuilds(app, l)
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -247,6 +252,10 @@ func AppBuilds(rw http.ResponseWriter, r *http.Request) {
 	params := map[string]interface{}{
 		"App":    a,
 		"Builds": builds,
+	}
+
+	if len(builds) > 0 {
+		params["Last"] = builds[len(builds)-1]
 	}
 
 	RenderPartial(rw, "app", "builds", params)
@@ -429,6 +438,11 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
+	l := map[string]string{
+		"id":      r.URL.Query().Get("id"),
+		"created": r.URL.Query().Get("created"),
+	}
+
 	a, err := models.GetApp(app)
 
 	if err != nil {
@@ -437,7 +451,7 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	releases, err := models.ListReleases(app)
+	releases, err := models.ListReleases(app, l)
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -448,6 +462,10 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	params := map[string]interface{}{
 		"App":      a,
 		"Releases": releases,
+	}
+
+	if len(releases) > 0 {
+		params["Last"] = releases[len(releases)-1]
 	}
 
 	RenderPartial(rw, "app", "releases", params)

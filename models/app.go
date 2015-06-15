@@ -123,7 +123,8 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
-	builds, err := ListBuilds(a.Name)
+	l := make(map[string]string)
+	builds, err := ListBuilds(a.Name, l)
 
 	if err != nil {
 		return err
@@ -133,7 +134,7 @@ func (a *App) Cleanup() error {
 		go cleanupBuild(build)
 	}
 
-	releases, err := ListReleases(a.Name)
+	releases, err := ListReleases(a.Name, l)
 
 	if err != nil {
 		return err
@@ -251,7 +252,8 @@ func (a *App) ForkRelease() (*Release, error) {
 }
 
 func (a *App) LatestRelease() (*Release, error) {
-	releases, err := ListReleases(a.Name)
+	l := make(map[string]string)
+	releases, err := ListReleases(a.Name, l)
 
 	if err != nil {
 		return nil, err
@@ -345,7 +347,8 @@ func (a *App) ProcessPorts(ps string) map[string]string {
 }
 
 func (a *App) Builds() Builds {
-	builds, err := ListBuilds(a.Name)
+	l := make(map[string]string)
+	builds, err := ListBuilds(a.Name, l)
 
 	if err != nil {
 		if err.(awserr.Error).Message() == "Requested resource not found" {
@@ -459,7 +462,8 @@ func (a *App) Processes() Processes {
 }
 
 func (a *App) Releases() Releases {
-	releases, err := ListReleases(a.Name)
+	l := make(map[string]string)
+	releases, err := ListReleases(a.Name, l)
 
 	if err != nil {
 		if err.(awserr.Error).Message() == "Requested resource not found" {
