@@ -87,13 +87,21 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
 	name := GetForm(r, "name")
 	t := GetForm(r, "type")
 
+	password, err := rand_password(20)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
 	service := &models.Service{
 		Name:     name,
-		Password: rand_password(20),
+		Password: password,
 		Type:     t,
 	}
 
-	err := service.Create()
+	err = service.Create()
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -218,7 +226,7 @@ func ServiceStream(rw http.ResponseWriter, r *http.Request) {
 	log.Success("step=ended service=%q", service.Name)
 }
 
-func rand_password(length int) string {
+func rand_password(length int) (string, error) {
 	// Take from https://github.com/cmiceli/password-generator-go
 
 	var chars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%^&*()-_=+,.?:;{}[]`~") // no /@" and space allowed for RDS password
@@ -230,7 +238,7 @@ func rand_password(length int) string {
 	i := 0
 	for {
 		if _, err := io.ReadFull(rand.Reader, random_data); err != nil {
-			panic(err)
+			return "", err
 		}
 		for _, c := range random_data {
 			if c >= maxrb {
@@ -239,11 +247,11 @@ func rand_password(length int) string {
 			new_pword[i] = chars[c%clen]
 			i++
 			if i == length {
-				return string(new_pword)
+				return string(new_pword), nil
 			}
 		}
 	}
-	panic("unreachable")
+	return "", fmt.Errorf("unreachable")
 }
 
 func servicesLogger(at string) *logger.Logger {
