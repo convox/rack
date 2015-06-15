@@ -365,7 +365,24 @@
 	</nav>
 
 	<script>
+		function updateBuildLogs(modal) {
+			var build_id = modal.data('build');
+
+			$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
+				// test if scroll bar is currently at or near the bottom
+				var scroll = modal.find('.modal-scroll')
+				var autoscroll = (scroll.prop("scrollHeight") - scroll.height() - scroll.scrollTop() < 30)
+
+				modal.find('pre').text(data);
+
+				if (autoscroll)
+					scroll.scrollTop(scroll.prop("scrollHeight"));
+			});
+		}
+
 		function updateBuildModal(modal) {
+			updateBuildLogs(modal)
+
 			var build_id = modal.data('build');
 			var build_status = modal.find('.build-status');
 
@@ -375,20 +392,7 @@
 						build_status.addClass('alert-info');
 						build_status.html('<span class="statusicon statusicon-changing"></span> Your app started building '
 							+ $.timeago(Date.parse(build_status.data('build-started'))) + '.');
-
-						$.ajax({ url:'/apps/{{ .App.Name }}/builds/'+build_id+'/logs' }).done(function(data) {
-							// test if scroll bar is currently at or near the bottom
-							var scroll = modal.find('.modal-scroll')
-							var autoscroll = (scroll.prop("scrollHeight") - scroll.height() - scroll.scrollTop() < 30)
-
-							modal.find('pre').text(data);
-
-							if (autoscroll)
-								scroll.scrollTop(scroll.prop("scrollHeight"));
-
-							setTimeout(function() { updateBuildModal(modal) }, 2000)
-						});
-
+						setTimeout(function() { updateBuildModal(modal) }, 2000)
 						break;
 					case 'complete':
 						build_status.removeClass('alert-info').addClass('alert-success');
