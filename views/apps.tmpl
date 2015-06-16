@@ -101,7 +101,7 @@
 				help_block.html('');
 
 				// Validate format of app name
-				var valid = (app_name.match(/([A-Z]|[a-z]|-)/g).length == app_name.length);
+				var valid = (app_name.match(/([A-Z]|[a-z]|\d|-)/g).length == app_name.length);
 				if (!valid) {
 					form_group.addClass('has-error');
 					help_block.html('Only alphanumeric characters and dashes allowed in app names.');
