@@ -3,7 +3,7 @@
 <a name="installation">
 ## Installation
 
-[![Install](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#cstack=sn%7Econvox%7Cturl%7Ehttp://convox.s3.amazonaws.com/kernel.json)
+[![Install](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#cstack=sn%7Econvox%7Cturl%7Ehttps://convox.s3.amazonaws.com/kernel.json)
 
 **Parameters**
 
