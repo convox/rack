@@ -109,16 +109,7 @@ func AppUpdate(rw http.ResponseWriter, r *http.Request) {
 
 	app, err := models.GetApp(name)
 
-	if err != nil {
-		log.Error(err)
-		RenderError(rw, err)
-		return
-	}
-
-	endpoint := GetForm(r, "healthcheck[endpoint]")
-	path := GetForm(r, "healthcheck[path]")
-
-	err = app.SetHealthCheck(endpoint, path)
+	fmt.Printf("app = %+v\n", app)
 
 	if err != nil {
 		log.Error(err)

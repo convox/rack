@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -196,28 +195,6 @@ func (a *App) Formation() (string, error) {
 	}
 
 	return string(data), nil
-}
-
-func (a *App) SetHealthCheck(endpoint, path string) error {
-	parts := strings.Split(endpoint, ":")
-
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid endpoint")
-	}
-
-	port := a.Parameters[fmt.Sprintf("%sPort%sHost", upperName(parts[0]), parts[1])]
-
-	check := fmt.Sprintf("HTTP:%s%s", port, path)
-
-	fmt.Printf("check = %+v\n", check)
-
-	err := a.UpdateParams(map[string]string{"Check": check})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
