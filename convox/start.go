@@ -35,8 +35,10 @@ func cmdStart(c *cli.Context) {
 	case exists(filepath.Join(base, "docker-compose.yml")):
 		err = start.DockerCompose(base)
 	case exists(filepath.Join(base, "Dockerfile")):
+		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
 		err = start.Dockerfile(base)
 	case exists(filepath.Join(base, "Procfile")):
+		fmt.Printf("Procfile app detected. Writing docker-compose.yml.\n")
 		err = start.Procfile(base)
 	}
 
