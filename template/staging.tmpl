@@ -189,7 +189,7 @@
   {{ if .HasPorts }}
     "Check": {
       "Type": "String",
-      "Default": "HTTP:{{ .FirstRandom }}/",
+      "Default": "TCP:{{ .FirstRandom }}",
       "Description": ""
     },
     {{ range $ps, $entry := . }}
