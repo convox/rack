@@ -24,6 +24,27 @@ func TestParseProcfile(t *testing.T) {
 	_assert(t, cases)
 }
 
+func TestGenDockerCompose(t *testing.T) {
+	p, _ := parseProcfile([]byte(`web: ruby web.rb`))
+	d, err := genDockerCompose(p)
+
+	if err != nil {
+		t.Errorf("TestGenDockerCompose err %q", err)
+	}
+
+	cases := Cases{
+		{d, []byte(`web:
+  build: .
+  command: ruby web.rb
+  environment: []
+  ports:
+  - 5000:3000
+`)},
+	}
+
+	_assert(t, cases)
+}
+
 func _assert(t *testing.T, cases Cases) {
 	for _, c := range cases {
 		j1, err := json.Marshal(c.got)
