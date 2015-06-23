@@ -32,6 +32,8 @@ func cmdStart(c *cli.Context) {
 	}
 
 	switch {
+	case exists(filepath.Join(base, "docker-compose.yml")):
+		err = start.DockerCompose(base)
 	case exists(filepath.Join(base, "Dockerfile")):
 		err = start.Dockerfile(base)
 	case exists(filepath.Join(base, "Procfile")):
