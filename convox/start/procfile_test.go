@@ -25,20 +25,31 @@ func TestParseProcfile(t *testing.T) {
 }
 
 func TestGenDockerCompose(t *testing.T) {
-	p, _ := parseProcfile([]byte(`web: ruby web.rb`))
-	d, err := genDockerCompose(p)
+	p1, _ := parseProcfile([]byte(`web: ruby web.rb`))
+	d1, _ := genDockerCompose(p1)
 
-	if err != nil {
-		t.Errorf("TestGenDockerCompose err %q", err)
-	}
+	p2, _ := parseProcfile([]byte("web: ruby web.rb\nworker: ruby worker.rb"))
+	d2, _ := genDockerCompose(p2)
 
 	cases := Cases{
-		{d, []byte(`web:
+		{d1, []byte(`web:
   build: .
   command: ruby web.rb
   environment: []
   ports:
   - 5000:3000
+`)},
+		{d2, []byte(`web:
+  build: .
+  command: ruby web.rb
+  environment: []
+  ports:
+  - 5000:3000
+worker:
+  build: .
+  command: ruby worker.rb
+  environment: []
+  ports: []
 `)},
 	}
 
