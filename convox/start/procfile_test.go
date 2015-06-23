@@ -45,6 +45,21 @@ func TestGenDockerCompose(t *testing.T) {
 	_assert(t, cases)
 }
 
+func TestGenDockerfile(t *testing.T) {
+	p, _ := parseProcfile([]byte(`web: ruby web.rb`))
+	f, err := genDockerfile(p)
+
+	if err != nil {
+		t.Errorf("TestGenDockerfile err %q", err)
+	}
+
+	cases := Cases{
+		{f, []byte(`FROM convox/cedar`)},
+	}
+
+	_assert(t, cases)
+}
+
 func _assert(t *testing.T, cases Cases) {
 	for _, c := range cases {
 		j1, err := json.Marshal(c.got)

@@ -116,6 +116,10 @@ func genDockerCompose(procs map[string]string) ([]byte, error) {
 	return yaml.Marshal(manifest)
 }
 
+func genDockerfile(procs map[string]string) ([]byte, error) {
+	return []byte(`FROM convox/cedar`), nil
+}
+
 func parseProcfile(data []byte) (map[string]string, error) {
 	pf := map[string]string{}
 
