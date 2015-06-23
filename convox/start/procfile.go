@@ -7,18 +7,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
-
-	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
-
-type Manifest map[string]ManifestEntry
-
-type ManifestEntry struct {
-	Build       string      `yaml:"build"`
-	Command     interface{} `yaml:"command,omitempty"`
-	Environment []string    `yaml:"environment"`
-	Ports       []string    `yaml:"ports"`
-}
 
 var procfileEntryRegexp = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 
@@ -35,7 +24,7 @@ func Procfile(base string) error {
 		return err
 	}
 
-	data, err = composeFromProcfile(procfile)
+	data, err = ManifestFromProcfile(procfile)
 
 	if err != nil {
 		return err
@@ -66,25 +55,6 @@ func Procfile(base string) error {
 	}
 
 	return nil
-}
-
-func composeFromProcfile(procs map[string]string) ([]byte, error) {
-	manifest := make(Manifest)
-
-	for name, command := range procs {
-		entry := ManifestEntry{
-			Build:   ".",
-			Command: command,
-		}
-
-		if name == "web" {
-			entry.Ports = []string{"5000:3000"}
-		}
-
-		manifest[name] = entry
-	}
-
-	return yaml.Marshal(manifest)
 }
 
 func genDockerfile(procs map[string]string) ([]byte, error) {

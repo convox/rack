@@ -4,12 +4,12 @@ import (
 	"testing"
 )
 
-func TestComposeFromInspect(t *testing.T) {
+func TestManifestFromInspect(t *testing.T) {
 	q1 := []byte(`{"3000/tcp":{}}`)
-	d1, _ := composeFromInspect(q1)
+	d1, _ := ManifestFromInspect(q1)
 
 	q2 := []byte(`{"3000/tcp":{},"3001/tcp":{},"3002/tcp":{},"3003/tcp":{},"3004/tcp":{},"3005/tcp":{}}`)
-	d2, _ := composeFromInspect(q2)
+	d2, _ := ManifestFromInspect(q2)
 
 	cases := Cases{
 		{d1, []byte(`web:
