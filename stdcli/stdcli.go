@@ -53,6 +53,11 @@ func RegisterCommand(cmd cli.Command) {
 	Commands = append(Commands, cmd)
 }
 
+func Error(err error) {
+	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	os.Exit(1)
+}
+
 func Usage(c *cli.Context, name string) {
 	cli.ShowCommandHelp(c, name)
 	os.Exit(0)
