@@ -27,7 +27,7 @@ func Dockerfile(base string) error {
 		return err
 	}
 
-	data, err = genInspectDockerCompose(data)
+	data, err = composeFromInspect(data)
 
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func Dockerfile(base string) error {
 	return nil
 }
 
-func genInspectDockerCompose(data []byte) ([]byte, error) {
+func composeFromInspect(data []byte) ([]byte, error) {
 	var exposed map[string]interface{}
 
 	err := json.Unmarshal(data, &exposed)

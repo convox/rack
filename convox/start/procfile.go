@@ -35,7 +35,7 @@ func Procfile(base string) error {
 		return err
 	}
 
-	data, err = genDockerCompose(procfile)
+	data, err = composeFromProcfile(procfile)
 
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func Procfile(base string) error {
 	return nil
 }
 
-func genDockerCompose(procs map[string]string) ([]byte, error) {
+func composeFromProcfile(procs map[string]string) ([]byte, error) {
 	manifest := make(Manifest)
 
 	for name, command := range procs {

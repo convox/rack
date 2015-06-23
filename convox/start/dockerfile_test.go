@@ -4,12 +4,12 @@ import (
 	"testing"
 )
 
-func TestDockerQuery(t *testing.T) {
+func TestComposeFromInspect(t *testing.T) {
 	q1 := []byte(`{"3000/tcp":{}}`)
-	d1, _ := genInspectDockerCompose(q1)
+	d1, _ := composeFromInspect(q1)
 
 	q2 := []byte(`{"3000/tcp":{},"3001/tcp":{},"3002/tcp":{},"3003/tcp":{},"3004/tcp":{},"3005/tcp":{}}`)
-	d2, _ := genInspectDockerCompose(q2)
+	d2, _ := composeFromInspect(q2)
 
 	cases := Cases{
 		{d1, []byte(`web:

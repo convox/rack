@@ -24,12 +24,12 @@ func TestParseProcfile(t *testing.T) {
 	_assert(t, cases)
 }
 
-func TestGenDockerCompose(t *testing.T) {
+func TestComposeFromProcfile(t *testing.T) {
 	p1, _ := parseProcfile([]byte(`web: ruby web.rb`))
-	d1, _ := genDockerCompose(p1)
+	d1, _ := composeFromProcfile(p1)
 
 	p2, _ := parseProcfile([]byte("web: ruby web.rb\nworker: ruby worker.rb"))
-	d2, _ := genDockerCompose(p2)
+	d2, _ := composeFromProcfile(p2)
 
 	cases := Cases{
 		{d1, []byte(`web:
