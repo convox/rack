@@ -15,7 +15,7 @@ type Manifest map[string]ManifestEntry
 
 type ManifestEntry struct {
 	Build       string      `yaml:"build"`
-	Command     interface{} `yaml:"command"`
+	Command     interface{} `yaml:"command,omitempty"`
 	Environment []string    `yaml:"environment"`
 	Ports       []string    `yaml:"ports"`
 }
