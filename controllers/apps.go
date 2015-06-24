@@ -60,7 +60,12 @@ func AppList(rw http.ResponseWriter, r *http.Request) {
 		"Apps": apps,
 	}
 
-	RenderTemplate(rw, "apps", params)
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		RenderJson(rw, apps)
+	default:
+		RenderTemplate(rw, "apps", params)
+	}
 }
 
 func AppShow(rw http.ResponseWriter, r *http.Request) {

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -145,6 +146,18 @@ func RenderError(rw http.ResponseWriter, err error) error {
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 	}
+
+	return err
+}
+
+func RenderJson(rw http.ResponseWriter, object interface{}) error {
+	data, err := json.Marshal(object)
+
+	if err != nil {
+		return RenderError(rw, err)
+	}
+
+	_, err = rw.Write(data)
 
 	return err
 }
