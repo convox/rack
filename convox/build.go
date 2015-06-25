@@ -34,6 +34,7 @@ func cmdBuild(c *cli.Context) {
 
 	switch {
 	case exists(filepath.Join(base, "docker-compose.yml")):
+		fmt.Printf("Docker Compose app detected.\n")
 		err = build.DockerCompose(base)
 	case exists(filepath.Join(base, "Dockerfile")):
 		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")

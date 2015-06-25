@@ -52,11 +52,5 @@ func Default(base string) error {
 		return err
 	}
 
-	err = run("docker-compose", "up")
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
