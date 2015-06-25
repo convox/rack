@@ -5,3 +5,6 @@ build:
 
 vendor:
 	godep save -r ./...
+
+test:
+	go test -v ./...
