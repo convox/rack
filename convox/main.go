@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/convox/cli/stdcli"
 )
@@ -16,30 +18,20 @@ func main() {
 	app.Run(os.Args)
 }
 
-func convoxRequest(method, path string) ([]byte, error) {
-	host, password, err := currentLogin()
+func ConvoxGet(path string) ([]byte, error) {
+	client := convoxClient()
+
+	req, err := convoxRequest("GET", path, nil)
 
 	if err != nil {
+		stdcli.Error(err)
 		return nil, err
 	}
-
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s%s", host, path), nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.SetBasicAuth("convox", string(password))
 
 	res, err := client.Do(req)
 
 	if err != nil {
+		stdcli.Error(err)
 		return nil, err
 	}
 
@@ -48,8 +40,97 @@ func convoxRequest(method, path string) ([]byte, error) {
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
+		stdcli.Error(err)
 		return nil, err
 	}
 
 	return data, nil
+}
+
+func ConvoxPost(path string, body string) ([]byte, error) {
+	client := convoxClient()
+
+	req, err := convoxRequest("POST", path, strings.NewReader(body))
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	data, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func ConvoxDelete(path string) ([]byte, error) {
+	client := convoxClient()
+
+	req, err := convoxRequest("DELETE", path, nil)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	data, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func convoxClient() *http.Client {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	return client
+}
+
+func convoxRequest(method, path string, body io.Reader) (*http.Request, error) {
+	host, password, err := currentLogin()
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, fmt.Sprintf("https://%s%s", host, path), body)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	req.SetBasicAuth("convox", string(password))
+
+	return req, nil
 }

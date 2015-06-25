@@ -35,10 +35,8 @@ func init() {
 }
 
 func cmdEnvGet(c *cli.Context) {
-	variable := c.Args()[0]
-
 	appName := dir()
-	path := fmt.Sprintf("apps/%s/environment", appName)
+	path := fmt.Sprintf("/apps/%s/environment", appName)
 
 	resp, err := ConvoxGet(path)
 
@@ -47,7 +45,7 @@ func cmdEnvGet(c *cli.Context) {
 		return
 	}
 
-	fmt.Println(resp)
+	fmt.Println(string(resp[:]))
 }
 
 func cmdEnvSet(c *cli.Context) {
@@ -59,7 +57,7 @@ func cmdEnvSet(c *cli.Context) {
 
 	appName := dir()
 
-	path := fmt.Sprintf("apps/%s/environment", appName)
+	path := fmt.Sprintf("/apps/%s/environment", appName)
 
 	resp, err := ConvoxPost(path, data)
 
@@ -68,7 +66,7 @@ func cmdEnvSet(c *cli.Context) {
 		return
 	}
 
-	fmt.Println(resp)
+	fmt.Println(string(resp[:]))
 }
 
 func cmdEnvUnset(c *cli.Context) {
@@ -76,7 +74,7 @@ func cmdEnvUnset(c *cli.Context) {
 
 	appName := dir()
 
-	path := fmt.Sprintf("apps/%s/environment/%s", appName, variable)
+	path := fmt.Sprintf("/apps/%s/environment/%s", appName, variable)
 
 	resp, err := ConvoxDelete(path)
 
@@ -85,7 +83,7 @@ func cmdEnvUnset(c *cli.Context) {
 		return
 	}
 
-	fmt.Println(resp)
+	fmt.Println(string(resp[:]))
 }
 
 func dir() string {
