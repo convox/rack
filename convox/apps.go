@@ -45,9 +45,7 @@ func cmdApps(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("Apps:")
-
 	for _, app := range *apps {
-		fmt.Printf("  %s\n", app.Name)
+		fmt.Printf("%s\n", app.Name)
 	}
 }

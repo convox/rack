@@ -22,8 +22,7 @@ func TestApps(t *testing.T) {
 	_, _ = appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
 	stdout, stderr := appRun([]string{"convox", "apps"})
 
-	expect(t, stdout, `Apps:
-  sinatra
+	expect(t, stdout, `sinatra
 `)
 	expect(t, stderr, "")
 }
