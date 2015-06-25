@@ -6,20 +6,20 @@ import (
 	"path/filepath"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/cli/convox/start"
+	"github.com/convox/cli/convox/build"
 	"github.com/convox/cli/stdcli"
 )
 
 func init() {
 	stdcli.RegisterCommand(cli.Command{
-		Name:        "start",
-		Description: "start an app for local development",
+		Name:        "build",
+		Description: "build an app for local development",
 		Usage:       "<directory>",
-		Action:      cmdStart,
+		Action:      cmdBuild,
 	})
 }
 
-func cmdStart(c *cli.Context) {
+func cmdBuild(c *cli.Context) {
 	base := "."
 
 	if len(c.Args()) > 0 {
@@ -34,16 +34,16 @@ func cmdStart(c *cli.Context) {
 
 	switch {
 	case exists(filepath.Join(base, "docker-compose.yml")):
-		err = start.DockerCompose(base)
+		err = build.DockerCompose(base)
 	case exists(filepath.Join(base, "Dockerfile")):
 		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
-		err = start.Dockerfile(base)
+		err = build.Dockerfile(base)
 	case exists(filepath.Join(base, "Procfile")):
 		fmt.Printf("Procfile app detected. Writing Dockerfile and docker-compose.yml.\n")
-		err = start.Procfile(base)
+		err = build.Procfile(base)
 	default:
 		fmt.Printf("Nothing detected. Writing Procfile, Dockerfile and docker-compose.yml.\n")
-		err = start.Default(base)
+		err = build.Default(base)
 	}
 
 	if err != nil {

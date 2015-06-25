@@ -1,4 +1,4 @@
-package start
+package build
 
 import (
 	"encoding/json"

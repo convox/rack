@@ -1,4 +1,4 @@
-package start
+package build
 
 func DockerCompose(base string) error {
 	err := run("docker-compose", "up")
