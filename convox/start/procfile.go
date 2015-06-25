@@ -3,67 +3,16 @@ package start
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 )
 
 var procfileEntryRegexp = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 
 func Procfile(base string) error {
-	app := filepath.Base(base)
-	image := fmt.Sprintf("%s-app", app)
-
-	dockerfile := filepath.Join(base, "Dockerfile")
-
-	err := ioutil.WriteFile(dockerfile, []byte("FROM convox/cedar"), 0644)
-
-	if err != nil {
-		return err
-	}
-
-	err = run("docker", "build", "-f", dockerfile, "-t", image, base)
-
-	if err != nil {
-		return err
-	}
-
-	err = os.Remove(dockerfile)
-
-	if err != nil {
-		return err
-	}
-
-	data, err := query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", image)
-
-	if err != nil {
-		return err
-	}
-
-	var ports map[string]interface{}
-
-	err = json.Unmarshal(data, &ports)
-
-	if err != nil {
-		return err
-	}
-
-	args := []string{"run"}
-	cur := 5000
-
-	for port, _ := range ports {
-		args = append(args, "-p")
-		args = append(args, fmt.Sprintf("%d:%s", cur, strings.Split(port, "/")[0]))
-		cur += 1
-	}
-
-	args = append(args, image)
-
-	data, err = ioutil.ReadFile(filepath.Join(base, "Procfile"))
+	data, err := ioutil.ReadFile(filepath.Join(base, "Procfile"))
 
 	if err != nil {
 		return err
@@ -75,15 +24,41 @@ func Procfile(base string) error {
 		return err
 	}
 
-	args = append(args, procfile["web"])
+	data, err = ManifestFromProcfile(procfile)
 
-	err = run("docker", args...)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(base, "docker-compose.yml"), data, 0644)
+
+	if err != nil {
+		return err
+	}
+
+	data, err = genDockerfile(procfile)
+
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(base, "Dockerfile"), data, 0644)
+
+	if err != nil {
+		return err
+	}
+
+	err = run("docker-compose", "up")
 
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func genDockerfile(procs map[string]string) ([]byte, error) {
+	return []byte(`FROM convox/cedar`), nil
 }
 
 func parseProcfile(data []byte) (map[string]string, error) {

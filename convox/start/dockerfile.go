@@ -1,10 +1,9 @@
 package start
 
 import (
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
-	"strings"
 )
 
 func Dockerfile(base string) error {
@@ -23,26 +22,19 @@ func Dockerfile(base string) error {
 		return err
 	}
 
-	var ports map[string]interface{}
-
-	err = json.Unmarshal(data, &ports)
+	data, err = ManifestFromInspect(data)
 
 	if err != nil {
 		return err
 	}
 
-	args := []string{"run"}
-	cur := 5000
+	err = ioutil.WriteFile(filepath.Join(base, "docker-compose.yml"), data, 0644)
 
-	for port, _ := range ports {
-		args = append(args, "-p")
-		args = append(args, fmt.Sprintf("%d:%s", cur, strings.Split(port, "/")[0]))
-		cur += 100
+	if err != nil {
+		return err
 	}
 
-	args = append(args, image)
-
-	err = run("docker", args...)
+	err = run("docker-compose", "up")
 
 	if err != nil {
 		return err
