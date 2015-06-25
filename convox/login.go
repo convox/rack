@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -36,6 +37,16 @@ func cmdLogin(c *cli.Context) {
 	}
 
 	host := c.Args()[0]
+	u, err := url.Parse(host)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if u.Host != "" {
+		host = u.Host
+	}
 
 	password := c.String("password")
 
@@ -60,7 +71,7 @@ func cmdLogin(c *cli.Context) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/apps", host), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/apps", host), nil)
 
 	if err != nil {
 		stdcli.Error(err)
