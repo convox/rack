@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -20,6 +21,12 @@ func init() {
 		Description: "login to your convox installation",
 		Usage:       "<host>",
 		Action:      cmdLogin,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "password",
+				Usage: "password to use for authentication. If not specified, prompt for password.",
+			},
+		},
 	})
 }
 
@@ -30,14 +37,21 @@ func cmdLogin(c *cli.Context) {
 
 	host := c.Args()[0]
 
-	fmt.Print("Password: ")
+	password := c.String("password")
 
-	password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	if password == "" {
+		fmt.Print("Password: ")
 
-	fmt.Println()
+		in, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 
-	if err != nil {
-		stdcli.Error(err)
+		fmt.Println()
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		password = string(in)
 	}
 
 	client := &http.Client{
@@ -46,10 +60,11 @@ func cmdLogin(c *cli.Context) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/apps", host), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/apps", host), nil)
 
 	if err != nil {
 		stdcli.Error(err)
+		return
 	}
 
 	req.SetBasicAuth("convox", string(password))
@@ -58,21 +73,66 @@ func cmdLogin(c *cli.Context) {
 
 	if err != nil {
 		stdcli.Error(err)
+		return
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
 		stdcli.Error(fmt.Errorf("invalid login"))
+		return
 	}
 
-	u, err := user.Current()
-
-	err = ioutil.WriteFile(filepath.Join(u.HomeDir, ".convox"), []byte(fmt.Sprintf("%s\n%s\n", host, password)), 0600)
+	config, err := configFile()
 
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+
+	err = ioutil.WriteFile(config, []byte(fmt.Sprintf("%s\n%s\n", host, password)), 0600)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	fmt.Println("Login Succeeded")
+}
+
+func configFile() (string, error) {
+	u, err := user.Current()
+
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(u.HomeDir, ".convox"), nil
+}
+
+func currentLogin() (string, string, error) {
+	config, err := configFile()
+
+	if err != nil {
+		return "", "", err
+	}
+
+	if !exists(config) {
+		stdcli.Error(fmt.Errorf("must login first"))
+		return "", "", err
+	}
+
+	data, err := ioutil.ReadFile(config)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	parts := strings.Split(string(data), "\n")
+
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("invalid config")
+	}
+
+	return parts[0], parts[1], nil
 }

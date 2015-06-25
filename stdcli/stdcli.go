@@ -11,10 +11,12 @@ import (
 var (
 	Binary   string
 	Commands []cli.Command
+	Exiter   func(code int)
 )
 
 func init() {
 	Binary = filepath.Base(os.Args[0])
+	Exiter = os.Exit
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
@@ -55,10 +57,10 @@ func RegisterCommand(cmd cli.Command) {
 
 func Error(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	os.Exit(1)
+	Exiter(1)
 }
 
 func Usage(c *cli.Context, name string) {
 	cli.ShowCommandHelp(c, name)
-	os.Exit(0)
+	Exiter(0)
 }
