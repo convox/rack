@@ -1,11 +1,11 @@
 package main
 
 import (
-	// "os"
-	// "path/filepath"
+	"fmt"
+	"os"
+	"path"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	//"github.com/convox/cli/convox/start"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -16,20 +16,84 @@ func init() {
 		Usage:       "set|change|delete",
 		Subcommands: []cli.Command{
 			{
+				Name:   "get",
+				Usage:  "",
+				Action: cmdEnvGet,
+			},
+			{
 				Name:   "set",
 				Usage:  "VARIABLE=VALUE",
-				Action: nil,
+				Action: cmdEnvSet,
 			},
 			{
-				Name:   "change",
-				Usage:  "VARIABLE=VALUE",
-				Action: nil,
-			},
-			{
-				Name:   "delete",
+				Name:   "unset",
 				Usage:  "VARIABLE",
-				Action: nil,
+				Action: cmdEnvUnset,
 			},
 		},
 	})
+}
+
+func cmdEnvGet(c *cli.Context) {
+	variable := c.Args()[0]
+
+	appName := dir()
+	path := fmt.Sprintf("apps/%s/environment", appName)
+
+	resp, err := convoxGet(path)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println(resp)
+}
+
+func cmdEnvSet(c *cli.Context) {
+	data := ""
+
+	for _, value := range c.Args() {
+		data += fmt.Sprintf("%s\n", value)
+	}
+
+	appName := dir()
+
+	path := fmt.Sprintf("apps/%s/environment", appName)
+
+	resp, err := convoxPost(path, data)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println(resp)
+}
+
+func cmdEnvUnset(c *cli.Context) {
+	variable := c.Args()[0]
+
+	appName := dir()
+
+	path := fmt.Sprintf("apps/%s/environment/%s", appName, variable)
+
+	resp, err := convoxDelete(path)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println(resp)
+}
+
+func dir() string {
+	wd, err := os.Getwd()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return path.Base(wd)
 }
