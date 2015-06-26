@@ -30,7 +30,7 @@ func TestApps(t *testing.T) {
 func TestAppsCreate(t *testing.T) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app := App{
-			Name: "foobar",
+			Name: r.FormValue("name"),
 		}
 
 		data, _ := json.Marshal(app)

@@ -92,6 +92,7 @@ func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
 	client := convoxClient()
 
 	req, err := convoxRequest("POST", path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	if err != nil {
 		stdcli.Error(err)
