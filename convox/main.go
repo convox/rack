@@ -131,6 +131,7 @@ func convoxRequest(method, path string, body io.Reader) (*http.Request, error) {
 	}
 
 	req.SetBasicAuth("convox", string(password))
+	req.Header.Add("Content-Type", "application/json; charset=UTF-8")
 
 	return req, nil
 }
