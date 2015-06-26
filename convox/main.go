@@ -95,14 +95,12 @@ func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	if err != nil {
-		stdcli.Error(err)
 		return nil, err
 	}
 
 	res, err := client.Do(req)
 
 	if err != nil {
-		stdcli.Error(err)
 		return nil, err
 	}
 
@@ -111,8 +109,11 @@ func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		stdcli.Error(err)
 		return nil, err
+	}
+
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf(strings.TrimSpace(string(data)))
 	}
 
 	return data, nil

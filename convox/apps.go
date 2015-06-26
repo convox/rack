@@ -89,5 +89,10 @@ func cmdAppCreate(c *cli.Context) {
 	var app *App
 	err = json.Unmarshal(data, &app)
 
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
 	fmt.Printf("Created %s.\n", app.Name)
 }

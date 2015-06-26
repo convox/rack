@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"reflect"
 	"testing"
@@ -53,6 +55,12 @@ func appRun(args []string) (string, string) {
 	out := <-outC
 
 	return out, err
+}
+
+func setLoginEnv(ts *httptest.Server) {
+	u, _ := url.Parse(ts.URL)
+	os.Setenv("CONSOLE_HOST", u.Host)
+	os.Setenv("REGISTRY_PASSWORD", "foo")
 }
 
 func expect(t *testing.T, a interface{}, b interface{}) {

@@ -122,6 +122,10 @@ func configFile() (string, error) {
 }
 
 func currentLogin() (string, string, error) {
+	if os.Getenv("CONSOLE_HOST") != "" && os.Getenv("REGISTRY_PASSWORD") != "" {
+		return os.Getenv("CONSOLE_HOST"), os.Getenv("REGISTRY_PASSWORD"), nil
+	}
+
 	config, err := configFile()
 
 	if err != nil {
