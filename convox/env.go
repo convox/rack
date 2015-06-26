@@ -13,11 +13,12 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "env",
 		Description: "manage an app's environment variables",
-		Usage:       "set|change|delete",
+		Usage:       "get|set|unset",
+		Action:      cmdEnvGet,
 		Subcommands: []cli.Command{
 			{
 				Name:   "get",
-				Usage:  "",
+				Usage:  "VARIABLE",
 				Action: cmdEnvGet,
 			},
 			{
