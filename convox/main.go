@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -62,6 +63,35 @@ func ConvoxPost(path string, body string) ([]byte, error) {
 	client := convoxClient()
 
 	req, err := convoxRequest("POST", path, strings.NewReader(body))
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	data, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
+	client := convoxClient()
+
+	req, err := convoxRequest("POST", path, strings.NewReader(form.Encode()))
 
 	if err != nil {
 		stdcli.Error(err)

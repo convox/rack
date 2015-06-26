@@ -26,3 +26,21 @@ func TestApps(t *testing.T) {
 `)
 	expect(t, stderr, "")
 }
+
+func TestAppsCreate(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		app := App{
+			Name: "foobar",
+		}
+
+		data, _ := json.Marshal(app)
+		_, _ = w.Write(data)
+	}))
+	defer ts.Close()
+
+	_, _ = appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
+	stdout, stderr := appRun([]string{"convox", "apps", "create", "--name", "foobar"})
+
+	expect(t, stdout, "Created foobar.\n")
+	expect(t, stderr, "")
+}

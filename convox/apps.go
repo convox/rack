@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -24,8 +25,27 @@ type Apps []App
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "apps",
-		Description: "list apps",
 		Action:      cmdApps,
+		Description: "list apps",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "name",
+				Usage: "app name. If not specified, use current directory.",
+			},
+		},
+		Subcommands: []cli.Command{
+			{
+				Name:   "create",
+				Usage:  "",
+				Action: cmdAppCreate,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "name",
+						Usage: "app name. If not specified, use current directory.",
+					},
+				},
+			},
+		},
 	})
 }
 
@@ -48,4 +68,26 @@ func cmdApps(c *cli.Context) {
 	for _, app := range *apps {
 		fmt.Printf("%s\n", app.Name)
 	}
+}
+
+func cmdAppCreate(c *cli.Context) {
+	name := c.String("name")
+
+	if name == "" {
+		name = DirAppName()
+	}
+
+	v := url.Values{}
+	v.Set("name", name)
+	data, err := ConvoxPostForm("/apps", v)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	var app *App
+	err = json.Unmarshal(data, &app)
+
+	fmt.Printf("Created %s.\n", app.Name)
 }
