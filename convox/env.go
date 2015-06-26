@@ -37,16 +37,8 @@ func init() {
 
 func cmdEnvGet(c *cli.Context) {
 	appName := dir()
-	path := fmt.Sprintf("/apps/%s/environment", appName)
 
-	resp, err := ConvoxGet(path)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Println(string(resp[:]))
+	fmt.Println(fetchEnv(appName))
 }
 
 func cmdEnvSet(c *cli.Context) {
@@ -95,4 +87,18 @@ func dir() string {
 	}
 
 	return path.Base(wd)
+}
+
+func fetchEnv(app string) string {
+	appName := dir()
+	path := fmt.Sprintf("/apps/%s/environment", appName)
+
+	resp, err := ConvoxGet(path)
+
+	if err != nil {
+		stdcli.Error(err)
+		return fmt.Sprintln(err)
+	}
+
+	return fmt.Sprint(string(resp[:]))
 }
