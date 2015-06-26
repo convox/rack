@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"reflect"
@@ -55,7 +56,10 @@ func appRun(args []string) (string, string) {
 }
 
 func expect(t *testing.T, a interface{}, b interface{}) {
-	if a != b {
+	aj, _ := json.Marshal(a)
+	bj, _ := json.Marshal(b)
+
+	if !bytes.Equal(aj, bj) {
 		t.Errorf("Expected %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
 	}
 }

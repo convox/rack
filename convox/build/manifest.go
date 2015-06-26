@@ -12,10 +12,39 @@ import (
 type Manifest map[string]ManifestEntry
 
 type ManifestEntry struct {
-	Build       string      `yaml:"build"`
+	Build       string      `yaml:"build,omitempty"`
+	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
 	Environment []string    `yaml:"environment"`
 	Ports       []string    `yaml:"ports"`
+}
+
+func (m Manifest) ImageNames(project string) []string {
+	keys := make([]string, 0, len(m))
+
+	for key := range m {
+		e := m[key]
+
+		if e.Image != "" {
+			keys = append(keys, e.Image)
+		} else {
+			keys = append(keys, fmt.Sprintf("%s_%s", project, key))
+		}
+	}
+
+	sort.Strings(keys)
+	return keys
+}
+
+func (m Manifest) TagNames(registry string, project string, tag string) []string {
+	images := m.ImageNames(project)
+	tags := make([]string, 0, len(images))
+
+	for i := range images {
+		tags = append(tags, fmt.Sprintf("%s/%s:%s", registry, images[i], tag))
+	}
+
+	return tags
 }
 
 func ManifestFromInspect(data []byte) ([]byte, error) {
@@ -76,4 +105,10 @@ func ManifestFromProcfile(procs map[string]string) ([]byte, error) {
 	}
 
 	return yaml.Marshal(manifest)
+}
+
+func ManifestFromBytes(b []byte) (Manifest, error) {
+	m := make(Manifest)
+	err := yaml.Unmarshal(b, &m)
+	return m, err
 }
