@@ -307,7 +307,12 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 		"Environment": env,
 	}
 
-	RenderPartial(rw, "app", "environment", params)
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		RenderJson(rw, params["Environment"])
+	default:
+		RenderPartial(rw, "app", "environment", params)
+	}
 }
 
 func AppDebug(rw http.ResponseWriter, r *http.Request) {
