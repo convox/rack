@@ -35,7 +35,7 @@ redis:
 }
 
 func TestDeploy(t *testing.T) {
-	statuses := []string{"404", "complete", "running"}
+	statuses := []string{"running", "running"}
 
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -47,15 +47,13 @@ func TestDeploy(t *testing.T) {
 			data, _ := json.Marshal(app)
 			_, _ = w.Write(data)
 
+		case "/apps/dockercompose":
+			http.Error(w, "not found", 404)
+
 		case "/apps/dockercompose/status":
 			s := statuses[0]
 			statuses = append(statuses[:0], statuses[1:]...)
-
-			if s == "404" {
-				http.Error(w, "not found", 404)
-			} else {
-				_, _ = w.Write([]byte(s))
-			}
+			_, _ = w.Write([]byte(s))
 
 		case "/apps/dockercompose/releases":
 			_, _ = w.Write([]byte("ok"))
@@ -73,7 +71,7 @@ func TestDeploy(t *testing.T) {
 	expect(t, stdout, `Docker Compose app detected.
 tag httpd 127.0.0.1:5000/httpd:123
 Created app dockercompose
-Status complete
+Status running
 Created release 123
 Status running
 `)

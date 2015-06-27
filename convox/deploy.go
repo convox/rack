@@ -81,7 +81,7 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	// create app if it doesn't exist
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/status", proj))
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", proj))
 
 	if err != nil {
 		v := url.Values{}
@@ -104,7 +104,7 @@ func cmdDeploy(c *cli.Context) {
 				return
 			}
 
-			if string(data) == "complete" {
+			if string(data) == "running" {
 				fmt.Printf("Status %s\n", data)
 				break
 			}
