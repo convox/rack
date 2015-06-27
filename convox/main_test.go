@@ -18,6 +18,7 @@ func appRun(args []string) (string, string) {
 	stdcli.Exiter = func(code int) {}
 	stdcli.Runner = func(bin string, args ...string) error { return nil }
 	stdcli.Querier = func(bin string, args ...string) ([]byte, error) { return []byte{}, nil }
+	stdcli.Tagger = func() string { return "1435444444" }
 
 	// Capture stdout and stderr to strings via Pipes
 	oldErr := os.Stderr

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 )
@@ -15,6 +16,7 @@ var (
 	Exiter   func(code int)
 	Runner   func(bin string, args ...string) error
 	Querier  func(bin string, args ...string) ([]byte, error)
+	Tagger   func() string
 )
 
 func init() {
@@ -22,6 +24,7 @@ func init() {
 	Exiter = os.Exit
 	Querier = queryExecCommand
 	Runner = runExecCommand
+	Tagger = tagTimeUnix
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
@@ -68,6 +71,10 @@ func Query(bin string, args ...string) ([]byte, error) {
 	return Querier(bin, args...)
 }
 
+func Tag() string {
+	return Tagger()
+}
+
 func Error(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	Exiter(1)
@@ -87,4 +94,8 @@ func runExecCommand(bin string, args ...string) error {
 
 func queryExecCommand(bin string, args ...string) ([]byte, error) {
 	return exec.Command(bin, args...).CombinedOutput()
+}
+
+func tagTimeUnix() string {
+	return fmt.Sprintf("%v", time.Now().Unix())
 }

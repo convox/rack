@@ -60,7 +60,7 @@ func cmdDeploy(c *cli.Context) {
 
 	proj := strings.Replace(filepath.Base(base), "-", "", -1)
 	images := m.ImageNames(proj)
-	tag := "123"
+	tag := fmt.Sprintf("%v", stdcli.Tagger())
 	tags := m.TagNames(host, proj, tag)
 
 	for i := 0; i < len(images); i++ {

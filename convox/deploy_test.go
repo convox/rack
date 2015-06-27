@@ -69,10 +69,10 @@ func TestDeploy(t *testing.T) {
 	stdout, stderr := appRun([]string{"convox", "deploy", project})
 
 	expect(t, stdout, `Docker Compose app detected.
-tag httpd 127.0.0.1:5000/httpd:123
+tag httpd 127.0.0.1:5000/httpd:1435444444
 Created app dockercompose
 Status running
-Created release 123
+Created release 1435444444
 Status running
 `)
 	expect(t, stderr, "")
