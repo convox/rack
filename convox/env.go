@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -42,13 +43,20 @@ func cmdEnvGet(c *cli.Context) {
 }
 
 func cmdEnvSet(c *cli.Context) {
+	appName := dir()
+
+	var old map[string]string
+	json.Unmarshal(fetchEnv(appName), &old)
+
 	data := ""
+
+	for key, value := range old {
+		data += fmt.Sprintf("%s=%s\n", key, value)
+	}
 
 	for _, value := range c.Args() {
 		data += fmt.Sprintf("%s\n", value)
 	}
-
-	appName := dir()
 
 	path := fmt.Sprintf("/apps/%s/environment", appName)
 
@@ -89,16 +97,15 @@ func dir() string {
 	return path.Base(wd)
 }
 
-func fetchEnv(app string) string {
+func fetchEnv(app string) []byte {
 	appName := dir()
 	path := fmt.Sprintf("/apps/%s/environment", appName)
 
 	resp, err := ConvoxGet(path)
 
 	if err != nil {
-		stdcli.Error(err)
-		return fmt.Sprintln(err)
+		panic(err)
 	}
 
-	return fmt.Sprint(string(resp[:]))
+	return resp
 }
