@@ -15,7 +15,7 @@ func init() {
 		Name:        "env",
 		Description: "manage an app's environment variables",
 		Usage:       "get|set|unset",
-		Action:      cmdEnvGet,
+		Action:      cmdEnvGetAll,
 		Subcommands: []cli.Command{
 			{
 				Name:   "get",
@@ -36,11 +36,22 @@ func init() {
 	})
 }
 
-func cmdEnvGet(c *cli.Context) {
+func cmdEnvGetAll(c *cli.Context) {
 	appName := dir()
 
-	fmt.Println(fetchEnv(appName))
+	var env map[string]string
+	json.Unmarshal(fetchEnv(appName), &env)
+
+	output := ""
+
+	for key, value := range env {
+		output += fmt.Sprintf("%s=%s\n", key, value)
+	}
+
+	fmt.Print(output)
 }
+
+func cmdEnvGet(c *cli.Context) {}
 
 func cmdEnvSet(c *cli.Context) {
 	appName := dir()
