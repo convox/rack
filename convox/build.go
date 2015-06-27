@@ -10,6 +10,41 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+func Build(dir string) error {
+	dir, err := filepath.Abs(dir)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.Chdir(dir)
+
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case exists(filepath.Join(dir, "docker-compose.yml")):
+		fmt.Printf("Docker Compose app detected.\n")
+		err = build.DockerCompose(dir)
+	case exists(filepath.Join(dir, "Dockerfile")):
+		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
+		err = build.Dockerfile(dir)
+	case exists(filepath.Join(dir, "Procfile")):
+		fmt.Printf("Procfile app detected. Writing Dockerfile and docker-compose.yml.\n")
+		err = build.Procfile(dir)
+	default:
+		fmt.Printf("Nothing detected. Writing Procfile, Dockerfile and docker-compose.yml.\n")
+		err = build.Default(dir)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "build",
@@ -26,30 +61,13 @@ func cmdBuild(c *cli.Context) {
 		base = c.Args()[0]
 	}
 
-	base, err := filepath.Abs(base)
+	err := Build(base)
 
 	if err != nil {
-		panic(err)
+		stdcli.Error(err)
+		return
 	}
 
-	switch {
-	case exists(filepath.Join(base, "docker-compose.yml")):
-		fmt.Printf("Docker Compose app detected.\n")
-		err = build.DockerCompose(base)
-	case exists(filepath.Join(base, "Dockerfile")):
-		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
-		err = build.Dockerfile(base)
-	case exists(filepath.Join(base, "Procfile")):
-		fmt.Printf("Procfile app detected. Writing Dockerfile and docker-compose.yml.\n")
-		err = build.Procfile(base)
-	default:
-		fmt.Printf("Nothing detected. Writing Procfile, Dockerfile and docker-compose.yml.\n")
-		err = build.Default(base)
-	}
-
-	if err != nil {
-		panic(err)
-	}
 }
 
 func exists(filename string) bool {
