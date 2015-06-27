@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -36,22 +36,32 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	proj := strings.Replace(filepath.Base(base), "-", "", -1)
+	Build(base)
 
-	cmdBuild(c)
-
-	dat, err := ioutil.ReadFile(filepath.Join(base, "docker-compose.yml"))
+	m, err := build.ManifestFromPath(filepath.Join(base, "docker-compose.yml"))
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	m, _ := build.ManifestFromBytes(dat)
+	host, _, err := currentLogin()
 
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	host = strings.Split(host, ":")[0] + ":5000"
+
+	if os.Getenv("REGISTRY_HOST") != "" {
+		host = os.Getenv("REGISTRY_HOST")
+	}
+
+	proj := strings.Replace(filepath.Base(base), "-", "", -1)
 	images := m.ImageNames(proj)
 	tag := "123"
-	tags := m.TagNames("convox-charlie-935967921.us-east-1.elb.amazonaws.com:5000", proj, tag)
+	tags := m.TagNames(host, proj, tag)
 
 	for i := 0; i < len(images); i++ {
 		fmt.Printf("tag %s %s\n", images[i], tags[i])
