@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
 	"github.com/convox/cli/convox/build"
@@ -28,4 +32,41 @@ redis:
 		m.TagNames("private.registry.com:5000", "myproj", "123"),
 		[]string{"private.registry.com:5000/convox/redis:123", "private.registry.com:5000/myproj_web:123", "private.registry.com:5000/myproj_worker:123"},
 	)
+}
+
+func TestDeploy(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/apps":
+			app := App{
+				Name: r.FormValue("name"),
+			}
+
+			data, _ := json.Marshal(app)
+			_, _ = w.Write(data)
+
+		case "/apps/dockercompose/status":
+			_, _ = w.Write([]byte("complete"))
+
+		case "/apps/dockercompose/releases":
+			_, _ = w.Write([]byte("ok"))
+		}
+	}))
+	defer ts.Close()
+
+	setLoginEnv(ts)
+
+	base, _ := filepath.Abs(".")
+	project := filepath.Join(base, "..", "examples", "docker-compose")
+
+	stdout, stderr := appRun([]string{"convox", "deploy", project})
+
+	expect(t, stdout, `Docker Compose app detected.
+tag httpd convox-charlie-935967921.us-east-1.elb.amazonaws.com:5000/httpd:123
+Created app dockercompose
+Status complete
+Created release 123
+Status complete
+`)
+	expect(t, stderr, "")
 }

@@ -47,6 +47,11 @@ func (m Manifest) TagNames(registry string, project string, tag string) []string
 	return tags
 }
 
+func (m Manifest) String() string {
+	b, _ := yaml.Marshal(m)
+	return string(b)
+}
+
 func ManifestFromInspect(data []byte) ([]byte, error) {
 	var exposed map[string]interface{}
 

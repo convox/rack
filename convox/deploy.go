@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/convox/build"
@@ -48,7 +50,8 @@ func cmdDeploy(c *cli.Context) {
 	m, _ := build.ManifestFromBytes(dat)
 
 	images := m.ImageNames(proj)
-	tags := m.TagNames("convox-charlie-935967921.us-east-1.elb.amazonaws.com:5000", proj, "123")
+	tag := "123"
+	tags := m.TagNames("convox-charlie-935967921.us-east-1.elb.amazonaws.com:5000", proj, tag)
 
 	for i := 0; i < len(images); i++ {
 		fmt.Printf("tag %s %s\n", images[i], tags[i])
@@ -65,5 +68,64 @@ func cmdDeploy(c *cli.Context) {
 			stdcli.Error(err)
 			return
 		}
+	}
+
+	// create app
+	v := url.Values{}
+	v.Set("name", proj)
+	data, err := ConvoxPostForm("/apps", v)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Created app %s\n", proj)
+
+	// poll for complete
+	for {
+		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", proj))
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		if string(data) == "complete" {
+			fmt.Printf("Status %s\n", data)
+			break
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+	}
+
+	// create release
+	v = url.Values{}
+	v.Set("manifest", m.String())
+	v.Set("tag", tag)
+	data, err = ConvoxPostForm(fmt.Sprintf("/apps/%s/releases", proj), v)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Created release %s\n", tag)
+
+	// poll for complete
+	for {
+		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", proj))
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		if string(data) == "complete" {
+			fmt.Printf("Status %s\n", data)
+			break
+		}
+
+		time.Sleep(1000 * time.Millisecond)
 	}
 }
