@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -33,16 +31,9 @@ func cmdStart(c *cli.Context) {
 
 	cmdBuild(c)
 
-	err = run("docker-compose", "up")
+	err = stdcli.Run("docker-compose", "up")
 
 	if err != nil {
 		panic(err)
 	}
-}
-
-func run(bin string, args ...string) error {
-	cmd := exec.Command(bin, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }

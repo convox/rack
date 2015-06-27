@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/convox/cli/stdcli"
 )
 
 func Dockerfile(base string) error {
 	app := filepath.Base(base)
 	image := fmt.Sprintf("%s-app", app)
 
-	err := run("docker", "build", "-t", image, base)
+	err := stdcli.Run("docker", "build", "-t", image, base)
 
 	if err != nil {
 		return err
 	}
 
-	data, err := query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", image)
+	data, err := stdcli.Query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", image)
 
 	if err != nil {
 		return err

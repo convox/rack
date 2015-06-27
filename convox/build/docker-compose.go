@@ -1,7 +1,11 @@
 package build
 
+import (
+	"github.com/convox/cli/stdcli"
+)
+
 func DockerCompose(base string) error {
-	err := run("docker-compose", "build")
+	err := stdcli.Run("docker-compose", "build")
 
 	if err != nil {
 		return err

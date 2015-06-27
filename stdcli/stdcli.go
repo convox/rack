@@ -3,6 +3,7 @@ package stdcli
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -12,11 +13,15 @@ var (
 	Binary   string
 	Commands []cli.Command
 	Exiter   func(code int)
+	Runner   func(bin string, args ...string) error
+	Querier  func(bin string, args ...string) ([]byte, error)
 )
 
 func init() {
 	Binary = filepath.Base(os.Args[0])
 	Exiter = os.Exit
+	Querier = queryExecCommand
+	Runner = runExecCommand
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
@@ -55,6 +60,14 @@ func RegisterCommand(cmd cli.Command) {
 	Commands = append(Commands, cmd)
 }
 
+func Run(bin string, args ...string) error {
+	return Runner(bin, args...)
+}
+
+func Query(bin string, args ...string) ([]byte, error) {
+	return Querier(bin, args...)
+}
+
 func Error(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	Exiter(1)
@@ -63,4 +76,15 @@ func Error(err error) {
 func Usage(c *cli.Context, name string) {
 	cli.ShowCommandHelp(c, name)
 	Exiter(0)
+}
+
+func runExecCommand(bin string, args ...string) error {
+	cmd := exec.Command(bin, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func queryExecCommand(bin string, args ...string) ([]byte, error) {
+	return exec.Command(bin, args...).CombinedOutput()
 }

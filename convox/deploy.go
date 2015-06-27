@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -50,14 +51,15 @@ func cmdDeploy(c *cli.Context) {
 	tags := m.TagNames("convox-charlie-935967921.us-east-1.elb.amazonaws.com:5000", proj, "123")
 
 	for i := 0; i < len(images); i++ {
-		err = run("docker", "tag", "-f", images[i], tags[i])
+		fmt.Printf("tag %s %s\n", images[i], tags[i])
+		err = stdcli.Run("docker", "tag", "-f", images[i], tags[i])
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		err = run("docker", "push", tags[i])
+		err = stdcli.Run("docker", "push", tags[i])
 
 		if err != nil {
 			stdcli.Error(err)
