@@ -56,6 +56,10 @@ func ConvoxGet(path string) ([]byte, error) {
 		return nil, err
 	}
 
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf(strings.TrimSpace(string(data)))
+	}
+
 	return data, nil
 }
 
