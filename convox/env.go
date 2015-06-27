@@ -51,7 +51,15 @@ func cmdEnvGetAll(c *cli.Context) {
 	fmt.Print(output)
 }
 
-func cmdEnvGet(c *cli.Context) {}
+func cmdEnvGet(c *cli.Context) {
+	appName := dir()
+	variable := c.Args()[0]
+
+	var env map[string]string
+	json.Unmarshal(fetchEnv(appName), &env)
+
+	fmt.Println(env[variable])
+}
 
 func cmdEnvSet(c *cli.Context) {
 	appName := dir()
