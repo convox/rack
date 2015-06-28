@@ -48,11 +48,6 @@
     }
   },
   "Parameters": {
-    "Bootstrap": {
-      "Default": "arn:aws:sns:us-east-1:922560784203:convox-bootstrap",
-      "Description": "Bootstrap topic (only experts should change this)",
-      "Type": "String"
-    },
     "ClusterCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
@@ -80,29 +75,6 @@
     }
   },
   "Resources": {
-    "BootstrapUser": {
-      "Type": "AWS::IAM::User",
-      "Properties": {
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "Administrator",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
-            }
-          }
-        ]
-      }
-    },
-    "BootstrapAccess": {
-      "Type": "AWS::IAM::AccessKey",
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": { "Ref": "BootstrapUser" }
-      }
-    },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -129,26 +101,23 @@
       }
     },
     "CustomTopic": {
-      "Type": "Custom::LambdaFunction",
+      "Type": "AWS::Lambda::Function",
       "Properties": {
-        "ServiceToken": { "Ref": "Bootstrap" },
-        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" }, { "Ref": "Vpc" } ] ] },
-        "ZipFile": "http://convox.s3.amazonaws.com/lambda-formation.zip",
-        "Runtime": "nodejs",
+        "Code": {
+          "S3Bucket": "convox",
+          "S3Key": "lambda-formation.zip"
+        },
         "Handler": "lambda.external",
-        "Role": { "Ref": "CustomTopicRole" },
-        "Timeout": "30",
-        "Memory": "128",
-        "Region": { "Ref": "AWS::Region" },
-        "AccountId": { "Ref": "AWS::AccountId" },
-        "AccessId": { "Ref": "BootstrapAccess" },
-        "SecretAccessKey": { "Fn::GetAtt": [ "BootstrapAccess", "SecretAccessKey" ] }
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
+        "Runtime": "nodejs",
+        "Timeout": "30"
       }
     },
     "AvailabilityZones": {
       "Type": "Custom::EC2AvailabilityZones",
       "Properties": {
-        "ServiceToken": { "Ref": "CustomTopic" },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Vpc": { "Ref": "Vpc" }
       }
     },
@@ -176,16 +145,7 @@
       }
     },
     "Cluster": {
-      "Properties": {
-        "ServiceToken": {
-          "Ref": "CustomTopic"
-        },
-        "Name": {
-          "Ref": "AWS::StackName"
-        }
-      },
-      "Type": "Custom::ECSCluster",
-      "Version": "1.0"
+      "Type": "AWS::ECS::Cluster"
     },
     "Vpc": {
       "Type": "AWS::EC2::VPC",
@@ -339,7 +299,7 @@
         "UserData": { "Fn::Base64": 
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
-            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
+            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
             { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " >> /etc/sysconfig/docker" ] ] },
@@ -373,11 +333,11 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": { "Fn::Join": [ "-", [ "cluster", { "Ref": "AWS::StackName" } ] ] },
+            "Value": { "Ref": "AWS::StackName" },
             "PropagateAtLaunch": true
           },
           {
-            "Key": "Cluster",
+            "Key": "Rack",
             "Value": { "Ref": "AWS::StackName" },
             "PropagateAtLaunch": true
           }
@@ -517,62 +477,21 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "Service": {
+      "Type": "Custom::ECSService",
+      "Version": "1.0",
       "Properties": {
-        "Cluster": {
-          "Ref": "AWS::StackName"
-        },
+        "ServiceToken": { "Ref": "CustomTopic" },
+        "Cluster": { "Ref": "Cluster" },
         "DesiredCount": "1",
         "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "web",
-                "4443"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "registry",
-                "443"
-              ]
-            ]
-          }
+          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
+          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
+          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "kernel" ] ] },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Ref": "CustomTopic"
-        },
-        "TaskDefinition": {
-          "Ref": "TaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
+        "Role": { "Ref": "ServiceRole" },
+        "TaskDefinition": { "Ref": "TaskDefinition" }
+      }
     },
     "ServiceRole": {
       "Properties": {
@@ -641,9 +560,7 @@
         "Name": {
           "Ref": "AWS::StackName"
         },
-        "ServiceToken": {
-          "Ref": "CustomTopic"
-        },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
             "CPU": "100",
@@ -652,7 +569,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
-              "CLUSTER": { "Ref": "AWS::StackName" },
+              "CLUSTER": { "Ref": "Cluster" },
               "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
