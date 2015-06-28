@@ -1,4 +1,3 @@
-VERSION := 0.5.3
 LAST_TAG := $(shell git describe --abbrev=0 --tags)
 
 USER := convox
@@ -20,20 +19,6 @@ COMPRESSED_EXECUTABLE_TARGETS=$(COMPRESSED_EXECUTABLES:%=bin/%)
 UPLOAD_CMD = github-release upload -u $(USER) -r $(REPO) -t $(LAST_TAG) -n $(subst /,-,$(FILE)) -f bin/$(FILE)
 
 all: $(EXECUTABLE)
-
-# arm
-bin/linux/arm/5/$(EXECUTABLE):
-	cd convox; GOARM=5 GOARCH=arm GOOS=linux go build -ldflags "-X main.version $(LAST_TAG)" -o "$@"
-bin/linux/arm/7/$(EXECUTABLE):
-	cd convox; GOARM=7 GOARCH=arm GOOS=linux go build -ldflags "-X main.version $(LAST_TAG)" -o "$@"
-
-# 386
-bin/darwin/386/$(EXECUTABLE):
-	cd convox; GOARCH=386 GOOS=darwin  go build -ldflags "-X main.version $(LAST_TAG)" -o "$@"
-bin/linux/386/$(EXECUTABLE):
-	cd convox; GOARCH=386 GOOS=linux   go build -ldflags "-X main.version $(LAST_TAG)" -o "$@"
-bin/windows/386/$(EXECUTABLE):
-	cd convox; GOARCH=386 GOOS=windows go build -ldflags "-X main.version $(LAST_TAG)" -o "$@"
 
 # amd64
 bin/freebsd/amd64/$(EXECUTABLE):
