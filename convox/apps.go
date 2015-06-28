@@ -30,7 +30,7 @@ func init() {
 }
 
 func cmdApps(c *cli.Context) {
-	data, err := convoxRequest("GET", "/apps")
+	data, err := ConvoxGet("/apps")
 
 	if err != nil {
 		stdcli.Error(err)
