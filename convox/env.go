@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -13,11 +14,12 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "env",
 		Description: "manage an app's environment variables",
-		Usage:       "set|change|delete",
+		Usage:       "get|set|unset",
+		Action:      cmdEnvGetAll,
 		Subcommands: []cli.Command{
 			{
 				Name:   "get",
-				Usage:  "",
+				Usage:  "VARIABLE",
 				Action: cmdEnvGet,
 			},
 			{
@@ -34,28 +36,46 @@ func init() {
 	})
 }
 
-func cmdEnvGet(c *cli.Context) {
+func cmdEnvGetAll(c *cli.Context) {
 	appName := dir()
-	path := fmt.Sprintf("/apps/%s/environment", appName)
 
-	resp, err := ConvoxGet(path)
+	var env map[string]string
+	json.Unmarshal(fetchEnv(appName), &env)
 
-	if err != nil {
-		stdcli.Error(err)
-		return
+	output := ""
+
+	for key, value := range env {
+		output += fmt.Sprintf("%s=%s\n", key, value)
 	}
 
-	fmt.Println(string(resp[:]))
+	fmt.Print(output)
+}
+
+func cmdEnvGet(c *cli.Context) {
+	appName := dir()
+	variable := c.Args()[0]
+
+	var env map[string]string
+	json.Unmarshal(fetchEnv(appName), &env)
+
+	fmt.Println(env[variable])
 }
 
 func cmdEnvSet(c *cli.Context) {
+	appName := dir()
+
+	var old map[string]string
+	json.Unmarshal(fetchEnv(appName), &old)
+
 	data := ""
+
+	for key, value := range old {
+		data += fmt.Sprintf("%s=%s\n", key, value)
+	}
 
 	for _, value := range c.Args() {
 		data += fmt.Sprintf("%s\n", value)
 	}
-
-	appName := dir()
 
 	path := fmt.Sprintf("/apps/%s/environment", appName)
 
@@ -94,4 +114,17 @@ func dir() string {
 	}
 
 	return path.Base(wd)
+}
+
+func fetchEnv(app string) []byte {
+	appName := dir()
+	path := fmt.Sprintf("/apps/%s/environment", appName)
+
+	resp, err := ConvoxGet(path)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return resp
 }
