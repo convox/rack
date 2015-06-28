@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 latest=$(curl -s https://api.github.com/repos/convox/kernel/tags | jq -r '.[].name' | sort | tail -n 1)
 
 date=${latest:0:8}
