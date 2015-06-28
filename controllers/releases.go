@@ -45,10 +45,25 @@ func ReleaseCreate(rw http.ResponseWriter, r *http.Request) {
   release.Manifest = manifest
 
   err = build.Save()
+
+  if err != nil {
+    helpers.Error(log, err)
+    RenderError(rw, err)
+    return
+  }
+
   err = release.Save()
+
+  if err != nil {
+    helpers.Error(log, err)
+    RenderError(rw, err)
+    return
+  }
+
   err = release.Promote()
 
   if err != nil {
+    helpers.Error(log, err)
     RenderError(rw, err)
     return
   }
