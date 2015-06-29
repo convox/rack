@@ -59,20 +59,20 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	proj := strings.Replace(filepath.Base(base), "-", "", -1)
-	images := m.ImageNames(proj)
 	tag := fmt.Sprintf("%v", stdcli.Tagger())
-	tags := m.TagNames(host, proj, tag)
+	tags := m.Tags(host, proj, tag)
 
-	for i := 0; i < len(images); i++ {
-		fmt.Printf("tag %s %s\n", images[i], tags[i])
-		err = stdcli.Run("docker", "tag", "-f", images[i], tags[i])
+	for tag, image := range tags {
+		fmt.Printf("Tagging %s\n", tag)
+		err = stdcli.Run("docker", "tag", "-f", image, tag)
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		err = stdcli.Run("docker", "push", tags[i])
+		fmt.Printf("Pushing %s\n", image)
+		err = stdcli.Run("docker", "push", image)
 
 		if err != nil {
 			stdcli.Error(err)

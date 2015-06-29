@@ -12,10 +12,9 @@ import (
 
 func TestBuildTagPush(t *testing.T) {
 	m, _ := build.ManifestFromBytes([]byte(`web:
-  build: .
-  command: ruby web.rb
+  image: httpd
   ports:
-  - 5000:3000
+  - 80:80
 worker:
   build: .
   command: ruby worker.rb
@@ -23,15 +22,12 @@ redis:
   image: convox/redis
 `))
 
-	expect(t,
-		m.ImageNames("myproj"),
-		[]string{"convox/redis", "myproj_web", "myproj_worker"},
-	)
-
-	expect(t,
-		m.TagNames("private.registry.com:5000", "myproj", "123"),
-		[]string{"private.registry.com:5000/convox/redis:123", "private.registry.com:5000/myproj_web:123", "private.registry.com:5000/myproj_worker:123"},
-	)
+	tags := m.Tags("private.registry.com:5000", "myproj", "123")
+	expect(t, tags, map[string]string{
+		"private.registry.com:5000/myproj_redis:123":  "convox/redis",
+		"private.registry.com:5000/myproj_web:123":    "httpd",
+		"private.registry.com:5000/myproj_worker:123": "myproj_worker",
+	})
 }
 
 func TestDeploy(t *testing.T) {
@@ -40,10 +36,7 @@ func TestDeploy(t *testing.T) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/apps":
-			app := App{
-				Name: r.FormValue("name"),
-			}
-
+			app := App{Name: r.FormValue("name")}
 			data, _ := json.Marshal(app)
 			_, _ = w.Write(data)
 
@@ -69,7 +62,8 @@ func TestDeploy(t *testing.T) {
 	stdout, stderr := appRun([]string{"convox", "deploy", project})
 
 	expect(t, stdout, `Docker Compose app detected.
-tag httpd 127.0.0.1:5000/httpd:1435444444
+Tagging httpd
+Pushing 127.0.0.1:5000/dockercompose_web:1435444444
 Created app dockercompose
 Status running
 Created release 1435444444

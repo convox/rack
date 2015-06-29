@@ -2,7 +2,6 @@ package build
 
 import (
 	"path/filepath"
-	"strings"
 
 	"github.com/convox/cli/stdcli"
 )
@@ -20,14 +19,15 @@ func DockerCompose(dir string) error {
 		return err
 	}
 
-	proj := strings.Replace(filepath.Base(dir), "-", "", -1)
+	for key := range m {
+		ps := m[key]
 
-	images := m.ImageNames(proj)
-	for i := 0; i < len(images); i++ {
-		err = stdcli.Run("docker", "pull", images[i])
+		if ps.Image != "" {
+			err = stdcli.Run("docker", "pull", ps.Image)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 	}
 

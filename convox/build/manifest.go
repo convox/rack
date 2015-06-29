@@ -20,29 +20,19 @@ type ManifestEntry struct {
 	Ports       []string    `yaml:"ports"`
 }
 
-func (m Manifest) ImageNames(project string) []string {
-	keys := make([]string, 0, len(m))
+func (m Manifest) Tags(registry string, project string, tag string) map[string]string {
+	tags := make(map[string]string)
 
 	for key := range m {
-		e := m[key]
+		ps := m[key]
 
-		if e.Image != "" {
-			keys = append(keys, e.Image)
-		} else {
-			keys = append(keys, fmt.Sprintf("%s_%s", project, key))
+		img := ps.Image
+
+		if img == "" {
+			img = fmt.Sprintf("%s_%s", project, key)
 		}
-	}
 
-	sort.Strings(keys)
-	return keys
-}
-
-func (m Manifest) TagNames(registry string, project string, tag string) []string {
-	images := m.ImageNames(project)
-	tags := make([]string, 0, len(images))
-
-	for i := range images {
-		tags = append(tags, fmt.Sprintf("%s/%s:%s", registry, images[i], tag))
+		tags[fmt.Sprintf("%s/%s_%s:%s", registry, project, key, tag)] = img
 	}
 
 	return tags
