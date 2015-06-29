@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
 	"github.com/convox/cli/stdcli"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 func init() {
