@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"golang.org/x/net/websocket"
-	"os"
-	"os/signal"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -53,18 +51,12 @@ func cmdLogsStream(c *cli.Context) {
 		return
 	}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
+	defer ws.Close()
+
+	var message []byte
 
 	for {
-		select {
-		case <-quit:
-			_ = ws.Close()
-			return
-		default:
-			var message string
-			websocket.Message.Receive(ws, &message)
-			fmt.Print(message)
-		}
+		websocket.Message.Receive(ws, &message)
+		fmt.Print(string(message))
 	}
 }
