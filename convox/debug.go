@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -36,5 +37,8 @@ func cmdDebug(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("%v\n", string(data))
+	lines := strings.Split(string(data), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		fmt.Printf("%v\n", lines[i])
+	}
 }
