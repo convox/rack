@@ -1,7 +1,8 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] }
+    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] }
   },
   "Mappings": {
     "RegionConfig": {
@@ -14,48 +15,64 @@
   },
   "Outputs": {
     "AwsAccountid": {
+      "Condition": "Development",
       "Value": { "Ref": "AWS::AccountId" }
     },
     "AwsRegion": {
+      "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
     },
     "AwsAccess": {
+      "Condition": "Development",
       "Value": { "Ref": "KernelAccess" }
     },
     "AwsSecret": {
+      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
     },
     "Cluster": {
-      "Value": { "Ref": "AWS::StackName" }
+      "Condition": "Development",
+      "Value": { "Ref": "Cluster" }
     },
-    "ConsoleHost": {
+    "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
-    "CustomTopic": {
-      "Value": { "Ref": "CustomTopic" }
+    "Rack": {
+      "Condition": "Development",
+      "Value": { "Ref": "AWS::StackName" }
     },
     "RegistryHost": {
+      "Condition": "Development",
       "Value": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
     },
     "RegistryPassword": {
+      "Condition": "Development",
       "Value": { "Ref": "Password" }
     },
     "Subnets": {
+      "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
     },
     "Vpc": {
+      "Condition": "Development",
       "Value": { "Ref": "Vpc" }
     }
   },
   "Parameters": {
-    "ClusterCount": {
+    "Development": {
+      "Type": "String",
+      "Description": "Development mode",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
       "Type": "Number"
     },
-    "ClusterSize": {
+    "InstanceType": {
       "Default": "t2.small",
-      "Description": "The size of the instances in the runtime cluster",
+      "Description": "The type of the instances in the runtime cluster",
       "Type": "String"
     },
     "Key": {
@@ -293,7 +310,7 @@
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] },
         "InstanceMonitoring": true,
-        "InstanceType": { "Ref": "ClusterSize" },
+        "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "UserData": { "Fn::Base64": 
@@ -324,7 +341,7 @@
           { "Ref": "Subnet2" }
         ],
         "Cooldown": 5,
-        "DesiredCapacity": { "Ref": "ClusterCount" },
+        "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": 0,
         "MinSize" : "1",
@@ -480,7 +497,7 @@
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
-        "ServiceToken": { "Ref": "CustomTopic" },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
         "DesiredCount": "1",
         "LoadBalancers": [
@@ -570,9 +587,9 @@
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "CLUSTER": { "Ref": "Cluster" },
-              "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
+              "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "REGISTRY_PASSWORD": { "Ref": "Password" },
               "RELEASE": { "Ref": "Version" },
