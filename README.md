@@ -15,7 +15,7 @@ Convox command line interface.
 Start runs any app with [Docker Compose](https://docs.docker.com/compose/).
 
 If `docker-compose.yml` and/or `Dockerfile` do not exist, start will create them
-for you.
+for you, then build and pull images.
 
     $ cd myapp
     $ convox start
@@ -44,6 +44,38 @@ for you.
 
 Start will also help set up and debug your Docker / Boot2Docker environment when
 it encounters problems.
+
+## convox login
+
+Login to your Convox API.
+
+    $ convox login convox-424363854.us-east-1.elb.amazonaws.com
+    Password: 
+    Login Succeeded
+
+## convox deploy
+
+Deploy any app to AWS.
+
+If `docker-compose.yml` and/or `Dockerfile` do not exist, deploy will create 
+them for you, then build and pull images. Then deploy tags images and pushes 
+them to your private registry and creates an app and release.
+
+    $ cd myapp
+    $ convox deploy
+    Docker Compose app detected.
+    web uses an image, skipping
+    latest: Pulling from httpd
+    ...
+
+    Tagging httpd
+    Pushing convox-424363854.us-east-1.elb.amazonaws.com:5000/myapp-web:1435598703
+    ...
+
+    Created app myapp6
+    Status running
+    Created release 1435598703
+    Status running
 
 ## License
 
