@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"golang.org/x/net/websocket"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -40,7 +41,7 @@ func cmdLogsStream(c *cli.Context) {
 	}
 
 	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("ws://%s/apps/%s/logs/stream", host, name)
+	url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, name)
 
 	config, err := websocket.NewConfig(url, origin)
 
