@@ -14,6 +14,11 @@
         "Default" : "",
         "Description" : ""
       },
+      "DesiredCount": {
+        "Type" : "String",
+        "Default" : "1",
+        "Description" : "The number of instantiations of the specified ECS task definition to place and keep running on your cluster."
+      },
       "Environment": {
         "Type": "String",
         "Default": "",
@@ -175,7 +180,7 @@
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
         "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": "1",
+        "DesiredCount": { "Ref": "DesiredCount" },
         "Name": { "Ref": "AWS::StackName" },
         "TaskDefinition": { "Ref": "TaskDefinition" },
         "Role": { "Ref": "ServiceRole" },
