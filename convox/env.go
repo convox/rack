@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -16,6 +14,12 @@ func init() {
 		Description: "manage an app's environment variables",
 		Usage:       "get|set|unset",
 		Action:      cmdEnvGetAll,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "name",
+				Usage: "app name. Inferred from current directory if not specified.",
+			},
+		},
 		Subcommands: []cli.Command{
 			{
 				Name:   "get",
@@ -37,10 +41,21 @@ func init() {
 }
 
 func cmdEnvGetAll(c *cli.Context) {
-	appName := dir()
+	name := c.String("name")
+
+	if name == "" {
+		name = DirAppName()
+	}
+
+	resp, err := fetchEnv(name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	var env map[string]string
-	json.Unmarshal(fetchEnv(appName), &env)
+	json.Unmarshal(resp, &env)
 
 	output := ""
 
@@ -52,20 +67,43 @@ func cmdEnvGetAll(c *cli.Context) {
 }
 
 func cmdEnvGet(c *cli.Context) {
-	appName := dir()
+	name := c.String("name")
+
+	if name == "" {
+		name = DirAppName()
+	}
+
 	variable := c.Args()[0]
 
+	resp, err := fetchEnv(name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
 	var env map[string]string
-	json.Unmarshal(fetchEnv(appName), &env)
+	json.Unmarshal(resp, &env)
 
 	fmt.Println(env[variable])
 }
 
 func cmdEnvSet(c *cli.Context) {
-	appName := dir()
+	name := c.String("name")
+
+	if name == "" {
+		name = DirAppName()
+	}
+
+	resp, err := fetchEnv(name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	var old map[string]string
-	json.Unmarshal(fetchEnv(appName), &old)
+	json.Unmarshal(resp, &old)
 
 	data := ""
 
@@ -77,54 +115,42 @@ func cmdEnvSet(c *cli.Context) {
 		data += fmt.Sprintf("%s\n", value)
 	}
 
-	path := fmt.Sprintf("/apps/%s/environment", appName)
+	path := fmt.Sprintf("/apps/%s/environment", name)
 
-	resp, err := ConvoxPost(path, data)
+	resp, err = ConvoxPost(path, data)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
-
-	fmt.Println(string(resp[:]))
 }
 
 func cmdEnvUnset(c *cli.Context) {
+	name := c.String("name")
+
+	if name == "" {
+		name = DirAppName()
+	}
 	variable := c.Args()[0]
 
-	appName := DirAppName()
+	path := fmt.Sprintf("/apps/%s/environment/%s", name, variable)
 
-	path := fmt.Sprintf("/apps/%s/environment/%s", appName, variable)
-
-	resp, err := ConvoxDelete(path)
+	_, err := ConvoxDelete(path)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
-
-	fmt.Println(string(resp[:]))
 }
 
-func dir() string {
-	wd, err := os.Getwd()
-
-	if err != nil {
-		panic(err)
-	}
-
-	return path.Base(wd)
-}
-
-func fetchEnv(app string) []byte {
-	appName := dir()
-	path := fmt.Sprintf("/apps/%s/environment", appName)
+func fetchEnv(app string) ([]byte, error) {
+	path := fmt.Sprintf("/apps/%s/environment", app)
 
 	resp, err := ConvoxGet(path)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return resp
+	return resp, nil
 }
