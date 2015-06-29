@@ -16,7 +16,7 @@ func init() {
 		Action:      cmdDebug,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "name",
+				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
 			},
 		},
@@ -24,13 +24,13 @@ func init() {
 }
 
 func cmdDebug(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/events", name))
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/events", app))
 
 	if err != nil {
 		stdcli.Error(err)

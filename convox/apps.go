@@ -29,21 +29,15 @@ func init() {
 		Description: "list apps",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "name",
+				Name:  "app",
 				Usage: "app name. If not specified, use current directory.",
 			},
 		},
 		Subcommands: []cli.Command{
 			{
 				Name:   "create",
-				Usage:  "",
+				Usage:  "convox apps create [name]",
 				Action: cmdAppCreate,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "name",
-						Usage: "app name. If not specified, use current directory.",
-					},
-				},
 			},
 		},
 	})
@@ -71,7 +65,7 @@ func cmdApps(c *cli.Context) {
 }
 
 func cmdAppCreate(c *cli.Context) {
-	name := c.String("name")
+	name := c.Args()[0]
 
 	if name == "" {
 		name = DirAppName()

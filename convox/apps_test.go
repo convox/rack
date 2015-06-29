@@ -45,7 +45,7 @@ func TestAppsCreate(t *testing.T) {
 
 	setLoginEnv(ts)
 
-	stdout, stderr := appRun([]string{"convox", "apps", "create", "--name", "foobar"})
+	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
 
 	expect(t, stdout, "Created foobar.\n")
 	expect(t, stderr, "")
@@ -59,7 +59,7 @@ func TestAppsCreateFail(t *testing.T) {
 
 	setLoginEnv(ts)
 
-	stdout, stderr := appRun([]string{"convox", "apps", "create", "--name", "foobar"})
+	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
 
 	expect(t, stdout, "")
 	expect(t, stderr, "ERROR: app already exists\n")

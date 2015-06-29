@@ -18,7 +18,7 @@ func init() {
 		Action:      cmdScale,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "name",
+				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
 			},
 		},
@@ -26,10 +26,10 @@ func init() {
 }
 
 func cmdScale(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 
 	if len(c.Args()) == 1 {
@@ -43,7 +43,7 @@ func cmdScale(c *cli.Context) {
 
 		v := url.Values{}
 		v.Set("count", count)
-		_, err = ConvoxPostForm("/apps/"+name, v)
+		_, err = ConvoxPostForm("/apps/"+app, v)
 
 		if err != nil {
 			stdcli.Error(err)
@@ -51,20 +51,20 @@ func cmdScale(c *cli.Context) {
 		}
 	}
 
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", name))
+	data, err := ConvoxGet("/apps/" + app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var app *App
-	err = json.Unmarshal(data, &app)
+	var a *App
+	err = json.Unmarshal(data, &a)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Printf("Scale %v\n", app.Parameters["DesiredCount"])
+	fmt.Printf("Scale %v\n", a.Parameters["DesiredCount"])
 }
