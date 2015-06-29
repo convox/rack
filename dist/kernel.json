@@ -438,9 +438,9 @@
         ],
         "Listeners": [
           {
-            "Protocol": "HTTP",
+            "Protocol": "TCP",
             "LoadBalancerPort": "80",
-            "InstanceProtocol": "HTTP",
+            "InstanceProtocol": "TCP",
             "InstancePort": "3000"
           },
           { "Fn::If": [ "BlankCertificate",
@@ -451,9 +451,9 @@
               "InstancePort": "3001"
             },
             {
-              "Protocol": "HTTPS",
+              "Protocol": "SSL",
               "LoadBalancerPort": "443",
-              "InstanceProtocol": "HTTP",
+              "InstanceProtocol": "TCP",
               "InstancePort": "3000",
               "SSLCertificateId": { "Ref": "Certificate" }
             }
