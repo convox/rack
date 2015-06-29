@@ -43,6 +43,14 @@
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
+    "DynamoBuilds": {
+      "Condition": "Development",
+      "Value": { "Ref": "DynamoBuilds" }
+    },
+    "DynamoReleases": {
+      "Condition": "Development",
+      "Value": { "Ref": "DynamoReleases" }
+    },
     "Rack": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::StackName" }
@@ -594,6 +602,44 @@
       },
       "Type": "AWS::IAM::Role"
     },
+    "DynamoBuilds": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "builds" ] ] },
+        "AttributeDefinitions": [
+          { "AttributeName": "id", "AttributeType": "S" },
+          { "AttributeName": "app", "AttributeType": "S" },
+          { "AttributeName": "created", "AttributeType": "S" }
+        ],
+        "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
+        "GlobalSecondaryIndexes": [ {
+          "IndexName": "app.created",
+          "KeySchema": [ { "AttributeName": "app", "KeyType": "HASH" }, { "AttributeName": "created", "KeyType": "RANGE" } ],
+          "Projection": { "ProjectionType": "ALL" },
+          "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+        }],
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+      }
+    },
+    "DynamoReleases": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "releases" ] ] },
+        "AttributeDefinitions": [
+          { "AttributeName": "id", "AttributeType": "S" },
+          { "AttributeName": "app", "AttributeType": "S" },
+          { "AttributeName": "created", "AttributeType": "S" }
+        ],
+        "KeySchema": [ { "AttributeName": "id", "KeyType": "HASH" } ],
+        "GlobalSecondaryIndexes": [{
+          "IndexName": "app.created",
+          "KeySchema": [ { "AttributeName": "app", "KeyType": "HASH" }, { "AttributeName": "created", "KeyType": "RANGE" } ],
+          "Projection": { "ProjectionType": "ALL" },
+          "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+        }],
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+      }
+    },
     "Settings": {
       "Properties": {
         "AccessControl": "Private",
@@ -627,6 +673,8 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
+              "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
+              "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
               "RACK": { "Ref": "AWS::StackName" },
