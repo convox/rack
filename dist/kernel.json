@@ -36,6 +36,10 @@
       "Condition": "Development",
       "Value": { "Ref": "Cluster" }
     },
+    "CustomTopic": {
+      "Condition": "Development",
+      "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
+    },
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
@@ -621,6 +625,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
