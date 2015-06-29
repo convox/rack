@@ -30,12 +30,16 @@ func TestApps(t *testing.T) {
 
 func TestAppsCreate(t *testing.T) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app := App{
-			Name: r.FormValue("name"),
-		}
+		switch r.URL.Path {
+		case "/apps":
+			_ = App{Name: r.FormValue("name")}
+			http.Error(w, "ok", 302)
 
-		data, _ := json.Marshal(app)
-		_, _ = w.Write(data)
+		case "/apps/foobar":
+			app := App{Name: "foobar"}
+			data, _ := json.Marshal(app)
+			_, _ = w.Write(data)
+		}
 	}))
 	defer ts.Close()
 

@@ -86,6 +86,13 @@ func cmdAppCreate(c *cli.Context) {
 		return
 	}
 
+	data, err = ConvoxGet("/apps/" + name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
 	var app *App
 	err = json.Unmarshal(data, &app)
 
