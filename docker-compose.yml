@@ -2,16 +2,13 @@ web:
   build: .
   environment:
     - DEVELOPMENT=true
-    - AWS_ACCOUNTID=convox-dev
     - AWS_REGION
     - AWS_ACCESS
     - AWS_SECRET
-    - AWS_AZS
     - CLUSTER
-    - CUSTOM_TOPIC
-    - GITHUB_TOKEN
     - HTTP_PASSWORD
     - MIXPANEL_TOKEN=43fb68427548c5e99978a598a9b14e55
+    - RACK
     - REGISTRY_HOST
     - REGISTRY_PASSWORD
     - RELEASE=local
@@ -26,8 +23,6 @@ web:
     - /var/run/docker.sock:/var/run/docker.sock
 registry:
   environment:
-    - REGISTRY_CERT_PUBLIC
-    - REGISTRY_CERT_PRIVATE
     - SETTINGS_FLAVOR=local
   image: convox/registry
   ports:

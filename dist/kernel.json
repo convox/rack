@@ -1,7 +1,10 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] }
+    "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
+    "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
+    "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] }
   },
   "Mappings": {
     "RegionConfig": {
@@ -14,53 +17,72 @@
   },
   "Outputs": {
     "AwsAccountid": {
+      "Condition": "Development",
       "Value": { "Ref": "AWS::AccountId" }
     },
     "AwsRegion": {
+      "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
     },
     "AwsAccess": {
+      "Condition": "Development",
       "Value": { "Ref": "KernelAccess" }
     },
     "AwsSecret": {
+      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
     },
     "Cluster": {
-      "Value": { "Ref": "AWS::StackName" }
+      "Condition": "Development",
+      "Value": { "Ref": "Cluster" }
     },
-    "ConsoleHost": {
+    "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
-    "CustomTopic": {
-      "Value": { "Ref": "CustomTopic" }
+    "Rack": {
+      "Condition": "Development",
+      "Value": { "Ref": "AWS::StackName" }
     },
     "RegistryHost": {
-      "Value": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+      "Condition": "Development",
+      "Value": { "Fn::If": [ "BlankRegistryHost",
+        { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
+        { "Ref": "RegistryHost" }
+      ] }
     },
     "RegistryPassword": {
+      "Condition": "Development",
       "Value": { "Ref": "Password" }
     },
     "Subnets": {
+      "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
     },
     "Vpc": {
+      "Condition": "Development",
       "Value": { "Ref": "Vpc" }
     }
   },
   "Parameters": {
-    "Bootstrap": {
-      "Default": "arn:aws:sns:us-east-1:922560784203:convox-bootstrap",
-      "Description": "Bootstrap topic (only experts should change this)",
-      "Type": "String"
+    "Certificate": {
+      "Type": "String",
+      "Description": "SSL certificate",
+      "Default": ""
     },
-    "ClusterCount": {
+    "Development": {
+      "Type": "String",
+      "Description": "Development mode",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
       "Type": "Number"
     },
-    "ClusterSize": {
+    "InstanceType": {
       "Default": "t2.small",
-      "Description": "The size of the instances in the runtime cluster",
+      "Description": "The type of the instances in the runtime cluster",
       "Type": "String"
     },
     "Key": {
@@ -73,6 +95,11 @@
       "Description": "Kernel HTTP password",
       "Type": "String"
     },
+    "RegistryHost": {
+      "Type": "String",
+      "Description": "Registry host",
+      "Default": ""
+    },
     "Version": {
       "Default": "latest",
       "Description": "Convox release version",
@@ -80,29 +107,6 @@
     }
   },
   "Resources": {
-    "BootstrapUser": {
-      "Type": "AWS::IAM::User",
-      "Properties": {
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "Administrator",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
-            }
-          }
-        ]
-      }
-    },
-    "BootstrapAccess": {
-      "Type": "AWS::IAM::AccessKey",
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": { "Ref": "BootstrapUser" }
-      }
-    },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -129,26 +133,23 @@
       }
     },
     "CustomTopic": {
-      "Type": "Custom::LambdaFunction",
+      "Type": "AWS::Lambda::Function",
       "Properties": {
-        "ServiceToken": { "Ref": "Bootstrap" },
-        "Name": { "Fn::Join": [ "-", [ "convox-formation", { "Ref": "AWS::StackName" }, { "Ref": "Vpc" } ] ] },
-        "ZipFile": "http://convox.s3.amazonaws.com/lambda-formation.zip",
-        "Runtime": "nodejs",
+        "Code": {
+          "S3Bucket": "convox",
+          "S3Key": "lambda-formation.zip"
+        },
         "Handler": "lambda.external",
-        "Role": { "Ref": "CustomTopicRole" },
-        "Timeout": "30",
-        "Memory": "128",
-        "Region": { "Ref": "AWS::Region" },
-        "AccountId": { "Ref": "AWS::AccountId" },
-        "AccessId": { "Ref": "BootstrapAccess" },
-        "SecretAccessKey": { "Fn::GetAtt": [ "BootstrapAccess", "SecretAccessKey" ] }
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
+        "Runtime": "nodejs",
+        "Timeout": "30"
       }
     },
     "AvailabilityZones": {
       "Type": "Custom::EC2AvailabilityZones",
       "Properties": {
-        "ServiceToken": { "Ref": "CustomTopic" },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Vpc": { "Ref": "Vpc" }
       }
     },
@@ -176,16 +177,7 @@
       }
     },
     "Cluster": {
-      "Properties": {
-        "ServiceToken": {
-          "Ref": "CustomTopic"
-        },
-        "Name": {
-          "Ref": "AWS::StackName"
-        }
-      },
-      "Type": "Custom::ECSCluster",
-      "Version": "1.0"
+      "Type": "AWS::ECS::Cluster"
     },
     "Vpc": {
       "Type": "AWS::EC2::VPC",
@@ -333,16 +325,19 @@
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] },
         "InstanceMonitoring": true,
-        "InstanceType": { "Ref": "ClusterSize" },
+        "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "UserData": { "Fn::Base64": 
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
-            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "AWS::StackName" }, " >> /etc/ecs/ecs.config" ] ] },
+            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
-            { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " >> /etc/sysconfig/docker" ] ] },
+            { "Fn::If": [ "BlankCertificate",
+              { "Fn::Join": [ "", [ "echo OPTIONS=--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " >> /etc/sysconfig/docker" ] ] },
+              { "Ref": "AWS::NoValue" }
+            ] },
             "service docker restart",
             "docker start ecs-agent"
           ] ] } 
@@ -364,7 +359,7 @@
           { "Ref": "Subnet2" }
         ],
         "Cooldown": 5,
-        "DesiredCapacity": { "Ref": "ClusterCount" },
+        "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": 0,
         "MinSize" : "1",
@@ -373,11 +368,11 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": { "Fn::Join": [ "-", [ "cluster", { "Ref": "AWS::StackName" } ] ] },
+            "Value": { "Ref": "AWS::StackName" },
             "PropagateAtLaunch": true
           },
           {
-            "Key": "Cluster",
+            "Key": "Rack",
             "Value": { "Ref": "AWS::StackName" },
             "PropagateAtLaunch": true
           }
@@ -432,7 +427,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:5000/check",
+          "Target": "HTTP:3000/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -443,23 +438,41 @@
         ],
         "Listeners": [
           {
-            "InstancePort": "5000",
-            "InstanceProtocol": "TCP",
+            "Protocol": "HTTP",
             "LoadBalancerPort": "80",
-            "Protocol": "TCP"
+            "InstanceProtocol": "HTTP",
+            "InstancePort": "3000"
           },
-          {
-            "InstancePort": "4443",
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "443",
-            "Protocol": "TCP"
-          },
-          {
-            "InstancePort": "5100",
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "5000",
-            "Protocol": "TCP"
-          }
+          { "Fn::If": [ "BlankCertificate",
+            {
+              "Protocol": "TCP",
+              "LoadBalancerPort": "443",
+              "InstanceProtocol": "TCP",
+              "InstancePort": "3001"
+            },
+            {
+              "Protocol": "HTTPS",
+              "LoadBalancerPort": "443",
+              "InstanceProtocol": "HTTP",
+              "InstancePort": "3000",
+              "SSLCertificateId": { "Ref": "Certificate" }
+            }
+          ] },
+          { "Fn::If": [ "BlankCertificate",
+            {
+              "Protocol": "TCP",
+              "LoadBalancerPort": "5000",
+              "InstanceProtocol": "TCP",
+              "InstancePort": "3101"
+            },
+            {
+              "Protocol": "HTTPS",
+              "LoadBalancerPort": "5000",
+              "InstanceProtocol": "HTTP",
+              "InstancePort": "3100",
+              "SSLCertificateId": { "Ref": "Certificate" }
+            }
+          ] }
         ],
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
@@ -517,62 +530,21 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "Service": {
+      "Type": "Custom::ECSService",
+      "Version": "1.0",
       "Properties": {
-        "Cluster": {
-          "Ref": "AWS::StackName"
-        },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Cluster": { "Ref": "Cluster" },
         "DesiredCount": "1",
         "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "web",
-                "4443"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "registry",
-                "443"
-              ]
-            ]
-          }
+          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
+          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
+          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "kernel" ] ] },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Ref": "CustomTopic"
-        },
-        "TaskDefinition": {
-          "Ref": "TaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
+        "Role": { "Ref": "ServiceRole" },
+        "TaskDefinition": { "Ref": "TaskDefinition" }
+      }
     },
     "ServiceRole": {
       "Properties": {
@@ -641,22 +613,22 @@
         "Name": {
           "Ref": "AWS::StackName"
         },
-        "ServiceToken": {
-          "Ref": "CustomTopic"
-        },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
             "CPU": "100",
             "Environment": {
-              "AWS_ACCOUNTID": { "Ref": "AWS::AccountId" },
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
-              "CLUSTER": { "Ref": "AWS::StackName" },
-              "CUSTOM_TOPIC": { "Ref": "CustomTopic" },
+              "CLUSTER": { "Ref": "Cluster" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
-              "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
+              "RACK": { "Ref": "AWS::StackName" },
+              "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
+                { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
+                { "Ref": "RegistryHost" }
+              ] },
               "REGISTRY_PASSWORD": { "Ref": "Password" },
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
@@ -668,8 +640,8 @@
             "Memory": "128",
             "Name": "web",
             "PortMappings": [
-              "5000:3000",
-              "4443:4443"
+              "3000:3000",
+              "3001:4443"
             ],
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"
@@ -690,7 +662,8 @@
             "Memory": "256",
             "Name": "registry",
             "PortMappings": [
-              "5100:443"
+              "3100:3000",
+              "3101:443"
             ],
             "Volumes": []
           }
