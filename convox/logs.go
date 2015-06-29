@@ -19,7 +19,7 @@ func init() {
 		Action:      cmdLogsStream,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "name",
+				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
 			},
 		},
@@ -27,10 +27,10 @@ func init() {
 }
 
 func cmdLogsStream(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 
 	host, password, err := currentLogin()
@@ -41,7 +41,7 @@ func cmdLogsStream(c *cli.Context) {
 	}
 
 	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, name)
+	url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, app)
 
 	config, err := websocket.NewConfig(url, origin)
 
