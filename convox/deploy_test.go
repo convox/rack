@@ -24,9 +24,9 @@ redis:
 
 	tags := m.Tags("private.registry.com:5000", "myproj", "123")
 	expect(t, tags, map[string]string{
-		"private.registry.com:5000/myproj_redis:123":  "convox/redis",
-		"private.registry.com:5000/myproj_web:123":    "httpd",
-		"private.registry.com:5000/myproj_worker:123": "myproj_worker",
+		"private.registry.com:5000/myproj-redis:123":  "convox/redis",
+		"private.registry.com:5000/myproj-web:123":    "httpd",
+		"private.registry.com:5000/myproj-worker:123": "myproj_worker",
 	})
 }
 
@@ -63,7 +63,7 @@ func TestDeploy(t *testing.T) {
 
 	expect(t, stdout, `Docker Compose app detected.
 Tagging httpd
-Pushing 127.0.0.1:5000/dockercompose_web:1435444444
+Pushing 127.0.0.1:5000/dockercompose-web:1435444444
 Created app dockercompose
 Status running
 Created release 1435444444

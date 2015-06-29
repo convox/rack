@@ -32,7 +32,7 @@ func (m Manifest) Tags(registry string, project string, tag string) map[string]s
 			img = fmt.Sprintf("%s_%s", project, key)
 		}
 
-		tags[fmt.Sprintf("%s/%s_%s:%s", registry, project, key, tag)] = img
+		tags[fmt.Sprintf("%s/%s-%s:%s", registry, project, key, tag)] = img
 	}
 
 	return tags

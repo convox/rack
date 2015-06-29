@@ -63,7 +63,7 @@ func cmdDeploy(c *cli.Context) {
 	tags := m.Tags(host, proj, tag)
 
 	for tag, image := range tags {
-		fmt.Printf("Tagging %s\n", tag)
+		fmt.Printf("Tagging %s\n", image)
 		err = stdcli.Run("docker", "tag", "-f", image, tag)
 
 		if err != nil {
@@ -71,8 +71,8 @@ func cmdDeploy(c *cli.Context) {
 			return
 		}
 
-		fmt.Printf("Pushing %s\n", image)
-		err = stdcli.Run("docker", "push", image)
+		fmt.Printf("Pushing %s\n", tag)
+		err = stdcli.Run("docker", "push", tag)
 
 		if err != nil {
 			stdcli.Error(err)
