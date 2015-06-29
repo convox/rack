@@ -102,7 +102,8 @@ func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
 		return nil, err
 	}
 
-	res, err := client.Do(req)
+	// Use RoundTrip to avoid following the redirect without the Auth header
+	res, err := client.Transport.RoundTrip(req)
 
 	if err != nil {
 		return nil, err
@@ -116,11 +117,11 @@ func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
 		return nil, err
 	}
 
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf(strings.TrimSpace(string(data)))
+	if res.StatusCode == 200 || res.StatusCode == 302 {
+		return data, nil
 	}
 
-	return data, nil
+	return nil, fmt.Errorf(strings.TrimSpace(string(data)))
 }
 
 func ConvoxDelete(path string) ([]byte, error) {
