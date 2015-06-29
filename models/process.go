@@ -56,7 +56,7 @@ func ListProcesses(app string) (Processes, error) {
 			ps = append(ps, Process{
 				App:   app,
 				Name:  *cd.Name,
-				Count: 1,
+				Count: int(*service.DesiredCount),
 			})
 
 			for _, l := range cd.Links {
