@@ -277,7 +277,7 @@ func (b *Build) Image(process string) string {
 }
 
 func buildsTable(app string) string {
-	return fmt.Sprintf("%s-builds", app)
+	return os.Getenv("DYNAMO_BUILDS")
 }
 
 func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {

@@ -280,7 +280,7 @@ func ServiceFromStack(stack *cloudformation.Stack) *Service {
 }
 
 func servicesTable(app string) string {
-	return fmt.Sprintf("%s-services", app)
+	return os.Getenv("DYNAMO_SERVICES")
 }
 
 func serviceFromItem(item map[string]*dynamodb.AttributeValue) *Service {

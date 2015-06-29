@@ -2,7 +2,7 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
+	"os"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -84,7 +84,7 @@ func (e *Change) Save() error {
 }
 
 func changesTable(app string) string {
-	return fmt.Sprintf("%s-changes", app)
+	return os.Getenv("DYNAMO_CHANGES")
 }
 
 func changeFromItem(item map[string]*dynamodb.AttributeValue) *Change {

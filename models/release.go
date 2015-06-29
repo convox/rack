@@ -306,7 +306,7 @@ func (r *Release) Processes() (Processes, error) {
 }
 
 func releasesTable(app string) string {
-	return fmt.Sprintf("%s-releases", app)
+	return os.Getenv("DYNAMO_RELEASES")
 }
 
 func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
