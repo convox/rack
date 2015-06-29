@@ -1,4 +1,4 @@
-package start
+package build
 
 import (
 	"bufio"
@@ -43,12 +43,6 @@ func Procfile(base string) error {
 	}
 
 	err = ioutil.WriteFile(filepath.Join(base, "Dockerfile"), data, 0644)
-
-	if err != nil {
-		return err
-	}
-
-	err = run("docker-compose", "up")
 
 	if err != nil {
 		return err

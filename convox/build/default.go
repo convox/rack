@@ -1,9 +1,11 @@
-package start
+package build
 
 import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/convox/cli/stdcli"
 )
 
 func Default(base string) error {
@@ -16,13 +18,13 @@ func Default(base string) error {
 		return err
 	}
 
-	err = run("docker", "build", "-t", image, base)
+	err = stdcli.Run("docker", "build", "-t", image, base)
 
 	if err != nil {
 		return err
 	}
 
-	data, err := query("docker", "run", image, "cat /app/Procfile")
+	data, err := stdcli.Query("docker", "run", image, "cat /app/Procfile")
 
 	if err != nil {
 		return err
@@ -47,12 +49,6 @@ func Default(base string) error {
 	}
 
 	err = ioutil.WriteFile(filepath.Join(base, "docker-compose.yml"), data, 0644)
-
-	if err != nil {
-		return err
-	}
-
-	err = run("docker-compose", "up")
 
 	if err != nil {
 		return err

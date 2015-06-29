@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"reflect"
 	"testing"
@@ -13,6 +16,9 @@ import (
 func appRun(args []string) (string, string) {
 	app := stdcli.New()
 	stdcli.Exiter = func(code int) {}
+	stdcli.Runner = func(bin string, args ...string) error { return nil }
+	stdcli.Querier = func(bin string, args ...string) ([]byte, error) { return []byte{}, nil }
+	stdcli.Tagger = func() string { return "1435444444" }
 
 	// Capture stdout and stderr to strings via Pipes
 	oldErr := os.Stderr
@@ -54,8 +60,17 @@ func appRun(args []string) (string, string) {
 	return out, err
 }
 
+func setLoginEnv(ts *httptest.Server) {
+	u, _ := url.Parse(ts.URL)
+	os.Setenv("CONSOLE_HOST", u.Host)
+	os.Setenv("REGISTRY_PASSWORD", "foo")
+}
+
 func expect(t *testing.T, a interface{}, b interface{}) {
-	if a != b {
+	aj, _ := json.Marshal(a)
+	bj, _ := json.Marshal(b)
+
+	if !bytes.Equal(aj, bj) {
 		t.Errorf("Expected %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
 	}
 }

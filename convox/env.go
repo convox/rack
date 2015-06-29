@@ -92,7 +92,7 @@ func cmdEnvSet(c *cli.Context) {
 func cmdEnvUnset(c *cli.Context) {
 	variable := c.Args()[0]
 
-	appName := dir()
+	appName := DirAppName()
 
 	path := fmt.Sprintf("/apps/%s/environment/%s", appName, variable)
 

@@ -1,8 +1,9 @@
-package start
+package build
 
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"sort"
 	"strings"
 
@@ -12,10 +13,44 @@ import (
 type Manifest map[string]ManifestEntry
 
 type ManifestEntry struct {
-	Build       string      `yaml:"build"`
+	Build       string      `yaml:"build,omitempty"`
+	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
 	Environment []string    `yaml:"environment"`
 	Ports       []string    `yaml:"ports"`
+}
+
+func (m Manifest) Tags(registry string, project string, tag string) map[string]string {
+	tags := make(map[string]string)
+
+	for key := range m {
+		ps := m[key]
+
+		img := ps.Image
+
+		if img == "" {
+			img = fmt.Sprintf("%s_%s", project, key)
+		}
+
+		tags[fmt.Sprintf("%s/%s-%s:%s", registry, project, key, tag)] = img
+	}
+
+	return tags
+}
+
+func (m Manifest) String() string {
+	b, _ := yaml.Marshal(m)
+	return string(b)
+}
+
+func ManifestFromPath(path string) (Manifest, error) {
+	dat, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		return make(Manifest), err
+	}
+
+	return ManifestFromBytes(dat)
 }
 
 func ManifestFromInspect(data []byte) ([]byte, error) {
@@ -76,4 +111,10 @@ func ManifestFromProcfile(procs map[string]string) ([]byte, error) {
 	}
 
 	return yaml.Marshal(manifest)
+}
+
+func ManifestFromBytes(b []byte) (Manifest, error) {
+	m := make(Manifest)
+	err := yaml.Unmarshal(b, &m)
+	return m, err
 }

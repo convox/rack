@@ -6,7 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/convox/cli/stdcli"
@@ -16,6 +18,16 @@ func main() {
 	app := stdcli.New()
 	app.Usage = "command-line application management"
 	app.Run(os.Args)
+}
+
+func DirAppName() string {
+	wd, err := os.Getwd()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return path.Base(wd)
 }
 
 func ConvoxGet(path string) ([]byte, error) {
@@ -42,6 +54,10 @@ func ConvoxGet(path string) ([]byte, error) {
 	if err != nil {
 		stdcli.Error(err)
 		return nil, err
+	}
+
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf(strings.TrimSpace(string(data)))
 	}
 
 	return data, nil
@@ -74,6 +90,38 @@ func ConvoxPost(path string, body string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
+	client := convoxClient()
+
+	req, err := convoxRequest("POST", path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Use RoundTrip to avoid following the redirect without the Auth header
+	res, err := client.Transport.RoundTrip(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	data, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 || res.StatusCode == 302 {
+		return data, nil
+	}
+
+	return nil, fmt.Errorf(strings.TrimSpace(string(data)))
 }
 
 func ConvoxDelete(path string) ([]byte, error) {
