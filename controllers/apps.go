@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -81,7 +82,12 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderTemplate(rw, "app", a)
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		RenderJson(rw, a)
+	default:
+		RenderTemplate(rw, "app", a)
+	}
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
@@ -114,12 +120,30 @@ func AppUpdate(rw http.ResponseWriter, r *http.Request) {
 
 	app, err := models.GetApp(name)
 
-	fmt.Printf("app = %+v\n", app)
-
 	if err != nil {
 		log.Error(err)
 		RenderError(rw, err)
 		return
+	}
+
+	count := GetForm(r, "count")
+
+	if count != "" {
+		_, err := strconv.Atoi(GetForm(r, "count"))
+
+		if err != nil {
+			log.Error(err)
+			RenderError(rw, err)
+			return
+		}
+
+		err = app.UpdateParams(map[string]string{"DesiredCount": count})
+
+		if err != nil {
+			log.Error(err)
+			RenderError(rw, err)
+			return
+		}
 	}
 
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", name))
