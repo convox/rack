@@ -27,6 +27,10 @@ func init() {
 				Name:  "password",
 				Usage: "password to use for authentication. If not specified, prompt for password.",
 			},
+			cli.BoolFlag{
+				Name:  "boot2docker",
+				Usage: "configure boot2docker for an insecure registry (development).",
+			},
 		},
 	})
 }
@@ -110,13 +114,15 @@ func cmdLogin(c *cli.Context) {
 
 	fmt.Println("Login Succeeded")
 
-	// Log into private registry
-	stdcli.Run(
-		"boot2docker",
-		"ssh",
-		fmt.Sprintf("echo $'EXTRA_ARGS=\"--insecure-registry %s:5000\"' | sudo tee -a /var/lib/boot2docker/profile && sudo /etc/init.d/docker restart", host),
-	)
-	stdcli.Run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", password, host+":5000")
+	if c.Bool("boot2docker") {
+		// Log into private registry
+		stdcli.Run(
+			"boot2docker",
+			"ssh",
+			fmt.Sprintf("echo $'EXTRA_ARGS=\"--insecure-registry %s:5000\"' | sudo tee -a /var/lib/boot2docker/profile && sudo /etc/init.d/docker restart", host),
+		)
+		stdcli.Run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", password, host+":5000")
+	}
 }
 
 func configFile() (string, error) {
