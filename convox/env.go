@@ -16,7 +16,7 @@ func init() {
 		Action:      cmdEnvGetAll,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "name",
+				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
 			},
 		},
@@ -41,13 +41,13 @@ func init() {
 }
 
 func cmdEnvGetAll(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 
-	resp, err := fetchEnv(name)
+	resp, err := fetchEnv(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -67,15 +67,15 @@ func cmdEnvGetAll(c *cli.Context) {
 }
 
 func cmdEnvGet(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 
 	variable := c.Args()[0]
 
-	resp, err := fetchEnv(name)
+	resp, err := fetchEnv(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -89,13 +89,13 @@ func cmdEnvGet(c *cli.Context) {
 }
 
 func cmdEnvSet(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 
-	resp, err := fetchEnv(name)
+	resp, err := fetchEnv(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -115,7 +115,7 @@ func cmdEnvSet(c *cli.Context) {
 		data += fmt.Sprintf("%s\n", value)
 	}
 
-	path := fmt.Sprintf("/apps/%s/environment", name)
+	path := fmt.Sprintf("/apps/%s/environment", app)
 
 	resp, err = ConvoxPost(path, data)
 
@@ -126,14 +126,14 @@ func cmdEnvSet(c *cli.Context) {
 }
 
 func cmdEnvUnset(c *cli.Context) {
-	name := c.String("name")
+	app := c.String("app")
 
-	if name == "" {
-		name = DirAppName()
+	if app == "" {
+		app = DirAppName()
 	}
 	variable := c.Args()[0]
 
-	path := fmt.Sprintf("/apps/%s/environment/%s", name, variable)
+	path := fmt.Sprintf("/apps/%s/environment/%s", app, variable)
 
 	_, err := ConvoxDelete(path)
 
