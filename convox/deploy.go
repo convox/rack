@@ -124,7 +124,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Created release %s\n", tag)
+	fmt.Printf("Releasing %s\n", tag)
 
 	// poll for complete
 	for {
