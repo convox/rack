@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -136,10 +137,26 @@ func cmdDeploy(c *cli.Context) {
 		}
 
 		if string(data) == "running" {
-			fmt.Printf("Status %s\n", data)
 			break
 		}
 
 		time.Sleep(1000 * time.Millisecond)
 	}
+
+	data, err = ConvoxGet("/apps/" + proj)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	var a *App
+	err = json.Unmarshal(data, &a)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	a.PrintInfo()
 }
