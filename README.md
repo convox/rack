@@ -77,6 +77,32 @@ them to your private registry and creates an app and release.
     Created release 1435598703
     Status running
 
+## convox env
+
+Inspect and edit environment variables.
+
+    $ convox env set FOO=bar BAZ=qux
+
+    $ convox env
+    BAZ=qux
+    FOO=bar
+
+    $ convox env set FOO=quux CORGE=grault
+
+    $ convox env
+    BAZ=qux
+    CORGE=grault
+    FOO=quux
+
+    $ convox env unset FOO
+
+    $ convox env
+    BAZ=qux
+    CORGE=grault
+
+    $ convox env get BAZ
+    qux
+
 ## License
 
 Apache 2.0 &copy; 2015 Convox, Inc.
