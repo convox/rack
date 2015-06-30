@@ -36,10 +36,11 @@ func init() {
 }
 
 func cmdPs(c *cli.Context) {
-	app := c.String("app")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if app == "" {
-		app = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/processes", app))

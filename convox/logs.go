@@ -27,10 +27,11 @@ func init() {
 }
 
 func cmdLogsStream(c *cli.Context) {
-	app := c.String("app")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if app == "" {
-		app = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	host, password, err := currentLogin()

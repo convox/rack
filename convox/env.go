@@ -44,10 +44,11 @@ func init() {
 }
 
 func cmdEnvGetAll(c *cli.Context) {
-	app := c.String("app")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if app == "" {
-		app = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	resp, err := fetchEnv(app)
@@ -70,10 +71,11 @@ func cmdEnvGetAll(c *cli.Context) {
 }
 
 func cmdEnvGet(c *cli.Context) {
-	app := c.String("app")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if app == "" {
-		app = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	variable := c.Args()[0]
@@ -92,10 +94,11 @@ func cmdEnvGet(c *cli.Context) {
 }
 
 func cmdEnvSet(c *cli.Context) {
-	app := c.String("app")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if app == "" {
-		app = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	resp, err := fetchEnv(app)
@@ -129,16 +132,18 @@ func cmdEnvSet(c *cli.Context) {
 }
 
 func cmdEnvUnset(c *cli.Context) {
-	app := c.String("app")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if app == "" {
-		app = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
+
 	variable := c.Args()[0]
 
 	path := fmt.Sprintf("/apps/%s/environment/%s", app, variable)
 
-	_, err := ConvoxDelete(path)
+	_, err = ConvoxDelete(path)
 
 	if err != nil {
 		stdcli.Error(err)

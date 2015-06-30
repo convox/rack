@@ -104,14 +104,19 @@ func cmdApps(c *cli.Context) {
 }
 
 func cmdAppCreate(c *cli.Context) {
-	name := c.Args()[0]
+	_, app, err := stdcli.DirApp(c, ".")
 
-	if name == "" {
-		name = DirAppName()
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) > 0 {
+		app = c.Args()[0]
 	}
 
 	v := url.Values{}
-	v.Set("name", name)
+	v.Set("name", app)
 	data, err := ConvoxPostForm("/apps", v)
 
 	if err != nil {
@@ -119,20 +124,20 @@ func cmdAppCreate(c *cli.Context) {
 		return
 	}
 
-	data, err = ConvoxGet("/apps/" + name)
+	data, err = ConvoxGet("/apps/" + app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var app *App
-	err = json.Unmarshal(data, &app)
+	var a *App
+	err = json.Unmarshal(data, &a)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Printf("Created %s.\n", app.Name)
+	fmt.Printf("Created %s.\n", a.Name)
 }

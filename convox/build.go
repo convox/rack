@@ -10,7 +10,7 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
-func Build(dir string) error {
+func Build(dir string, app string) error {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
@@ -26,7 +26,7 @@ func Build(dir string) error {
 	switch {
 	case exists(filepath.Join(dir, "docker-compose.yml")):
 		fmt.Printf("Docker Compose app detected.\n")
-		err = build.DockerCompose(dir)
+		err = build.DockerCompose(dir, app)
 	case exists(filepath.Join(dir, "Dockerfile")):
 		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
 		err = build.Dockerfile(dir)
@@ -51,23 +51,35 @@ func init() {
 		Description: "build an app for local development",
 		Usage:       "<directory>",
 		Action:      cmdBuild,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "app",
+				Usage: "app name. Inferred from current directory if not specified.",
+			},
+		},
 	})
 }
 
 func cmdBuild(c *cli.Context) {
-	base := "."
+	wd := "."
 
 	if len(c.Args()) > 0 {
-		base = c.Args()[0]
+		wd = c.Args()[0]
 	}
 
-	err := Build(base)
+	dir, app, err := stdcli.DirApp(c, wd)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
+	err = Build(dir, app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 }
 
 func exists(filename string) bool {
