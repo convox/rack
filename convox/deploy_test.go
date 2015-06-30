@@ -11,7 +11,27 @@ import (
 	"github.com/convox/cli/convox/build"
 )
 
-func TestBuildTagPush(t *testing.T) {
+func TestBuildManifest(t *testing.T) {
+	m, _ := build.ManifestFromBytes([]byte(`web:
+  image: httpd
+  ports:
+  - 80:80
+  links:
+    - redis
+worker:
+  build: .
+  command: ruby worker.rb
+redis:
+  image: convox/redis
+`))
+
+	expect(t, m["web"].Image, "httpd")
+	expect(t, m["web"].Ports, []string{"80:80"})
+	expect(t, m["web"].Links, []string{"redis"})
+	expect(t, len(m["worker"].Links), 0)
+}
+
+func TestBuildTags(t *testing.T) {
 	m, _ := build.ManifestFromBytes([]byte(`web:
   image: httpd
   ports:
