@@ -41,7 +41,15 @@ func TestDeploy(t *testing.T) {
 			_, _ = w.Write(data)
 
 		case "/apps/dockercompose":
-			http.Error(w, "not found", 404)
+			app := App{
+				Name:   "dockercompose",
+				Status: "running",
+				Parameters: map[string]string{
+					"Release": "1435444444",
+				},
+			}
+			data, _ := json.Marshal(app)
+			_, _ = w.Write(data)
 
 		case "/apps/dockercompose/status":
 			s := statuses[0]
@@ -64,10 +72,10 @@ func TestDeploy(t *testing.T) {
 	expect(t, stdout, `Docker Compose app detected.
 Tagging httpd
 Pushing 127.0.0.1:5000/dockercompose-web:1435444444
-Created app dockercompose
-Status running
 Created release 1435444444
-Status running
+Name         dockercompose
+Status       running
+Release      1435444444
 `)
 	expect(t, stderr, "")
 }
