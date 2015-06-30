@@ -14,8 +14,13 @@
         "Default" : "",
         "Description" : ""
       },
+      "Cpu": {
+        "Type": "Number",
+        "Default": "200",
+        "Description": "CPU shares of each process"
+      },
       "DesiredCount": {
-        "Type" : "String",
+        "Type" : "Number",
         "Default" : "1",
         "Description" : "The number of instantiations of the specified ECS task definition to place and keep running on your cluster."
       },
@@ -33,6 +38,11 @@
         "Type" : "String",
         "Default" : "",
         "Description" : ""
+      },
+      "Memory": {
+        "Type": "Number",
+        "Default": "256",
+        "Description": "MB of RAM to reserve"
       },
       "Release": {
         "Type" : "String",
@@ -180,7 +190,7 @@
       "Properties": {
         "ServiceToken": { "Ref": "Kernel" },
         "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": { "Ref": "DesiredCount" },
+        "DesiredCount": { "Ref": "Count" },
         "Name": { "Ref": "AWS::StackName" },
         "TaskDefinition": { "Ref": "TaskDefinition" },
         "Role": { "Ref": "ServiceRole" },
