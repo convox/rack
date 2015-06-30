@@ -112,7 +112,7 @@ func cmdLogin(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("Login Succeeded")
+	stdcli.Run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", password, host+":5000")
 
 	if c.Bool("boot2docker") {
 		// Log into private registry
@@ -121,7 +121,6 @@ func cmdLogin(c *cli.Context) {
 			"ssh",
 			fmt.Sprintf("echo $'EXTRA_ARGS=\"--insecure-registry %s:5000\"' | sudo tee -a /var/lib/boot2docker/profile && sudo /etc/init.d/docker restart", host),
 		)
-		stdcli.Run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", password, host+":5000")
 	}
 }
 

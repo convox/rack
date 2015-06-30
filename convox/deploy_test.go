@@ -72,7 +72,7 @@ func TestDeploy(t *testing.T) {
 	expect(t, stdout, `Docker Compose app detected.
 Tagging httpd
 Pushing 127.0.0.1:5000/dockercompose-web:1435444444
-Created release 1435444444
+Releasing 1435444444
 Name         dockercompose
 Status       running
 Release      1435444444
