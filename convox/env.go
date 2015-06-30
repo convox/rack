@@ -8,33 +8,36 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+var appFlag = cli.StringFlag{
+	Name:  "app",
+	Usage: "app name. Inferred from current directory if not specified.",
+}
+
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "env",
 		Description: "manage an app's environment variables",
 		Usage:       "get|set|unset",
 		Action:      cmdEnvGetAll,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
-			},
-		},
+		Flags:       []cli.Flag{appFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:   "get",
 				Usage:  "VARIABLE",
 				Action: cmdEnvGet,
+				Flags:  []cli.Flag{appFlag},
 			},
 			{
 				Name:   "set",
 				Usage:  "VARIABLE=VALUE",
 				Action: cmdEnvSet,
+				Flags:  []cli.Flag{appFlag},
 			},
 			{
 				Name:   "unset",
 				Usage:  "VARIABLE",
 				Action: cmdEnvUnset,
+				Flags:  []cli.Flag{appFlag},
 			},
 		},
 	})
