@@ -61,3 +61,5 @@ vendor:
 
 test:
 	go test -v ./...
+
+all: test
