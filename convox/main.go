@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/convox/cli/stdcli"
@@ -18,16 +17,6 @@ func main() {
 	app := stdcli.New()
 	app.Usage = "command-line application management"
 	app.Run(os.Args)
-}
-
-func DirAppName() string {
-	wd, err := os.Getwd()
-
-	if err != nil {
-		panic(err)
-	}
-
-	return path.Base(wd)
 }
 
 func ConvoxGet(path string) ([]byte, error) {
