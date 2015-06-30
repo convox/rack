@@ -14,7 +14,7 @@ Convox command line interface.
 
 **Golang**
 
-    $ go get github.com/convox/cli/convox
+    $ go get -u github.com/convox/cli/convox
 
 ## Usage
 
