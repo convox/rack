@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -126,20 +125,22 @@ func AppUpdate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count := GetForm(r, "count")
+	params := map[string]string{}
 
-	if count != "" {
-		_, err := strconv.Atoi(GetForm(r, "count"))
+	if count := GetForm(r, "count"); count != "" {
+		params["Count"] = count
+	}
 
-		if err != nil {
-			log.Error(err)
-			RenderError(rw, err)
-			return
-		}
+	if cpu := GetForm(r, "cpu"); cpu != "" {
+		params["Cpu"] = cpu
+	}
 
-		err = app.UpdateParams(map[string]string{"DesiredCount": count})
+	if mem := GetForm(r, "mem"); mem != "" {
+		params["Memory"] = mem
+	}
 
-		if err != nil {
+	if len(params) > 0 {
+		if err := app.UpdateParams(params); err != nil {
 			log.Error(err)
 			RenderError(rw, err)
 			return
