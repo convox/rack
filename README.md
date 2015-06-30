@@ -4,6 +4,16 @@ Convox command line interface.
 
 ## Installation
 
+**OS X**
+
+    $ curl -LO https://github.com/convox/cli/releases/download/v0.2/darwin-amd64-convox.tar.bz2 && tar xjvf darwin-amd64-convox.tar.bz2 && cp bin/darwin/amd64/convox /usr/local/bin
+
+**Linux**
+
+    $ curl -LO https://github.com/convox/cli/releases/download/v0.2/linux-amd64-convox.tar.bz2 && tar xjvf linux-amd64-convox.tar.bz2 && cp bin/linux/amd64/convox /usr/local/bin
+
+**Golang**
+
     $ go get github.com/convox/cli/convox
 
 ## Usage
