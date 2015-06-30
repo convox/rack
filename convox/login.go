@@ -112,6 +112,8 @@ func cmdLogin(c *cli.Context) {
 		return
 	}
 
+	fmt.Println("WARNING: login credentials saved in ~/.convox")
+
 	stdcli.Run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", password, host+":5000")
 
 	if c.Bool("boot2docker") {
