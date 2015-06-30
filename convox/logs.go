@@ -68,7 +68,13 @@ func cmdLogsStream(c *cli.Context) {
 	var message []byte
 
 	for {
-		websocket.Message.Receive(ws, &message)
+		err = websocket.Message.Receive(ws, &message)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
 		fmt.Print(string(message))
 	}
 }
