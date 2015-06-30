@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -57,6 +58,22 @@ func New() *cli.App {
 	app.Commands = Commands
 
 	return app
+}
+
+func DirApp(c *cli.Context, wd string) (string, string, error) {
+	abs, err := filepath.Abs(wd)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	app := c.String("app")
+
+	if app == "" {
+		app = path.Base(abs)
+	}
+
+	return abs, app, nil
 }
 
 func RegisterCommand(cmd cli.Command) {

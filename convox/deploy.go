@@ -30,28 +30,22 @@ func init() {
 }
 
 func cmdDeploy(c *cli.Context) {
-	app := c.String("app")
-
-	if app == "" {
-		app = DirAppName()
-	}
-
-	base := "."
+	wd := "."
 
 	if len(c.Args()) > 0 {
-		base = c.Args()[0]
+		wd = c.Args()[0]
 	}
 
-	base, err := filepath.Abs(base)
+	dir, app, err := stdcli.DirApp(c, wd)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	Build(base, app)
+	Build(dir, app)
 
-	m, err := build.ManifestFromPath(filepath.Join(base, "docker-compose.yml"))
+	m, err := build.ManifestFromPath(filepath.Join(dir, "docker-compose.yml"))
 
 	if err != nil {
 		stdcli.Error(err)

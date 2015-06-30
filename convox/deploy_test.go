@@ -41,9 +41,9 @@ func TestDeploy(t *testing.T) {
 			data, _ := json.Marshal(app)
 			_, _ = w.Write(data)
 
-		case "/apps/dockercompose":
+		case "/apps/docker-compose":
 			app := App{
-				Name:   "dockercompose",
+				Name:   "docker-compose",
 				Status: "running",
 				Parameters: map[string]string{
 					"Release": "1435444444",
@@ -52,12 +52,12 @@ func TestDeploy(t *testing.T) {
 			data, _ := json.Marshal(app)
 			_, _ = w.Write(data)
 
-		case "/apps/dockercompose/status":
+		case "/apps/docker-compose/status":
 			s := statuses[0]
 			statuses = append(statuses[:0], statuses[1:]...)
 			_, _ = w.Write([]byte(s))
 
-		case "/apps/dockercompose/releases":
+		case "/apps/docker-compose/releases":
 			_, _ = w.Write([]byte("ok"))
 		default:
 			http.Error(w, fmt.Sprintf("Not Found: %s", r.URL.Path), 500)
@@ -76,7 +76,7 @@ func TestDeploy(t *testing.T) {
 Tagging httpd
 Pushing 127.0.0.1:5000/dockercompose-web:1435444444
 Releasing 1435444444
-Name         dockercompose
+Name         docker-compose
 Status       running
 Release      1435444444
 `)

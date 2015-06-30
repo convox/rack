@@ -61,19 +61,20 @@ func init() {
 }
 
 func cmdBuild(c *cli.Context) {
-	app := c.String("app")
-
-	if app == "" {
-		app = DirAppName()
-	}
-
-	base := "."
+	wd := "."
 
 	if len(c.Args()) > 0 {
-		base = c.Args()[0]
+		wd = c.Args()[0]
 	}
 
-	err := Build(base, app)
+	dir, app, err := stdcli.DirApp(c, wd)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	err = Build(dir, app)
 
 	if err != nil {
 		stdcli.Error(err)
