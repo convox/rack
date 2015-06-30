@@ -1,34 +1,18 @@
 package build
 
-import (
-	"path/filepath"
+import "github.com/convox/cli/stdcli"
 
-	"github.com/convox/cli/stdcli"
-)
-
-func DockerCompose(dir string) error {
-	err := stdcli.Run("docker-compose", "build")
+func DockerCompose(dir string, app string) error {
+	err := stdcli.Run("docker-compose", "-p", app, "build")
 
 	if err != nil {
 		return err
 	}
 
-	m, err := ManifestFromPath(filepath.Join(dir, "docker-compose.yml"))
+	err = stdcli.Run("docker-compose", "-p", app, "pull")
 
 	if err != nil {
 		return err
-	}
-
-	for key := range m {
-		ps := m[key]
-
-		if ps.Image != "" {
-			err = stdcli.Run("docker", "pull", ps.Image)
-
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil

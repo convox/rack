@@ -20,10 +20,22 @@ func init() {
 		Description: "deploy an app to AWS",
 		Usage:       "<directory>",
 		Action:      cmdDeploy,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "app",
+				Usage: "app name. Inferred from current directory if not specified.",
+			},
+		},
 	})
 }
 
 func cmdDeploy(c *cli.Context) {
+	app := c.String("app")
+
+	if app == "" {
+		app = DirAppName()
+	}
+
 	base := "."
 
 	if len(c.Args()) > 0 {
@@ -37,7 +49,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	Build(base)
+	Build(base, app)
 
 	m, err := build.ManifestFromPath(filepath.Join(base, "docker-compose.yml"))
 
@@ -59,9 +71,9 @@ func cmdDeploy(c *cli.Context) {
 		host = os.Getenv("REGISTRY_HOST")
 	}
 
-	proj := strings.Replace(filepath.Base(base), "-", "", -1)
+	prefix := strings.Replace(app, "-", "", -1)
 	tag := fmt.Sprintf("%v", stdcli.Tagger())
-	tags := m.Tags(host, proj, tag)
+	tags := m.Tags(host, prefix, tag)
 
 	for tag, image := range tags {
 		fmt.Printf("Tagging %s\n", image)
@@ -82,11 +94,11 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	// create app if it doesn't exist
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", proj))
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 	if err != nil {
 		v := url.Values{}
-		v.Set("name", proj)
+		v.Set("name", app)
 		data, err = ConvoxPostForm("/apps", v)
 
 		if err != nil {
@@ -94,11 +106,11 @@ func cmdDeploy(c *cli.Context) {
 			return
 		}
 
-		fmt.Printf("Created app %s\n", proj)
+		fmt.Printf("Created app %s\n", app)
 
 		// poll for complete
 		for {
-			data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", proj))
+			data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
 
 			if err != nil {
 				stdcli.Error(err)
@@ -118,7 +130,7 @@ func cmdDeploy(c *cli.Context) {
 	v := url.Values{}
 	v.Set("manifest", m.String())
 	v.Set("tag", tag)
-	data, err = ConvoxPostForm(fmt.Sprintf("/apps/%s/releases", proj), v)
+	data, err = ConvoxPostForm(fmt.Sprintf("/apps/%s/releases", app), v)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -129,7 +141,7 @@ func cmdDeploy(c *cli.Context) {
 
 	// poll for complete
 	for {
-		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", proj))
+		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
 
 		if err != nil {
 			stdcli.Error(err)
@@ -143,7 +155,7 @@ func cmdDeploy(c *cli.Context) {
 		time.Sleep(1000 * time.Millisecond)
 	}
 
-	data, err = ConvoxGet("/apps/" + proj)
+	data, err = ConvoxGet("/apps/" + app)
 
 	if err != nil {
 		stdcli.Error(err)

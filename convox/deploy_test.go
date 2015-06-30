@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -58,6 +59,8 @@ func TestDeploy(t *testing.T) {
 
 		case "/apps/dockercompose/releases":
 			_, _ = w.Write([]byte("ok"))
+		default:
+			http.Error(w, fmt.Sprintf("Not Found: %s", r.URL.Path), 500)
 		}
 	}))
 	defer ts.Close()
