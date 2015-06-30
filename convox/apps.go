@@ -111,7 +111,7 @@ func cmdAppCreate(c *cli.Context) {
 		return
 	}
 
-	if c.Args()[0] != "" {
+	if len(c.Args()) > 0 {
 		app = c.Args()[0]
 	}
 
