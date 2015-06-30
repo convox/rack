@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sort"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -21,6 +23,43 @@ type App struct {
 }
 
 type Apps []App
+
+func (a App) PrintInfo() {
+	var ps sort.StringSlice = make([]string, 0)
+	ports := make(map[string]string)
+
+	for k := range a.Parameters {
+		if strings.HasSuffix(k, "Command") {
+			ps = append(ps, strings.TrimSuffix(k, "Command"))
+		}
+
+		if strings.HasSuffix(k, "Balancer") {
+			p := strings.Split(k, "Port")[0]
+			ports[p] = a.Parameters[k]
+		}
+	}
+
+	ps.Sort()
+
+	fmt.Printf("%-12v %v\n", "Name", a.Name)
+	fmt.Printf("%-12v %v\n", "Status", a.Status)
+	fmt.Printf("%-12v %v\n", "Release", a.Parameters["Release"])
+
+	for _, p := range ps {
+		cmd := a.Parameters[p+"Command"]
+		port := ports[p]
+
+		if cmd != "" {
+			fmt.Printf("%-12v %v\n", p, a.Parameters[p+"Command"])
+		} else {
+			fmt.Printf("%-12v [image]\n", p)
+		}
+
+		if port != "" {
+			fmt.Printf("%-12v %s:%s\n", p+" Host", a.Outputs["BalancerHost"], port)
+		}
+	}
+}
 
 func init() {
 	stdcli.RegisterCommand(cli.Command{
