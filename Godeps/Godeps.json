@@ -11,6 +11,18 @@
 			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
 		},
 		{
+			"ImportPath": "github.com/inconshreveable/go-update",
+			"Rev": "d41317bfe4ce85a2052e9657cc0b68a93d05622d"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "6e7f843663477789fac7c02def0d0909e969b4e5"
+		},
+		{
+			"ImportPath": "github.com/kr/binarydist",
+			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
 			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
 		},
