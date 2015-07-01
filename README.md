@@ -1,7 +1,7 @@
 # convox/cli 
 
-<a href="https://travis-ci.org/ddollar/forego">
-  <img align="right" src="https://travis-ci.org/ddollar/forego.svg?branch=master">
+<a href="https://travis-ci.org/convox/cli">
+  <img align="right" src="https://travis-ci.org/convox/cli.svg?branch=master">
 </a>
 
 Convox command line interface.
