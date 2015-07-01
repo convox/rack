@@ -37,7 +37,7 @@ func cmdStop(c *cli.Context) {
 
 	id := c.Args()[0]
 
-	_, err = ConvoxDelete(fmt.Sprintf("/apps/%s/processes/%s/stop", app, id))
+	_, err = ConvoxDelete(fmt.Sprintf("/apps/%s/processes/%s", app, id))
 
 	if err != nil {
 		stdcli.Error(err)
