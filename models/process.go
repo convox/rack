@@ -22,6 +22,10 @@ type Process struct {
 
 type Processes []Process
 
+type ProcessRunOptions struct {
+	Command string
+}
+
 func ListProcesses(app string) (Processes, error) {
 	req := &ecs.DescribeServicesInput{
 		Cluster:  aws.String(os.Getenv("CLUSTER")),
@@ -106,6 +110,30 @@ func GetProcess(app, name string) (*Process, error) {
 	}
 
 	return process, nil
+}
+
+func (p *Process) Run(options ProcessRunOptions) error {
+	app, err := GetApp(p.App)
+
+	if err != nil {
+		return err
+	}
+
+	resources := app.Resources()
+
+	req := &ecs.RunTaskInput{
+		Cluster:        aws.String(os.Getenv("CLUSTER")),
+		Count:          aws.Long(1),
+		TaskDefinition: aws.String(resources["TaskDefinition"].Id),
+	}
+
+	_, err = ECS().RunTask(req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
