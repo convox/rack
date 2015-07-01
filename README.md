@@ -105,6 +105,7 @@ Build an app for local development.
     Building web...
     Step 0 : FROM gliderlabs/alpine:3.1
     Pulling repository gliderlabs/alpine
+    ...
 
 ## convox debug
 
