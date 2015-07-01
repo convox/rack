@@ -1,8 +1,8 @@
-<div style="float:right;">
-  [![Build Status](https://travis-ci.org/convox/cli.svg?branch=master)](https://travis-ci.org/convox/cli)
-</div>
-
 # convox/cli 
+
+<a href="https://travis-ci.org/ddollar/forego">
+  <img align="right" src="https://travis-ci.org/ddollar/forego.svg?branch=master">
+</a>
 
 Convox command line interface.
 
