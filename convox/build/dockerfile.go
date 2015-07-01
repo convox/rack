@@ -1,24 +1,20 @@
 package build
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/convox/cli/stdcli"
 )
 
-func Dockerfile(base string) error {
-	app := filepath.Base(base)
-	image := fmt.Sprintf("%s-app", app)
-
-	err := stdcli.Run("docker", "build", "-t", image, base)
+func Dockerfile(base string, app string) error {
+	err := stdcli.Run("docker", "build", "-t", app, base)
 
 	if err != nil {
 		return err
 	}
 
-	data, err := stdcli.Query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", image)
+	data, err := stdcli.Query("docker", "inspect", "-f", "{{ json .ContainerConfig.ExposedPorts }}", app)
 
 	if err != nil {
 		return err

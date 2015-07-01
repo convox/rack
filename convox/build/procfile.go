@@ -11,7 +11,7 @@ import (
 
 var procfileEntryRegexp = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 
-func Procfile(base string) error {
+func Procfile(base string, app string) error {
 	data, err := ioutil.ReadFile(filepath.Join(base, "Procfile"))
 
 	if err != nil {

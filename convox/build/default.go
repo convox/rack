@@ -1,30 +1,26 @@
 package build
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/convox/cli/stdcli"
 )
 
-func Default(base string) error {
-	app := filepath.Base(base)
-	image := fmt.Sprintf("%s-app", app)
-
+func Default(base string, app string) error {
 	err := ioutil.WriteFile(filepath.Join(base, "Dockerfile"), []byte(`FROM convox/cedar`), 0644)
 
 	if err != nil {
 		return err
 	}
 
-	err = stdcli.Run("docker", "build", "-t", image, base)
+	err = stdcli.Run("docker", "build", "-t", app, base)
 
 	if err != nil {
 		return err
 	}
 
-	data, err := stdcli.Query("docker", "run", image, "cat /app/Procfile")
+	data, err := stdcli.Query("docker", "run", app, "cat /app/Procfile")
 
 	if err != nil {
 		return err

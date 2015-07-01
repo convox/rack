@@ -29,13 +29,13 @@ func Build(dir string, app string) error {
 		err = build.DockerCompose(dir, app)
 	case exists(filepath.Join(dir, "Dockerfile")):
 		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
-		err = build.Dockerfile(dir)
+		err = build.Dockerfile(dir, app)
 	case exists(filepath.Join(dir, "Procfile")):
 		fmt.Printf("Procfile app detected. Writing Dockerfile and docker-compose.yml.\n")
-		err = build.Procfile(dir)
+		err = build.Procfile(dir, app)
 	default:
 		fmt.Printf("Nothing detected. Writing Procfile, Dockerfile and docker-compose.yml.\n")
-		err = build.Default(dir)
+		err = build.Default(dir, app)
 	}
 
 	if err != nil {
