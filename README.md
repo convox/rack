@@ -6,11 +6,7 @@ Convox command line interface.
 
 **OS X**
 
-    $ curl -LO https://github.com/convox/cli/releases/download/v0.2/darwin-amd64-convox.tar.bz2 && tar xjvf darwin-amd64-convox.tar.bz2 && cp bin/darwin/amd64/convox /usr/local/bin
-
-**Linux**
-
-    $ curl -LO https://github.com/convox/cli/releases/download/v0.2/linux-amd64-convox.tar.bz2 && tar xjvf linux-amd64-convox.tar.bz2 && cp bin/linux/amd64/convox /usr/local/bin
+    $ curl -Ls 'https://api.equinox.io/1/Applications/ap_TKxvw_eIPVyOzl6rKEonCU5DUY/Updates/Asset/convox.zip?os=darwin&arch=amd64&channel=stable' -o /tmp/convox.zip && unzip /tmp/convox.zip -d /tmp && mv /tmp/convox /usr/local/bin/convox
 
 **Golang**
 
