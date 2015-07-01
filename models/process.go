@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 )
 
@@ -83,33 +82,19 @@ func ListProcesses(app string) (Processes, error) {
 }
 
 func GetProcess(app, name string) (*Process, error) {
-	req := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("tag:System"), Values: []*string{aws.String("convox")}},
-			&ec2.Filter{Name: aws.String("tag:Type"), Values: []*string{aws.String("app")}},
-			&ec2.Filter{Name: aws.String("tag:App"), Values: []*string{aws.String(app)}},
-		},
-	}
-
-	res, err := EC2().DescribeInstances(req)
+	processes, err := ListProcesses(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	count := 0
-
-	for _, r := range res.Reservations {
-		count += len(r.Instances)
+	for _, p := range processes {
+		if p.Name == name {
+			return &p, nil
+		}
 	}
 
-	process := &Process{
-		Name:  name,
-		Count: count,
-		App:   app,
-	}
-
-	return process, nil
+	return nil, nil
 }
 
 func (p *Process) Run(options ProcessRunOptions) error {
