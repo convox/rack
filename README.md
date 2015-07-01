@@ -1,4 +1,8 @@
-# convox/cli [![Build Status](https://travis-ci.org/convox/cli.svg?branch=master)](https://travis-ci.org/convox/cli)
+<div style="float:right;">
+  [![Build Status](https://travis-ci.org/convox/cli.svg?branch=master)](https://travis-ci.org/convox/cli)
+</div>
+
+# convox/cli 
 
 Convox command line interface.
 
