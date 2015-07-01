@@ -9,9 +9,9 @@ import (
 )
 
 type Process struct {
+	Id      string
 	Name    string
 	Command string
-	Count   int
 
 	ServiceType string
 
@@ -59,6 +59,6 @@ func cmdPs(c *cli.Context) {
 	}
 
 	for _, ps := range *processes {
-		fmt.Printf("%-10v %-3v\n", ps.Name, ps.Count)
+		fmt.Printf("%s %s\n", ps.Id, ps.Name)
 	}
 }
