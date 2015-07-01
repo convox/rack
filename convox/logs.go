@@ -27,54 +27,56 @@ func init() {
 }
 
 func cmdLogsStream(c *cli.Context) {
-	_, app, err := stdcli.DirApp(c, ".")
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	host, password, err := currentLogin()
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, app)
-
-	config, err := websocket.NewConfig(url, origin)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	userpass := fmt.Sprintf("convox:%s", password)
-	userpass_encoded := b64.StdEncoding.EncodeToString([]byte(userpass))
-
-	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
-
-	ws, err := websocket.DialConfig(config)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	defer ws.Close()
-
-	var message []byte
-
 	for {
-		err = websocket.Message.Receive(ws, &message)
+		_, app, err := stdcli.DirApp(c, ".")
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		fmt.Print(string(message))
+		host, password, err := currentLogin()
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		origin := fmt.Sprintf("https://%s", host)
+		url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, app)
+
+		config, err := websocket.NewConfig(url, origin)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		userpass := fmt.Sprintf("convox:%s", password)
+		userpass_encoded := b64.StdEncoding.EncodeToString([]byte(userpass))
+
+		config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+
+		ws, err := websocket.DialConfig(config)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		defer ws.Close()
+
+		var message []byte
+
+		for {
+			err := websocket.Message.Receive(ws, &message)
+
+			if err != nil {
+				stdcli.Error(err)
+				break
+			}
+
+			fmt.Print(string(message))
+		}
 	}
 }
