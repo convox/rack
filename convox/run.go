@@ -32,19 +32,18 @@ func cmdRun(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) < 2 {
+	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "run")
 		return
 	}
 
 	ps := c.Args()[0]
 
-	args := c.Args()[1:]
-	command := strings.Join(args, " ")
+	command := ""
 
-	if err != nil {
-		stdcli.Error(err)
-		return
+	if len(c.Args()) > 1 {
+		args := c.Args()[1:]
+		command = strings.Join(args, " ")
 	}
 
 	v := url.Values{}
