@@ -13,7 +13,7 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
-var Version = "0.6"
+var Version = "0.7"
 
 func main() {
 	app := stdcli.New()
