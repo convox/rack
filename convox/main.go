@@ -13,8 +13,11 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+var Version = "0.1"
+
 func main() {
 	app := stdcli.New()
+	app.Version = Version
 	app.Usage = "command-line application management"
 	app.Run(os.Args)
 }
