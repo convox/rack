@@ -26,12 +26,21 @@ func cmdUpdate(c *cli.Context) {
 		Channel:    "stable",
 	}
 
-	_, err := params.CheckForUpdate("https://api.equinox.io/1/Updates", update.New())
+	r, err := params.CheckForUpdate("https://api.equinox.io/1/Updates", update.New())
 
-	if err != nil && err != check.NoUpdateAvailable {
+	if err != nil {
+		if err != check.NoUpdateAvailable {
+			stdcli.Error(err)
+		}
+		return
+	}
+
+	err, _ = r.Update()
+
+	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Println("Updated")
+	fmt.Printf("Updated to %s\n", r.Version)
 }
