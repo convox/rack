@@ -12,7 +12,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "run",
 		Description: "run a one-off process",
-		Usage:       "convox run [--app myapp] ps cmd",
+		Usage:       "convox run ps cmd",
 		Action:      cmdRun,
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -49,6 +49,4 @@ func cmdRun(c *cli.Context) {
 	}
 
 	fmt.Printf("Running %s `%s`\n", ps, command)
-
-	// fmt.Printf("%v %v %v\n", app, ps, command)
 }
