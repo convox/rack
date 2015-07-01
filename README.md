@@ -87,6 +87,35 @@ them to your private registry and creates an app and release.
     Created release 1435598703
     Status running
 
+## convox apps
+
+List apps.
+
+    $ convox apps
+    myapp
+    myapp2
+
+## convox build
+
+Build an app for local development.
+
+    $ cd myapp
+    $ convox build
+    Docker Compose app detected.
+    Building web...
+    Step 0 : FROM gliderlabs/alpine:3.1
+    Pulling repository gliderlabs/alpine
+
+## convox debug
+
+Get an app's system events for debugging purposes.
+
+    $ convox debug
+    2015-06-10T16:11:07Z: [CFM] (myapp) CREATE_IN_PROGRESS User Initiated
+    2015-06-10T16:11:32Z: [CFM] (ServiceRole) CREATE_IN_PROGRESS
+    2015-06-10T16:11:32Z: [CFM] (DynamoChanges) CREATE_IN_PROGRESS
+    ...
+
 ## convox env
 
 Inspect and edit environment variables.
@@ -112,6 +141,54 @@ Inspect and edit environment variables.
 
     $ convox env get BAZ
     qux
+
+## convox info
+
+See info about an app.
+
+    $ convox info
+    Name         myapp
+    Status       running
+    Release      RBWGAZAFGDI
+    Web          [image]
+    Web Host     myapp-104798329.us-east-1.elb.amazonaws.com:5000
+
+## convox logs
+
+Stream the logs for an app.
+
+    $ convox logs
+    web: 2015-07-01T22:06:39.409270747Z 10.0.1.92 - - [01/Jul/2015:22:06:39 +0000] "GET / HTTP/1.1" 200 883 0.0042
+    web: 2015-07-01T22:06:44.036603010Z 10.0.1.92 - - [01/Jul/2015:22:06:44 +0000] "POST /message HTTP/1.1" 303 - 0.0037
+
+## convox ps
+
+List the app processes.
+
+    $ convox ps
+     web
+
+## convox run
+
+Run a one-off process.
+
+## convox scale
+
+Scale the number of processes for an app.
+
+    $ convox scale 2
+    Scale 2
+
+## convox stop
+
+Stop a process.
+
+## convox update
+
+Update the CLI.
+
+    $ convox update
+    Updated to 0.9
 
 ## License
 
