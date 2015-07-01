@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,13 +9,13 @@ import (
 )
 
 type Process struct {
-	Name    string
-	Command string
-	Count   int
-
+	App         string
+	Command     string
+	Count       int
+	Id          string
+	Name        string
 	ServiceType string
-
-	App string
+	TaskARN     string
 }
 
 type Processes []Process
@@ -26,55 +25,39 @@ type ProcessRunOptions struct {
 }
 
 func ListProcesses(app string) (Processes, error) {
-	req := &ecs.DescribeServicesInput{
-		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: []*string{aws.String(app)},
+	req := &ecs.ListTasksInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Family:  aws.String(app),
 	}
 
-	sres, err := ECS().DescribeServices(req)
+	res, err := ECS().ListTasks(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if len(sres.Services) != 1 {
-		return nil, fmt.Errorf("could not find service: %s", app)
+	treq := &ecs.DescribeTasksInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Tasks:   res.TaskARNs,
 	}
 
-	service := sres.Services[0]
-
-	tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-		TaskDefinition: service.TaskDefinition,
-	})
-
-	if err != nil {
-		return nil, err
-	}
+	tres, err := ECS().DescribeTasks(treq)
 
 	ps := Processes{}
-	links := make(map[string]string)
 
-	for _, cd := range tres.TaskDefinition.ContainerDefinitions {
-		if !strings.HasPrefix(*cd.Name, "convox-") {
-			ps = append(ps, Process{
-				App:   app,
-				Name:  *cd.Name,
-				Count: int(*service.DesiredCount),
-			})
+	for _, task := range tres.Tasks {
+		parts := strings.Split(*task.TaskARN, "-")
+		id := parts[len(parts)-1]
 
-			for _, l := range cd.Links {
-				ls := strings.Split(*l, ":")
-
-				if len(ls) == 2 {
-					links[ls[0]] = ls[1]
-				}
+		for _, container := range task.Containers {
+			if !strings.HasPrefix(*container.Name, "convox-") {
+				ps = append(ps, Process{
+					Id:      id,
+					TaskARN: *task.TaskARN,
+					Name:    *container.Name,
+					App:     app,
+				})
 			}
-		}
-	}
-
-	for i, p := range ps {
-		if _, ok := links[p.Name]; ok {
-			ps[i].ServiceType = links[p.Name]
 		}
 	}
 
@@ -90,6 +73,22 @@ func GetProcess(app, name string) (*Process, error) {
 
 	for _, p := range processes {
 		if p.Name == name {
+			return &p, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func GetProcessById(app, id string) (*Process, error) {
+	processes, err := ListProcesses(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range processes {
+		if p.Id == id {
 			return &p, nil
 		}
 	}
@@ -128,6 +127,21 @@ func (p *Process) Run(options ProcessRunOptions) error {
 	}
 
 	_, err = ECS().RunTask(req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Process) Stop() error {
+	req := &ecs.StopTaskInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Task:    aws.String(p.TaskARN),
+	}
+
+	_, err := ECS().StopTask(req)
 
 	if err != nil {
 		return err

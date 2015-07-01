@@ -19,6 +19,22 @@ func init() {
 	RegisterTemplate("process", "layout", "process")
 }
 
+func ProcessList(rw http.ResponseWriter, r *http.Request) {
+	log := appsLogger("processes").Start()
+
+	app := mux.Vars(r)["app"]
+
+	processes, err := models.ListProcesses(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderJson(rw, processes)
+}
+
 func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 	log := processesLogger("show").Start()
 
@@ -124,6 +140,32 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	err = ps.Run(models.ProcessRunOptions{
 		Command: command,
 	})
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, "ok")
+}
+
+func ProcessStop(rw http.ResponseWriter, r *http.Request) {
+	log := processesLogger("stop").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	id := vars["id"]
+
+	ps, err := models.GetProcessById(app, id)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	err = ps.Stop()
 
 	if err != nil {
 		helpers.Error(log, err)
