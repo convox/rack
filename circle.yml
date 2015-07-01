@@ -1,6 +1,0 @@
-dependencies:
-  post:
-    - go get ./... ; true
-test:
-  override:
-    - make test
