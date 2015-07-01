@@ -1,4 +1,4 @@
-# convox/cli [![Circle CI](https://circleci.com/gh/convox/cli/tree/master.svg?style=svg&circle-token=d24962574d368c687053bb89a4e2c185bc46ea0a)](https://circleci.com/gh/convox/cli/tree/master)
+# convox/cli [![Build Status](https://travis-ci.org/convox/cli.svg?branch=master)](https://travis-ci.org/convox/cli)
 
 Convox command line interface.
 
