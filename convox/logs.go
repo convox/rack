@@ -72,7 +72,6 @@ func cmdLogsStream(c *cli.Context) {
 			err := websocket.Message.Receive(ws, &message)
 
 			if err != nil {
-				stdcli.Error(err)
 				break
 			}
 
