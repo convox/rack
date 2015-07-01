@@ -423,22 +423,6 @@ func AppNameAvailable(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func AppProcesses(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("processes").Start()
-
-	app := mux.Vars(r)["app"]
-
-	processes, err := models.ListProcesses(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderJson(rw, processes)
-}
-
 func AppStream(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("stream").Start()
 
