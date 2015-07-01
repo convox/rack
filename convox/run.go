@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -31,13 +32,20 @@ func cmdRun(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) != 2 {
+	if len(c.Args()) < 2 {
 		stdcli.Usage(c, "run")
 		return
 	}
 
 	ps := c.Args()[0]
-	command := c.Args()[1]
+
+	args := c.Args()[1:]
+	command := strings.Join(args, " ")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	v := url.Values{}
 	v.Set("command", command)
