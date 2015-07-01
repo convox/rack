@@ -127,6 +127,21 @@ func (p *Process) Run(options ProcessRunOptions) error {
 		TaskDefinition: aws.String(resources["TaskDefinition"].Id),
 	}
 
+	if options.Command != "" {
+		req.Overrides = &ecs.TaskOverride{
+			ContainerOverrides: []*ecs.ContainerOverride{
+				&ecs.ContainerOverride{
+					Name: aws.String(p.Name),
+					Command: []*string{
+						aws.String("sh"),
+						aws.String("-c"),
+						aws.String(options.Command),
+					},
+				},
+			},
+		}
+	}
+
 	_, err = ECS().RunTask(req)
 
 	if err != nil {

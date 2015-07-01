@@ -110,6 +110,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/logs/stream", controllers.ProcessStream)
 	router.HandleFunc("/apps/{app}/processes/{process}/resources", controllers.ProcessResources).Methods("GET")
+	router.HandleFunc("/apps/{app}/processes/{process}/run", controllers.ProcessRun).Methods("POST")
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")

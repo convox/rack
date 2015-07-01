@@ -104,6 +104,36 @@ func ProcessResources(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "process", "resources", resources)
 }
 
+func ProcessRun(rw http.ResponseWriter, r *http.Request) {
+	log := processesLogger("run").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process"]
+
+	command := GetForm(r, "command")
+
+	ps, err := models.GetProcess(app, process)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	err = ps.Run(models.ProcessRunOptions{
+		Command: command,
+	})
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, "ok")
+}
+
 func processesLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=processes").At(at)
 }
