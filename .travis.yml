@@ -1,5 +1,5 @@
+script: make test
 language: go
-
 go:
   - 1.4
   - tip
