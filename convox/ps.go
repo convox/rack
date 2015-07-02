@@ -9,13 +9,13 @@ import (
 )
 
 type Process struct {
-	Id      string
-	Name    string
-	Command string
-
+	App         string
+	Command     string
+	CPU         int64
+	Id          string
+	Memory      int64
+	Name        string
 	ServiceType string
-
-	App string
 }
 
 type Processes []Process
@@ -58,9 +58,9 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("%-13s %-15s %s\n", "ID", "PROCESS", "COMMAND")
+	fmt.Printf("%-13s %-15s %-5s %-5s %s\n", "ID", "PROCESS", "CPU", "MEM", "COMMAND")
 
 	for _, ps := range *processes {
-		fmt.Printf("%-13s %-15s %s\n", ps.Id, ps.Name, ps.Command)
+		fmt.Printf("%-13s %-15s %-5d %-5d %s\n", ps.Id, ps.Name, ps.CPU, ps.Memory, ps.Command)
 	}
 }
