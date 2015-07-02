@@ -6,9 +6,9 @@ pull_image() {
   docker pull $image &
 }
 
-pull_image convox/app
-pull_image convox/build
-pull_image convox/service
+pull_image convox/app:$RELEASE
+pull_image convox/build:$RELEASE
+pull_image convox/service:$RELEASE
 
 ./bin/gen-cert
 haproxy -f /etc/haproxy/haproxy.cfg &
