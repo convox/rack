@@ -19,7 +19,7 @@ type ManifestEntry struct {
 	Environment []string    `yaml:"environment"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       []string    `yaml:"ports"`
-	Volumes     []string    `yaml:"volumes"`
+	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
 func (m Manifest) Tags(registry string, project string, tag string) map[string]string {
