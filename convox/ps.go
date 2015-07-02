@@ -58,7 +58,9 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
+	fmt.Printf("%-13s %-15s %s\n", "ID", "PROCESS", "COMMAND")
+
 	for _, ps := range *processes {
-		fmt.Printf("%s %s\n", ps.Id, ps.Name)
+		fmt.Printf("%-13s %-15s %s\n", ps.Id, ps.Name, ps.Command)
 	}
 }
