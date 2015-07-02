@@ -364,7 +364,6 @@
             "docker start ecs-agent",
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
-            { "Fn::Join": [ "", [ "echo ", { "Ref": "Version" }, " > /etc/convox/release" ] ] },
             "curl -s http://convox.s3.amazonaws.com/agent/0.2/convox.conf > /etc/init/convox.conf",
             "start convox"
           ] ] } 
