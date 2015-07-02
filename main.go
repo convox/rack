@@ -358,11 +358,15 @@ func templateHelpers() template.FuncMap {
 					"Key": { "Ref": "Key" },
 					"CPU": { "Ref": "Cpu" },
 					"Memory": { "Ref": "Memory" },
+					"Environment": {
+						"KINESIS": { "Ref": "Kinesis" },
+						"PROCESS": "%s"
+					},
 					"Links": [ %s ],
 					"Volumes": [ %s ],
 					"Services": [ %s ],
 					"PortMappings": [ %s ]
-				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
+				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), ps, strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
