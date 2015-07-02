@@ -137,6 +137,11 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if ps == nil {
+		http.NotFound(rw, r)
+		return
+	}
+
 	err = ps.Run(models.ProcessRunOptions{
 		Command: command,
 	})
