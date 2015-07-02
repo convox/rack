@@ -14,7 +14,7 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
-var Version = "0.9"
+var Version = "0.10"
 
 func init() {
 	stdcli.VersionPrinter(func(c *cli.Context) {
