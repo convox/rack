@@ -48,6 +48,7 @@ func cmdRun(c *cli.Context) {
 
 	v := url.Values{}
 	v.Set("command", command)
+
 	_, err = ConvoxPostForm(fmt.Sprintf("/apps/%s/processes/%s/run", app, ps), v)
 
 	if err != nil {
