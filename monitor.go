@@ -120,7 +120,7 @@ func (m *Monitor) subscribeLogs(id, stream, process string) {
 		Follow:       true,
 		Stdout:       true,
 		Stderr:       true,
-		Tail:         "1",
+		Tail:         "all",
 		RawTerminal:  true,
 		OutputStream: w,
 		ErrorStream:  w,
