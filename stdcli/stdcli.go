@@ -92,6 +92,10 @@ func Tag() string {
 	return Tagger()
 }
 
+func VersionPrinter(printer func(*cli.Context)) {
+	cli.VersionPrinter = printer
+}
+
 func Error(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	Exiter(1)

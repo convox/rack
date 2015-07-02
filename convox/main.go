@@ -10,10 +10,25 @@ import (
 	"os"
 	"strings"
 
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
 
 var Version = "0.9"
+
+func init() {
+	stdcli.VersionPrinter(func(c *cli.Context) {
+		data, err := ConvoxGet("/version")
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		fmt.Printf("client: %s\n", c.App.Version)
+		fmt.Printf("server: %s\n", string(data))
+	})
+}
 
 func main() {
 	app := stdcli.New()
