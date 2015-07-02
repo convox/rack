@@ -163,24 +163,7 @@
         "Release": { "Ref": "Release" },
         "Environment": { "Ref": "Environment" },
         "Tasks": [
-          {{ tasks . }},
-          {
-            "Name": "convox-logs",
-            "Image": "index.docker.io/convox/logs",
-            "Environment": {
-              "AWS_REGION": { "Ref": "AWS::Region" },
-              "AWS_ACCESS": { "Ref": "LogsAccess" },
-              "AWS_SECRET": { "Fn::GetAtt": [ "LogsAccess", "SecretAccessKey" ] },
-              "KINESIS": { "Ref": "Kinesis" },
-              "CONTAINERS": { "Fn::Join": [ ",", [ {{ names . }} ] ] }
-            },
-            "CPU": "20",
-            "Memory": "64",
-            "Links": [ {{ links . }} ],
-            "Volumes": [
-              "/var/run/docker.sock:/var/run/docker.sock"
-            ]
-          }
+          {{ tasks . }}
         ]
       }
     },
