@@ -348,7 +348,7 @@
         "UserData": { "Fn::Base64": 
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
-            "sudo yum -y update",
+            "yum -y update",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::If": [ "BlankCertificate",
