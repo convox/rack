@@ -1,11 +1,14 @@
 package models
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Process struct {
@@ -43,25 +46,77 @@ func ListProcesses(app string) (Processes, error) {
 
 	tres, err := ECS().DescribeTasks(treq)
 
-	ps := Processes{}
+	pss := Processes{}
 
 	for _, task := range tres.Tasks {
 		parts := strings.Split(*task.TaskARN, "-")
 		id := parts[len(parts)-1]
 
 		for _, container := range task.Containers {
-			if !strings.HasPrefix(*container.Name, "convox-") {
-				ps = append(ps, Process{
-					Id:      id,
-					TaskARN: *task.TaskARN,
-					Name:    *container.Name,
-					App:     app,
+			ps := Process{
+				Id:      id,
+				TaskARN: *task.TaskARN,
+				Name:    *container.Name,
+				App:     app,
+			}
+
+			cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+				Cluster:            aws.String(os.Getenv("CLUSTER")),
+				ContainerInstances: []*string{task.ContainerInstanceARN},
+			})
+
+			if err != nil {
+				return nil, err
+			}
+
+			if len(cres.ContainerInstances) == 1 {
+				ci := cres.ContainerInstances[0]
+
+				ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
+					Filters: []*ec2.Filter{
+						&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.EC2InstanceID}},
+					},
 				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				if len(ires.Reservations) == 1 && len(ires.Reservations[0].Instances) == 1 {
+					instance := ires.Reservations[0].Instances[0]
+
+					ip := *instance.PrivateIPAddress
+
+					if os.Getenv("DEVELOPMENT") == "true" {
+						ip = *instance.PublicIPAddress
+					}
+
+					containers, err := Docker(ip).ListContainers(docker.ListContainersOptions{
+						Filters: map[string][]string{
+							"label": []string{
+								fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.TaskARN),
+								fmt.Sprintf("com.amazonaws.ecs.container-name=%s", ps.Name),
+							},
+						},
+					})
+
+					if err != nil {
+						return nil, err
+					}
+
+					if len(containers) == 1 {
+						ps.Command = containers[0].Command
+					}
+				}
+			}
+
+			if !strings.HasPrefix(*container.Name, "convox-") {
+				pss = append(pss, ps)
 			}
 		}
 	}
 
-	return ps, nil
+	return pss, nil
 }
 
 func GetProcess(app, name string) (*Process, error) {
