@@ -15,7 +15,9 @@ type Process struct {
 	App         string
 	Command     string
 	Count       int
+	CPU         int64
 	Id          string
+	Memory      int64
 	Name        string
 	ServiceType string
 	TaskARN     string
@@ -52,6 +54,20 @@ func ListProcesses(app string) (Processes, error) {
 		parts := strings.Split(*task.TaskARN, "-")
 		id := parts[len(parts)-1]
 
+		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: task.TaskDefinitionARN,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		definitions := map[string]*ecs.ContainerDefinition{}
+
+		for _, cd := range tres.TaskDefinition.ContainerDefinitions {
+			definitions[*cd.Name] = cd
+		}
+
 		for _, container := range task.Containers {
 			ps := Process{
 				Id:      id,
@@ -59,6 +75,9 @@ func ListProcesses(app string) (Processes, error) {
 				Name:    *container.Name,
 				App:     app,
 			}
+
+			ps.CPU = *definitions[ps.Name].CPU
+			ps.Memory = *definitions[ps.Name].Memory
 
 			cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
 				Cluster:            aws.String(os.Getenv("CLUSTER")),
