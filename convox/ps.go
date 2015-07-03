@@ -15,6 +15,7 @@ type Process struct {
 	Id          string
 	Memory      int64
 	Name        string
+	Release     string
 	ServiceType string
 }
 
@@ -58,9 +59,9 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("%-13s %-15s %-5s %-5s %s\n", "ID", "PROCESS", "CPU", "MEM", "COMMAND")
+	fmt.Printf("%-13s %-15s %-13s %-5s %-5s %s\n", "ID", "PROCESS", "RELEASE", "CPU", "MEM", "COMMAND")
 
 	for _, ps := range *processes {
-		fmt.Printf("%-13s %-15s %-5d %-5d %s\n", ps.Id, ps.Name, ps.CPU, ps.Memory, ps.Command)
+		fmt.Printf("%-13s %-15s %-13s %-5d %-5d %s\n", ps.Id, ps.Name, ps.Release, ps.CPU, ps.Memory, ps.Command)
 	}
 }
