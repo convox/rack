@@ -19,6 +19,7 @@ type Process struct {
 	Id          string
 	Memory      int64
 	Name        string
+	Release     string
 	ServiceType string
 	TaskARN     string
 }
@@ -74,6 +75,14 @@ func ListProcesses(app string) (Processes, error) {
 				TaskARN: *task.TaskARN,
 				Name:    *container.Name,
 				App:     app,
+			}
+
+			if td, ok := definitions[ps.Name]; ok {
+				for _, env := range td.Environment {
+					if *env.Name == "RELEASE" {
+						ps.Release = *env.Value
+					}
+				}
 			}
 
 			ps.CPU = *definitions[ps.Name].CPU
