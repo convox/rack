@@ -4,13 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/cli/convox/build"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -41,50 +37,6 @@ func cmdDeploy(c *cli.Context) {
 	if err != nil {
 		stdcli.Error(err)
 		return
-	}
-
-	Build(dir, app)
-
-	m, err := build.ManifestFromPath(filepath.Join(dir, "docker-compose.yml"))
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	host, _, err := currentLogin()
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	host = strings.Split(host, ":")[0] + ":5000"
-
-	if os.Getenv("REGISTRY_HOST") != "" {
-		host = os.Getenv("REGISTRY_HOST")
-	}
-
-	prefix := strings.Replace(app, "-", "", -1)
-	tag := fmt.Sprintf("%v", stdcli.Tagger())
-	tags := m.Tags(host, prefix, tag)
-
-	for tag, image := range tags {
-		fmt.Printf("Tagging %s\n", image)
-		err = stdcli.Run("docker", "tag", "-f", image, tag)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		fmt.Printf("Pushing %s\n", tag)
-		err = stdcli.Run("docker", "push", tag)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
 	}
 
 	// create app if it doesn't exist
@@ -120,18 +72,23 @@ func cmdDeploy(c *cli.Context) {
 		}
 	}
 
-	// create release
-	v := url.Values{}
-	v.Set("manifest", m.String())
-	v.Set("tag", tag)
-	data, err = ConvoxPostForm(fmt.Sprintf("/apps/%s/releases", app), v)
+	// build
+	release, err := executeBuild(dir, app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Printf("Releasing %s\n", tag)
+	fmt.Print("Releasing")
+
+	// promote release
+	data, err = ConvoxPost(fmt.Sprintf("/apps/%s/releases/%s/promote", app, release), "")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	// poll for complete
 	for {
@@ -142,12 +99,16 @@ func cmdDeploy(c *cli.Context) {
 			return
 		}
 
+		fmt.Print(".")
+
 		if string(data) == "running" {
 			break
 		}
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 	}
+
+	fmt.Println(" done")
 
 	data, err = ConvoxGet("/apps/" + app)
 
