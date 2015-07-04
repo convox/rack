@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
@@ -56,6 +57,10 @@ func cmdLogsStream(c *cli.Context) {
 		userpass_encoded := b64.StdEncoding.EncodeToString([]byte(userpass))
 
 		config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+
+		config.TlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 
 		ws, err := websocket.DialConfig(config)
 
