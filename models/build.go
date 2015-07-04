@@ -3,6 +3,7 @@ package models
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -149,32 +150,72 @@ func (b *Build) Cleanup() error {
 	return nil
 }
 
-func (b *Build) Execute(repo string) {
+func (b *Build) ExecuteLocal(r io.Reader) {
 	b.Status = "building"
 	b.Save()
 
 	name := b.App
 
-	args := []string{"run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "convox/build", "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name}
+	args := []string{"run", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name, "-"}
+
+	err := b.execute(args, r)
+
+	if err != nil {
+		b.Fail(err)
+	}
+}
+
+func (b *Build) ExecuteRemote(repo string) {
+	b.Status = "building"
+	b.Save()
+
+	name := b.App
+
+	args := []string{"run", "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name}
 
 	parts := strings.Split(repo, "#")
 
 	if len(parts) > 1 {
 		args = append(args, strings.Join(parts[0:len(parts)-1], "#"), parts[len(parts)-1])
-		fmt.Printf("args %+v\n", args)
 	} else {
 		args = append(args, repo)
-		fmt.Printf("args %+v\n", args)
 	}
 
+	err := b.execute(args, nil)
+
+	if err != nil {
+		b.Fail(err)
+	}
+}
+
+func (b *Build) execute(args []string, r io.Reader) error {
 	cmd := exec.Command("docker", args...)
+
+	stdin, err := cmd.StdinPipe()
+
+	if err != nil {
+		return err
+	}
 
 	stdout, err := cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
 
+	if err != nil {
+		return err
+	}
+
 	if err = cmd.Start(); err != nil {
-		b.Fail(err)
-		return
+		return err
+	}
+
+	if r != nil {
+		_, err := io.Copy(stdin, r)
+
+		if err != nil {
+			return err
+		}
+
+		stdin.Close()
 	}
 
 	// Every 2 seconds check for new logs and save
@@ -226,27 +267,23 @@ func (b *Build) Execute(repo string) {
 	close(quit)
 
 	if err != nil {
-		b.Fail(err)
-		return
+		return err
 	}
 
 	if !success {
-		b.Fail(fmt.Errorf("error from builder"))
-		return
+		return fmt.Errorf("error from builder")
 	}
 
 	app, err := GetApp(b.App)
 
 	if err != nil {
-		b.Fail(err)
-		return
+		return err
 	}
 
 	release, err := app.ForkRelease()
 
 	if err != nil {
-		b.Fail(err)
-		return
+		return err
 	}
 
 	release.Build = b.Id
@@ -255,14 +292,15 @@ func (b *Build) Execute(repo string) {
 	err = release.Save()
 
 	if err != nil {
-		b.Fail(err)
-		return
+		return err
 	}
 
 	b.Release = release.Id
 	b.Status = "complete"
 	b.Ended = time.Now()
 	b.Save()
+
+	return nil
 }
 
 func (b *Build) Fail(err error) {

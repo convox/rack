@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -17,13 +19,19 @@ import (
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("create").Start()
 
-	vars := mux.Vars(r)
-	app := vars["app"]
-	repo := GetForm(r, "repo")
+	err := r.ParseMultipartForm(10485760)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	app := mux.Vars(r)["app"]
 
 	build := models.NewBuild(app)
 
-	err := build.Save()
+	err = build.Save()
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -33,7 +41,42 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 
 	log.Success("step=build.save app=%q", build.App)
 
-	go build.Execute(repo)
+	if r.MultipartForm != nil && r.MultipartForm.File["source"] != nil {
+		fd, err := r.MultipartForm.File["source"][0].Open()
+
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+
+		defer fd.Close()
+
+		dir, err := ioutil.TempDir("", "source")
+
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+
+		err = os.MkdirAll(dir, 0755)
+
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+
+		go build.ExecuteLocal(fd)
+	} else if repo := GetForm(r, "repo"); repo != "" {
+		go build.ExecuteRemote(repo)
+	} else {
+		err = fmt.Errorf("no source or repo")
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
 
 	RenderText(rw, "ok")
 }
