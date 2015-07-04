@@ -66,19 +66,25 @@ func TestDeploy(t *testing.T) {
 				Name:   "docker-compose",
 				Status: "running",
 				Parameters: map[string]string{
-					"Release": "1435444444",
+					"Release": "RELEASEID",
 				},
 			}
 			data, _ := json.Marshal(app)
 			_, _ = w.Write(data)
+
+		case "/apps/docker-compose/build":
+			w.Write([]byte("RELEASEID"))
+
+		case "/apps/docker-compose/builds/RELEASEID":
+			build := Build{Status: "complete"}
+			data, _ := json.Marshal(build)
+			w.Write(data)
 
 		case "/apps/docker-compose/status":
 			s := statuses[0]
 			statuses = append(statuses[:0], statuses[1:]...)
 			_, _ = w.Write([]byte(s))
 
-		case "/apps/docker-compose/releases":
-			_, _ = w.Write([]byte("ok"))
 		default:
 			http.Error(w, fmt.Sprintf("Not Found: %s", r.URL.Path), 500)
 		}
@@ -92,13 +98,11 @@ func TestDeploy(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "deploy", project})
 
-	expect(t, stdout, `Docker Compose app detected.
-Tagging httpd
-Pushing 127.0.0.1:5000/dockercompose-web:1435444444
-Releasing 1435444444
+	expect(t, stdout, `Building. done
+Releasing. done
 Name         docker-compose
 Status       running
-Release      1435444444
+Release      RELEASEID
 `)
 	expect(t, stderr, "")
 }
