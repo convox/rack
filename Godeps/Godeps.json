@@ -10,6 +10,46 @@
 			"Rev": "035af7c09b120b0909dd998c92745b82f61e0b1c"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/apierr",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/endpoints",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/json/jsonutil",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/jsonrpc",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/rest",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/kinesis",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
 			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},

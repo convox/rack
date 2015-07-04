@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -14,16 +16,84 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-func BuildCreate(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("create").Start()
+func BuildList(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("list").Start()
 
 	vars := mux.Vars(r)
 	app := vars["app"]
-	repo := GetForm(r, "repo")
+
+	l := map[string]string{
+		"id":      r.URL.Query().Get("id"),
+		"created": r.URL.Query().Get("created"),
+	}
+
+	builds, err := models.ListBuilds(app, l)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	a, err := models.GetApp(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	params := map[string]interface{}{
+		"App":    a,
+		"Builds": builds,
+	}
+
+	if len(builds) > 0 {
+		params["Last"] = builds[len(builds)-1]
+	}
+
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		RenderJson(rw, builds)
+	default:
+		RenderPartial(rw, "app", "builds", params)
+	}
+}
+
+func BuildGet(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("list").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	b, err := models.GetBuild(app, build)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderJson(rw, b)
+}
+
+func BuildCreate(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("create").Start()
+
+	err := r.ParseMultipartForm(10485760)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	app := mux.Vars(r)["app"]
 
 	build := models.NewBuild(app)
 
-	err := build.Save()
+	err = build.Save()
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -33,9 +103,44 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 
 	log.Success("step=build.save app=%q", build.App)
 
-	go build.Execute(repo)
+	if r.MultipartForm != nil && r.MultipartForm.File["source"] != nil {
+		fd, err := r.MultipartForm.File["source"][0].Open()
 
-	RenderText(rw, "ok")
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+
+		defer fd.Close()
+
+		dir, err := ioutil.TempDir("", "source")
+
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+
+		err = os.MkdirAll(dir, 0755)
+
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+
+		go build.ExecuteLocal(fd)
+	} else if repo := GetForm(r, "repo"); repo != "" {
+		go build.ExecuteRemote(repo)
+	} else {
+		err = fmt.Errorf("no source or repo")
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, build.Id)
 }
 
 func BuildLogs(rw http.ResponseWriter, r *http.Request) {
