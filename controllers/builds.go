@@ -16,6 +16,68 @@ import (
 	"github.com/convox/kernel/models"
 )
 
+func BuildList(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("list").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+
+	l := map[string]string{
+		"id":      r.URL.Query().Get("id"),
+		"created": r.URL.Query().Get("created"),
+	}
+
+	builds, err := models.ListBuilds(app, l)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	a, err := models.GetApp(app)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	params := map[string]interface{}{
+		"App":    a,
+		"Builds": builds,
+	}
+
+	if len(builds) > 0 {
+		params["Last"] = builds[len(builds)-1]
+	}
+
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		RenderJson(rw, builds)
+	default:
+		RenderPartial(rw, "app", "builds", params)
+	}
+}
+
+func BuildGet(rw http.ResponseWriter, r *http.Request) {
+	log := buildsLogger("list").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	b, err := models.GetBuild(app, build)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderJson(rw, b)
+}
+
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("create").Start()
 
@@ -78,7 +140,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderText(rw, "ok")
+	RenderText(rw, build.Id)
 }
 
 func BuildLogs(rw http.ResponseWriter, r *http.Request) {

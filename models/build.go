@@ -11,6 +11,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
 )
 
 type Build struct {
@@ -24,6 +25,8 @@ type Build struct {
 
 	Started time.Time
 	Ended   time.Time
+
+	kinesis string
 }
 
 type Builds []Build
@@ -189,6 +192,12 @@ func (b *Build) ExecuteRemote(repo string) {
 }
 
 func (b *Build) execute(args []string, r io.Reader) error {
+	app, err := GetApp(b.App)
+
+	if err != nil {
+		return err
+	}
+
 	cmd := exec.Command("docker", args...)
 
 	stdin, err := cmd.StdinPipe()
@@ -245,7 +254,7 @@ func (b *Build) execute(args []string, r io.Reader) error {
 		parts := strings.SplitN(scanner.Text(), "|", 2)
 
 		if len(parts) < 2 {
-			b.Logs += fmt.Sprintf("%s\n", parts[0])
+			b.log(parts[0])
 			continue
 		}
 
@@ -255,10 +264,10 @@ func (b *Build) execute(args []string, r io.Reader) error {
 		case "error":
 			success = false
 			fmt.Println(parts[1])
-			b.Logs += fmt.Sprintf("%s\n", parts[1])
+			b.log(parts[1])
 		default:
 			fmt.Println(parts[1])
-			b.Logs += fmt.Sprintf("%s\n", parts[1])
+			b.log(parts[1])
 		}
 	}
 
@@ -272,12 +281,6 @@ func (b *Build) execute(args []string, r io.Reader) error {
 
 	if !success {
 		return fmt.Errorf("error from builder")
-	}
-
-	app, err := GetApp(b.App)
-
-	if err != nil {
-		return err
 	}
 
 	release, err := app.ForkRelease()
@@ -306,12 +309,40 @@ func (b *Build) execute(args []string, r io.Reader) error {
 func (b *Build) Fail(err error) {
 	b.Status = "failed"
 	b.Ended = time.Now()
-	b.Logs += fmt.Sprintf("Build Error: %s\n", err)
+	b.log(fmt.Sprintf("Build Error: %s", err))
 	b.Save()
 }
 
 func (b *Build) Image(process string) string {
 	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY"), b.App, process, b.Id)
+}
+
+func (b *Build) log(line string) {
+	b.Logs += fmt.Sprintf("%s\n", line)
+
+	if b.kinesis == "" {
+		app, err := GetApp(b.App)
+
+		if err != nil {
+			panic(err)
+		}
+
+		b.kinesis = app.Outputs["Kinesis"]
+	}
+
+	_, err := Kinesis().PutRecords(&kinesis.PutRecordsInput{
+		StreamName: aws.String(b.kinesis),
+		Records: []*kinesis.PutRecordsRequestEntry{
+			&kinesis.PutRecordsRequestEntry{
+				Data:         []byte(fmt.Sprintf("build: %s", line)),
+				PartitionKey: aws.String(string(time.Now().UnixNano())),
+			},
+		},
+	})
+
+	fmt.Printf("err: %+v\n", err)
+
+	// record to kinesis
 }
 
 func buildsTable(app string) string {
