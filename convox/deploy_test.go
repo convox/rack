@@ -7,49 +7,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
-
-	"github.com/convox/cli/convox/build"
 )
-
-func TestBuildManifest(t *testing.T) {
-	m, _ := build.ManifestFromBytes([]byte(`web:
-  image: httpd
-  ports:
-  - 80:80
-  links:
-    - redis
-worker:
-  build: .
-  command: ruby worker.rb
-redis:
-  image: convox/redis
-`))
-
-	expect(t, m["web"].Image, "httpd")
-	expect(t, m["web"].Ports, []string{"80:80"})
-	expect(t, m["web"].Links, []string{"redis"})
-	expect(t, len(m["worker"].Links), 0)
-}
-
-func TestBuildTags(t *testing.T) {
-	m, _ := build.ManifestFromBytes([]byte(`web:
-  image: httpd
-  ports:
-  - 80:80
-worker:
-  build: .
-  command: ruby worker.rb
-redis:
-  image: convox/redis
-`))
-
-	tags := m.Tags("private.registry.com:5000", "myproj", "123")
-	expect(t, tags, map[string]string{
-		"private.registry.com:5000/myproj-redis:123":  "convox/redis",
-		"private.registry.com:5000/myproj-web:123":    "httpd",
-		"private.registry.com:5000/myproj-worker:123": "myproj_worker",
-	})
-}
 
 func TestDeploy(t *testing.T) {
 	statuses := []string{"running", "running"}
