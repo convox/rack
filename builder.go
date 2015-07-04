@@ -1,9 +1,12 @@
 package main
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -51,32 +54,40 @@ func (b *Builder) clone(repo, name, ref string) (string, error) {
 
 	clone := filepath.Join(tmp, "clone")
 
-	if err = writeFile(filepath.Join(os.Getenv("HOME"), ".netrc"), "netrc", 0600, map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
-		return "", err
-	}
-
-	if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
-		return "", err
-	}
-
-	err = b.run("git", tmp, "git", "clone", repo, clone)
-
-	if err != nil {
-		return "", err
-	}
-
-	if ref != "" {
-		err = b.run("git", clone, "git", "checkout", ref)
+	if repo == "-" {
+		extractTarball(os.Stdin, clone)
+	} else {
+		if err = writeFile(filepath.Join(os.Getenv("HOME"), ".netrc"), "netrc", 0600, map[string]string{"{{GITHUB_TOKEN}}": b.GitHubToken}); err != nil {
+			return "", err
+		}
 
 		if err != nil {
 			return "", err
 		}
-	}
 
-	err = b.run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
+		if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
+			return "", err
+		}
 
-	if err != nil {
-		return "", err
+		err = b.run("git", tmp, "git", "clone", repo, clone)
+
+		if err != nil {
+			return "", err
+		}
+
+		if ref != "" {
+			err = b.run("git", clone, "git", "checkout", ref)
+
+			if err != nil {
+				return "", err
+			}
+		}
+
+		err = b.run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
+
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return clone, nil
@@ -185,6 +196,56 @@ func (b *Builder) push(prefix, dir, target, name, auth, id string) error {
 
 func dataRaw(path string) ([]byte, error) {
 	return Asset(fmt.Sprintf("data/%s", path))
+}
+
+func extractTarball(r io.Reader, base string) error {
+	gz, err := gzip.NewReader(r)
+
+	if err != nil {
+		return err
+	}
+
+	tr := tar.NewReader(gz)
+
+	for {
+		header, err := tr.Next()
+
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			} else {
+				return err
+			}
+		}
+
+		rel := header.Name
+		join := filepath.Join(base, rel)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(join, 0755)
+		case tar.TypeReg, tar.TypeRegA:
+			dir := filepath.Dir(join)
+
+			os.MkdirAll(dir, 0755)
+
+			fd, err := os.Create(join)
+
+			if err != nil {
+				return err
+			}
+
+			defer fd.Close()
+
+			_, err = io.Copy(fd, tr)
+
+			if err != nil {
+				return err
+			}
+		default:
+			fmt.Printf("unknown Typeflag: %d %d\n", header.Typeflag, tar.TypeReg)
+		}
+	}
 }
 
 var idAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
