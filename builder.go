@@ -229,7 +229,7 @@ func extractTarball(r io.Reader, base string) error {
 
 			os.MkdirAll(dir, 0755)
 
-			fd, err := os.OpenFile(join, os.O_CREATE, os.FileMode(header.Mode))
+			fd, err := os.OpenFile(join, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 
 			if err != nil {
 				return err
