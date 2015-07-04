@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -115,6 +117,19 @@ func cmdEnvSet(c *cli.Context) {
 
 	for key, value := range old {
 		data += fmt.Sprintf("%s=%s\n", key, value)
+	}
+
+	stat, _ := os.Stdin.Stat()
+
+	if (stat.Mode() & os.ModeCharDevice) == 0 {
+		in, err := ioutil.ReadAll(os.Stdin)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		data += string(in)
 	}
 
 	for _, value := range c.Args() {
