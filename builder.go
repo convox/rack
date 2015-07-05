@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var ()
@@ -238,6 +239,12 @@ func extractTarball(r io.Reader, base string) error {
 			defer fd.Close()
 
 			_, err = io.Copy(fd, tr)
+
+			if err != nil {
+				return err
+			}
+
+			err = os.Chtimes(join, time.Now(), header.ModTime)
 
 			if err != nil {
 				return err
