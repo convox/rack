@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/briandowns/spinner"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 )
 
@@ -17,6 +18,7 @@ var (
 	Exiter   func(code int)
 	Runner   func(bin string, args ...string) error
 	Querier  func(bin string, args ...string) ([]byte, error)
+	Spinner  *spinner.Spinner
 	Tagger   func() string
 )
 
@@ -25,6 +27,7 @@ func init() {
 	Exiter = os.Exit
 	Querier = queryExecCommand
 	Runner = runExecCommand
+	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}

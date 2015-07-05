@@ -80,7 +80,8 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	fmt.Print("Releasing")
+	stdcli.Spinner.Prefix = "Releasing: "
+	stdcli.Spinner.Start()
 
 	// promote release
 	data, err = ConvoxPost(fmt.Sprintf("/apps/%s/releases/%s/promote", app, release), "")
@@ -99,16 +100,12 @@ func cmdDeploy(c *cli.Context) {
 			return
 		}
 
-		fmt.Print(".")
-
 		if string(data) == "running" {
 			break
 		}
 
 		time.Sleep(1 * time.Second)
 	}
-
-	fmt.Println(" done")
 
 	data, err = ConvoxGet("/apps/" + app)
 
@@ -125,5 +122,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	a.PrintInfo()
+	stdcli.Spinner.Stop()
+
+	fmt.Printf("\x08\x08OK, %s\n", a.Parameters["Release"])
 }

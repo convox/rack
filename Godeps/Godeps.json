@@ -6,9 +6,18 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/briandowns/spinner",
+			"Rev": "afc9ce26eb6cd43caad9c86a3c4a56ae2a9f39d2"
+		},
+		{
 			"ImportPath": "github.com/codegangsta/cli",
 			"Comment": "1.2.0-95-g9b2bd2b",
 			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
+		},
+		{
+			"ImportPath": "github.com/fatih/color",
+			"Comment": "v0.1",
+			"Rev": "1b35f289c47d5c73c398cea8e006b7bcb6234a96"
 		},
 		{
 			"ImportPath": "github.com/inconshreveable/go-update",
@@ -25,6 +34,10 @@
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
+		},
+		{
+			"ImportPath": "github.com/shiena/ansicolor",
+			"Rev": "264b0566801533988151a23fc5f75d66d831d6ae"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",

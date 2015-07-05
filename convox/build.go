@@ -79,7 +79,10 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	fmt.Print("Building")
+	stdcli.Spinner.Prefix = "Building: "
+	stdcli.Spinner.Start()
+
+	time.Sleep(10 * time.Second)
 
 	build, err := postBuild(tar, app)
 
@@ -93,7 +96,9 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(" done")
+	stdcli.Spinner.Stop()
+
+	fmt.Println("\x08\x08OK")
 
 	return release, nil
 }
@@ -161,8 +166,6 @@ func waitForBuild(app, id string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
-		fmt.Print(".")
 
 		switch build.Status {
 		case "complete":
