@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
 	"github.com/convox/cli/stdcli"
+	homedir "github.com/convox/cli/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
 
 func init() {
@@ -127,13 +127,13 @@ func cmdLogin(c *cli.Context) {
 }
 
 func configFile() (string, error) {
-	u, err := user.Current()
+	home, err := homedir.Dir()
 
 	if err != nil {
 		return "", err
 	}
 
-	return filepath.Join(u.HomeDir, ".convox"), nil
+	return filepath.Join(home, ".convox"), nil
 }
 
 func currentLogin() (string, string, error) {

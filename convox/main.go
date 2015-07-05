@@ -18,6 +18,8 @@ var Version = "dev"
 
 func init() {
 	stdcli.VersionPrinter(func(c *cli.Context) {
+		fmt.Printf("client: %s\n", c.App.Version)
+
 		data, err := ConvoxGet("/version")
 
 		if err != nil {
@@ -25,8 +27,13 @@ func init() {
 			return
 		}
 
-		fmt.Printf("client: %s\n", c.App.Version)
-		fmt.Printf("server: %s\n", string(data))
+		host, _, err := currentLogin()
+
+		if err != nil {
+			return
+		}
+
+		fmt.Printf("server: %s (%s)\n", string(data), host)
 	})
 }
 
