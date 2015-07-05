@@ -38,7 +38,7 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan bool) {
 	ireq := &kinesis.GetShardIteratorInput{
 		ShardID:           aws.String(shard),
-		ShardIteratorType: aws.String("LATEST"),
+		ShardIteratorType: aws.String("TRIM_HORIZON"),
 		StreamName:        aws.String(stream),
 	}
 
