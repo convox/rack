@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	homedir "github.com/convox/cli/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
 	"github.com/convox/cli/stdcli"
-	homedir "github.com/convox/cli/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 )
 
 func init() {
@@ -105,7 +105,7 @@ func cmdLogin(c *cli.Context) {
 		return
 	}
 
-	err = ioutil.WriteFile(config, []byte(fmt.Sprintf("%s\n%s\n", host, password)), 0600)
+	err = stdcli.Writer(config, []byte(fmt.Sprintf("%s\n%s\n", host, password)), 0600)
 
 	if err != nil {
 		stdcli.Error(err)

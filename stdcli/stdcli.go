@@ -2,6 +2,7 @@ package stdcli
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -20,6 +21,7 @@ var (
 	Querier  func(bin string, args ...string) ([]byte, error)
 	Spinner  *spinner.Spinner
 	Tagger   func() string
+	Writer   func(filename string, data []byte, perm os.FileMode) error
 )
 
 func init() {
@@ -29,6 +31,7 @@ func init() {
 	Runner = runExecCommand
 	Spinner = spinner.New(spinner.CharSets[9], 60*time.Millisecond)
 	Tagger = tagTimeUnix
+	Writer = ioutil.WriteFile
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
