@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
-
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
+	"net/http"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/convox/go-update"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/convox/go-update/check"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -20,13 +22,22 @@ func init() {
 }
 
 func cmdUpdate(c *cli.Context) {
+	client, err := updateClient()
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
 	params := check.Params{
 		AppVersion: Version,
 		AppId:      "ap_TKxvw_eIPVyOzl6rKEonCU5DUY",
 		Channel:    "stable",
 	}
 
-	r, err := params.CheckForUpdate("https://api.equinox.io/1/Updates", update.New())
+	updater := update.New()
+	updater.HTTPClient = client
+
+	r, err := params.CheckForUpdate("https://api.equinox.io/1/Updates", updater)
 
 	if err != nil {
 		if err != check.NoUpdateAvailable {
@@ -43,4 +54,23 @@ func cmdUpdate(c *cli.Context) {
 	}
 
 	fmt.Printf("Updated to %s\n", r.Version)
+}
+
+func updateClient() (*http.Client, error) {
+	root, err := Asset("data/root.pem")
+
+	if err != nil {
+		return nil, err
+	}
+
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(root)
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: pool},
+		},
+	}
+
+	return client, nil
 }

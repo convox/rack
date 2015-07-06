@@ -15,13 +15,13 @@
 			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
 		},
 		{
+			"ImportPath": "github.com/convox/go-update",
+			"Rev": "4addee9c5ab33a81474a2da6faf2bc280765604a"
+		},
+		{
 			"ImportPath": "github.com/fatih/color",
 			"Comment": "v0.1",
 			"Rev": "1b35f289c47d5c73c398cea8e006b7bcb6234a96"
-		},
-		{
-			"ImportPath": "github.com/inconshreveable/go-update",
-			"Rev": "d41317bfe4ce85a2052e9657cc0b68a93d05622d"
 		},
 		{
 			"ImportPath": "github.com/kardianos/osext",

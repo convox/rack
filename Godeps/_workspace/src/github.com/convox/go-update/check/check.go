@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/convox/go-update"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/kardianos/osext"
 )
 
@@ -113,7 +113,13 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 		return nil, err
 	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewReader(body))
+	client := up.HTTPClient
+
+	if client == nil {
+		client = &http.Client{}
+	}
+
+	resp, err := client.Post(url, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
