@@ -3,7 +3,6 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"sort"
 	"strings"
 
@@ -43,16 +42,6 @@ func (m Manifest) Tags(registry string, project string, tag string) map[string]s
 func (m Manifest) String() string {
 	b, _ := yaml.Marshal(m)
 	return string(b)
-}
-
-func ManifestFromPath(path string) (Manifest, error) {
-	dat, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return make(Manifest), err
-	}
-
-	return ManifestFromBytes(dat)
 }
 
 func ManifestFromInspect(data []byte) ([]byte, error) {
