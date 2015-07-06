@@ -103,9 +103,3 @@ func ManifestFromProcfile(procs map[string]string) ([]byte, error) {
 
 	return yaml.Marshal(manifest)
 }
-
-func ManifestFromBytes(b []byte) (Manifest, error) {
-	m := make(Manifest)
-	err := yaml.Unmarshal(b, &m)
-	return m, err
-}
