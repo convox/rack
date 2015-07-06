@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +35,24 @@ compose|Pulling web (httpd:latest)...
 	expect(t, stderr, "")
 }
 
+func TestEnvFile(t *testing.T) {
+	destDir, err := mkBuildDir("examples/env_file/")
+	if err != nil {
+		t.Errorf("ERROR %v", err)
+	}
+	defer os.RemoveAll(destDir)
+
+	stdout, stderr := testBuild(destDir, "test")
+
+	expect(t, grepManifest(stdout), `manifest|web:
+manifest|  build: .
+manifest|  env_file: .env
+manifest|  environment: []
+manifest|  ports: []`)
+
+	expect(t, stderr, "")
+}
+
 func expect(t *testing.T, a interface{}, b interface{}) {
 	aj, _ := json.Marshal(a)
 	bj, _ := json.Marshal(b)
@@ -41,6 +60,19 @@ func expect(t *testing.T, a interface{}, b interface{}) {
 	if !bytes.Equal(aj, bj) {
 		t.Errorf("Expected %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
 	}
+}
+
+func grepManifest(s string) string {
+	lines := strings.Split(s, "\n")
+	m := make([]string, 0)
+
+	for i := range lines {
+		if strings.HasPrefix(lines[i], "manifest|") {
+			m = append(m, lines[i])
+		}
+	}
+
+	return strings.Join(m, "\n")
 }
 
 func mkBuildDir(srcDir string) (string, error) {
