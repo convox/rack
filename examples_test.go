@@ -21,16 +21,10 @@ func TestDockerCompose(t *testing.T) {
 
 	stdout, stderr := testBuild(destDir, "test")
 
-	expect(t, stdout, `Docker Compose app detected.
-manifest|web:
+	expect(t, grepManifest(stdout), `manifest|web:
 manifest|  image: httpd
 manifest|  ports:
-manifest|    - 80:80
-compose|RUNNING: docker-compose -p test build
-compose|web uses an image, skipping
-compose|RUNNING: docker-compose -p test pull
-compose|Pulling web (httpd:latest)...
-`)
+manifest|    - 80:80`)
 
 	expect(t, stderr, "")
 }
