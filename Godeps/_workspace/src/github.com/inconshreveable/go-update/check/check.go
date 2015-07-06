@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/convox/go-update"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/kardianos/osext"
 )
 

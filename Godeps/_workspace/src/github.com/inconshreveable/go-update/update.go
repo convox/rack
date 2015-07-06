@@ -127,7 +127,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/convox/go-update/download"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update/download"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/kardianos/osext"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/kr/binarydist"
 )
