@@ -44,7 +44,7 @@ func cmdStart(c *cli.Context) {
 	err = stdcli.Run("docker-compose", "up")
 
 	if err != nil {
-		panic(err)
+		stdcli.Error(err)
 	}
 }
 

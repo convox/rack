@@ -70,7 +70,7 @@ func executeBuild(dir string, app string) (string, error) {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
-		panic(err)
+		stdcli.Error(err)
 	}
 
 	stdcli.Spinner.Prefix = "Uploading: "
