@@ -36,7 +36,7 @@ func Default(base string, app string) error {
 		return err
 	}
 
-	data, err = ManifestFromProcfile(procfile)
+	data, err = ManifestFromProcfile(base, procfile)
 
 	if err != nil {
 		return err

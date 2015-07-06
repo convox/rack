@@ -3,8 +3,17 @@ package build
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
 )
+
+func exists(filename string) bool {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
+}
 
 func query(bin string, args ...string) ([]byte, error) {
 	return exec.Command(bin, args...).CombinedOutput()

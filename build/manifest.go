@@ -3,7 +3,7 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -16,6 +16,7 @@ type ManifestEntry struct {
 	Build       string      `yaml:"build,omitempty"`
 	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
+	EnvFile     string      `yaml:"env_file,omitempty"`
 	Environment []string    `yaml:"environment"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       []string    `yaml:"ports"`
@@ -45,17 +46,7 @@ func (m Manifest) String() string {
 	return string(b)
 }
 
-func ManifestFromPath(path string) (Manifest, error) {
-	dat, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return make(Manifest), err
-	}
-
-	return ManifestFromBytes(dat)
-}
-
-func ManifestFromInspect(data []byte) ([]byte, error) {
+func ManifestFromInspect(base string, data []byte) ([]byte, error) {
 	var exposed map[string]interface{}
 
 	err := json.Unmarshal(data, &exposed)
@@ -91,12 +82,16 @@ func ManifestFromInspect(data []byte) ([]byte, error) {
 		Ports: ports,
 	}
 
+	if exists(filepath.Join(base, ".env")) {
+		entry.EnvFile = ".env"
+	}
+
 	manifest["web"] = entry
 
 	return yaml.Marshal(manifest)
 }
 
-func ManifestFromProcfile(procs map[string]string) ([]byte, error) {
+func ManifestFromProcfile(base string, procs map[string]string) ([]byte, error) {
 	manifest := make(Manifest)
 
 	for name, command := range procs {
@@ -109,14 +104,12 @@ func ManifestFromProcfile(procs map[string]string) ([]byte, error) {
 			entry.Ports = []string{"5000:3000"}
 		}
 
+		if exists(filepath.Join(base, ".env")) {
+			entry.EnvFile = ".env"
+		}
+
 		manifest[name] = entry
 	}
 
 	return yaml.Marshal(manifest)
-}
-
-func ManifestFromBytes(b []byte) (Manifest, error) {
-	m := make(Manifest)
-	err := yaml.Unmarshal(b, &m)
-	return m, err
 }

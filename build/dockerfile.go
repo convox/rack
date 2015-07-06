@@ -18,7 +18,7 @@ func Dockerfile(base string, app string) error {
 		return err
 	}
 
-	data, err = ManifestFromInspect(data)
+	data, err = ManifestFromInspect(base, data)
 
 	if err != nil {
 		return err
