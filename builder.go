@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/convox/build/build"
 )
 
 var ()
@@ -27,7 +29,7 @@ func NewBuilder() *Builder {
 }
 
 func (b *Builder) Build(repo, name, ref, push, auth, id string) error {
-	prefix := generateId("a", 8)
+	prefix := name
 
 	clone, err := b.compose(prefix, repo, name, ref)
 
@@ -46,7 +48,11 @@ func (b *Builder) Build(repo, name, ref, push, auth, id string) error {
 	return nil
 }
 
-func (b *Builder) clone(repo, name, ref string) (string, error) {
+func (b *Builder) clone(repo, app, ref string) (string, error) {
+	if strings.Index(repo, ":") == -1 {
+		return repo, nil
+	}
+
 	tmp, err := ioutil.TempDir("", "repo")
 
 	if err != nil {
@@ -94,8 +100,26 @@ func (b *Builder) clone(repo, name, ref string) (string, error) {
 	return clone, nil
 }
 
-func (b *Builder) compose(prefix, repo, name, ref string) (string, error) {
-	dir, err := b.clone(repo, name, ref)
+func (b *Builder) compose(prefix, repo, app, ref string) (string, error) {
+	dir, err := b.clone(repo, app, ref)
+
+	if err != nil {
+		return "", err
+	}
+
+	switch {
+	case exists(filepath.Join(dir, "docker-compose.yml")):
+		fmt.Printf("Docker Compose app detected.\n")
+	case exists(filepath.Join(dir, "Dockerfile")):
+		fmt.Printf("Dockerfile app detected. Writing docker-compose.yml.\n")
+		err = build.Dockerfile(dir, app)
+	case exists(filepath.Join(dir, "Procfile")):
+		fmt.Printf("Procfile app detected. Writing Dockerfile and docker-compose.yml.\n")
+		err = build.Procfile(dir, app)
+	default:
+		fmt.Printf("Nothing detected. Writing Procfile, Dockerfile and docker-compose.yml.\n")
+		err = build.Default(dir, app)
+	}
 
 	if err != nil {
 		return "", err

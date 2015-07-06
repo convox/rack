@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"github.com/convox/build/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 type Manifest map[string]ManifestEntry

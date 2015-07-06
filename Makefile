@@ -1,3 +1,5 @@
+.PHONY: all build test vendor
+
 all: build
 
 build:
