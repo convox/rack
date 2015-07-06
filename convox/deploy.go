@@ -123,6 +123,5 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	stdcli.Spinner.Stop()
-
 	fmt.Printf("\x08\x08OK, %s\n", a.Parameters["Release"])
 }

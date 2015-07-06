@@ -73,16 +73,22 @@ func executeBuild(dir string, app string) (string, error) {
 		panic(err)
 	}
 
+	stdcli.Spinner.Prefix = "Uploading: "
+	stdcli.Spinner.Start()
+
+	time.Sleep(100 * time.Millisecond)
+
 	tar, err := createTarball(dir)
 
 	if err != nil {
 		return "", err
 	}
 
+	stdcli.Spinner.Stop()
+	fmt.Println("\x08\x08OK")
+
 	stdcli.Spinner.Prefix = "Building: "
 	stdcli.Spinner.Start()
-
-	time.Sleep(10 * time.Second)
 
 	build, err := postBuild(tar, app)
 
@@ -97,7 +103,6 @@ func executeBuild(dir string, app string) (string, error) {
 	}
 
 	stdcli.Spinner.Stop()
-
 	fmt.Println("\x08\x08OK")
 
 	return release, nil
