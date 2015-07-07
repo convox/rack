@@ -116,13 +116,13 @@
 {{ end }}
 
 {{ define "process-resources" }}
+  "Kinesis": {
+    "Type": "AWS::Kinesis::Stream",
+    "Properties": {
+      "ShardCount": 1
+    }
+  },
   {{ if .HasProcesses }}
-    "Kinesis": {
-      "Type": "AWS::Kinesis::Stream",
-      "Properties": {
-        "ShardCount": 1
-      }
-    },
     "LogsUser": {
       "Type": "AWS::IAM::User",
       "Properties": {
