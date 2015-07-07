@@ -110,11 +110,9 @@
 {{ end }}
 
 {{ define "process-outputs" }}
-  {{ if .HasProcesses }}
-    "Kinesis": {
-      "Value": { "Ref": "Kinesis" }
-    },
-  {{ end }}
+  "Kinesis": {
+    "Value": { "Ref": "Kinesis" }
+  },
 {{ end }}
 
 {{ define "process-resources" }}
