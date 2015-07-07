@@ -49,7 +49,7 @@ func (b *Builder) Build(repo, name, ref, push, auth, id string) error {
 }
 
 func (b *Builder) clone(repo, app, ref string) (string, error) {
-	if strings.Index(repo, ":") == -1 {
+	if repo != "-" && strings.Index(repo, ":") == -1 {
 		return repo, nil
 	}
 
