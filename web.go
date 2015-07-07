@@ -10,6 +10,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
 	"github.com/convox/kernel/controllers"
 )
@@ -110,8 +111,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
-	router.HandleFunc("/apps/{app}/processes/{process}/logs/stream", controllers.ProcessStream)
-	router.HandleFunc("/apps/{app}/processes/{process}/resources", controllers.ProcessResources).Methods("GET")
+	router.Handle("/apps/{app}/processes/{process}/run", websocket.Handler(controllers.ProcessRunAttached)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", controllers.ProcessRun).Methods("POST")
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
@@ -121,19 +121,15 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
 	router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/status", controllers.AppStatus).Methods("GET")
-
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
 	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")
 	router.HandleFunc("/services/{service}", controllers.ServiceDelete).Methods("DELETE")
 	router.HandleFunc("/services/{service}/logs", controllers.ServiceLogs).Methods("GET")
 	router.HandleFunc("/services/{service}/logs/stream", controllers.ServiceStream).Methods("GET")
-
 	router.HandleFunc("/services/types/{type}", controllers.ServiceNameList).Methods("GET")
-
 	router.HandleFunc("/settings", controllers.SettingsList).Methods("GET")
 	router.HandleFunc("/settings", controllers.SettingsUpdate).Methods("POST")
-
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
 
 	n := negroni.New(

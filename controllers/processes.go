@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"sync"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
 	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
@@ -66,60 +68,6 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "process", "logs", params)
 }
 
-func ProcessStream(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("stream").Start()
-
-	vars := mux.Vars(r)
-
-	process, err := models.GetProcess(vars["app"], vars["process"])
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	logs := make(chan []byte)
-	done := make(chan bool)
-
-	process.SubscribeLogs(logs, done)
-
-	log.At("upgrade")
-	ws, err := upgrader.Upgrade(rw, r, nil)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	defer ws.Close()
-
-	for data := range logs {
-		ws.WriteMessage(websocket.TextMessage, data)
-	}
-
-	fmt.Println("ended")
-}
-
-func ProcessResources(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("resources").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
-	process := vars["process"]
-
-	resources, err := models.ListProcessResources(app, process)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderPartial(rw, "process", "resources", resources)
-}
-
 func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	log := processesLogger("run").Start()
 
@@ -153,6 +101,44 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderText(rw, "ok")
+}
+
+func ProcessRunAttached(ws *websocket.Conn) {
+	defer ws.Close()
+
+	log := processesLogger("run.attached").Start()
+
+	vars := mux.Vars(ws.Request())
+	app := vars["app"]
+	process := vars["process"]
+	command := ws.Request().Header.Get("Command")
+
+	ps, err := models.GetProcess(app, process)
+
+	if err != nil {
+		helpers.Error(log, err)
+		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
+		return
+	}
+
+	log.Success("step=upgrade app=%q", ps.App)
+
+	defer ws.Close()
+
+	err = ps.RunAttached(command, ws)
+
+	if err != nil {
+		helpers.Error(log, err)
+		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
+		return
+	}
+
+	log.Success("step=ended app=%q", ps.App)
+}
+
+func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
+	io.Copy(w, r)
+	wg.Done()
 }
 
 func ProcessStop(rw http.ResponseWriter, r *http.Request) {

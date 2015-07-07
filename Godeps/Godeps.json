@@ -157,6 +157,10 @@
 			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
 		},
 		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "c84eff7014eba178f68bd4c05b86780efe0fbf35"
+		},
+		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "eca94c41d994ae2215d455ce578ae6e2dc6ee516"
 		}

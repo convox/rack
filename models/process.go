@@ -2,8 +2,11 @@ package models
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
@@ -16,6 +19,7 @@ type Process struct {
 	Command     string
 	Count       int
 	CPU         int64
+	DockerHost  string
 	Id          string
 	Memory      int64
 	Name        string
@@ -119,7 +123,9 @@ func ListProcesses(app string) (Processes, error) {
 						ip = *instance.PublicIPAddress
 					}
 
-					containers, err := Docker(ip).ListContainers(docker.ListContainersOptions{
+					ps.DockerHost = ip
+
+					containers, err := ps.Docker().ListContainers(docker.ListContainersOptions{
 						Filters: map[string][]string{
 							"label": []string{
 								fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.TaskARN),
@@ -179,6 +185,11 @@ func GetProcessById(app, id string) (*Process, error) {
 	return nil, nil
 }
 
+func (p *Process) Docker() *docker.Client {
+	client, _ := docker.NewClient(fmt.Sprintf("http://%s:2376", p.DockerHost))
+	return client
+}
+
 func (p *Process) Run(options ProcessRunOptions) error {
 	app, err := GetApp(p.App)
 
@@ -216,6 +227,81 @@ func (p *Process) Run(options ProcessRunOptions) error {
 	}
 
 	return nil
+}
+
+func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
+	app, err := GetApp(p.App)
+
+	if err != nil {
+		return err
+	}
+
+	release, err := app.LatestRelease()
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("p: %+v\n", p)
+
+	fmt.Printf("%+v\n", &docker.Config{
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          true,
+		OpenStdin:    true,
+		Cmd:          []string{"sh", "-c", command},
+		Image:        fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), p.App, p.Name, release.Build),
+	})
+
+	res, err := p.Docker().CreateContainer(docker.CreateContainerOptions{
+		Config: &docker.Config{
+			AttachStdin:  true,
+			AttachStdout: true,
+			AttachStderr: true,
+			OpenStdin:    true,
+			Tty:          true,
+			Cmd:          []string{"sh", "-c", command},
+			Image:        fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), p.App, p.Name, release.Build),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("res: %+v\n", res)
+
+	go p.Docker().AttachToContainer(docker.AttachToContainerOptions{
+		Container:    res.ID,
+		InputStream:  rw,
+		OutputStream: rw,
+		ErrorStream:  rw,
+		Stream:       true,
+		Stdin:        true,
+		Stdout:       true,
+		Stderr:       true,
+		RawTerminal:  true,
+	})
+
+	// hacky
+	time.Sleep(100 * time.Millisecond)
+
+	err = p.Docker().StartContainer(res.ID, nil)
+
+	fmt.Printf("err: %+v\n", err)
+
+	n, err := p.Docker().WaitContainer(res.ID)
+
+	fmt.Printf("n: %+v\n", n)
+	fmt.Printf("err: %+v\n", err)
+
+	return nil
+}
+
+func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
+	io.Copy(w, r)
+	wg.Done()
 }
 
 func (p *Process) Stop() error {
