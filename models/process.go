@@ -242,18 +242,6 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	fmt.Printf("p: %+v\n", p)
-
-	fmt.Printf("%+v\n", &docker.Config{
-		AttachStdin:  true,
-		AttachStdout: true,
-		AttachStderr: true,
-		Tty:          true,
-		OpenStdin:    true,
-		Cmd:          []string{"sh", "-c", command},
-		Image:        fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), p.App, p.Name, release.Build),
-	})
-
 	res, err := p.Docker().CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
 			AttachStdin:  true,
@@ -269,8 +257,6 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("res: %+v\n", res)
 
 	go p.Docker().AttachToContainer(docker.AttachToContainerOptions{
 		Container:    res.ID,
@@ -289,12 +275,15 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 
 	err = p.Docker().StartContainer(res.ID, nil)
 
-	fmt.Printf("err: %+v\n", err)
+	if err != nil {
+		return err
+	}
 
-	n, err := p.Docker().WaitContainer(res.ID)
+	_, err = p.Docker().WaitContainer(res.ID)
 
-	fmt.Printf("n: %+v\n", n)
-	fmt.Printf("err: %+v\n", err)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
