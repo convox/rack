@@ -1,4 +1,10 @@
 web:
-  image: httpd
+  build: .
+  links:
+    - postgres
   ports:
-    - 80:80
+    - 5000:3000
+  volumes:
+    - .:/app
+postgres:
+  image: convox/postgres
