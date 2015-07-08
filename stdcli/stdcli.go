@@ -123,7 +123,13 @@ func runExecCommand(bin string, args ...string) error {
 	cmd := exec.Command(bin, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	err := cmd.Run()
+
+	if Debug() {
+		fmt.Fprintf(os.Stderr, "DEBUG: exec: '%v', '%v', '%v'\n", bin, args, err)
+	}
+
+	return err
 }
 
 func queryExecCommand(bin string, args ...string) ([]byte, error) {
