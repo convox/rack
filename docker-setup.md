@@ -30,38 +30,40 @@ If your versions do not match, you might consider following the
 * Use the terminal to initialize Boot2Docker and your Docker environment variables
 * Use the terminal to start your first Convox application
 
-    $ curl -L https://github.com/docker/compose/releases/download/1.3.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
-    $ chmod +x /usr/local/bin/docker-compose
+```bash
+$ curl -L https://github.com/docker/compose/releases/download/1.3.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+$ chmod +x /usr/local/bin/docker-compose
 
-    $ boot2docker up
-    Waiting for VM and Docker daemon to start...
-    ........................ooooooooooooooooo
-    Started.
-    Writing /Users/noah/.boot2docker/certs/boot2docker-vm/ca.pem
-    Writing /Users/noah/.boot2docker/certs/boot2docker-vm/cert.pem
-    Writing /Users/noah/.boot2docker/certs/boot2docker-vm/key.pem
-        export DOCKER_HOST=tcp://192.168.59.103:2376
-        export DOCKER_CERT_PATH=/Users/user/.boot2docker/certs/boot2docker-vm
-        export DOCKER_TLS_VERIFY=1
+$ boot2docker up
+Waiting for VM and Docker daemon to start...
+........................ooooooooooooooooo
+Started.
+Writing /Users/noah/.boot2docker/certs/boot2docker-vm/ca.pem
+Writing /Users/noah/.boot2docker/certs/boot2docker-vm/cert.pem
+Writing /Users/noah/.boot2docker/certs/boot2docker-vm/key.pem
+    export DOCKER_HOST=tcp://192.168.59.103:2376
+    export DOCKER_CERT_PATH=/Users/user/.boot2docker/certs/boot2docker-vm
+    export DOCKER_TLS_VERIFY=1
 
-    $ $(boot2docker shellinit)
+$ $(boot2docker shellinit)
 
-    $ git clone https://github.com/convox-examples/sinatra
-    $ cd sinatra
+$ git clone https://github.com/convox-examples/sinatra
+$ cd sinatra
 
-    $ convox start
-    RUNNING: docker-compose -p sinatra build
-    Pulling redis (convox/redis:latest)...
-    Pulling postgres (convox/postgres:latest)...
-    Building web...
-    ...
-    Building worker...
-    ...
-    redis_1    |       _.-``    `.  `_.  ''-._           Redis 3.0.1 (d614dd0c/0) 64 bit
-    postgres_1 | LOG:  database system is ready to accept connections
-    web_1      | I, [2015-07-08T19:50:34.328584 #7]  INFO -- : listening on addr=0.0.0.0:3000 fd=9
+$ convox start
+RUNNING: docker-compose -p sinatra build
+Pulling redis (convox/redis:latest)...
+Pulling postgres (convox/postgres:latest)...
+Building web...
+...
+Building worker...
+...
+redis_1    |       _.-``    `.  `_.  ''-._           Redis 3.0.1 (d614dd0c/0) 64 bit
+postgres_1 | LOG:  database system is ready to accept connections
+web_1      | I, [2015-07-08T19:50:34.328584 #7]  INFO -- : listening on addr=0.0.0.0:3000 fd=9
 
-    $ open http://$(boot2docker ip):3000
+$ open http://$(boot2docker ip):3000
+```
 
 ## Uninstall
 
