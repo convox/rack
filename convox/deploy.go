@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -20,10 +21,6 @@ func init() {
 			cli.StringFlag{
 				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
-			},
-			cli.BoolFlag{
-				Name:  "debug",
-				Usage: "display debugging information about deployment",
 			},
 		},
 	})
@@ -43,11 +40,6 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	debug := c.Bool("debug")
-	if debug {
-		fmt.Printf("Debugging enabled.\n")
-	}
-
 	// create app if it doesn't exist
 	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
@@ -56,8 +48,8 @@ func cmdDeploy(c *cli.Context) {
 		v.Set("name", app)
 		data, err = ConvoxPostForm("/apps", v)
 
-		if debug {
-			fmt.Printf("DEBUG: POST /apps response: '%v'\n", data)
+		if stdcli.Debug() {
+			fmt.Fprintf(os.Stderr, "DEBUG: POST /apps response: '%v', '%v'\n", string(data), err)
 		}
 
 		if err != nil {
@@ -79,6 +71,10 @@ func cmdDeploy(c *cli.Context) {
 			if string(data) == "running" {
 				fmt.Printf("Status %s\n", data)
 				break
+			}
+
+			if stdcli.Debug() {
+				fmt.Fprintf(os.Stderr, "DEBUG: POST /apps response: '%v', '%v'\n", string(data), err)
 			}
 
 			time.Sleep(1000 * time.Millisecond)
