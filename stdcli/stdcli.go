@@ -66,6 +66,13 @@ func New() *cli.App {
 	return app
 }
 
+func Debug() bool {
+	if debug := os.Getenv("DEBUG"); debug != "" {
+		return true
+	}
+	return false
+}
+
 func DirApp(c *cli.Context, wd string) (string, string, error) {
 	abs, err := filepath.Abs(wd)
 
