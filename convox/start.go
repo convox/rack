@@ -57,7 +57,7 @@ func buildLocal(dir, app string) error {
 		return err
 	}
 
-	err = run("docker", "run", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", fmt.Sprintf("%s:/source", abs), "convox/build", app, "/source")
+	err = run("docker", "--tlsverify=false", "run", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", fmt.Sprintf("%s:/source", abs), "convox/build", app, "/source")
 
 	if err != nil {
 		return err
