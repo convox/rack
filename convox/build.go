@@ -247,7 +247,7 @@ func walkToTar(base, path string, tw *tar.Writer) error {
 			return nil
 		}
 
-		if !info.Mode().IsRegular() {
+		if info != nil && !info.Mode().IsRegular() {
 			return nil
 		}
 
