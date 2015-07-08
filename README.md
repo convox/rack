@@ -16,6 +16,8 @@ Convox command line interface.
 
     $ go get -u github.com/convox/cli/convox
 
+`convox` also depends on a working Docker 1.7 environment. See the [Docker Setup Guide](docker-setup.md) for more information.
+
 ## Usage
 
     $ convox help
