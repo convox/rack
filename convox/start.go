@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -55,7 +57,7 @@ func buildLocal(dir, app string) error {
 		return err
 	}
 
-	err = run("docker", "run", "--tlsverify=false", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", fmt.Sprintf("%s:/source", abs), "convox/build", app, "/source")
+	err = run("docker", "--tlsverify=false", "run", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", fmt.Sprintf("%s:/source", abs), "convox/build", app, "/source")
 
 	if err != nil {
 		return err
@@ -68,7 +70,12 @@ func run(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 
 	stdout, err := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+
+	if err != nil {
+		return err
+	}
+
+	stderr, err := cmd.StderrPipe()
 
 	if err != nil {
 		return err
@@ -92,7 +99,17 @@ func run(command string, args ...string) error {
 		}
 	}
 
+	s, err := ioutil.ReadAll(stderr)
+
+	if err != nil {
+		return err
+	}
+
 	err = cmd.Wait()
+
+	if stdcli.Debug() {
+		fmt.Fprintf(os.Stderr, "DEBUG: exec: '%v', '%v', '%v', '%v'\n", command, args, err, string(s))
+	}
 
 	if err != nil {
 		return err

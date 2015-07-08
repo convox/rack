@@ -56,11 +56,6 @@ func TestDeploy(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "deploy", project})
 
-	expect(t, stdout, `Building. done
-Releasing. done
-Name         docker-compose
-Status       running
-Release      RELEASEID
-`)
+	expect(t, stdout, "\b\bOK\n\b\bOK\n\b\bOK, RELEASEID\n")
 	expect(t, stderr, "")
 }

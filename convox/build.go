@@ -221,6 +221,10 @@ func walkToTar(base, path string, tw *tar.Writer) error {
 	}
 
 	err = filepath.Walk(abs, func(path string, info os.FileInfo, err error) error {
+		if stdcli.Debug() {
+			fmt.Fprintf(os.Stderr, "DEBUG: tar: '%v', '%+v', '%v'\n", path, info, err)
+		}
+
 		if filepath.Base(path) == ".git" {
 			return filepath.SkipDir
 		}
@@ -243,7 +247,7 @@ func walkToTar(base, path string, tw *tar.Writer) error {
 			return nil
 		}
 
-		if !info.Mode().IsRegular() {
+		if info != nil && !info.Mode().IsRegular() {
 			return nil
 		}
 
