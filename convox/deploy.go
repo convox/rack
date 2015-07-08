@@ -56,7 +56,9 @@ func cmdDeploy(c *cli.Context) {
 		v.Set("name", app)
 		data, err = ConvoxPostForm("/apps", v)
 
-		fmt.Printf("%v\n", data)
+		if debug {
+			fmt.Printf("DEBUG: POST /apps response: '%v'\n", data)
+		}
 
 		if err != nil {
 			stdcli.Error(err)
