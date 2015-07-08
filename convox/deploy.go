@@ -21,6 +21,10 @@ func init() {
 				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
 			},
+			cli.BoolFlag{
+				Name:  "debug",
+				Usage: "display debugging information about deployment",
+			},
 		},
 	})
 }
@@ -39,6 +43,11 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
+	debug := c.Bool("debug")
+	if debug {
+		fmt.Printf("Debugging enabled.\n")
+	}
+
 	// create app if it doesn't exist
 	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
@@ -46,6 +55,8 @@ func cmdDeploy(c *cli.Context) {
 		v := url.Values{}
 		v.Set("name", app)
 		data, err = ConvoxPostForm("/apps", v)
+
+		fmt.Printf("%v\n", data)
 
 		if err != nil {
 			stdcli.Error(err)
