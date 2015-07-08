@@ -3,7 +3,7 @@
 pull_image() {
   image=$1
   echo "ns=kernel at=boot pull=$image"
-  docker pull $image &
+  docker pull $image >/dev/null 2>&1 &
 }
 
 pull_image convox/app:$RELEASE
