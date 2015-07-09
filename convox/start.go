@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/manifest"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -36,17 +37,31 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	err = buildLocal(dir, app)
+	m, err := manifest.Generate(dir)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	err = stdcli.Run("docker-compose", "up")
+	missing := m.MissingEnvironment()
 
-	if err != nil {
-		stdcli.Error(err)
+	if len(missing) > 0 {
+		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
+	}
+
+	errors := m.Build(app)
+
+	if len(errors) != 0 {
+		fmt.Printf("errors: %+v\n", errors)
+		return
+	}
+
+	errors = m.Run(app)
+
+	if len(errors) != 0 {
+		fmt.Printf("errors: %+v\n", errors)
+		return
 	}
 }
 

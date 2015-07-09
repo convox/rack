@@ -177,6 +177,8 @@ func waitForBuild(app, id string) (string, error) {
 			return build.Release, nil
 		case "error":
 			return "", fmt.Errorf("build failed")
+		case "failed":
+			return "", fmt.Errorf("build failed")
 		}
 
 		time.Sleep(1 * time.Second)
