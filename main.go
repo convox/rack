@@ -74,6 +74,8 @@ type Resource struct {
 	Properties map[string]interface{}
 }
 
+type randomizer func() string
+
 func die(err error) {
 	fmt.Fprintf(os.Stderr, "error: %s\n", err)
 	os.Exit(1)
@@ -108,14 +110,7 @@ func main() {
 		}
 	}
 
-	for i, e := range manifest {
-		for _ = range e.Ports {
-			e.Randoms = append(e.Randoms, randomPort())
-		}
-		manifest[i] = e
-	}
-
-	data, err := buildTemplate(flagMode, "formation", manifest)
+	data, err := buildTemplate(flagMode, "formation", randomPort, manifest)
 
 	if err != nil {
 		displaySyntaxError(data, err)
@@ -132,7 +127,14 @@ func main() {
 	fmt.Println(pretty)
 }
 
-func buildTemplate(name, section string, data interface{}) (string, error) {
+func buildTemplate(name, section string, fn randomizer, m Manifest) (string, error) {
+	for i, e := range m {
+		for _ = range e.Ports {
+			e.Randoms = append(e.Randoms, fn())
+		}
+		m[i] = e
+	}
+
 	tmpl, err := template.New(section).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("template/%s.tmpl", name))
 
 	if err != nil {
@@ -141,7 +143,7 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 
 	var formation bytes.Buffer
 
-	err = tmpl.Execute(&formation, data)
+	err = tmpl.Execute(&formation, m)
 
 	if err != nil {
 		return "", err
