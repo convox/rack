@@ -263,6 +263,8 @@ func (m *Manifest) missingEnvironment() []string {
 		missing = append(missing, mm)
 	}
 
+	sort.Strings(missing)
+
 	return missing
 }
 
