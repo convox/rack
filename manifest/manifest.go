@@ -79,6 +79,16 @@ func pushAsync(local, remote string, ch chan error) {
 	ch <- run("docker", "push", remote)
 }
 
+func pushSync(local, remote string) error {
+	err := run("docker", "tag", "-f", local, remote)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Manifest) Build(app string) []error {
 	ch := make(chan error)
 
@@ -194,7 +204,12 @@ func (m *Manifest) Push(app, registry, auth, tag string) []error {
 	for name, _ := range *m {
 		local := fmt.Sprintf("%s/%s", app, name)
 		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
-		pushAsync(local, remote, ch)
+
+		err := pushSync(local, remote)
+
+		if err != nil {
+			return []error{err}
+		}
 	}
 
 	errors := []error{}
