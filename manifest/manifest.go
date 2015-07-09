@@ -187,7 +187,7 @@ func (m *Manifest) MissingEnvironment() []string {
 }
 
 func (m *Manifest) Push(app, registry, auth, tag string) []error {
-	ch := make(chan error)
+	// ch := make(chan error)
 
 	if auth != "" {
 		err := run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", auth, registry)
@@ -212,15 +212,7 @@ func (m *Manifest) Push(app, registry, auth, tag string) []error {
 		}
 	}
 
-	errors := []error{}
-
-	for i := 0; i < len(*m); i++ {
-		if err := <-ch; err != nil {
-			errors = append(errors, err)
-		}
-	}
-
-	return errors
+	return []error{}
 }
 
 func (m *Manifest) Raw() ([]byte, error) {
