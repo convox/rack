@@ -86,6 +86,12 @@ func pushSync(local, remote string) error {
 		return err
 	}
 
+	err = run("docker", "push", remote)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
