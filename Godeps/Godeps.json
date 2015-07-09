@@ -7,8 +7,8 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/convox/cli/manifest",
-			"Comment": "v0.2-117-g70f851d",
-			"Rev": "70f851ddb1544bc3f971f52bcc753462541a39b3"
+			"Comment": "v0.2-119-g03b92a1",
+			"Rev": "03b92a13c418827c9f6fac9aa03916872a030df9"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
