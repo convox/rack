@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/convox/cli/manifest",
+			"Comment": "v0.2-123-gf094c56",
+			"Rev": "f094c56ea05523013249de40c3f3f97ac1d56ec3"
+		},
+		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "eca94c41d994ae2215d455ce578ae6e2dc6ee516"
 		}

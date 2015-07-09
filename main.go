@@ -1,17 +1,29 @@
 package main
 
 import (
+	"archive/tar"
+	"bufio"
+	"bytes"
+	"compress/gzip"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/convox/build/Godeps/_workspace/src/github.com/convox/cli/manifest"
 )
 
 func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "build: turn a convox application into an ami\n\n")
-		fmt.Fprintf(os.Stderr, "Usage: %s <name> <repository> [ref]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <name> <source>\n", os.Args[0])
 		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nExample:\n  build example-sinatra https://github.com/convox-examples/sinatra.git master\n")
+		fmt.Fprintf(os.Stderr, "\nExample:\n  build example-sinatra https://github.com/convox-examples/sinatra.git\n")
 	}
 }
 
@@ -19,31 +31,225 @@ func main() {
 	id := flag.String("id", "", "tag the build with this id")
 	push := flag.String("push", "", "push build to this prefix when done")
 	auth := flag.String("auth", "", "auth token for push")
-	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "github access token")
 
 	flag.Parse()
 
 	l := len(flag.Args())
-	if l < 2 || l > 3 {
+
+	if l < 2 {
 		flag.Usage()
 		os.Exit(0)
 	}
 
 	args := flag.Args()
 
-	builder := NewBuilder()
-	builder.GitHubToken = *token
-
 	app := positional(args, 0)
-	repo := positional(args, 1)
-	ref := positional(args, 2)
+	source := positional(args, 1)
 
-	err := builder.Build(repo, app, ref, *push, *auth, *id)
+	dir, err := clone(source, app)
 
 	if err != nil {
-		fmt.Printf("error|%s\n", err)
-		os.Exit(1)
+		die(err)
 	}
+
+	m, err := manifest.Generate(dir)
+
+	if err != nil {
+		die(err)
+	}
+
+	data, err := m.Raw()
+
+	if err != nil {
+		die(err)
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+
+	for scanner.Scan() {
+		fmt.Printf("manifest|%s\n", scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		die(err)
+	}
+
+	manifest.Stdout = prefixWriter("build")
+	manifest.Stderr = manifest.Stdout
+
+	errors := m.Build(app)
+
+	if len(errors) > 0 {
+		die(errors[0])
+	}
+
+	if *push != "" {
+		manifest.Stdout = prefixWriter("push")
+		manifest.Stderr = manifest.Stdout
+
+		errors := m.Push(app, *push, *auth, *id)
+
+		if len(errors) > 0 {
+			die(errors[0])
+		}
+	}
+}
+
+func die(err error) {
+	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+}
+
+func clone(source, app string) (string, error) {
+	tmp, err := ioutil.TempDir("", "repo")
+
+	if err != nil {
+		return "", err
+	}
+
+	clone := filepath.Join(tmp, "clone")
+
+	switch {
+	case isDir(source):
+		return source, nil
+	case source == "-":
+		err := extractTarball(os.Stdin, clone)
+
+		if err != nil {
+			return "", err
+		}
+	default:
+		if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
+			return "", err
+		}
+
+		err = run("git", tmp, "git", "clone", source, clone)
+
+		if err != nil {
+			return "", err
+		}
+
+		err = run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
+
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return clone, nil
+}
+
+func extractTarball(r io.Reader, base string) error {
+	gz, err := gzip.NewReader(r)
+
+	if err != nil {
+		return err
+	}
+
+	tr := tar.NewReader(gz)
+
+	for {
+		header, err := tr.Next()
+
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			} else {
+				return err
+			}
+		}
+
+		rel := header.Name
+		join := filepath.Join(base, rel)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(join, 0755)
+		case tar.TypeReg, tar.TypeRegA:
+			dir := filepath.Dir(join)
+
+			os.MkdirAll(dir, 0755)
+
+			fd, err := os.OpenFile(join, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+
+			if err != nil {
+				return err
+			}
+
+			defer fd.Close()
+
+			_, err = io.Copy(fd, tr)
+
+			if err != nil {
+				return err
+			}
+
+			err = os.Chtimes(join, time.Now(), header.ModTime)
+
+			if err != nil {
+				return err
+			}
+		default:
+			fmt.Printf("unknown Typeflag: %d %d\n", header.Typeflag, tar.TypeReg)
+		}
+	}
+}
+
+func prefixWriter(prefix string) io.Writer {
+	r, w := io.Pipe()
+	go prefixReader(r, prefix)
+	return w
+}
+
+func prefixReader(r io.Reader, prefix string) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		fmt.Printf("%s|%s\n", prefix, scanner.Text())
+	}
+}
+
+func run(prefix, dir string, command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+	cmd.Dir = dir
+
+	stdout, err := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+
+	if err != nil {
+		return err
+	}
+
+	cmd.Start()
+
+	scanner := bufio.NewScanner(stdout)
+
+	for scanner.Scan() {
+		fmt.Printf("%s|%s\n", prefix, scanner.Text())
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		fmt.Printf("%s|error: %s\n", prefix, err)
+	}
+
+	return err
+}
+
+func isDir(dir string) bool {
+	fd, err := os.Open(dir)
+
+	if err != nil {
+		return false
+	}
+
+	stat, err := fd.Stat()
+
+	if err != nil {
+		return false
+	}
+
+	return stat.IsDir()
 }
 
 func positional(args []string, n int) string {
@@ -52,4 +258,22 @@ func positional(args []string, n int) string {
 	} else {
 		return ""
 	}
+}
+
+func writeFile(target, name string, perms os.FileMode, replacements map[string]string) error {
+	data, err := Asset(fmt.Sprintf("data/%s", name))
+
+	if err != nil {
+		return err
+	}
+
+	sdata := string(data)
+
+	if replacements != nil {
+		for key, val := range replacements {
+			sdata = strings.Replace(sdata, key, val, -1)
+		}
+	}
+
+	return ioutil.WriteFile(target, []byte(sdata), perms)
 }

@@ -1,0 +1,6 @@
+FROM convox/alpine:3.1
+
+WORKDIR /app
+COPY . /app
+
+CMD sh
