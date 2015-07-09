@@ -244,6 +244,28 @@ func injectDockerfile(dir string) error {
 	return ioutil.WriteFile(filepath.Join(dir, "Dockerfile"), data, 0644)
 }
 
+func (m *Manifest) missingEnvironment() []string {
+	missingh := map[string]bool{}
+
+	for _, entry := range *m {
+		for _, env := range entry.Environment {
+			if strings.Index(env, "=") == -1 {
+				if os.Getenv(env) == "" {
+					missingh[env] = true
+				}
+			}
+		}
+	}
+
+	missing := []string{}
+
+	for mm, _ := range missingh {
+		missing = append(missing, mm)
+	}
+
+	return missing
+}
+
 func exists(filename string) bool {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return false
