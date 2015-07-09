@@ -187,6 +187,10 @@ func (m *Manifest) Push(app, registry, auth, tag string) []error {
 		}
 	}
 
+	if tag == "" {
+		tag = "latest"
+	}
+
 	for name, _ := range *m {
 		local := fmt.Sprintf("%s/%s", app, name)
 		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
