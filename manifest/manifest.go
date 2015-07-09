@@ -194,8 +194,7 @@ func (m *Manifest) Push(app, registry, auth, tag string) []error {
 	for name, _ := range *m {
 		local := fmt.Sprintf("%s/%s", app, name)
 		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
-
-		go pushAsync(local, remote, ch)
+		pushAsync(local, remote, ch)
 	}
 
 	errors := []error{}
