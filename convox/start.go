@@ -44,6 +44,12 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
+	missing := m.MissingEnvironment()
+
+	if len(missing) > 0 {
+		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
+	}
+
 	errors := m.Build(app)
 
 	if len(errors) != 0 {

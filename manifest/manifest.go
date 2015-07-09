@@ -16,6 +16,11 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+var (
+	Stdout = io.Writer(os.Stdout)
+	Stderr = io.Writer(os.Stderr)
+)
+
 type Manifest map[string]ManifestEntry
 
 type ManifestEntry struct {
@@ -61,6 +66,17 @@ func buildAsync(source, tag string, ch chan error) {
 
 func pullAsync(image string, ch chan error) {
 	ch <- run("docker", "pull", image)
+}
+
+func pushAsync(local, remote string, ch chan error) {
+	err := run("docker", "tag", "-f", local, remote)
+
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	ch <- run("docker", "push", remote)
 }
 
 func (m *Manifest) Build(app string) []error {
@@ -127,11 +143,82 @@ func (m *Manifest) Build(app string) []error {
 	return []error{}
 }
 
+func (m *Manifest) MissingEnvironment() []string {
+	missingh := map[string]bool{}
+
+	for _, entry := range *m {
+		for _, env := range entry.Environment {
+			if strings.Index(env, "=") == -1 {
+				if os.Getenv(env) == "" {
+					missingh[env] = true
+				}
+			}
+		}
+	}
+
+	missing := []string{}
+
+	for mm, _ := range missingh {
+		missing = append(missing, mm)
+	}
+
+	sort.Strings(missing)
+
+	return missing
+}
+
+func (m *Manifest) Push(app, registry, auth, tag string) []error {
+	ch := make(chan error)
+
+	if auth != "" {
+		err := run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", auth, registry)
+
+		if err != nil {
+			return []error{err}
+		}
+	}
+
+	for name, _ := range *m {
+		local := fmt.Sprintf("%s/%s", app, name)
+		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
+
+		go pushAsync(local, remote, ch)
+	}
+
+	errors := []error{}
+
+	for i := 0; i < len(*m); i++ {
+		if err := <-ch; err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return errors
+}
+
+func (m *Manifest) Raw() ([]byte, error) {
+	return yaml.Marshal(m)
+}
+
 func (m *Manifest) Run(app string) []error {
 	ch := make(chan error)
 
+	missing := m.MissingEnvironment()
+
+	if len(missing) > 0 {
+		return []error{fmt.Errorf("env expected: %s", strings.Join(missing, ", "))}
+	}
+
+	for _, entry := range *m {
+		for i, env := range entry.Environment {
+			if strings.Index(env, "=") == -1 {
+				entry.Environment[i] = fmt.Sprintf("%s=%s", env, os.Getenv(env))
+			}
+		}
+	}
+
 	for _, name := range m.runOrder() {
-		go (*m)[name].RunAsync(m.prefixForEntry(name), app, name, ch)
+		go (*m)[name].runAsync(m.prefixForEntry(name), app, name, ch)
 		time.Sleep(200 * time.Millisecond)
 	}
 
@@ -147,7 +234,7 @@ func (m *Manifest) Run(app string) []error {
 }
 
 func (m *Manifest) Write(filename string) error {
-	data, err := yaml.Marshal(m)
+	data, err := m.Raw()
 
 	if err != nil {
 		return err
@@ -183,7 +270,7 @@ func (m *Manifest) runOrder() []string {
 	return rs.names
 }
 
-func (me ManifestEntry) RunAsync(prefix, app, process string, ch chan error) {
+func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := fmt.Sprintf("%s-%s", app, process)
 
@@ -225,6 +312,14 @@ func (me ManifestEntry) RunAsync(prefix, app, process string, ch chan error) {
 	ch <- runPrefix(prefix, "docker", args...)
 }
 
+func exists(filename string) bool {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
+}
+
 func injectDockerfile(dir string) error {
 	detect := ""
 
@@ -244,46 +339,28 @@ func injectDockerfile(dir string) error {
 	return ioutil.WriteFile(filepath.Join(dir, "Dockerfile"), data, 0644)
 }
 
-func (m *Manifest) missingEnvironment() []string {
-	missingh := map[string]bool{}
-
-	for _, entry := range *m {
-		for _, env := range entry.Environment {
-			if strings.Index(env, "=") == -1 {
-				if os.Getenv(env) == "" {
-					missingh[env] = true
-				}
-			}
-		}
-	}
-
-	missing := []string{}
-
-	for mm, _ := range missingh {
-		missing = append(missing, mm)
-	}
-
-	sort.Strings(missing)
-
-	return missing
-}
-
-func exists(filename string) bool {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
-
 func query(executable string, args ...string) ([]byte, error) {
 	return exec.Command(executable, args...).CombinedOutput()
 }
 
+func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		fmt.Printf("%s | %s\n", prefix, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		ch <- err
+	}
+
+	ch <- nil
+}
+
 func run(executable string, args ...string) error {
 	cmd := exec.Command(executable, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = Stdout
+	cmd.Stderr = Stderr
 	return cmd.Run()
 }
 
@@ -310,8 +387,8 @@ func runPrefix(prefix, executable string, args ...string) error {
 
 	ch := make(chan error)
 
-	go prefixReader(prefix, stdout, ch)
-	go prefixReader(prefix, stderr, ch)
+	go outputWithPrefix(prefix, stdout, ch)
+	go outputWithPrefix(prefix, stderr, ch)
 
 	if err := <-ch; err != nil {
 		return err
@@ -322,20 +399,6 @@ func runPrefix(prefix, executable string, args ...string) error {
 	}
 
 	return cmd.Wait()
-}
-
-func prefixReader(prefix string, r io.Reader, ch chan error) {
-	scanner := bufio.NewScanner(r)
-
-	for scanner.Scan() {
-		fmt.Printf("%s | %s\n", prefix, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		ch <- err
-	}
-
-	ch <- nil
 }
 
 var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
