@@ -59,10 +59,15 @@ func buildAsync(source, tag string, ch chan error) {
 	ch <- run("docker", "build", "-t", tag, source)
 }
 
+func pullAsync(image string, ch chan error) {
+	ch <- run("docker", "pull", image)
+}
+
 func (m *Manifest) Build(app string) []error {
 	ch := make(chan error)
 
 	builds := map[string]string{}
+	pulls := []string{}
 	tags := map[string]string{}
 
 	for name, entry := range *m {
@@ -76,6 +81,7 @@ func (m *Manifest) Build(app string) []error {
 
 			tags[tag] = builds[entry.Build]
 		case entry.Image != "":
+			pulls = append(pulls, entry.Image)
 			tags[tag] = entry.Image
 		}
 	}
@@ -92,11 +98,33 @@ func (m *Manifest) Build(app string) []error {
 		}
 	}
 
-	for to, from := range tags {
-		run("docker", "tag", "-f", from, to)
+	if len(errors) > 0 {
+		return errors
 	}
 
-	return errors
+	for _, image := range pulls {
+		go pullAsync(image, ch)
+	}
+
+	for i := 0; i < len(pulls); i++ {
+		if err := <-ch; err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if len(errors) > 0 {
+		return errors
+	}
+
+	for to, from := range tags {
+		err := run("docker", "tag", "-f", from, to)
+
+		if err != nil {
+			return []error{err}
+		}
+	}
+
+	return []error{}
 }
 
 func (m *Manifest) Run(app string) []error {
