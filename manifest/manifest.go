@@ -23,7 +23,6 @@ type ManifestEntry struct {
 	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
 	Environment []string    `yaml:"environment,omitempty"`
-	EnvFile     string      `yaml:"env_file,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       []string    `yaml:"ports,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`

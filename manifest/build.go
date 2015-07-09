@@ -55,24 +55,6 @@ func buildDockerCompose(dir string) (*Manifest, error) {
 	}
 
 	for name, entry := range m {
-		if entry.EnvFile != "" {
-			data, err := ioutil.ReadFile(entry.EnvFile)
-
-			if err != nil {
-				return nil, err
-			}
-
-			scanner := bufio.NewScanner(bytes.NewReader(data))
-
-			for scanner.Scan() {
-				entry.Environment = append(entry.Environment, scanner.Text())
-			}
-
-			if err := scanner.Err(); err != nil {
-				return nil, err
-			}
-		}
-
 		for i, env := range entry.Environment {
 			if strings.Index(env, "=") == -1 {
 				entry.Environment[i] = fmt.Sprintf("%s=%s", env, os.Getenv(env))
