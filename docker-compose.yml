@@ -19,14 +19,15 @@ web:
     - SUBNETS
     - VPC
   ports:
-    - 5000:3000
-    - 4443:4443
+    - 80:3000
+    - 443:4443
   volumes:
     - ./:/go/src/github.com/convox/kernel
     - /var/run/docker.sock:/var/run/docker.sock
 registry:
   environment:
     - SETTINGS_FLAVOR=local
+    - PASSWORD
   image: convox/registry
   ports:
-    - 5100:443
+    - 5000:443
