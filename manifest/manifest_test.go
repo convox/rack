@@ -21,7 +21,7 @@ func TestDockerCompose(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/docker-compose/")
 	defer os.RemoveAll(destDir)
 
-	Generate(destDir)
+	m, _ := Generate(destDir)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
@@ -34,7 +34,9 @@ func TestDockerCompose(t *testing.T) {
     - .:/app
 postgres:
   image: convox/postgres
-`}}
+`},
+		{[]string{"postgres", "web"}, m.runOrder()},
+	}
 
 	_assert(t, cases)
 }
@@ -46,14 +48,16 @@ func TestDockerfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/dockerfile/")
 	defer os.RemoveAll(destDir)
 
-	Generate(destDir)
+	m, _ := Generate(destDir)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `main:
   build: .
   ports:
   - 5000:3000
-`}}
+`},
+		{[]string{"main"}, m.runOrder()},
+	}
 
 	_assert(t, cases)
 }
@@ -65,7 +69,7 @@ func TestProcfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/procfile/")
 	defer os.RemoveAll(destDir)
 
-	Generate(destDir)
+	m, _ := Generate(destDir)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
@@ -78,7 +82,9 @@ worker:
   command: ruby worker.rb
   ports:
   - 5100:3000
-`}}
+`},
+		{[]string{"web", "worker"}, m.runOrder()},
+	}
 
 	_assert(t, cases)
 }
