@@ -340,7 +340,9 @@ func (b *Build) log(line string) {
 		},
 	})
 
-	fmt.Printf("err: %+v\n", err)
+	if err != nil {
+		panic(err)
+	}
 
 	// record to kinesis
 }
