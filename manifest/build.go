@@ -57,7 +57,7 @@ func buildDockerCompose(dir string) (*Manifest, error) {
 	missing := m.missingEnvironment()
 
 	if len(missing) > 0 {
-		return nil, fmt.Errorf("missing environment: %s", strings.Join(missing, ", "))
+		return nil, fmt.Errorf("env expected: %s", strings.Join(missing, ", "))
 	}
 
 	for name, entry := range m {
