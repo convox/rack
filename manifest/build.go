@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 func buildDockerCompose(dir string) (*Manifest, error) {

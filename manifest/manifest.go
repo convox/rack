@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 var (
