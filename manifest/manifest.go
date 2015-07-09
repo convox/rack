@@ -144,12 +144,21 @@ func (m *Manifest) Build(app string) []error {
 }
 
 func (m *Manifest) MissingEnvironment() []string {
+	existing := map[string]bool{}
 	missingh := map[string]bool{}
+
+	for _, env := range os.Environ() {
+		parts := strings.SplitN(env, "=", 2)
+
+		if len(parts) == 2 {
+			existing[parts[0]] = true
+		}
+	}
 
 	for _, entry := range *m {
 		for _, env := range entry.Environment {
 			if strings.Index(env, "=") == -1 {
-				if os.Getenv(env) == "" {
+				if !existing[env] {
 					missingh[env] = true
 				}
 			}
@@ -358,6 +367,8 @@ func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
 }
 
 func run(executable string, args ...string) error {
+	Stdout.Write([]byte(fmt.Sprintf("RUNNING: %s %s\n", executable, strings.Join(args, " "))))
+
 	cmd := exec.Command(executable, args...)
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
