@@ -404,6 +404,44 @@
         "Tasks": [
           {
             "Fn::If": [
+              "BlankPostgresService",
+              {
+                "CPU": {
+                  "Ref": "Cpu"
+                },
+                "Command": {
+                  "Ref": "PostgresCommand"
+                },
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "POSTGRES_PASSWORD": "password",
+                  "POSTGRES_USERNAME": "postgres",
+                  "PROCESS": "postgres"
+                },
+                "Image": {
+                  "Ref": "PostgresImage"
+                },
+                "Key": {
+                  "Ref": "Key"
+                },
+                "Links": [],
+                "Memory": {
+                  "Ref": "Memory"
+                },
+                "Name": "postgres",
+                "PortMappings": [],
+                "Services": [],
+                "Volumes": []
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
               "BlankWebService",
               {
                 "CPU": {
@@ -473,44 +511,6 @@
                     ]
                   }
                 ],
-                "Volumes": []
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BlankPostgresService",
-              {
-                "CPU": {
-                  "Ref": "Cpu"
-                },
-                "Command": {
-                  "Ref": "PostgresCommand"
-                },
-                "Environment": {
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
-                  "POSTGRES_PASSWORD": "password",
-                  "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
-                },
-                "Image": {
-                  "Ref": "PostgresImage"
-                },
-                "Key": {
-                  "Ref": "Key"
-                },
-                "Links": [],
-                "Memory": {
-                  "Ref": "Memory"
-                },
-                "Name": "postgres",
-                "PortMappings": [],
-                "Services": [],
                 "Volumes": []
               },
               {

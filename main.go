@@ -338,7 +338,8 @@ func templateHelpers() template.FuncMap {
 		"tasks": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for ps, entry := range m {
+			for _, ps := range m.EntryNames() {
+				entry := m[ps]
 				mappings := []string{}
 
 				for _, port := range entry.Ports {
