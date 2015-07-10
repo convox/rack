@@ -236,6 +236,8 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
+	fmt.Printf("m.runOrder(): %+v\n", m.runOrder())
+
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
 		time.Sleep(1000 * time.Millisecond)
