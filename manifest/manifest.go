@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,7 +39,15 @@ type ManifestEntry struct {
 }
 
 func Generate(dir string) (*Manifest, error) {
-	err := os.Chdir(dir)
+	wd, err := os.Getwd()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer os.Chdir(wd)
+
+	err = os.Chdir(dir)
 
 	if err != nil {
 		return nil, err
@@ -217,6 +226,28 @@ func (m *Manifest) MissingEnvironment() []string {
 	sort.Strings(missing)
 
 	return missing
+}
+
+func (m *Manifest) PortsWanted() ([]int64, error) {
+	ports := make([]int64, 0)
+
+	for _, entry := range *m {
+		for _, port := range entry.Ports {
+			parts := strings.SplitN(port, ":", 2)
+
+			if len(parts) == 2 {
+				p, err := strconv.Atoi(parts[0])
+
+				if err != nil {
+					return ports, err
+				}
+
+				ports = append(ports, int64(p))
+			}
+		}
+	}
+
+	return ports, nil
 }
 
 func (m *Manifest) Push(app, registry, auth, tag string) []error {

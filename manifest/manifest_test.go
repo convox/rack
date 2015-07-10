@@ -19,9 +19,6 @@ type Cases []struct {
 }
 
 func TestBuild(t *testing.T) {
-	wd, _ := os.Getwd()
-	defer os.Chdir(wd)
-
 	destDir := mkBuildDir(t, "../examples/docker-compose/")
 	defer os.RemoveAll(destDir)
 
@@ -30,8 +27,26 @@ func TestBuild(t *testing.T) {
 	stdout, stderr := manifestBuild(m, "docker-compose")
 
 	cases := Cases{
-		{stdout, "RUNNING: docker build -t xvlbzgbaic .\nRUNNING: docker pull convox/postgres\nRUNNING: docker tag -f convox/postgres docker-compose/postgres\nRUNNING: docker tag -f xvlbzgbaic docker-compose/web\n"},
+		{stdout, `RUNNING: docker build -t xvlbzgbaic .
+RUNNING: docker pull convox/postgres
+RUNNING: docker tag -f convox/postgres docker-compose/postgres
+RUNNING: docker tag -f xvlbzgbaic docker-compose/web
+`},
 		{stderr, ""},
+	}
+
+	_assert(t, cases)
+}
+
+func TestPortCheck(t *testing.T) {
+	destDir := mkBuildDir(t, "../examples/docker-compose/")
+	defer os.RemoveAll(destDir)
+
+	m, _ := Generate(destDir)
+	ps, _ := m.PortsWanted()
+
+	cases := Cases{
+		{ps, []int64{5000}},
 	}
 
 	_assert(t, cases)
@@ -67,9 +82,6 @@ postgres:
 }
 
 func TestRun(t *testing.T) {
-	wd, _ := os.Getwd()
-	defer os.Chdir(wd)
-
 	destDir := mkBuildDir(t, "../examples/docker-compose/")
 	defer os.RemoveAll(destDir)
 
@@ -86,10 +98,6 @@ func TestRun(t *testing.T) {
 }
 
 func TestDockerCompose(t *testing.T) {
-	wd, _ := os.Getwd()
-	fmt.Printf("WD: %v\n", wd)
-	defer os.Chdir(wd)
-
 	destDir := mkBuildDir(t, "../examples/docker-compose/")
 	defer os.RemoveAll(destDir)
 
@@ -114,9 +122,6 @@ postgres:
 }
 
 func TestDockerfile(t *testing.T) {
-	wd, _ := os.Getwd()
-	defer os.Chdir(wd)
-
 	destDir := mkBuildDir(t, "../examples/dockerfile/")
 	defer os.RemoveAll(destDir)
 
@@ -135,9 +140,6 @@ func TestDockerfile(t *testing.T) {
 }
 
 func TestProcfile(t *testing.T) {
-	wd, _ := os.Getwd()
-	defer os.Chdir(wd)
-
 	destDir := mkBuildDir(t, "../examples/procfile/")
 	defer os.RemoveAll(destDir)
 
