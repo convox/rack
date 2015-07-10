@@ -282,7 +282,7 @@ func (m *Manifest) prefixForEntry(name string, pos int) string {
 
 	c := color.New(Colors[pos%len(Colors)]).SprintFunc()
 
-	return c(name + strings.Repeat(" ", longest-len(name)) + " | ")
+	return c(name + strings.Repeat(" ", longest-len(name)) + " |")
 }
 
 func (m *Manifest) runOrder() []string {
@@ -405,6 +405,8 @@ func run(executable string, args ...string) error {
 }
 
 func runPrefix(prefix, executable string, args ...string) error {
+	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
+
 	cmd := exec.Command(executable, args...)
 
 	stdout, err := cmd.StdoutPipe()
