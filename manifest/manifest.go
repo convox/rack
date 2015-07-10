@@ -247,7 +247,7 @@ func (m *Manifest) Run(app string) []error {
 
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 	}
 
 	errors := []error{}
