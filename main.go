@@ -119,14 +119,7 @@ func main() {
 		die(err)
 	}
 
-	pretty, err := prettyJson(data)
-
-	if err != nil {
-		displaySyntaxError(data, err)
-		die(err)
-	}
-
-	fmt.Println(pretty)
+	fmt.Println(data)
 }
 
 func buildTemplate(name, section string, fn randomizer, m Manifest) (string, error) {
@@ -151,7 +144,13 @@ func buildTemplate(name, section string, fn randomizer, m Manifest) (string, err
 		return "", err
 	}
 
-	return formation.String(), nil
+	pretty, err := prettyJson(formation.String())
+
+	if err != nil {
+		return "", err
+	}
+
+	return pretty, nil
 }
 
 func displaySyntaxError(data string, err error) {
