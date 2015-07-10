@@ -66,6 +66,25 @@ postgres:
 	_assert(t, cases)
 }
 
+func TestRun(t *testing.T) {
+	wd, _ := os.Getwd()
+	defer os.Chdir(wd)
+
+	destDir := mkBuildDir(t, "../examples/docker-compose/")
+	defer os.RemoveAll(destDir)
+
+	m, _ := Generate(destDir)
+
+	stdout, stderr := manifestRun(m, "docker-compose")
+
+	cases := Cases{
+		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name docker-compose-postgres --rm=true docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name docker-compose-web --rm=true --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
+		{stderr, ""},
+	}
+
+	_assert(t, cases)
+}
+
 func TestDockerCompose(t *testing.T) {
 	wd, _ := os.Getwd()
 	fmt.Printf("WD: %v\n", wd)
@@ -224,6 +243,50 @@ func manifestBuild(m *Manifest, app string) (string, string) {
 	}()
 
 	m.Build(app)
+
+	// restore stderr, stdout
+	ew.Close()
+	os.Stderr = oldErr
+	err := <-errC
+
+	ow.Close()
+	os.Stdout = oldOut
+	out := <-outC
+
+	return out, err
+}
+
+func manifestRun(m *Manifest, app string) (string, string) {
+	oldErr := os.Stderr
+	oldOut := os.Stdout
+
+	er, ew, _ := os.Pipe()
+	or, ow, _ := os.Pipe()
+
+	os.Stderr = ew
+	os.Stdout = ow
+
+	Execer = func(bin string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
+
+	errC := make(chan string)
+	// copy the output in a separate goroutine so printing can't block indefinitely
+	go func() {
+		var buf bytes.Buffer
+		io.Copy(&buf, er)
+		errC <- buf.String()
+	}()
+
+	outC := make(chan string)
+	// copy the output in a separate goroutine so printing can't block indefinitely
+	go func() {
+		var buf bytes.Buffer
+		io.Copy(&buf, or)
+		outC <- buf.String()
+	}()
+
+	m.Run(app)
 
 	// restore stderr, stdout
 	ew.Close()
