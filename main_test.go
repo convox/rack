@@ -14,6 +14,18 @@ type Cases []struct {
   got, want interface{}
 }
 
+func TestManifestEntryNames(t *testing.T) {
+  var manifest Manifest
+  man := readFile(t, "fixtures", "web_postgis.yml")
+  yaml.Unmarshal(man, &manifest)
+
+  cases := Cases{
+    {manifest.EntryNames(), []string{"postgres", "web"}},
+  }
+
+  _assert(t, cases)
+}
+
 func TestStagingWebPostgis(t *testing.T) {
   var manifest Manifest
 

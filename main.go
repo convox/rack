@@ -10,11 +10,12 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v2"
+	yaml "github.com/convox/app/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 var (
@@ -438,6 +439,18 @@ func upperName(name string) string {
 	}
 
 	return us
+}
+
+func (m Manifest) EntryNames() []string {
+	var names sort.StringSlice = make([]string, 0)
+
+	for k, _ := range m {
+		names = append(names, k)
+	}
+
+	names.Sort()
+
+	return names
 }
 
 func (m Manifest) FirstPort() string {

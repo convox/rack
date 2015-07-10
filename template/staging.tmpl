@@ -84,7 +84,7 @@
 {{ end }}
 
 {{ define "process-conditions" }}
-  {{ range $k, $e := . }}
+  {{ range $k := .EntryNames }}
     "Blank{{ upper $k }}Service": { "Fn::Equals": [ { "Ref": "{{ upper $k }}Service" }, "" ] },
   {{ end }}
 {{ end }}
