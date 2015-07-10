@@ -306,7 +306,7 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	query("docker", "rm", "-f", name)
 
-	args := []string{"run", "-i", "--name", name, "--rm=true"}
+	args := []string{"run", "-i", "--name", name}
 
 	for _, env := range me.Environment {
 		if strings.Index(env, "=") > -1 {
