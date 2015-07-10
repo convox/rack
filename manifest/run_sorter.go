@@ -1,5 +1,7 @@
 package manifest
 
+import "strings"
+
 type RunSorter struct {
 	names    []string
 	manifest Manifest
@@ -11,7 +13,7 @@ func (rs RunSorter) Len() int {
 
 func (rs RunSorter) Less(i, j int) bool {
 	for _, link := range rs.manifest[rs.names[j]].Links {
-		if link == rs.names[i] {
+		if strings.Split(link, ":")[0] == rs.names[i] {
 			return true
 		}
 	}
