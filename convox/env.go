@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -63,13 +64,17 @@ func cmdEnvGetAll(c *cli.Context) {
 	var env map[string]string
 	json.Unmarshal(resp, &env)
 
-	output := ""
+	keys := []string{}
 
-	for key, value := range env {
-		output += fmt.Sprintf("%s=%s\n", key, value)
+	for key, _ := range env {
+		keys = append(keys, key)
 	}
 
-	fmt.Print(output)
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		fmt.Printf("%s=%s\n", key, env[key])
+	}
 }
 
 func cmdEnvGet(c *cli.Context) {
