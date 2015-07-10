@@ -19,7 +19,7 @@ type Cases []struct {
 }
 
 func TestBuild(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose/")
+	destDir := mkBuildDir(t, "../examples/docker-compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -39,7 +39,7 @@ RUNNING: docker tag -f xvlbzgbaic docker-compose/web
 }
 
 func TestPortCheck(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose/")
+	destDir := mkBuildDir(t, "../examples/docker-compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -82,7 +82,7 @@ postgres:
 }
 
 func TestRun(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose/")
+	destDir := mkBuildDir(t, "../examples/docker-compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -98,7 +98,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestDockerCompose(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose/")
+	destDir := mkBuildDir(t, "../examples/docker-compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -122,7 +122,7 @@ postgres:
 }
 
 func TestDockerfile(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/dockerfile/")
+	destDir := mkBuildDir(t, "../examples/dockerfile")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -140,7 +140,7 @@ func TestDockerfile(t *testing.T) {
 }
 
 func TestProcfile(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/procfile/")
+	destDir := mkBuildDir(t, "../examples/procfile")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -171,7 +171,7 @@ func mkBuildDir(t *testing.T, srcDir string) string {
 		return destDir
 	}
 
-	cpCmd := exec.Command("cp", "-rf", srcDir, destDir)
+	cpCmd := exec.Command("rsync", "-av", srcDir + "/", destDir)
 	err = cpCmd.Run()
 
 	if err != nil {
