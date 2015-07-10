@@ -54,28 +54,6 @@ type Listener struct {
 	Process  string
 }
 
-type Template struct {
-	AWSTemplateFormatVersion string
-	Description              string
-
-	Conditions Conditions
-	Outputs    Outputs
-	Parameters Parameters
-	Resources  map[string]Resource
-}
-
-type Conditions map[string]Condition
-type Condition map[string]interface{}
-type Outputs map[string]Output
-type Output map[string]interface{}
-type Parameters map[string]Parameter
-type Parameter map[string]interface{}
-
-type Resource struct {
-	Type       string
-	Properties map[string]interface{}
-}
-
 type randomizer func() string
 
 func die(err error) {
