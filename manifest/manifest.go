@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/fatih/color"
+	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 var (
@@ -317,7 +317,15 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 	}
 
 	for _, link := range me.Links {
-		args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, link, link))
+		parts := strings.Split(link, ":")
+
+		switch len(parts) {
+		case 1:
+			args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, link, link))
+		case 2:
+			args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, parts[0], parts[1]))
+		default:
+		}
 	}
 
 	for _, port := range me.Ports {
