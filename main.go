@@ -38,10 +38,11 @@ func init() {
 }
 
 type ManifestEntry struct {
-	Command interface{} `yaml:"command"`
-	Links   []string    `yaml:"links"`
-	Ports   []string    `yaml:"ports"`
-	Volumes []string    `yaml:"volumes"`
+	Command     interface{} `yaml:"command"`
+	Environment []string    `yaml:"environment,omitempty"`
+	Links       []string    `yaml:"links"`
+	Ports       []string    `yaml:"ports"`
+	Volumes     []string    `yaml:"volumes"`
 
 	Randoms []string
 }
@@ -351,6 +352,16 @@ func templateHelpers() template.FuncMap {
 					mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, upperName(ps), parts[0], parts[1]))
 				}
 
+				envs := make([]string, 0)
+				envs = append(envs, fmt.Sprintf("\"PROCESS\": \"%s\"", ps))
+
+				for _, env := range entry.Environment {
+					parts := strings.SplitN(env, "=", 2)
+					if len(parts) == 2 {
+						envs = append(envs, fmt.Sprintf("\"%s\": \"%s\"", parts[0], parts[1]))
+					}
+				}
+
 				links := make([]string, len(entry.Links))
 
 				for i, link := range entry.Links {
@@ -385,13 +396,13 @@ func templateHelpers() template.FuncMap {
 					"Memory": { "Ref": "Memory" },
 					"Environment": {
 						"KINESIS": { "Ref": "Kinesis" },
-						"PROCESS": "%s"
+						%s
 					},
 					"Links": [ %s ],
 					"Volumes": [ %s ],
 					"Services": [ %s ],
 					"PortMappings": [ %s ]
-				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), ps, strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
+				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
