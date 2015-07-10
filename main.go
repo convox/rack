@@ -10,11 +10,12 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v2"
+	yaml "github.com/convox/app/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 var (
@@ -37,10 +38,11 @@ func init() {
 }
 
 type ManifestEntry struct {
-	Command interface{} `yaml:"command"`
-	Links   []string    `yaml:"links"`
-	Ports   []string    `yaml:"ports"`
-	Volumes []string    `yaml:"volumes"`
+	Command     interface{} `yaml:"command"`
+	Environment []string    `yaml:"environment,omitempty"`
+	Links       []string    `yaml:"links"`
+	Ports       []string    `yaml:"ports"`
+	Volumes     []string    `yaml:"volumes"`
 
 	Randoms []string
 }
@@ -51,6 +53,8 @@ type Listener struct {
 	Balancer string
 	Process  string
 }
+
+type randomizer func() string
 
 func die(err error) {
 	fmt.Fprintf(os.Stderr, "error: %s\n", err)
@@ -86,31 +90,24 @@ func main() {
 		}
 	}
 
-	for i, e := range manifest {
-		for _ = range e.Ports {
-			e.Randoms = append(e.Randoms, randomPort())
-		}
-		manifest[i] = e
-	}
-
-	data, err := buildTemplate(flagMode, "formation", manifest)
+	data, err := buildTemplate(flagMode, "formation", randomPort, manifest)
 
 	if err != nil {
 		displaySyntaxError(data, err)
 		die(err)
 	}
 
-	pretty, err := prettyJson(data)
-
-	if err != nil {
-		displaySyntaxError(data, err)
-		die(err)
-	}
-
-	fmt.Println(pretty)
+	fmt.Println(data)
 }
 
-func buildTemplate(name, section string, data interface{}) (string, error) {
+func buildTemplate(name, section string, fn randomizer, m Manifest) (string, error) {
+	for i, e := range m {
+		for _ = range e.Ports {
+			e.Randoms = append(e.Randoms, fn())
+		}
+		m[i] = e
+	}
+
 	tmpl, err := template.New(section).Funcs(templateHelpers()).ParseFiles(fmt.Sprintf("template/%s.tmpl", name))
 
 	if err != nil {
@@ -119,13 +116,19 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 
 	var formation bytes.Buffer
 
-	err = tmpl.Execute(&formation, data)
+	err = tmpl.Execute(&formation, m)
 
 	if err != nil {
 		return "", err
 	}
 
-	return formation.String(), nil
+	pretty, err := prettyJson(formation.String())
+
+	if err != nil {
+		return "", err
+	}
+
+	return pretty, nil
 }
 
 func displaySyntaxError(data string, err error) {
@@ -313,7 +316,8 @@ func templateHelpers() template.FuncMap {
 		"tasks": func(m Manifest) template.HTML {
 			ls := []string{}
 
-			for ps, entry := range m {
+			for _, ps := range m.EntryNames() {
+				entry := m[ps]
 				mappings := []string{}
 
 				for _, port := range entry.Ports {
@@ -324,6 +328,16 @@ func templateHelpers() template.FuncMap {
 					}
 
 					mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, upperName(ps), parts[0], parts[1]))
+				}
+
+				envs := make([]string, 0)
+				envs = append(envs, fmt.Sprintf("\"PROCESS\": \"%s\"", ps))
+
+				for _, env := range entry.Environment {
+					parts := strings.SplitN(env, "=", 2)
+					if len(parts) == 2 {
+						envs = append(envs, fmt.Sprintf("\"%s\": \"%s\"", parts[0], parts[1]))
+					}
 				}
 
 				links := make([]string, len(entry.Links))
@@ -360,13 +374,13 @@ func templateHelpers() template.FuncMap {
 					"Memory": { "Ref": "Memory" },
 					"Environment": {
 						"KINESIS": { "Ref": "Kinesis" },
-						"PROCESS": "%s"
+						%s
 					},
 					"Links": [ %s ],
 					"Volumes": [ %s ],
 					"Services": [ %s ],
 					"PortMappings": [ %s ]
-				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), ps, strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
+				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
 			}
 
 			return template.HTML(strings.Join(ls, ","))
@@ -414,6 +428,18 @@ func upperName(name string) string {
 	}
 
 	return us
+}
+
+func (m Manifest) EntryNames() []string {
+	var names sort.StringSlice = make([]string, 0)
+
+	for k, _ := range m {
+		names = append(names, k)
+	}
+
+	names.Sort()
+
+	return names
 }
 
 func (m Manifest) FirstPort() string {
