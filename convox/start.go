@@ -7,9 +7,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/docker"
 	"github.com/convox/cli/manifest"
 	"github.com/convox/cli/stdcli"
 )
@@ -48,6 +50,37 @@ func cmdStart(c *cli.Context) {
 
 	if len(missing) > 0 {
 		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
+		return
+	}
+
+	wanted, err := m.PortsWanted()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	used, err := docker.PortsUsed()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	conflicts := make([]string, 0)
+
+	for _, wp := range wanted {
+		for _, up := range used {
+			if wp == up {
+				str := strconv.FormatInt(wp, 10)
+				conflicts = append(conflicts, str)
+			}
+		}
+	}
+
+	if len(conflicts) > 0 {
+		stdcli.Error(fmt.Errorf("ports already used: %s", strings.Join(conflicts, ", ")))
+		return
 	}
 
 	errors := m.Build(app)
