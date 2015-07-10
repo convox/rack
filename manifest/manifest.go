@@ -20,6 +20,7 @@ import (
 var (
 	Stdout = io.Writer(os.Stdout)
 	Stderr = io.Writer(os.Stderr)
+	Execer = exec.Command
 )
 
 var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
@@ -410,7 +411,7 @@ func injectDockerfile(dir string) error {
 }
 
 func query(executable string, args ...string) ([]byte, error) {
-	return exec.Command(executable, args...).CombinedOutput()
+	return Execer(executable, args...).CombinedOutput()
 }
 
 func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
@@ -430,7 +431,7 @@ func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
 func run(executable string, args ...string) error {
 	Stdout.Write([]byte(fmt.Sprintf("RUNNING: %s %s\n", executable, strings.Join(args, " "))))
 
-	cmd := exec.Command(executable, args...)
+	cmd := Execer(executable, args...)
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
 	return cmd.Run()
@@ -439,7 +440,7 @@ func run(executable string, args ...string) error {
 func runPrefix(prefix, executable string, args ...string) error {
 	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
 
-	cmd := exec.Command(executable, args...)
+	cmd := Execer(executable, args...)
 
 	stdout, err := cmd.StdoutPipe()
 
