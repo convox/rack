@@ -143,7 +143,18 @@ func (m *Manifest) Build(app string) []error {
 		return errors
 	}
 
-	for to, from := range tags {
+	// tag in alphabetical order for testability
+	mk := make([]string, len(tags))
+	i := 0
+	for k, _ := range tags {
+		mk[i] = k
+		i++
+	}
+	sort.Strings(mk)
+
+	for _, to := range mk {
+		from := tags[to]
+		// for to, from := range tags {
 		err := run("docker", "tag", "-f", from, to)
 
 		if err != nil {

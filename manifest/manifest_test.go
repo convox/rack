@@ -10,8 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
-
-	// "github.com/convox/cli/manifest"
 )
 
 type Cases []struct {
@@ -30,7 +28,7 @@ func TestBuild(t *testing.T) {
 	stdout, stderr := manifestBuild(m, "docker-compose")
 
 	cases := Cases{
-		{stdout, "RUNNING: docker build -t xvlbzgbaic .\nRUNNING: docker pull convox/postgres\nRUNNING: docker tag -f xvlbzgbaic docker-compose/web\nRUNNING: docker tag -f convox/postgres docker-compose/postgres\n"},
+		{stdout, "RUNNING: docker build -t xvlbzgbaic .\nRUNNING: docker pull convox/postgres\nRUNNING: docker tag -f convox/postgres docker-compose/postgres\nRUNNING: docker tag -f xvlbzgbaic docker-compose/web\n"},
 		{stderr, ""},
 	}
 
