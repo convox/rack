@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 type Cases []struct {
@@ -30,6 +32,35 @@ func TestBuild(t *testing.T) {
 	cases := Cases{
 		{stdout, "RUNNING: docker build -t xvlbzgbaic .\nRUNNING: docker pull convox/postgres\nRUNNING: docker tag -f convox/postgres docker-compose/postgres\nRUNNING: docker tag -f xvlbzgbaic docker-compose/web\n"},
 		{stderr, ""},
+	}
+
+	_assert(t, cases)
+}
+
+func TestRunOrder(t *testing.T) {
+	var m Manifest
+	data := []byte(`web:
+  links:
+    - postgres
+    - redis
+worker_2:
+  links:
+    - postgres
+    - redis
+worker_1:
+  links:
+    - postgres
+    - redis
+redis:
+  image: convox/redis
+postgres:
+  image: convox/postgres
+`)
+
+	_ = yaml.Unmarshal(data, &m)
+
+	cases := Cases{
+		{m.runOrder(), []string{"postgres", "redis", "web", "worker_1", "worker_2"}},
 	}
 
 	_assert(t, cases)
