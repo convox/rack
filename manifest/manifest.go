@@ -64,7 +64,11 @@ func Generate(dir string) (*Manifest, error) {
 }
 
 func buildAsync(source, tag string, ch chan error) {
-	ch <- run("docker", "build", "-t", tag, source)
+	ch <- buildSync(source, tag)
+}
+
+func buildSync(source, tag string) error {
+	return run("docker", "build", "-t", tag, source)
 }
 
 func pullAsync(image string, ch chan error) {
@@ -72,14 +76,7 @@ func pullAsync(image string, ch chan error) {
 }
 
 func pushAsync(local, remote string, ch chan error) {
-	err := run("docker", "tag", "-f", local, remote)
-
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	ch <- run("docker", "push", remote)
+	ch <- pushSync(local, remote)
 }
 
 func pushSync(local, remote string) error {
@@ -99,8 +96,6 @@ func pushSync(local, remote string) error {
 }
 
 func (m *Manifest) Build(app string) []error {
-	ch := make(chan error)
-
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
@@ -121,20 +116,16 @@ func (m *Manifest) Build(app string) []error {
 		}
 	}
 
+	ch := make(chan error)
+
 	errors := []error{}
 
 	for source, tag := range builds {
-		go buildAsync(source, tag, ch)
-	}
+		err := buildSync(source, tag)
 
-	for i := 0; i < len(builds); i++ {
-		if err := <-ch; err != nil {
-			errors = append(errors, err)
+		if err != nil {
+			return []error{err}
 		}
-	}
-
-	if len(errors) > 0 {
-		return errors
 	}
 
 	for _, image := range pulls {
