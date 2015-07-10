@@ -14,12 +14,15 @@ import (
 	"time"
 
 	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/fatih/color"
 )
 
 var (
 	Stdout = io.Writer(os.Stdout)
 	Stderr = io.Writer(os.Stderr)
 )
+
+var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
 
 type Manifest map[string]ManifestEntry
 
@@ -242,8 +245,8 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
-	for _, name := range m.runOrder() {
-		go (*m)[name].runAsync(m.prefixForEntry(name), app, name, ch)
+	for i, name := range m.runOrder() {
+		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
 		time.Sleep(200 * time.Millisecond)
 	}
 
@@ -268,7 +271,7 @@ func (m *Manifest) Write(filename string) error {
 	return ioutil.WriteFile(filename, data, 0644)
 }
 
-func (m *Manifest) prefixForEntry(name string) string {
+func (m *Manifest) prefixForEntry(name string, pos int) string {
 	longest := 0
 
 	for name, _ := range *m {
@@ -277,7 +280,9 @@ func (m *Manifest) prefixForEntry(name string) string {
 		}
 	}
 
-	return name + strings.Repeat(" ", longest-len(name))
+	c := color.New(Colors[pos%len(Colors)]).SprintFunc()
+
+	return c(name + strings.Repeat(" ", longest-len(name)) + " | ")
 }
 
 func (m *Manifest) runOrder() []string {
@@ -372,7 +377,7 @@ func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
-		fmt.Printf("%s | %s\n", prefix, scanner.Text())
+		fmt.Printf("%s %s\n", prefix, scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
