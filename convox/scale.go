@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -21,6 +20,16 @@ func init() {
 				Name:  "app",
 				Usage: "app name. Inferred from current directory if not specified.",
 			},
+			cli.IntFlag{
+				Name:  "count",
+				Value: 1,
+				Usage: "number of processes to keep running for every process type.",
+			},
+			cli.IntFlag{
+				Name:  "memory",
+				Value: 256,
+				Usage: "amount of memory, in megabytes, available to every process.",
+			},
 		},
 	})
 }
@@ -33,17 +42,17 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) == 1 {
-		count := c.Args()[0]
-		_, err := strconv.Atoi(count)
+	v := url.Values{}
 
-		if err != nil {
-			stdcli.Error(fmt.Errorf("Count must be numeric."))
-			return
-		}
+	if c.IsSet("count") {
+		v.Set("count", c.String("count"))
+	}
 
-		v := url.Values{}
-		v.Set("count", count)
+	if c.IsSet("memory") {
+		v.Set("mem", c.String("memory"))
+	}
+
+	if len(v) > 0 {
 		_, err = ConvoxPostForm("/apps/"+app, v)
 
 		if err != nil {
@@ -67,5 +76,6 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Scale %v\n", a.Parameters["DesiredCount"])
+	fmt.Printf("Count %v\n", a.Parameters["DesiredCount"])
+	fmt.Printf("Memory %v\n", a.Parameters["Memory"])
 }
