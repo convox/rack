@@ -59,9 +59,17 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("%-13s %-15s %-13s %-5s %-5s %s\n", "ID", "PROCESS", "RELEASE", "CPU", "MEM", "COMMAND")
+	longest := 0
 
 	for _, ps := range *processes {
-		fmt.Printf("%-13s %-15s %-13s %-5d %-5d %s\n", ps.Id, ps.Name, ps.Release, ps.CPU, ps.Memory, ps.Command)
+		if len(ps.Name) > longest {
+			longest = len(ps.Name)
+		}
+	}
+
+	fmt.Printf(fmt.Sprintf("%%-12s  %%-%ds  %%-11s  %%-5s  %%s\n", longest), "ID", "PROCESS", "RELEASE", "MEM", "COMMAND")
+
+	for _, ps := range *processes {
+		fmt.Printf(fmt.Sprintf("%%-12s  %%-%ds  %%-11s  %%-5d  %%s\n", longest), ps.Id, ps.Name, ps.Release, ps.Memory, ps.Command)
 	}
 }
