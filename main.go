@@ -12,6 +12,7 @@ import (
 func main() {
 
 	go heartbeat()
+	go startClusterMonitor()
 	go startWorker()
 	startWeb()
 }
