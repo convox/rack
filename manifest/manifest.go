@@ -279,18 +279,58 @@ func (m *Manifest) prefixForEntry(name string, pos int) string {
 }
 
 func (m *Manifest) runOrder() []string {
-	rs := RunSorter{manifest: *m, names: make([]string, len(*m))}
-
-	i := 0
+	unsorted := []string{}
 
 	for name, _ := range *m {
-		rs.names[i] = name
-		i++
+		unsorted = append(unsorted, name)
 	}
 
-	sort.Sort(rs)
+	sorted := []string{}
 
-	return rs.names
+	for len(sorted) < len(unsorted) {
+		for _, name := range unsorted {
+			found := false
+
+			for _, n := range sorted {
+				if n == name {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				continue
+			}
+
+			resolved := true
+
+			for _, link := range (*m)[name].Links {
+				lname := strings.Split(link, ":")[0]
+
+				found := false
+
+				for _, n := range sorted {
+					if n == lname {
+						found = true
+					}
+				}
+
+				if !found {
+					resolved = false
+					break
+				}
+			}
+
+			if resolved {
+				sorted = append(sorted, name)
+			}
+
+			fmt.Printf("unsorted: %+v\n", unsorted)
+			fmt.Printf("sorted: %+v\n", sorted)
+		}
+	}
+
+	return sorted
 }
 
 func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
