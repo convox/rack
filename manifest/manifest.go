@@ -285,6 +285,8 @@ func (m *Manifest) runOrder() []string {
 		unsorted = append(unsorted, name)
 	}
 
+	sort.Strings(unsorted)
+
 	sorted := []string{}
 
 	for len(sorted) < len(unsorted) {
