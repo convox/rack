@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,6 +50,44 @@ func cmdStart(c *cli.Context) {
 
 	if len(missing) > 0 {
 		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
+		return
+	}
+
+	wanted, err := m.PortsWanted()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	conflicts := make([]string, 0)
+
+	host := "127.0.0.1"
+
+	if h := os.Getenv("DOCKER_HOST"); h != "" {
+		u, err := url.Parse(h)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		parts := strings.Split(u.Host, ":")
+		host = parts[0]
+	}
+
+	for _, p := range wanted {
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, p))
+
+		if err == nil {
+			conflicts = append(conflicts, p)
+			defer conn.Close()
+		}
+	}
+
+	if len(conflicts) > 0 {
+		stdcli.Error(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
+		return
 	}
 
 	errors := m.Build(app)

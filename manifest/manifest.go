@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -18,8 +19,10 @@ import (
 )
 
 var (
-	Stdout = io.Writer(os.Stdout)
-	Stderr = io.Writer(os.Stderr)
+	Stdout       = io.Writer(os.Stdout)
+	Stderr       = io.Writer(os.Stderr)
+	Execer       = exec.Command
+	SignalWaiter = waitForSignal
 )
 
 var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
@@ -37,7 +40,15 @@ type ManifestEntry struct {
 }
 
 func Generate(dir string) (*Manifest, error) {
-	err := os.Chdir(dir)
+	wd, err := os.Getwd()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer os.Chdir(wd)
+
+	err = os.Chdir(dir)
 
 	if err != nil {
 		return nil, err
@@ -142,7 +153,18 @@ func (m *Manifest) Build(app string) []error {
 		return errors
 	}
 
-	for to, from := range tags {
+	// tag in alphabetical order for testability
+	mk := make([]string, len(tags))
+	i := 0
+	for k, _ := range tags {
+		mk[i] = k
+		i++
+	}
+	sort.Strings(mk)
+
+	for _, to := range mk {
+		from := tags[to]
+		// for to, from := range tags {
 		err := run("docker", "tag", "-f", from, to)
 
 		if err != nil {
@@ -184,6 +206,22 @@ func (m *Manifest) MissingEnvironment() []string {
 	sort.Strings(missing)
 
 	return missing
+}
+
+func (m *Manifest) PortsWanted() ([]string, error) {
+	ports := make([]string, 0)
+
+	for _, entry := range *m {
+		for _, port := range entry.Ports {
+			parts := strings.SplitN(port, ":", 2)
+
+			if len(parts) == 2 {
+				ports = append(ports, parts[0])
+			}
+		}
+	}
+
+	return ports, nil
 }
 
 func (m *Manifest) Push(app, registry, auth, tag string) []error {
@@ -236,7 +274,9 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
-	fmt.Printf("m.runOrder(): %+v\n", m.runOrder())
+	// Set up channel on which to send signal notifications.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
 
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
@@ -251,7 +291,15 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
+	err := SignalWaiter(c)
+	errors = append(errors, err)
+
 	return errors
+}
+
+func waitForSignal(c chan os.Signal) error {
+	s := <-c
+	return fmt.Errorf("signal %s", s)
 }
 
 func (m *Manifest) Write(filename string) error {
@@ -410,7 +458,7 @@ func injectDockerfile(dir string) error {
 }
 
 func query(executable string, args ...string) ([]byte, error) {
-	return exec.Command(executable, args...).CombinedOutput()
+	return Execer(executable, args...).CombinedOutput()
 }
 
 func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
@@ -430,7 +478,7 @@ func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
 func run(executable string, args ...string) error {
 	Stdout.Write([]byte(fmt.Sprintf("RUNNING: %s %s\n", executable, strings.Join(args, " "))))
 
-	cmd := exec.Command(executable, args...)
+	cmd := Execer(executable, args...)
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
 	return cmd.Run()
@@ -439,7 +487,7 @@ func run(executable string, args ...string) error {
 func runPrefix(prefix, executable string, args ...string) error {
 	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
 
-	cmd := exec.Command(executable, args...)
+	cmd := Execer(executable, args...)
 
 	stdout, err := cmd.StdoutPipe()
 
