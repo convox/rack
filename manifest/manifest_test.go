@@ -90,7 +90,7 @@ func TestRun(t *testing.T) {
 	stdout, stderr := testRun(m, "docker-compose")
 
 	cases := Cases{
-		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name docker-compose-postgres --rm=true docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name docker-compose-web --rm=true --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
+		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name docker-compose-postgres docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name docker-compose-web --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
 		{stderr, ""},
 	}
 
