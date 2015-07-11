@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	docker "github.com/convox/cli/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 func PortsUsed() ([]int64, error) {
