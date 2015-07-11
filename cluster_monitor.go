@@ -64,11 +64,6 @@ Tick:
 			continue
 		}
 
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
 		dres, err := models.ECS().DescribeContainerInstances(
 			&ecs.DescribeContainerInstancesInput{
 				Cluster:            aws.String(os.Getenv("CLUSTER")),
