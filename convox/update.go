@@ -47,7 +47,7 @@ func cmdUpdate(c *cli.Context) {
 			stdcli.Error(err)
 		}
 
-		fmt.Println("Already up to date")
+		fmt.Println("\x08\x08Already up to date")
 		return
 	}
 
