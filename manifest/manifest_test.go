@@ -46,7 +46,7 @@ func TestPortsWanted(t *testing.T) {
 	ps, _ := m.PortsWanted()
 
 	cases := Cases{
-		{ps, []int64{5000}},
+		{ps, []string{"5000"}},
 	}
 
 	_assert(t, cases)

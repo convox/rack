@@ -11,7 +11,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -209,21 +208,15 @@ func (m *Manifest) MissingEnvironment() []string {
 	return missing
 }
 
-func (m *Manifest) PortsWanted() ([]int64, error) {
-	ports := make([]int64, 0)
+func (m *Manifest) PortsWanted() ([]string, error) {
+	ports := make([]string, 0)
 
 	for _, entry := range *m {
 		for _, port := range entry.Ports {
 			parts := strings.SplitN(port, ":", 2)
 
 			if len(parts) == 2 {
-				p, err := strconv.Atoi(parts[0])
-
-				if err != nil {
-					return ports, err
-				}
-
-				ports = append(ports, int64(p))
+				ports = append(ports, parts[0])
 			}
 		}
 	}
