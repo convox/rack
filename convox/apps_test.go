@@ -11,7 +11,8 @@ func TestApps(t *testing.T) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		apps := make(Apps, 0)
 		apps = append(apps, App{
-			Name: "sinatra",
+			Name:   "sinatra",
+			Status: "running",
 		})
 
 		data, _ := json.Marshal(apps)
@@ -23,8 +24,7 @@ func TestApps(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "apps"})
 
-	expect(t, stdout, `sinatra
-`)
+	expect(t, stdout, "APP      STATUS\nsinatra  running\n")
 	expect(t, stderr, "")
 }
 

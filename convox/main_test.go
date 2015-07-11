@@ -63,8 +63,8 @@ func appRun(args []string) (string, string) {
 
 func setLoginEnv(ts *httptest.Server) {
 	u, _ := url.Parse(ts.URL)
-	os.Setenv("CONSOLE_HOST", u.Host)
-	os.Setenv("REGISTRY_PASSWORD", "foo")
+	os.Setenv("CONVOX_HOST", u.Host)
+	os.Setenv("CONVOX_PASSWORD", "foo")
 }
 
 func expect(t *testing.T, a interface{}, b interface{}) {

@@ -27,7 +27,7 @@ func TestLogin(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
 
-	expect(t, stdout, "WARNING: login credentials saved in ~/.convox\n")
+	expect(t, stdout, "Logged in successfully.\n")
 	expect(t, stderr, "")
 }
 
@@ -39,13 +39,13 @@ func TestLoginHost(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
 
-	expect(t, stdout, "WARNING: login credentials saved in ~/.convox\n")
+	expect(t, stdout, "Logged in successfully.\n")
 	expect(t, stderr, "")
 
 	u, _ := url.Parse(ts.URL)
 	stdout, stderr = appRun([]string{"convox", "login", "--password", "foobar", u.Host})
 
-	expect(t, stdout, "WARNING: login credentials saved in ~/.convox\n")
+	expect(t, stdout, "Logged in successfully.\n")
 	expect(t, stderr, "")
 
 	stdout, stderr = appRun([]string{"convox", "login", "--password", "foobar", "BAD"})
