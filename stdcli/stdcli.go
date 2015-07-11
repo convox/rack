@@ -121,6 +121,7 @@ func Usage(c *cli.Context, name string) {
 
 func runExecCommand(bin string, args ...string) error {
 	cmd := exec.Command(bin, args...)
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
