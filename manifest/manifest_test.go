@@ -24,7 +24,7 @@ func TestBuild(t *testing.T) {
 
 	m, _ := Generate(destDir)
 
-	stdout, stderr := manifestBuild(m, "docker-compose")
+	stdout, stderr := testBuild(m, "docker-compose")
 
 	cases := Cases{
 		{stdout, `RUNNING: docker build -t xvlbzgbaic .
@@ -87,7 +87,7 @@ func TestRun(t *testing.T) {
 
 	m, _ := Generate(destDir)
 
-	stdout, stderr := manifestRun(m, "docker-compose")
+	stdout, stderr := testRun(m, "docker-compose")
 
 	cases := Cases{
 		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name docker-compose-postgres --rm=true docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name docker-compose-web --rm=true --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
@@ -214,12 +214,25 @@ func _assert(t *testing.T, cases Cases) {
 	}
 }
 
-func manifestBuild(m *Manifest, app string) (string, string) {
+type manifestFn func(string) []error
+
+func testBuild(m *Manifest, app string) (string, string) {
+	return testRunner(m, app, m.Build)
+}
+
+func testRun(m *Manifest, app string) (string, string) {
+	return testRunner(m, app, m.Run)
+}
+
+func testRunner(m *Manifest, app string, fn manifestFn) (string, string) {
 	oldErr := os.Stderr
 	oldOut := os.Stdout
 
 	er, ew, _ := os.Pipe()
 	or, ow, _ := os.Pipe()
+
+	os.Stderr = ew
+	os.Stdout = ow
 
 	Stderr = ew
 	Stdout = ow
@@ -248,55 +261,7 @@ func manifestBuild(m *Manifest, app string) (string, string) {
 		outC <- buf.String()
 	}()
 
-	m.Build(app)
-
-	// restore stderr, stdout
-	ew.Close()
-	os.Stderr = oldErr
-	err := <-errC
-
-	ow.Close()
-	os.Stdout = oldOut
-	out := <-outC
-
-	return out, err
-}
-
-func manifestRun(m *Manifest, app string) (string, string) {
-	oldErr := os.Stderr
-	oldOut := os.Stdout
-
-	er, ew, _ := os.Pipe()
-	or, ow, _ := os.Pipe()
-
-	os.Stderr = ew
-	os.Stdout = ow
-
-	Execer = func(bin string, args ...string) *exec.Cmd {
-		return exec.Command("true")
-	}
-
-	SignalWaiter = func(c chan os.Signal) error {
-		return nil
-	}
-
-	errC := make(chan string)
-	// copy the output in a separate goroutine so printing can't block indefinitely
-	go func() {
-		var buf bytes.Buffer
-		io.Copy(&buf, er)
-		errC <- buf.String()
-	}()
-
-	outC := make(chan string)
-	// copy the output in a separate goroutine so printing can't block indefinitely
-	go func() {
-		var buf bytes.Buffer
-		io.Copy(&buf, or)
-		outC <- buf.String()
-	}()
-
-	m.Run(app)
+	fn(app)
 
 	// restore stderr, stdout
 	ew.Close()
