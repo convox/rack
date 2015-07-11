@@ -204,6 +204,12 @@ func addLogin(host, password string) error {
 		return err
 	}
 
+	err = os.MkdirAll(ConfigRoot, 0755)
+
+	if err != nil {
+		return err
+	}
+
 	return ioutil.WriteFile(config, data, 0600)
 }
 

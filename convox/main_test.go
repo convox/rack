@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -63,6 +64,12 @@ func appRun(args []string) (string, string) {
 
 func setLoginEnv(ts *httptest.Server) {
 	u, _ := url.Parse(ts.URL)
+
+	dir, _ := ioutil.TempDir("", "convox-test")
+
+	ConfigRoot, _ = ioutil.TempDir("", "convox-test")
+
+	os.Setenv("CONVOX_CONFIG", dir)
 	os.Setenv("CONVOX_HOST", u.Host)
 	os.Setenv("CONVOX_PASSWORD", "foo")
 }
