@@ -2,8 +2,10 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,6 +18,10 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+var ConfigRoot string
+
+type ConfigAuth map[string]string
+
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "login",
@@ -27,12 +33,30 @@ func init() {
 				Name:  "password",
 				Usage: "password to use for authentication. If not specified, prompt for password.",
 			},
-			cli.BoolFlag{
-				Name:  "boot2docker",
-				Usage: "configure boot2docker for an insecure registry (development).",
-			},
 		},
 	})
+
+	home, err := homedir.Dir()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ConfigRoot = filepath.Join(home, ".convox")
+
+	stat, err := os.Stat(ConfigRoot)
+
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+
+	if stat != nil && !stat.IsDir() {
+		err := upgradeConfig()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func cmdLogin(c *cli.Context) {
@@ -98,71 +122,157 @@ func cmdLogin(c *cli.Context) {
 		return
 	}
 
-	config, err := configFile()
+	err = addLogin(host, password)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	err = stdcli.Writer(config, []byte(fmt.Sprintf("%s\n%s\n", host, password)), 0600)
+	err = switchHost(host)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Println("WARNING: login credentials saved in ~/.convox")
-
-	stdcli.Run("docker", "--tlsverify=false", "login", "-e", "user@convox.io", "-u", "convox", "-p", password, host+":5000")
-
-	if c.Bool("boot2docker") {
-		// Log into private registry
-		stdcli.Run(
-			"boot2docker",
-			"ssh",
-			fmt.Sprintf("echo $'EXTRA_ARGS=\"--insecure-registry %s:5000\"' | sudo tee -a /var/lib/boot2docker/profile && sudo /etc/init.d/docker restart", host),
-		)
-	}
+	fmt.Println("Logged in successfully.")
 }
 
-func configFile() (string, error) {
-	home, err := homedir.Dir()
+func upgradeConfig() error {
+	data, err := ioutil.ReadFile(ConfigRoot)
 
 	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(home, ".convox"), nil
-}
-
-func currentLogin() (string, string, error) {
-	if os.Getenv("CONSOLE_HOST") != "" && os.Getenv("REGISTRY_PASSWORD") != "" {
-		return os.Getenv("CONSOLE_HOST"), os.Getenv("REGISTRY_PASSWORD"), nil
-	}
-
-	config, err := configFile()
-
-	if err != nil {
-		return "", "", err
-	}
-
-	if !exists(config) {
-		stdcli.Error(fmt.Errorf("must login first"))
-		return "", "", err
-	}
-
-	data, err := ioutil.ReadFile(config)
-
-	if err != nil {
-		return "", "", err
+		return err
 	}
 
 	parts := strings.Split(string(data), "\n")
 
 	if len(parts) < 2 {
-		return "", "", fmt.Errorf("invalid config")
+		return fmt.Errorf("invalid .convox file")
 	}
 
-	return parts[0], parts[1], nil
+	err = os.Remove(ConfigRoot)
+
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(ConfigRoot, 0700)
+
+	if err != nil {
+		return err
+	}
+
+	err = addLogin(parts[0], parts[1])
+
+	if err != nil {
+		return err
+	}
+
+	err = switchHost(parts[0])
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func addLogin(host, password string) error {
+	config := filepath.Join(ConfigRoot, "auth")
+
+	data, _ := ioutil.ReadFile(filepath.Join(config))
+
+	if data == nil {
+		data = []byte("{}")
+	}
+
+	var auth ConfigAuth
+
+	err := json.Unmarshal(data, &auth)
+
+	if err != nil {
+		return err
+	}
+
+	auth[host] = password
+
+	data, err = json.Marshal(auth)
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(config, data, 0600)
+}
+
+func switchHost(host string) error {
+	return ioutil.WriteFile(filepath.Join(ConfigRoot, "host"), []byte(host), 0600)
+}
+
+func currentLogin() (string, string, error) {
+	host, err := currentHost()
+
+	if err != nil {
+		return "", "", fmt.Errorf("must login first")
+	}
+
+	password, err := currentPassword()
+
+	if err != nil {
+		return "", "", fmt.Errorf("must login first")
+	}
+
+	return host, password, nil
+}
+
+func currentHost() (string, error) {
+	if host := os.Getenv("CONVOX_HOST"); host != "" {
+		return host, nil
+	}
+
+	config := filepath.Join(ConfigRoot, "host")
+
+	if !exists(config) {
+		return "", fmt.Errorf("no host config")
+	}
+
+	data, err := ioutil.ReadFile(config)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func currentPassword() (string, error) {
+	if password := os.Getenv("CONVOX_PASSWORD"); password != "" {
+		return password, nil
+	}
+
+	config := filepath.Join(ConfigRoot, "auth")
+
+	if !exists(config) {
+		return "", fmt.Errorf("no auth config")
+	}
+
+	data, err := ioutil.ReadFile(config)
+
+	if err != nil {
+		return "", err
+	}
+
+	host, err := currentHost()
+
+	if err != nil {
+		return "", err
+	}
+
+	var auth ConfigAuth
+
+	err = json.Unmarshal(data, &auth)
+
+	return auth[host], nil
 }
