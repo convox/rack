@@ -98,8 +98,18 @@ func cmdApps(c *cli.Context) {
 		return
 	}
 
+	longest := 0
+
 	for _, app := range *apps {
-		fmt.Printf("%s\n", app.Name)
+		if len(app.Name) > longest {
+			longest = len(app.Name)
+		}
+	}
+
+	fmt.Printf(fmt.Sprintf("%%-%ds  STATUS\n", longest), "APP")
+
+	for _, app := range *apps {
+		fmt.Printf(fmt.Sprintf("%%-%ds  %%s\n", longest), app.Name, app.Status)
 	}
 }
 
