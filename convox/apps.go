@@ -98,7 +98,7 @@ func cmdApps(c *cli.Context) {
 		return
 	}
 
-	longest := 0
+	longest := 3
 
 	for _, app := range *apps {
 		if len(app.Name) > longest {

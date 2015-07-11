@@ -59,7 +59,7 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	longest := 0
+	longest := 7
 
 	for _, ps := range *processes {
 		if len(ps.Name) > longest {
