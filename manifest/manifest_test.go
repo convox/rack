@@ -38,7 +38,7 @@ RUNNING: docker tag -f xvlbzgbaic docker-compose/web
 	_assert(t, cases)
 }
 
-func TestPortCheck(t *testing.T) {
+func TestPortsWanted(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/docker-compose")
 	defer os.RemoveAll(destDir)
 
@@ -97,7 +97,7 @@ func TestRun(t *testing.T) {
 	_assert(t, cases)
 }
 
-func TestDockerCompose(t *testing.T) {
+func TestGenerateDockerCompose(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/docker-compose")
 	defer os.RemoveAll(destDir)
 
@@ -121,7 +121,7 @@ postgres:
 	_assert(t, cases)
 }
 
-func TestDockerfile(t *testing.T) {
+func TestGenerateDockerfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/dockerfile")
 	defer os.RemoveAll(destDir)
 
@@ -139,7 +139,7 @@ func TestDockerfile(t *testing.T) {
 	_assert(t, cases)
 }
 
-func TestProcfile(t *testing.T) {
+func TestGenerateProcfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../examples/procfile")
 	defer os.RemoveAll(destDir)
 
@@ -171,7 +171,7 @@ func mkBuildDir(t *testing.T, srcDir string) string {
 		return destDir
 	}
 
-	cpCmd := exec.Command("rsync", "-av", srcDir + "/", destDir)
+	cpCmd := exec.Command("rsync", "-av", srcDir+"/", destDir)
 	err = cpCmd.Run()
 
 	if err != nil {
@@ -228,6 +228,10 @@ func manifestBuild(m *Manifest, app string) (string, string) {
 		return exec.Command("true")
 	}
 
+	SignalWaiter = func(c chan os.Signal) error {
+		return nil
+	}
+
 	errC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
@@ -270,6 +274,10 @@ func manifestRun(m *Manifest, app string) (string, string) {
 
 	Execer = func(bin string, args ...string) *exec.Cmd {
 		return exec.Command("true")
+	}
+
+	SignalWaiter = func(c chan os.Signal) error {
+		return nil
 	}
 
 	errC := make(chan string)

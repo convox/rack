@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -19,9 +20,10 @@ import (
 )
 
 var (
-	Stdout = io.Writer(os.Stdout)
-	Stderr = io.Writer(os.Stderr)
-	Execer = exec.Command
+	Stdout       = io.Writer(os.Stdout)
+	Stderr       = io.Writer(os.Stderr)
+	Execer       = exec.Command
+	SignalWaiter = waitForSignal
 )
 
 var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
@@ -300,7 +302,9 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
-	fmt.Printf("m.runOrder(): %+v\n", m.runOrder())
+	// Set up channel on which to send signal notifications.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
 
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
@@ -315,7 +319,15 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
+	err := SignalWaiter(c)
+	errors = append(errors, err)
+
 	return errors
+}
+
+func waitForSignal(c chan os.Signal) error {
+	s := <-c
+	return fmt.Errorf("signal %s", s)
 }
 
 func (m *Manifest) Write(filename string) error {
