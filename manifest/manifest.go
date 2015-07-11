@@ -176,27 +176,6 @@ func (m *Manifest) Build(app string) []error {
 	return []error{}
 }
 
-func (m *Manifest) Links() []string {
-	links := make([]string, 0)
-
-	for _, entry := range *m {
-		for _, link := range entry.Links {
-			links = append(links, strings.Split(link, ":")[0])
-		}
-	}
-
-	return links
-}
-
-func (m *Manifest) IsLinkedTo(name string) bool {
-	for _, l := range m.Links() {
-		if l == name {
-			return true
-		}
-	}
-	return false
-}
-
 func (m *Manifest) MissingEnvironment() []string {
 	existing := map[string]bool{}
 	missingh := map[string]bool{}
