@@ -37,12 +37,17 @@ func cmdUpdate(c *cli.Context) {
 	updater := update.New()
 	updater.HTTPClient = client
 
+	stdcli.Spinner.Prefix = "Updating: "
+	stdcli.Spinner.Start()
+
 	r, err := params.CheckForUpdate("https://api.equinox.io/1/Updates", updater)
 
 	if err != nil {
 		if err != check.NoUpdateAvailable {
 			stdcli.Error(err)
 		}
+
+		fmt.Println("Already up to date")
 		return
 	}
 
@@ -53,7 +58,8 @@ func cmdUpdate(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Updated to %s\n", r.Version)
+	stdcli.Spinner.Stop()
+	fmt.Printf("\x08\x08OK, %s\n", r.Version)
 }
 
 func updateClient() (*http.Client, error) {
