@@ -27,17 +27,13 @@ func TestManifestEntryNames(t *testing.T) {
 }
 
 func TestStagingWebPostgis(t *testing.T) {
-	var manifest Manifest
-
-	man := readFile(t, "fixtures", "web_postgis.yml")
-	tmpl := readFile(t, "fixtures", "web_postgis.json")
-
-	yaml.Unmarshal(man, &manifest)
+	manifest := readManifest(t, "fixtures", "web_postgis.yml")
+	template := readFile(t, "fixtures", "web_postgis.json")
 
 	data, _ := buildTemplate("staging", "formation", func() string { return "12345" }, manifest)
 
 	cases := Cases{
-		{data, string(tmpl)},
+		{data, string(template)},
 	}
 
 	_assert(t, cases)
@@ -53,6 +49,19 @@ func readFile(t *testing.T, dir string, name string) []byte {
 	}
 
 	return dat
+}
+
+func readManifest(t *testing.T, dir string, name string) Manifest {
+	man := readFile(t, dir, name)
+
+	var manifest Manifest
+	err := yaml.Unmarshal(man, &manifest)
+
+	if err != nil {
+		t.Errorf("ERROR readManifest %v %v", filepath.Join(dir, name), err)
+	}
+
+	return manifest
 }
 
 func _assert(t *testing.T, cases Cases) {
