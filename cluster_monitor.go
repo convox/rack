@@ -76,7 +76,7 @@ Tick:
 			continue
 		}
 
-		var cInstanceIds sort.StringSlice = make([]string, 0)
+		cInstanceIds := make([]string, 0)
 		cInstanceConnections := make(map[string]bool)
 
 		for _, i := range dres.ContainerInstances {
@@ -105,8 +105,8 @@ Tick:
 
 		// Test if ASG Instance is registered and connected in ECS cluster
 
-		var aInstanceIds sort.StringSlice = make([]string, 0)
-		var uInstanceIds sort.StringSlice = make([]string, 0)
+		aInstanceIds := []string{}
+		uInstanceIds := []string{}
 
 		for _, i := range ares.AutoScalingGroups[0].Instances {
 			if connected, exists := cInstanceConnections[*i.InstanceID]; connected && exists {
@@ -132,9 +132,9 @@ Tick:
 			}
 		}
 
-		aInstanceIds.Sort()
-		cInstanceIds.Sort()
-		uInstanceIds.Sort()
+		sort.Strings(aInstanceIds)
+		sort.Strings(cInstanceIds)
+		sort.Strings(uInstanceIds)
 
 		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
 	}
