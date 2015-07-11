@@ -4,14 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/cli/docker"
 	"github.com/convox/cli/manifest"
 	"github.com/convox/cli/stdcli"
 )
@@ -60,26 +60,33 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	used, err := docker.PortsUsed()
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
 	conflicts := make([]string, 0)
 
-	for _, wp := range wanted {
-		for _, up := range used {
-			if wp == up {
-				str := strconv.FormatInt(wp, 10)
-				conflicts = append(conflicts, str)
-			}
+	host := "127.0.0.1"
+
+	if h := os.Getenv("DOCKER_HOST"); h != "" {
+		u, err := url.Parse(h)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		parts := strings.Split(u.Host, ":")
+		host = parts[0]
+	}
+
+	for _, p := range wanted {
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, p))
+
+		if err == nil {
+			conflicts = append(conflicts, p)
+			defer conn.Close()
 		}
 	}
 
 	if len(conflicts) > 0 {
-		stdcli.Error(fmt.Errorf("ports already used: %s", strings.Join(conflicts, ", ")))
+		stdcli.Error(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
 		return
 	}
 
