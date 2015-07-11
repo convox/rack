@@ -324,9 +324,6 @@ func (m *Manifest) runOrder() []string {
 			if resolved {
 				sorted = append(sorted, name)
 			}
-
-			fmt.Printf("unsorted: %+v\n", unsorted)
-			fmt.Printf("sorted: %+v\n", sorted)
 		}
 	}
 
