@@ -175,7 +175,10 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 
 func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	cluster := req.ResourceProperties["Cluster"].(string)
-	name := req.ResourceProperties["Name"].(string)
+
+	// arn:aws:ecs:us-east-1:922560784203:service/sinatra-SZXTRXEMYEY
+	parts := strings.Split(req.PhysicalResourceId, "/")
+	name := parts[1]
 
 	_, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:      aws.String(cluster),
