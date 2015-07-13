@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -241,6 +242,12 @@ func (a *App) LatestRelease() (*Release, error) {
 	}
 
 	return &releases[0], nil
+}
+
+func (a *App) TaskDefinitionFamily() string {
+	resources := a.Resources()
+	name := strings.Split(resources["TaskDefinition"].Id, "/")[1]
+	return strings.Split(name, ":")[0]
 }
 
 func (a *App) WatchForCompletion(change *Change, original Events) {

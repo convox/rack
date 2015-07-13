@@ -35,9 +35,15 @@ type ProcessRunOptions struct {
 }
 
 func ListProcesses(app string) (Processes, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Family:  aws.String(app),
+		Family:  aws.String(a.TaskDefinitionFamily()),
 	}
 
 	res, err := ECS().ListTasks(req)
