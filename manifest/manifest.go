@@ -211,11 +211,15 @@ func (m *Manifest) PortsWanted() ([]string, error) {
 	ports := make([]string, 0)
 
 	for _, entry := range *m {
-		for _, port := range entry.Ports.([]string) {
-			parts := strings.SplitN(port, ":", 2)
+		if pp, ok := entry.Ports.([]interface{}); ok {
+			for _, port := range pp {
+				if p, ok := port.(string); ok {
+					parts := strings.SplitN(p, ":", 2)
 
-			if len(parts) == 2 {
-				ports = append(ports, parts[0])
+					if len(parts) == 2 {
+						ports = append(ports, parts[0])
+					}
+				}
 			}
 		}
 	}
@@ -407,8 +411,12 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 		}
 	}
 
-	for _, port := range me.Ports.([]string) {
-		args = append(args, "-p", port)
+	if pp, ok := me.Ports.([]interface{}); ok {
+		for _, port := range pp {
+			if p, ok := port.(string); ok {
+				args = append(args, "-p", p)
+			}
+		}
 	}
 
 	for _, volume := range me.Volumes {
