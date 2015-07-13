@@ -58,6 +58,10 @@
 			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/service/autoscaling",
+			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
+		},
+		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/service/cloudformation",
 			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
