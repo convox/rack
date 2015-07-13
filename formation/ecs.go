@@ -221,7 +221,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	tasks := req.ResourceProperties["Tasks"].([]interface{})
 
 	r := &ecs.RegisterTaskDefinitionInput{
-		Family: aws.String(req.ResourceProperties["Name"].(string)),
+		Family: aws.String(req.ResourceProperties["Name"].(string) + "-" + generateId("T", 10)),
 	}
 
 	// download environment
@@ -378,8 +378,15 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
-	// TODO: currently unsupported by ECS
-	// res, err := ECS().DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
+	_, err := ECS(req).DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
+
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil, nil
+	}
+
 	return "", nil, nil
 }
 
