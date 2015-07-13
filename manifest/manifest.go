@@ -34,7 +34,7 @@ type ManifestEntry struct {
 	Command     interface{} `yaml:"command,omitempty"`
 	Environment []string    `yaml:"environment,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
-	Ports       []string    `yaml:"ports,omitempty"`
+	Ports       interface{} `yaml:"ports,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
@@ -211,7 +211,7 @@ func (m *Manifest) PortsWanted() ([]string, error) {
 	ports := make([]string, 0)
 
 	for _, entry := range *m {
-		for _, port := range entry.Ports {
+		for _, port := range entry.Ports.([]string) {
 			parts := strings.SplitN(port, ":", 2)
 
 			if len(parts) == 2 {
@@ -407,7 +407,7 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 		}
 	}
 
-	for _, port := range me.Ports {
+	for _, port := range me.Ports.([]string) {
 		args = append(args, "-p", port)
 	}
 

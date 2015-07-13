@@ -92,7 +92,7 @@ func buildDockerfile(dir string) (*Manifest, error) {
 		parts := exposeEntryRegexp.FindStringSubmatch(scanner.Text())
 
 		if len(parts) > 1 {
-			entry.Ports = append(entry.Ports, fmt.Sprintf("%d:%s", current, strings.Split(parts[1], "/")[0]))
+			entry.Ports = append(entry.Ports.([]string), fmt.Sprintf("%d:%s", current, strings.Split(parts[1], "/")[0]))
 			current += 100
 		}
 	}
