@@ -78,11 +78,11 @@ func buildAsync(source, tag string, ch chan error) {
 }
 
 func buildSync(source, tag string) error {
-	return run("docker", "build", "-t", tag, source)
+	return run("docker", "--tlsverify=false", "build", "-t", tag, source)
 }
 
 func pullAsync(image string, ch chan error) {
-	ch <- run("docker", "pull", image)
+	ch <- run("docker", "--tlsverify=false", "pull", image)
 }
 
 func pushAsync(local, remote string, ch chan error) {
@@ -90,13 +90,13 @@ func pushAsync(local, remote string, ch chan error) {
 }
 
 func pushSync(local, remote string) error {
-	err := run("docker", "tag", "-f", local, remote)
+	err := run("docker", "--tlsverify=false", "tag", "-f", local, remote)
 
 	if err != nil {
 		return err
 	}
 
-	err = run("docker", "push", remote)
+	err = run("docker", "--tlsverify=false", "push", remote)
 
 	if err != nil {
 		return err
@@ -164,7 +164,7 @@ func (m *Manifest) Build(app string) []error {
 	for _, to := range mk {
 		from := tags[to]
 		// for to, from := range tags {
-		err := run("docker", "tag", "-f", from, to)
+		err := run("docker", "--tlsverify=false", "tag", "-f", from, to)
 
 		if err != nil {
 			return []error{err}
@@ -383,9 +383,9 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := fmt.Sprintf("%s-%s", app, process)
 
-	query("docker", "rm", "-f", name)
+	query("docker", "--tlsverify=false", "rm", "-f", name)
 
-	args := []string{"run", "-i", "--name", name}
+	args := []string{"--tlsverify=false", "run", "-i", "--name", name}
 
 	for _, env := range me.Environment {
 		if strings.Index(env, "=") > -1 {

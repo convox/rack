@@ -45,7 +45,7 @@ func cmdExec(c *cli.Context) {
 		command = strings.Join(args, " ")
 	}
 
-	err = stdcli.Run("docker", "exec", "-it", fmt.Sprintf("%s-%s", app, ps), "sh", "-c", command)
+	err = stdcli.Run("docker", "--tlsverify=false", "exec", "-it", fmt.Sprintf("%s-%s", app, ps), "sh", "-c", command)
 
 	if err != nil {
 		stdcli.Error(err)
