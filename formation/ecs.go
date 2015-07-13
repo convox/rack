@@ -3,6 +3,7 @@ package formation
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
@@ -116,7 +117,7 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	r := &ecs.CreateServiceInput{
 		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
 		DesiredCount:   aws.Long(int64(count)),
-		ServiceName:    aws.String(req.ResourceProperties["Name"].(string)),
+		ServiceName:    aws.String(req.ResourceProperties["Name"].(string) + "-" + generateId("S", 10)),
 		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
 	}
 
@@ -377,4 +378,14 @@ func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
 	// TODO: currently unsupported by ECS
 	// res, err := ECS().DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
 	return "", nil, nil
+}
+
+var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+	}
+	return prefix + string(b)
 }
