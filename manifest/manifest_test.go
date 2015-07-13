@@ -27,10 +27,10 @@ func TestBuild(t *testing.T) {
 	stdout, stderr := testBuild(m, "docker-compose")
 
 	cases := Cases{
-		{stdout, `RUNNING: docker build -t xvlbzgbaic .
-RUNNING: docker pull convox/postgres
-RUNNING: docker tag -f convox/postgres docker-compose/postgres
-RUNNING: docker tag -f xvlbzgbaic docker-compose/web
+		{stdout, `RUNNING: docker --tlsverify=false build -t xvlbzgbaic .
+RUNNING: docker --tlsverify=false pull convox/postgres
+RUNNING: docker --tlsverify=false tag -f convox/postgres docker-compose/postgres
+RUNNING: docker --tlsverify=false tag -f xvlbzgbaic docker-compose/web
 `},
 		{stderr, ""},
 	}
@@ -90,7 +90,7 @@ func TestRun(t *testing.T) {
 	stdout, stderr := testRun(m, "docker-compose")
 
 	cases := Cases{
-		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name docker-compose-postgres docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name docker-compose-web --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
+		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker --tlsverify=false run -i --name docker-compose-postgres docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker --tlsverify=false run -i --name docker-compose-web --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
 		{stderr, ""},
 	}
 
