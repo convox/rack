@@ -217,7 +217,7 @@ func scanLinesWithMax(data []byte, atEof bool) (advance int, token []byte, err e
 	}
 
 	if len(data) > 2048 {
-		return 2048, dropCR(data[0:1024]), nil
+		return 2048, dropCR(data[0:2048]), nil
 	}
 
 	if atEof {
