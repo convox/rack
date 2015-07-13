@@ -128,7 +128,7 @@ func AppUpdate(rw http.ResponseWriter, r *http.Request) {
 	params := map[string]string{}
 
 	if count := GetForm(r, "count"); count != "" {
-		params["Count"] = count
+		params["DesiredCount"] = count
 	}
 
 	if cpu := GetForm(r, "cpu"); cpu != "" {
