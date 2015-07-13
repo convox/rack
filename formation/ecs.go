@@ -3,6 +3,7 @@ package formation
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
@@ -116,7 +117,7 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	r := &ecs.CreateServiceInput{
 		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
 		DesiredCount:   aws.Long(int64(count)),
-		ServiceName:    aws.String(req.ResourceProperties["Name"].(string)),
+		ServiceName:    aws.String(req.ResourceProperties["Name"].(string) + "-" + generateId("S", 10)),
 		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
 	}
 
@@ -174,7 +175,10 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 
 func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	cluster := req.ResourceProperties["Cluster"].(string)
-	name := req.ResourceProperties["Name"].(string)
+
+	// arn:aws:ecs:us-east-1:922560784203:service/sinatra-SZXTRXEMYEY
+	parts := strings.Split(req.PhysicalResourceId, "/")
+	name := parts[1]
 
 	_, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:      aws.String(cluster),
@@ -217,7 +221,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	tasks := req.ResourceProperties["Tasks"].([]interface{})
 
 	r := &ecs.RegisterTaskDefinitionInput{
-		Family: aws.String(req.ResourceProperties["Name"].(string)),
+		Family: aws.String(req.ResourceProperties["Name"].(string) + "-" + generateId("T", 10)),
 	}
 
 	// download environment
@@ -374,7 +378,24 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
-	// TODO: currently unsupported by ECS
-	// res, err := ECS().DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
+	_, err := ECS(req).DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
+
+	// TODO let the cloudformation finish thinking this deleted
+	// but take note so we can figure out why
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return "", nil, nil
+	}
+
 	return "", nil, nil
+}
+
+var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+	}
+	return prefix + string(b)
 }
