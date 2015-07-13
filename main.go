@@ -200,11 +200,44 @@ func prefixWriter(prefix string) io.Writer {
 	return w
 }
 
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
+}
+
+func scanLinesWithMax(data []byte, atEof bool) (advance int, token []byte, err error) {
+	if atEof && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		return i + 1, dropCR(data[0:i]), nil
+	}
+
+	if len(data) > 2048 {
+		return 2048, dropCR(data[0:1024]), nil
+	}
+
+	if atEof {
+		return len(data), dropCR(data), nil
+	}
+
+	return 0, nil, nil
+}
+
 func prefixReader(r io.Reader, prefix string) {
 	scanner := bufio.NewScanner(r)
 
+	scanner.Split(scanLinesWithMax)
+
 	for scanner.Scan() {
 		fmt.Printf("%s|%s\n", prefix, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("error|%s\n", err.Error())
 	}
 }
 
