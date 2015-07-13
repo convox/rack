@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -275,8 +274,8 @@ func (m *Manifest) Run(app string) []error {
 	}
 
 	// Set up channel on which to send signal notifications.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	// c := make(chan os.Signal, 1)
+	// signal.Notify(c, os.Interrupt, os.Kill)
 
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
@@ -291,8 +290,8 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
-	err := SignalWaiter(c)
-	errors = append(errors, err)
+	// err := SignalWaiter(c)
+	// errors = append(errors, err)
 
 	return errors
 }
