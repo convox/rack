@@ -5,6 +5,9 @@
 </a>
 
 Convox command line interface.
+## Prerequisites
+
+`convox` depends on a working Docker 1.7 environment. See the [Docker Setup Guide](docker-setup.md) for more information.
 
 ## Installation
 
@@ -16,15 +19,13 @@ Convox command line interface.
 
     $ go get -u github.com/convox/cli/convox
 
-`convox` also depends on a working Docker 1.7 environment. See the [Docker Setup Guide](docker-setup.md) for more information.
-
 ## Usage
 
     $ convox help
 
 ## convox start
 
-Start runs any app with [Docker Compose](https://docs.docker.com/compose/).
+Start runs any app with a [Docker Compose](https://docs.docker.com/compose/) configuration.
 
 If `docker-compose.yml` and/or `Dockerfile` do not exist, start will create them
 for you, then build and pull images.
