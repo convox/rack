@@ -7,11 +7,6 @@ Convox requires an up to date Docker environment:
     $ docker -v
     Docker version 1.7.0, build 0baf609
 
-    $ docker-compose --version
-    docker-compose version: 1.3.1
-    CPython version: 2.7.9
-    OpenSSL version: OpenSSL 1.0.1j 15 Oct 2014
-
     $ boot2docker version
     Boot2Docker-cli version: v1.7.0
     Git commit: 7d89508
@@ -26,14 +21,10 @@ If your versions do not match, you might consider following the
 * Follow the [latest Boot2Docker installer](https://github.com/boot2docker/osx-installer/releases/latest) instructions.
 * Download and open Boot2Docker-$latest.pkg
 * Click through the Installer, entering your administrator password when prompted
-* Open a terminal to follow the [latest Compose installer](https://github.com/docker/compose/releases/latest) instructions.
 * Use the terminal to initialize Boot2Docker and your Docker environment variables
 * Use the terminal to start your first Convox application
 
 ```bash
-$ curl -L https://github.com/docker/compose/releases/download/1.3.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
-$ chmod +x /usr/local/bin/docker-compose
-
 $ boot2docker up
 Waiting for VM and Docker daemon to start...
 ........................ooooooooooooooooo
@@ -73,7 +64,6 @@ Uninstall any Homebrew packages if present:
 
     $ brew uninstall boot2docker
     $ brew uninstall docker
-    $ brew uninstall docker-compose
 
 Uninstall older VirtualBox if present, by typing 'Yes', 'Yes' and your administrator password:
 
