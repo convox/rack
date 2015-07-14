@@ -154,7 +154,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "convox",
-          "S3Key": { "Fn::Join": [ "", [ "lambda/formation.", { "Ref": "Version" }, ".zip" ] ] }
+          "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/formation.zip" ] ] }
         },
         "Handler": "lambda.external",
         "MemorySize": "128",

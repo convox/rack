@@ -1,5 +1,4 @@
-# always rebuild
-.PHONY: formation
+.PHONY: all build clean release formation
 
 VERSION=latest
 
@@ -11,8 +10,8 @@ clean:
 	rm -f formation lambda.zip
 
 release: build
-	aws s3 cp lambda.zip s3://convox/lambda/formation.$(VERSION).zip --acl public-read
-	aws s3 cp lambda.zip s3://convox/lambda/formation.latest.zip --acl public-read
+	aws s3 cp lambda.zip s3://convox/release/$(VERSION)/formation.zip --acl public-read
+	aws s3 cp lambda.zip s3://convox/release/latest/formation.zip  --acl public-read
 
 formation: *.go
 	GOOS=linux GOARCH=amd64 go build
