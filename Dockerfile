@@ -7,6 +7,9 @@ RUN apk add --allow-untrusted /tmp/haproxy-1.5.10-r0.apk
 RUN rm /tmp/haproxy-1.5.10-r0.apk
 COPY data/haproxy.cfg /etc/haproxy/haproxy.cfg
 
+RUN apk-install make python py-pip zip
+RUN pip install awscli
+
 RUN apk-install go
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
