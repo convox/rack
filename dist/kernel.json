@@ -103,9 +103,10 @@
       "Type": "String"
     },
     "Password": {
-      "Default": "",
-      "Description": "Kernel HTTP password",
-      "Type": "String"
+      "Description": "(REQUIRED) Kernel HTTP password",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "50"
     },
     "RegistryHost": {
       "Type": "String",
