@@ -273,7 +273,7 @@ func (b *Build) execute(args []string, r io.Reader) error {
 
 	err = cmd.Wait()
 
-	close(quit)
+	// close(quit)
 
 	if err != nil {
 		return err
