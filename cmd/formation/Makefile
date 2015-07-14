@@ -12,6 +12,7 @@ clean:
 
 release: build
 	aws s3 cp lambda.zip s3://convox/lambda/formation.$(VERSION).zip --acl public-read
+	aws s3 cp lambda.zip s3://convox/lambda/formation.latest.zip --acl public-read
 
 formation: *.go
 	GOOS=linux GOARCH=amd64 go build
