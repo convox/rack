@@ -76,6 +76,7 @@ var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
 func buildDockerfile(dir string) (*Manifest, error) {
 	entry := ManifestEntry{
 		Build: ".",
+		Ports: []string{},
 	}
 
 	data, err := ioutil.ReadFile(filepath.Join(dir, "Dockerfile"))
