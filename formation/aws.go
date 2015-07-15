@@ -9,6 +9,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/lambda"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
@@ -62,6 +63,13 @@ func EC2(req Request) *ec2.EC2 {
 
 func ECS(req Request) *ecs.ECS {
 	return ecs.New(&aws.Config{
+		Credentials: Credentials(&req),
+		Region:      Region(&req),
+	})
+}
+
+func S3(req Request) *s3.S3 {
+	return s3.New(&aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
