@@ -82,9 +82,6 @@ func cmdInstall(c *cli.Context) {
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
 
-	access = "AKIAIEJVODCDHMZ7PCXA"
-	secret = "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"
-
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
