@@ -418,13 +418,6 @@
         "AccessControl": "Private"
       }
     },
-    "RegistryBucketCleanup": {
-      "Type": "Custom::S3BucketCleanup",
-      "Properties": {
-        "Bucket": { "Ref": "RegistryBucket" },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
-      }
-    },
     "RegistryUser": {
       "Type": "AWS::IAM::User",
       "Properties": {
@@ -679,13 +672,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "SettingsCleanup": {
-      "Type": "Custom::S3BucketCleanup",
-      "Properties": {
-        "Bucket": { "Ref": "Settings" },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
-      }
     },
     "TaskDefinition": {
       "Properties": {
