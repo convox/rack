@@ -13,7 +13,7 @@ Convox command line interface.
 
 **OS X**
 
-    $ wget -qO- https://www.convox.com.s3.amazonaws.com/install-osx.sh | sudo bash
+    $ curl -Ls https://convox.s3.amazonaws.com/install/osx.sh | sudo bash
 
 **Golang**
 
