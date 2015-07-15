@@ -29,7 +29,7 @@ func init() {
 	Exiter = os.Exit
 	Querier = queryExecCommand
 	Runner = runExecCommand
-	Spinner = spinner.New(spinner.CharSets[9], 60*time.Millisecond)
+	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
 	Writer = ioutil.WriteFile
 
