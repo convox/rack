@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
@@ -24,6 +26,13 @@ func init() {
 		Description: "install convox into an aws account",
 		Usage:       "",
 		Action:      cmdInstall,
+	})
+
+	stdcli.RegisterCommand(cli.Command{
+		Name:        "uninstall",
+		Description: "uninstall convox from an aws account",
+		Usage:       "",
+		Action:      cmdUninstall,
 	})
 }
 
@@ -97,7 +106,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String("latest")},
 		},
-		StackName:   aws.String(randomString(10)),
+		StackName:   aws.String("convox"),
 		TemplateURL: aws.String("http://convox.s3.amazonaws.com/release/latest/formation.json"),
 	})
 
@@ -123,6 +132,136 @@ func cmdInstall(c *cli.Context) {
 	switchHost(host)
 
 	fmt.Println("Success, try `convox apps`")
+}
+
+func cmdUninstall(c *cli.Context) {
+	fmt.Println(`
+
+     ___    ___     ___   __  __    ___   __  _  
+    /'___\ / __'\ /' _ '\/\ \/\ \  / __'\/\ \/'\
+   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </ 
+   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
+    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
+
+ `)
+
+	fmt.Println("This uninstaller needs AWS credentials to uninstall the Convox platform from")
+	fmt.Println("your AWS account. These credentials will only be used to communicate")
+	fmt.Println("between this uninstaller running on your computer and the AWS API.")
+	fmt.Println("")
+	fmt.Println("We recommend that you create a new set of credentials exclusively for this")
+	fmt.Println("uninstall process and then delete them once the uninstaller has completed.")
+	fmt.Println("")
+	fmt.Println("To generate a new set of AWS credentials go to:")
+	fmt.Println("https://console.aws.amazon.com/iam/home?region=us-east-1#security_credential")
+	fmt.Println("")
+
+	reader := bufio.NewReader(os.Stdin)
+
+	access := os.Getenv("AWS_ACCESS_KEY_ID")
+	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	if access == "" || secret == "" {
+		var err error
+
+		fmt.Print("AWS Access Key: ")
+
+		access, err = reader.ReadString('\n')
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+
+		fmt.Print("AWS Secret Access Key: ")
+
+		secret, err = reader.ReadString('\n')
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+	}
+
+	fmt.Println("")
+
+	fmt.Println("Uninstalling Convox...")
+
+	access = strings.TrimSpace(access)
+	secret = strings.TrimSpace(secret)
+
+	CloudFormation := cloudformation.New(&aws.Config{
+		Region:      "us-east-1",
+		Credentials: credentials.NewStaticCredentials(access, secret, ""),
+	})
+
+	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String("convox"),
+	})
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
+	stackId := ""
+	bucket := ""
+
+	for _, r := range res.StackResources {
+		stackId = *r.StackID
+		if *r.LogicalResourceID == "RegistryBucket" {
+			bucket = *r.PhysicalResourceID
+		}
+	}
+
+	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String("convox"),
+	})
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
+	fmt.Printf("Cleaning up registry...\n")
+
+	S3 := s3.New(&aws.Config{
+		Region:      "us-east-1",
+		Credentials: credentials.NewStaticCredentials(access, secret, ""),
+	})
+
+	req := &s3.ListObjectVersionsInput{
+		Bucket: aws.String(bucket),
+	}
+
+	sres, err := S3.ListObjectVersions(req)
+
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// Don't block uninstall NoSuchBucket
+			if awsErr.Code() != "NoSuchBucket" {
+				stdcli.Error(err)
+			}
+		}
+	}
+
+	for _, v := range sres.Versions {
+		req := &s3.DeleteObjectInput{
+			Bucket:    aws.String(bucket),
+			Key:       aws.String(*v.Key),
+			VersionID: aws.String(*v.VersionID),
+		}
+
+		_, err := S3.DeleteObject(req)
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+	}
+
+	_, err = waitForCompletion(stackId, CloudFormation)
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
+	fmt.Println("Successfully uninstalled.")
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation) (string, error) {
@@ -158,6 +297,10 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 			return "", fmt.Errorf("stack creation failed")
 		case "ROLLBACK_COMPLETE":
 			return "", fmt.Errorf("stack creation failed")
+		case "DELETE_COMPLETE":
+			return "", nil
+		case "DELETE_FAILED":
+			return "", fmt.Errorf("stack deletion failed")
 		}
 
 		time.Sleep(2 * time.Second)
@@ -200,6 +343,18 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 			fmt.Printf("Created %s: %s\n", name, id)
 		case "CREATE_FAILED":
 			return fmt.Errorf("stack creation failed")
+		case "DELETE_IN_PROGRESS":
+		case "DELETE_COMPLETE":
+			id := *event.PhysicalResourceID
+
+			if strings.HasPrefix(id, "arn:") {
+				id = *event.LogicalResourceID
+			}
+
+			fmt.Printf("Deleted %s: %s\n", name, id)
+		case "DELETE_FAILED":
+			return fmt.Errorf("stack deletion failed")
+		case "UPDATE_COMPLETE":
 		default:
 			return fmt.Errorf("Unhandled status: %s\n", *event.ResourceStatus)
 		}
