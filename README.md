@@ -13,7 +13,7 @@ Convox command line interface.
 
 **OS X**
 
-    $ curl -Ls 'https://api.equinox.io/1/Applications/ap_TKxvw_eIPVyOzl6rKEonCU5DUY/Updates/Asset/convox.zip?os=darwin&arch=amd64&channel=stable' -o /tmp/convox.zip && unzip /tmp/convox.zip -d /tmp && mv /tmp/convox /usr/local/bin/convox
+    $ curl http://www.convox.com.s3.amazonaws.com/install-osx.sh | sudo bash
 
 **Golang**
 
