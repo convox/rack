@@ -30,24 +30,29 @@ func init() {
 func cmdInstall(c *cli.Context) {
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Print("AWS Access Key: ")
+	access := os.Getenv("AWS_ACCESS_KEY_ID")
+	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
 
-	access, err := reader.ReadString('\n')
+	if access == "" || secret == "" {
+		fmt.Print("AWS Access Key: ")
 
-	if err != nil {
-		stdcli.Error(err)
+		access, err := reader.ReadString('\n')
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+
+		fmt.Print("AWS Secret Access Key: ")
+
+		secret, err := reader.ReadString('\n')
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+
+		access = strings.TrimSpace(access)
+		secret = strings.TrimSpace(secret)
 	}
-
-	fmt.Print("AWS Secret Access Key: ")
-
-	secret, err := reader.ReadString('\n')
-
-	if err != nil {
-		stdcli.Error(err)
-	}
-
-	access = strings.TrimSpace(access)
-	secret = strings.TrimSpace(secret)
 
 	password := randomString(30)
 
