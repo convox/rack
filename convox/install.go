@@ -114,7 +114,7 @@ func cmdInstall(c *cli.Context) {
 		stdcli.Error(err)
 	}
 
-	host, err := waitForCompletion(*res.StackID, CloudFormation)
+	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -255,7 +255,7 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}
 
-	_, err = waitForCompletion(stackId, CloudFormation)
+	_, err = waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -264,7 +264,7 @@ func cmdUninstall(c *cli.Context) {
 	fmt.Println("Successfully uninstalled.")
 }
 
-func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation) (string, error) {
+func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
 	for {
 		dres, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(stack),
@@ -274,7 +274,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 			stdcli.Error(err)
 		}
 
-		err = displayProgress(stack, CloudFormation)
+		err = displayProgress(stack, CloudFormation, isDeleting)
 
 		if err != nil {
 			stdcli.Error(err)
@@ -309,7 +309,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 
 var events = map[string]bool{}
 
-func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation) error {
+func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) error {
 	res, err := CloudFormation.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stack),
 	})
@@ -334,13 +334,15 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 		switch *event.ResourceStatus {
 		case "CREATE_IN_PROGRESS":
 		case "CREATE_COMPLETE":
-			id := *event.PhysicalResourceID
+			if !isDeleting {
+				id := *event.PhysicalResourceID
 
-			if strings.HasPrefix(id, "arn:") {
-				id = *event.LogicalResourceID
+				if strings.HasPrefix(id, "arn:") {
+					id = *event.LogicalResourceID
+				}
+
+				fmt.Printf("Created %s: %s\n", name, id)
 			}
-
-			fmt.Printf("Created %s: %s\n", name, id)
 		case "CREATE_FAILED":
 			return fmt.Errorf("stack creation failed")
 		case "DELETE_IN_PROGRESS":
