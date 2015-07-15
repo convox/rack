@@ -10,7 +10,8 @@ Convox command line interface.
 
 **OS X**
 
-    $ curl -Ls https://convox.s3.amazonaws.com/install/osx.sh | sudo bash
+    $ curl -Ls http://www.convox.com/downloads/osx/convox.zip > /tmp/convox.zip
+    $ unzip /tmp/convox.zip -d /usr/local/bin
 
 **Golang**
 
