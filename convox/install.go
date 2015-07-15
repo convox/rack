@@ -111,13 +111,11 @@ func cmdInstall(c *cli.Context) {
 		stdcli.Error(err)
 	}
 
-	stdcli.Spinner.Prefix = "Waiting for load balancer: "
-	stdcli.Spinner.Start()
+	fmt.Println("Waiting for load balancer...")
 
 	waitForAvailability(host)
 
-	stdcli.Spinner.Stop()
-	fmt.Printf("\x08\x08OK\n")
+	fmt.Println("Logging in...")
 
 	addLogin(host, password)
 	switchHost(host)
