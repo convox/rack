@@ -55,9 +55,11 @@ func cmdInstall(c *cli.Context) {
 	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
 
 	if access == "" || secret == "" {
+		var err error
+
 		fmt.Print("AWS Access Key: ")
 
-		access, err := reader.ReadString('\n')
+		access, err = reader.ReadString('\n')
 
 		if err != nil {
 			stdcli.Error(err)
@@ -65,14 +67,11 @@ func cmdInstall(c *cli.Context) {
 
 		fmt.Print("AWS Secret Access Key: ")
 
-		secret, err := reader.ReadString('\n')
+		secret, err = reader.ReadString('\n')
 
 		if err != nil {
 			stdcli.Error(err)
 		}
-
-		access = strings.TrimSpace(access)
-		secret = strings.TrimSpace(secret)
 	}
 
 	fmt.Println("")
@@ -199,6 +198,8 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 			}
 
 			fmt.Printf("Created %s: %s\n", name, id)
+		case "CREATE_FAILED":
+			return fmt.Errorf("stack creation failed")
 		default:
 			return fmt.Errorf("Unhandled status: %s\n", *event.ResourceStatus)
 		}
