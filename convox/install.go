@@ -57,7 +57,7 @@ func cmdInstall(c *cli.Context) {
 	if access == "" || secret == "" {
 		var err error
 
-		fmt.Print("AWS Access Key: ")
+		fmt.Print("AWS Access Key ID: ")
 
 		access, err = reader.ReadString('\n')
 
