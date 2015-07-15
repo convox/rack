@@ -28,6 +28,27 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
+	fmt.Println(`
+
+     ___    ___     ___   __  __    ___   __  _  
+    /'___\ / __'\ /' _ '\/\ \/\ \  / __'\/\ \/'\
+   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </ 
+   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
+    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
+
+ `)
+
+	fmt.Println("This installer needs AWS credentials to install the Convox platform into")
+	fmt.Println("your AWS account. These credentials will only be used to communicate")
+	fmt.Println("between this installer running on your computer and the AWS API.")
+	fmt.Println("")
+	fmt.Println("We recommend that you create a new set of credentials exclusively for this")
+	fmt.Println("install process and then delete them once the installer has completed.")
+	fmt.Println("")
+	fmt.Println("To generate a new set of AWS credentials go to:")
+	fmt.Println("https://console.aws.amazon.com/iam/home?region=us-east-1#security_credential")
+	fmt.Println("")
+
 	reader := bufio.NewReader(os.Stdin)
 
 	access := os.Getenv("AWS_ACCESS_KEY_ID")
@@ -54,10 +75,17 @@ func cmdInstall(c *cli.Context) {
 		secret = strings.TrimSpace(secret)
 	}
 
-	password := randomString(30)
+	fmt.Println("")
 
-	stdcli.Spinner.Prefix = "Installing: "
-	stdcli.Spinner.Start()
+	fmt.Println("Installing Convox...")
+
+	access = strings.TrimSpace(access)
+	secret = strings.TrimSpace(secret)
+
+	access = "AKIAIEJVODCDHMZ7PCXA"
+	secret = "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"
+
+	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      "us-east-1",
@@ -83,14 +111,11 @@ func cmdInstall(c *cli.Context) {
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation)
 
-	stdcli.Spinner.Stop()
-	fmt.Printf("\x08\x08OK\n")
-
 	if err != nil {
 		stdcli.Error(err)
 	}
 
-	stdcli.Spinner.Prefix = "Booting: "
+	stdcli.Spinner.Prefix = "Waiting for load balancer: "
 	stdcli.Spinner.Start()
 
 	waitForAvailability(host)
@@ -109,6 +134,12 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 		dres, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(stack),
 		})
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+
+		err = displayProgress(stack, CloudFormation)
 
 		if err != nil {
 			stdcli.Error(err)
@@ -135,6 +166,101 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 
 		time.Sleep(2 * time.Second)
 	}
+}
+
+var events = map[string]bool{}
+
+func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation) error {
+	res, err := CloudFormation.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+		StackName: aws.String(stack),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	for _, event := range res.StackEvents {
+		if events[*event.EventID] == true {
+			continue
+		}
+
+		events[*event.EventID] = true
+
+		name := friendlyName(*event.ResourceType)
+
+		if name == "" {
+			continue
+		}
+
+		switch *event.ResourceStatus {
+		case "CREATE_IN_PROGRESS":
+		case "CREATE_COMPLETE":
+			id := *event.PhysicalResourceID
+
+			if strings.HasPrefix(id, "arn:") {
+				id = *event.LogicalResourceID
+			}
+
+			fmt.Printf("Created %s: %s\n", name, id)
+		default:
+			return fmt.Errorf("Unhandled status: %s\n", *event.ResourceStatus)
+		}
+	}
+
+	return nil
+}
+
+func friendlyName(t string) string {
+	switch t {
+	case "AWS::AutoScaling::AutoScalingGroup":
+		return "AutoScalingGroup"
+	case "AWS::AutoScaling::LaunchConfiguration":
+		return ""
+	case "AWS::CloudFormation::Stack":
+		return "CloudFormation Stack"
+	case "AWS::EC2::InternetGateway":
+		return "VPC Internet Gateway"
+	case "AWS::EC2::Route":
+		return ""
+	case "AWS::EC2::RouteTable":
+		return "Routing Table"
+	case "AWS::EC2::SecurityGroup":
+		return "Security Group"
+	case "AWS::EC2::Subnet":
+		return "VPC Subnet"
+	case "AWS::EC2::SubnetRouteTableAssociation":
+		return ""
+	case "AWS::EC2::VPC":
+		return "VPC"
+	case "AWS::EC2::VPCGatewayAttachment":
+		return ""
+	case "AWS::ECS::Cluster":
+		return "ECS Cluster"
+	case "AWS::ElasticLoadBalancing::LoadBalancer":
+		return "Elastic Load Balancer"
+	case "AWS::Lambda::Function":
+		return "Lambda Function"
+	case "AWS::IAM::AccessKey":
+		return "Access Key"
+	case "AWS::IAM::InstanceProfile":
+		return ""
+	case "AWS::IAM::Role":
+		return ""
+	case "AWS::IAM::User":
+		return "IAM User"
+	case "AWS::S3::Bucket":
+		return "S3 Bucket"
+	case "AWS::DynamoDB::Table":
+		return "DynamoDB Table"
+	case "Custom::EC2AvailabilityZones":
+		return ""
+	case "Custom::ECSTaskDefinition":
+		return "ECS TaskDefinition"
+	case "Custom::ECSService":
+		return "ECS Service"
+	}
+
+	return fmt.Sprintf("UNKNOWN UNKNOWN: %s", t)
 }
 
 func waitForAvailability(host string) {
