@@ -418,6 +418,12 @@
         "AccessControl": "Private"
       }
     },
+    "RegistryBucketCleanup": {
+      "Type": "Custom::S3BucketCleanup",
+      "Properties": {
+        "Bucket": { "Ref": "RegistryBucket" }
+      }
+    },
     "RegistryUser": {
       "Type": "AWS::IAM::User",
       "Properties": {
@@ -672,6 +678,12 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
+    },
+    "SettingsCleanup": {
+      "Type": "Custom::S3BucketCleanup",
+      "Properties": {
+        "Bucket": { "Ref": "Settings" }
+      }
     },
     "TaskDefinition": {
       "Properties": {

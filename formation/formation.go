@@ -174,6 +174,8 @@ func HandleRequest(freq Request) error {
 		physical, outputs, err = HandleECSTaskDefinition(freq)
 	case "Custom::LambdaFunction":
 		physical, err = HandleLambdaFunction(freq)
+	case "Custom::S3BucketCleanup":
+		physical, outputs, err = HandleS3BucketCleanup(freq)
 	default:
 		physical = ""
 		err = fmt.Errorf("unknown ResourceType: %s", freq.ResourceType)
