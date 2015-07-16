@@ -1,82 +1,41 @@
 # convox/app
 
-Build Convox application stacks.
+<a href="https://travis-ci.org/convox/app">
+  <img align="right" src="https://travis-ci.org/convox/app.svg?branch=master">
+</a>
 
-## Usage
+Create a CloudFormation template from an app manifest.
 
-    $ cat docker-compose.yml | docker run -i convox/app
+This is a guide to developing the convox/app project. For detailed
+installation and usage instructions, see [http://docs.convox.com/](http://docs.convox.com/).
 
-## Parameters ([Production Mode](doc:deployment-modes)) 
+## Development
 
-| Name             | Default      | Description                                     |
-|------------------|--------------|-------------------------------------------------|
-| `Ami`            | **required** | AMI to use for this application                 |
-| `Environment`    | *optional*   | Encrypted environment                           |
-| `EnvironmentKey` | *optional*   | ARN of KMS key used to encrypt the environment  |
-| `Release`        | *optional*   | The current release id (see convox/kernel)      |
-| `Repository`     | *optional*   | The canonical source repository for this app    |
-| `SshKey`         | *optional*   | SSH key name to use to allow access to this app |
+```bash
+$ go get github.com/convox/app
+$ cd $GOPATH/src/github.com/convox/app
+$ make test
+$ make build
 
-These parameters will appear once per process:
+$ cat fixtures/web_postgis.yml | docker run -i convox/app
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  ...
+}
+```
 
-| Name         | Default      |                                          |
-|--------------|--------------|------------------------------------------|
-| `WebCommand` | *optional*   | Override the default command             |
-| `WebImage`   | **required** | The docker image to use for this process |
-| `WebScale`   | 1            | Number of instances to run               |
-| `WebSize`    | t2.micro     | Instance size to use for this process    |
+## Contributing
 
-These parameters will appear if there are any port mappings:
+* Open a [GitHub Issue](https://github.com/convox/app/issues/new) for bugs and feature requests
+* Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
 
-| Name          | Default    | Description          |
-|---------------|------------|----------------------|
-| `HealthCheck` | *optional* | Healthcheck endpoint |
+## See Also
 
-These parameters will appear once per port mapping:
+* [convox/app](https://github.com/convox/app)
+* [convox/build](https://github.com/convox/build)
+* [convox/cli](https://github.com/convox/cli)
+* [convox/kernel](https://github.com/convox/kernel)
 
-| Name          | Default      | Description                                             |
-|---------------|--------------|---------------------------------------------------------|
-| `WebPort5000` | 5000         | Port to listen on the load balancer for a given mapping |
+## License
 
-## Parameters ([Staging Mode](doc:deployment-modes)) 
-
-| Name             | Default      | Description                                      |
-|------------------|--------------|--------------------------------------------------|
-| `Cluster`        | **required** | Cluster for this app (see convox/cluster)        |
-| `Environment`    | *optional*   | Encrypted environment                            |
-| `EnvironmentKey` | *optional*   | ARN of KMS key used to encrypt the environment   |
-| `Kernel`         | **required** | Kernel notification endpoint (see convox/kernel) |
-| `Repository`     | *optional*   | The canonical source repository for this app     |
-| `Subnets`        | **required** | The VPC subnets for this app's cluster           |
-| `Vpc`            | **required** | The VPC for this app's cluster                   |
-
-These parameters will appear once per process:
-
-| Name         | Default      |                                          |
-|--------------|--------------|------------------------------------------|
-| `WebCommand` | *optional*   | Override the default command             |
-| `WebImage`   | **required** | The docker image to use for this process |
-| `WebScale`   | 1            | Number of instances to run               |
-
-These parameters will appear if there are any port mappings:
-
-| Name          | Default    | Description          |
-|---------------|------------|----------------------|
-| `HealthCheck` | *optional* | Healthcheck endpoint |
-
-These parameters will appear once per port mapping:
-
-| Name          | Default      | Description                                             |
-|---------------|--------------|---------------------------------------------------------|
-| `WebPort5000` | 5000         | Port to listen on the load balancer for a given mapping |
-
-## Help
-
-    usage: convox/app [options]
-      expects an optional docker-compose.yml on stdin
-
-    options:
-      -mode="production": deployment mode
-
-    examples:
-      $ cat docker-compose.yml | docker run -i convox/app -mode staging
+Apache 2.0 &copy; 2015 Convox, Inc.
