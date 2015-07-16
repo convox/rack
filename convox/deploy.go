@@ -46,6 +46,8 @@ func cmdDeploy(c *cli.Context) {
 	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 	if err != nil {
+		fmt.Printf("Creating app %s...", app)
+
 		v := url.Values{}
 		v.Set("name", app)
 		data, err = ConvoxPostForm("/apps", v)
@@ -58,8 +60,6 @@ func cmdDeploy(c *cli.Context) {
 			stdcli.Error(err)
 			return
 		}
-
-		fmt.Printf("Created app %s\n", app)
 
 		// poll for complete
 		for {
@@ -81,6 +81,8 @@ func cmdDeploy(c *cli.Context) {
 
 			time.Sleep(1000 * time.Millisecond)
 		}
+
+		fmt.Println("OK")
 	}
 
 	// build
@@ -134,12 +136,33 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Printf("OK, %s\n", a.Parameters["Release"])
 
+	fmt.Print("Waiting for app... ")
+
+	ch := make(chan error)
+
+	for _, url := range urls {
+		go func() {
+			waitForAvailability(url)
+			ch <- nil
+		}()
+	}
+
+	for _ = range urls {
+		<-ch
+	}
+
+	fmt.Println("OK")
+
 	matcher := regexp.MustCompile(`^(\w+)Port\d+Balancer`)
+
+	urls := []string{}
 
 	if host, ok := a.Outputs["BalancerHost"]; ok {
 		for key, value := range a.Outputs {
 			if m := matcher.FindStringSubmatch(key); m != nil {
-				fmt.Printf("%s: http://%s:%s\n", strings.ToLower(m[1]), host, value)
+				url := fmt.Sprintf("http://%s:%s", host, value)
+				urls = append(urls, url)
+				fmt.Printf("%s: %s\n", strings.ToLower(m[1]), url)
 			}
 		}
 	}
