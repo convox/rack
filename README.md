@@ -13,10 +13,6 @@ Convox command line interface.
     $ curl -Ls http://www.convox.com/downloads/osx/convox.zip > /tmp/convox.zip
     $ unzip /tmp/convox.zip -d /usr/local/bin
 
-**Golang**
-
-    $ go get -u github.com/convox/cli/convox
-
 ## Usage
 
     $ convox help
