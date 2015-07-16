@@ -21,7 +21,9 @@ Convox command line interface.
 
     $ convox help
 
-[Docs](http://docs.convox.com)
+## Docs
+
+[http://docs.convox.com](http://docs.convox.com)
 
 ## Updates
 
