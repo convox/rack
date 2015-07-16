@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
@@ -18,6 +19,14 @@ var Partials = make(map[string]*template.Template)
 var Templates = make(map[string]*template.Template)
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+
+func awsError(err error) string {
+	if ae, ok := err.(awserr.Error); ok {
+		return ae.Code()
+	}
+
+	return ""
+}
 
 func displayHelpers() template.FuncMap {
 	return template.FuncMap{
@@ -188,6 +197,12 @@ func RenderTemplate(rw http.ResponseWriter, name string, data interface{}) error
 
 func RenderText(rw http.ResponseWriter, text string) error {
 	_, err := rw.Write([]byte(text))
+	return err
+}
+
+func RenderNotFound(rw http.ResponseWriter, message string) error {
+	rw.WriteHeader(404)
+	_, err := rw.Write([]byte(message))
 	return err
 }
 

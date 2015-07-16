@@ -26,6 +26,13 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) {
 
 	app := mux.Vars(r)["app"]
 
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
 	processes, err := models.ListProcesses(app)
 
 	if err != nil {
@@ -41,8 +48,17 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 	log := processesLogger("show").Start()
 
 	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process"]
 
-	process, err := models.GetProcess(vars["app"], vars["process"])
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
+	p, err := models.GetProcess(app, process)
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -50,7 +66,7 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderTemplate(rw, "process", process)
+	RenderTemplate(rw, "process", p)
 }
 
 func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
@@ -74,8 +90,14 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
-
 	command := GetForm(r, "command")
+
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
 
 	ps, err := models.GetProcess(app, process)
 
@@ -86,7 +108,7 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if ps == nil {
-		http.NotFound(rw, r)
+		RenderNotFound(rw, fmt.Sprintf("no such process: %s", app, process))
 		return
 	}
 
@@ -148,11 +170,23 @@ func ProcessStop(rw http.ResponseWriter, r *http.Request) {
 	app := vars["app"]
 	id := vars["id"]
 
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
 	ps, err := models.GetProcessById(app, id)
 
 	if err != nil {
 		helpers.Error(log, err)
 		RenderError(rw, err)
+		return
+	}
+
+	if ps == nil {
+		RenderNotFound(rw, fmt.Sprintf("no such process: %s", id))
 		return
 	}
 
