@@ -250,7 +250,7 @@ func currentHost() (string, error) {
 		return "", err
 	}
 
-	return string(data), nil
+	return strings.TrimSpace(string(data)), nil
 }
 
 func currentPassword() (string, error) {
