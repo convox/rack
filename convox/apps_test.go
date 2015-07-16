@@ -47,7 +47,7 @@ func TestAppsCreate(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
 
-	expect(t, stdout, "Created foobar.\n")
+	expect(t, stdout, "Creating app foobar: OK\n")
 	expect(t, stderr, "")
 }
 
@@ -61,6 +61,6 @@ func TestAppsCreateFail(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
 
-	expect(t, stdout, "")
+	expect(t, stdout, "Creating app foobar: ")
 	expect(t, stderr, "ERROR: app already exists\n")
 }
