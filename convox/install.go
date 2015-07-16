@@ -87,11 +87,18 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("")
 	}
 
+	stackName := os.Getenv("STACK_NAME")
+
+	if stackName == "" {
+		stackName = "convox"
+	}
+
 	fmt.Println("Installing Convox...")
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
 
+	distinctId := randomString(10)
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
@@ -108,18 +115,20 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String("latest")},
 		},
-		StackName:   aws.String("convox"),
+		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(FormationUrl),
 	})
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("install", distinctId, err)
 	}
+
+	sendMixpanelEvent("convox-install-start", distinctId)
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("install", distinctId, err)
 	}
 
 	fmt.Println("Waiting for load balancer...")
@@ -132,6 +141,8 @@ func cmdInstall(c *cli.Context) {
 	switchHost(host)
 
 	fmt.Println("Success, try `convox apps`")
+
+	sendMixpanelEvent("convox-install-success", distinctId)
 }
 
 func cmdUninstall(c *cli.Context) {
@@ -181,9 +192,17 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}
 
+	stackName := os.Getenv("STACK_NAME")
+
+	if stackName == "" {
+		stackName = "convox"
+	}
+
 	fmt.Println("")
 
 	fmt.Println("Uninstalling Convox...")
+
+	distinctId := randomString(10)
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
@@ -194,11 +213,11 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String("convox"),
+		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("uninstall", distinctId, err)
 	}
 
 	stackId := ""
@@ -212,12 +231,14 @@ func cmdUninstall(c *cli.Context) {
 	}
 
 	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String("convox"),
+		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("uninstall", distinctId, err)
 	}
+
+	sendMixpanelEvent("convox-uninstall-start", distinctId)
 
 	fmt.Printf("Cleaning up registry...\n")
 
@@ -236,7 +257,7 @@ func cmdUninstall(c *cli.Context) {
 		if awsErr, ok := err.(awserr.Error); ok {
 			// Don't block uninstall NoSuchBucket
 			if awsErr.Code() != "NoSuchBucket" {
-				stdcli.Error(err)
+				handleError("uninstall", distinctId, err)
 			}
 		}
 	}
@@ -251,17 +272,19 @@ func cmdUninstall(c *cli.Context) {
 		_, err := S3.DeleteObject(req)
 
 		if err != nil {
-			stdcli.Error(err)
+			handleError("uninstall", distinctId, err)
 		}
 	}
 
 	_, err = waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("uninstall", distinctId, err)
 	}
 
 	fmt.Println("Successfully uninstalled.")
+
+	sendMixpanelEvent("convox-uninstall-success", distinctId)
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -432,6 +455,11 @@ func waitForAvailability(host string) {
 			return
 		}
 	}
+}
+
+func handleError(command string, distinctId string, err error) {
+	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command), distinctId)
+	stdcli.Error(err)
 }
 
 var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
