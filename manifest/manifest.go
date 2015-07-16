@@ -129,11 +129,16 @@ func (m *Manifest) Build(app, dir string) []error {
 				return []error{err}
 			}
 
-			if _, ok := builds[abs]; !ok {
-				builds[abs] = randomString(10)
+			sym, err := filepath.EvalSymlinks(abs)
+
+			if err != nil {
+				return []error{err}
+			}
+			if _, ok := builds[sym]; !ok {
+				builds[sym] = randomString(10)
 			}
 
-			tags[tag] = builds[abs]
+			tags[tag] = builds[sym]
 		case entry.Image != "":
 			pulls = append(pulls, entry.Image)
 			tags[tag] = entry.Image

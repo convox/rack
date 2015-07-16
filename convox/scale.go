@@ -13,7 +13,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "scale",
 		Description: "scale an app's processes",
-		Usage:       "<count>",
+		Usage:       "",
 		Action:      cmdScale,
 		Flags: []cli.Flag{
 			cli.StringFlag{

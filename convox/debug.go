@@ -11,7 +11,7 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "debug",
-		Description: "get an app's system events for debugging purposes",
+		Description: "get system events for debugging purposes",
 		Usage:       "",
 		Action:      cmdDebug,
 		Flags: []cli.Flag{

@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
 
@@ -76,11 +77,17 @@ func cmdLogsStream(c *cli.Context) {
 		for {
 			err := websocket.Message.Receive(ws, &message)
 
+			if err == io.EOF {
+				return
+			}
+
 			if err != nil {
 				break
 			}
 
 			fmt.Print(string(message))
 		}
+
+		fmt.Println("out")
 	}
 }

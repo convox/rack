@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -70,8 +71,8 @@ func ConvoxGet(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf(strings.TrimSpace(string(data)))
+	if res.StatusCode/100 != 2 {
+		return nil, errors.New(strings.TrimSpace(string(data)))
 	}
 
 	return data, nil
@@ -103,6 +104,10 @@ func ConvoxPost(path string, body string) ([]byte, error) {
 		return nil, err
 	}
 
+	if res.StatusCode/100 != 2 {
+		return nil, errors.New(strings.TrimSpace(string(data)))
+	}
+
 	return data, nil
 }
 
@@ -131,11 +136,11 @@ func ConvoxPostForm(path string, form url.Values) ([]byte, error) {
 		return nil, err
 	}
 
-	if res.StatusCode == 200 || res.StatusCode == 302 {
-		return data, nil
+	if res.StatusCode/100 > 3 {
+		return nil, errors.New(strings.TrimSpace(string(data)))
 	}
 
-	return nil, fmt.Errorf(strings.TrimSpace(string(data)))
+	return data, nil
 }
 
 func ConvoxDelete(path string) ([]byte, error) {
@@ -162,6 +167,10 @@ func ConvoxDelete(path string) ([]byte, error) {
 	if err != nil {
 		stdcli.Error(err)
 		return nil, err
+	}
+
+	if res.StatusCode/100 != 2 {
+		return nil, errors.New(strings.TrimSpace(string(data)))
 	}
 
 	return data, nil

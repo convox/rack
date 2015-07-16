@@ -9,18 +9,18 @@ import (
 )
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "exec",
-		Description: "exec a local process",
-		Usage:       "convox exec ps cmd",
-		Action:      cmdExec,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
-			},
-		},
-	})
+	// stdcli.RegisterCommand(cli.Command{
+	//   Name:        "exec",
+	//   Description: "exec a local process",
+	//   Usage:       "convox exec ps cmd",
+	//   Action:      cmdExec,
+	//   Flags: []cli.Flag{
+	//     cli.StringFlag{
+	//       Name:  "app",
+	//       Usage: "app name. Inferred from current directory if not specified.",
+	//     },
+	//   },
+	// })
 }
 
 func cmdExec(c *cli.Context) {
