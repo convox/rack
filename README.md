@@ -11,22 +11,31 @@ installation and usage instructions, see [http://docs.convox.com/](http://docs.c
 
 ## Development
 
-    $ go get github.com/convox/cli/convox
-    $ cd $GOPATH/src/github.com/convox/cli
-    $ make test
-    $ make install
+```bash
+$ go get github.com/convox/cli/convox
+$ cd $GOPATH/src/github.com/convox/cli
+$ make test
+$ make install
 
-    $ convox help
-    convox: private cloud and application management
+$ convox help
+convox: private cloud and application management
 
-    Usage:
-      convox <command> [args...]
-    ...
+Usage:
+  convox <command> [args...]
+...
+```
 
 ## Contributing
 
 * Open a [GitHub Issue](https://github.com/convox/cli/issues/new) for bugs and feature requests
 * Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
+
+## See Also
+
+* [convox/app](https://github.com/convox/app)
+* [convox/build](https://github.com/convox/build)
+* [convox/cli](https://github.com/convox/cli)
+* [convox/kernel](https://github.com/convox/kernel)
 
 ## License
 
