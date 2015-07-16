@@ -109,7 +109,7 @@ func pushSync(local, remote string) error {
 	return nil
 }
 
-func (m *Manifest) Build(app string) []error {
+func (m *Manifest) Build(app, dir string) []error {
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
@@ -120,7 +120,13 @@ func (m *Manifest) Build(app string) []error {
 		switch {
 		case entry.Build != "":
 			if _, ok := builds[entry.Build]; !ok {
-				builds[entry.Build] = randomString(10)
+				rel, err := filepath.Rel(dir, entry.Build)
+
+				if err != nil {
+					return []error{err}
+				}
+
+				builds[rel] = randomString(10)
 			}
 
 			tags[tag] = builds[entry.Build]

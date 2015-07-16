@@ -90,7 +90,14 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	errors := m.Build(app)
+	cwd, err := os.Getwd()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	errors := m.Build(app, cwd)
 
 	if len(errors) != 0 {
 		fmt.Printf("errors: %+v\n", errors)

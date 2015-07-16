@@ -214,17 +214,17 @@ func _assert(t *testing.T, cases Cases) {
 	}
 }
 
-type manifestFn func(string) []error
+type runnerFn func()
 
 func testBuild(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, m.Build)
+	return testRunner(m, app, func() { m.Build(app, ".") })
 }
 
 func testRun(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, m.Run)
+	return testRunner(m, app, func() { m.Run(app) })
 }
 
-func testRunner(m *Manifest, app string, fn manifestFn) (string, string) {
+func testRunner(m *Manifest, app string, fn runnerFn) (string, string) {
 	oldErr := os.Stderr
 	oldOut := os.Stdout
 
@@ -261,7 +261,7 @@ func testRunner(m *Manifest, app string, fn manifestFn) (string, string) {
 		outC <- buf.String()
 	}()
 
-	fn(app)
+	fn()
 
 	// restore stderr, stdout
 	ew.Close()
