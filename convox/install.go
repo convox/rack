@@ -292,15 +292,15 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 				}
 			}
 
-			return "", fmt.Errorf("could not install stack")
+			return "", fmt.Errorf("could not install stack, contact support@convox.com for assistance")
 		case "CREATE_FAILED":
-			return "", fmt.Errorf("stack creation failed")
+			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "ROLLBACK_COMPLETE":
-			return "", fmt.Errorf("stack creation failed")
+			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "DELETE_COMPLETE":
 			return "", nil
 		case "DELETE_FAILED":
-			return "", fmt.Errorf("stack deletion failed")
+			return "", fmt.Errorf("stack deletion failed, contact support@convox.com for assistance")
 		}
 
 		time.Sleep(2 * time.Second)
