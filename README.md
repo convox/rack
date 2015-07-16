@@ -17,21 +17,22 @@ Pre-reqs
 * A sandbox `DEVELOPMENT=Yes STACK_NAME=convox-dev convox install`
 * An .env file with all the convox-dev stack outputs, i.e. `DYNAMO_BUILDS=convox-dev-builds`
 
-    $ go get github.com/convox/kernel
-    $ cd $GOPATH/src/github.com/convox/kernel
+```bash
+$ go get github.com/convox/kernel
+$ cd $GOPATH/src/github.com/convox/kernel
 
-    $ make dev
-    Attaching to kernel_web_1, kernel_registry_1
-    registry_1 | [2015-07-16 22:20:09 +0000] [15] [INFO] Listening at: http://0.0.0.0:5000 (15)
-    web_1      | [negroni] listening on :3000
+$ make dev
+Attaching to kernel_web_1, kernel_registry_1
+registry_1 | [2015-07-16 22:20:09 +0000] [15] [INFO] Listening at: http://0.0.0.0:5000 (15)
+web_1      | [negroni] listening on :3000
 
-
-    $ convox login $(boot2docker ip)
-    Password: <REGISTRY_PASSWORD>
-    Logged in successfully.
-    $ convox --version
-    client: dev
-    server: latest (192.168.59.103)
+$ convox login $(boot2docker ip)
+Password: <REGISTRY_PASSWORD>
+Logged in successfully.
+$ convox --version
+client: dev
+server: latest (192.168.59.103)
+```
 
 ## Contributing
 
