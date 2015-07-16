@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -132,5 +134,13 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Printf("OK, %s\n", a.Parameters["Release"])
 
-	cmdInfo(c)
+	matcher := regexp.MustCompile(`^(\w+)Port\d+Balancer`)
+
+	if host, ok := a.Outputs["BalancerHost"]; ok {
+		for key, value := range a.Outputs {
+			if m := matcher.FindStringSubmatch(key); m != nil {
+				fmt.Printf("%s: http://%s:%s\n", strings.ToLower(m[1]), host, value)
+			}
+		}
+	}
 }

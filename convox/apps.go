@@ -24,6 +24,32 @@ type App struct {
 
 type Apps []App
 
+func init() {
+	stdcli.RegisterCommand(cli.Command{
+		Name:        "apps",
+		Action:      cmdApps,
+		Description: "list deployed apps",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "app",
+				Usage: "app name. If not specified, use current directory.",
+			},
+		},
+		Subcommands: []cli.Command{
+			{
+				Name:   "create",
+				Usage:  "convox apps create [name]",
+				Action: cmdAppCreate,
+			},
+			{
+				Name:   "delete",
+				Usage:  "convox apps delete <name>",
+				Action: cmdAppDelete,
+			},
+		},
+	})
+}
+
 func (a App) PrintInfo() {
 	var ps sort.StringSlice = make([]string, 0)
 	ports := make(map[string]string)
@@ -59,27 +85,6 @@ func (a App) PrintInfo() {
 			fmt.Printf("%-12v %s:%s\n", p+" Host", a.Outputs["BalancerHost"], port)
 		}
 	}
-}
-
-func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "apps",
-		Action:      cmdApps,
-		Description: "list apps",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "app name. If not specified, use current directory.",
-			},
-		},
-		Subcommands: []cli.Command{
-			{
-				Name:   "create",
-				Usage:  "convox apps create [name]",
-				Action: cmdAppCreate,
-			},
-		},
-	})
 }
 
 func cmdApps(c *cli.Context) {
@@ -125,6 +130,12 @@ func cmdAppCreate(c *cli.Context) {
 		app = c.Args()[0]
 	}
 
+	if app == "" {
+		fmt.Printf("Creating app: ")
+	} else {
+		fmt.Printf("Creating app %s: ", app)
+	}
+
 	v := url.Values{}
 	v.Set("name", app)
 	data, err := ConvoxPostForm("/apps", v)
@@ -149,5 +160,29 @@ func cmdAppCreate(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Created %s.\n", a.Name)
+	if app == "" {
+		fmt.Printf("OK, %s\n", a.Name)
+	} else {
+		fmt.Println("OK")
+	}
+}
+
+func cmdAppDelete(c *cli.Context) {
+	if len(c.Args()) < 1 {
+		stdcli.Usage(c, "delete")
+		return
+	}
+
+	app := c.Args()[0]
+
+	fmt.Printf("Deleting %s: ", app)
+
+	_, err := ConvoxDelete(fmt.Sprintf("/apps/%s", app))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("OK")
 }

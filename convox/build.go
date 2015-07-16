@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/cli/stdcli"
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/convox/cli/stdcli"
 )
 
 type Build struct {
@@ -33,18 +33,18 @@ type Build struct {
 }
 
 func init() {
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "build",
-		Description: "build an app for local development",
-		Usage:       "<directory>",
-		Action:      cmdBuild,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
-			},
-		},
-	})
+	// stdcli.RegisterCommand(cli.Command{
+	//   Name:        "build",
+	//   Description: "build an app for local development",
+	//   Usage:       "<directory>",
+	//   Action:      cmdBuild,
+	//   Flags: []cli.Flag{
+	//     cli.StringFlag{
+	//       Name:  "app",
+	//       Usage: "app name. Inferred from current directory if not specified.",
+	//     },
+	//   },
+	// })
 }
 
 func cmdBuild(c *cli.Context) {
