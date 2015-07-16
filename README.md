@@ -1,4 +1,4 @@
-# convox/cli 
+# convox/cli
 
 <a href="https://travis-ci.org/convox/cli">
   <img align="right" src="https://travis-ci.org/convox/cli.svg?branch=master">
