@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -188,71 +187,40 @@ func BuildStream(rw http.ResponseWriter, r *http.Request) {
 	app := vars["app"]
 	id := vars["build"]
 
-	b, err := models.GetBuild(app, id)
-
-	if err != nil {
-		fmt.Printf("ERROR: %s\n", err)
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
 	ws, err := upgrader.Upgrade(rw, r, nil)
 
 	if err != nil {
 		fmt.Printf("ERROR: %s\n", err)
 		helpers.Error(log, err)
-		RenderError(rw, err)
+		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("error: %s", err)))
 		return
 	}
-
-	log.Success("step=upgrade build=%q", b.Id)
 
 	defer ws.Close()
 
-	ws.WriteMessage(websocket.TextMessage, []byte(b.Logs))
+	sent := ""
 
-	if b.Status == "failed" || b.Status == "complete" {
-		log.Success("step=ended build=%q", b.Id)
-		return
-	}
+	for {
+		b, err := models.GetBuild(app, id)
 
-	// Every 2 seconds check for new logs and write to websocket
-	ticker := time.NewTicker(2 * time.Second)
-	quit := make(chan struct{})
-	logs := b.Logs
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				b, err := models.GetBuild(app, id)
-
-				if err != nil {
-					helpers.Error(log, err)
-					RenderError(rw, err)
-					return
-				}
-
-				if b.Logs != logs {
-					latest := strings.TrimPrefix(b.Logs, logs)
-					ws.WriteMessage(websocket.TextMessage, []byte(latest))
-					logs = b.Logs
-				}
-
-				if b.Status == "failed" || b.Status == "complete" {
-					log.Success("step=ended build=%q", b.Id)
-					ticker.Stop()
-					return
-				}
-			case <-quit:
-				ticker.Stop()
-				return
-			}
+		if err != nil {
+			fmt.Printf("ERROR: %s\n", err)
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
 		}
-	}()
 
-	<-quit
+		ws.WriteMessage(websocket.TextMessage, []byte(b.Logs[len(sent):]))
+
+		sent = b.Logs
+
+		switch b.Status {
+		case "complete", "failed":
+			return
+		}
+
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func buildsLogger(at string) *logger.Logger {
