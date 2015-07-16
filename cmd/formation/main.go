@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/kernel/formation"
+	"github.com/convox/kernel/cmd/formation/handler"
 )
 
 type Message struct {
@@ -45,7 +45,7 @@ func main() {
 
 	data := []byte(os.Args[1])
 
-	var req formation.Request
+	var req handler.Request
 
 	err := json.Unmarshal(data, &req)
 
@@ -55,7 +55,7 @@ func main() {
 
 	fmt.Printf("req = %+v\n", req)
 
-	err = formation.HandleRequest(req)
+	err = handler.HandleRequest(req)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)

@@ -3,17 +3,17 @@ package main
 import (
 	b64 "encoding/base64"
 	"fmt"
-	"github.com/convox/kernel/helpers"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/convox/kernel/helpers"
 )
 
 func main() {
 
 	go heartbeat()
 	go startClusterMonitor()
-	go startWorker()
 	startWeb()
 }
 

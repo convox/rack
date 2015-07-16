@@ -1,9 +1,0 @@
-#!/bin/sh
-
-in=$(mktemp -t lambda.in)
-out=$(mktemp -t lambda.out)
-
-echo {\"args\":\"$*\"} >$in
-aws lambda invoke --function-name formation --payload file://$in $out
-
-ruby -e "puts $(cat $out) "

@@ -1,1 +1,0 @@
-aws lambda update-function-code --function-name convox-formation --zip-file fileb://lambda.zip

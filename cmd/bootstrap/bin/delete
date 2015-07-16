@@ -1,3 +1,0 @@
-aws iam delete-role-policy --role-name convox-formation --policy-name all
-aws iam delete-role --role-name convox-formation
-aws lambda delete-function --function-name convox-formation
