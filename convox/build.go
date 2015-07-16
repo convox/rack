@@ -17,7 +17,7 @@ import (
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
-	"golang.org/x/net/websocket"
+	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
 type Build struct {
