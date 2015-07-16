@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 func buildDockerCompose(dir string) (*Manifest, error) {
@@ -76,6 +76,7 @@ var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
 func buildDockerfile(dir string) (*Manifest, error) {
 	entry := ManifestEntry{
 		Build: ".",
+		Ports: []string{},
 	}
 
 	data, err := ioutil.ReadFile(filepath.Join(dir, "Dockerfile"))
@@ -92,7 +93,7 @@ func buildDockerfile(dir string) (*Manifest, error) {
 		parts := exposeEntryRegexp.FindStringSubmatch(scanner.Text())
 
 		if len(parts) > 1 {
-			entry.Ports = append(entry.Ports, fmt.Sprintf("%d:%s", current, strings.Split(parts[1], "/")[0]))
+			entry.Ports = append(entry.Ports.([]string), fmt.Sprintf("%d:%s", current, strings.Split(parts[1], "/")[0]))
 			current += 100
 		}
 	}

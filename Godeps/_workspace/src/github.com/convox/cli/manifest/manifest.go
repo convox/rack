@@ -13,13 +13,18 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/fatih/color"
+	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 var (
-	Stdout = io.Writer(os.Stdout)
-	Stderr = io.Writer(os.Stderr)
+	Stdout       = io.Writer(os.Stdout)
+	Stderr       = io.Writer(os.Stderr)
+	Execer       = exec.Command
+	SignalWaiter = waitForSignal
 )
+
+var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
 
 type Manifest map[string]ManifestEntry
 
@@ -29,12 +34,20 @@ type ManifestEntry struct {
 	Command     interface{} `yaml:"command,omitempty"`
 	Environment []string    `yaml:"environment,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
-	Ports       []string    `yaml:"ports,omitempty"`
+	Ports       interface{} `yaml:"ports,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
 func Generate(dir string) (*Manifest, error) {
-	err := os.Chdir(dir)
+	wd, err := os.Getwd()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer os.Chdir(wd)
+
+	err = os.Chdir(dir)
 
 	if err != nil {
 		return nil, err
@@ -61,22 +74,23 @@ func Generate(dir string) (*Manifest, error) {
 }
 
 func buildAsync(source, tag string, ch chan error) {
-	ch <- run("docker", "build", "-t", tag, source)
+	ch <- buildSync(source, tag)
+}
+
+func buildSync(source, tag string) error {
+	return run("docker", "build", "-t", tag, source)
 }
 
 func pullAsync(image string, ch chan error) {
-	ch <- run("docker", "pull", image)
+	ch <- pullSync(image)
+}
+
+func pullSync(image string) error {
+	return run("docker", "pull", image)
 }
 
 func pushAsync(local, remote string, ch chan error) {
-	err := run("docker", "tag", "-f", local, remote)
-
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	ch <- run("docker", "push", remote)
+	ch <- pushSync(local, remote)
 }
 
 func pushSync(local, remote string) error {
@@ -96,8 +110,6 @@ func pushSync(local, remote string) error {
 }
 
 func (m *Manifest) Build(app string) []error {
-	ch := make(chan error)
-
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
@@ -118,24 +130,24 @@ func (m *Manifest) Build(app string) []error {
 		}
 	}
 
+	ch := make(chan error)
+
 	errors := []error{}
 
 	for source, tag := range builds {
-		go buildAsync(source, tag, ch)
-	}
+		err := buildSync(source, tag)
 
-	for i := 0; i < len(builds); i++ {
-		if err := <-ch; err != nil {
-			errors = append(errors, err)
+		if err != nil {
+			return []error{err}
 		}
 	}
 
-	if len(errors) > 0 {
-		return errors
-	}
-
 	for _, image := range pulls {
-		go pullAsync(image, ch)
+		err := pullSync(image)
+
+		if err != nil {
+			return []error{err}
+		}
 	}
 
 	for i := 0; i < len(pulls); i++ {
@@ -148,7 +160,18 @@ func (m *Manifest) Build(app string) []error {
 		return errors
 	}
 
-	for to, from := range tags {
+	// tag in alphabetical order for testability
+	mk := make([]string, len(tags))
+	i := 0
+	for k, _ := range tags {
+		mk[i] = k
+		i++
+	}
+	sort.Strings(mk)
+
+	for _, to := range mk {
+		from := tags[to]
+		// for to, from := range tags {
 		err := run("docker", "tag", "-f", from, to)
 
 		if err != nil {
@@ -190,6 +213,26 @@ func (m *Manifest) MissingEnvironment() []string {
 	sort.Strings(missing)
 
 	return missing
+}
+
+func (m *Manifest) PortsWanted() ([]string, error) {
+	ports := make([]string, 0)
+
+	for _, entry := range *m {
+		if pp, ok := entry.Ports.([]interface{}); ok {
+			for _, port := range pp {
+				if p, ok := port.(string); ok {
+					parts := strings.SplitN(p, ":", 2)
+
+					if len(parts) == 2 {
+						ports = append(ports, parts[0])
+					}
+				}
+			}
+		}
+	}
+
+	return ports, nil
 }
 
 func (m *Manifest) Push(app, registry, auth, tag string) []error {
@@ -242,9 +285,13 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
-	for _, name := range m.runOrder() {
-		go (*m)[name].runAsync(m.prefixForEntry(name), app, name, ch)
-		time.Sleep(200 * time.Millisecond)
+	// Set up channel on which to send signal notifications.
+	// c := make(chan os.Signal, 1)
+	// signal.Notify(c, os.Interrupt, os.Kill)
+
+	for i, name := range m.runOrder() {
+		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
+		time.Sleep(1000 * time.Millisecond)
 	}
 
 	errors := []error{}
@@ -255,7 +302,15 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
+	// err := SignalWaiter(c)
+	// errors = append(errors, err)
+
 	return errors
+}
+
+func waitForSignal(c chan os.Signal) error {
+	s := <-c
+	return fmt.Errorf("signal %s", s)
 }
 
 func (m *Manifest) Write(filename string) error {
@@ -268,7 +323,7 @@ func (m *Manifest) Write(filename string) error {
 	return ioutil.WriteFile(filename, data, 0644)
 }
 
-func (m *Manifest) prefixForEntry(name string) string {
+func (m *Manifest) prefixForEntry(name string, pos int) string {
 	longest := 0
 
 	for name, _ := range *m {
@@ -277,22 +332,63 @@ func (m *Manifest) prefixForEntry(name string) string {
 		}
 	}
 
-	return name + strings.Repeat(" ", longest-len(name))
+	c := color.New(Colors[pos%len(Colors)]).SprintFunc()
+
+	return c(name + strings.Repeat(" ", longest-len(name)) + " |")
 }
 
 func (m *Manifest) runOrder() []string {
-	rs := RunSorter{manifest: *m, names: make([]string, len(*m))}
-
-	i := 0
+	unsorted := []string{}
 
 	for name, _ := range *m {
-		rs.names[i] = name
-		i++
+		unsorted = append(unsorted, name)
 	}
 
-	sort.Sort(rs)
+	sort.Strings(unsorted)
 
-	return rs.names
+	sorted := []string{}
+
+	for len(sorted) < len(unsorted) {
+		for _, name := range unsorted {
+			found := false
+
+			for _, n := range sorted {
+				if n == name {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				continue
+			}
+
+			resolved := true
+
+			for _, link := range (*m)[name].Links {
+				lname := strings.Split(link, ":")[0]
+
+				found := false
+
+				for _, n := range sorted {
+					if n == lname {
+						found = true
+					}
+				}
+
+				if !found {
+					resolved = false
+					break
+				}
+			}
+
+			if resolved {
+				sorted = append(sorted, name)
+			}
+		}
+	}
+
+	return sorted
 }
 
 func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
@@ -301,7 +397,7 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	query("docker", "rm", "-f", name)
 
-	args := []string{"run", "-i", "--name", name, "--rm=true"}
+	args := []string{"run", "-i", "--name", name}
 
 	for _, env := range me.Environment {
 		if strings.Index(env, "=") > -1 {
@@ -312,11 +408,23 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 	}
 
 	for _, link := range me.Links {
-		args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, link, link))
+		parts := strings.Split(link, ":")
+
+		switch len(parts) {
+		case 1:
+			args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, link, link))
+		case 2:
+			args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, parts[0], parts[1]))
+		default:
+		}
 	}
 
-	for _, port := range me.Ports {
-		args = append(args, "-p", port)
+	if pp, ok := me.Ports.([]interface{}); ok {
+		for _, port := range pp {
+			if p, ok := port.(string); ok {
+				args = append(args, "-p", p)
+			}
+		}
 	}
 
 	for _, volume := range me.Volumes {
@@ -365,14 +473,14 @@ func injectDockerfile(dir string) error {
 }
 
 func query(executable string, args ...string) ([]byte, error) {
-	return exec.Command(executable, args...).CombinedOutput()
+	return Execer(executable, args...).CombinedOutput()
 }
 
 func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
-		fmt.Printf("%s | %s\n", prefix, scanner.Text())
+		fmt.Printf("%s %s\n", prefix, scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -385,14 +493,16 @@ func outputWithPrefix(prefix string, r io.Reader, ch chan error) {
 func run(executable string, args ...string) error {
 	Stdout.Write([]byte(fmt.Sprintf("RUNNING: %s %s\n", executable, strings.Join(args, " "))))
 
-	cmd := exec.Command(executable, args...)
+	cmd := Execer(executable, args...)
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
 	return cmd.Run()
 }
 
 func runPrefix(prefix, executable string, args ...string) error {
-	cmd := exec.Command(executable, args...)
+	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
+
+	cmd := Execer(executable, args...)
 
 	stdout, err := cmd.StdoutPipe()
 
