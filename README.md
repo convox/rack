@@ -1,37 +1,43 @@
 # convox/build
 
-Turn a Compose-enabled application into an AMI.
+<a href="https://travis-ci.org/convox/build">
+  <img align="right" src="https://travis-ci.org/convox/build.svg?branch=master">
+</a>
 
-## Usage
+Create Docker images from an app directory, repo or tarball.
 
-    $ docker run \
-      -e AWS_REGION=us-east-1 \
-      -e AWS_ACCESS=foo \
-      -e AWS_SECRET=bar \
-      convox/build sinatra-example https://github.com/convox-examples/sinatra
+This is a guide to developing the convox/build project. For detailed
+installation and usage instructions, see [http://docs.convox.com/](http://docs.convox.com/).
 
-## Userdata
+## Development
 
-The AMIs produced by this tool will need userdata like the following to boot:
+```bash
+$ go get github.com/convox/build
+$ cd $GOPATH/src/github.com/convox/build
+$ make test
+$ make build
 
-    {
-      "app": "myapp",
-      "process": "web",
-      "command": "",
-      "env": "http://convox.io/example.env",
-      "logs": {
-        "kinesis": "kinesis-stream",
-        "cloudwatch": "cloudwatch-logs-group"
-      },
-      "ports": [
-        "5000:3000",
-        "5001:3001"
-      ]
-    }
+$ docker run -v /var/run/docker.sock:/var/run/docker.sock \
+convox/build worker https://github.com/convox-examples/worker.git
+git|Cloning into '/tmp/repo662108518/clone'...
+manifest|worker:
+manifest|  build: .
+build|RUNNING: docker build -t oawshqivmr /tmp/repo662108518/clone
+...
+build|RUNNING: docker tag -f oawshqivmr example-sinatra/worker
+```
+
+## Contributing
+
+* Open a [GitHub Issue](https://github.com/convox/kernel/issues/new) for bugs and feature requests
+* Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
 
 ## See Also
 
-* [convox/architect](https://github.com/convox/architect)
+* [convox/app](https://github.com/convox/app)
+* [convox/build](https://github.com/convox/build)
+* [convox/cli](https://github.com/convox/cli)
+* [convox/kernel](https://github.com/convox/kernel)
 
 ## License
 
