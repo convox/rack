@@ -84,7 +84,7 @@ func cmdInstall(c *cli.Context) {
 			stdcli.Error(err)
 		}
 
-		fmt.Printn("")
+		fmt.Println("")
 	}
 
 	fmt.Println("Installing Convox...")
