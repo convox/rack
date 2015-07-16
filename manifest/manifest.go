@@ -38,6 +38,10 @@ type ManifestEntry struct {
 	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
 func Generate(dir string) (*Manifest, error) {
 	wd, err := os.Getwd()
 
