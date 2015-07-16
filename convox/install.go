@@ -139,7 +139,7 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("Waiting for load balancer...")
 
-	waitForAvailability(host)
+	waitForAvailability(fmt.Sprintf("http://%s/", host))
 
 	fmt.Println("Logging in...")
 
@@ -449,13 +449,13 @@ func friendlyName(t string) string {
 	return fmt.Sprintf("Unknown: %s", t)
 }
 
-func waitForAvailability(host string) {
+func waitForAvailability(url string) {
 	client := &http.Client{
 		Timeout: 2 * time.Second,
 	}
 
 	for {
-		_, err := client.Get(fmt.Sprintf("http://%s/", host))
+		_, err := client.Get(url)
 
 		if err == nil {
 			return
