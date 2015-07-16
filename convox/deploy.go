@@ -89,8 +89,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	stdcli.Spinner.Prefix = "Releasing: "
-	stdcli.Spinner.Start()
+	fmt.Print("Releasing... ")
 
 	// promote release
 	data, err = ConvoxPost(fmt.Sprintf("/apps/%s/releases/%s/promote", app, release), "")
@@ -131,6 +130,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	stdcli.Spinner.Stop()
-	fmt.Printf("\x08\x08OK, %s\n", a.Parameters["Release"])
+	fmt.Printf("OK, %s\n", a.Parameters["Release"])
+
+	cmdInfo(c)
 }
