@@ -77,7 +77,11 @@ func main() {
 	manifest.Stdout = prefixWriter("build")
 	manifest.Stderr = manifest.Stdout
 
-	errors := m.Build(app)
+	if err != nil {
+		die(err)
+	}
+
+	errors := m.Build(app, dir)
 
 	if len(errors) > 0 {
 		die(errors[0])
