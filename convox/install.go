@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	b64 "encoding/base64"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 )
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
+var MixpanelToken = "43fb68427548c5e99978a598a9b14e55"
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -119,13 +121,21 @@ func cmdInstall(c *cli.Context) {
 	})
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("install", access, err)
+	}
+
+	// Send anonymous event to mixpanel
+	message := fmt.Sprintf(`{"event": "convox-install-start", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
+	encMessage := b64.StdEncoding.EncodeToString([]byte(message))
+	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("install", access, err)
 	}
 
 	fmt.Println("Waiting for load balancer...")
@@ -138,6 +148,14 @@ func cmdInstall(c *cli.Context) {
 	switchHost(host)
 
 	fmt.Println("Success, try `convox apps`")
+
+	// Send anonymous event to mixpanel
+	message = fmt.Sprintf(`{"event": "convox-install-success", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
+	encMessage = b64.StdEncoding.EncodeToString([]byte(message))
+	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	}
 }
 
 func cmdUninstall(c *cli.Context) {
@@ -210,7 +228,7 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("uninstall", access, err)
 	}
 
 	stackId := ""
@@ -228,7 +246,15 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("uninstall", access, err)
+	}
+
+	// Send anonymous event to mixpanel
+	message := fmt.Sprintf(`{"event": "convox-uninstall-start", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
+	encMessage := b64.StdEncoding.EncodeToString([]byte(message))
+	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
 
 	fmt.Printf("Cleaning up registry...\n")
@@ -248,7 +274,7 @@ func cmdUninstall(c *cli.Context) {
 		if awsErr, ok := err.(awserr.Error); ok {
 			// Don't block uninstall NoSuchBucket
 			if awsErr.Code() != "NoSuchBucket" {
-				stdcli.Error(err)
+				handleError("uninstall", access, err)
 			}
 		}
 	}
@@ -263,17 +289,25 @@ func cmdUninstall(c *cli.Context) {
 		_, err := S3.DeleteObject(req)
 
 		if err != nil {
-			stdcli.Error(err)
+			handleError("uninstall", access, err)
 		}
 	}
 
 	_, err = waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
-		stdcli.Error(err)
+		handleError("uninstall", access, err)
 	}
 
 	fmt.Println("Successfully uninstalled.")
+
+	// Send anonymous event to mixpanel
+	message = fmt.Sprintf(`{"event": "convox-uninstall-success", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
+	encMessage = b64.StdEncoding.EncodeToString([]byte(message))
+	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	}
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -444,6 +478,18 @@ func waitForAvailability(host string) {
 			return
 		}
 	}
+}
+
+func handleError(command string, access string, e error) {
+	// Send anonymous event to mixpanel
+	message := fmt.Sprintf(`{"event": fmt.Sprintf("convox-%s-error", command), "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
+	encMessage := b64.StdEncoding.EncodeToString([]byte(message))
+	_, err := http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	}
+
+	stdcli.Error(err)
 }
 
 var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
