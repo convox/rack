@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	b64 "encoding/base64"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -20,7 +19,6 @@ import (
 )
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
-var MixpanelToken = "43fb68427548c5e99978a598a9b14e55"
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -124,13 +122,7 @@ func cmdInstall(c *cli.Context) {
 		handleError("install", access, err)
 	}
 
-	// Send anonymous event to mixpanel
-	message := fmt.Sprintf(`{"event": "convox-install-start", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
-	encMessage := b64.StdEncoding.EncodeToString([]byte(message))
-	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	}
+	sendMixpanelEvent("convox-install-start", access)
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
@@ -149,13 +141,7 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("Success, try `convox apps`")
 
-	// Send anonymous event to mixpanel
-	message = fmt.Sprintf(`{"event": "convox-install-success", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
-	encMessage = b64.StdEncoding.EncodeToString([]byte(message))
-	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	}
+	sendMixpanelEvent("convox-install-success", access)
 }
 
 func cmdUninstall(c *cli.Context) {
@@ -249,13 +235,7 @@ func cmdUninstall(c *cli.Context) {
 		handleError("uninstall", access, err)
 	}
 
-	// Send anonymous event to mixpanel
-	message := fmt.Sprintf(`{"event": "convox-uninstall-start", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
-	encMessage := b64.StdEncoding.EncodeToString([]byte(message))
-	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	}
+	sendMixpanelEvent("convox-uninstall-start", access)
 
 	fmt.Printf("Cleaning up registry...\n")
 
@@ -301,13 +281,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Successfully uninstalled.")
 
-	// Send anonymous event to mixpanel
-	message = fmt.Sprintf(`{"event": "convox-uninstall-success", "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
-	encMessage = b64.StdEncoding.EncodeToString([]byte(message))
-	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	}
+	sendMixpanelEvent("convox-uninstall-success", access)
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -480,15 +454,8 @@ func waitForAvailability(host string) {
 	}
 }
 
-func handleError(command string, access string, e error) {
-	// Send anonymous event to mixpanel
-	message := fmt.Sprintf(`{"event": fmt.Sprintf("convox-%s-error", command), "properties": {"distinct_id": %q, "token": %q}}`, access, MixpanelToken)
-	encMessage := b64.StdEncoding.EncodeToString([]byte(message))
-	_, err := http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	}
-
+func handleError(command string, access string, err error) {
+	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command), access)
 	stdcli.Error(err)
 }
 
