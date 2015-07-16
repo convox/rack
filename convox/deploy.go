@@ -136,6 +136,21 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Printf("OK, %s\n", a.Parameters["Release"])
 
+	urls := []string{}
+	hosts := []string{}
+
+	matcher := regexp.MustCompile(`^(\w+)Port\d+Balancer`)
+
+	if host, ok := a.Outputs["BalancerHost"]; ok {
+		for key, value := range a.Outputs {
+			if m := matcher.FindStringSubmatch(key); m != nil {
+				url := fmt.Sprintf("http://%s:%s", host, value)
+				urls = append(urls, url)
+				hosts = append(hosts, fmt.Sprintf("%s: %s", strings.ToLower(m[1]), url))
+			}
+		}
+	}
+
 	fmt.Print("Waiting for app... ")
 
 	ch := make(chan error)
@@ -153,17 +168,7 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Println("OK")
 
-	matcher := regexp.MustCompile(`^(\w+)Port\d+Balancer`)
-
-	urls := []string{}
-
-	if host, ok := a.Outputs["BalancerHost"]; ok {
-		for key, value := range a.Outputs {
-			if m := matcher.FindStringSubmatch(key); m != nil {
-				url := fmt.Sprintf("http://%s:%s", host, value)
-				urls = append(urls, url)
-				fmt.Printf("%s: %s\n", strings.ToLower(m[1]), url)
-			}
-		}
+	for _, host := range hosts {
+		fmt.Println(host)
 	}
 }
