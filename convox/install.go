@@ -413,9 +413,11 @@ func friendlyName(t string) string {
 		return "ECS TaskDefinition"
 	case "Custom::ECSService":
 		return "ECS Service"
+	case "Custom::S3BucketCleanup":
+		return ""
 	}
 
-	return fmt.Sprintf("UNKNOWN UNKNOWN: %s", t)
+	return fmt.Sprintf("Unknown: %s", t)
 }
 
 func waitForAvailability(host string) {
