@@ -4,6 +4,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
+	"golang.org/x/net/websocket"
 )
 
 type Build struct {
@@ -73,10 +76,7 @@ func executeBuild(dir string, app string) (string, error) {
 		stdcli.Error(err)
 	}
 
-	stdcli.Spinner.Prefix = "Uploading: "
-	stdcli.Spinner.Start()
-
-	time.Sleep(100 * time.Millisecond)
+	fmt.Print("Uploading... ")
 
 	tar, err := createTarball(dir)
 
@@ -84,11 +84,7 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	stdcli.Spinner.Stop()
-	fmt.Println("\x08\x08OK")
-
-	stdcli.Spinner.Prefix = "Building: "
-	stdcli.Spinner.Start()
+	fmt.Println("OK")
 
 	build, err := postBuild(tar, app)
 
@@ -96,14 +92,11 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	release, err := waitForBuild(app, build)
+	release, err := streamBuild(app, build)
 
 	if err != nil {
 		return "", err
 	}
-
-	stdcli.Spinner.Stop()
-	fmt.Println("\x08\x08OK")
 
 	return release, nil
 }
@@ -154,6 +147,70 @@ func postBuild(tar []byte, app string) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func streamBuild(app, build string) (string, error) {
+	host, password, err := currentLogin()
+
+	if err != nil {
+		stdcli.Error(err)
+		return "", err
+	}
+
+	origin := fmt.Sprintf("https://%s", host)
+	url := fmt.Sprintf("ws://%s/apps/%s/builds/%s/logs/stream", host, app, build)
+
+	config, err := websocket.NewConfig(url, origin)
+
+	if err != nil {
+		stdcli.Error(err)
+		return "", err
+	}
+
+	userpass := fmt.Sprintf("convox:%s", password)
+	userpass_encoded := base64.StdEncoding.EncodeToString([]byte(userpass))
+
+	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+
+	config.TlsConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	ws, err := websocket.DialConfig(config)
+
+	if err != nil {
+		stdcli.Error(err)
+		return "", err
+	}
+
+	defer ws.Close()
+
+	var message []byte
+
+	for {
+		err := websocket.Message.Receive(ws, &message)
+
+		if err != nil {
+			break
+		}
+
+		fmt.Print(string(message))
+	}
+
+	var b Build
+
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/builds/%s", app, build))
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(data, &b)
+
+	if err != nil {
+		return "", err
+	}
+
+	return b.Release, nil
 }
 
 func waitForBuild(app, id string) (string, error) {
