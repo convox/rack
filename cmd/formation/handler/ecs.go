@@ -159,9 +159,13 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	count, _ := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
 
+	// arn:aws:ecs:us-east-1:922560784203:service/sinatra-SZXTRXEMYEY
+	parts := strings.Split(req.PhysicalResourceId, "/")
+	name := parts[1]
+
 	res, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
-		Service:        aws.String(req.ResourceProperties["Name"].(string)),
+		Service:        aws.String(name),
 		DesiredCount:   aws.Long(int64(count)),
 		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
 	})
