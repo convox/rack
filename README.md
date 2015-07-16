@@ -4,7 +4,7 @@
   <img align="right" src="https://travis-ci.org/convox/cli.svg?branch=master">
 </a>
 
-Convox command line interface.
+Launch a private cloud and deploy apps from the command line.
 
 This is a guide to developing the convox/cli project. For detailed
 installation and usage instructions, see [http://docs.convox.com/](http://docs.convox.com/).
@@ -25,7 +25,7 @@ installation and usage instructions, see [http://docs.convox.com/](http://docs.c
 
 ## Contributing
 
-* Open a GitHub Issue for bugs and detailed feature requests
+* Open a [GitHub Issue](https://github.com/convox/cli/issues/new) for bugs and feature requests
 * Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
 
 ## License
