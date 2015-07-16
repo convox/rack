@@ -119,17 +119,17 @@ func (m *Manifest) Build(app, dir string) []error {
 
 		switch {
 		case entry.Build != "":
-			if _, ok := builds[entry.Build]; !ok {
-				rel, err := filepath.Rel(dir, entry.Build)
+			abs, err := filepath.Abs(filepath.Join(dir, entry.Build))
 
-				if err != nil {
-					return []error{err}
-				}
-
-				builds[rel] = randomString(10)
+			if err != nil {
+				return []error{err}
 			}
 
-			tags[tag] = builds[entry.Build]
+			if _, ok := builds[entry.Build]; !ok {
+				builds[abs] = randomString(10)
+			}
+
+			tags[tag] = builds[abs]
 		case entry.Image != "":
 			pulls = append(pulls, entry.Image)
 			tags[tag] = entry.Image
