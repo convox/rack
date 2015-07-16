@@ -129,7 +129,7 @@ func (m *Manifest) Build(app, dir string) []error {
 				return []error{err}
 			}
 
-			if _, ok := builds[entry.Build]; !ok {
+			if _, ok := builds[abs]; !ok {
 				builds[abs] = randomString(10)
 			}
 
