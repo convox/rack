@@ -130,8 +130,6 @@ func (m *Manifest) Build(app string) []error {
 		}
 	}
 
-	ch := make(chan error)
-
 	errors := []error{}
 
 	for source, tag := range builds {
@@ -147,12 +145,6 @@ func (m *Manifest) Build(app string) []error {
 
 		if err != nil {
 			return []error{err}
-		}
-	}
-
-	for i := 0; i < len(pulls); i++ {
-		if err := <-ch; err != nil {
-			errors = append(errors, err)
 		}
 	}
 
