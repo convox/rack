@@ -6,24 +6,27 @@
 
 Convox command line interface.
 
-## Installation
+This is a guide to developing the convox/cli project. For detailed
+installation and usage instructions, see [http://docs.convox.com/](http://docs.convox.com/).
 
-**OS X**
+## Development
 
-    $ curl -Ls http://www.convox.com/downloads/osx/convox.zip > /tmp/convox.zip
-    $ unzip /tmp/convox.zip -d /usr/local/bin
-
-## Usage
+    $ go get github.com/convox/cli/convox
+    $ cd $GOPATH/src/github.com/convox/cli
+    $ make test
+    $ make install
 
     $ convox help
+    convox: private cloud and application management
 
-## Docs
+    Usage:
+      convox <command> [args...]
+    ...
 
-[http://docs.convox.com](http://docs.convox.com)
+## Contributing
 
-## Updates
-
-    $ convox update
+* Open a GitHub Issue for bugs and detailed feature requests
+* Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
 
 ## License
 
