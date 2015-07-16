@@ -232,7 +232,7 @@ func (b *Build) execute(args []string, r io.Reader) error {
 
 	logs := ""
 
-	for _ := range ticker {
+	for _ = range ticker {
 		if b.Logs != logs {
 			b.Save()
 			logs = b.Logs
