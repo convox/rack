@@ -87,6 +87,12 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("")
 	}
 
+	development := os.Getenv("DEVELOPMENT")
+
+	if development != "Yes" {
+		development = "No"
+	}
+
 	stackName := os.Getenv("STACK_NAME")
 
 	if stackName == "" {
@@ -109,7 +115,7 @@ func cmdInstall(c *cli.Context) {
 	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
-			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String("No")},
+			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String("3")},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String("t2.small")},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
