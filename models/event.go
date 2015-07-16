@@ -98,11 +98,17 @@ func ListEvents(app string) (Events, error) {
 }
 
 func ListECSEvents(app string) (ServiceEvents, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	events := ServiceEvents{}
 
 	req := &ecs.DescribeServicesInput{
 		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: []*string{aws.String(app)},
+		Services: []*string{aws.String(a.TaskDefinitionFamily())},
 	}
 
 	res, err := ECS().DescribeServices(req)

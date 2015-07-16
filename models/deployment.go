@@ -22,9 +22,15 @@ type Deployment struct {
 type Deployments []Deployment
 
 func ListDeployments(app string) (Deployments, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: []*string{aws.String(app)},
+		Services: []*string{aws.String(a.TaskDefinitionFamily())},
 	})
 
 	if err != nil {
