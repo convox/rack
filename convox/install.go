@@ -87,6 +87,12 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("")
 	}
 
+	stackName := os.Getenv("STACK_NAME")
+
+	if stackName == "" {
+		stackName = "convox"
+	}
+
 	fmt.Println("Installing Convox...")
 
 	access = strings.TrimSpace(access)
@@ -108,7 +114,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String("latest")},
 		},
-		StackName:   aws.String("convox"),
+		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(FormationUrl),
 	})
 
@@ -181,6 +187,12 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}
 
+	stackName := os.Getenv("STACK_NAME")
+
+	if stackName == "" {
+		stackName = "convox"
+	}
+
 	fmt.Println("")
 
 	fmt.Println("Uninstalling Convox...")
@@ -194,7 +206,7 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String("convox"),
+		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
@@ -212,7 +224,7 @@ func cmdUninstall(c *cli.Context) {
 	}
 
 	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String("convox"),
+		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
