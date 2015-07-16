@@ -228,23 +228,16 @@ func (b *Build) execute(args []string, r io.Reader) error {
 	}
 
 	// Every 2 seconds check for new logs and save
-	// ticker := time.NewTicker(5 * time.Second)
-	// quit := make(chan struct{})
-	// logs := ""
-	// go func() {
-	//   for {
-	//     select {
-	//     case <-ticker.C:
-	//       if b.Logs != logs {
-	//         b.Save()
-	//         logs = b.Logs
-	//       }
-	//     case <-quit:
-	//       ticker.Stop()
-	//       return
-	//     }
-	//   }
-	// }()
+	ticker := time.Tick(1 * time.Second)
+
+	logs := ""
+
+	for _ := range ticker {
+		if b.Logs != logs {
+			b.Save()
+			logs = b.Logs
+		}
+	}
 
 	manifest := ""
 	success := true
