@@ -216,7 +216,7 @@ func BuildStream(rw http.ResponseWriter, r *http.Request) {
 
 		switch b.Status {
 		case "complete", "failed":
-			break
+			return
 		}
 
 		time.Sleep(1 * time.Second)
