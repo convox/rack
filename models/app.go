@@ -181,10 +181,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 		})
 	}
 
-	res, err := CloudFormation().UpdateStack(req)
-
-	fmt.Printf("res = %+v\n", res)
-	fmt.Printf("err = %+v\n", err)
+	_, err := CloudFormation().UpdateStack(req)
 
 	return err
 }

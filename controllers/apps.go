@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
@@ -75,6 +77,11 @@ func AppShow(rw http.ResponseWriter, r *http.Request) {
 
 	a, err := models.GetApp(app)
 
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
 	if err != nil {
 		helpers.Error(log, err)
 		RenderError(rw, err)
@@ -101,6 +108,13 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	err := app.Create()
+
+	if awsError(err) == "AlreadyExistsException" {
+		err = fmt.Errorf("There is already an app named %s", name)
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -140,7 +154,22 @@ func AppUpdate(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(params) > 0 {
-		if err := app.UpdateParams(params); err != nil {
+		err := app.UpdateParams(params)
+
+		if ae, ok := err.(awserr.Error); ok {
+			if ae.Code() == "ValidationError" {
+				switch {
+				case strings.Index(ae.Error(), "No updates are to be performed") > -1:
+					RenderNotFound(rw, fmt.Sprintf("no updates are to be performed: %s", name))
+					return
+				case strings.Index(ae.Error(), "can not be updated") > -1:
+					RenderNotFound(rw, fmt.Sprintf("app is already updating: %s", name))
+					return
+				}
+			}
+		}
+
+		if err != nil {
 			log.Error(err)
 			RenderError(rw, err)
 			return
@@ -157,6 +186,11 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) {
 	name := vars["app"]
 
 	app, err := models.GetApp(name)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", name))
+		return
+	}
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -344,7 +378,26 @@ func AppNameAvailable(rw http.ResponseWriter, r *http.Request) {
 func AppStream(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("stream").Start()
 
-	app, err := models.GetApp(mux.Vars(r)["app"])
+	app := mux.Vars(r)["app"]
+
+	ws, err := upgrader.Upgrade(rw, r, nil)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	log.Success("step=upgrade app=%q", app)
+
+	defer ws.Close()
+
+	a, err := models.GetApp(mux.Vars(r)["app"])
+
+	if awsError(err) == "ValidationError" {
+		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("ERROR: no such app: %s\n", app)))
+		return
+	}
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -355,25 +408,13 @@ func AppStream(rw http.ResponseWriter, r *http.Request) {
 	logs := make(chan []byte)
 	done := make(chan bool)
 
-	app.SubscribeLogs(logs, done)
-
-	ws, err := upgrader.Upgrade(rw, r, nil)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	log.Success("step=upgrade app=%q", app.Name)
-
-	defer ws.Close()
+	a.SubscribeLogs(logs, done)
 
 	for data := range logs {
 		ws.WriteMessage(websocket.TextMessage, data)
 	}
 
-	log.Success("step=ended app=%q", app.Name)
+	log.Success("step=ended app=%q", app)
 }
 
 func AppReleases(rw http.ResponseWriter, r *http.Request) {
