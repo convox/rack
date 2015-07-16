@@ -82,7 +82,11 @@ func buildSync(source, tag string) error {
 }
 
 func pullAsync(image string, ch chan error) {
-	ch <- run("docker", "pull", image)
+	ch <- pullSync(image)
+}
+
+func pullSync(image string) error {
+	return run("docker", "pull", image)
 }
 
 func pushAsync(local, remote string, ch chan error) {
@@ -139,7 +143,11 @@ func (m *Manifest) Build(app string) []error {
 	}
 
 	for _, image := range pulls {
-		go pullAsync(image, ch)
+		err := pullSync(image)
+
+		if err != nil {
+			return []error{err}
+		}
 	}
 
 	for i := 0; i < len(pulls); i++ {
