@@ -83,9 +83,9 @@ func cmdInstall(c *cli.Context) {
 		if err != nil {
 			stdcli.Error(err)
 		}
-	}
 
-	fmt.Println("")
+		fmt.Printn("")
+	}
 
 	fmt.Println("Installing Convox using CloudFormation with the following template:")
 	fmt.Println(FormationUrl)
