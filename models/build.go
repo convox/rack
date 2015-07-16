@@ -232,12 +232,14 @@ func (b *Build) execute(args []string, r io.Reader) error {
 
 	logs := ""
 
-	for _ = range ticker {
-		if b.Logs != logs {
-			b.Save()
-			logs = b.Logs
+	go func() {
+		for _ = range ticker {
+			if b.Logs != logs {
+				b.Save()
+				logs = b.Logs
+			}
 		}
-	}
+	}()
 
 	manifest := ""
 	success := true
