@@ -18,6 +18,8 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
+
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -85,7 +87,9 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("")
 
-	fmt.Println("Installing Convox...")
+	fmt.Println("Installing Convox using CloudFormation with the following template:")
+	fmt.Println(FormationUrl)
+	fmt.Println("")
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
@@ -107,7 +111,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String("latest")},
 		},
 		StackName:   aws.String("convox"),
-		TemplateURL: aws.String("http://convox.s3.amazonaws.com/release/latest/formation.json"),
+		TemplateURL: aws.String(FormationUrl),
 	})
 
 	if err != nil {
