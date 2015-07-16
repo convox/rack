@@ -29,7 +29,7 @@ build|RUNNING: docker tag -f oawshqivmr example-sinatra/worker
 
 ## Contributing
 
-* Open a [GitHub Issue](https://github.com/convox/kernel/issues/new) for bugs and feature requests
+* Open a [GitHub Issue](https://github.com/convox/build/issues/new) for bugs and feature requests
 * Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
 
 ## See Also
