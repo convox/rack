@@ -1,70 +1,42 @@
 # convox/kernel
 
-<a name="installation">
-## Installation
+<a href="https://travis-ci.org/convox/kernel">
+  <img align="right" src="https://travis-ci.org/convox/kernel.svg?branch=master">
+</a>
 
-[![Install](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#cstack=sn%7Econvox%7Cturl%7Ehttps://convox.s3.amazonaws.com/release/latest/formation.json)
+Coordinate AWS heavy lifting behind a simple API.
 
-**Parameters**
-
-| Parameter         | Value        | Description                              |
-|-------------------|--------------|------------------------------------------|
-| AvailabilityZones | *optional*   | see **Availability Zones** below         |
-| Key               | *optional*   | name of ssh key in your aws account      |
-| Password          | **required** | password used to authorize kernel access |
-| RegistryImage     | *[image]*    | docker image for kernel registry         |
-| WebImage          | *[image]*    | docker image for kernel api              |
-
-<a name="availability-zones">
-**Availability Zones**
-
-If you have an older AWS account you may have some availability zones on which VPC does not function. If you see an error during installation referencing a list of valid availability zones then you can pick three of those and set the value of the `AvailabilityZones` parameter to `zone1,zone2,zone3`
+This is a guide to developing the convox/kernel project. For detailed
+installation and usage instructions, see [http://docs.convox.com/](http://docs.convox.com/).
 
 ## Development
 
-**Prerequisites**
+Pre-reqs
 
-* working [docker](https://docs.docker.com/installation/) environment (`docker ps` should work)
-* [docker-compose](https://docs.docker.com/compose/install/)
-* an installed kernel (see [Installation](#installation))
+* [Boot2Docker](http://boot2docker.io/)
+* A sandbox `DEVELOPMENT=Yes STACK_NAME=convox-dev convox install`
+* An .env file with all the convox-dev stack outputs, i.e. `DYNAMO_BUILDS=convox-dev-builds`
 
-**Create `.env`**
+    $ go get github.com/convox/kernel
+    $ cd $GOPATH/src/github.com/convox/kernel
 
-Look at the **Outputs** tab of the CloudFormation stack of the kernel you installed and build a `.env`  accordingly:
+    $ make dev
+    Attaching to kernel_web_1, kernel_registry_1
+    registry_1 | [2015-07-16 22:20:09 +0000] [15] [INFO] Listening at: http://0.0.0.0:5000 (15)
+    web_1      | [negroni] listening on :3000
 
-```
-AWS_REGION=
-AWS_ACCESS=
-AWS_SECRET=
-CUSTOM_TOPIC=
-REGISTRY_HOST=
-REGISTRY_PASSWORD=
-```
 
-**Install docker-compose**
+    $ convox login $(boot2docker ip)
+    Password: <REGISTRY_PASSWORD>
+    Logged in successfully.
+    $ convox --version
+    client: dev
+    server: latest (192.168.59.103)
 
-```
-curl -L https://github.com/docker/compose/releases/download/1.2.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-```
+## Contributing
 
-**Configure an insecure registry with your docker daemon**
-
-If you're using [boot2docker](http://boot2docker.io/) you can run:
-
-```
-boot2docker ssh "echo $'EXTRA_ARGS=\"--insecure-registry kernel-staging-1392086461.us-east-1.elb.amazonaws.com:5000\"' | sudo tee -a /var/lib/boot2docker/profile && sudo /etc/init.d/docker stop && sleep 2 && sudo /etc/init.d/docker start"
-```
-
-**Run the kernel in development mode**
-
-Development mode uses `docker-compose`. Changes you make to the local project will be synced into the running containers and the project will be reloaded as needed.
-
-`make dev`
-
-**Open in a browser**
-
-Go to `http://$DOCKER_HOST:5000` in your browser.
+* Open a [GitHub Issue](https://github.com/convox/kernel/issues/new) for bugs and feature requests
+* Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) for patches
 
 ## License
 
