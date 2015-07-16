@@ -30,13 +30,11 @@ func HandleS3BucketCleanup(req Request) (string, map[string]string, error) {
 }
 
 func S3BucketCleanupCreate(req Request) (string, map[string]string, error) {
-	// nop
-	return "", nil, nil
+	return req.ResourceProperties["Bucket"].(string) + "-Cleanup", nil, nil
 }
 
 func S3BucketCleanupUpdate(req Request) (string, map[string]string, error) {
-	// nop
-	return "", nil, nil
+	return req.ResourceProperties["Bucket"].(string) + "-Cleanup", nil, nil
 }
 
 func S3BucketCleanupDelete(req Request) (string, map[string]string, error) {
