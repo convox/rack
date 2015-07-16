@@ -87,9 +87,7 @@ func cmdInstall(c *cli.Context) {
 		fmt.Printn("")
 	}
 
-	fmt.Println("Installing Convox using CloudFormation with the following template:")
-	fmt.Println(FormationUrl)
-	fmt.Println("")
+	fmt.Println("Installing Convox...")
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
