@@ -25,7 +25,7 @@ func SendMixpanelEvent(event string) {
 	id := os.Getenv("AWS_ACCOUNTID")
 	token := os.Getenv("MIXPANEL_TOKEN")
 
-	if os.Getenv("DEVELOPMENT") == "true" {
+	if os.Getenv("MIXPANEL_DEV") == "true" {
 		id = "dev"
 	}
 
