@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -200,6 +201,9 @@ func BuildStream(rw http.ResponseWriter, r *http.Request) {
 
 	sent := ""
 
+	password := os.Getenv("REGISTRY_PASSWORD")
+	replace := strings.Repeat("*", len(password))
+
 	for {
 		b, err := models.GetBuild(app, id)
 
@@ -210,7 +214,7 @@ func BuildStream(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ws.WriteMessage(websocket.TextMessage, []byte(b.Logs[len(sent):]))
+		ws.WriteMessage(websocket.TextMessage, []byte(strings.Replace(b.Logs[len(sent):], password, replace, -1)))
 
 		sent = b.Logs
 
