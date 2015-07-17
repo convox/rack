@@ -25,6 +25,10 @@ func SendMixpanelEvent(event string) {
 	id := os.Getenv("AWS_ACCOUNTID")
 	token := os.Getenv("MIXPANEL_TOKEN")
 
+	if os.Getenv("DEVELOPMENT") == "true" {
+		id = "dev"
+	}
+
 	message := fmt.Sprintf(`{"event": %q, "properties": {"aws_accountid": %q, "distinct_id": %q, "token": %q}}`, event, id, id, token)
 	encMessage := base64.StdEncoding.EncodeToString([]byte(message))
 
