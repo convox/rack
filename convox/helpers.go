@@ -16,10 +16,14 @@ func exists(filename string) bool {
 	return true
 }
 
-func sendMixpanelEvent(event string, distinctId string) {
+func sendMixpanelEvent(event string, id string) {
 	token := "43fb68427548c5e99978a598a9b14e55"
 
-	message := fmt.Sprintf(`{"event": %q, "properties": {"distinct_id": %q, "token": %q}}`, event, distinctId, token)
+	if Version == "dev" {
+		id = "dev"
+	}
+
+	message := fmt.Sprintf(`{"event": %q, "properties": {"aws_accountid": %q, "distinct_id": %q, "token": %q}}`, event, id, id, token)
 	encMessage := base64.StdEncoding.EncodeToString([]byte(message))
 
 	_, err := http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
