@@ -2,6 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -45,5 +49,33 @@ func cmdInfo(c *cli.Context) {
 		return
 	}
 
-	a.PrintInfo()
+	matcher := regexp.MustCompile(`^(\w+)Port\d+Balancer`)
+
+	ports := []string{}
+
+	for key, value := range a.Outputs {
+		if m := matcher.FindStringSubmatch(key); m != nil {
+			ports = append(ports, fmt.Sprintf("%s:%s", strings.ToLower(m[1]), value))
+		}
+	}
+
+	processes := []string{}
+
+	for key, _ := range a.Parameters {
+		if strings.HasSuffix(key, "Image") {
+			processes = append(processes, strings.ToLower(key[0:len(key)-5]))
+		}
+	}
+
+	sort.Strings(processes)
+
+	fmt.Printf("Name       %s\n", a.Name)
+	fmt.Printf("Status     %s\n", a.Status)
+	fmt.Printf("Release    %s\n", a.Parameters["Release"])
+	fmt.Printf("Processes  %s\n", strings.Join(processes, " "))
+
+	if a.Outputs["BalancerHost"] != "" {
+		fmt.Printf("Hostname   %s\n", a.Outputs["BalancerHost"])
+		fmt.Printf("Ports      %s\n", strings.Join(ports, " "))
+	}
 }
