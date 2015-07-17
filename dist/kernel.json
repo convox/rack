@@ -709,6 +709,7 @@
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
+              "MIXPANEL_DEV": { "Fn::If": [ "Development", "true", "false"] },
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
                 { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
