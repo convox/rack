@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/kernel/helpers"
+
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
@@ -72,9 +74,12 @@ func GetApp(name string) (*App, error) {
 }
 
 func (a *App) Create() error {
+	helpers.SendMixpanelEvent("kernel-app-create-start")
+
 	formation, err := a.Formation()
 
 	if err != nil {
+		helpers.SendMixpanelEvent("kernel-app-create-error")
 		return err
 	}
 
@@ -113,7 +118,13 @@ func (a *App) Create() error {
 
 	_, err = CloudFormation().CreateStack(req)
 
-	return err
+	if err != nil {
+		helpers.SendMixpanelEvent("kernel-app-create-error")
+		return err
+	}
+
+	helpers.SendMixpanelEvent("kernel-app-create-success")
+	return nil
 }
 
 func (a *App) Cleanup() error {
@@ -148,15 +159,20 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
+	helpers.SendMixpanelEvent("kernel-app-delete-start")
+
 	name := a.Name
 
 	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
 
 	if err != nil {
+		helpers.SendMixpanelEvent("kernel-app-delete-error")
 		return err
 	}
 
 	go a.Cleanup()
+
+	helpers.SendMixpanelEvent("kernel-app-delete-success")
 
 	return nil
 }
