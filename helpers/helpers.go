@@ -22,14 +22,10 @@ func Error(log *logger.Logger, err error) {
 }
 
 func SendMixpanelEvent(event string) {
-	id := os.Getenv("AWS_ACCOUNTID")
+	id := os.Getenv("CLIENT_ID")
 	token := os.Getenv("MIXPANEL_TOKEN")
 
-	if os.Getenv("MIXPANEL_DEV") == "true" {
-		id = "dev"
-	}
-
-	message := fmt.Sprintf(`{"event": %q, "properties": {"aws_accountid": %q, "distinct_id": %q, "token": %q}}`, event, id, id, token)
+	message := fmt.Sprintf(`{"event": %q, "properties": {"client_id": %q, "distinct_id": %q, "token": %q}}`, event, id, id, token)
 	encMessage := base64.StdEncoding.EncodeToString([]byte(message))
 
 	_, err := http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))

@@ -16,10 +16,6 @@
     }
   },
   "Outputs": {
-    "AwsAccountid": {
-      "Condition": "Development",
-      "Value": { "Ref": "AWS::AccountId" }
-    },
     "AwsRegion": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
@@ -76,6 +72,11 @@
     }
   },
   "Parameters": {
+    "ClientId": {
+      "Type": "String",
+      "Description": "Anonymous identifier",
+      "Default": "dev"
+    },
     "Certificate": {
       "Type": "String",
       "Description": "SSL certificate",
@@ -703,13 +704,13 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
-              "MIXPANEL_DEV": { "Fn::If": [ "Development", "true", "false"] },
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
                 { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
