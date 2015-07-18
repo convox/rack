@@ -26,10 +26,6 @@ func sendMixpanelEvent(event string) {
 
 	token := "43fb68427548c5e99978a598a9b14e55"
 
-	if Version == "dev" {
-		id = "dev"
-	}
-
 	message := fmt.Sprintf(`{"event": %q, "properties": {"client_id": %q, "distinct_id": %q, "token": %q}}`, event, id, id, token)
 	encMessage := base64.StdEncoding.EncodeToString([]byte(message))
 
