@@ -156,3 +156,26 @@ func buildProcfile(dir string) (*Manifest, error) {
 
 	return &m, err
 }
+
+func buildDefault(dir string) (*Manifest, error) {
+	m := Manifest{}
+
+	err := injectDockerfile(dir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	m["main"] = ManifestEntry{
+		Build: ".",
+		Ports: []string{"5000:3000"},
+	}
+
+	err = m.Write(filepath.Join(dir, "docker-compose.yml"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &m, err
+}

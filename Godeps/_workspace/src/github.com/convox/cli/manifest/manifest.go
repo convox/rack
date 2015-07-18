@@ -67,7 +67,7 @@ func Generate(dir string) (*Manifest, error) {
 	case exists(filepath.Join(dir, "Procfile")):
 		m, err = buildProcfile(dir)
 	default:
-		return nil, fmt.Errorf("could not find any manifests")
+		m, err = buildDefault(dir)
 	}
 
 	if err != nil {
@@ -129,11 +129,16 @@ func (m *Manifest) Build(app, dir string) []error {
 				return []error{err}
 			}
 
-			if _, ok := builds[abs]; !ok {
-				builds[abs] = randomString(10)
+			sym, err := filepath.EvalSymlinks(abs)
+
+			if err != nil {
+				return []error{err}
+			}
+			if _, ok := builds[sym]; !ok {
+				builds[sym] = randomString(10)
 			}
 
-			tags[tag] = builds[abs]
+			tags[tag] = builds[sym]
 		case entry.Image != "":
 			pulls = append(pulls, entry.Image)
 			tags[tag] = entry.Image
@@ -459,6 +464,8 @@ func injectDockerfile(dir string) error {
 	detect := ""
 
 	switch {
+	case exists(filepath.Join(dir, "package.json")):
+		detect = "node"
 	case exists(filepath.Join(dir, "Gemfile.lock")):
 		detect = "ruby"
 	default:

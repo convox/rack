@@ -1,6 +1,6 @@
-FROM convox/alpine:3.1
+FROM ubuntu
 
 WORKDIR /app
 COPY . /app
 
-CMD sh
+CMD ["echo", "application type unknown, please edit the generated Dockerfile"]
