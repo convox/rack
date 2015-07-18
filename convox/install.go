@@ -104,7 +104,13 @@ func cmdInstall(c *cli.Context) {
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
 
-	distinctId := randomString(10)
+	distinctId, err := currentId()
+
+	if err != nil {
+		handleError("install", distinctId, err)
+		return
+	}
+
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
@@ -115,6 +121,7 @@ func cmdInstall(c *cli.Context) {
 	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
+			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String("3")},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String("t2.small")},
@@ -127,14 +134,16 @@ func cmdInstall(c *cli.Context) {
 
 	if err != nil {
 		handleError("install", distinctId, err)
+		return
 	}
 
-	sendMixpanelEvent("convox-install-start", distinctId)
+	sendMixpanelEvent("convox-install-start")
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
 	if err != nil {
 		handleError("install", distinctId, err)
+		return
 	}
 
 	fmt.Println("Waiting for load balancer...")
@@ -148,7 +157,7 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("Success, try `convox apps`")
 
-	sendMixpanelEvent("convox-install-success", distinctId)
+	sendMixpanelEvent("convox-install-success")
 }
 
 func cmdUninstall(c *cli.Context) {
@@ -224,6 +233,7 @@ func cmdUninstall(c *cli.Context) {
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
+		return
 	}
 
 	stackId := ""
@@ -242,9 +252,10 @@ func cmdUninstall(c *cli.Context) {
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
+		return
 	}
 
-	sendMixpanelEvent("convox-uninstall-start", distinctId)
+	sendMixpanelEvent("convox-uninstall-start")
 
 	fmt.Printf("Cleaning up registry...\n")
 
@@ -279,6 +290,7 @@ func cmdUninstall(c *cli.Context) {
 
 		if err != nil {
 			handleError("uninstall", distinctId, err)
+			return
 		}
 	}
 
@@ -286,11 +298,12 @@ func cmdUninstall(c *cli.Context) {
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
+		return
 	}
 
 	fmt.Println("Successfully uninstalled.")
 
-	sendMixpanelEvent("convox-uninstall-success", distinctId)
+	sendMixpanelEvent("convox-uninstall-success")
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -464,7 +477,7 @@ func waitForAvailability(url string) {
 }
 
 func handleError(command string, distinctId string, err error) {
-	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command), distinctId)
+	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command))
 	stdcli.Error(err)
 }
 

@@ -282,3 +282,26 @@ func currentPassword() (string, error) {
 
 	return auth[host], nil
 }
+
+func currentId() (string, error) {
+	config := filepath.Join(ConfigRoot, "id")
+
+	if !exists(config) {
+		id := randomString(20)
+		err := ioutil.WriteFile(config, []byte(id), 0600)
+
+		if err != nil {
+			return "", err
+		}
+
+		return id, nil
+	}
+
+	data, err := ioutil.ReadFile(config)
+
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(data)), nil
+}
