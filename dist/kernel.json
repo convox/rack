@@ -47,6 +47,10 @@
       "Condition": "Development",
       "Value": { "Ref": "DynamoReleases" }
     },
+    "Kinesis": {
+      "Condition": "Development",
+      "Value": { "Ref": "Kinesis" }
+    },
     "Rack": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::StackName" }
@@ -126,6 +130,58 @@
     }
   },
   "Resources": {
+    "Kinesis": {
+      "Properties": {
+        "ShardCount": 1
+      },
+      "Type": "AWS::Kinesis::Stream"
+    },
+    "LogsAccess": {
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": {
+          "Ref": "LogsUser"
+        }
+      },
+      "Type": "AWS::IAM::AccessKey"
+    },
+    "LogsUser": {
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "kinesis:PutRecords"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:kinesis:*:*:stream/",
+                          {
+                            "Ref": "AWS::StackName"
+                          },
+                          "-*"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "LogsRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::User"
+    },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -710,7 +766,9 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "HTTP_PASSWORD": { "Ref": "Password" },
+              "KINESIS": { "Ref": "Kinesis" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
+              "PROCESS": "kernel",
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
                 { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
@@ -741,7 +799,9 @@
               "AWS_ACCESS": { "Ref": "RegistryAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
               "BUCKET": { "Ref": "RegistryBucket" },
+              "KINESIS": { "Ref": "Kinesis" },
               "PASSWORD": { "Ref": "Password" },
+              "PROCESS": "registry",
               "SETTINGS_FLAVOR": "s3"
             },
             "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
