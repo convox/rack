@@ -60,6 +60,13 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println("https://console.aws.amazon.com/iam/home?region=us-east-1#security_credential")
 	fmt.Println("")
 
+	distinctId, err := currentId()
+
+	if err != nil {
+		handleError("install", distinctId, err)
+		return
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 
 	access := os.Getenv("AWS_ACCESS_KEY_ID")
@@ -103,13 +110,6 @@ func cmdInstall(c *cli.Context) {
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
-
-	distinctId, err := currentId()
-
-	if err != nil {
-		handleError("install", distinctId, err)
-		return
-	}
 
 	password := randomString(30)
 
