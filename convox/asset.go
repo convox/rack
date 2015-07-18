@@ -76,7 +76,7 @@ func data_root_pem() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "data/root.pem", size: 258435, mode: os.FileMode(420), modTime: time.Unix(1436218538, 0)}
+	info := bindata_file_info{name: "data/root.pem", size: 258435, mode: os.FileMode(420), modTime: time.Unix(1436385438, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
