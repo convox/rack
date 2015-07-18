@@ -49,20 +49,7 @@ func init() {
 }
 
 func cmdApps(c *cli.Context) {
-	data, err := ConvoxGet("/apps")
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var apps *Apps
-	err = json.Unmarshal(data, &apps)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
+	apps := getApps()
 
 	longest := 3
 
@@ -146,4 +133,23 @@ func cmdAppDelete(c *cli.Context) {
 	}
 
 	fmt.Println("OK")
+}
+
+func getApps() *Apps {
+	data, err := ConvoxGet("/apps")
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil
+	}
+
+	var apps *Apps
+	err = json.Unmarshal(data, &apps)
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil
+	}
+
+	return apps
 }
