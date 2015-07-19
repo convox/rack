@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -342,6 +343,25 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 
 		switch *dres.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
+			// Dump .env if DEVELOPMENT
+			development := os.Getenv("DEVELOPMENT")
+
+			if development == "Yes" {
+				fmt.Printf("Development .env:\n")
+
+				// convert Port5432TcpAddr to PORT_5432_TCP_ADDR
+				re := regexp.MustCompile("([a-z])([A-Z0-9])") // lower case letter followed by upper case or number, i.e. Port5432
+				re2 := regexp.MustCompile("([0-9])([A-Z])")   // number followed by upper case letter, i.e. 5432Tcp
+
+				for _, o := range dres.Stacks[0].Outputs {
+					k := re.ReplaceAllString(*o.OutputKey, "${1}_${2}")
+					k = re2.ReplaceAllString(k, "${1}_${2}")
+					k = strings.ToUpper(k)
+
+					fmt.Printf("%v=%v\n", k, *o.OutputValue)
+				}
+			}
+
 			for _, o := range dres.Stacks[0].Outputs {
 				if *o.OutputKey == "Dashboard" {
 					return *o.OutputValue, nil
