@@ -287,8 +287,14 @@ func currentId() (string, error) {
 	config := filepath.Join(ConfigRoot, "id")
 
 	if !exists(config) {
+		err := os.MkdirAll(ConfigRoot, 0700)
+
+		if err != nil {
+			return "", err
+		}
+
 		id := randomString(20)
-		err := ioutil.WriteFile(config, []byte(id), 0600)
+		err = ioutil.WriteFile(config, []byte(id), 0600)
 
 		if err != nil {
 			return "", err
