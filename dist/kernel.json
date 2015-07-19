@@ -48,7 +48,6 @@
       "Value": { "Ref": "DynamoReleases" }
     },
     "Kinesis": {
-      "Condition": "Development",
       "Value": { "Ref": "Kinesis" }
     },
     "Rack": {
