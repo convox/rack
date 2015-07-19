@@ -5,7 +5,7 @@ web:
     - AWS_REGION
     - AWS_ACCESS
     - AWS_SECRET
-    - CLIENT_ID=dev
+    - CLIENT_ID=dev@convox.com
     - CLUSTER
     - CUSTOM_TOPIC
     - DYNAMO_BUILDS
@@ -15,7 +15,7 @@ web:
     - RACK
     - REGISTRY_HOST
     - REGISTRY_PASSWORD
-    - RELEASE=latest
+    - RELEASE=dev
     - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
     - SUBNETS
     - VPC
