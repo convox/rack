@@ -355,6 +355,7 @@
       "Type": "AWS::IAM::User"
     },
     "Service": {
+      "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -473,6 +474,7 @@
       "Type": "Custom::S3BucketCleanup"
     },
     "TaskDefinition": {
+      "DependsOn": "CustomTopic",
       "Properties": {
         "Environment": {
           "Ref": "Environment"

@@ -192,6 +192,7 @@
       }
     },
     "TaskDefinition": {
+      "DependsOn": "CustomTopic",
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0",
       "Properties": {
@@ -205,6 +206,7 @@
       }
     },
     "Service": {
+      "DependsOn": "CustomTopic",
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
