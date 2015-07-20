@@ -35,14 +35,16 @@ func init() {
 		},
 		Subcommands: []cli.Command{
 			{
-				Name:   "create",
-				Usage:  "convox apps create [name]",
-				Action: cmdAppCreate,
+				Name:        "create",
+				Description: "create a new application",
+				Usage:       "[name]",
+				Action:      cmdAppCreate,
 			},
 			{
-				Name:   "delete",
-				Usage:  "convox apps delete <name>",
-				Action: cmdAppDelete,
+				Name:        "delete",
+				Description: "delete an application",
+				Usage:       "<name>",
+				Action:      cmdAppDelete,
 			},
 		},
 	})

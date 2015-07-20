@@ -38,7 +38,7 @@ func init() {
 Usage:
   {{.Name}} <command> [args...]
 
-Commands:
+Subcommands: ({{.Name}} help <subcommand>)
   {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
   {{end}}{{if .Flags}}
 Options:
@@ -50,11 +50,15 @@ Options:
 
 Usage:
   %s {{.Name}} {{.Usage}}
-{{if .Flags}}
+{{if .Subcommands}}
+Subcommands: (%s {{.Name}} help <subcommand>)
+  {{range .Subcommands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
+  {{end}}{{end}}{{if .Flags}}
 Options:
    {{range .Flags}}{{.}}
    {{end}}{{ end }}
-`, Binary, Binary)
+`, Binary, Binary, Binary)
+
 }
 
 func New() *cli.App {
@@ -62,6 +66,10 @@ func New() *cli.App {
 
 	app.Name = Binary
 	app.Commands = Commands
+
+	app.CommandNotFound = func(c *cli.Context, cmd string) {
+		fmt.Fprintf(os.Stderr, "No such command \"%s\". Try `%s help`\n", cmd, Binary)
+	}
 
 	return app
 }
