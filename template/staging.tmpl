@@ -315,5 +315,12 @@
         { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
       ]
     }
+  },
+  "SettingsCleanup": {
+    "Type": "Custom::S3BucketCleanup",
+    "Properties": {
+      "Bucket": { "Ref": "Settings" },
+      "ServiceToken": { "Ref": "Kernel" }
+    }
   }
 {{ end }}
