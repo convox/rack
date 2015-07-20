@@ -77,11 +77,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Kernel": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "Key": {
       "Default": "",
       "Description": "",
@@ -126,6 +121,11 @@
       "Default": "",
       "Description": "VPC for this app",
       "Type": "AWS::EC2::VPC::Id"
+    },
+    "Version": {
+      "Default": "latest",
+      "Description": "Convox release version",
+      "Type": "String"
     },
     "WebCommand": {
       "Default": "",
@@ -235,6 +235,73 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
+    "CustomTopic": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": "convox",
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                "release/",
+                {
+                  "Ref": "Version"
+                },
+                "/formation.zip"
+              ]
+            ]
+          }
+        },
+        "Handler": "lambda.external",
+        "MemorySize": "128",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomTopicRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": "30"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "CustomTopicRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "*",
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "Administrator"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
     "Kinesis": {
       "Properties": {
         "ShardCount": 1
@@ -288,6 +355,7 @@
       "Type": "AWS::IAM::User"
     },
     "Service": {
+      "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -316,7 +384,10 @@
           "Ref": "ServiceRole"
         },
         "ServiceToken": {
-          "Ref": "Kernel"
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
         },
         "TaskDefinition": {
           "Ref": "TaskDefinition"
@@ -388,17 +459,22 @@
       "Type": "AWS::S3::Bucket"
     },
     "SettingsCleanup": {
+      "DependsOn": "CustomTopic",
       "Properties": {
         "Bucket": {
           "Ref": "Settings"
         },
         "ServiceToken": {
-          "Ref": "Kernel"
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
         }
       },
       "Type": "Custom::S3BucketCleanup"
     },
     "TaskDefinition": {
+      "DependsOn": "CustomTopic",
       "Properties": {
         "Environment": {
           "Ref": "Environment"
@@ -410,7 +486,10 @@
           "Ref": "Release"
         },
         "ServiceToken": {
-          "Ref": "Kernel"
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
         },
         "Tasks": [
           {

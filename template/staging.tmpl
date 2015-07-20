@@ -34,11 +34,6 @@
         "Default": "",
         "Description": ""
       },
-      "Kernel": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
       "Memory": {
         "Type": "Number",
         "Default": "256",
@@ -59,6 +54,11 @@
         "Default" : "",
         "Description" : "VPC subnets for this app"
       },
+      "Version": {
+        "Default": "latest",
+        "Description": "Convox release version",
+        "Type": "String"
+      },
       "VPC": {
         "Type" : "AWS::EC2::VPC::Id",
         "Default" : "",
@@ -66,6 +66,45 @@
       }
     },
     "Resources": {
+      "CustomTopicRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+                "Action": [ "sts:AssumeRole" ]
+              }
+            ]
+          },
+          "Path": "/",
+          "Policies": [
+            {
+              "PolicyName": "Administrator",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+              }
+            }
+          ]
+        }
+      },
+      "CustomTopic": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": "convox",
+            "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/formation.zip" ] ] }
+          },
+          "Handler": "lambda.external",
+          "MemorySize": "128",
+          "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
+          "Runtime": "nodejs",
+          "Timeout": "30"
+        }
+      },
       {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
 
@@ -153,10 +192,11 @@
       }
     },
     "TaskDefinition": {
+      "DependsOn": "CustomTopic",
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0",
       "Properties": {
-        "ServiceToken": { "Ref": "Kernel" },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Name": { "Ref": "AWS::StackName" },
         "Release": { "Ref": "Release" },
         "Environment": { "Ref": "Environment" },
@@ -166,10 +206,11 @@
       }
     },
     "Service": {
+      "DependsOn": "CustomTopic",
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
-        "ServiceToken": { "Ref": "Kernel" },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
         "DesiredCount": { "Ref": "DesiredCount" },
         "Name": { "Ref": "AWS::StackName" },
@@ -317,10 +358,11 @@
     }
   },
   "SettingsCleanup": {
+    "DependsOn": "CustomTopic",
     "Type": "Custom::S3BucketCleanup",
     "Properties": {
       "Bucket": { "Ref": "Settings" },
-      "ServiceToken": { "Ref": "Kernel" }
+      "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     }
   }
 {{ end }}
