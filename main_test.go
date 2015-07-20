@@ -79,7 +79,7 @@ func _assert(t *testing.T, cases Cases) {
 		}
 
 		if !bytes.Equal(j1, j2) {
-			t.Errorf("Got %q, want %q", c.got, c.want)
+			t.Errorf("%q\n%q\n", c.got, c.want)
 		}
 	}
 }
