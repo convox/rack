@@ -85,9 +85,9 @@ func (a *App) Create() error {
 
 	params := map[string]string{
 		"Cluster":    os.Getenv("CLUSTER"),
-		"Kernel":     CustomTopic,
 		"Repository": a.Repository,
 		"Subnets":    os.Getenv("SUBNETS"),
+		"Version":    os.Getenv("RELEASE"),
 		"VPC":        os.Getenv("VPC"),
 	}
 
