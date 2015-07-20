@@ -476,6 +476,7 @@
       }
     },
     "RegistryBucketCleanup": {
+      "DependsOn": "CustomTopic",
       "Type": "Custom::S3BucketCleanup",
       "Properties": {
         "Bucket": { "Ref": "RegistryBucket" },
@@ -747,6 +748,7 @@
       }
     },
     "KernelTasks": {
+      "DependsOn": "CustomTopic",
       "Properties": {
         "Name": {
           "Ref": "AWS::StackName"
