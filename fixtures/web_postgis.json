@@ -387,6 +387,17 @@
       },
       "Type": "AWS::S3::Bucket"
     },
+    "SettingsCleanup": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "Settings"
+        },
+        "ServiceToken": {
+          "Ref": "Kernel"
+        }
+      },
+      "Type": "Custom::S3BucketCleanup"
+    },
     "TaskDefinition": {
       "Properties": {
         "Environment": {
