@@ -115,6 +115,12 @@ func cmdInstall(c *cli.Context) {
 		stackName = "convox"
 	}
 
+	version := os.Getenv("VERSION")
+
+	if version == "" {
+		version = "latest"
+	}
+
 	fmt.Println("Installing Convox...")
 
 	access = strings.TrimSpace(access)
@@ -136,7 +142,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String("t2.small")},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
-			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String("latest")},
+			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(version)},
 		},
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(FormationUrl),
