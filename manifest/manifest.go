@@ -426,8 +426,13 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 		}
 	}
 
-	if pp, ok := me.Ports.([]interface{}); ok {
-		for _, port := range pp {
+	switch t := me.Ports.(type) {
+	case []string:
+		for _, port := range t {
+			args = append(args, "-p", port)
+		}
+	case []interface{}:
+		for _, port := range t {
 			if p, ok := port.(string); ok {
 				args = append(args, "-p", p)
 			}
