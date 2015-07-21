@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -292,9 +293,21 @@ func (m *Manifest) Run(app string) []error {
 		}
 	}
 
-	// Set up channel on which to send signal notifications.
-	// c := make(chan os.Signal, 1)
-	// signal.Notify(c, os.Interrupt, os.Kill)
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, os.Interrupt, os.Kill)
+
+	go func() {
+		for _ = range sigch {
+			order := m.runOrder()
+
+			sort.Sort(sort.Reverse(sort.StringSlice(order)))
+
+			for _, name := range order {
+				Execer("docker", "kill", containerName(app, name)).Run()
+			}
+			os.Exit(0)
+		}
+	}()
 
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
@@ -398,9 +411,13 @@ func (m *Manifest) runOrder() []string {
 	return sorted
 }
 
+func containerName(app, process string) string {
+	return fmt.Sprintf("%s-%s", app, process)
+}
+
 func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
-	name := fmt.Sprintf("%s-%s", app, process)
+	name := containerName(app, process)
 
 	query("docker", "rm", "-f", name)
 
