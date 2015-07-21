@@ -488,6 +488,8 @@ func friendlyName(t string) string {
 		return ""
 	case "AWS::IAM::User":
 		return "IAM User"
+	case "AWS::Kinesis::Stream":
+		return "Kinesis Stream"
 	case "AWS::S3::Bucket":
 		return "S3 Bucket"
 	case "AWS::DynamoDB::Table":
