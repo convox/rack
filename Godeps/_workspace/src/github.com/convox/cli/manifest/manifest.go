@@ -466,6 +466,8 @@ func injectDockerfile(dir string) error {
 	switch {
 	case exists(filepath.Join(dir, "package.json")):
 		detect = "node"
+	case exists(filepath.Join(dir, "config/application.rb")):
+		detect = "rails"
 	case exists(filepath.Join(dir, "Gemfile.lock")):
 		detect = "ruby"
 	default:
