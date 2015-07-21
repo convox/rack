@@ -76,7 +76,27 @@ func data_dockerfile_node() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "data/Dockerfile.node", size: 144, mode: os.FileMode(420), modTime: time.Unix(1437182214, 0)}
+	info := bindata_file_info{name: "data/Dockerfile.node", size: 144, mode: os.FileMode(420), modTime: time.Unix(1437183991, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _data_dockerfile_rails = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x72\x0b\xf2\xf7\x55\x28\x2a\x4d\xaa\xb4\x32\xd2\x03\x42\x2e\x2e\xd7\x88\x00\xff\x60\x57\x05\x63\x03\x03\x03\x2e\x57\xbf\x30\x85\x00\xff\xa0\x10\x08\x8f\x2b\xdc\x3f\xc8\xdb\xc5\x33\x48\x41\x3f\xb1\xa0\x80\x8b\xcb\xd9\x3f\x20\x52\xc1\x3d\x35\x37\x2d\x33\x27\x15\x2c\xa4\x0f\xe5\xa0\xc8\xe8\xe5\xe4\x27\x67\xa3\x48\x83\x45\xb8\x82\x42\xfd\x14\x92\x4a\xf3\x52\x80\x7a\x33\xf3\x8a\x4b\x12\x73\x72\xa0\x26\xea\xc1\x8c\xf7\x75\x51\x88\x56\x2a\x4a\xcc\xcc\x29\x56\xd2\x51\x50\x2a\x4e\x2d\x2a\x4b\x2d\x52\x8a\xe5\x02\x04\x00\x00\xff\xff\x25\x32\x69\x78\xb1\x00\x00\x00")
+
+func data_dockerfile_rails_bytes() ([]byte, error) {
+	return bindata_read(
+		_data_dockerfile_rails,
+		"data/Dockerfile.rails",
+	)
+}
+
+func data_dockerfile_rails() (*asset, error) {
+	bytes, err := data_dockerfile_rails_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "data/Dockerfile.rails", size: 177, mode: os.FileMode(420), modTime: time.Unix(1437441794, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -116,7 +136,7 @@ func data_dockerfile_unknown() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "data/Dockerfile.unknown", size: 118, mode: os.FileMode(420), modTime: time.Unix(1437182142, 0)}
+	info := bindata_file_info{name: "data/Dockerfile.unknown", size: 118, mode: os.FileMode(420), modTime: time.Unix(1437183991, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -163,6 +183,7 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"data/Dockerfile.node": data_dockerfile_node,
+	"data/Dockerfile.rails": data_dockerfile_rails,
 	"data/Dockerfile.ruby": data_dockerfile_ruby,
 	"data/Dockerfile.unknown": data_dockerfile_unknown,
 }
@@ -209,6 +230,8 @@ type _bintree_t struct {
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
 	"data": &_bintree_t{nil, map[string]*_bintree_t{
 		"Dockerfile.node": &_bintree_t{data_dockerfile_node, map[string]*_bintree_t{
+		}},
+		"Dockerfile.rails": &_bintree_t{data_dockerfile_rails, map[string]*_bintree_t{
 		}},
 		"Dockerfile.ruby": &_bintree_t{data_dockerfile_ruby, map[string]*_bintree_t{
 		}},
