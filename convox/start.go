@@ -100,7 +100,8 @@ func cmdStart(c *cli.Context) {
 	errors = m.Run(app)
 
 	if len(errors) != 0 {
-		fmt.Printf("errors: %+v\n", errors)
+		// TODO figure out what to do here
+		// fmt.Printf("errors: %+v\n", errors)
 		return
 	}
 }
