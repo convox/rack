@@ -81,7 +81,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) {
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("create").Start()
 
-	err := r.ParseMultipartForm(10485760)
+	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
 	if err != nil {
 		helpers.Error(log, err)
