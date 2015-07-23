@@ -82,7 +82,7 @@
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
-      "Default": "dev"
+      "Default": "dev@convox.com"
     },
     "Certificate": {
       "Type": "String",
