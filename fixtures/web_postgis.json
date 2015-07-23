@@ -479,6 +479,9 @@
         "Environment": {
           "Ref": "Environment"
         },
+        "Key": {
+          "Ref": "Key"
+        },
         "Name": {
           "Ref": "AWS::StackName"
         },
@@ -513,9 +516,6 @@
                 "Image": {
                   "Ref": "PostgresImage"
                 },
-                "Key": {
-                  "Ref": "Key"
-                },
                 "Links": [],
                 "Memory": {
                   "Ref": "Memory"
@@ -548,9 +548,6 @@
                 },
                 "Image": {
                   "Ref": "WebImage"
-                },
-                "Key": {
-                  "Ref": "Key"
                 },
                 "Links": [
                   {
