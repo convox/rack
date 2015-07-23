@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aryann/difflib"
+	"github.com/convox/app/Godeps/_workspace/src/github.com/aryann/difflib"
 	yaml "github.com/convox/app/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
