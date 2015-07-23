@@ -47,6 +47,10 @@
       "Condition": "Development",
       "Value": { "Ref": "DynamoReleases" }
     },
+    "EncryptionKey": {
+      "Condition": "Development",
+      "Value": { "Ref": "EncryptionKey" }
+    },
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
@@ -129,6 +133,15 @@
     }
   },
   "Resources": {
+    "EncryptionKey": {
+      "DependsOn": "CustomTopic",
+      "Type": "Custom::KMSKey",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Description": "Convox Master Encryption",
+        "KeyUsage": "ENCRYPT_DECRYPT"
+      }
+    },
     "Kinesis": {
       "Properties": {
         "ShardCount": 1
@@ -766,6 +779,7 @@
               "CLUSTER": { "Ref": "Cluster" },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
+              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
               "HTTP_PASSWORD": { "Ref": "Password" },
               "KINESIS": { "Ref": "Kinesis" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",

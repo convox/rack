@@ -172,6 +172,8 @@ func HandleRequest(freq Request) error {
 		physical, outputs, err = HandleECSService(freq)
 	case "Custom::ECSTaskDefinition":
 		physical, outputs, err = HandleECSTaskDefinition(freq)
+	case "Custom::KMSKey":
+		physical, outputs, err = HandleKMSKey(freq)
 	case "Custom::LambdaFunction":
 		physical, err = HandleLambdaFunction(freq)
 	case "Custom::S3BucketCleanup":

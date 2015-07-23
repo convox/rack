@@ -14,6 +14,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 	"github.com/convox/kernel/models"
 )
 
@@ -241,6 +242,19 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		defer res.Body.Close()
 
 		data, err := ioutil.ReadAll(res.Body)
+
+		if key, ok := req.ResourceProperties["Key"].(string); ok && key != "" {
+			cr := crypt.New(Region(&req), os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"))
+			cr.AwsToken = os.Getenv("AWS_SESSION_TOKEN")
+
+			dec, err := cr.Decrypt(key, data)
+
+			if err != nil {
+				return "", nil, err
+			}
+
+			data = dec
+		}
 
 		env = models.LoadEnvironment(data)
 	}

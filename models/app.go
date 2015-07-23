@@ -91,6 +91,10 @@ func (a *App) Create() error {
 		"VPC":        os.Getenv("VPC"),
 	}
 
+	if os.Getenv("ENCRYPTION_KEY") != "" {
+		params["Key"] = os.Getenv("ENCRYPTION_KEY")
+	}
+
 	tags := map[string]string{
 		"System": "convox",
 		"Type":   "app",
