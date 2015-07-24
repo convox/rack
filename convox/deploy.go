@@ -55,6 +55,10 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
+	if release == "" {
+		return
+	}
+
 	fmt.Print("Releasing... ")
 
 	// promote release
