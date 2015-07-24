@@ -3,7 +3,6 @@ package main
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -12,6 +11,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -249,31 +249,47 @@ func waitForBuild(app, id string) (string, error) {
 }
 
 func createTarball(base string) ([]byte, error) {
-	buf := new(bytes.Buffer)
-
-	gw := gzip.NewWriter(buf)
-
-	tw := tar.NewWriter(gw)
-
-	err := walkToTar(base, ".", tw)
+	cwd, err := os.Getwd()
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = tw.Close()
+	err = os.Chdir(base)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = gw.Close()
+	cmd := exec.Command("tar", "cz", ".")
+
+	out, err := cmd.StdoutPipe()
 
 	if err != nil {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	cmd.Start()
+
+	bytes, err := ioutil.ReadAll(out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(cwd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 func walkToTar(base, path string, tw *tar.Writer) error {
