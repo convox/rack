@@ -34,16 +34,10 @@ type Build struct {
 
 func init() {
 	// stdcli.RegisterCommand(cli.Command{
-	//   Name:        "build",
-	//   Description: "build an app for local development",
-	//   Usage:       "<directory>",
-	//   Action:      cmdBuild,
-	//   Flags: []cli.Flag{
-	//     cli.StringFlag{
-	//       Name:  "app",
-	//       Usage: "app name. Inferred from current directory if not specified.",
-	//     },
-	//   },
+	// 	Name:        "build",
+	// 	Description: "",
+	// 	Usage:       "",
+	// 	Action:      cmdBuild,
 	// })
 }
 
@@ -92,7 +86,14 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	release, err := streamBuild(app, build)
+	err = streamBuild(app, build)
+
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		return "", err
+	}
+
+	release, err := waitForBuild(app, build)
 
 	if err != nil {
 		return "", err
@@ -153,22 +154,22 @@ func postBuild(tar []byte, app string) (string, error) {
 	return string(data), nil
 }
 
-func streamBuild(app, build string) (string, error) {
+func streamBuild(app, build string) error {
 	host, password, err := currentLogin()
 
 	if err != nil {
 		stdcli.Error(err)
-		return "", err
+		return err
 	}
 
 	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("wss://%s/apps/%s/builds/%s/logs/stream", host, app, build)
+	url := fmt.Sprintf("wss://%s/builds/%s/logs", host, build)
 
 	config, err := websocket.NewConfig(url, origin)
 
 	if err != nil {
 		stdcli.Error(err)
-		return "", err
+		return err
 	}
 
 	userpass := fmt.Sprintf("convox:%s", password)
@@ -184,7 +185,7 @@ func streamBuild(app, build string) (string, error) {
 
 	if err != nil {
 		stdcli.Error(err)
-		return "", err
+		return err
 	}
 
 	defer ws.Close()
@@ -201,20 +202,7 @@ func streamBuild(app, build string) (string, error) {
 		fmt.Print(string(message))
 	}
 
-	var b Build
-
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/builds/%s", app, build))
-	if err != nil {
-		return "", err
-	}
-
-	err = json.Unmarshal(data, &b)
-
-	if err != nil {
-		return "", err
-	}
-
-	return b.Release, nil
+	return nil
 }
 
 func waitForBuild(app, id string) (string, error) {
@@ -290,75 +278,4 @@ func createTarball(base string) ([]byte, error) {
 	}
 
 	return bytes, nil
-}
-
-func walkToTar(base, path string, tw *tar.Writer) error {
-	abs, err := filepath.Abs(filepath.Join(base, path))
-
-	if err != nil {
-		return err
-	}
-
-	err = filepath.Walk(abs, func(path string, info os.FileInfo, err error) error {
-		if stdcli.Debug() {
-			fmt.Fprintf(os.Stderr, "DEBUG: tar: '%v', '%+v', '%v'\n", path, info, err)
-		}
-
-		if filepath.Base(path) == ".git" {
-			return filepath.SkipDir
-		}
-
-		rel, err := filepath.Rel(base, path)
-
-		if err != nil {
-			return err
-		}
-
-		if info != nil && (info.Mode()&os.ModeSymlink == os.ModeSymlink) {
-			link, err := filepath.EvalSymlinks(path)
-
-			if err != nil {
-				return err
-			}
-
-			walkToTar(link, rel, tw)
-
-			return nil
-		}
-
-		if info != nil && !info.Mode().IsRegular() {
-			return nil
-		}
-
-		file, err := os.Open(path)
-
-		if err != nil {
-			return err
-		}
-
-		defer file.Close()
-
-		header := &tar.Header{
-			Name:    rel,
-			Size:    info.Size(),
-			Mode:    int64(info.Mode()),
-			ModTime: info.ModTime(),
-		}
-
-		err = tw.WriteHeader(header)
-
-		if err != nil {
-			return err
-		}
-
-		_, err = io.Copy(tw, file)
-
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return err
 }
