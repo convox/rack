@@ -159,7 +159,7 @@ func (b *Build) Cleanup() error {
 	return nil
 }
 
-func (b *Build) ExecuteLocal(r io.Reader) {
+func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -167,14 +167,15 @@ func (b *Build) ExecuteLocal(r io.Reader) {
 
 	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name, "-"}
 
-	err := b.execute(args, r)
+	err := b.execute(args, r, ch)
 
 	if err != nil {
 		b.Fail(err)
+		ch <- err
 	}
 }
 
-func (b *Build) ExecuteRemote(repo string) {
+func (b *Build) ExecuteRemote(repo string, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -190,14 +191,15 @@ func (b *Build) ExecuteRemote(repo string) {
 		args = append(args, repo)
 	}
 
-	err := b.execute(args, nil)
+	err := b.execute(args, nil, ch)
 
 	if err != nil {
 		b.Fail(err)
+		ch <- err
 	}
 }
 
-func (b *Build) execute(args []string, r io.Reader) error {
+func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	app, err := GetApp(b.App)
 
 	if err != nil {
@@ -227,6 +229,18 @@ func (b *Build) execute(args []string, r io.Reader) error {
 	if err = cmd.Start(); err != nil {
 		return err
 	}
+
+	for {
+		err := exec.Command("docker", "inspect", fmt.Sprintf("build-%s", b.Id)).Run()
+
+		if err == nil {
+			break
+		}
+
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	ch <- nil // notify that start was ok
 
 	if r != nil {
 		_, err := io.Copy(stdin, r)

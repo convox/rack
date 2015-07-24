@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	docker "github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
@@ -108,16 +111,34 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ch := make(chan error)
+
 	if source != nil {
-		go build.ExecuteLocal(source)
-		RenderText(rw, build.Id)
+		go build.ExecuteLocal(source, ch)
+
+		if err = <-ch; err != nil {
+			fmt.Printf("channel: %+v\n", err)
+			RenderError(rw, err)
+		} else {
+			fmt.Printf("channel: %+v\n", err)
+			RenderText(rw, build.Id)
+		}
+
 		return
 	}
 
 	if err == http.ErrMissingFile {
 		if repo := r.FormValue("repo"); repo != "" {
-			go build.ExecuteRemote(repo)
-			RenderText(rw, build.Id)
+			go build.ExecuteRemote(repo, ch)
+
+			if err = <-ch; err != nil {
+				fmt.Printf("channel: %+v\n", err)
+				RenderError(rw, err)
+			} else {
+				fmt.Printf("channel: %+v\n", err)
+				RenderText(rw, build.Id)
+			}
+
 			return
 		}
 	}
@@ -149,6 +170,9 @@ func BuildLogs(ws *websocket.Conn) {
 		return
 	}
 
+	r, w := io.Pipe()
+	go scanLines(r, ws)
+
 	err = client.Logs(docker.LogsOptions{
 		Container:    fmt.Sprintf("build-%s", id),
 		Follow:       true,
@@ -156,8 +180,8 @@ func BuildLogs(ws *websocket.Conn) {
 		Stderr:       true,
 		Tail:         "all",
 		RawTerminal:  false,
-		OutputStream: ws,
-		ErrorStream:  ws,
+		OutputStream: w,
+		ErrorStream:  w,
 	})
 
 	if err != nil {
@@ -165,8 +189,6 @@ func BuildLogs(ws *websocket.Conn) {
 		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
 		return
 	}
-
-	ws.Write([]byte(fmt.Sprintf("%v", id)))
 }
 
 func BuildStatus(rw http.ResponseWriter, r *http.Request) {
@@ -189,4 +211,25 @@ func BuildStatus(rw http.ResponseWriter, r *http.Request) {
 
 func buildsLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=builds").At(at)
+}
+
+func scanLines(r io.Reader, ws *websocket.Conn) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), "|", 2)
+
+		if len(parts) < 2 {
+			ws.Write([]byte(parts[0] + "\n"))
+			continue
+		}
+
+		switch parts[0] {
+		case "manifest":
+		case "error":
+			ws.Write([]byte(parts[1] + "\n"))
+		default:
+			ws.Write([]byte(parts[1] + "\n"))
+		}
+	}
 }
