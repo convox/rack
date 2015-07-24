@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	docker "github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
