@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -108,6 +109,22 @@ func cmdAppCreate(c *cli.Context) {
 	if err != nil {
 		stdcli.Error(err)
 		return
+	}
+
+	// poll for complete
+	for {
+		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		if string(data) == "running" {
+			break
+		}
+
+		time.Sleep(1000 * time.Millisecond)
 	}
 
 	if app == "" {
