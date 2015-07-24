@@ -151,7 +151,7 @@ func BuildLogs(ws *websocket.Conn) {
 	}
 
 	err = client.Logs(docker.LogsOptions{
-		Container:    id,
+		Container:    fmt.Sprintf("build-%s", id),
 		Follow:       true,
 		Stdout:       true,
 		Stderr:       true,
