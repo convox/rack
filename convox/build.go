@@ -1,7 +1,6 @@
 package main
 
 import (
-	"archive/tar"
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
