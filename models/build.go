@@ -231,7 +231,7 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	}
 
 	for {
-		err := exec.Command("docker", "inspect", fmt.Sprintf("build-%s", b.Id)).Run()
+		err := exec.Command("docker", "logs", fmt.Sprintf("build-%s", b.Id)).Run()
 
 		if err == nil {
 			break
