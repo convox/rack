@@ -224,36 +224,32 @@
 {{ end }}
 
 {{ define "balancer-params" }}
-  {{ if .HasPorts }}
-    "Check": {
-      "Type": "String",
-      "Default": "TCP:{{ .FirstRandom }}",
-      "Description": ""
-    },
-    {{ range $ps, $entry := . }}
-      {{ range $i, $port := $entry.Ports }}
-        {{ $parts := (split $port ":") }}
-        "{{ upper $ps }}Port{{ index $parts 0 }}Balancer": {
-          "Type" : "String",
-          "Default" : "{{ index $parts 0 }}",
-          "Description" : ""
-        },
-        "{{ upper $ps }}Port{{ index $parts 0 }}Host": {
-          "Type" : "String",
-          "Default" : "{{ index $entry.Randoms $i }}",
-          "Description" : ""
-        },
-      {{ end }}
+  "Check": {
+    "Type": "String",
+    "Default": "TCP:{{ .FirstRandom }}",
+    "Description": ""
+  },
+  {{ range $ps, $entry := . }}
+    {{ range $i, $port := $entry.Ports }}
+      {{ $parts := (split $port ":") }}
+      "{{ upper $ps }}Port{{ index $parts 0 }}Balancer": {
+        "Type" : "String",
+        "Default" : "{{ index $parts 0 }}",
+        "Description" : ""
+      },
+      "{{ upper $ps }}Port{{ index $parts 0 }}Host": {
+        "Type" : "String",
+        "Default" : "{{ index $entry.Randoms $i }}",
+        "Description" : ""
+      },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-outputs" }}
-  {{ if .HasPorts }}
-    "BalancerHost": {
-      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
-    },
-  {{ end }}
+  "BalancerHost": {
+    "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+  },
   {{ range $ps, $entry := . }}
     {{ if $entry.HasPorts }}
       {{ range $entry.Ports }}
@@ -267,38 +263,35 @@
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ if .HasPorts }}
-    "BalancerSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-        "SecurityGroupIngress": [ {{ ingress . }} ],
-        "VpcId": { "Ref": "VPC" }
-      }
-    },
-    "Balancer": {
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Properties": {
-        "Subnets": { "Ref": "Subnets" },
-        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-        "ConnectionSettings": { "IdleTimeout": 60 },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": { "Ref": "Check" },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
-        },
-        "Listeners": [ {{ listeners . }} ],
-        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": { "Ref": "AWS::StackName" },
-        "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
-      }
-    },
-  {{ end }}
+  "BalancerSecurityGroup": {
+    "Type": "AWS::EC2::SecurityGroup",
+    "Properties": {
+      "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
+      "SecurityGroupIngress": [ {{ ingress . }} ],
+      "VpcId": { "Ref": "VPC" }
+    }
+  },
+  "Balancer": {
+    "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+    "Properties": {
+      "Subnets": { "Ref": "Subnets" },
+      "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+      "ConnectionSettings": { "IdleTimeout": 60 },
+      "CrossZone": true,
+      "HealthCheck": {
+        "HealthyThreshold": "2",
+        "Interval": 5,
+        "Target": { "Ref": "Check" },
+        "Timeout": 3,
+        "UnhealthyThreshold": "2"
+      },
+      "Listeners": [ {{ listeners . }} ],
+      "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
+      "LoadBalancerName": { "Ref": "AWS::StackName" },
+      "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
+    }
+  },
 {{ end }}
-
 
 {{ define "security" }}
   "ServiceRole": {
