@@ -162,7 +162,7 @@ func streamBuild(app, build string) error {
 	}
 
 	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("wss://%s/builds/%s/logs", host, build)
+	url := fmt.Sprintf("wss://%s/apps/%s/builds/%s/logs", host, app, build)
 
 	config, err := websocket.NewConfig(url, origin)
 
