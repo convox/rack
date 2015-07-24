@@ -1,10 +1,8 @@
 package main
 
 import (
-	"archive/tar"
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
@@ -13,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/convox/build/Godeps/_workspace/src/github.com/convox/cli/manifest"
 )
@@ -143,59 +140,35 @@ func clone(source, app string) (string, error) {
 }
 
 func extractTarball(r io.Reader, base string) error {
-	gz, err := gzip.NewReader(r)
+	cwd, err := os.Getwd()
 
 	if err != nil {
 		return err
 	}
 
-	tr := tar.NewReader(gz)
+	defer os.Chdir(cwd)
 
-	for {
-		header, err := tr.Next()
+	err = os.MkdirAll(base, 0755)
 
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			} else {
-				return err
-			}
-		}
-
-		rel := header.Name
-		join := filepath.Join(base, rel)
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			os.MkdirAll(join, 0755)
-		case tar.TypeReg, tar.TypeRegA:
-			dir := filepath.Dir(join)
-
-			os.MkdirAll(dir, 0755)
-
-			fd, err := os.OpenFile(join, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-
-			if err != nil {
-				return err
-			}
-
-			defer fd.Close()
-
-			_, err = io.Copy(fd, tr)
-
-			if err != nil {
-				return err
-			}
-
-			err = os.Chtimes(join, time.Now(), header.ModTime)
-
-			if err != nil {
-				return err
-			}
-		default:
-			fmt.Printf("unknown Typeflag: %d %d\n", header.Typeflag, tar.TypeReg)
-		}
+	if err != nil {
+		return err
 	}
+
+	err = os.Chdir(base)
+
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("tar", "xz")
+	cmd.Stdin = r
+	err = cmd.Run()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func prefixWriter(prefix string) io.Writer {
