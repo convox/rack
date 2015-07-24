@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
+	docker "github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
 	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
@@ -129,24 +128,46 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	RenderError(rw, err)
 }
 
-func BuildLogs(rw http.ResponseWriter, r *http.Request) {
+func BuildLogs(ws *websocket.Conn) {
+	defer ws.Close()
+
 	log := buildsLogger("logs").Start()
 
-	vars := mux.Vars(r)
-	app := vars["app"]
+	vars := mux.Vars(ws.Request())
 	id := vars["build"]
 
-	build, err := models.GetBuild(app, id)
+	log.Success("step=upgrade build=%q", id)
+
+	defer ws.Close()
+
+	// proxy to docker container logs
+	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
+	client, err := docker.NewClient("unix:///var/run/docker.sock")
 
 	if err != nil {
 		helpers.Error(log, err)
-		RenderError(rw, err)
+		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
 		return
 	}
 
-	log.Success("step=build.logs app=%q", build.App)
+	err = client.Logs(docker.LogsOptions{
+		Container:    id,
+		Follow:       true,
+		Stdout:       true,
+		Stderr:       true,
+		Tail:         "all",
+		RawTerminal:  false,
+		OutputStream: ws,
+		ErrorStream:  ws,
+	})
 
-	RenderText(rw, build.Logs)
+	if err != nil {
+		helpers.Error(log, err)
+		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
+		return
+	}
+
+	ws.Write([]byte(fmt.Sprintf("%v", id)))
 }
 
 func BuildStatus(rw http.ResponseWriter, r *http.Request) {
@@ -165,52 +186,6 @@ func BuildStatus(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderText(rw, build.Status)
-}
-
-func BuildStream(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("stream").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
-	id := vars["build"]
-
-	ws, err := upgrader.Upgrade(rw, r, nil)
-
-	if err != nil {
-		fmt.Printf("ERROR: %s\n", err)
-		helpers.Error(log, err)
-		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("error: %s", err)))
-		return
-	}
-
-	defer ws.Close()
-
-	sent := ""
-
-	password := os.Getenv("REGISTRY_PASSWORD")
-	replace := strings.Repeat("*", len(password))
-
-	for {
-		b, err := models.GetBuild(app, id)
-
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err)
-			helpers.Error(log, err)
-			RenderError(rw, err)
-			return
-		}
-
-		ws.WriteMessage(websocket.TextMessage, []byte(strings.Replace(b.Logs[len(sent):], password, replace, -1)))
-
-		sent = b.Logs
-
-		switch b.Status {
-		case "complete", "failed":
-			return
-		}
-
-		time.Sleep(1 * time.Second)
-	}
 }
 
 func buildsLogger(at string) *logger.Logger {
