@@ -114,6 +114,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")
+	router.HandleFunc("/apps/{app}/releases/{release}", controllers.ReleaseShow).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", controllers.ReleasePromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/resources", controllers.AppResources).Methods("GET")
 	router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
