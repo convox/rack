@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -19,9 +20,10 @@ type Build struct {
 
 	App string
 
-	Logs    string
-	Release string
-	Status  string
+	Logs     string
+	Manifest string
+	Release  string
+	Status   string
 
 	Started time.Time
 	Ended   time.Time
@@ -120,6 +122,10 @@ func (b *Build) Save() error {
 		(*req.Item)["logs"] = &dynamodb.AttributeValue{S: aws.String(b.Logs)}
 	}
 
+	if b.Manifest != "" {
+		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
+	}
+
 	if b.Release != "" {
 		(*req.Item)["release"] = &dynamodb.AttributeValue{S: aws.String(b.Release)}
 	}
@@ -159,7 +165,7 @@ func (b *Build) ExecuteLocal(r io.Reader) {
 
 	name := b.App
 
-	args := []string{"run", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name, "-"}
+	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name, "-"}
 
 	err := b.execute(args, r)
 
@@ -174,7 +180,7 @@ func (b *Build) ExecuteRemote(repo string) {
 
 	name := b.App
 
-	args := []string{"run", "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name}
+	args := []string{"run", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("REGISTRY_PASSWORD"), name}
 
 	parts := strings.Split(repo, "#")
 
@@ -207,7 +213,12 @@ func (b *Build) execute(args []string, r io.Reader) error {
 	}
 
 	stdout, err := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+
+	if err != nil {
+		return err
+	}
+
+	stderr, err := cmd.StderrPipe()
 
 	if err != nil {
 		return err
@@ -223,58 +234,26 @@ func (b *Build) execute(args []string, r io.Reader) error {
 		if err != nil {
 			return err
 		}
-
-		stdin.Close()
 	}
 
-	// Every 2 seconds check for new logs and save
-	ticker := time.Tick(1 * time.Second)
-
-	logs := ""
-
-	go func() {
-		for _ = range ticker {
-			if b.Logs != logs {
-				b.Save()
-				logs = b.Logs
-			}
-		}
-	}()
+	stdin.Close()
 
 	manifest := ""
-	success := true
-	scanner := bufio.NewScanner(stdout)
 
-	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), "|", 2)
+	var wg sync.WaitGroup
 
-		if len(parts) < 2 {
-			b.log(parts[0])
-			continue
-		}
+	wg.Add(2)
+	go b.scanLines(stdout, &wg)
+	go b.scanLines(stderr, &wg)
+	wg.Wait()
 
-		switch parts[0] {
-		case "manifest":
-			manifest += fmt.Sprintf("%s\n", parts[1])
-		case "error":
-			success = false
-			fmt.Println(parts[1])
-			b.log(parts[1])
-		default:
-			fmt.Println(parts[1])
-			b.log(parts[1])
-		}
-	}
-
-	err = cmd.Wait()
-
-	// close(quit)
-
-	if err != nil {
+	if err = cmd.Wait(); err != nil {
 		return err
 	}
 
-	if !success {
+	fmt.Printf("b: %+v\n", b)
+
+	if b.Status == "failed" {
 		return fmt.Errorf("error from builder")
 	}
 
@@ -312,6 +291,31 @@ func (b *Build) Image(process string) string {
 	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY"), b.App, process, b.Id)
 }
 
+func (b *Build) scanLines(r io.Reader, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), "|", 2)
+
+		if len(parts) < 2 {
+			b.log(parts[0])
+			continue
+		}
+
+		switch parts[0] {
+		case "manifest":
+			b.Manifest += fmt.Sprintf("%s\n", parts[1])
+		case "error":
+			b.Status = "failed"
+			b.log(parts[1])
+		default:
+			b.log(parts[1])
+		}
+	}
+}
+
 func (b *Build) log(line string) {
 	b.Logs += fmt.Sprintf("%s\n", line)
 
@@ -336,10 +340,8 @@ func (b *Build) log(line string) {
 	})
 
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
-
-	// record to kinesis
 }
 
 func buildsTable(app string) string {
@@ -351,12 +353,13 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
 	return &Build{
-		Id:      coalesce(item["id"], ""),
-		App:     coalesce(item["app"], ""),
-		Logs:    coalesce(item["logs"], ""),
-		Release: coalesce(item["release"], ""),
-		Status:  coalesce(item["status"], ""),
-		Started: started,
-		Ended:   ended,
+		Id:       coalesce(item["id"], ""),
+		App:      coalesce(item["app"], ""),
+		Logs:     coalesce(item["logs"], ""),
+		Manifest: coalesce(item["manifest"], ""),
+		Release:  coalesce(item["release"], ""),
+		Status:   coalesce(item["status"], ""),
+		Started:  started,
+		Ended:    ended,
 	}
 }

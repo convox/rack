@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -103,44 +102,31 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 
 	log.Success("step=build.save app=%q", build.App)
 
-	if r.MultipartForm != nil && r.MultipartForm.File["source"] != nil {
-		fd, err := r.MultipartForm.File["source"][0].Open()
+	source, _, err := r.FormFile("source")
 
-		if err != nil {
-			helpers.Error(log, err)
-			RenderError(rw, err)
-			return
-		}
-
-		defer fd.Close()
-
-		dir, err := ioutil.TempDir("", "source")
-
-		if err != nil {
-			helpers.Error(log, err)
-			RenderError(rw, err)
-			return
-		}
-
-		err = os.MkdirAll(dir, 0755)
-
-		if err != nil {
-			helpers.Error(log, err)
-			RenderError(rw, err)
-			return
-		}
-
-		go build.ExecuteLocal(fd)
-	} else if repo := GetForm(r, "repo"); repo != "" {
-		go build.ExecuteRemote(repo)
-	} else {
-		err = fmt.Errorf("no source or repo")
+	if err != nil && err != http.ErrMissingFile {
 		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
 
-	RenderText(rw, build.Id)
+	if source != nil {
+		go build.ExecuteLocal(source)
+		RenderText(rw, build.Id)
+		return
+	}
+
+	if err == http.ErrMissingFile {
+		if repo := r.FormValue("repo"); repo != "" {
+			go build.ExecuteRemote(repo)
+			RenderText(rw, build.Id)
+			return
+		}
+	}
+
+	err = fmt.Errorf("no source or repo")
+	helpers.Error(log, err)
+	RenderError(rw, err)
 }
 
 func BuildLogs(rw http.ResponseWriter, r *http.Request) {
