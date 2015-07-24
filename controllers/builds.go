@@ -117,10 +117,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		go build.ExecuteLocal(source, ch)
 
 		if err = <-ch; err != nil {
-			fmt.Printf("channel: %+v\n", err)
 			RenderError(rw, err)
 		} else {
-			fmt.Printf("channel: %+v\n", err)
 			RenderText(rw, build.Id)
 		}
 
@@ -132,10 +130,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 			go build.ExecuteRemote(repo, ch)
 
 			if err = <-ch; err != nil {
-				fmt.Printf("channel: %+v\n", err)
 				RenderError(rw, err)
 			} else {
-				fmt.Printf("channel: %+v\n", err)
 				RenderText(rw, build.Id)
 			}
 
