@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	docker "github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
@@ -167,7 +168,11 @@ func BuildLogs(ws *websocket.Conn) {
 	}
 
 	r, w := io.Pipe()
+
+	quit := make(chan bool)
+
 	go scanLines(r, ws)
+	go keepAlive(ws, quit)
 
 	err = client.Logs(docker.LogsOptions{
 		Container:    fmt.Sprintf("build-%s", id),
@@ -179,6 +184,8 @@ func BuildLogs(ws *websocket.Conn) {
 		OutputStream: w,
 		ErrorStream:  w,
 	})
+
+	quit <- true
 
 	if err != nil {
 		helpers.Error(log, err)
@@ -226,6 +233,20 @@ func scanLines(r io.Reader, ws *websocket.Conn) {
 			ws.Write([]byte(parts[1] + "\n"))
 		default:
 			ws.Write([]byte(parts[1] + "\n"))
+		}
+	}
+}
+
+func keepAlive(ws *websocket.Conn, quit chan bool) {
+	c := time.Tick(5 * time.Second)
+	b := []byte{}
+
+	for {
+		select {
+		case <-c:
+			ws.Write(b)
+		case <-quit:
+			return
 		}
 	}
 }
