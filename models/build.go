@@ -233,11 +233,11 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	for {
 		err := exec.Command("docker", "logs", fmt.Sprintf("build-%s", b.Id)).Run()
 
+		time.Sleep(200 * time.Millisecond)
+
 		if err == nil {
 			break
 		}
-
-		time.Sleep(200 * time.Millisecond)
 	}
 
 	ch <- nil // notify that start was ok
