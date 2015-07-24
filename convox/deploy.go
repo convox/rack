@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -42,47 +40,11 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	// create app if it doesn't exist
 	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 	if err != nil {
-		fmt.Printf("Creating app %s...", app)
-
-		v := url.Values{}
-		v.Set("name", app)
-		data, err = ConvoxPostForm("/apps", v)
-
-		if stdcli.Debug() {
-			fmt.Fprintf(os.Stderr, "DEBUG: POST /apps response: '%v', '%v'\n", string(data), err)
-		}
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		// poll for complete
-		for {
-			data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
-
-			if err != nil {
-				stdcli.Error(err)
-				return
-			}
-
-			if string(data) == "running" {
-				fmt.Printf("Status %s\n", data)
-				break
-			}
-
-			if stdcli.Debug() {
-				fmt.Fprintf(os.Stderr, "DEBUG: POST /apps response: '%v', '%v'\n", string(data), err)
-			}
-
-			time.Sleep(1000 * time.Millisecond)
-		}
-
-		fmt.Println("OK")
+		stdcli.Error(err)
+		return
 	}
 
 	// build
