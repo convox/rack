@@ -252,8 +252,6 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 
 	stdin.Close()
 
-	manifest := ""
-
 	var wg sync.WaitGroup
 
 	wg.Add(2)
@@ -278,7 +276,7 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	}
 
 	release.Build = b.Id
-	release.Manifest = manifest
+	release.Manifest = b.Manifest
 
 	err = release.Save()
 
