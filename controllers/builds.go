@@ -1,15 +1,16 @@
 package controllers
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
+	docker "github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
 	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
@@ -110,16 +111,30 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ch := make(chan error)
+
 	if source != nil {
-		go build.ExecuteLocal(source)
-		RenderText(rw, build.Id)
+		go build.ExecuteLocal(source, ch)
+
+		if err = <-ch; err != nil {
+			RenderError(rw, err)
+		} else {
+			RenderText(rw, build.Id)
+		}
+
 		return
 	}
 
 	if err == http.ErrMissingFile {
 		if repo := r.FormValue("repo"); repo != "" {
-			go build.ExecuteRemote(repo)
-			RenderText(rw, build.Id)
+			go build.ExecuteRemote(repo, ch)
+
+			if err = <-ch; err != nil {
+				RenderError(rw, err)
+			} else {
+				RenderText(rw, build.Id)
+			}
+
 			return
 		}
 	}
@@ -129,24 +144,47 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	RenderError(rw, err)
 }
 
-func BuildLogs(rw http.ResponseWriter, r *http.Request) {
+func BuildLogs(ws *websocket.Conn) {
+	defer ws.Close()
+
 	log := buildsLogger("logs").Start()
 
-	vars := mux.Vars(r)
-	app := vars["app"]
+	vars := mux.Vars(ws.Request())
 	id := vars["build"]
 
-	build, err := models.GetBuild(app, id)
+	log.Success("step=upgrade build=%q", id)
+
+	defer ws.Close()
+
+	// proxy to docker container logs
+	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
+	client, err := docker.NewClient("unix:///var/run/docker.sock")
 
 	if err != nil {
 		helpers.Error(log, err)
-		RenderError(rw, err)
+		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
 		return
 	}
 
-	log.Success("step=build.logs app=%q", build.App)
+	r, w := io.Pipe()
+	go scanLines(r, ws)
 
-	RenderText(rw, build.Logs)
+	err = client.Logs(docker.LogsOptions{
+		Container:    fmt.Sprintf("build-%s", id),
+		Follow:       true,
+		Stdout:       true,
+		Stderr:       true,
+		Tail:         "all",
+		RawTerminal:  false,
+		OutputStream: w,
+		ErrorStream:  w,
+	})
+
+	if err != nil {
+		helpers.Error(log, err)
+		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
+		return
+	}
 }
 
 func BuildStatus(rw http.ResponseWriter, r *http.Request) {
@@ -167,52 +205,27 @@ func BuildStatus(rw http.ResponseWriter, r *http.Request) {
 	RenderText(rw, build.Status)
 }
 
-func BuildStream(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("stream").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
-	id := vars["build"]
-
-	ws, err := upgrader.Upgrade(rw, r, nil)
-
-	if err != nil {
-		fmt.Printf("ERROR: %s\n", err)
-		helpers.Error(log, err)
-		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("error: %s", err)))
-		return
-	}
-
-	defer ws.Close()
-
-	sent := ""
-
-	password := os.Getenv("REGISTRY_PASSWORD")
-	replace := strings.Repeat("*", len(password))
-
-	for {
-		b, err := models.GetBuild(app, id)
-
-		if err != nil {
-			fmt.Printf("ERROR: %s\n", err)
-			helpers.Error(log, err)
-			RenderError(rw, err)
-			return
-		}
-
-		ws.WriteMessage(websocket.TextMessage, []byte(strings.Replace(b.Logs[len(sent):], password, replace, -1)))
-
-		sent = b.Logs
-
-		switch b.Status {
-		case "complete", "failed":
-			return
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-}
-
 func buildsLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=builds").At(at)
+}
+
+func scanLines(r io.Reader, ws *websocket.Conn) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), "|", 2)
+
+		if len(parts) < 2 {
+			ws.Write([]byte(parts[0] + "\n"))
+			continue
+		}
+
+		switch parts[0] {
+		case "manifest":
+		case "error":
+			ws.Write([]byte(parts[1] + "\n"))
+		default:
+			ws.Write([]byte(parts[1] + "\n"))
+		}
+	}
 }

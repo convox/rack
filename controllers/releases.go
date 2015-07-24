@@ -10,6 +10,24 @@ import (
 	"github.com/convox/kernel/models"
 )
 
+func ReleaseShow(rw http.ResponseWriter, r *http.Request) {
+	log := releasesLogger("show").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	release := vars["release"]
+
+	rr, err := models.GetRelease(app, release)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderJson(rw, rr)
+}
+
 func ReleaseCreate(rw http.ResponseWriter, r *http.Request) {
 	log := releasesLogger("create").Start()
 
