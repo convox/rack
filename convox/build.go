@@ -146,6 +146,10 @@ func postBuild(tar []byte, app string) (string, error) {
 		return "", err
 	}
 
+	if res.StatusCode/100 > 3 {
+		return "", fmt.Errorf(string(data))
+	}
+
 	return string(data), nil
 }
 
