@@ -224,11 +224,6 @@
 {{ end }}
 
 {{ define "balancer-params" }}
-  "Check": {
-    "Type": "String",
-    "Default": "TCP:{{ .FirstRandom }}",
-    "Description": ""
-  },
   {{ range $ps, $entry := . }}
     {{ range $i, $port := $entry.Ports }}
       {{ $parts := (split $port ":") }}
@@ -281,7 +276,7 @@
       "HealthCheck": {
         "HealthyThreshold": "2",
         "Interval": 5,
-        "Target": { "Ref": "Check" },
+        "Target": "TCP:{{ .FirstRandom }}",
         "Timeout": 3,
         "UnhealthyThreshold": "2"
       },

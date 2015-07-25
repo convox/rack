@@ -52,11 +52,6 @@
     }
   },
   "Parameters": {
-    "Check": {
-      "Default": "TCP:12345",
-      "Description": "",
-      "Type": "String"
-    },
     "Cluster": {
       "Default": "",
       "Description": "",
@@ -167,9 +162,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": {
-            "Ref": "Check"
-          },
+          "Target": "TCP:12345",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
