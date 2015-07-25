@@ -124,7 +124,7 @@ func cmdAppCreate(c *cli.Context) {
 			break
 		}
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(3 * time.Second)
 	}
 
 	if app == "" {
