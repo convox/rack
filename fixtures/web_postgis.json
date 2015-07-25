@@ -162,7 +162,17 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "TCP:12345",
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WebPort5000Host"
+                }
+              ]
+            ]
+          },
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
