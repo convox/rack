@@ -481,7 +481,7 @@ func (m Manifest) FirstCheck() template.HTML {
 		if len(me.Ports) > 0 {
 			parts := strings.Split(me.Ports[0], ":")
 			port := parts[0]
-			return template.HTML(fmt.Sprintf(`{ "Ref": "%sPort%sHost" }`, upperName(name), port))
+			return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ ":", [ "TCP", { "Ref": "%sPort%sHost" } ] ] }`, upperName(name), port))
 		}
 	}
 
