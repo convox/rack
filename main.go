@@ -347,31 +347,25 @@ func templateHelpers() template.FuncMap {
 				links := make([]string, len(entry.Links))
 
 				for i, link := range entry.Links {
-					parts := strings.Split(link, ":")
+					alias, name, err := linkParts(link)
 
-					alias := ""
-					name := ""
-
-					switch len(parts) {
-					case 1:
-						alias = parts[0]
-						name = parts[0]
-					case 2:
-						alias = parts[0]
-						name = parts[1]
-					default:
+					if err != nil {
 						continue
 					}
 
-					links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref" : "AWS::NoValue" } ] }`, upperName(link), alias, name)
+					links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref" : "AWS::NoValue" } ] }`, upperName(name), alias, name)
 				}
 
 				services := make([]string, len(entry.Links))
 
 				for i, link := range entry.Links {
-					services[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService",
-						{ "Ref" : "AWS::NoValue" },
-						{ "Fn::Join": [ ":", [ { "Ref" : "%sService" }, "%s" ] ] } ] }`, upperName(link), upperName(link), link)
+					_, name, err := linkParts(link)
+
+					if err != nil {
+						continue
+					}
+
+					services[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", { "Ref" : "AWS::NoValue" }, { "Fn::Join": [ ":", [ { "Ref" : "%sService" }, "%s" ] ] } ] }`, upperName(name), upperName(name), name)
 				}
 
 				volumes := []string{}
@@ -409,6 +403,19 @@ func templateHelpers() template.FuncMap {
 			return upperEnv(name)
 		},
 	}
+}
+
+func linkParts(link string) (string, string, error) {
+	parts := strings.Split(link, ":")
+
+	switch len(parts) {
+	case 1:
+		return parts[0], parts[0], nil
+	case 2:
+		return parts[0], parts[1], nil
+	}
+
+	return "", "", fmt.Errorf("invalid link name")
 }
 
 func randomPort() string {
