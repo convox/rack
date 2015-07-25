@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -69,6 +70,11 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) {
 	name := vars["name"]
 
 	env, err := models.GetEnvironment(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
 
 	if err != nil {
 		helpers.Error(nil, err)

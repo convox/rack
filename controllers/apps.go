@@ -273,6 +273,11 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 
 	env, err := models.GetEnvironment(app)
 
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
 	if err != nil {
 		helpers.Error(log, err)
 		RenderError(rw, err)
