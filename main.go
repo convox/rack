@@ -476,7 +476,7 @@ func (m Manifest) FirstRandom() string {
 		}
 	}
 
-	return ""
+	return "80"
 }
 
 func (m Manifest) HasPorts() bool {
