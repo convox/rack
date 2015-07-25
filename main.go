@@ -347,19 +347,19 @@ func templateHelpers() template.FuncMap {
 				links := make([]string, len(entry.Links))
 
 				for i, link := range entry.Links {
-					alias, name, err := linkParts(link)
+					name, alias, err := linkParts(link)
 
 					if err != nil {
 						continue
 					}
 
-					links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref" : "AWS::NoValue" } ] }`, upperName(name), alias, name)
+					links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref" : "AWS::NoValue" } ] }`, upperName(name), name, alias)
 				}
 
 				services := make([]string, len(entry.Links))
 
 				for i, link := range entry.Links {
-					_, name, err := linkParts(link)
+					name, _, err := linkParts(link)
 
 					if err != nil {
 						continue
