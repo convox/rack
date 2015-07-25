@@ -252,6 +252,10 @@ func templateHelpers() template.FuncMap {
 				}
 			}
 
+			if len(ls) == 0 {
+				ls = append(ls, `{ "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "80" }`)
+			}
+
 			return template.HTML(strings.Join(ls, ","))
 		},
 		"loadbalancers": func(m Manifest) template.HTML {
