@@ -39,6 +39,9 @@ func TestAppsCreate(t *testing.T) {
 			app := App{Name: "foobar"}
 			data, _ := json.Marshal(app)
 			_, _ = w.Write(data)
+
+		case "/apps/foobar/status":
+			w.Write([]byte("running"))
 		}
 	}))
 	defer ts.Close()
