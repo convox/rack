@@ -69,9 +69,23 @@ func cmdInfo(c *cli.Context) {
 
 	sort.Strings(processes)
 
+	if len(processes) == 0 {
+		processes = append(processes, "(none)")
+	}
+
+	if len(ports) == 0 {
+		ports = append(ports, "(none)")
+	}
+
+	release := a.Parameters["Release"]
+
+	if release == "" {
+		release = "(none)"
+	}
+
 	fmt.Printf("Name       %s\n", a.Name)
 	fmt.Printf("Status     %s\n", a.Status)
-	fmt.Printf("Release    %s\n", a.Parameters["Release"])
+	fmt.Printf("Release    %s\n", release)
 	fmt.Printf("Processes  %s\n", strings.Join(processes, " "))
 
 	if a.Outputs["BalancerHost"] != "" {
