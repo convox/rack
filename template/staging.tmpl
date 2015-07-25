@@ -276,7 +276,7 @@
       "HealthCheck": {
         "HealthyThreshold": "2",
         "Interval": 5,
-        "Target": "TCP:{{ .FirstRandom }}",
+        "Target": {{ .FirstCheck }},
         "Timeout": 3,
         "UnhealthyThreshold": "2"
       },

@@ -476,6 +476,18 @@ func (m Manifest) FirstPort() string {
 	return ""
 }
 
+func (m Manifest) FirstCheck() template.HTML {
+	for name, me := range m {
+		if len(me.Ports) > 0 {
+			parts := strings.Split(me.Ports[0], ":")
+			port := parts[0]
+			return template.HTML(fmt.Sprintf(`{ "Ref": "%sPort%sHost" }`, upperName(name), port))
+		}
+	}
+
+	return `"TCP:80"`
+}
+
 func (m Manifest) FirstRandom() string {
 	for _, me := range m {
 		if len(me.Randoms) > 0 {
