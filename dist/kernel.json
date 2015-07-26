@@ -416,6 +416,12 @@
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "PlacementTenancy" : {
+          "Type": "String",
+          "Description": "Dedicated Hardware",
+          "Default": "No",
+          "AllowedValues": [ "Yes", "No" ]
+        }
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "UserData": { "Fn::Base64": 
           { "Fn::Join": [ "\n", [
