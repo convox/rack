@@ -29,6 +29,12 @@ func init() {
 		Description: "install convox into an aws account",
 		Usage:       "",
 		Action:      cmdInstall,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "dedicated",
+				Usage: "create EC2 instances on dedicated hardware",
+			},
+		},
 	})
 
 	stdcli.RegisterCommand(cli.Command{
@@ -46,6 +52,14 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
+	tenancy := "default"
+	instanceType := "t2.small"
+
+	if c.Bool("dedicated") {
+		tenancy = "dedicated"
+		instanceType = "m3.medium"
+	}
+
 	fmt.Println(`
 
      ___    ___     ___   __  __    ___   __  _  
@@ -139,9 +153,10 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String("3")},
-			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String("t2.small")},
+			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(version)},
 		},
 		StackName:   aws.String(stackName),
