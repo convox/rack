@@ -29,6 +29,12 @@ func init() {
 		Description: "install convox into an aws account",
 		Usage:       "",
 		Action:      cmdInstall,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "dedicated",
+				Usage: "create EC2 instances on dedicated hardware",
+			},
+		},
 	})
 
 	stdcli.RegisterCommand(cli.Command{
@@ -46,6 +52,10 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
+	if !c.Bool("dedicated") {
+		// pass the flag somehow
+	}
+
 	fmt.Println(`
 
      ___    ___     ___   __  __    ___   __  _  
@@ -142,6 +152,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String("t2.small")},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String("default")},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(version)},
 		},
 		StackName:   aws.String(stackName),
