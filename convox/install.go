@@ -55,7 +55,6 @@ func cmdInstall(c *cli.Context) {
 	tenancy := "default"
 
 	if c.Bool("dedicated") {
-		// pass the flag somehow
 		tenancy = "dedicated"
 	}
 
