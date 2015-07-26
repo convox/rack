@@ -19,8 +19,7 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
-// var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
-var FormationUrl = "https://s3.amazonaws.com/test-kernel.json/kernel.json"
+var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
