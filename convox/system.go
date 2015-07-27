@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -27,13 +28,13 @@ func init() {
 				Usage:       "",
 				Action:      cmdSystemScale,
 				Flags: []cli.Flag{
+					cli.IntFlag{
+						Name:  "count",
+						Usage: "instance count, e.g. 3 or 10",
+					},
 					cli.StringFlag{
 						Name:  "type",
 						Usage: "instance type, e.g. t2.small or c3.xlargs",
-					},
-					cli.IntFlag{
-						Name:  "num",
-						Usage: "instance number, e.g. 3 or 10",
 					},
 				},
 			},
@@ -60,9 +61,43 @@ func cmdSystem(c *cli.Context) {
 }
 
 func cmdSystemUpate(c *cli.Context) {
-	stdcli.Error(fmt.Errorf("not implemented"))
+	if len(c.Args()) < 1 {
+		stdcli.Usage(c, "system update")
+		return
+	}
+
+	v := url.Values{}
+	v.Set("version", c.Args()[0])
+
+	_, err := ConvoxPostForm("/system", v)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	cmdSystem(c)
 }
 
 func cmdSystemScale(c *cli.Context) {
-	stdcli.Error(fmt.Errorf("not implemented"))
+	v := url.Values{}
+
+	if c.IsSet("count") {
+		v.Set("count", c.String("count"))
+	}
+
+	if c.IsSet("type") {
+		v.Set("type", c.String("type"))
+	}
+
+	if len(v) > 0 {
+		_, err := ConvoxPostForm("/system", v)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+	}
+
+	cmdSystem(c)
 }
