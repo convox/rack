@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -40,7 +38,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
+	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -59,48 +57,12 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	fmt.Print("Releasing... ")
-
-	// promote release
-	data, err = ConvoxPost(fmt.Sprintf("/apps/%s/releases/%s/promote", app, release), "")
+	a, err := postRelease(app, release)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
-
-	// poll for complete
-	for {
-		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		if string(data) == "running" {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	data, err = ConvoxGet("/apps/" + app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var a *App
-	err = json.Unmarshal(data, &a)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Printf("OK, %s\n", a.Parameters["Release"])
 
 	urls := []string{}
 	hosts := []string{}
