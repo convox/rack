@@ -8,7 +8,7 @@ import (
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 
-	humanize "github.com/dustin/go-humanize"
+	humanize "github.com/convox/cli/Godeps/_workspace/src/github.com/dustin/go-humanize"
 )
 
 type Release struct {
