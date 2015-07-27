@@ -52,7 +52,11 @@ func cmdSystem(c *cli.Context) {
 	var a *App
 	err = json.Unmarshal(data, &a)
 
-	fmt.Printf("%+v\n", a)
+	fmt.Printf("Name       %s\n", a.Name)
+	fmt.Printf("Status     %s\n", a.Status)
+	fmt.Printf("Version    %s\n", a.Parameters["Version"])
+	fmt.Printf("Count      %s\n", a.Parameters["InstanceCount"])
+	fmt.Printf("Type       %s\n", a.Parameters["InstanceType"])
 }
 
 func cmdSystemUpate(c *cli.Context) {
