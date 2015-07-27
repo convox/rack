@@ -90,6 +90,10 @@ func GetRelease(app, id string) (*Release, error) {
 		return nil, err
 	}
 
+	if res.Item == nil {
+		return nil, fmt.Errorf("release %s not found", id)
+	}
+
 	release := releaseFromItem(*res.Item)
 
 	return release, nil

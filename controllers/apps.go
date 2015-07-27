@@ -458,7 +458,12 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 		params["Last"] = releases[len(releases)-1]
 	}
 
-	RenderPartial(rw, "app", "releases", params)
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		RenderJson(rw, releases)
+	default:
+		RenderPartial(rw, "app", "releases", params)
+	}
 }
 
 func AppResources(rw http.ResponseWriter, r *http.Request) {
