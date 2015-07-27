@@ -35,15 +35,8 @@ type ProcessRunOptions struct {
 }
 
 func ListProcesses(app string) (Processes, error) {
-	a, err := GetApp(app)
-
-	if err != nil {
-		return nil, err
-	}
-
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Family:  aws.String(a.TaskDefinitionFamily()),
 	}
 
 	res, err := ECS().ListTasks(req)
@@ -62,7 +55,14 @@ func ListProcesses(app string) (Processes, error) {
 	pss := Processes{}
 
 	for _, task := range tres.Tasks {
-		parts := strings.Split(*task.TaskARN, "-")
+		parts := strings.Split(*task.TaskDefinitionARN, "/")
+		fam := parts[1]
+
+		if !strings.HasPrefix(fam, fmt.Sprintf("%s-", app)) {
+			continue
+		}
+
+		parts = strings.Split(*task.TaskARN, "-")
 		id := parts[len(parts)-1]
 
 		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
