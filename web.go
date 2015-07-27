@@ -130,6 +130,8 @@ func startWeb() {
 	router.HandleFunc("/services/types/{type}", controllers.ServiceNameList).Methods("GET")
 	router.HandleFunc("/settings", controllers.SettingsList).Methods("GET")
 	router.HandleFunc("/settings", controllers.SettingsUpdate).Methods("POST")
+	router.HandleFunc("/system", controllers.SystemShow).Methods("GET")
+	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
 
 	n := negroni.New(
