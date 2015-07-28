@@ -201,6 +201,44 @@ func ProcessStop(rw http.ResponseWriter, r *http.Request) {
 	RenderText(rw, "ok")
 }
 
+func ProcessTop(rw http.ResponseWriter, r *http.Request) {
+	log := processesLogger("info").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	id := vars["id"]
+
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
+	ps, err := models.GetProcessById(app, id)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	if ps == nil {
+		RenderNotFound(rw, fmt.Sprintf("no such process: %s", id))
+		return
+	}
+
+	info, err := ps.Top()
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderJson(rw, info)
+}
+
 func processesLogger(at string) *logger.Logger {
 	return logger.New("ns=kernel cn=processes").At(at)
 }

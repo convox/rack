@@ -17,6 +17,7 @@ import (
 type Process struct {
 	App         string
 	Command     string
+	ContainerId string
 	Count       int
 	CPU         int64
 	DockerHost  string
@@ -30,6 +31,11 @@ type Process struct {
 
 type Processes []Process
 
+type ProcessTop struct {
+	Titles    []string
+	Processes [][]string
+}
+
 type ProcessRunOptions struct {
 	Command string
 }
@@ -37,7 +43,7 @@ type ProcessRunOptions struct {
 func ListProcesses(app string) (Processes, error) {
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Family: aws.String(app),
+		Family:  aws.String(app),
 	}
 
 	res, err := ECS().ListTasks(req)
@@ -56,9 +62,6 @@ func ListProcesses(app string) (Processes, error) {
 	pss := Processes{}
 
 	for _, task := range tres.Tasks {
-		parts := strings.Split(*task.TaskARN, "-")
-		id := parts[len(parts)-1]
-
 		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 			TaskDefinition: task.TaskDefinitionARN,
 		})
@@ -74,6 +77,9 @@ func ListProcesses(app string) (Processes, error) {
 		}
 
 		for _, container := range task.Containers {
+			parts := strings.Split(*container.ContainerARN, "-")
+			id := parts[len(parts)-1]
+
 			ps := Process{
 				Id:      id,
 				TaskARN: *task.TaskARN,
@@ -139,6 +145,7 @@ func ListProcesses(app string) (Processes, error) {
 					}
 
 					if len(containers) == 1 {
+						ps.ContainerId = containers[0].ID
 						ps.Command = containers[0].Command
 					}
 				}
@@ -188,6 +195,21 @@ func GetProcessById(app, id string) (*Process, error) {
 func (p *Process) Docker() *docker.Client {
 	client, _ := docker.NewClient(fmt.Sprintf("http://%s:2376", p.DockerHost))
 	return client
+}
+
+func (p *Process) Top() (*ProcessTop, error) {
+	res, err := p.Docker().TopContainer(p.ContainerId, "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	info := &ProcessTop{
+		Titles:    res.Titles,
+		Processes: res.Processes,
+	}
+
+	return info, nil
 }
 
 func (p *Process) Run(options ProcessRunOptions) error {
