@@ -207,6 +207,7 @@ func (r *Release) Promote() error {
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = CustomTopic
 	app.Parameters["Release"] = r.Id
+	app.Parameters["Version"] = os.Getenv("RELEASE")
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {
 		app.Parameters["Key"] = os.Getenv("ENCRYPTION_KEY")
