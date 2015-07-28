@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/convox/kernel/helpers"
@@ -262,9 +261,7 @@ func (a *App) LatestRelease() (*Release, error) {
 }
 
 func (a *App) TaskDefinitionFamily() string {
-	resources := a.Resources()
-	name := strings.Split(resources["TaskDefinition"].Id, "/")[1]
-	return strings.Split(name, ":")[0]
+	return a.Name
 }
 
 func (a *App) WatchForCompletion(change *Change, original Events) {
