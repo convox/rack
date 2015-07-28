@@ -3,6 +3,7 @@ package models
 import (
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -98,30 +99,48 @@ func ListEvents(app string) (Events, error) {
 }
 
 func ListECSEvents(app string) (ServiceEvents, error) {
-	a, err := GetApp(app)
+	req := &ecs.ListServicesInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	}
+
+	res, err := ECS().ListServices(req)
 
 	if err != nil {
 		return nil, err
+	}
+
+	arns := make([]*string, 0)
+
+	// extract "worker" prefix from arn:aws:ecs:us-east-1:901416387788:service/worker-SPGGDVABOMW
+	// and select all ARNs with app name prefix
+	for _, arn := range res.ServiceARNs {
+		parts := strings.Split(*arn, "/")
+		id := parts[len(parts)-1]
+
+		parts = strings.Split(id, "-")
+		prefix := parts[0]
+
+		if prefix == app {
+			arns = append(arns, arn)
+		}
 	}
 
 	events := ServiceEvents{}
 
-	req := &ecs.DescribeServicesInput{
+	dres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: []*string{aws.String(a.TaskDefinitionFamily())},
-	}
-
-	res, err := ECS().DescribeServices(req)
+		Services: arns,
+	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	if len(res.Services) == 0 {
+	if len(dres.Services) == 0 {
 		return events, nil
 	}
 
-	for _, event := range res.Services[0].Events {
+	for _, event := range dres.Services[0].Events {
 		events = append(events, ServiceEvent{
 			Id:        cs(event.ID, ""),
 			Message:   cs(event.Message, ""),
