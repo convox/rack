@@ -226,7 +226,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	tasks := req.ResourceProperties["Tasks"].([]interface{})
 
 	r := &ecs.RegisterTaskDefinitionInput{
-		Family: aws.String(req.ResourceProperties["Name"].(string) + "-" + generateId("T", 10)),
+		Family: aws.String(req.ResourceProperties["Name"].(string)),
 	}
 
 	// download environment
@@ -396,15 +396,10 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
+	// We have observed a race condition quickly deregistering then re-registering
+	// Task Definitions, where the Register fails. We work around this by not
+	// deregistering any Task Definitions.
 	// _, err := ECS(req).DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
-
-	// // TODO let the cloudformation finish thinking this deleted
-	// // but take note so we can figure out why
-	// if err != nil {
-	//   fmt.Fprintf(os.Stderr, "error: %s\n", err)
-	//   return "", nil, nil
-	// }
-
 	return "", nil, nil
 }
 
