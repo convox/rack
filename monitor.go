@@ -96,7 +96,7 @@ func (m *Monitor) handleDie(id string) {
 }
 
 func (m *Monitor) updateCgroups(id string, env map[string]string) {
-	if env["MEMORY_SWAP"] == "0" {
+	if env["SWAP"] == "1" {
 		bytes := "18446744073709551615"
 
 		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", id, bytes)
