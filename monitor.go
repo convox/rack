@@ -97,19 +97,23 @@ func (m *Monitor) handleDie(id string) {
 
 func (m *Monitor) setCgroups(id string, env map[string]string) {
 	if env["MEMORY_SWAP"] == "0" {
-		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(`18446744073709551615`), 0644)
+		bytes := "18446744073709551615"
+
+		fmt.Fprintf(os.Stderr, "%s/memory.memsw.limit_in_bytes=%s\n", id, bytes)
+
+		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(`18446744073709551615`), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(`18446744073709551615`), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
