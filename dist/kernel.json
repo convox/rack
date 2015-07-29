@@ -427,7 +427,7 @@
         "UserData": { "Fn::Base64": 
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
-            "dd if=/dev/zero of=/swapfile bs=10M count=512 && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
+            "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
             "yum -y update",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
