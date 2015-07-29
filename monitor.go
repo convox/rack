@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	docker "github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Monitor struct {
@@ -86,10 +87,34 @@ func (m *Monitor) handleCreate(id string) {
 		}
 	}
 
+	m.setCgroups(id, env)
+
 	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
 }
 
 func (m *Monitor) handleDie(id string) {
+}
+
+func (m *Monitor) setCgroups(id string, env map[string]string) {
+	if env["MEMORY_SWAP"] == "0" {
+		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(`18446744073709551615`), 0644)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		}
+
+		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(`18446744073709551615`), 0644)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		}
+
+		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(`18446744073709551615`), 0644)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		}
+	}
 }
 
 func (m *Monitor) subscribeLogs(id, stream, process string) {
