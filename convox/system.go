@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -19,7 +21,7 @@ func init() {
 			{
 				Name:        "update",
 				Description: "update the convox system API",
-				Usage:       "[version]",
+				Usage:       "<version>",
 				Action:      cmdSystemUpate,
 			},
 			{
@@ -61,13 +63,33 @@ func cmdSystem(c *cli.Context) {
 }
 
 func cmdSystemUpate(c *cli.Context) {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "system update")
-		return
+	version := ""
+
+	if len(c.Args()) == 0 {
+		resp, err := http.Get("http://convox.s3.amazonaws.com/release/latest/version")
+
+		if err != nil {
+			fmt.Printf("ERROR")
+			stdcli.Error(err)
+			return
+		}
+
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		version = string(body)
+	} else {
+		version = c.Args()[0]
 	}
 
 	v := url.Values{}
-	v.Set("version", c.Args()[0])
+	v.Set("version", version)
 
 	_, err := ConvoxPostForm("/system", v)
 
