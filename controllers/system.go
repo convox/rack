@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 
 	"github.com/convox/kernel/helpers"
@@ -53,22 +55,46 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := map[string]string{}
+	p := map[string]string{}
 
 	if version := GetForm(r, "version"); version != "" {
-		params["Version"] = version
+		p["Version"] = version
 	}
 
 	if count := GetForm(r, "count"); count != "" {
-		params["InstanceCount"] = count
+		p["InstanceCount"] = count
 	}
 
 	if t := GetForm(r, "type"); t != "" {
-		params["InstanceType"] = t
+		p["InstanceType"] = t
 	}
 
-	if len(params) > 0 {
-		err := app.UpdateParams(params)
+	if len(p) > 0 {
+		req := &cloudformation.UpdateStackInput{
+			StackName:    aws.String(app.Name),
+			Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		}
+
+		if p["Version"] == "" {
+			req.UsePreviousTemplate = aws.Boolean(true)
+		} else {
+			req.TemplateURL = aws.String(fmt.Sprintf("http://convox.s3.amazonaws.com/release/%s/formation.json", p["Version"]))
+		}
+
+		params := app.Parameters
+
+		for key, val := range p {
+			params[key] = val
+		}
+
+		for key, val := range params {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:   aws.String(key),
+				ParameterValue: aws.String(val),
+			})
+		}
+
+		_, err := models.CloudFormation().UpdateStack(req)
 
 		if ae, ok := err.(awserr.Error); ok {
 			if ae.Code() == "ValidationError" {
