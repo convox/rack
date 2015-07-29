@@ -75,7 +75,7 @@ func LambdaFunctionCreate(req Request) (string, error) {
 
 func LambdaFunctionUpdate(req Request) (string, error) {
 	fmt.Printf("req %+v\n", req)
-	return "", fmt.Errorf("could not update")
+	return req.PhysicalResourceId, fmt.Errorf("could not update")
 }
 
 func LambdaFunctionDelete(req Request) (string, error) {
@@ -87,8 +87,8 @@ func LambdaFunctionDelete(req Request) (string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil
+		return req.PhysicalResourceId, nil
 	}
 
-	return "", nil
+	return req.PhysicalResourceId, nil
 }

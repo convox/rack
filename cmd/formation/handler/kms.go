@@ -43,7 +43,7 @@ func KMSKeyCreate(req Request) (string, map[string]string, error) {
 }
 
 func KMSKeyUpdate(req Request) (string, map[string]string, error) {
-	return "", nil, fmt.Errorf("could not update")
+	return req.PhysicalResourceId, nil, fmt.Errorf("could not update")
 }
 
 func KMSKeyDelete(req Request) (string, map[string]string, error) {
@@ -55,8 +55,8 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil, nil
+		return req.PhysicalResourceId, nil, nil
 	}
 
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
