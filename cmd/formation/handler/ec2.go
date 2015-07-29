@@ -57,10 +57,10 @@ func EC2AvailabilityZonesCreate(req Request) (string, map[string]string, error) 
 
 func EC2AvailabilityZonesUpdate(req Request) (string, map[string]string, error) {
 	// nop
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
 
 func EC2AvailabilityZonesDelete(req Request) (string, map[string]string, error) {
 	// nop
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }

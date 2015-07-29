@@ -90,7 +90,7 @@ func ECSClusterCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECSClusterUpdate(req Request) (string, map[string]string, error) {
-	return "", nil, fmt.Errorf("could not update")
+	return req.PhysicalResourceId, nil, fmt.Errorf("could not update")
 }
 
 func ECSClusterDelete(req Request) (string, map[string]string, error) {
@@ -102,10 +102,10 @@ func ECSClusterDelete(req Request) (string, map[string]string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil, nil
+		return req.PhysicalResourceId, nil, nil
 	}
 
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
 
 func ECSServiceCreate(req Request) (string, map[string]string, error) {
@@ -194,7 +194,7 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	// go ahead and mark the delete good if the service is not found
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ServiceNotFoundException" {
-			return "", nil, nil
+			return req.PhysicalResourceId, nil, nil
 		}
 	}
 
@@ -202,7 +202,7 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil, nil
+		return req.PhysicalResourceId, nil, nil
 	}
 
 	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
@@ -214,10 +214,10 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil, nil
+		return req.PhysicalResourceId, nil, nil
 	}
 
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
 
 func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
@@ -400,7 +400,7 @@ func ECSTaskDefinitionDelete(req Request) (string, map[string]string, error) {
 	// Task Definitions, where the Register fails. We work around this by not
 	// deregistering any Task Definitions.
 	// _, err := ECS(req).DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{TaskDefinition: aws.String(req.PhysicalResourceId)})
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
 
 var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")

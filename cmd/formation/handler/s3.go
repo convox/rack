@@ -34,7 +34,7 @@ func S3BucketCleanupCreate(req Request) (string, map[string]string, error) {
 }
 
 func S3BucketCleanupUpdate(req Request) (string, map[string]string, error) {
-	return req.ResourceProperties["Bucket"].(string) + "-Cleanup", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
 
 func S3BucketCleanupDelete(req Request) (string, map[string]string, error) {
@@ -46,11 +46,11 @@ func S3BucketCleanupDelete(req Request) (string, map[string]string, error) {
 	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return "", nil, nil
+		return req.PhysicalResourceId, nil, nil
 	}
 
 	// success
-	return "", nil, nil
+	return req.PhysicalResourceId, nil, nil
 }
 
 func cleanupBucket(bucket string, S3 *s3.S3) error {
