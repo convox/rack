@@ -65,19 +65,47 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 			m.handleCreate(event.ID)
 		case "die":
 			m.handleDie(event.ID)
+		case "start":
+			m.handleStart(event.ID)
 		}
 	}
 }
 
 func (m *Monitor) handleCreate(id string) {
-	container, err := m.client.InspectContainer(id)
+	env, err := m.inspectContainerEnv(id)
 
 	if err != nil {
 		log.Printf("error: %s\n", err)
 		return
 	}
 
+	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
+}
+
+func (m *Monitor) handleDie(id string) {
+}
+
+func (m *Monitor) handleStart(id string) {
+	env, err := m.inspectContainerEnv(id)
+
+	if err != nil {
+		log.Printf("error: %s\n", err)
+		return
+	}
+
+	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
+	m.updateCgroups(id, env)
+}
+
+func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
 	env := map[string]string{}
+
+	container, err := m.client.InspectContainer(id)
+
+	if err != nil {
+		log.Printf("error: %s\n", err)
+		return env, err
+	}
 
 	for _, e := range container.Config.Env {
 		parts := strings.SplitN(e, "=", 2)
@@ -87,12 +115,7 @@ func (m *Monitor) handleCreate(id string) {
 		}
 	}
 
-	m.updateCgroups(id, env)
-
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
-}
-
-func (m *Monitor) handleDie(id string) {
+	return env, nil
 }
 
 func (m *Monitor) updateCgroups(id string, env map[string]string) {
