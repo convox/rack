@@ -87,7 +87,7 @@ func (m *Monitor) handleCreate(id string) {
 		}
 	}
 
-	m.setCgroups(id, env)
+	m.updateCgroups(id, env)
 
 	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
 }
@@ -95,24 +95,25 @@ func (m *Monitor) handleCreate(id string) {
 func (m *Monitor) handleDie(id string) {
 }
 
-func (m *Monitor) setCgroups(id string, env map[string]string) {
+func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	if env["MEMORY_SWAP"] == "0" {
 		bytes := "18446744073709551615"
 
-		fmt.Fprintf(os.Stderr, "%s/memory.memsw.limit_in_bytes=%s\n", id, bytes)
-
+		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", id, bytes)
 		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
+		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.soft_limit_in_bytes value=%s\n", id, bytes)
 		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
+		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.limit_in_bytes value=%s\n", id, bytes)
 		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
