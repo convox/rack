@@ -93,7 +93,6 @@ func (m *Monitor) handleStart(id string) {
 		return
 	}
 
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
 	m.updateCgroups(id, env)
 }
 
