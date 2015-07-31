@@ -34,6 +34,16 @@ func init() {
 				Name:  "dedicated",
 				Usage: "create EC2 instances on dedicated hardware",
 			},
+			cli.IntFlag{
+				Name: "instance-count",
+				Value: 3,
+				Usage: "number of EC2 instances",
+			},
+			cli.StringFlag{
+				Name: "instance-type",
+				Value: "t2.small",
+				Usage: "type of EC2 instances",
+			},
 		},
 	})
 
@@ -53,18 +63,20 @@ func init() {
 
 func cmdInstall(c *cli.Context) {
 	tenancy := "default"
-	instanceType := "t2.small"
+	instanceType := c.String("instance-type")
 
 	if c.Bool("dedicated") {
 		tenancy = "dedicated"
-		instanceType = "m3.medium"
+		if strings.HasPrefix(instanceType, "t2")  {
+			stdcli.Error(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
+		}
 	}
 
 	fmt.Println(`
 
-     ___    ___     ___   __  __    ___   __  _  
+     ___    ___     ___   __  __    ___   __  _
     / ___\ / __ \ /  _  \/\ \/\ \  / __ \/\ \/ \
-   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </ 
+   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
    \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
     \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
 
@@ -135,6 +147,8 @@ func cmdInstall(c *cli.Context) {
 		version = "latest"
 	}
 
+	instanceCount := fmt.Sprintf("%d", c.Int("instance-count"))
+
 	fmt.Println("Installing Convox...")
 
 	access = strings.TrimSpace(access)
@@ -152,7 +166,7 @@ func cmdInstall(c *cli.Context) {
 		Parameters: []*cloudformation.Parameter{
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
-			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String("3")},
+			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
@@ -202,9 +216,9 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println(`
 
-     ___    ___     ___   __  __    ___   __  _  
+     ___    ___     ___   __  __    ___   __  _
     /'___\ / __'\ /' _ '\/\ \/\ \  / __'\/\ \/'\
-   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </ 
+   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
    \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
     \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
 
