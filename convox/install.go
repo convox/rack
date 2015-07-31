@@ -39,6 +39,11 @@ func init() {
 				Value: 3,
 				Usage: "number of EC2 instances",
 			},
+			cli.StringFlag{
+				Name: "instance-type",
+				Value: "t2.small",
+				Usage: "type of EC2 instances",
+			},
 		},
 	})
 
@@ -58,11 +63,13 @@ func init() {
 
 func cmdInstall(c *cli.Context) {
 	tenancy := "default"
-	instanceType := "t2.small"
+	instanceType := c.String("instance-type")
 
 	if c.Bool("dedicated") {
 		tenancy = "dedicated"
-		instanceType = "m3.medium"
+		if strings.HasPrefix(instanceType, "t2")  {
+			stdcli.Error(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
+		}
 	}
 
 	fmt.Println(`
