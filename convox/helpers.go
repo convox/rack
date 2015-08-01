@@ -17,6 +17,9 @@ func exists(filename string) bool {
 }
 
 func sendMixpanelEvent(event string) {
+	if os.Getenv("DEVELOPMENT") == "Yes" {
+		return // don't log dev events
+	}
 	id, err := currentId()
 
 	if err != nil {
