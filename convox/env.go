@@ -88,7 +88,7 @@ func cmdEnvGet(c *cli.Context) {
 
 	
 	if len(c.Args()) == 0 {
-		stdcli.Error(errors.New("No variable specified))
+		stdcli.Error(errors.New("No variable specified"))
 		return
 	}
 	
@@ -172,7 +172,7 @@ func cmdEnvUnset(c *cli.Context) {
 	}
 	
 	if len(c.Args()) == 0 {
-		stdcli.Error(errors.New("No variable specified))
+		stdcli.Error(errors.New("No variable specified"))
 		return
 	}
 	
