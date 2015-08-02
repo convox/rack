@@ -93,7 +93,7 @@ func cmdEnvGet(c *cli.Context) {
 	}
 	
 	if len(c.Args()) > 1 {
-		stdcli.Error(errors.New("Only 1 variable can be retrieved at a time))
+		stdcli.Error(errors.New("Only 1 variable can be retrieved at a time"))
 		return
 	}
 
@@ -177,7 +177,7 @@ func cmdEnvUnset(c *cli.Context) {
 	}
 	
 	if len(c.Args()) > 1 {
-		stdcli.Error(errors.New("Only 1 variable can be unset at a time))
+		stdcli.Error(errors.New("Only 1 variable can be unset at a time"))
 		return
 	}
 
