@@ -40,7 +40,7 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 		return
 	}
 
-	if password := os.Getenv("HTTP_PASSWORD"); password != "" {
+	if password := os.Getenv("PASSWORD"); password != "" {
 		auth := r.Header.Get("Authorization")
 
 		if auth == "" {

@@ -54,6 +54,10 @@
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
+    "Password": {
+      "Condition": "Development",
+      "Value": { "Ref": "Password" }
+    },
     "Rack": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::StackName" }
@@ -64,10 +68,6 @@
         { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
         { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }
       ] }
-    },
-    "RegistryPassword": {
-      "Condition": "Development",
-      "Value": { "Ref": "Password" }
     },
     "Subnets": {
       "Condition": "Development",
@@ -788,16 +788,15 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
-              "HTTP_PASSWORD": { "Ref": "Password" },
               "KINESIS": { "Ref": "Kinesis" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
+              "PASSWORD": { "Ref": "Password" },
               "PROCESS": "kernel",
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
                 { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
                 { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }
               ] },
-              "REGISTRY_PASSWORD": { "Ref": "Password" },
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
