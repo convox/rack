@@ -82,9 +82,9 @@ func cmdAppCreate(c *cli.Context) {
 	}
 
 	if app == "" {
-		fmt.Printf("Creating app: ")
+		fmt.Printf("Creating app... ")
 	} else {
-		fmt.Printf("Creating app %s: ", app)
+		fmt.Printf("Creating app %s... ", app)
 	}
 
 	v := url.Values{}
@@ -142,7 +142,7 @@ func cmdAppDelete(c *cli.Context) {
 
 	app := c.Args()[0]
 
-	fmt.Printf("Deleting %s: ", app)
+	fmt.Printf("Deleting %s... ", app)
 
 	_, err := ConvoxDelete(fmt.Sprintf("/apps/%s", app))
 
