@@ -217,6 +217,15 @@ func switchHost(host string) error {
 	return ioutil.WriteFile(filepath.Join(ConfigRoot, "host"), []byte(host), 0600)
 }
 
+func remHost() error {
+	err := os.Remove(filepath.Join(ConfigRoot, "host"))
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func currentLogin() (string, string, error) {
 	host, err := currentHost()
 
