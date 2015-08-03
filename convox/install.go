@@ -347,12 +347,17 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}
 
-	_, err = waitForCompletion(stackId, CloudFormation, true)
+	host, err := waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
 		return
 	}
+
+	if configuredHost, _ := currentHost(); configuredHost == host {
+		remHost()
+	}
+	remLogin(host)
 
 	fmt.Println("Successfully uninstalled.")
 
@@ -412,7 +417,11 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 		case "ROLLBACK_COMPLETE":
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "DELETE_COMPLETE":
-			return "", nil
+			for _, o := range dres.Stacks[0].Outputs {
+				if *o.OutputKey == "Dashboard" {
+					return *o.OutputValue, nil
+				}
+			}
 		case "DELETE_FAILED":
 			return "", fmt.Errorf("stack deletion failed, contact support@convox.com for assistance")
 		}
