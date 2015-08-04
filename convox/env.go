@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -85,6 +86,17 @@ func cmdEnvGet(c *cli.Context) {
 		return
 	}
 
+	
+	if len(c.Args()) == 0 {
+		stdcli.Error(errors.New("No variable specified"))
+		return
+	}
+	
+	if len(c.Args()) > 1 {
+		stdcli.Error(errors.New("Only 1 variable can be retrieved at a time"))
+		return
+	}
+
 	variable := c.Args()[0]
 
 	resp, err := fetchEnv(app)
@@ -156,6 +168,16 @@ func cmdEnvUnset(c *cli.Context) {
 
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+	
+	if len(c.Args()) == 0 {
+		stdcli.Error(errors.New("No variable specified"))
+		return
+	}
+	
+	if len(c.Args()) > 1 {
+		stdcli.Error(errors.New("Only 1 variable can be unset at a time"))
 		return
 	}
 
