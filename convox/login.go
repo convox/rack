@@ -213,7 +213,7 @@ func addLogin(host, password string) error {
 	return ioutil.WriteFile(config, data, 0600)
 }
 
-func remLogin(host string) error {
+func removeLogin(host string) error {
 	config := filepath.Join(ConfigRoot, "auth")
 
 	data, _ := ioutil.ReadFile(filepath.Join(config))
@@ -245,7 +245,7 @@ func switchHost(host string) error {
 	return ioutil.WriteFile(filepath.Join(ConfigRoot, "host"), []byte(host), 0600)
 }
 
-func remHost() error {
+func removeHost() error {
 	err := os.Remove(filepath.Join(ConfigRoot, "host"))
 
 	if err != nil {

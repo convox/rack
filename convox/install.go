@@ -355,9 +355,9 @@ func cmdUninstall(c *cli.Context) {
 	}
 
 	if configuredHost, _ := currentHost(); configuredHost == host {
-		remHost()
+		removeHost()
 	}
-	remLogin(host)
+	removeLogin(host)
 
 	fmt.Println("Successfully uninstalled.")
 
