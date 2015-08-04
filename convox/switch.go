@@ -11,7 +11,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "switch",
 		Description: "switch to another convox rack",
-		Usage:       "convox switch host",
+		Usage:       "host",
 		Action:      cmdSwitch,
 	})
 }

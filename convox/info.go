@@ -15,7 +15,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "info",
 		Description: "see info about an app",
-		Usage:       "convox info [--app name]",
+		Usage:       "[--app name]",
 		Action:      cmdInfo,
 		Flags: []cli.Flag{
 			cli.StringFlag{

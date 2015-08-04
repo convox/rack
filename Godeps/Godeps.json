@@ -57,12 +57,12 @@
 		},
 		{
 			"ImportPath": "github.com/briandowns/spinner",
-			"Rev": "afc9ce26eb6cd43caad9c86a3c4a56ae2a9f39d2"
+			"Rev": "07369a2abb5b8564c50fd48dc842714fb02b71be"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",
-			"Comment": "1.2.0-95-g9b2bd2b",
-			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
+			"Comment": "1.2.0-137-gbca61c4",
+			"Rev": "bca61c476e3c752594983e4c9bcd5f62fb09f157"
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",

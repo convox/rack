@@ -46,12 +46,12 @@ Options:
   {{end}}{{end}}
 `
 
-	cli.CommandHelpTemplate = fmt.Sprintf(`%s {{.Name}}: {{.Description}}
+	cli.CommandHelpTemplate = fmt.Sprintf(`%s {{.FullName}}: {{.Description}}
 
 Usage:
-  %s {{.Name}} {{.Usage}}
+  %s {{.FullName}} {{.Usage}}
 {{if .Subcommands}}
-Subcommands: (%s {{.Name}} help <subcommand>)
+Subcommands: (%s {{.FullName}} help <subcommand>)
   {{range .Subcommands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
   {{end}}{{end}}{{if .Flags}}
 Options:

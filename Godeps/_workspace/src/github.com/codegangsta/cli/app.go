@@ -5,14 +5,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 )
 
 // App is the main structure of a cli application. It is recomended that
-// and app be created with the cli.NewApp() function
+// an app be created with the cli.NewApp() function
 type App struct {
 	// The name of the program. Defaults to os.Args[0]
 	Name string
@@ -46,6 +43,8 @@ type App struct {
 	Compiled time.Time
 	// List of all authors who contributed
 	Authors []Author
+	// Copyright of the binary if any
+	Copyright string
 	// Name of Author (Note: Use App.Authors, this is deprecated)
 	Author string
 	// Email of Author (Note: Use App.Authors, this is deprecated)
@@ -83,26 +82,6 @@ func (a *App) Run(arguments []string) (err error) {
 		a.Authors = append(a.Authors, Author{Name: a.Author, Email: a.Email})
 	}
 
-	if HelpPrinter == nil {
-		defer func() {
-			HelpPrinter = nil
-		}()
-
-		HelpPrinter = func(templ string, data interface{}) {
-			funcMap := template.FuncMap{
-				"join": strings.Join,
-			}
-
-			w := tabwriter.NewWriter(a.Writer, 0, 8, 1, '\t', 0)
-			t := template.Must(template.New("help").Funcs(funcMap).Parse(templ))
-			err := t.Execute(w, data)
-			if err != nil {
-				panic(err)
-			}
-			w.Flush()
-		}
-	}
-
 	// append help to commands
 	if a.Command(helpCommand.Name) == nil && !a.HideHelp {
 		a.Commands = append(a.Commands, helpCommand)
@@ -127,17 +106,16 @@ func (a *App) Run(arguments []string) (err error) {
 	nerr := normalizeFlags(a.Flags, set)
 	if nerr != nil {
 		fmt.Fprintln(a.Writer, nerr)
-		context := NewContext(a, set, set)
+		context := NewContext(a, set, nil)
 		ShowAppHelp(context)
-		fmt.Fprintln(a.Writer)
 		return nerr
 	}
-	context := NewContext(a, set, set)
+	context := NewContext(a, set, nil)
 
 	if err != nil {
-		fmt.Fprintf(a.Writer, "Incorrect Usage.\n\n")
-		ShowAppHelp(context)
+		fmt.Fprintln(a.Writer, "Incorrect Usage.")
 		fmt.Fprintln(a.Writer)
+		ShowAppHelp(context)
 		return err
 	}
 
@@ -155,10 +133,14 @@ func (a *App) Run(arguments []string) (err error) {
 
 	if a.After != nil {
 		defer func() {
-			// err is always nil here.
-			// There is a check to see if it is non-nil
-			// just few lines before.
-			err = a.After(context)
+			afterErr := a.After(context)
+			if afterErr != nil {
+				if err != nil {
+					err = NewMultiError(err, afterErr)
+				} else {
+					err = afterErr
+				}
+			}
 		}()
 	}
 
@@ -213,21 +195,22 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 	set.SetOutput(ioutil.Discard)
 	err = set.Parse(ctx.Args().Tail())
 	nerr := normalizeFlags(a.Flags, set)
-	context := NewContext(a, set, ctx.globalSet)
+	context := NewContext(a, set, ctx)
 
 	if nerr != nil {
 		fmt.Fprintln(a.Writer, nerr)
+		fmt.Fprintln(a.Writer)
 		if len(a.Commands) > 0 {
 			ShowSubcommandHelp(context)
 		} else {
 			ShowCommandHelp(ctx, context.Args().First())
 		}
-		fmt.Fprintln(a.Writer)
 		return nerr
 	}
 
 	if err != nil {
-		fmt.Fprintf(a.Writer, "Incorrect Usage.\n\n")
+		fmt.Fprintln(a.Writer, "Incorrect Usage.")
+		fmt.Fprintln(a.Writer)
 		ShowSubcommandHelp(context)
 		return err
 	}
@@ -248,10 +231,14 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 
 	if a.After != nil {
 		defer func() {
-			// err is always nil here.
-			// There is a check to see if it is non-nil
-			// just few lines before.
-			err = a.After(context)
+			afterErr := a.After(context)
+			if afterErr != nil {
+				if err != nil {
+					err = NewMultiError(err, afterErr)
+				} else {
+					err = afterErr
+				}
+			}
 		}()
 	}
 

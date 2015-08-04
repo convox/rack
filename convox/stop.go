@@ -11,7 +11,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "stop",
 		Description: "stop a process",
-		Usage:       "convox stop id",
+		Usage:       "id",
 		Action:      cmdStop,
 		Flags: []cli.Flag{
 			cli.StringFlag{
