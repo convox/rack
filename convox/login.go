@@ -213,8 +213,45 @@ func addLogin(host, password string) error {
 	return ioutil.WriteFile(config, data, 0600)
 }
 
+func removeLogin(host string) error {
+	config := filepath.Join(ConfigRoot, "auth")
+
+	data, _ := ioutil.ReadFile(filepath.Join(config))
+
+	if data == nil {
+		data = []byte("{}")
+	}
+
+	var auth ConfigAuth
+
+	err := json.Unmarshal(data, &auth)
+
+	if err != nil {
+		return err
+	}
+
+	delete(auth, host)
+
+	data, err = json.Marshal(auth)
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(config, data, 0600)
+}
+
 func switchHost(host string) error {
 	return ioutil.WriteFile(filepath.Join(ConfigRoot, "host"), []byte(host), 0600)
+}
+
+func removeHost() error {
+	err := os.Remove(filepath.Join(ConfigRoot, "host"))
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func currentLogin() (string, string, error) {
