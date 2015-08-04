@@ -13,7 +13,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "run",
 		Description: "run a one-off process",
-		Usage:       "convox run ps cmd",
+		Usage:       "ps cmd",
 		Action:      cmdRun,
 		Flags: []cli.Flag{
 			cli.StringFlag{

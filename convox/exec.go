@@ -12,7 +12,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "exec",
 		Description: "exec a local process",
-		Usage:       "convox exec ps cmd",
+		Usage:       "ps cmd",
 		Action:      cmdExec,
 		Flags: []cli.Flag{
 			cli.StringFlag{
