@@ -229,7 +229,7 @@
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "S3Bucket": "convox",
+          "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
           "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/formation.zip" ] ] }
         },
         "Handler": "lambda.external",
@@ -424,7 +424,7 @@
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
         "PlacementTenancy" : { "Ref": "Tenancy" },
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
-        "UserData": { "Fn::Base64": 
+        "UserData": { "Fn::Base64":
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
             "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
@@ -445,7 +445,7 @@
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             "curl -s http://convox.s3.amazonaws.com/agent/0.3/convox.conf > /etc/init/convox.conf",
             "start convox"
-          ] ] } 
+          ] ] }
         }
       }
     },
@@ -458,7 +458,7 @@
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
         ],
-        "VPCZoneIdentifier": [ 
+        "VPCZoneIdentifier": [
           { "Ref": "Subnet0" },
           { "Ref": "Subnet1" },
           { "Ref": "Subnet2" }
