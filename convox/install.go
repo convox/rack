@@ -21,6 +21,9 @@ import (
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
 
+// https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
+var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true}
+
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -74,6 +77,13 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
+
+	region := c.String("region")
+	fmt.Println(lambdaRegions)
+	if !lambdaRegions[region] {
+		stdcli.Error(fmt.Errorf("Convox is not currently supported in %s", region))
+	}
+
 	tenancy := "default"
 	instanceType := c.String("instance-type")
 
@@ -169,7 +179,7 @@ func cmdInstall(c *cli.Context) {
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      c.String("region"),
+		Region:      region,
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
