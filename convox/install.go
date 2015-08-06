@@ -35,19 +35,19 @@ func init() {
 				Usage: "create EC2 instances on dedicated hardware",
 			},
 			cli.IntFlag{
-				Name: "instance-count",
+				Name:  "instance-count",
 				Value: 3,
 				Usage: "number of EC2 instances",
 			},
 			cli.StringFlag{
-				Name: "instance-type",
+				Name:  "instance-type",
 				Value: "t2.small",
 				Usage: "type of EC2 instances",
 			},
 			cli.StringFlag{
-				Name: "region",
-				Value: "us-east-1",
-				Usage: "aws region to install in",
+				Name:   "region",
+				Value:  "us-east-1",
+				Usage:  "aws region to install in",
 				EnvVar: "AWS_REGION",
 			},
 		},
@@ -63,6 +63,12 @@ func init() {
 				Name:  "force",
 				Usage: "uninstall even if apps exist",
 			},
+			cli.StringFlag{
+				Name:   "region",
+				Value:  "us-east-1",
+				Usage:  "aws region to uninstall from",
+				EnvVar: "AWS_REGION",
+			},
 		},
 	})
 }
@@ -73,7 +79,7 @@ func cmdInstall(c *cli.Context) {
 
 	if c.Bool("dedicated") {
 		tenancy = "dedicated"
-		if strings.HasPrefix(instanceType, "t2")  {
+		if strings.HasPrefix(instanceType, "t2") {
 			stdcli.Error(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
 		}
 	}
