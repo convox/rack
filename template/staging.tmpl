@@ -95,7 +95,7 @@
         "Type": "AWS::Lambda::Function",
         "Properties": {
           "Code": {
-            "S3Bucket": "convox",
+            "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
             "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/formation.zip" ] ] }
           },
           "Handler": "lambda.external",
