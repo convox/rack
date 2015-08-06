@@ -241,7 +241,17 @@
     "CustomTopic": {
       "Properties": {
         "Code": {
-          "S3Bucket": "convox",
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
           "S3Key": {
             "Fn::Join": [
               "",
