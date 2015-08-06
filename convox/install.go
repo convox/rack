@@ -21,6 +21,9 @@ import (
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
 
+// https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
+var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true}
+
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -35,14 +38,20 @@ func init() {
 				Usage: "create EC2 instances on dedicated hardware",
 			},
 			cli.IntFlag{
-				Name: "instance-count",
+				Name:  "instance-count",
 				Value: 3,
 				Usage: "number of EC2 instances",
 			},
 			cli.StringFlag{
-				Name: "instance-type",
+				Name:  "instance-type",
 				Value: "t2.small",
 				Usage: "type of EC2 instances",
+			},
+			cli.StringFlag{
+				Name:   "region",
+				Value:  "us-east-1",
+				Usage:  "aws region to install in",
+				EnvVar: "AWS_REGION",
 			},
 		},
 	})
@@ -57,17 +66,30 @@ func init() {
 				Name:  "force",
 				Usage: "uninstall even if apps exist",
 			},
+			cli.StringFlag{
+				Name:   "region",
+				Value:  "us-east-1",
+				Usage:  "aws region to uninstall from",
+				EnvVar: "AWS_REGION",
+			},
 		},
 	})
 }
 
 func cmdInstall(c *cli.Context) {
+
+	region := c.String("region")
+	fmt.Println(lambdaRegions)
+	if !lambdaRegions[region] {
+		stdcli.Error(fmt.Errorf("Convox is not currently supported in %s", region))
+	}
+
 	tenancy := "default"
 	instanceType := c.String("instance-type")
 
 	if c.Bool("dedicated") {
 		tenancy = "dedicated"
-		if strings.HasPrefix(instanceType, "t2")  {
+		if strings.HasPrefix(instanceType, "t2") {
 			stdcli.Error(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
 		}
 	}
@@ -90,7 +112,7 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println("install process and then delete them once the installer has completed.")
 	fmt.Println("")
 	fmt.Println("To generate a new set of AWS credentials go to:")
-	fmt.Println("https://console.aws.amazon.com/iam/home?region=us-east-1#security_credential")
+	fmt.Println("https://console.aws.amazon.com/iam/home#security_credential")
 	fmt.Println("")
 
 	distinctId, err := currentId()
@@ -157,7 +179,7 @@ func cmdInstall(c *cli.Context) {
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      "us-east-1",
+		Region:      region,
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
@@ -232,7 +254,7 @@ func cmdUninstall(c *cli.Context) {
 	fmt.Println("uninstall process and then delete them once the uninstaller has completed.")
 	fmt.Println("")
 	fmt.Println("To generate a new set of AWS credentials go to:")
-	fmt.Println("https://console.aws.amazon.com/iam/home?region=us-east-1#security_credential")
+	fmt.Println("https://console.aws.amazon.com/iam/home#security_credential")
 	fmt.Println("")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -276,7 +298,7 @@ func cmdUninstall(c *cli.Context) {
 	secret = strings.TrimSpace(secret)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      "us-east-1",
+		Region:      c.String("region"),
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
@@ -313,7 +335,7 @@ func cmdUninstall(c *cli.Context) {
 	fmt.Printf("Cleaning up registry...\n")
 
 	S3 := s3.New(&aws.Config{
-		Region:      "us-east-1",
+		Region:      c.String("region"),
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
