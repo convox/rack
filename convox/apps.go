@@ -151,7 +151,7 @@ func cmdAppDelete(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("OK")
+	fmt.Println("OK - DELETE STARTED")
 }
 
 func getApps() *Apps {
