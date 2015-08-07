@@ -10,6 +10,7 @@ func main() {
 
 	go heartbeat()
 	go startClusterMonitor()
+	go pullAppImages()
 	startWeb()
 }
 
