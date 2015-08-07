@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/convox/kernel/models"
 
@@ -12,24 +13,32 @@ import (
 )
 
 func pullAppImages() {
+	var log = logger.New("ns=app_images")
+
 	if os.Getenv("DEVELOPMENT") == "true" {
 		return
 	}
 
-	var log = logger.New("ns=app_images")
+	maxRetries := 5
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		err := dockerLogin()
+
+		if err == nil {
+			break
+		}
+
+		time.Sleep(30 * time.Second)
+	}
+
+	if err != nil {
+		return
+	}
 
 	apps, err := models.ListApps()
 
 	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	log.Log("cmd=%q", fmt.Sprintf("docker login -e user@convox.com -u convox -p ***** %s", os.Getenv("REGISTRY_HOST")))
-	data, err := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST")).CombinedOutput()
-
-	if err != nil {
-		fmt.Printf("%+v\n", string(data))
 		log.Error(err)
 		return
 	}
@@ -56,4 +65,18 @@ func pullAppImages() {
 			}
 		}
 	}
+}
+
+func dockerLogin() error {
+	var log = logger.New("ns=app_images")
+
+	log.Log("cmd=%q", fmt.Sprintf("docker login -e user@convox.com -u convox -p ***** %s", os.Getenv("REGISTRY_HOST")))
+	data, err := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST")).CombinedOutput()
+
+	if err != nil {
+		fmt.Printf("%+v\n", string(data))
+		log.Error(err)
+	}
+
+	return err
 }
