@@ -576,12 +576,12 @@
               "Protocol": "TCP",
               "LoadBalancerPort": "5000",
               "InstanceProtocol": "TCP",
-              "InstancePort": "3101"
+              "InstancePort": "3100"
             },
             {
               "Protocol": "HTTPS",
               "LoadBalancerPort": "5000",
-              "InstanceProtocol": "HTTP",
+              "InstanceProtocol": "HTTPS",
               "InstancePort": "3100",
               "SSLCertificateId": { "Ref": "Certificate" }
             }
@@ -831,8 +831,7 @@
             "Memory": "256",
             "Name": "registry",
             "PortMappings": [
-              "3100:3000",
-              "3101:443"
+              "3100:443"
             ],
             "Volumes": []
           }
