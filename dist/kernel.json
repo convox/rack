@@ -492,16 +492,9 @@
     },
     "RegistryBucket": {
       "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "Private"
-      }
-    },
-    "RegistryBucketCleanup": {
-      "DependsOn": "CustomTopic",
-      "Type": "Custom::S3BucketCleanup",
-      "Properties": {
-        "Bucket": { "Ref": "RegistryBucket" },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
       }
     },
     "RegistryUser": {
@@ -758,15 +751,8 @@
           }
         ]
       },
+      "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
-    },
-    "SettingsCleanup": {
-      "DependsOn": "CustomTopic",
-      "Type": "Custom::S3BucketCleanup",
-      "Properties": {
-        "Bucket": { "Ref": "Settings" },
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
-      }
     },
     "KernelTasks": {
       "DependsOn": "CustomTopic",
