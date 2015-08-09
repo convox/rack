@@ -219,7 +219,10 @@
             "PolicyName": "Administrator",
             "PolicyDocument": {
               "Version": "2012-10-17",
-              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
+              "Statement": [
+                { "Effect": "Allow", "Action": "*", "Resource": "*" },
+                { "Effect": "Deny", "Action": "s3:DeleteObject", "Resource": "*" }
+              ]
             }
           }
         ]

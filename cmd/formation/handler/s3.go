@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
@@ -38,16 +37,16 @@ func S3BucketCleanupUpdate(req Request) (string, map[string]string, error) {
 }
 
 func S3BucketCleanupDelete(req Request) (string, map[string]string, error) {
-	bucket := req.ResourceProperties["Bucket"].(string)
+	// bucket := req.ResourceProperties["Bucket"].(string)
 
-	err := cleanupBucket(bucket, S3(req))
+	// err := cleanupBucket(bucket, S3(req))
 
-	// TODO let the cloudformation finish thinking this deleted
-	// but take note so we can figure out why
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return req.PhysicalResourceId, nil, nil
-	}
+	// // TODO let the cloudformation finish thinking this deleted
+	// // but take note so we can figure out why
+	// if err != nil {
+	//   fmt.Fprintf(os.Stderr, "error: %s\n", err)
+	//   return req.PhysicalResourceId, nil, nil
+	// }
 
 	// success
 	return req.PhysicalResourceId, nil, nil
