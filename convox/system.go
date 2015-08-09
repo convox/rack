@@ -22,7 +22,7 @@ func init() {
 				Name:        "update",
 				Description: "update the convox system API",
 				Usage:       "<version>",
-				Action:      cmdSystemUpate,
+				Action:      cmdSystemUpdate,
 			},
 			{
 				Name:        "scale",
@@ -62,7 +62,7 @@ func cmdSystem(c *cli.Context) {
 	fmt.Printf("Type       %s\n", a.Parameters["InstanceType"])
 }
 
-func cmdSystemUpate(c *cli.Context) {
+func cmdSystemUpdate(c *cli.Context) {
 	version := ""
 
 	if len(c.Args()) == 0 {
