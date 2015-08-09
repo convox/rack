@@ -499,6 +499,14 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 			}
 
 			fmt.Printf("Deleted %s: %s\n", name, id)
+		case "DELETE_SKIPPED":
+			id := *event.PhysicalResourceID
+
+			if strings.HasPrefix(id, "arn:") {
+				id = *event.LogicalResourceID
+			}
+
+			fmt.Printf("Skipped %s: %s\n", name, id)
 		case "DELETE_FAILED":
 			return fmt.Errorf("stack deletion failed")
 		case "UPDATE_IN_PROGRESS", "UPDATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_FAILED", "UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_FAILED":
