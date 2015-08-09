@@ -338,20 +338,13 @@
 {{ define "state" }}
   "Settings": {
     "Type": "AWS::S3::Bucket",
+    "DeletionPolicy": "Retain",
     "Properties": {
       "AccessControl": "Private",
       "Tags": [
         { "Key": "system", "Value": "convox" },
         { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
       ]
-    }
-  },
-  "SettingsCleanup": {
-    "DependsOn": "CustomTopic",
-    "Type": "Custom::S3BucketCleanup",
-    "Properties": {
-      "Bucket": { "Ref": "Settings" },
-      "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     }
   }
 {{ end }}
