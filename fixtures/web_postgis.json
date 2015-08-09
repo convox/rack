@@ -454,6 +454,7 @@
       "Type": "AWS::IAM::Role"
     },
     "Settings": {
+      "DeletionPolicy": "Retain",
       "Properties": {
         "AccessControl": "Private",
         "Tags": [
@@ -470,21 +471,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "SettingsCleanup": {
-      "DependsOn": "CustomTopic",
-      "Properties": {
-        "Bucket": {
-          "Ref": "Settings"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        }
-      },
-      "Type": "Custom::S3BucketCleanup"
     },
     "TaskDefinition": {
       "DependsOn": "CustomTopic",
