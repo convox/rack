@@ -33,7 +33,7 @@ type ManifestEntry struct {
 	Build       string      `yaml:"build,omitempty"`
 	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
-	Environment []string    `yaml:"environment,omitempty"`
+	Environment interface{} `yaml:"environment,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
@@ -190,6 +190,27 @@ func (m *Manifest) Build(app, dir string) []error {
 	return []error{}
 }
 
+func (me *ManifestEntry) EnvironmentArray() []string {
+	var arr []string
+	switch t := me.Environment.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range t {
+			arr = append(arr, fmt.Sprintf("%s=%s", k, v))
+		}
+	case []interface{}:
+		for _, s := range t {
+			env := s.(string)
+			if strings.Index(env, "=") == -1 {
+				env = fmt.Sprintf("%s=%s", env, os.Getenv(env))
+			}
+			arr = append(arr, env)
+		}
+	default:
+		// Unknown type. No action.
+	}
+	return arr
+}
+
 func (m *Manifest) MissingEnvironment() []string {
 	existing := map[string]bool{}
 	missingh := map[string]bool{}
@@ -203,7 +224,7 @@ func (m *Manifest) MissingEnvironment() []string {
 	}
 
 	for _, entry := range *m {
-		for _, env := range entry.Environment {
+		for _, env := range entry.EnvironmentArray() {
 			if strings.Index(env, "=") == -1 {
 				if !existing[env] {
 					missingh[env] = true
@@ -283,14 +304,6 @@ func (m *Manifest) Run(app string) []error {
 
 	if len(missing) > 0 {
 		return []error{fmt.Errorf("env expected: %s", strings.Join(missing, ", "))}
-	}
-
-	for _, entry := range *m {
-		for i, env := range entry.Environment {
-			if strings.Index(env, "=") == -1 {
-				entry.Environment[i] = fmt.Sprintf("%s=%s", env, os.Getenv(env))
-			}
-		}
 	}
 
 	sigch := make(chan os.Signal, 1)
@@ -423,12 +436,8 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	args := []string{"run", "-i", "--name", name}
 
-	for _, env := range me.Environment {
-		if strings.Index(env, "=") > -1 {
-			args = append(args, "-e", env)
-		} else {
-			args = append(args, "-e", fmt.Sprintf("%s=%s", env, os.Getenv(env)))
-		}
+	for _, env := range me.EnvironmentArray() {
+		args = append(args, "-e", env)
 	}
 
 	for _, link := range me.Links {
