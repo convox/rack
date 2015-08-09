@@ -12,9 +12,10 @@ dev:
 
 release:
 	cd cmd/formation && make release VERSION=$(VERSION)
-	aws s3 cp dist/kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
+	jq '.Parameters.Version.Default |= "$(VERSION)"' dist/kernel.json > /tmp/kernel.json
+	aws s3 cp /tmp/kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 ifeq ($(LATEST),yes)
-	aws s3 cp dist/kernel.json s3://convox/release/latest/formation.json --acl public-read
+	aws s3 cp /tmp/kernel.json s3://convox/release/latest/formation.json --acl public-read
 	echo $(VERSION) > /tmp/version && aws s3 cp /tmp/version s3://convox/release/latest/version --acl public-read
 endif
 
