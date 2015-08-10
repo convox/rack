@@ -76,10 +76,6 @@ func init() {
 		Usage:       "",
 		Action:      cmdUninstall,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
-				Name:  "force",
-				Usage: "uninstall even if apps exist",
-			},
 			cli.StringFlag{
 				Name:   "region",
 				Value:  "us-east-1",
@@ -243,14 +239,6 @@ func cmdInstall(c *cli.Context) {
 }
 
 func cmdUninstall(c *cli.Context) {
-	if !c.Bool("force") {
-		apps := getApps()
-
-		if len(*apps) != 0 {
-			stdcli.Error(fmt.Errorf("Please delete all apps before uninstalling."))
-		}
-	}
-
 	fmt.Println(`
 
      ___    ___     ___   __  __    ___   __  _
