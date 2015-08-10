@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -18,6 +19,19 @@ import (
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
+
+type Event struct {
+	Id   string
+	Name string
+
+	Reason string
+	Status string
+	Type   string
+
+	Time time.Time
+}
+
+type Events []Event
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
 
@@ -200,6 +214,7 @@ func cmdInstall(c *cli.Context) {
 	})
 
 	if err != nil {
+		logEvents("install", region, access, secret, stackName)
 		handleError("install", distinctId, err)
 		return
 	}
@@ -209,6 +224,7 @@ func cmdInstall(c *cli.Context) {
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
 	if err != nil {
+		logEvents("install", region, access, secret, stackName)
 		handleError("install", distinctId, err)
 		return
 	}
@@ -261,6 +277,7 @@ func cmdUninstall(c *cli.Context) {
 
 	access := os.Getenv("AWS_ACCESS_KEY_ID")
 	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	region := c.String("region")
 
 	if access == "" || secret == "" {
 		var err error
@@ -298,7 +315,7 @@ func cmdUninstall(c *cli.Context) {
 	secret = strings.TrimSpace(secret)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      c.String("region"),
+		Region:      region,
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
@@ -307,6 +324,7 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	if err != nil {
+		logEvents("uninstall", region, access, secret, stackName)
 		handleError("uninstall", distinctId, err)
 		return
 	}
@@ -326,6 +344,7 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	if err != nil {
+		logEvents("uninstall", region, access, secret, stackName)
 		handleError("uninstall", distinctId, err)
 		return
 	}
@@ -335,7 +354,7 @@ func cmdUninstall(c *cli.Context) {
 	fmt.Printf("Cleaning up registry...\n")
 
 	S3 := s3.New(&aws.Config{
-		Region:      c.String("region"),
+		Region:      region,
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
@@ -349,6 +368,7 @@ func cmdUninstall(c *cli.Context) {
 		if awsErr, ok := err.(awserr.Error); ok {
 			// Don't block uninstall NoSuchBucket
 			if awsErr.Code() != "NoSuchBucket" {
+				logEvents("uninstall", region, access, secret, stackName)
 				handleError("uninstall", distinctId, err)
 			}
 		}
@@ -364,6 +384,7 @@ func cmdUninstall(c *cli.Context) {
 		_, err := S3.DeleteObject(req)
 
 		if err != nil {
+			logEvents("uninstall", region, access, secret, stackName)
 			handleError("uninstall", distinctId, err)
 			return
 		}
@@ -573,6 +594,62 @@ func friendlyName(t string) string {
 	}
 
 	return fmt.Sprintf("Unknown: %s", t)
+}
+
+func logEvents(command, region, access, secret, stackName string) error {
+	// collect CF events
+	CloudFormation := cloudformation.New(&aws.Config{
+		Region:      region,
+		Credentials: credentials.NewStaticCredentials(access, secret, ""),
+	})
+
+	events := Events{}
+
+	data := ""
+	next := ""
+
+	for {
+		req := &cloudformation.DescribeStackEventsInput{StackName: aws.String(stackName)}
+
+		if next != "" {
+			req.NextToken = aws.String(next)
+		}
+
+		res, err := CloudFormation.DescribeStackEvents(req)
+
+		if err != nil {
+			return err
+		}
+
+		for _, event := range res.StackEvents {
+			e := Event{
+				Id:     cs(event.EventID, ""),
+				Name:   cs(event.LogicalResourceID, ""),
+				Status: cs(event.ResourceStatus, ""),
+				Type:   cs(event.ResourceType, ""),
+				Reason: cs(event.ResourceStatusReason, ""),
+				Time:   ct(event.Timestamp),
+			}
+
+			events = append(events, e)
+
+			data += fmt.Sprintf("%s: [CFM] (%s) %s %s\n", e.Time.Format(time.RFC3339), e.Name, e.Status, e.Reason)
+		}
+
+		if res.NextToken == nil {
+			break
+		}
+
+		next = *res.NextToken
+	}
+
+	err := ioutil.WriteFile(command+".log", []byte(data), 0644)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func waitForAvailability(url string) {

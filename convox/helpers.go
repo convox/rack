@@ -6,7 +6,24 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
+
+func cs(s *string, def string) string {
+	if s != nil {
+		return *s
+	} else {
+		return def
+	}
+}
+
+func ct(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	} else {
+		return time.Time{}
+	}
+}
 
 func exists(filename string) bool {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
