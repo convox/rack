@@ -91,9 +91,8 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
-
 	region := c.String("region")
-	fmt.Println(lambdaRegions)
+
 	if !lambdaRegions[region] {
 		stdcli.Error(fmt.Errorf("Convox is not currently supported in %s", region))
 	}
