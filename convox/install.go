@@ -204,7 +204,7 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
-	sendMixpanelEvent("convox-install-start")
+	sendMixpanelEvent("convox-install-start", "")
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
@@ -224,7 +224,7 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("Success, try `convox apps`")
 
-	sendMixpanelEvent("convox-install-success")
+	sendMixpanelEvent("convox-install-success", "")
 }
 
 func cmdUninstall(c *cli.Context) {
@@ -330,7 +330,7 @@ func cmdUninstall(c *cli.Context) {
 		return
 	}
 
-	sendMixpanelEvent("convox-uninstall-start")
+	sendMixpanelEvent("convox-uninstall-start", "")
 
 	fmt.Printf("Cleaning up registry...\n")
 
@@ -383,7 +383,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Successfully uninstalled.")
 
-	sendMixpanelEvent("convox-uninstall-success")
+	sendMixpanelEvent("convox-uninstall-success", "")
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -590,7 +590,7 @@ func waitForAvailability(url string) {
 }
 
 func handleError(command string, distinctId string, err error) {
-	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command))
+	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command), err.Error())
 	stdcli.Error(err)
 }
 

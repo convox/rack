@@ -16,7 +16,7 @@ func exists(filename string) bool {
 	return true
 }
 
-func sendMixpanelEvent(event string) {
+func sendMixpanelEvent(event, message string) {
 	if os.Getenv("DEVELOPMENT") == "Yes" {
 		return // don't log dev events
 	}
@@ -29,8 +29,8 @@ func sendMixpanelEvent(event string) {
 
 	token := "43fb68427548c5e99978a598a9b14e55"
 
-	message := fmt.Sprintf(`{"event": %q, "properties": {"client_id": %q, "distinct_id": %q, "token": %q}}`, event, id, id, token)
-	encMessage := base64.StdEncoding.EncodeToString([]byte(message))
+	m := fmt.Sprintf(`{"event": %q, "properties": {"client_id": %q, "distinct_id": %q, "message": %q, "token": %q}}`, event, id, id, message, token)
+	encMessage := base64.StdEncoding.EncodeToString([]byte(m))
 
 	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
 
