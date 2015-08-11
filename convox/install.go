@@ -443,6 +443,13 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 
 		events[*event.EventID] = true
 
+		// Log all CREATE_FAILED to display and MixPanel
+		if !isDeleting && *event.ResourceStatus == "CREATE_FAILED" {
+			msg := fmt.Sprintf("Failed %s: %s", *event.ResourceType, *event.ResourceStatusReason)
+			fmt.Println(msg)
+			sendMixpanelEvent("convox-install-error", msg)
+		}
+
 		name := friendlyName(*event.ResourceType)
 
 		if name == "" {
@@ -462,7 +469,6 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 				fmt.Printf("Created %s: %s\n", name, id)
 			}
 		case "CREATE_FAILED":
-			return fmt.Errorf("stack creation failed")
 		case "DELETE_IN_PROGRESS":
 		case "DELETE_COMPLETE":
 			id := *event.PhysicalResourceID
