@@ -309,8 +309,26 @@ func cmdUninstall(c *cli.Context) {
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
-	_, err := CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
+	})
+
+	if err != nil {
+		sendMixpanelEvent(fmt.Sprintf("convox-uninstall-error"), err.Error())
+
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "ValidationError" {
+				stdcli.Error(fmt.Errorf("Stack %q does not exist.", stackName))
+			}
+		}
+
+		stdcli.Error(err)
+	}
+
+	stackId := *res.Stacks[0].StackID
+
+	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(stackId),
 	})
 
 	if err != nil {
@@ -320,7 +338,7 @@ func cmdUninstall(c *cli.Context) {
 
 	sendMixpanelEvent("convox-uninstall-start", "")
 
-	host, err := waitForCompletion(stackName, CloudFormation, true)
+	host, err := waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
