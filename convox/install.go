@@ -209,9 +209,15 @@ func cmdInstall(c *cli.Context) {
 	})
 
 	if err != nil {
-		logEvents("install", region, access, secret, stackName)
-		handleError("install", distinctId, err)
-		return
+		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())
+
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "AlreadyExistsException" {
+				stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
+			}
+		}
+
+		stdcli.Error(err)
 	}
 
 	sendMixpanelEvent("convox-install-start", "")
@@ -311,9 +317,15 @@ func cmdUninstall(c *cli.Context) {
 	})
 
 	if err != nil {
-		logEvents("uninstall", region, access, secret, stackName)
-		handleError("uninstall", distinctId, err)
-		return
+		sendMixpanelEvent(fmt.Sprintf("convox-uninstall-error"), err.Error())
+
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "ValidationError" {
+				stdcli.Error(fmt.Errorf("Stack %q does not exist.", stackName))
+			}
+		}
+
+		stdcli.Error(err)
 	}
 
 	stackId := ""
