@@ -15,7 +15,6 @@ import (
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
@@ -312,33 +311,7 @@ func cmdUninstall(c *cli.Context) {
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
-	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stackName),
-	})
-
-	if err != nil {
-		sendMixpanelEvent(fmt.Sprintf("convox-uninstall-error"), err.Error())
-
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "ValidationError" {
-				stdcli.Error(fmt.Errorf("Stack %q does not exist.", stackName))
-			}
-		}
-
-		stdcli.Error(err)
-	}
-
-	stackId := ""
-	bucket := ""
-
-	for _, r := range res.StackResources {
-		stackId = *r.StackID
-		if *r.LogicalResourceID == "RegistryBucket" {
-			bucket = *r.PhysicalResourceID
-		}
-	}
-
-	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+	_, err := CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: aws.String(stackName),
 	})
 
@@ -350,46 +323,7 @@ func cmdUninstall(c *cli.Context) {
 
 	sendMixpanelEvent("convox-uninstall-start", "")
 
-	fmt.Printf("Cleaning up registry...\n")
-
-	S3 := s3.New(&aws.Config{
-		Region:      region,
-		Credentials: credentials.NewStaticCredentials(access, secret, ""),
-	})
-
-	req := &s3.ListObjectVersionsInput{
-		Bucket: aws.String(bucket),
-	}
-
-	sres, err := S3.ListObjectVersions(req)
-
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			// Don't block uninstall NoSuchBucket
-			if awsErr.Code() != "NoSuchBucket" {
-				logEvents("uninstall", region, access, secret, stackName)
-				handleError("uninstall", distinctId, err)
-			}
-		}
-	}
-
-	for _, v := range sres.Versions {
-		req := &s3.DeleteObjectInput{
-			Bucket:    aws.String(bucket),
-			Key:       aws.String(*v.Key),
-			VersionID: aws.String(*v.VersionID),
-		}
-
-		_, err := S3.DeleteObject(req)
-
-		if err != nil {
-			logEvents("uninstall", region, access, secret, stackName)
-			handleError("uninstall", distinctId, err)
-			return
-		}
-	}
-
-	host, err := waitForCompletion(stackId, CloudFormation, true)
+	host, err := waitForCompletion(stackName, CloudFormation, true)
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
