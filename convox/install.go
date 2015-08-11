@@ -112,7 +112,7 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println("install process and then delete them once the installer has completed.")
 	fmt.Println("")
 	fmt.Println("To generate a new set of AWS credentials go to:")
-	fmt.Println("https://console.aws.amazon.com/iam/home#security_credential")
+	fmt.Println("https://docs.convox.com/docs/creating-an-iam-user-and-credentials")
 	fmt.Println("")
 
 	distinctId, err := currentId()
@@ -254,7 +254,7 @@ func cmdUninstall(c *cli.Context) {
 	fmt.Println("uninstall process and then delete them once the uninstaller has completed.")
 	fmt.Println("")
 	fmt.Println("To generate a new set of AWS credentials go to:")
-	fmt.Println("https://console.aws.amazon.com/iam/home#security_credential")
+	fmt.Println("https://docs.convox.com/docs/creating-an-iam-user-and-credentials")
 	fmt.Println("")
 
 	reader := bufio.NewReader(os.Stdin)
