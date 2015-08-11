@@ -18,19 +18,6 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
-type Event struct {
-	Id   string
-	Name string
-
-	Reason string
-	Status string
-	Type   string
-
-	Time time.Time
-}
-
-type Events []Event
-
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
