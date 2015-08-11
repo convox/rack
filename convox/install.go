@@ -14,7 +14,6 @@ import (
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
@@ -62,10 +61,6 @@ func init() {
 		Usage:       "",
 		Action:      cmdUninstall,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
-				Name:  "force",
-				Usage: "uninstall even if apps exist",
-			},
 			cli.StringFlag{
 				Name:   "region",
 				Value:  "us-east-1",
@@ -77,9 +72,8 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
-
 	region := c.String("region")
-	fmt.Println(lambdaRegions)
+
 	if !lambdaRegions[region] {
 		stdcli.Error(fmt.Errorf("Convox is not currently supported in %s", region))
 	}
@@ -200,11 +194,18 @@ func cmdInstall(c *cli.Context) {
 	})
 
 	if err != nil {
-		handleError("install", distinctId, err)
-		return
+		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())
+
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "AlreadyExistsException" {
+				stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
+			}
+		}
+
+		stdcli.Error(err)
 	}
 
-	sendMixpanelEvent("convox-install-start")
+	sendMixpanelEvent("convox-install-start", "")
 
 	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
 
@@ -224,18 +225,10 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("Success, try `convox apps`")
 
-	sendMixpanelEvent("convox-install-success")
+	sendMixpanelEvent("convox-install-success", "")
 }
 
 func cmdUninstall(c *cli.Context) {
-	if !c.Bool("force") {
-		apps := getApps()
-
-		if len(*apps) != 0 {
-			stdcli.Error(fmt.Errorf("Please delete all apps before uninstalling."))
-		}
-	}
-
 	fmt.Println(`
 
      ___    ___     ___   __  __    ___   __  _
@@ -261,6 +254,7 @@ func cmdUninstall(c *cli.Context) {
 
 	access := os.Getenv("AWS_ACCESS_KEY_ID")
 	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	region := c.String("region")
 
 	if access == "" || secret == "" {
 		var err error
@@ -298,82 +292,52 @@ func cmdUninstall(c *cli.Context) {
 	secret = strings.TrimSpace(secret)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      c.String("region"),
+		Region:      region,
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
-	res, err := CloudFormation.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
-		handleError("uninstall", distinctId, err)
-		return
-	}
+		sendMixpanelEvent(fmt.Sprintf("convox-uninstall-error"), err.Error())
 
-	stackId := ""
-	bucket := ""
-
-	for _, r := range res.StackResources {
-		stackId = *r.StackID
-		if *r.LogicalResourceID == "RegistryBucket" {
-			bucket = *r.PhysicalResourceID
-		}
-	}
-
-	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(stackName),
-	})
-
-	if err != nil {
-		handleError("uninstall", distinctId, err)
-		return
-	}
-
-	sendMixpanelEvent("convox-uninstall-start")
-
-	fmt.Printf("Cleaning up registry...\n")
-
-	S3 := s3.New(&aws.Config{
-		Region:      c.String("region"),
-		Credentials: credentials.NewStaticCredentials(access, secret, ""),
-	})
-
-	req := &s3.ListObjectVersionsInput{
-		Bucket: aws.String(bucket),
-	}
-
-	sres, err := S3.ListObjectVersions(req)
-
-	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			// Don't block uninstall NoSuchBucket
-			if awsErr.Code() != "NoSuchBucket" {
-				handleError("uninstall", distinctId, err)
+			if awsErr.Code() == "ValidationError" {
+				stdcli.Error(fmt.Errorf("Stack %q does not exist.", stackName))
 			}
 		}
+
+		stdcli.Error(err)
 	}
 
-	for _, v := range sres.Versions {
-		req := &s3.DeleteObjectInput{
-			Bucket:    aws.String(bucket),
-			Key:       aws.String(*v.Key),
-			VersionID: aws.String(*v.VersionID),
-		}
+	stackId := *res.Stacks[0].StackID
 
-		_, err := S3.DeleteObject(req)
-
-		if err != nil {
-			handleError("uninstall", distinctId, err)
-			return
-		}
-	}
-
-	host, err := waitForCompletion(stackId, CloudFormation, true)
+	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(stackId),
+	})
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
 		return
+	}
+
+	sendMixpanelEvent("convox-uninstall-start", "")
+
+	_, err = waitForCompletion(stackId, CloudFormation, true)
+
+	if err != nil {
+		handleError("uninstall", distinctId, err)
+		return
+	}
+
+	host := ""
+	for _, o := range res.Stacks[0].Outputs {
+		if *o.OutputKey == "Dashboard" {
+			host = *o.OutputValue
+			break
+		}
 	}
 
 	if configuredHost, _ := currentHost(); configuredHost == host {
@@ -383,7 +347,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Successfully uninstalled.")
 
-	sendMixpanelEvent("convox-uninstall-success")
+	sendMixpanelEvent("convox-uninstall-success", "")
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -439,11 +403,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 		case "ROLLBACK_COMPLETE":
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "DELETE_COMPLETE":
-			for _, o := range dres.Stacks[0].Outputs {
-				if *o.OutputKey == "Dashboard" {
-					return *o.OutputValue, nil
-				}
-			}
+			return "", nil
 		case "DELETE_FAILED":
 			return "", fmt.Errorf("stack deletion failed, contact support@convox.com for assistance")
 		}
@@ -470,6 +430,13 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 
 		events[*event.EventID] = true
 
+		// Log all CREATE_FAILED to display and MixPanel
+		if !isDeleting && *event.ResourceStatus == "CREATE_FAILED" {
+			msg := fmt.Sprintf("Failed %s: %s", *event.ResourceType, *event.ResourceStatusReason)
+			fmt.Println(msg)
+			sendMixpanelEvent("convox-install-error", msg)
+		}
+
 		name := friendlyName(*event.ResourceType)
 
 		if name == "" {
@@ -489,7 +456,6 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 				fmt.Printf("Created %s: %s\n", name, id)
 			}
 		case "CREATE_FAILED":
-			return fmt.Errorf("stack creation failed")
 		case "DELETE_IN_PROGRESS":
 		case "DELETE_COMPLETE":
 			id := *event.PhysicalResourceID
@@ -509,6 +475,7 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 			fmt.Printf("Skipped %s: %s\n", name, id)
 		case "DELETE_FAILED":
 			return fmt.Errorf("stack deletion failed")
+		case "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE":
 		case "UPDATE_IN_PROGRESS", "UPDATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_FAILED", "UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_FAILED":
 		default:
 			return fmt.Errorf("Unhandled status: %s\n", *event.ResourceStatus)
@@ -590,7 +557,7 @@ func waitForAvailability(url string) {
 }
 
 func handleError(command string, distinctId string, err error) {
-	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command))
+	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command), err.Error())
 	stdcli.Error(err)
 }
 
