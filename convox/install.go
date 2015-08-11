@@ -338,11 +338,19 @@ func cmdUninstall(c *cli.Context) {
 
 	sendMixpanelEvent("convox-uninstall-start", "")
 
-	host, err := waitForCompletion(stackId, CloudFormation, true)
+	_, err = waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
 		handleError("uninstall", distinctId, err)
 		return
+	}
+
+	host := ""
+	for _, o := range res.Stacks[0].Outputs {
+		if *o.OutputKey == "Dashboard" {
+			host = *o.OutputValue
+			break
+		}
 	}
 
 	if configuredHost, _ := currentHost(); configuredHost == host {
@@ -408,11 +416,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 		case "ROLLBACK_COMPLETE":
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "DELETE_COMPLETE":
-			for _, o := range dres.Stacks[0].Outputs {
-				if *o.OutputKey == "Dashboard" {
-					return *o.OutputValue, nil
-				}
-			}
+			return "", nil
 		case "DELETE_FAILED":
 			return "", fmt.Errorf("stack deletion failed, contact support@convox.com for assistance")
 		}
