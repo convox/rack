@@ -52,6 +52,24 @@ func init() {
 				Usage:  "aws region to install in",
 				EnvVar: "AWS_REGION",
 			},
+			cli.StringFlag{
+				Name: "stack-name",
+				Value: "convox",
+				Usage: "name of the convox stack",
+			},
+			cli.BoolFlag{
+				Name: "development",
+				Usage: "print CloudFormation stack outputs",
+			},
+			cli.StringFlag{
+				Name: "key",
+				Usage: "SSH key for convox stack",
+			},
+			cli.StringFlag{
+				Name: "version",
+				Value: "latest",
+				Usage: "release version of convox, in the format of 20150810161818, or latest by default",
+			},
 		},
 	})
 
@@ -66,6 +84,11 @@ func init() {
 				Value:  "us-east-1",
 				Usage:  "aws region to uninstall from",
 				EnvVar: "AWS_REGION",
+			},
+			cli.StringFlag{
+				Name: "stack-name",
+				Value: "convox",
+				Usage: "name of the convox stack",
 			},
 		},
 	})
@@ -143,25 +166,16 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("")
 	}
 
-	development := os.Getenv("DEVELOPMENT")
-
-	if development != "Yes" {
-		development = "No"
+	development := "No"
+	if c.Bool("development") {
+		development = "Yes"
 	}
 
-	key := os.Getenv("KEY")
+	key := c.String("key")
 
-	stackName := os.Getenv("STACK_NAME")
+	stackName := c.String("stack-name")
 
-	if stackName == "" {
-		stackName = "convox"
-	}
-
-	version := os.Getenv("VERSION")
-
-	if version == "" {
-		version = "latest"
-	}
+	version := c.String("version")
 
 	instanceCount := fmt.Sprintf("%d", c.Int("instance-count"))
 
@@ -276,11 +290,7 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}
 
-	stackName := os.Getenv("STACK_NAME")
-
-	if stackName == "" {
-		stackName = "convox"
-	}
+	stackName := c.String("stack-name")
 
 	fmt.Println("")
 
