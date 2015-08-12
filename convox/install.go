@@ -54,11 +54,13 @@ func init() {
 			},
 			cli.StringFlag{
 				Name: "stack-name",
+				EnvVar: "STACK_NAME",
 				Value: "convox",
 				Usage: "name of the convox stack",
 			},
 			cli.BoolFlag{
 				Name: "development",
+				EnvVar: "DEVELOPMENT",
 				Usage: "print CloudFormation stack outputs",
 			},
 			cli.StringFlag{
@@ -67,6 +69,7 @@ func init() {
 			},
 			cli.StringFlag{
 				Name: "version",
+				EnvVar: "VERSION",
 				Value: "latest",
 				Usage: "release version of convox, in the format of 20150810161818, or latest by default",
 			},
