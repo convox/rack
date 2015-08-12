@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -83,7 +84,7 @@ func cmdSystemUpdate(c *cli.Context) {
 			return
 		}
 
-		version = string(body)
+		version = strings.TrimSpace(string(body))
 	} else {
 		version = c.Args()[0]
 	}
