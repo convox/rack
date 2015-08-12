@@ -56,22 +56,22 @@ func init() {
 				Name: "stack-name",
 				EnvVar: "STACK_NAME",
 				Value: "convox",
-				Usage: "name of the convox stack",
+				Usage: "name of the CloudFormation stack",
 			},
 			cli.BoolFlag{
 				Name: "development",
 				EnvVar: "DEVELOPMENT",
-				Usage: "print CloudFormation stack outputs",
+				Usage: "create additional CloudFormation outputs to copy development .env file",
 			},
 			cli.StringFlag{
 				Name: "key",
-				Usage: "SSH key for convox stack",
+				Usage: "name of an SSH keypair to install on EC2 instances",
 			},
 			cli.StringFlag{
 				Name: "version",
 				EnvVar: "VERSION",
 				Value: "latest",
-				Usage: "release version of convox, in the format of 20150810161818, or latest by default",
+				Usage: "release version in the format of '20150810161818', or 'latest' by default",
 			},
 		},
 	})
