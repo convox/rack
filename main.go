@@ -98,6 +98,7 @@ func main() {
 
 func die(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	os.Exit(1)
 }
 
 func clone(source, app string) (string, error) {
