@@ -11,13 +11,13 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "debug",
-		Description: "get system events for debugging purposes",
+		Description: "get low-level system events for debugging purposes",
 		Usage:       "",
 		Action:      cmdDebug,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
+				Usage: "App name. Inferred from current directory if not specified.",
 			},
 		},
 	})
