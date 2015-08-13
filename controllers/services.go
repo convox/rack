@@ -34,9 +34,7 @@ func ServiceList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// sort.Sort(services)
-
-	RenderTemplate(rw, "services", services)
+	RenderJson(rw, services)
 }
 
 func ServiceShow(rw http.ResponseWriter, r *http.Request) {
