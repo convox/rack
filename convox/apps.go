@@ -41,7 +41,7 @@ func init() {
 			{
 				Name:        "delete",
 				Description: "delete an application",
-				Usage:       "<name>",
+				Usage:       "[name]",
 				Action:      cmdAppDelete,
 			},
 			{
