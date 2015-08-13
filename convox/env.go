@@ -63,7 +63,12 @@ func cmdEnvGetAll(c *cli.Context) {
 	}
 
 	var env map[string]string
-	json.Unmarshal(resp, &env)
+	err = json.Unmarshal(resp, &env)
+	
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	keys := []string{}
 
@@ -107,7 +112,12 @@ func cmdEnvGet(c *cli.Context) {
 	}
 
 	var env map[string]string
-	json.Unmarshal(resp, &env)
+	err = json.Unmarshal(resp, &env)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	fmt.Println(env[variable])
 }
@@ -128,7 +138,12 @@ func cmdEnvSet(c *cli.Context) {
 	}
 
 	var old map[string]string
-	json.Unmarshal(resp, &old)
+	err = json.Unmarshal(resp, &old)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	data := ""
 
@@ -136,7 +151,12 @@ func cmdEnvSet(c *cli.Context) {
 		data += fmt.Sprintf("%s=%s\n", key, value)
 	}
 
-	stat, _ := os.Stdin.Stat()
+	stat, err := os.Stdin.Stat()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		in, err := ioutil.ReadAll(os.Stdin)
