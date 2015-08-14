@@ -22,7 +22,7 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
+				Usage: "App name. Inferred from current directory if not specified.",
 			},
 		},
 	})
