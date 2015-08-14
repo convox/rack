@@ -62,11 +62,6 @@
       "Description": "CPU shares of each process",
       "Type": "Number"
     },
-    "DesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the specified ECS task definition to place and keep running on your cluster.",
-      "Type": "Number"
-    },
     "Environment": {
       "Default": "",
       "Description": "",
@@ -377,31 +372,26 @@
       },
       "Type": "AWS::IAM::User"
     },
-    "Service": {
+    "PostgresECSService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
         },
         "DesiredCount": {
-          "Ref": "DesiredCount"
+          "Ref": "PostgresDesiredCount"
         },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "Balancer"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          }
-        ],
+        "LoadBalancers": [],
         "Name": {
-          "Ref": "AWS::StackName"
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "postgres"
+            ]
+          ]
         },
         "Role": {
           "Ref": "ServiceRole"
@@ -413,10 +403,80 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "TaskDefinition"
+          "Ref": "PostgresECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "PostgresECSTaskDefinition": {
+      "DependsOn": "CustomTopic",
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "postgres"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankPostgresService",
+              {
+                "CPU": {
+                  "Ref": "Cpu"
+                },
+                "Command": {
+                  "Ref": "PostgresCommand"
+                },
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "POSTGRES_PASSWORD": "password",
+                  "POSTGRES_USERNAME": "postgres",
+                  "PROCESS": "postgres"
+                },
+                "Image": {
+                  "Ref": "PostgresImage"
+                },
+                "Links": [],
+                "Memory": {
+                  "Ref": "Memory"
+                },
+                "Name": "postgres",
+                "PortMappings": [],
+                "Services": [],
+                "Volumes": []
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
     "ServiceRole": {
@@ -482,7 +542,57 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "TaskDefinition": {
+    "WebECSService": {
+      "DependsOn": "CustomTopic",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "WebDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "Balancer"
+                },
+                "web",
+                "3000"
+              ]
+            ]
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "WebECSTaskDefinition": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Environment": {
@@ -492,7 +602,15 @@
           "Ref": "Key"
         },
         "Name": {
-          "Ref": "AWS::StackName"
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
         },
         "Release": {
           "Ref": "Release"
@@ -504,41 +622,6 @@
           ]
         },
         "Tasks": [
-          {
-            "Fn::If": [
-              "BlankPostgresService",
-              {
-                "CPU": {
-                  "Ref": "Cpu"
-                },
-                "Command": {
-                  "Ref": "PostgresCommand"
-                },
-                "Environment": {
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
-                  "POSTGRES_PASSWORD": "password",
-                  "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
-                },
-                "Image": {
-                  "Ref": "PostgresImage"
-                },
-                "Links": [],
-                "Memory": {
-                  "Ref": "Memory"
-                },
-                "Name": "postgres",
-                "PortMappings": [],
-                "Services": [],
-                "Volumes": []
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
           {
             "Fn::If": [
               "BlankWebService",
