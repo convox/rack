@@ -251,12 +251,12 @@ func templateHelpers() template.FuncMap {
 			return template.HTML(s)
 		},
 		"upper": func(s string) string {
-			return upperName(s)
+			return UpperName(s)
 		},
 	}
 }
 
-func upperName(name string) string {
+func UpperName(name string) string {
 	us := strings.ToUpper(name[0:1]) + name[1:]
 
 	for {
@@ -280,8 +280,4 @@ func upperName(name string) string {
 	}
 
 	return us
-}
-
-func UpperName(name string) string {
-	return upperName(name)
 }

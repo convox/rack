@@ -53,7 +53,7 @@ func ListProcessResources(app, process string) (Resources, error) {
 
 	resources := make(Resources)
 
-	prefix := upperName(process)
+	prefix := UpperName(process)
 
 	for name, resource := range res {
 		if strings.HasPrefix(name, prefix) {
