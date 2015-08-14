@@ -18,17 +18,17 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
+				Usage: "App name. Inferred from current directory if not specified.",
 			},
 			cli.IntFlag{
 				Name:  "count",
 				Value: 1,
-				Usage: "number of processes to keep running for every process type.",
+				Usage: "Number of processes to keep running for every process type.",
 			},
 			cli.IntFlag{
 				Name:  "memory",
 				Value: 256,
-				Usage: "amount of memory, in megabytes, available to every process.",
+				Usage: "Amount of memory, in MB, available to every process.",
 			},
 		},
 	})

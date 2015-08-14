@@ -10,8 +10,8 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "switch",
-		Description: "switch to another convox rack",
-		Usage:       "host",
+		Description: "switch to another Convox rack",
+		Usage:       "[hostname]",
 		Action:      cmdSwitch,
 	})
 }

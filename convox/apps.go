@@ -31,12 +31,6 @@ func init() {
 		Name:        "apps",
 		Action:      cmdApps,
 		Description: "list deployed apps",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "app name. If not specified, use current directory.",
-			},
-		},
 		Subcommands: []cli.Command{
 			{
 				Name:        "create",
@@ -47,7 +41,7 @@ func init() {
 			{
 				Name:        "delete",
 				Description: "delete an application",
-				Usage:       "<name>",
+				Usage:       "[name]",
 				Action:      cmdAppDelete,
 			},
 			{

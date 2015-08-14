@@ -20,7 +20,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "start",
 		Description: "start an app for local development",
-		Usage:       "<directory>",
+		Usage:       "[directory]",
 		Action:      cmdStart,
 	})
 }

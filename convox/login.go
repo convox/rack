@@ -25,13 +25,13 @@ type ConfigAuth map[string]string
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "login",
-		Description: "login to your convox installation",
-		Usage:       "<host>",
+		Description: "log into your convox rack",
+		Usage:       "[hostname]",
 		Action:      cmdLogin,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "password",
-				Usage: "password to use for authentication. If not specified, prompt for password.",
+				Usage: "Password to use for authentication. If not specified, prompt for password.",
 			},
 		},
 	})
