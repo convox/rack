@@ -111,7 +111,7 @@ func ListProcesses(app string) (Processes, error) {
 				return nil, err
 			}
 
-			if len(cres.ContainerInstances) == 10 {
+			if len(cres.ContainerInstances) == 1 {
 				ci := cres.ContainerInstances[0]
 
 				ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
