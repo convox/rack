@@ -72,11 +72,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Memory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
-    },
     "PostgresCommand": {
       "Default": "",
       "Description": "",
@@ -91,6 +86,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "PostgresMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
     },
     "PostgresService": {
       "Default": "",
@@ -136,6 +136,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "WebMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
     },
     "WebPort5000Balancer": {
       "Default": "5000",
@@ -462,7 +467,7 @@
                 },
                 "Links": [],
                 "Memory": {
-                  "Ref": "Memory"
+                  "Ref": "PostgresMemory"
                 },
                 "Name": "postgres",
                 "PortMappings": [],
@@ -653,7 +658,7 @@
                   }
                 ],
                 "Memory": {
-                  "Ref": "Memory"
+                  "Ref": "WebMemory"
                 },
                 "Name": "web",
                 "PortMappings": [

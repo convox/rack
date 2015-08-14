@@ -29,11 +29,6 @@
         "Default": "",
         "Description": ""
       },
-      "Memory": {
-        "Type": "Number",
-        "Default": "256",
-        "Description": "MB of RAM to reserve"
-      },
       "Release": {
         "Type" : "String",
         "Default" : "",
@@ -140,6 +135,11 @@
       "Type" : "String",
       "Default" : "",
       "Description" : ""
+    },
+    "{{ upper $k }}Memory": {
+      "Type": "Number",
+      "Default": "256",
+      "Description": "MB of RAM to reserve"
     },
     "{{ upper $k }}Service": {
       "Type" : "String",

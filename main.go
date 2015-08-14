@@ -296,7 +296,7 @@ func templateHelpers() template.FuncMap {
 				"Image": { "Ref": "%sImage" },
 				"Command": { "Ref": "%sCommand" },
 				"CPU": { "Ref": "Cpu" },
-				"Memory": { "Ref": "Memory" },
+				"Memory": { "Ref": "%sMemory" },
 				"Environment": {
 					"KINESIS": { "Ref": "Kinesis" },
 					%s
@@ -305,7 +305,7 @@ func templateHelpers() template.FuncMap {
 				"Volumes": [ %s ],
 				"Services": [ %s ],
 				"PortMappings": [ %s ]
-			}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ","))
+			}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), upperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ","))
 
 			return template.HTML(l)
 		},
