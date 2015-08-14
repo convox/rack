@@ -135,6 +135,11 @@
       "Default" : "{{ command $e.Command }}",
       "Description" : ""
     },
+    "{{ upper $k }}DesiredCount": {
+      "Type" : "Number",
+      "Default" : "1",
+      "Description" : "The number of instantiations of the process to place and keep running on your cluster"
+    },
     "{{ upper $k }}Image": {
       "Type" : "String",
       "Default" : "",

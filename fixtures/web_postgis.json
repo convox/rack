@@ -87,6 +87,11 @@
       "Description": "",
       "Type": "String"
     },
+    "PostgresDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
     "PostgresImage": {
       "Default": "",
       "Description": "",
@@ -126,6 +131,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "WebDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
     },
     "WebImage": {
       "Default": "",
