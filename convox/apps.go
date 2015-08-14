@@ -47,7 +47,7 @@ func init() {
 			{
 				Name:        "info",
 				Description: "see info about an app",
-				Usage:       "<name>",
+				Usage:       "[name]",
 				Action:      cmdAppInfo,
 			},
 		},
