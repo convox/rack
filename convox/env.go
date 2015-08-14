@@ -14,34 +14,37 @@ import (
 
 var appFlag = cli.StringFlag{
 	Name:  "app",
-	Usage: "app name. Inferred from current directory if not specified.",
+	Usage: "App name. Inferred from current directory if not specified.",
 }
 
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "env",
 		Description: "manage an app's environment variables",
-		Usage:       "get|set|unset",
+		Usage:       "[get|set|unset]",
 		Action:      cmdEnvGetAll,
 		Flags:       []cli.Flag{appFlag},
 		Subcommands: []cli.Command{
 			{
-				Name:   "get",
-				Usage:  "VARIABLE",
-				Action: cmdEnvGet,
-				Flags:  []cli.Flag{appFlag},
+				Name:        "get",
+				Description: "get all environment variables",
+				Usage:       "VARIABLE",
+				Action:      cmdEnvGet,
+				Flags:       []cli.Flag{appFlag},
 			},
 			{
-				Name:   "set",
-				Usage:  "VARIABLE=VALUE",
-				Action: cmdEnvSet,
-				Flags:  []cli.Flag{appFlag},
+				Name:        "set",
+				Description: "set an environment variable",
+				Usage:       "VARIABLE=VALUE",
+				Action:      cmdEnvSet,
+				Flags:       []cli.Flag{appFlag},
 			},
 			{
-				Name:   "unset",
-				Usage:  "VARIABLE",
-				Action: cmdEnvUnset,
-				Flags:  []cli.Flag{appFlag},
+				Name:        "unset",
+				Description: "delete an environment varible",
+				Usage:       "VARIABLE",
+				Action:      cmdEnvUnset,
+				Flags:       []cli.Flag{appFlag},
 			},
 		},
 	})
