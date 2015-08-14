@@ -81,6 +81,8 @@ func Debug() bool {
 	return false
 }
 
+// If user specifies the app's name from command line, then use it;
+// otherwise use the current working directory's name
 func DirApp(c *cli.Context, wd string) (string, string, error) {
 	abs, err := filepath.Abs(wd)
 
