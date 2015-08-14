@@ -34,9 +34,7 @@ func ServiceList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// sort.Sort(services)
-
-	RenderTemplate(rw, "services", services)
+	RenderJson(rw, services)
 }
 
 func ServiceShow(rw http.ResponseWriter, r *http.Request) {
@@ -52,9 +50,22 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// sort.Sort(services)
+	RenderJson(rw, service)
+}
 
-	RenderTemplate(rw, "service", service)
+func ServiceStatus(rw http.ResponseWriter, r *http.Request) {
+	log := servicesLogger("show").Start()
+
+	name := mux.Vars(r)["service"]
+	service, err := models.GetServiceFromName(name)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	RenderText(rw, service.Status)
 }
 
 func ServiceNameList(rw http.ResponseWriter, r *http.Request) {

@@ -125,6 +125,7 @@ func startWeb() {
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
 	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")
+	router.HandleFunc("/services/{service}/status", controllers.ServiceStatus).Methods("GET")
 	router.HandleFunc("/services/{service}", controllers.ServiceDelete).Methods("DELETE")
 	router.HandleFunc("/services/{service}/logs", controllers.ServiceLogs).Methods("GET")
 	router.HandleFunc("/services/{service}/logs/stream", controllers.ServiceStream).Methods("GET")
