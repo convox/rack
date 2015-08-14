@@ -141,16 +141,20 @@ func AppUpdate(rw http.ResponseWriter, r *http.Request) {
 
 	params := map[string]string{}
 
-	if count := GetForm(r, "count"); count != "" {
-		params["DesiredCount"] = count
-	}
+	if process := GetForm(r, "process"); process != "" {
+		process = models.UpperName(process)
 
-	if cpu := GetForm(r, "cpu"); cpu != "" {
-		params["Cpu"] = cpu
-	}
+		if count := GetForm(r, "count"); count != "" {
+			params[process+"DesiredCount"] = count
+		}
 
-	if mem := GetForm(r, "mem"); mem != "" {
-		params["Memory"] = mem
+		if cpu := GetForm(r, "cpu"); cpu != "" {
+			params[process+"Cpu"] = cpu
+		}
+
+		if mem := GetForm(r, "mem"); mem != "" {
+			params[process+"Memory"] = mem
+		}
 	}
 
 	if len(params) > 0 {

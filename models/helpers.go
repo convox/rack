@@ -281,3 +281,7 @@ func upperName(name string) string {
 
 	return us
 }
+
+func UpperName(name string) string {
+	return upperName(name)
+}
