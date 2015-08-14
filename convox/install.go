@@ -90,6 +90,7 @@ func init() {
 			},
 			cli.StringFlag{
 				Name: "stack-name",
+				EnvVar: "STACK_NAME",
 				Value: "convox",
 				Usage: "name of the convox stack",
 			},
