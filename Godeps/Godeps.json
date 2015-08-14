@@ -1,0 +1,65 @@
+{
+	"ImportPath": "github.com/convox/env",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/endpoints",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/json/jsonutil",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/jsonrpc",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/rest",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/kms",
+			"Comment": "v0.7.4-4-g8aa49b7",
+			"Rev": "8aa49b7df483d06102fd8b61bf02268e7697d51c"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-95-g9b2bd2b",
+			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
+		},
+		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/poly1305",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
+		}
+	]
+}
