@@ -110,7 +110,13 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	err := app.Create()
 
 	if awsError(err) == "AlreadyExistsException" {
-		err = fmt.Errorf("There is already an app named %s", name)
+		app, err := models.GetApp(name)
+		if err != nil {
+			helpers.Error(log, err)
+			RenderError(rw, err)
+			return
+		}
+		err = fmt.Errorf("There is already an app named %s (%s)", name, app.Status)
 		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
