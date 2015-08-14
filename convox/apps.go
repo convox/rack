@@ -158,16 +158,12 @@ func cmdAppDelete(c *cli.Context) {
 }
 
 func cmdAppInfo(c *cli.Context) {
-	_, app, err := stdcli.DirApp(c, ".")
-
-	if err != nil {
-		stdcli.Error(err)
+	if len(c.Args()) < 1 {
+		stdcli.Usage(c, "info")
 		return
 	}
 
-	if len(c.Args()) > 0 {
-		app = c.Args()[0]
-	}
+	app := c.Args()[0]
 
 	data, err := ConvoxGet("/apps/" + app)
 
