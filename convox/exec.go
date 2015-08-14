@@ -11,8 +11,8 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "exec",
-		Description: "run a one-off command in a Convox process",
-		Usage:       "process command",
+		Description: "run a one-off command in a local Convox process",
+		Usage:       "[process] [command]",
 		Action:      cmdExec,
 		Flags: []cli.Flag{
 			cli.StringFlag{
