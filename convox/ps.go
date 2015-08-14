@@ -12,7 +12,7 @@ import (
 type Process struct {
 	App         string
 	Command     string
-	Count       int
+	Count       int64
 	CPU         int64
 	Id          string
 	Memory      int64

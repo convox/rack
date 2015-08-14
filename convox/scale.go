@@ -94,21 +94,29 @@ func cmdScale(c *cli.Context) {
 			continue
 		}
 
-		ps := strings.ToLower(strings.Replace(k, "DesiredCount", "", 1))
+		ps := strings.Replace(k, "DesiredCount", "", 1)
+		p := strings.ToLower(ps)
 
-		i, err := strconv.Atoi(v)
+		i, err := strconv.ParseInt(v, 10, 64)
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		processes[ps] = Process{Name: ps, Count: i}
+		m, err := strconv.ParseInt(a.Parameters[ps+"Memory"], 10, 64)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		processes[p] = Process{Name: p, Count: i, Memory: m}
 	}
 
 	fmt.Printf(fmt.Sprintf("%%-%ds  %%-5s  %%-5s\n", longest), "PROCESS", "COUNT", "MEM")
 
 	for _, ps := range processes {
-		fmt.Printf(fmt.Sprintf("%%-%ds  %%-5d  %%-5s\n", longest), ps.Name, ps.Count, a.Parameters["Memory"])
+		fmt.Printf(fmt.Sprintf("%%-%ds  %%-5d  %%-5d\n", longest), ps.Name, ps.Count, ps.Memory)
 	}
 }
