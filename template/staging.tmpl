@@ -107,6 +107,7 @@
       },
       {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
+      {{ template "process-services" . }}
 
       {{ template "security" }}
       {{ template "state" }}
@@ -196,6 +197,11 @@
         "UserName": { "Ref": "LogsUser" }
       }
     },
+  {{ end }}
+{{ end }}
+
+{{ define "process-services" }}
+  {{ if .HasProcesses }}
     "TaskDefinition": {
       "DependsOn": "CustomTopic",
       "Type": "Custom::ECSTaskDefinition",
