@@ -15,29 +15,29 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "system",
-		Description: "manage the base convox system",
+		Description: "manage your Convox rack",
 		Usage:       "",
 		Action:      cmdSystem,
 		Subcommands: []cli.Command{
 			{
 				Name:        "update",
-				Description: "update the convox system API",
-				Usage:       "<version>",
+				Description: "update rack to the latest version",
+				Usage:       "[version]",
 				Action:      cmdSystemUpdate,
 			},
 			{
 				Name:        "scale",
-				Description: "scale the convox system cluster",
+				Description: "scale the rack capacity",
 				Usage:       "",
 				Action:      cmdSystemScale,
 				Flags: []cli.Flag{
 					cli.IntFlag{
 						Name:  "count",
-						Usage: "instance count, e.g. 3 or 10",
+						Usage: "horizontally scale the instance count, e.g. 3 or 10",
 					},
 					cli.StringFlag{
 						Name:  "type",
-						Usage: "instance type, e.g. t2.small or c3.xlargs",
+						Usage: "vertically scale the instance type, e.g. t2.small or c3.xlargs",
 					},
 				},
 			},
