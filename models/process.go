@@ -43,7 +43,6 @@ type ProcessRunOptions struct {
 func ListProcesses(app string) (Processes, error) {
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Family:  aws.String(app),
 	}
 
 	res, err := ECS().ListTasks(req)
@@ -68,6 +67,10 @@ func ListProcesses(app string) (Processes, error) {
 
 		if err != nil {
 			return nil, err
+		}
+
+		if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") {
+			continue
 		}
 
 		definitions := map[string]*ecs.ContainerDefinition{}
