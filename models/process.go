@@ -38,6 +38,7 @@ type ProcessTop struct {
 
 type ProcessRunOptions struct {
 	Command string
+	Process string
 }
 
 func ListProcesses(app string) (Processes, error) {
@@ -227,7 +228,7 @@ func (p *Process) Run(options ProcessRunOptions) error {
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
 		Count:          aws.Long(1),
-		TaskDefinition: aws.String(resources["TaskDefinition"].Id),
+		TaskDefinition: aws.String(resources[UpperName(options.Process)+"ECSTaskDefinition"].Id),
 	}
 
 	if options.Command != "" {

@@ -114,6 +114,7 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 
 	err = ps.Run(models.ProcessRunOptions{
 		Command: command,
+		Process: process,
 	})
 
 	if err != nil {
