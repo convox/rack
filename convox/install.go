@@ -84,7 +84,7 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "region",
-				Value:  "us-east-1",
+				Value:  "us-west-2",
 				Usage:  "aws region to uninstall from",
 				EnvVar: "AWS_REGION",
 			},
