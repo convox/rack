@@ -60,6 +60,8 @@ func cmdScale(c *cli.Context) {
 	}
 
 	if len(v) > 0 {
+		v.Set("process", c.Args()[0])
+
 		_, err = ConvoxPostForm("/apps/"+app, v)
 
 		if err != nil {
