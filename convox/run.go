@@ -12,13 +12,13 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "run",
-		Description: "run a one-off process",
-		Usage:       "ps cmd",
+		Description: "run a one-off command in your Convox rack",
+		Usage:       "[process] [command]",
 		Action:      cmdRun,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "app",
-				Usage: "app name. Inferred from current directory if not specified.",
+				Usage: "App name. Inferred from current directory if not specified.",
 			},
 		},
 	})
