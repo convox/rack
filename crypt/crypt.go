@@ -101,7 +101,7 @@ func NewIam(role string) (*Crypt, error) {
 func (c *Crypt) Encrypt(keyArn string, dec []byte) ([]byte, error) {
 	req := &kms.GenerateDataKeyInput{
 		KeyID:         aws.String(keyArn),
-		NumberOfBytes: aws.Long(KeyLength),
+		NumberOfBytes: aws.Int64(KeyLength),
 	}
 
 	res, err := KMS(c).GenerateDataKey(req)
@@ -169,7 +169,7 @@ func (c *Crypt) Decrypt(keyArn string, data []byte) ([]byte, error) {
 }
 
 func (c *Crypt) generateNonce() ([]byte, error) {
-	res, err := KMS(c).GenerateRandom(&kms.GenerateRandomInput{NumberOfBytes: aws.Long(NonceLength)})
+	res, err := KMS(c).GenerateRandom(&kms.GenerateRandomInput{NumberOfBytes: aws.Int64(NonceLength)})
 
 	if err != nil {
 		return nil, err
