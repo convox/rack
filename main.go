@@ -220,6 +220,21 @@ func templateHelpers() template.FuncMap {
 			}
 			return ""
 		},
+		"entry_loadbalancers": func(entry ManifestEntry, ps string) template.HTML {
+			ls := []string{}
+
+			for _, port := range entry.Ports {
+				parts := strings.SplitN(port, ":", 2)
+
+				if len(parts) != 2 {
+					continue
+				}
+
+				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "%s", "%s" ] ] }`, ps, parts[1]))
+			}
+
+			return template.HTML(strings.Join(ls, ","))
+		},
 		"entry_task": func(entry ManifestEntry, ps string) template.HTML {
 			mappings := []string{}
 

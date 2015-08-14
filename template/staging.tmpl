@@ -222,7 +222,7 @@
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $k }}" ] ] },
           "TaskDefinition": { "Ref": "{{ upper $k }}ECSTaskDefinition" },
           "Role": { "Ref": "ServiceRole" },
-          "LoadBalancers": [ ]
+          "LoadBalancers": [ {{ entry_loadbalancers . $k }} ]
         }
       },
     {{ end }}
