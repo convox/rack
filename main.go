@@ -347,23 +347,6 @@ func templateHelpers() template.FuncMap {
 
 			return template.HTML(strings.Join(ls, ","))
 		},
-		"loadbalancers": func(m Manifest) template.HTML {
-			ls := []string{}
-
-			for ps, entry := range m {
-				for _, port := range entry.Ports {
-					parts := strings.SplitN(port, ":", 2)
-
-					if len(parts) != 2 {
-						continue
-					}
-
-					ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "%s", "%s" ] ] }`, ps, parts[1]))
-				}
-			}
-
-			return template.HTML(strings.Join(ls, ","))
-		},
 		"dkeys": func(m Manifest) template.HTML {
 			keys := []string{}
 
@@ -405,85 +388,6 @@ func templateHelpers() template.FuncMap {
 		},
 		"split": func(ss string, t string) []string {
 			return strings.Split(ss, t)
-		},
-		"tasks": func(m Manifest) template.HTML {
-			ls := []string{}
-
-			for _, ps := range m.EntryNames() {
-				entry := m[ps]
-				mappings := []string{}
-
-				for _, port := range entry.Ports {
-					parts := strings.SplitN(port, ":", 2)
-
-					if len(parts) != 2 {
-						continue
-					}
-
-					mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, upperName(ps), parts[0], parts[1]))
-				}
-
-				envs := make([]string, 0)
-				envs = append(envs, fmt.Sprintf("\"PROCESS\": \"%s\"", ps))
-
-				for _, env := range entry.Environment {
-					parts := strings.SplitN(env, "=", 2)
-					if len(parts) == 2 {
-						envs = append(envs, fmt.Sprintf("\"%s\": \"%s\"", parts[0], parts[1]))
-					}
-				}
-
-				links := make([]string, len(entry.Links))
-
-				for i, link := range entry.Links {
-					name, alias, err := linkParts(link)
-
-					if err != nil {
-						continue
-					}
-
-					links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref" : "AWS::NoValue" } ] }`, upperName(name), name, alias)
-				}
-
-				services := make([]string, len(entry.Links))
-
-				for i, link := range entry.Links {
-					name, _, err := linkParts(link)
-
-					if err != nil {
-						continue
-					}
-
-					services[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", { "Ref" : "AWS::NoValue" }, { "Fn::Join": [ ":", [ { "Ref" : "%sService" }, "%s" ] ] } ] }`, upperName(name), upperName(name), name)
-				}
-
-				volumes := []string{}
-
-				for _, volume := range entry.Volumes {
-					if strings.HasPrefix(volume, "/var/run/docker.sock") {
-						volumes = append(volumes, fmt.Sprintf(`"%s"`, volume))
-					}
-				}
-
-				ls = append(ls, fmt.Sprintf(`{ "Fn::If": [ "Blank%sService",
-				{
-					"Name": "%s",
-					"Image": { "Ref": "%sImage" },
-					"Command": { "Ref": "%sCommand" },
-					"CPU": { "Ref": "Cpu" },
-					"Memory": { "Ref": "Memory" },
-					"Environment": {
-						"KINESIS": { "Ref": "Kinesis" },
-						%s
-					},
-					"Links": [ %s ],
-					"Volumes": [ %s ],
-					"Services": [ %s ],
-					"PortMappings": [ %s ]
-				}, { "Ref" : "AWS::NoValue" } ] }`, upperName(ps), ps, upperName(ps), upperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ",")))
-			}
-
-			return template.HTML(strings.Join(ls, ","))
 		},
 		"upper": func(name string) string {
 			return upperName(name)
