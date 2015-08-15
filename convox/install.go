@@ -53,25 +53,25 @@ func init() {
 				EnvVar: "AWS_REGION",
 			},
 			cli.StringFlag{
-				Name: "stack-name",
+				Name:   "stack-name",
 				EnvVar: "STACK_NAME",
-				Value: "convox",
-				Usage: "name of the CloudFormation stack",
+				Value:  "convox",
+				Usage:  "name of the CloudFormation stack",
 			},
 			cli.BoolFlag{
-				Name: "development",
+				Name:   "development",
 				EnvVar: "DEVELOPMENT",
-				Usage: "create additional CloudFormation outputs to copy development .env file",
+				Usage:  "create additional CloudFormation outputs to copy development .env file",
 			},
 			cli.StringFlag{
-				Name: "key",
+				Name:  "key",
 				Usage: "name of an SSH keypair to install on EC2 instances",
 			},
 			cli.StringFlag{
-				Name: "version",
+				Name:   "version",
 				EnvVar: "VERSION",
-				Value: "latest",
-				Usage: "release version in the format of '20150810161818', or 'latest' by default",
+				Value:  "latest",
+				Usage:  "release version in the format of '20150810161818', or 'latest' by default",
 			},
 		},
 	})
@@ -84,15 +84,15 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "region",
-				Value:  "us-west-2",
+				Value:  "us-east-1",
 				Usage:  "aws region to uninstall from",
 				EnvVar: "AWS_REGION",
 			},
 			cli.StringFlag{
-				Name: "stack-name",
+				Name:   "stack-name",
 				EnvVar: "STACK_NAME",
-				Value: "convox",
-				Usage: "name of the convox stack",
+				Value:  "convox",
+				Usage:  "name of the convox stack",
 			},
 		},
 	})
