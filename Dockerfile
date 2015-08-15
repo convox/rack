@@ -1,4 +1,4 @@
-FROM gliderlabs/alpine:edge
+FROM gliderlabs/alpine:3.1
 
 RUN apk-install curl docker go git python py-setuptools zip
 
