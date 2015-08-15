@@ -366,15 +366,6 @@ func templateHelpers() template.FuncMap {
 
 			return template.HTML(strings.Join(keys, ","))
 		},
-		"links": func(m Manifest) template.HTML {
-			links := []string{}
-
-			for ps, _ := range m {
-				links = append(links, fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref": "AWS::NoValue" } ] }`, upperName(ps), ps, ps))
-			}
-
-			return template.HTML(strings.Join(links, ","))
-		},
 		"names": func(m Manifest) template.HTML {
 			names := []string{}
 
