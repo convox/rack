@@ -261,13 +261,14 @@ func templateHelpers() template.FuncMap {
 			links := make([]string, len(entry.Links))
 
 			for i, link := range entry.Links {
-				name, alias, err := linkParts(link)
+				name, _, err := linkParts(link)
 
 				if err != nil {
 					continue
 				}
 
-				links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", "%s:%s", { "Ref" : "AWS::NoValue" } ] }`, upperName(name), name, alias)
+				// Don't define any links for now, as they won't work with one TaskDefinition per process
+				links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", { "Ref" : "AWS::NoValue" }, { "Ref" : "AWS::NoValue" } ] }`, upperName(name))
 			}
 
 			services := make([]string, len(entry.Links))
