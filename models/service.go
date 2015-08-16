@@ -50,7 +50,7 @@ func LinkService(app string, process string, stack string) error {
 	}
 
 	return a.UpdateParams(map[string]string{
-		upperName(process) + "Service": stack,
+		UpperName(process) + "Service": stack,
 	})
 }
 
@@ -226,10 +226,10 @@ func (s *Service) ManagementUrl() string {
 
 	switch s.Type {
 	case "convox/postgres":
-		id := resources[fmt.Sprintf("%sDatabase", upperName(s.Name))].Id
+		id := resources[fmt.Sprintf("%sDatabase", UpperName(s.Name))].Id
 		return fmt.Sprintf("https://console.aws.amazon.com/rds/home?region=%s#dbinstances:id=%s;sf=all", region, id)
 	case "convox/redis":
-		id := resources[fmt.Sprintf("%sInstances", upperName(s.Name))].Id
+		id := resources[fmt.Sprintf("%sInstances", UpperName(s.Name))].Id
 		return fmt.Sprintf("https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:id=%s;view=details", region, id)
 	default:
 		return ""

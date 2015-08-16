@@ -334,7 +334,7 @@ func (a *App) ProcessPorts(ps string) map[string]string {
 	ports := map[string]string{}
 
 	for key, value := range a.Outputs {
-		r := regexp.MustCompile(fmt.Sprintf("%sPort([0-9]+)Balancer", upperName(ps)))
+		r := regexp.MustCompile(fmt.Sprintf("%sPort([0-9]+)Balancer", UpperName(ps)))
 
 		if matches := r.FindStringSubmatch(key); len(matches) == 2 {
 			ports[matches[1]] = value
@@ -410,7 +410,7 @@ func (a *App) HealthCheckEndpoint() string {
 
 	for _, ps := range a.Processes() {
 		for _, port := range a.ProcessPorts(ps.Name) {
-			if check[1] == a.Parameters[fmt.Sprintf("%sPort%sHost", upperName(ps.Name), port)] {
+			if check[1] == a.Parameters[fmt.Sprintf("%sPort%sHost", UpperName(ps.Name), port)] {
 				return fmt.Sprintf("%s:%s", ps.Name, port)
 			}
 		}

@@ -38,12 +38,12 @@ type ProcessTop struct {
 
 type ProcessRunOptions struct {
 	Command string
+	Process string
 }
 
 func ListProcesses(app string) (Processes, error) {
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Family:  aws.String(app),
 	}
 
 	res, err := ECS().ListTasks(req)
@@ -68,6 +68,10 @@ func ListProcesses(app string) (Processes, error) {
 
 		if err != nil {
 			return nil, err
+		}
+
+		if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") {
+			continue
 		}
 
 		definitions := map[string]*ecs.ContainerDefinition{}
@@ -224,7 +228,7 @@ func (p *Process) Run(options ProcessRunOptions) error {
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
 		Count:          aws.Long(1),
-		TaskDefinition: aws.String(resources["TaskDefinition"].Id),
+		TaskDefinition: aws.String(resources[UpperName(options.Process)+"ECSTaskDefinition"].Id),
 	}
 
 	if options.Command != "" {
