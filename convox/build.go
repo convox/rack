@@ -69,6 +69,7 @@ func executeBuild(dir string, app string) (string, error) {
 		stdcli.Error(err)
 	}
 
+	fmt.Printf("Deploying %s\n", app)
 	fmt.Print("Uploading... ")
 
 	tar, err := createTarball(dir)
@@ -224,9 +225,9 @@ func waitForBuild(app, id string) (string, error) {
 		case "complete":
 			return build.Release, nil
 		case "error":
-			return "", fmt.Errorf("build failed")
+			return "", fmt.Errorf("%s build failed", app)
 		case "failed":
-			return "", fmt.Errorf("build failed")
+			return "", fmt.Errorf("%s build failed", app)
 		}
 
 		time.Sleep(1 * time.Second)
