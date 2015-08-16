@@ -182,7 +182,11 @@ func upgradeConfig() error {
 func addLogin(host, password string) error {
 	config := filepath.Join(ConfigRoot, "auth")
 
-	data, _ := ioutil.ReadFile(filepath.Join(config))
+	data, err := ioutil.ReadFile(filepath.Join(config))
+
+	if err != nil {
+		return err
+	}
 
 	if data == nil {
 		data = []byte("{}")
@@ -190,7 +194,7 @@ func addLogin(host, password string) error {
 
 	var auth ConfigAuth
 
-	err := json.Unmarshal(data, &auth)
+	err = json.Unmarshal(data, &auth)
 
 	if err != nil {
 		return err
