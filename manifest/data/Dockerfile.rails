@@ -1,10 +1,4 @@
-FROM ruby:2.2.2
-
-RUN apt-get update
-RUN apt-get -y install node
-
-EXPOSE 3000
-ENV PORT 3000
+FROM rails
 
 WORKDIR /app
 
