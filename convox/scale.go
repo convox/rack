@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -13,7 +15,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "scale",
 		Description: "scale an app's processes",
-		Usage:       "",
+		Usage:       "PROCESS [--count 2] [--memory 512]",
 		Action:      cmdScale,
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -23,12 +25,12 @@ func init() {
 			cli.IntFlag{
 				Name:  "count",
 				Value: 1,
-				Usage: "Number of processes to keep running for every process type.",
+				Usage: "Number of processes to keep running for specified process type.",
 			},
 			cli.IntFlag{
 				Name:  "memory",
 				Value: 256,
-				Usage: "Amount of memory, in MB, available to every process.",
+				Usage: "Amount of memory, in MB, available to specified process type.",
 			},
 		},
 	})
@@ -39,6 +41,11 @@ func cmdScale(c *cli.Context) {
 
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) > 1 {
+		stdcli.Usage(c, "scale")
 		return
 	}
 
@@ -53,6 +60,8 @@ func cmdScale(c *cli.Context) {
 	}
 
 	if len(v) > 0 {
+		v.Set("process", c.Args()[0])
+
 		_, err = ConvoxPostForm("/apps/"+app, v)
 
 		if err != nil {
@@ -76,6 +85,38 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Count %v\n", a.Parameters["DesiredCount"])
-	fmt.Printf("Memory %v\n", a.Parameters["Memory"])
+	processes := make(map[string]Process, 0)
+
+	longest := 7
+
+	for k, v := range a.Parameters {
+		if !strings.HasSuffix(k, "DesiredCount") {
+			continue
+		}
+
+		ps := strings.Replace(k, "DesiredCount", "", 1)
+		p := strings.ToLower(ps)
+
+		i, err := strconv.ParseInt(v, 10, 64)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		m, err := strconv.ParseInt(a.Parameters[ps+"Memory"], 10, 64)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		processes[p] = Process{Name: p, Count: i, Memory: m}
+	}
+
+	fmt.Printf(fmt.Sprintf("%%-%ds  %%-5s  %%-5s\n", longest), "PROCESS", "COUNT", "MEM")
+
+	for _, ps := range processes {
+		fmt.Printf(fmt.Sprintf("%%-%ds  %%-5d  %%-5d\n", longest), ps.Name, ps.Count, ps.Memory)
+	}
 }
