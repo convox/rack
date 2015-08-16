@@ -126,7 +126,7 @@ func Error(err error) {
 
 func Usage(c *cli.Context, name string) {
 	cli.ShowCommandHelp(c, name)
-	Exiter(0)
+	Exiter(129)
 }
 
 func runExecCommand(bin string, args ...string) error {

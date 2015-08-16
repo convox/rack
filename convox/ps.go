@@ -34,10 +34,14 @@ func init() {
 		Description: "list an app's processes",
 		Usage:       "",
 		Action:      cmdPs,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "App name. Inferred from current directory if not specified.",
+		Flags:       []cli.Flag{appFlag},
+		Subcommands: []cli.Command{
+			{
+				Name:        "stop",
+				Description: "stop a process",
+				Usage:       "id",
+				Action:      cmdPsStop,
+				Flags:       []cli.Flag{appFlag},
 			},
 		},
 	})
@@ -56,6 +60,31 @@ func cmdPs(c *cli.Context) {
 	} else {
 		processTop(app, c.Args()[0])
 	}
+}
+
+func cmdPsStop(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "stop")
+		return
+	}
+
+	id := c.Args()[0]
+
+	_, err = ConvoxDelete(fmt.Sprintf("/apps/%s/processes/%s", app, id))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Stopping %s\n", id)
 }
 
 func processList(app string) {

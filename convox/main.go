@@ -42,7 +42,10 @@ func main() {
 	app := stdcli.New()
 	app.Version = Version
 	app.Usage = "command-line application management"
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func ConvoxGet(path string) ([]byte, error) {
