@@ -19,11 +19,6 @@
         "Default": "200",
         "Description": "CPU shares of each process"
       },
-      "DesiredCount": {
-        "Type" : "Number",
-        "Default" : "1",
-        "Description" : "The number of instantiations of the specified ECS task definition to place and keep running on your cluster."
-      },
       "Environment": {
         "Type": "String",
         "Default": "",
@@ -33,11 +28,6 @@
         "Type": "String",
         "Default": "",
         "Description": ""
-      },
-      "Memory": {
-        "Type": "Number",
-        "Default": "256",
-        "Description": "MB of RAM to reserve"
       },
       "Release": {
         "Type" : "String",
@@ -107,6 +97,7 @@
       },
       {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
+      {{ template "process-services" . }}
 
       {{ template "security" }}
       {{ template "state" }}
@@ -135,10 +126,20 @@
       "Default" : "{{ command $e.Command }}",
       "Description" : ""
     },
+    "{{ upper $k }}DesiredCount": {
+      "Type" : "Number",
+      "Default" : "1",
+      "Description" : "The number of instantiations of the process to place and keep running on your cluster"
+    },
     "{{ upper $k }}Image": {
       "Type" : "String",
       "Default" : "",
       "Description" : ""
+    },
+    "{{ upper $k }}Memory": {
+      "Type": "Number",
+      "Default": "256",
+      "Description": "MB of RAM to reserve"
     },
     "{{ upper $k }}Service": {
       "Type" : "String",
@@ -191,35 +192,40 @@
         "UserName": { "Ref": "LogsUser" }
       }
     },
-    "TaskDefinition": {
-      "DependsOn": "CustomTopic",
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0",
-      "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Name": { "Ref": "AWS::StackName" },
-        "Release": { "Ref": "Release" },
-        "Environment": { "Ref": "Environment" },
-        "Key": { "Ref": "Key" },
-        "Tasks": [
-          {{ tasks . }}
-        ]
-      }
-    },
-    "Service": {
-      "DependsOn": "CustomTopic",
-      "Type": "Custom::ECSService",
-      "Version": "1.0",
-      "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": { "Ref": "DesiredCount" },
-        "Name": { "Ref": "AWS::StackName" },
-        "TaskDefinition": { "Ref": "TaskDefinition" },
-        "Role": { "Ref": "ServiceRole" },
-        "LoadBalancers": [ {{ loadbalancers . }} ]
-      }
-    },
+  {{ end }}
+{{ end }}
+
+{{ define "process-services" }}
+  {{ if .HasProcesses }}
+    {{ range $k, $e := . }}
+      "{{ upper $k }}ECSTaskDefinition": {
+        "DependsOn": "CustomTopic",
+        "Type": "Custom::ECSTaskDefinition",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $k }}" ] ] },
+          "Release": { "Ref": "Release" },
+          "Environment": { "Ref": "Environment" },
+          "Key": { "Ref": "Key" },
+          "Tasks": [ {{ entry_task . $k }} ]
+        }
+      },
+      "{{ upper $k }}ECSService": {
+        "DependsOn": "CustomTopic",
+        "Type": "Custom::ECSService",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+          "Cluster": { "Ref": "Cluster" },
+          "DesiredCount": { "Ref": "{{ upper $k }}DesiredCount" },
+          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $k }}" ] ] },
+          "TaskDefinition": { "Ref": "{{ upper $k }}ECSTaskDefinition" },
+          "Role": { "Ref": "ServiceRole" },
+          "LoadBalancers": [ {{ entry_loadbalancers . $k }} ]
+        }
+      },
+    {{ end }}
   {{ end }}
 {{ end }}
 
