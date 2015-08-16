@@ -650,7 +650,9 @@
                   {
                     "Fn::If": [
                       "BlankPostgresService",
-                      "postgres:postgres",
+                      {
+                        "Ref": "AWS::NoValue"
+                      },
                       {
                         "Ref": "AWS::NoValue"
                       }
