@@ -240,7 +240,7 @@ func ServiceStream(rw http.ResponseWriter, r *http.Request) {
 func rand_password(length int) (string, error) {
 	// Take from https://github.com/cmiceli/password-generator-go
 
-	var chars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%^&*()-_=+,.?:;{}[]`~") // no /@" and space allowed for RDS password
+	var chars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") // no /@" and space allowed for RDS password
 
 	new_pword := make([]byte, length)
 	random_data := make([]byte, length+(length/4)) // storage for random bytes.
