@@ -38,7 +38,7 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new service",
-				Usage:       "<name> <postgres>",
+				Usage:       "<name> <postgres|redis>",
 				Action:      cmdServiceCreate,
 			},
 			{
@@ -188,5 +188,5 @@ func cmdServiceInfo(c *cli.Context) {
 
 	fmt.Printf("Name    %s\n", s.Name)
 	fmt.Printf("Status  %s\n", s.Status)
-	fmt.Printf("URL     %s\n", fmt.Sprintf("%s://%s:%s@%s:%s/%s", s.Tags["Service"], s.Outputs["EnvPostgresUsername"], s.Outputs["EnvPostgresPassword"], s.Outputs["Port5432TcpAddr"], s.Outputs["Port5432TcpPort"], s.Outputs["EnvPostgresDatabase"]))
+	fmt.Printf("URL     %s\n", s.URL)
 }
