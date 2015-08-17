@@ -229,7 +229,9 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		Family: aws.String(req.ResourceProperties["Name"].(string)),
 	}
 
-	// download environment
+	// get environment from S3 URL
+	// 'Environment' is a CloudFormation Template Property that references 'Environment' CF Parameter with S3 URL
+	// S3 body may be encrypted with KMS key
 	var env models.Environment
 
 	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
@@ -279,15 +281,8 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
 		}
 
-		// set environment
-		for key, val := range env {
-			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
-				Name:  aws.String(key),
-				Value: aws.String(val),
-			})
-		}
-
-		// set task environment overrides
+		// set Task environment from CF Tasks[].Environment key/values
+		// These key/values are read from the app manifest environment hash
 		if oenv, ok := task["Environment"].(map[string]interface{}); ok {
 			for key, val := range oenv {
 				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
@@ -297,7 +292,16 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			}
 		}
 
-		// put release in environment
+		// set Task environment from decrypted S3 URL body of key/values
+		// These key/values take precident over the above environment
+		for key, val := range env {
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String(key),
+				Value: aws.String(val),
+			})
+		}
+
+		// set Release value in Task environment
 		if release, ok := req.ResourceProperties["Release"].(string); ok {
 			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
 				Name:  aws.String("RELEASE"),
