@@ -281,15 +281,8 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
 		}
 
-		// set Task environment from decrypted S3 URL body of key/values
-		for key, val := range env {
-			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
-				Name:  aws.String(key),
-				Value: aws.String(val),
-			})
-		}
-
 		// set Task environment from CF Tasks[].Environment key/values
+		// These key/values are read from the app manifest environment hash
 		if oenv, ok := task["Environment"].(map[string]interface{}); ok {
 			for key, val := range oenv {
 				r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
@@ -297,6 +290,15 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 					Value: aws.String(val.(string)),
 				})
 			}
+		}
+
+		// set Task environment from decrypted S3 URL body of key/values
+		// These key/values take precident over the above environment
+		for key, val := range env {
+			r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
+				Name:  aws.String(key),
+				Value: aws.String(val),
+			})
 		}
 
 		// set Release value in Task environment
