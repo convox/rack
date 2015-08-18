@@ -70,7 +70,7 @@ func ListProcesses(app string) (Processes, error) {
 			return nil, err
 		}
 
-		if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") {
+		if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") && *tres.TaskDefinition.Family != app {
 			continue
 		}
 
