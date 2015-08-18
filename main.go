@@ -15,9 +15,9 @@ func main() {
 }
 
 func heartbeat() {
-	helpers.SendMixpanelEvent("kernel-heartbeat")
+	helpers.SendMixpanelEvent("kernel-heartbeat", "")
 
 	for _ = range time.Tick(1 * time.Hour) {
-		helpers.SendMixpanelEvent("kernel-heartbeat")
+		helpers.SendMixpanelEvent("kernel-heartbeat", "")
 	}
 }

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -26,6 +28,7 @@ Tick:
 
 		// Ger Rack InstanceCount Parameter
 		instanceCount := 0
+		instanceType := "unknown"
 
 		res, err := models.CloudFormation().DescribeStacks(
 			&cloudformation.DescribeStacksInput{
@@ -48,9 +51,14 @@ Tick:
 				}
 
 				instanceCount = c
-				break
+			}
+
+			if *p.ParameterKey == "InstanceType" {
+				instanceType = *p.ParameterValue
 			}
 		}
+
+		helpers.SendMixpanelEvent("kernel-cluster-monitor", fmt.Sprintf("count=%d type=%s", instanceCount, instanceType))
 
 		// List and Describe ECS Container Instances
 		ires, err := models.ECS().ListContainerInstances(
@@ -135,6 +143,10 @@ Tick:
 		sort.Strings(aInstanceIds)
 		sort.Strings(cInstanceIds)
 		sort.Strings(uInstanceIds)
+
+		if len(uInstanceIds) > 0 {
+			helpers.SendMixpanelEvent("kernel-cluster-monitor-mark", strings.Join(uInstanceIds, ","))
+		}
 
 		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
 	}

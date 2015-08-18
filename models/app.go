@@ -73,12 +73,12 @@ func GetApp(name string) (*App, error) {
 }
 
 func (a *App) Create() error {
-	helpers.SendMixpanelEvent("kernel-app-create-start")
+	helpers.SendMixpanelEvent("kernel-app-create-start", "")
 
 	formation, err := a.Formation()
 
 	if err != nil {
-		helpers.SendMixpanelEvent("kernel-app-create-error")
+		helpers.SendMixpanelEvent("kernel-app-create-error", "")
 		return err
 	}
 
@@ -122,11 +122,11 @@ func (a *App) Create() error {
 	_, err = CloudFormation().CreateStack(req)
 
 	if err != nil {
-		helpers.SendMixpanelEvent("kernel-app-create-error")
+		helpers.SendMixpanelEvent("kernel-app-create-error", "")
 		return err
 	}
 
-	helpers.SendMixpanelEvent("kernel-app-create-success")
+	helpers.SendMixpanelEvent("kernel-app-create-success", "")
 	return nil
 }
 
@@ -162,20 +162,20 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
-	helpers.SendMixpanelEvent("kernel-app-delete-start")
+	helpers.SendMixpanelEvent("kernel-app-delete-start", "")
 
 	name := a.Name
 
 	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
 
 	if err != nil {
-		helpers.SendMixpanelEvent("kernel-app-delete-error")
+		helpers.SendMixpanelEvent("kernel-app-delete-error", "")
 		return err
 	}
 
 	go a.Cleanup()
 
-	helpers.SendMixpanelEvent("kernel-app-delete-success")
+	helpers.SendMixpanelEvent("kernel-app-delete-success", "")
 
 	return nil
 }
