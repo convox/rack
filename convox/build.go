@@ -196,7 +196,8 @@ func streamBuild(app, build string) error {
 		err := websocket.Message.Receive(ws, &message)
 
 		if err != nil {
-			break
+			fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+			streamBuild(app, build)
 		}
 
 		fmt.Print(string(message))
