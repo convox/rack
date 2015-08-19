@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
 
@@ -78,11 +79,15 @@ func cmdLogsStream(c *cli.Context) {
 			err := websocket.Message.Receive(ws, &message)
 
 			if err == io.EOF {
+				fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+				cmdLogsStream(c)
 				return
 			}
 
 			if err != nil {
-				break
+				fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+				cmdLogsStream(c)
+				return
 			}
 
 			fmt.Print(string(message))
