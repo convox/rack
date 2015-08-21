@@ -54,17 +54,12 @@ func cmdBuilds(c *cli.Context) {
 		return
 	}
 
-	longest := 7
-
-	fmt.Printf(fmt.Sprintf("%%-12s  %%-%ds  %%-11s  %%-5s  %%s\n", longest), "ID", "RELEASE", "STATUS", "STARTED", "ENDED")
-
-	var started Time
-	var ended Time
+	fmt.Printf("%-12s  %-12s  %-9s  %-22s  %s\n", "ID", "RELEASE", "STATUS", "STARTED", "ENDED")
 
 	for _, build := range builds {
-		started = build.Started
-		ended = build.Ended
-		fmt.Printf(fmt.Sprintf("%%-12s  %%-%ds  %%-11s  %%-5d  %%s\n", longest), build.Id, build.Release, started.Format(time.RFC822Z), ended.Format(time.RFC822Z), build.Ended)
+		started := build.Started
+		ended := build.Ended
+		fmt.Printf("%-12s  %-12s  %-9s  %-22s  %s\n", build.Id, build.Release, build.Status, started.Format(time.RFC822Z), ended.Format(time.RFC822Z))
 	}
 }
 
