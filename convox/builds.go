@@ -84,10 +84,12 @@ func cmdBuildsCreate(c *cli.Context) {
 		return
 	}
 
-	_, err = executeBuild(dir, app)
+	release, err := executeBuild(dir, app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
+
+	fmt.Sprintln("Build complete. Release ID: %s", release)
 }
