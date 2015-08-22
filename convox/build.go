@@ -69,7 +69,6 @@ func executeBuild(dir string, app string) (string, error) {
 		stdcli.Error(err)
 	}
 
-	fmt.Printf("Deploying %s\n", app)
 	fmt.Print("Uploading... ")
 
 	tar, err := createTarball(dir)
@@ -196,12 +195,11 @@ func streamBuild(app, build string) error {
 		err := websocket.Message.Receive(ws, &message)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
-			streamBuild(app, build)
+			break
 		}
-
-		fmt.Print(string(message))
 	}
+
+	fmt.Print(string(message))
 
 	return nil
 }
