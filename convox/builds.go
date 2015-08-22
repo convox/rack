@@ -91,5 +91,5 @@ func cmdBuildsCreate(c *cli.Context) {
 		return
 	}
 
-	fmt.Sprintln("Build complete. Release ID: %s", release)
+	fmt.Printf("Build complete.\nRelease ID: %s\n", release)
 }
