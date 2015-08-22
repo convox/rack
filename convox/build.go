@@ -69,7 +69,6 @@ func executeBuild(dir string, app string) (string, error) {
 		stdcli.Error(err)
 	}
 
-	fmt.Printf("Deploying %s\n", app)
 	fmt.Print("Uploading... ")
 
 	tar, err := createTarball(dir)

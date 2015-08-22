@@ -38,6 +38,8 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
+	fmt.Printf("Deploying %s\n", app)
+
 	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 	if err != nil {
