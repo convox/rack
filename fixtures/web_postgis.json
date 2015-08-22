@@ -415,7 +415,10 @@
       "Version": "1.0"
     },
     "PostgresECSTaskDefinition": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
       "Properties": {
         "Environment": {
           "Ref": "Environment"
@@ -598,7 +601,10 @@
       "Version": "1.0"
     },
     "WebECSTaskDefinition": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
       "Properties": {
         "Environment": {
           "Ref": "Environment"
