@@ -64,4 +64,30 @@ func cmdBuilds(c *cli.Context) {
 }
 
 func cmdBuildsCreate(c *cli.Context) {
+	wd := "."
+
+	if len(c.Args()) > 0 {
+		wd = c.Args()[0]
+	}
+
+	dir, app, err := stdcli.DirApp(c, wd)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	_, err = executeBuild(dir, app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 }
