@@ -197,9 +197,8 @@ func streamBuild(app, build string) error {
 		if err != nil {
 			break
 		}
+		fmt.Print(string(message))
 	}
-
-	fmt.Print(string(message))
 
 	return nil
 }
