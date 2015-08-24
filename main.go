@@ -256,7 +256,7 @@ func run(prefix, dir string, command string, args ...string) error {
 	}
 
 	elapsed := time.Now().Sub(started).Nanoseconds() / 1000000
-	writeSystem(fmt.Sprintf("cmd='%s %s' finished=true exit=%d elapsed=%d\n",
+	writeSystem(fmt.Sprintf("cmd='%s %s' finished=true exit=%s elapsed=%d\n",
 		command, strings.Join(args, " "), exitCode, elapsed))
 
 	return err
