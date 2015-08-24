@@ -24,6 +24,13 @@ func init() {
 				Action:      cmdBuildsCreate,
 				Flags:       []cli.Flag{appFlag},
 			},
+			{
+				Name:        "info",
+				Description: "print output for a build",
+				Usage:       "<ID>",
+				Action:      cmdBuildsInfo,
+				Flags:       []cli.Flag{appFlag},
+			},
 		},
 	})
 }
@@ -92,4 +99,40 @@ func cmdBuildsCreate(c *cli.Context) {
 	}
 
 	fmt.Printf("Build complete.\nRelease ID: %s\n", release)
+}
+
+func cmdBuildsInfo(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "info")
+		return
+	}
+
+	build := c.Args()[0]
+
+	path := fmt.Sprintf("/apps/%s/builds/%s", app, build)
+
+	resp, err := ConvoxGet(path)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	var b Build
+
+	err = json.Unmarshal(resp, &b)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println(b.Logs)
 }
