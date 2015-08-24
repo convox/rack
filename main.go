@@ -10,7 +10,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/convox/build/Godeps/_workspace/src/github.com/convox/cli/manifest"
 )
@@ -124,7 +127,7 @@ func clone(source, app string) (string, error) {
 			return "", err
 		}
 
-		err = run("git", tmp, "git", "clone", source, clone)
+		err = run("git", tmp, "git", "clone", "--progress", "-v", source, clone)
 
 		if err != nil {
 			return "", err
@@ -220,6 +223,10 @@ func prefixReader(r io.Reader, prefix string) {
 }
 
 func run(prefix, dir string, command string, args ...string) error {
+	started := time.Now()
+
+	writeSystem(fmt.Sprintf("cmd='%s %s' start=true\n", command, strings.Join(args, " ")))
+
 	cmd := exec.Command(command, args...)
 	cmd.Dir = dir
 
@@ -238,11 +245,22 @@ func run(prefix, dir string, command string, args ...string) error {
 		fmt.Printf("%s|%s\n", prefix, scanner.Text())
 	}
 
-	err = cmd.Wait()
+	exitCode := "0"
+	if err = cmd.Wait(); err != nil {
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exiterr.ProcessState.Sys().(syscall.WaitStatus); ok {
+				exitCode = strconv.Itoa(status.ExitStatus())
+			}
+		} else {
+			exitCode = "FAIL"
+		}
 
-	if err != nil {
 		fmt.Printf("%s|error: %s\n", prefix, err)
 	}
+
+	elapsed := time.Now().Sub(started).Nanoseconds() / 1000000
+	writeSystem(fmt.Sprintf("cmd='%s %s' finished=true exit=%d elapsed=%d\n",
+		command, strings.Join(args, " "), exitCode, elapsed))
 
 	return err
 }
@@ -287,4 +305,9 @@ func writeFile(target, name string, perms os.FileMode, replacements map[string]s
 	}
 
 	return ioutil.WriteFile(target, []byte(sdata), perms)
+}
+
+func writeSystem(message string) {
+	system := prefixWriter("system")
+	system.Write([]byte(message))
 }
