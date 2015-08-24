@@ -237,16 +237,13 @@ func run(prefix, dir string, command string, args ...string) error {
 		return err
 	}
 
-	cmd.Start()
-
-	scanner := bufio.NewScanner(stdout)
-
-	for scanner.Scan() {
-		fmt.Printf("%s|%s\n", prefix, scanner.Text())
-	}
-
 	exitCode := "0"
-	if err = cmd.Wait(); err != nil {
+
+	cmd.Start()
+	go prefixReader(stdout, prefix)
+	err = cmd.Wait()
+
+	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.ProcessState.Sys().(syscall.WaitStatus); ok {
 				exitCode = strconv.Itoa(status.ExitStatus())
@@ -255,7 +252,7 @@ func run(prefix, dir string, command string, args ...string) error {
 			exitCode = "FAIL"
 		}
 
-		fmt.Printf("%s|error: %s\n", prefix, err)
+		writeSystem("error: " + err.Error())
 	}
 
 	elapsed := time.Now().Sub(started).Nanoseconds() / 1000000
