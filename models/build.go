@@ -170,8 +170,11 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 	err := b.execute(args, r, ch)
 
 	if err != nil {
+		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
 		b.Fail(err)
 		ch <- err
+	} else {
+		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	}
 }
 
@@ -194,8 +197,11 @@ func (b *Build) ExecuteRemote(repo string, ch chan error) {
 	err := b.execute(args, nil, ch)
 
 	if err != nil {
+		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
 		b.Fail(err)
 		ch <- err
+	} else {
+		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	}
 }
 
@@ -260,7 +266,6 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	wg.Wait()
 
 	if err = cmd.Wait(); err != nil {
-		fmt.Printf("ns=kernel cn=build at=execute state=error step=build.Wait app=%q build=%q error=%q\n", b.App, b.Id, err)
 		return err
 	}
 
