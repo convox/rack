@@ -260,10 +260,9 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	wg.Wait()
 
 	if err = cmd.Wait(); err != nil {
+		fmt.Printf("ns=kernel cn=build at=execute state=error step=build.Wait app=%q build=%q error=%q\n", b.App, b.Id, err)
 		return err
 	}
-
-	fmt.Printf("b: %+v\n", b)
 
 	err = b.Save()
 
