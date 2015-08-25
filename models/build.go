@@ -265,6 +265,12 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 
 	fmt.Printf("b: %+v\n", b)
 
+	err = b.Save()
+
+	if err != nil {
+		return err
+	}
+
 	if b.Status == "failed" {
 		return fmt.Errorf("error from builder")
 	}
