@@ -170,8 +170,11 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 	err := b.execute(args, r, ch)
 
 	if err != nil {
+		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
 		b.Fail(err)
 		ch <- err
+	} else {
+		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	}
 }
 
@@ -194,8 +197,11 @@ func (b *Build) ExecuteRemote(repo string, ch chan error) {
 	err := b.execute(args, nil, ch)
 
 	if err != nil {
+		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
 		b.Fail(err)
 		ch <- err
+	} else {
+		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	}
 }
 
@@ -263,7 +269,11 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 		return err
 	}
 
-	fmt.Printf("b: %+v\n", b)
+	err = b.Save()
+
+	if err != nil {
+		return err
+	}
 
 	if b.Status == "failed" {
 		return fmt.Errorf("error from builder")
@@ -309,21 +319,15 @@ func (b *Build) scanLines(r io.Reader, wg *sync.WaitGroup) {
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), "|", 2)
+		b.log(scanner.Text())
 
-		if len(parts) < 2 {
-			b.log(parts[0])
-			continue
-		}
+		parts := strings.SplitN(scanner.Text(), "|", 2)
 
 		switch parts[0] {
 		case "manifest":
 			b.Manifest += fmt.Sprintf("%s\n", parts[1])
 		case "error":
 			b.Status = "failed"
-			b.log(parts[1])
-		default:
-			b.log(parts[1])
 		}
 	}
 }

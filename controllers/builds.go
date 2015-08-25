@@ -82,29 +82,32 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) {
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("create").Start()
 
+	app := mux.Vars(r)["app"]
+	build := models.NewBuild(app)
+
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
+
+	logEvent(log, build, "ParseMultipartForm", err)
 
 	if err != nil {
 		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
-
-	app := mux.Vars(r)["app"]
-
-	build := models.NewBuild(app)
 
 	err = build.Save()
 
+	logEvent(log, build, "Save", err)
+
 	if err != nil {
 		helpers.Error(log, err)
 		RenderError(rw, err)
 		return
 	}
 
-	log.Success("step=build.save app=%q", build.App)
-
 	source, _, err := r.FormFile("source")
+
+	logEvent(log, build, "FormFile", err)
 
 	if err != nil && err != http.ErrMissingFile {
 		helpers.Error(log, err)
@@ -117,7 +120,11 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	if source != nil {
 		go build.ExecuteLocal(source, ch)
 
-		if err = <-ch; err != nil {
+		err = <-ch
+
+		logEvent(log, build, "ExecuteLocal", err)
+
+		if err != nil {
 			RenderError(rw, err)
 		} else {
 			RenderText(rw, build.Id)
@@ -130,7 +137,11 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		if repo := r.FormValue("repo"); repo != "" {
 			go build.ExecuteRemote(repo, ch)
 
-			if err = <-ch; err != nil {
+			err = <-ch
+
+			logEvent(log, build, "ExecuteRemote", err)
+
+			if err != nil {
 				RenderError(rw, err)
 			} else {
 				RenderText(rw, build.Id)
@@ -248,5 +259,13 @@ func keepAlive(ws *websocket.Conn, quit chan bool) {
 		case <-quit:
 			return
 		}
+	}
+}
+
+func logEvent(log *logger.Logger, build models.Build, step string, err error) {
+	if err != nil {
+		log.Log("state=error step=build.%s app=%q build=%q error=%q", step, build.App, build.Id, err)
+	} else {
+		log.Success("step=build.%s app=%q build=%q", step, build.App, build.Id)
 	}
 }
