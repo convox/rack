@@ -8,7 +8,7 @@ build:
 data:
 	go-bindata data/
 
-test:
+test: build
 	go test -v -run TestDockerRunning && go test -v ./...
 
 vendor:
