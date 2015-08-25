@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 /* convox/build integration tests
@@ -51,25 +50,6 @@ manifest|  ports: []`
 	actual := grepPrefix("manifest", out)
 	if actual != expected {
 		t.Errorf("Expected:\n %s \n got: \n %s", expected, actual)
-	}
-}
-
-func TestDockerRunning(t *testing.T) {
-	cmd := exec.Command("docker", "ps")
-	cmd.Stderr = os.Stderr
-	cmd.Start()
-
-	timer := time.AfterFunc(1*time.Second, func() {
-		err := cmd.Process.Kill()
-		if err != nil {
-			panic(err) // panic as can't kill a process.
-		}
-	})
-	err := cmd.Wait()
-	timer.Stop()
-
-	if err != nil {
-		t.Errorf("Docker not running. try `boot2docker up`?")
 	}
 }
 
