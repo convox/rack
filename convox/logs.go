@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
 
@@ -30,69 +29,64 @@ func init() {
 }
 
 func cmdLogsStream(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	host, password, err := currentLogin()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	origin := fmt.Sprintf("https://%s", host)
+	url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, app)
+
+	config, err := websocket.NewConfig(url, origin)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	userpass := fmt.Sprintf("convox:%s", password)
+	userpass_encoded := b64.StdEncoding.EncodeToString([]byte(userpass))
+
+	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+
+	config.TlsConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	ws, err := websocket.DialConfig(config)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	defer ws.Close()
+
 	for {
-		_, app, err := stdcli.DirApp(c, ".")
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		host, password, err := currentLogin()
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		origin := fmt.Sprintf("https://%s", host)
-		url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, app)
-
-		config, err := websocket.NewConfig(url, origin)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		userpass := fmt.Sprintf("convox:%s", password)
-		userpass_encoded := b64.StdEncoding.EncodeToString([]byte(userpass))
-
-		config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
-
-		config.TlsConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-
-		ws, err := websocket.DialConfig(config)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		defer ws.Close()
-
 		var message []byte
 
 		for {
 			err := websocket.Message.Receive(ws, &message)
 
 			if err == io.EOF {
-				fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
-				cmdLogsStream(c)
 				return
 			}
 
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
-				cmdLogsStream(c)
-				return
+				// fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+				continue
 			}
 
 			fmt.Print(string(message))
 		}
-
-		fmt.Println("out")
 	}
 }
