@@ -85,7 +85,7 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	err = streamBuild(app, build)
+	err = streamBuild(app, build, 0)
 
 	if err != nil {
 		fmt.Printf("%+v\n", err)
@@ -153,7 +153,7 @@ func postBuild(tar []byte, app string) (string, error) {
 	return string(data), nil
 }
 
-func streamBuild(app, build string) error {
+func streamBuild(app, build string, offset int) error {
 	host, password, err := currentLogin()
 
 	if err != nil {
@@ -191,13 +191,25 @@ func streamBuild(app, build string) error {
 
 	var message []byte
 
+	lineno := 0
+
 	for {
 		err := websocket.Message.Receive(ws, &message)
 
-		if err != nil {
-			break
+		if err == io.EOF {
+			return nil
 		}
-		fmt.Print(string(message))
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+			return streamBuild(app, build, lineno)
+		}
+
+		if lineno >= offset {
+			fmt.Print(string(message))
+		}
+
+		lineno += 1
 	}
 
 	return nil
