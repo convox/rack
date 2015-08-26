@@ -108,7 +108,7 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if ps == nil {
-		RenderNotFound(rw, fmt.Sprintf("no such process: %s", app, process))
+		RenderNotFound(rw, fmt.Sprintf("no such process: %s", process))
 		return
 	}
 
