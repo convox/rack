@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -82,8 +84,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) {
 func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	log := buildsLogger("create").Start()
 
-	app := mux.Vars(r)["app"]
-	build := models.NewBuild(app)
+	build := models.NewBuild(mux.Vars(r)["app"])
 
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
@@ -114,6 +115,38 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
+
+	resources, err := models.ListResources(os.Getenv("RACK"))
+
+	logEvent(log, build, "ListResources", err)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	data, err := ioutil.ReadAll(source)
+
+	logEvent(log, build, "ReadAll", err)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	err = models.S3Put(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), data, false)
+
+	logEvent(log, build, "S3Put", err)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	source.Seek(0, 0)
 
 	ch := make(chan error)
 

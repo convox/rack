@@ -123,7 +123,7 @@ func PutEnvironment(app string, env Environment) error {
 		}
 	}
 
-	return s3Put(a.Outputs["Settings"], "env", []byte(e), true)
+	return S3Put(a.Outputs["Settings"], "env", []byte(e), true)
 }
 
 func (e Environment) SortedNames() []string {
