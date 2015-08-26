@@ -44,7 +44,7 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) > 1 {
+	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "scale")
 		return
 	}
