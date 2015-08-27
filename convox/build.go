@@ -197,11 +197,22 @@ func streamBuild(app, build string, offset int) error {
 		err := websocket.Message.Receive(ws, &message)
 
 		if err == io.EOF {
-			return nil
+			status, err := buildStatus(app, build)
+
+			if err != nil {
+				stdcli.Error(err)
+				return err
+			}
+
+			if status == "building" {
+				continue
+			} else {
+				return nil
+			}
 		}
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+			// fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
 			return streamBuild(app, build, lineno)
 		}
 
@@ -213,6 +224,24 @@ func streamBuild(app, build string, offset int) error {
 	}
 
 	return nil
+}
+
+func buildStatus(app, build string) (string, error) {
+	var b Build
+
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/builds/%s", app, build))
+
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(data, &b)
+
+	if err != nil {
+		return "", err
+	}
+
+	return b.Status, nil
 }
 
 func waitForBuild(app, id string) (string, error) {
