@@ -1,6 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
@@ -80,6 +81,11 @@
     }
   },
   "Parameters": {
+    "Ami": {
+      "Type": "String",
+      "Description": "Amazon Machine Image",
+      "Default": ""
+    },
     "ClientId": {
       "Type": "String",
       "Description": "Anonymous identifier",
@@ -422,7 +428,7 @@
       "Properties": {
         "AssociatePublicIpAddress": true,
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
-        "ImageId": { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] },
+        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
         "InstanceType": { "Ref": "InstanceType" },
         "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
