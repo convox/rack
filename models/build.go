@@ -132,6 +132,7 @@ func (b *Build) Save() error {
 				remainder = remainder[logMax:]
 			} else {
 				logs = remainder
+				remainder = ""
 			}
 
 			if counter == 0 {
