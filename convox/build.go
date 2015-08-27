@@ -19,6 +19,16 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+func init() {
+	stdcli.RegisterCommand(cli.Command{
+		Name:        "build",
+		Description: "create a new build",
+		Usage:       "",
+		Action:      cmdBuildsCreate,
+		Flags:       []cli.Flag{appFlag},
+	})
+}
+
 type Build struct {
 	Id  string
 	App string
