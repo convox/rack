@@ -21,7 +21,7 @@ func init() {
 				Name:        "create",
 				Description: "create a new build",
 				Usage:       "",
-				Action:      cmdBuildsCreate,
+				Action:      cmdBuild,
 				Flags:       []cli.Flag{appFlag},
 			},
 			{
@@ -68,37 +68,6 @@ func cmdBuilds(c *cli.Context) {
 		ended := build.Ended
 		fmt.Printf("%-12s  %-12s  %-9s  %-22s  %s\n", build.Id, build.Release, build.Status, started.Format(time.RFC822Z), ended.Format(time.RFC822Z))
 	}
-}
-
-func cmdBuildsCreate(c *cli.Context) {
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, app, err := stdcli.DirApp(c, wd)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	release, err := executeBuild(dir, app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Printf("Build complete.\nRelease ID: %s\n", release)
 }
 
 func cmdBuildsInfo(c *cli.Context) {

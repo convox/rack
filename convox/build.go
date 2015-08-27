@@ -24,7 +24,7 @@ func init() {
 		Name:        "build",
 		Description: "create a new build",
 		Usage:       "",
-		Action:      cmdBuildsCreate,
+		Action:      cmdBuild,
 		Flags:       []cli.Flag{appFlag},
 	})
 }
@@ -55,12 +55,21 @@ func cmdBuild(c *cli.Context) {
 		return
 	}
 
-	_, err = executeBuild(dir, app)
+	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
+
+	release, err := executeBuild(dir, app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Release: %s\n", release)
 }
 
 func executeBuild(dir string, app string) (string, error) {
