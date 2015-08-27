@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -126,17 +125,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := ioutil.ReadAll(source)
-
-	logEvent(log, build, "ReadAll", err)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	err = models.S3Put(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), data, false)
+	err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
 
 	logEvent(log, build, "S3Put", err)
 
@@ -145,8 +134,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 		RenderError(rw, err)
 		return
 	}
-
-	source.Seek(0, 0)
 
 	ch := make(chan error)
 
