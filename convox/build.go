@@ -205,6 +205,7 @@ func streamBuild(app, build string, offset int) error {
 			}
 
 			if status == "building" {
+				time.Sleep(2 * time.Second)
 				continue
 			} else {
 				return nil
