@@ -32,6 +32,11 @@ func init() {
 		Usage:       "",
 		Action:      cmdInstall,
 		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "ami",
+				Value: "",
+				Usage: "ID of the Amazon Machine Image to install",
+			},
 			cli.BoolFlag{
 				Name:  "dedicated",
 				Usage: "create EC2 instances on dedicated hardware",
@@ -179,6 +184,8 @@ func cmdInstall(c *cli.Context) {
 		development = "Yes"
 	}
 
+	ami := c.String("ami")
+
 	key := c.String("key")
 
 	stackName := c.String("stack-name")
@@ -202,6 +209,7 @@ func cmdInstall(c *cli.Context) {
 	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
+			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
