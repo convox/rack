@@ -41,15 +41,6 @@ type Build struct {
 	Ended   time.Time
 }
 
-func init() {
-	// stdcli.RegisterCommand(cli.Command{
-	// 	Name:        "build",
-	// 	Description: "",
-	// 	Usage:       "",
-	// 	Action:      cmdBuild,
-	// })
-}
-
 func cmdBuild(c *cli.Context) {
 	wd := "."
 
