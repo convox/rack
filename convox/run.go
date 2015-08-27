@@ -28,11 +28,20 @@ func init() {
 				Name:  "app",
 				Usage: "App name. Inferred from current directory if not specified.",
 			},
+			cli.BoolFlag{
+				Name:  "attach",
+				Usage: "attach to an interactive session",
+			},
 		},
 	})
 }
 
 func cmdRun(c *cli.Context) {
+	if c.Bool("attach") {
+		cmdRunAttached(c)
+		return
+	}
+
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
