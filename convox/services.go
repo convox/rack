@@ -73,18 +73,26 @@ func cmdServices(c *cli.Context) {
 		return
 	}
 
-	longest := 7
+	lname := 7
 
 	for _, service := range *services {
-		if len(service.Name) > longest {
-			longest = len(service.Name)
+		if len(service.Name) > lname {
+			lname = len(service.Name)
 		}
 	}
 
-	fmt.Printf(fmt.Sprintf("%%-%ds  TYPE\n", longest), "SERVICE")
+	ltype := 4
 
 	for _, service := range *services {
-		fmt.Printf(fmt.Sprintf("%%-%ds  %%s\n", longest), service.Name, service.Tags["Service"])
+		if len(service.Tags["Service"]) > ltype {
+			ltype = len(service.Tags["Service"])
+		}
+	}
+
+	fmt.Printf(fmt.Sprintf("%%-%ds  %%-%ds  STATUS\n", lname, ltype), "SERVICE", "TYPE")
+
+	for _, service := range *services {
+		fmt.Printf(fmt.Sprintf("%%-%ds  %%-%ds  %%s\n", lname, ltype), service.Name, service.Tags["Service"], service.Status)
 	}
 }
 
