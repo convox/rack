@@ -170,7 +170,7 @@ func (r *Release) Save() error {
 		}
 	}
 
-	return s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
+	return S3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
 func (r *Release) Promote() error {

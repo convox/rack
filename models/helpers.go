@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -181,7 +182,7 @@ func s3Get(bucket, key string) ([]byte, error) {
 	return ioutil.ReadAll(res.Body)
 }
 
-func s3Put(bucket, key string, data []byte, public bool) error {
+func S3Put(bucket, key string, data []byte, public bool) error {
 	req := &s3.PutObjectInput{
 		Body:          bytes.NewReader(data),
 		Bucket:        aws.String(bucket),
@@ -194,6 +195,43 @@ func s3Put(bucket, key string, data []byte, public bool) error {
 	}
 
 	_, err := S3().PutObject(req)
+
+	return err
+}
+
+func S3PutFile(bucket, key string, f io.ReadSeeker, public bool) error {
+	// seek to end of f to determine length, then seek back to beginning for upload
+	l, err := f.Seek(0, 2)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = f.Seek(0, 0)
+
+	if err != nil {
+		return err
+	}
+
+	req := &s3.PutObjectInput{
+		Body:          f,
+		Bucket:        aws.String(bucket),
+		ContentLength: aws.Long(l),
+		Key:           aws.String(key),
+	}
+
+	if public {
+		req.ACL = aws.String("public-read")
+	}
+
+	_, err = S3().PutObject(req)
+
+	if err != nil {
+		return err
+	}
+
+	// seek back to beginning in case something else needs to read f
+	_, err = f.Seek(0, 0)
 
 	return err
 }

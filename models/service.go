@@ -212,7 +212,7 @@ func (s *Service) Save() error {
 		return err
 	}
 
-	return s3Put(app.Outputs["Settings"], fmt.Sprintf("service/%s", s.Name), data, false)
+	return S3Put(app.Outputs["Settings"], fmt.Sprintf("service/%s", s.Name), data, false)
 }
 
 func (s *Service) ManagementUrl() string {
