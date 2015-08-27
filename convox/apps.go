@@ -154,7 +154,7 @@ func cmdAppDelete(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("OK - DELETE STARTED")
+	fmt.Println("DELETING")
 }
 
 func cmdAppInfo(c *cli.Context) {
