@@ -121,13 +121,29 @@ func (b *Build) Save() error {
 	if b.Logs != "" {
 		logMax := 1024 * 395 // Dynamo attribute can be 400k max
 
-		logs := b.Logs
+		var logs string
+		var key string
+		remainder := b.Logs
+		counter := 0
 
-		if len(logs) > logMax {
-			logs = logs[0:logMax]
+		for len(remainder) > 0 {
+			if len(remainder) > logMax {
+				logs = remainder[0:logMax]
+				remainder = remainder[logMax:]
+			} else {
+				logs = remainder
+			}
+
+			if counter == 0 {
+				key = "logs"
+			} else {
+				key = fmt.Sprintf("logs%s", counter)
+			}
+
+			(*req.Item)[key] = &dynamodb.AttributeValue{S: aws.String(logs)}
+
+			counter += 1
 		}
-
-		(*req.Item)["logs"] = &dynamodb.AttributeValue{S: aws.String(logs)}
 	}
 
 	if b.Manifest != "" {
