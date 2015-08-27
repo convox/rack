@@ -393,7 +393,7 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
-	return &Build{
+	build := &Build{
 		Id:       coalesce(item["id"], ""),
 		App:      coalesce(item["app"], ""),
 		Logs:     coalesce(item["logs"], ""),
@@ -403,4 +403,19 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 		Started:  started,
 		Ended:    ended,
 	}
+
+	i := 1
+	key := "logs1"
+
+	for {
+		if _, ok := item[key]; ok {
+			build.Logs += coalesce(item[key], "")
+			i += 1
+			key = fmt.Sprintf("logs%d", i)
+		} else {
+			break
+		}
+	}
+
+	return build
 }
