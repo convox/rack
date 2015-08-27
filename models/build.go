@@ -138,7 +138,7 @@ func (b *Build) Save() error {
 			if counter == 0 {
 				key = "logs"
 			} else {
-				key = fmt.Sprintf("logs%s", counter)
+				key = fmt.Sprintf("logs%d", counter)
 			}
 
 			(*req.Item)[key] = &dynamodb.AttributeValue{S: aws.String(logs)}
