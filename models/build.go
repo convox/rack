@@ -408,8 +408,8 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	key := "logs1"
 
 	for {
-		if _, ok := item[key]; ok {
-			build.Logs += coalesce(item[key], "")
+		if logs := coalesce(item[key], ""); logs != "" {
+			build.Logs += logs
 			i += 1
 			key = fmt.Sprintf("logs%d", i)
 		} else {
