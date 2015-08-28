@@ -121,30 +121,13 @@ func (b *Build) Save() error {
 	if b.Logs != "" {
 		logMax := 1024 * 395 // Dynamo attribute can be 400k max
 
-		var logs string
-		var key string
-		remainder := b.Logs
-		counter := 0
+		logs := b.Logs
 
-		for len(remainder) > 0 {
-			if len(remainder) > logMax {
-				logs = remainder[0:logMax]
-				remainder = remainder[logMax:]
-			} else {
-				logs = remainder
-				remainder = ""
-			}
-
-			if counter == 0 {
-				key = "logs"
-			} else {
-				key = fmt.Sprintf("logs%d", counter)
-			}
-
-			(*req.Item)[key] = &dynamodb.AttributeValue{S: aws.String(logs)}
-
-			counter += 1
+		if len(logs) > logMax {
+			logs = logs[0:logMax]
 		}
+
+		(*req.Item)["logs"] = &dynamodb.AttributeValue{S: aws.String(logs)}
 	}
 
 	if b.Manifest != "" {
@@ -393,7 +376,7 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
-	build := &Build{
+	return &Build{
 		Id:       coalesce(item["id"], ""),
 		App:      coalesce(item["app"], ""),
 		Logs:     coalesce(item["logs"], ""),
@@ -403,19 +386,4 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 		Started:  started,
 		Ended:    ended,
 	}
-
-	i := 1
-	key := "logs1"
-
-	for {
-		if logs := coalesce(item[key], ""); logs != "" {
-			build.Logs += logs
-			i += 1
-			key = fmt.Sprintf("logs%d", i)
-		} else {
-			break
-		}
-	}
-
-	return build
 }
