@@ -7,10 +7,12 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
-	"sync"
 
 	b64 "encoding/base64"
+
+	"github.com/docker/docker/pkg/term"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -77,6 +79,14 @@ func cmdRun(c *cli.Context) {
 }
 
 func cmdRunAttached(c *cli.Context) {
+	fd := os.Stdin.Fd()
+	oldState, err := term.SetRawTerminal(fd)
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+	defer term.RestoreTerminal(fd, oldState)
+
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
@@ -130,21 +140,40 @@ func cmdRunAttached(c *cli.Context) {
 
 	defer ws.Close()
 
-	var wg sync.WaitGroup
+	ch := make(chan int)
+	go io.Copy(ws, os.Stdin)
+	go messageReceive(ws, os.Stdout, ch)
 
-	wg.Add(2)
+	code := <-ch
 
-	stripper := CodeStripper{os.Stdout}
-
-	go copyWait(ws, os.Stdin, &wg)
-	go copyWait(stripper, ws, &wg)
-
-	wg.Wait()
+	term.RestoreTerminal(os.Stdin.Fd(), oldState)
+	os.Exit(code)
 }
 
-func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
-	io.Copy(w, r)
-	wg.Done()
+func messageReceive(ws *websocket.Conn, w io.Writer, ch chan int) {
+	var message []byte
+
+	for {
+		err := websocket.Message.Receive(ws, &message)
+
+		if err != nil {
+			ch <- 1
+			return
+		}
+
+		m := string(message)
+
+		if strings.HasPrefix(m, "EXIT: ") {
+			code := m[6 : len(m)-1]
+
+			i, _ := strconv.Atoi(code)
+
+			ch <- i
+			return
+		}
+
+		w.Write(message)
+	}
 }
 
 var CodeRemoverRegex = regexp.MustCompile(`\x1b\[.n`)
