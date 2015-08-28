@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/convox/cli",
-	"GoVersion": "go1.4.2 darwin/amd64",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
@@ -31,11 +31,6 @@
 			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/restxml",
-			"Comment": "v0.6.1-14-g7e9078c",
-			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
-		},
-		{
 			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/xml/xmlutil",
 			"Comment": "v0.6.1-14-g7e9078c",
 			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
@@ -51,11 +46,6 @@
 			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/service/s3",
-			"Comment": "v0.6.1-14-g7e9078c",
-			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
-		},
-		{
 			"ImportPath": "github.com/briandowns/spinner",
 			"Rev": "07369a2abb5b8564c50fd48dc842714fb02b71be"
 		},
@@ -63,6 +53,11 @@
 			"ImportPath": "github.com/codegangsta/cli",
 			"Comment": "1.2.0-137-gbca61c4",
 			"Rev": "bca61c476e3c752594983e4c9bcd5f62fb09f157"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/term",
+			"Comment": "v1.4.1-5851-gfdc73cc",
+			"Rev": "fdc73cc3fc3166c2c78d70653c117f1573d47096"
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",
