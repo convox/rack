@@ -12,11 +12,11 @@ import (
 
 	b64 "encoding/base64"
 
-	"github.com/docker/docker/pkg/term"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/cli/stdcli"
-	"golang.org/x/net/websocket"
 )
 
 func init() {
