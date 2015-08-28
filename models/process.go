@@ -318,7 +318,9 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	_, err = p.Docker().WaitContainer(res.ID)
+	code, err := p.Docker().WaitContainer(res.ID)
+
+	rw.Write([]byte(fmt.Sprintf("EXIT: %d\n", code)))
 
 	if err != nil {
 		return err
