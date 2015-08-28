@@ -320,7 +320,7 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 
 	code, err := p.Docker().WaitContainer(res.ID)
 
-	rw.Write([]byte(fmt.Sprintf("EXIT: %d\n", code)))
+	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
 
 	if err != nil {
 		return err
