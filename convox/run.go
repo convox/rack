@@ -163,8 +163,9 @@ func messageReceive(ws *websocket.Conn, w io.Writer, ch chan int) {
 
 		m := string(message)
 
-		if strings.HasPrefix(m, "EXIT: ") {
-			code := m[6 : len(m)-1]
+		// kernel RunAttached handler finishes the stream with a magic string for the exit code.
+		if strings.HasPrefix(m, "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:") {
+			code := m[37:]
 
 			i, _ := strconv.Atoi(code)
 
