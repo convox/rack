@@ -268,11 +268,24 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 		return err
 	}
 
+	env, err := GetEnvironment(p.App)
+
+	if err != nil {
+		return err
+	}
+
+	ea := make([]string, 0)
+
+	for k, v := range env {
+		ea = append(ea, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	res, err := p.Docker().CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
+			Env:          ea,
 			OpenStdin:    true,
 			Tty:          true,
 			Cmd:          []string{"sh", "-c", command},
@@ -305,7 +318,9 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	_, err = p.Docker().WaitContainer(res.ID)
+	code, err := p.Docker().WaitContainer(res.ID)
+
+	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
 
 	if err != nil {
 		return err
