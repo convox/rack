@@ -123,7 +123,7 @@ func cmdReleasePromote(c *cli.Context) {
 }
 
 func postRelease(app, release string) (*App, error) {
-	fmt.Printf("Releasing %s... ", app)
+	fmt.Printf("Promoting %s... ", app)
 
 	// promote release
 	_, err := ConvoxPost(fmt.Sprintf("/apps/%s/releases/%s/promote", app, release), "")
