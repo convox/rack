@@ -690,7 +690,7 @@
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": "1",
+        "DesiredCount": "2",
         "LoadBalancers": [
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
