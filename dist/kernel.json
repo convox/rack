@@ -397,6 +397,7 @@
                     "ecs:DiscoverPollEndpoint",
                     "ecs:Poll",
                     "ecs:RegisterContainerInstance",
+                    "ecs:StartTelemetrySession",
                     "ecs:Submit*",
                     "kinesis:PutRecords"
                   ],
