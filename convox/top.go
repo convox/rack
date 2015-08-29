@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -35,11 +34,33 @@ func init() {
 }
 
 func cmdTop(c *cli.Context) {
-	data, err := ConvoxGet("/top")
+	metrics := []string{"CPUUtilization", "MemoryUtilization"}
+	labels := []string{"CPU", "MEM"}
+
+	fmt.Println("     MAX    AVG    MIN    UPDATED")
+
+	for i := 0; i < len(metrics); i++ {
+		dp, err := getMetrics(metrics[i])
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		ps := "%.1f%%"
+		fmt.Printf("%-4s %-5s  %-5s  %-5s  %v\n", labels[i],
+			fmt.Sprintf(ps, dp.Maximum),
+			fmt.Sprintf(ps, dp.Average),
+			fmt.Sprintf(ps, dp.Minimum),
+			dp.Timestamp)
+	}
+}
+
+func getMetrics(name string) (*Datapoint, error) {
+	data, err := ConvoxGet(fmt.Sprintf("/top/%s", name))
 
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return nil, err
 	}
 
 	var ms MetricStatistics
@@ -47,17 +68,8 @@ func cmdTop(c *cli.Context) {
 	err = json.Unmarshal(data, &ms)
 
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return nil, err
 	}
 
-	dp := ms.Datapoints[0]
-
-	ps := "%.1f"
-	fmt.Println("MAX    AVG    MIN")
-	fmt.Printf("%-5s  %-5s  %-5s\n", fmt.Sprintf(ps, dp.Maximum), fmt.Sprintf(ps, dp.Average), fmt.Sprintf(ps, dp.Minimum))
-}
-
-func round(f float64) float64 {
-	return math.Floor(f + .5)
+	return &ms.Datapoints[0], nil
 }
