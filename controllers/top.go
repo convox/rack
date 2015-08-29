@@ -37,12 +37,5 @@ func ClusterTop(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	enc, err := json.Marshal(resp)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	fmt.Println(string(enc))
+	RenderJson(rw, resp)
 }
