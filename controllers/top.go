@@ -41,6 +41,7 @@ func ClusterTop(rw http.ResponseWriter, r *http.Request) {
 		Statistics: []*string{ // Required
 			aws.String("Maximum"),
 			aws.String("Average"),
+			aws.String("Minimum"),
 		},
 		Dimensions: []*cloudwatch.Dimension{
 			{
