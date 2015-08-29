@@ -9,6 +9,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/models"
 )
 
@@ -33,7 +34,7 @@ func ClusterTop(rw http.ResponseWriter, r *http.Request) {
 	cluster := outputs["Cluster"]
 
 	params := &cloudwatch.GetMetricStatisticsInput{
-		MetricName: aws.String("CPUUtilization"),
+		MetricName: aws.String(mux.Vars(r)["metric"]),
 		StartTime:  aws.Time(time.Now().Add(-2 * time.Minute)),
 		EndTime:    aws.Time(time.Now()),
 		Period:     aws.Long(60),
