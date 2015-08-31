@@ -7,6 +7,7 @@ import (
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
+	"github.com/dustin/go-humanize"
 )
 
 type Datapoint struct {
@@ -37,7 +38,7 @@ func cmdTop(c *cli.Context) {
 	metrics := []string{"CPUUtilization", "MemoryUtilization"}
 	labels := []string{"CPU", "MEM"}
 
-	fmt.Println("     MAX    AVG    MIN    UPDATED")
+	t := stdcli.NewTable("", "MIN", "MAX", "AVG", "UPDATED")
 
 	for i := 0; i < len(metrics); i++ {
 		dp, err := getMetrics(metrics[i])
@@ -47,13 +48,10 @@ func cmdTop(c *cli.Context) {
 			return
 		}
 
-		ps := "%.1f%%"
-		fmt.Printf("%-4s %-5s  %-5s  %-5s  %v\n", labels[i],
-			fmt.Sprintf(ps, dp.Maximum),
-			fmt.Sprintf(ps, dp.Average),
-			fmt.Sprintf(ps, dp.Minimum),
-			dp.Timestamp)
+		t.AddRow(labels[i], fmt.Sprintf("%.1f%%", dp.Minimum), fmt.Sprintf("%.1f%%", dp.Maximum), fmt.Sprintf("%.1f%%", dp.Average), humanize.Time(dp.Timestamp))
 	}
+
+	t.Print()
 }
 
 func getMetrics(name string) (*Datapoint, error) {
