@@ -2,295 +2,61 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Parameters": {
-      "AllowSSHFrom": {
-        "Type" : "String",
-        "Default" : "0.0.0.0/0",
-        "Description" : "Allow SSH From (CIDR notation)"
-      },
       "Database": {
         "Type" : "String",
         "Default" : "0",
         "Description" : "Default database index"
       },
-      "Password": {
-        "Type" : "String",
-        "Description" : "Server password"
+      "InstanceType": {
+        "Type": "String",
+        "Default": "cache.t2.micro",
+        "Description": "The type of instance to use"
       },
-      "SSHKey": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : "Key name for SSH access"
+      "Subnets": {
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Description": "VPC subnets"
+      },
+      "Vpc": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "VPC"
       }
     },
-    "Conditions": {
-      "BlankSSHKey": { "Fn::Equals": [ { "Ref": "SSHKey" }, "" ] }
-    },
     "Outputs": {
-      "Port6379TcpAddr": { "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] } },
-      "Port6379TcpPort": { "Value": "6379" },
+      "Port6379TcpAddr": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
+      "Port6379TcpPort": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Port" ] } },
       "EnvRedisDatabase": { "Value": { "Ref": "Database" } },
-      "EnvRedisPassword": { "Value": { "Ref": "Password" } }
+      "EnvRedisPassword": { "Value": "" }
     },
     "Resources": {
-      "Vpc": {
-        "Type": "AWS::EC2::VPC",
-        "Properties": {
-          "CidrBlock": "10.0.0.0/16",
-          "InstanceTenancy": "default",
-          "Tags": [
-            { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
-          ]
-        }
-      },
-      "Gateway": {
-        "Type": "AWS::EC2::InternetGateway",
-        "Properties": {
-        }
-      },
-      "GatewayAttachment": {
-        "Type": "AWS::EC2::VPCGatewayAttachment",
-        "Properties": {
-          "InternetGatewayId": { "Ref": "Gateway" },
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Subnet0": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "AvailabilityZone": { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
-          "CidrBlock": "10.0.1.0/24",
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Subnet1": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "AvailabilityZone": { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
-          "CidrBlock": "10.0.2.0/24",
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Subnet2": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "AvailabilityZone": { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
-          "CidrBlock": "10.0.3.0/24",
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Routes": {
-        "Type": "AWS::EC2::RouteTable",
-        "Properties": {
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "RouteDefault": {
-        "Type": "AWS::EC2::Route",
-        "Properties": {
-          "DestinationCidrBlock": "0.0.0.0/0",
-          "GatewayId": { "Ref": "Gateway" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
-      "Subnet0Routes": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": { "Ref": "Subnet0" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
-      "Subnet1Routes": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": { "Ref": "Subnet1" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
-      "Subnet2Routes": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": { "Ref": "Subnet2" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
       "SecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
           "GroupDescription": "redis service",
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": { "Ref": "AllowSSHFrom" } },
-            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "0.0.0.0/0" }
+            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "10.0.0.0/16" }
           ],
           "VpcId": { "Ref": "Vpc" }
         }
       },
-      "BalancerSecurityGroup": {
-        "Type": "AWS::EC2::SecurityGroup",
+      "CacheSubnetGroup": {
+        "Type": "AWS::ElastiCache::SubnetGroup",
         "Properties": {
-          "GroupDescription": "redis balancer",
-          "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "0.0.0.0/0" }
-          ],
-          "VpcId": { "Ref": "Vpc" }
+          "Description": "Redis subnet group",
+          "SubnetIds": { "Ref": "Subnets" }
         }
       },
-      "Balancer": {
-        "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "ReplicationGroup": {
+        "Type": "AWS::ElastiCache::ReplicationGroup",
         "Properties": {
-          "Subnets": [
-            { "Ref": "Subnet0" },
-            { "Ref": "Subnet1" },
-            { "Ref": "Subnet2" }
-          ],
-          "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-          "ConnectionSettings": { "IdleTimeout": 60 },
-          "CrossZone": true,
-          "HealthCheck": {
-            "HealthyThreshold": "2",
-            "Interval": 5,
-            "Target": "TCP:6379",
-            "Timeout": 3,
-            "UnhealthyThreshold": "2"
-          },
-          "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-          "Listeners": [
-            { "Protocol": "TCP", "LoadBalancerPort": "6379", "InstanceProtocol": "TCP", "InstancePort": "6379" }
-          ],
-          "Scheme": "internet-facing",
-          "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
-        }
-      },
-      "Kinesis": {
-        "Type": "AWS::Kinesis::Stream",
-        "Properties": {
-          "ShardCount": 1
-        }
-      },
-      "IamRole": {
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-          "AssumeRolePolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Principal": {
-                  "Service": [ "ec2.amazonaws.com" ]
-                },
-                "Action": [ "sts:AssumeRole" ]
-              }
-            ]
-          },
-          "Path": "/",
-          "Policies": [
-            {
-              "PolicyName": "Role",
-              "PolicyDocument": {
-                "Version": "2012-10-17",
-                "Statement": [
-                  {
-                    "Effect": "Allow",
-                    "Action": [ "logs:*" ],
-                    "Resource": [ "arn:aws:logs:*:*:*" ]
-                  },
-                  {
-                    "Effect": "Allow",
-                    "Action": [ "kinesis:PutRecords" ],
-                    "Resource": [ { "Fn::Join": [ "", [ "arn:aws:kinesis:*:*:stream/", { "Ref": "AWS::StackName" }, "-*" ] ] } ]
-                  },
-                  {
-                    "Effect": "Allow",
-                    "Action": [ "cloudwatch:PutMetricData" ],
-                    "Resource": [ "*" ]
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "InstanceProfile": {
-        "Type": "AWS::IAM::InstanceProfile",
-        "Properties": {
-          "Path": "/",
-          "Roles": [ { "Ref": "IamRole" } ]
-        }
-      },
-      "LaunchConfiguration": {
-        "Type": "AWS::AutoScaling::LaunchConfiguration",
-        "Properties": {
-          "AssociatePublicIpAddress": true,
-          "BlockDeviceMappings": [ 
-            { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "10", "VolumeType": "standard" } }
-          ],
-          "EbsOptimized": false,
-          "IamInstanceProfile": { "Ref": "InstanceProfile" },
-          "ImageId": "ami-9c889af4",
-          "InstanceMonitoring": true,
-          "InstanceType": "t2.micro",
-          "KeyName": { "Fn::If": [ "BlankSSHKey", { "Ref": "AWS::NoValue" }, { "Ref": "SSHKey" } ] },
-          "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
-          "UserData":   {
-            "Fn::Base64": {
-              "Fn::Join": [ "\n", [
-                "{",
-                { "Fn::Join": [ "", [ "  \"app\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
-                "  \"logs\": {",
-                { "Fn::Join": [ "", [ "    \"kinesis\": \"", { "Ref": "Kinesis" }, "\"" ] ] },
-                "  },",
-                "  \"process\": \"redis\",",
-                "  \"ports\": [",
-                "    \"6379:6379\"",
-                "  ],",
-                "  \"services\": [",
-                  { "Fn::Join": [ "", [ "    \"REDIS_PASSWORD=", { "Ref": "Password" }, "\"" ] ] },
-                "  ],",
-                "  \"signal\": {",
-                  { "Fn::Join": [ "", [ "    \"stack\": \"", { "Ref": "AWS::StackName" }, "\"," ] ] },
-                "    \"resource\": \"Instances\"",
-                "  }",
-                "}"
-              ] ]
-            }
-          }
-        }
-      },
-      "Instances": {
-        "Type": "AWS::AutoScaling::AutoScalingGroup",
-        "Properties" : {
-          "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
-          "AvailabilityZones": [
-            { "Fn::Select": [ 0, { "Fn::GetAZs": "" } ] },
-            { "Fn::Select": [ 1, { "Fn::GetAZs": "" } ] },
-            { "Fn::Select": [ 2, { "Fn::GetAZs": "" } ] }
-          ],
-          "VPCZoneIdentifier": [ 
-            { "Ref": "Subnet0" },
-            { "Ref": "Subnet1" },
-            { "Ref": "Subnet2" }
-          ],
-          "Cooldown": 5,
-          "DesiredCapacity": "1",
-          "MinSize" : "1",
-          "MaxSize" : "2",
-          "LoadBalancerNames": [ { "Ref": "Balancer" } ],
-          "HealthCheckType": "EC2",
-          "HealthCheckGracePeriod": 30,
-          "Tags": [
-            {
-              "Key": "Name",
-              "Value": { "Ref": "AWS::StackName" },
-              "PropagateAtLaunch": true
-            }
-          ]
-        },
-        "UpdatePolicy": {
-          "AutoScalingRollingUpdate": {
-            "MaxBatchSize": 1,
-            "MinInstancesInService": 1,
-            "PauseTime": "PT2M",
-            "WaitOnResourceSignals": "true"
-          }
+          "AutomaticFailoverEnabled": false,
+          "AutoMinorVersionUpgrade": true,
+          "CacheNodeType": { "Ref": "InstanceType" },
+          "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
+          "Engine": "redis",
+          "NumCacheClusters": "1",
+          "Port": "6379",
+          "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
+          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
         }
       }
     }
