@@ -44,11 +44,6 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "scale")
-		return
-	}
-
 	v := url.Values{}
 
 	if c.IsSet("count") {
@@ -87,8 +82,6 @@ func cmdScale(c *cli.Context) {
 
 	processes := make(map[string]Process, 0)
 
-	longest := 7
-
 	for k, v := range a.Parameters {
 		if !strings.HasSuffix(k, "DesiredCount") {
 			continue
@@ -114,9 +107,11 @@ func cmdScale(c *cli.Context) {
 		processes[p] = Process{Name: p, Count: i, Memory: m}
 	}
 
-	fmt.Printf(fmt.Sprintf("%%-%ds  %%-5s  %%-5s\n", longest), "PROCESS", "COUNT", "MEM")
+	t := stdcli.NewTable("PROCESS", "COUNT", "MEM")
 
 	for _, ps := range processes {
-		fmt.Printf(fmt.Sprintf("%%-%ds  %%-5d  %%-5d\n", longest), ps.Name, ps.Count, ps.Memory)
+		t.AddRow(ps.Name, fmt.Sprintf("%d", ps.Count), fmt.Sprintf("%d", ps.Memory))
 	}
+
+	t.Print()
 }
