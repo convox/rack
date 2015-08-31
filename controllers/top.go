@@ -19,12 +19,12 @@ func ClusterTop(rw http.ResponseWriter, r *http.Request) {
 	res, err := models.CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: name})
 
 	if err != nil {
-		fmt.Println(err.Error())
+		RenderError(rw, err)
 		return
 	}
 
 	if len(res.Stacks) == 0 {
-		fmt.Errorf("Stack %s does not exist", os.Getenv("RACK"))
+		RenderError(rw, fmt.Errorf("Stack %s does not exist", os.Getenv("RACK")))
 		return
 	}
 
@@ -60,7 +60,7 @@ func ClusterTop(rw http.ResponseWriter, r *http.Request) {
 	resp, err := models.CloudWatch().GetMetricStatistics(params)
 
 	if err != nil {
-		fmt.Println(err.Error())
+		RenderError(rw, err)
 		return
 	}
 
