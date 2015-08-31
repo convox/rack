@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/manifest"
@@ -77,7 +78,7 @@ func cmdStart(c *cli.Context) {
 	}
 
 	for _, p := range wanted {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, p))
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, p), 200*time.Millisecond)
 
 		if err == nil {
 			conflicts = append(conflicts, p)
