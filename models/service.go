@@ -162,6 +162,8 @@ func (s *Service) Create() error {
 
 	params := map[string]string{
 		"Password": s.Password,
+		"Subnets":  os.Getenv("SUBNETS"),
+		"Vpc":      os.Getenv("VPC"),
 	}
 
 	tags := map[string]string{
@@ -263,7 +265,7 @@ func ServiceFromStack(stack *cloudformation.Stack) *Service {
 	parameters := stackParameters(stack)
 	tags := stackTags(stack)
 
-	url := fmt.Sprintf("redis://u:%s@%s:%s/%s", outputs["EnvRedisPassword"], outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+	url := fmt.Sprintf("redis://u@%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 
 	if tags["Service"] == "postgres" {
 		url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
