@@ -65,11 +65,13 @@ func cmdApps(c *cli.Context) {
 		}
 	}
 
-	fmt.Printf(fmt.Sprintf("%%-%ds  STATUS\n", longest), "APP")
+	t := stdcli.NewTable("APP", "STATUS")
 
 	for _, app := range *apps {
-		fmt.Printf(fmt.Sprintf("%%-%ds  %%s\n", longest), app.Name, app.Status)
+		t.AddRow(app.Name, app.Status)
 	}
+
+	t.Print()
 }
 
 func cmdAppCreate(c *cli.Context) {
