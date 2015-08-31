@@ -23,6 +23,11 @@ func ClusterTop(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(res.Stacks) == 0 {
+		fmt.Errorf("Stack %s does not exist", os.Getenv("RACK"))
+		return
+	}
+
 	stack := res.Stacks[0]
 
 	outputs := make(map[string]string)
