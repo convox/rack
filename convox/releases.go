@@ -100,7 +100,7 @@ func cmdReleases(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("%-12s  %-12s  %-12s\n", "ID", "CREATED", "ACTIVE")
+	t := stdcli.NewTable("ID", "CREATED", "ACTIVE")
 
 	for _, r := range *releases {
 		active := ""
@@ -108,8 +108,10 @@ func cmdReleases(c *cli.Context) {
 			active = "yes"
 		}
 
-		fmt.Printf("%-12s  %-12s  %-12s\n", r.Id, humanize.Time(r.Created), active)
+		t.AddRow(r.Id, humanize.Time(r.Created), active)
 	}
+
+	t.Print()
 }
 
 func cmdReleaseInfo(c *cli.Context) {
