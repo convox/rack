@@ -71,5 +71,9 @@ func getMetrics(name string) (*Datapoint, error) {
 		return nil, err
 	}
 
+	if len(ms.Datapoints) == 0 {
+		return nil, fmt.Errorf("No %s data available", name)
+	}
+
 	return &ms.Datapoints[0], nil
 }
