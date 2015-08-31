@@ -111,11 +111,13 @@ func processList(app string) {
 		}
 	}
 
-	fmt.Printf(fmt.Sprintf("%%-12s  %%-%ds  %%-11s  %%-5s  %%s\n", longest), "ID", "PROCESS", "RELEASE", "MEM", "COMMAND")
+	t := stdcli.NewTable("ID", "PROCESS", "RELEASE", "MEM", "COMMAND")
 
 	for _, ps := range *processes {
-		fmt.Printf(fmt.Sprintf("%%-12s  %%-%ds  %%-11s  %%-5d  %%s\n", longest), ps.Id, ps.Name, ps.Release, ps.Memory, ps.Command)
+		t.AddRow(ps.Id, ps.Name, ps.Release, fmt.Sprintf("%d", ps.Memory), ps.Command)
 	}
+
+	t.Print()
 }
 
 func processTop(app, id string) {
