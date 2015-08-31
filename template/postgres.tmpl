@@ -12,7 +12,7 @@
         "Default" : "app",
         "Description" : "Default database name"
       },
-      "InstanceClass": {
+      "InstanceType": {
         "Type" : "String",
         "Default" : "db.t2.micro",
         "Description" : "Instance class for database nodes"
@@ -21,10 +21,18 @@
         "Type" : "String",
         "Description" : "Server password"
       },
+      "Subnets": {
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Description": "VPC subnets"
+      },
       "Username": {
         "Type" : "String",
         "Default" : "postgres",
         "Description" : "Server username"
+      },
+      "Vpc": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "VPC"
       }
     },
     "Outputs": {
@@ -35,88 +43,6 @@
       "EnvPostgresUsername": { "Value": { "Ref": "Username" } }
     },
     "Resources": {
-      "Vpc": {
-        "Type": "AWS::EC2::VPC",
-        "Properties": {
-          "CidrBlock": "10.0.0.0/16",
-          "EnableDnsHostnames": "true",
-          "InstanceTenancy": "default",
-          "Tags": [
-            { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
-          ]
-        }
-      },
-      "Gateway": {
-        "Type": "AWS::EC2::InternetGateway",
-        "Properties": {
-        }
-      },
-      "GatewayAttachment": {
-        "Type": "AWS::EC2::VPCGatewayAttachment",
-        "Properties": {
-          "InternetGatewayId": { "Ref": "Gateway" },
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Subnet0": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "AvailabilityZone": { "Fn::Select": [ "0", { "Fn::GetAZs": "" } ] },
-          "CidrBlock": "10.0.1.0/24",
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Subnet1": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "AvailabilityZone": { "Fn::Select": [ "1", { "Fn::GetAZs": "" } ] },
-          "CidrBlock": "10.0.2.0/24",
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Subnet2": {
-        "Type": "AWS::EC2::Subnet",
-        "Properties": {
-          "AvailabilityZone": { "Fn::Select": [ "2", { "Fn::GetAZs": "" } ] },
-          "CidrBlock": "10.0.3.0/24",
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "Routes": {
-        "Type": "AWS::EC2::RouteTable",
-        "Properties": {
-          "VpcId": { "Ref": "Vpc" }
-        }
-      },
-      "RouteDefault": {
-        "Type": "AWS::EC2::Route",
-        "Properties": {
-          "DestinationCidrBlock": "0.0.0.0/0",
-          "GatewayId": { "Ref": "Gateway" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
-      "Subnet0Routes": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": { "Ref": "Subnet0" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
-      "Subnet1Routes": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": { "Ref": "Subnet1" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
-      "Subnet2Routes": {
-        "Type": "AWS::EC2::SubnetRouteTableAssociation",
-        "Properties": {
-          "SubnetId": { "Ref": "Subnet2" },
-          "RouteTableId": { "Ref": "Routes" }
-        }
-      },
       "SecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
@@ -131,26 +57,22 @@
         "Type": "AWS::RDS::DBSubnetGroup",
         "Properties": {
           "DBSubnetGroupDescription": "postgres service",
-          "SubnetIds": [
-            { "Ref": "Subnet0" },
-            { "Ref": "Subnet1" },
-            { "Ref": "Subnet2" }
-          ]
+          "SubnetIds": { "Ref": "Subnets" }
         }
       },
       "Instance": {
         "Type": "AWS::RDS::DBInstance",
         "Properties": {
           "AllocatedStorage": { "Ref": "AllocatedStorage" },
-          "DBInstanceClass": { "Ref": "InstanceClass" },
+          "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
-          "DBName": "app",
+          "DBName": { "Ref": "Database" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "Port": "5432",
-          "PubliclyAccessible": "true",
+          "PubliclyAccessible": "false",
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
         }
