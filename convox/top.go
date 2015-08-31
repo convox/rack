@@ -38,7 +38,7 @@ func cmdTop(c *cli.Context) {
 	metrics := []string{"CPUUtilization", "MemoryUtilization"}
 	labels := []string{"CPU", "MEM"}
 
-	t := stdcli.NewTable("", "MIN", "MAX", "AVG", "UPDATED")
+	t := stdcli.NewTable("", "MIN", "AVG", "MAX", "UPDATED")
 
 	for i := 0; i < len(metrics); i++ {
 		dp, err := getMetrics(metrics[i])
@@ -48,7 +48,7 @@ func cmdTop(c *cli.Context) {
 			return
 		}
 
-		t.AddRow(labels[i], fmt.Sprintf("%.1f%%", dp.Minimum), fmt.Sprintf("%.1f%%", dp.Maximum), fmt.Sprintf("%.1f%%", dp.Average), humanize.Time(dp.Timestamp))
+		t.AddRow(labels[i], fmt.Sprintf("%.1f%%", dp.Minimum), fmt.Sprintf("%.1f%%", dp.Average), fmt.Sprintf("%.1f%%", dp.Maximum), humanize.Time(dp.Timestamp))
 	}
 
 	t.Print()
