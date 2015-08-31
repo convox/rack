@@ -12,6 +12,10 @@
         "Default": "cache.t2.micro",
         "Description": "The type of instance to use"
       },
+      "Password": {
+        "Type" : "String",
+        "Description" : "Unused (to be removed)"
+      },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
@@ -24,8 +28,7 @@
     "Outputs": {
       "Port6379TcpAddr": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
       "Port6379TcpPort": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Port" ] } },
-      "EnvRedisDatabase": { "Value": { "Ref": "Database" } },
-      "EnvRedisPassword": { "Value": "" }
+      "EnvRedisDatabase": { "Value": { "Ref": "Database" } }
     },
     "Resources": {
       "SecurityGroup": {
