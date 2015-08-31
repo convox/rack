@@ -24,7 +24,7 @@ func TestApps(t *testing.T) {
 
 	stdout, stderr := appRun([]string{"convox", "apps"})
 
-	expect(t, stdout, "APP      STATUS\nsinatra  running\n")
+	expect(t, stdout, "APP      STATUS \nsinatra  running\n")
 	expect(t, stderr, "")
 }
 
