@@ -47,8 +47,9 @@ func init() {
 			{
 				Name:        "info",
 				Description: "see info about an app",
-				Usage:       "[name]",
+				Usage:       "",
 				Action:      cmdAppInfo,
+				Flags:       []cli.Flag{appFlag},
 			},
 		},
 	})
@@ -160,12 +161,7 @@ func cmdAppDelete(c *cli.Context) {
 }
 
 func cmdAppInfo(c *cli.Context) {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "info")
-		return
-	}
-
-	app := c.Args()[0]
+	_, app, err := stdcli.DirApp(c, ".")
 
 	data, err := ConvoxGet("/apps/" + app)
 
