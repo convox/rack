@@ -409,7 +409,9 @@
                     "ecs:RegisterContainerInstance",
                     "ecs:StartTelemetrySession",
                     "ecs:Submit*",
-                    "kinesis:PutRecords"
+                    "kinesis:PutRecords",
+                    "ec2:DescribeInstances",
+                    "autoscaling:DescribeAutoScalingInstances"
                   ],
                   "Resource": [
                     "*"
