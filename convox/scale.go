@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -80,7 +81,8 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	processes := make(map[string]Process, 0)
+	processes := map[string]Process{}
+	names := []string{}
 
 	for k, v := range a.Parameters {
 		if !strings.HasSuffix(k, "DesiredCount") {
@@ -105,11 +107,15 @@ func cmdScale(c *cli.Context) {
 		}
 
 		processes[p] = Process{Name: p, Count: i, Memory: m}
+		names = append(names, p)
 	}
+
+	sort.Strings(names)
 
 	t := stdcli.NewTable("PROCESS", "COUNT", "MEM")
 
-	for _, ps := range processes {
+	for _, name := range names {
+		ps := processes[name]
 		t.AddRow(ps.Name, fmt.Sprintf("%d", ps.Count), fmt.Sprintf("%d", ps.Memory))
 	}
 
