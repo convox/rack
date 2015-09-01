@@ -571,6 +571,8 @@ func friendlyName(t string) string {
 		return "ECS Service"
 	case "Custom::S3BucketCleanup":
 		return ""
+	case "Custom::KMSKey":
+		return "KMS Key"
 	}
 
 	return fmt.Sprintf("Unknown: %s", t)
