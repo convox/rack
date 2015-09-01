@@ -398,7 +398,9 @@
                     "ecs:Poll",
                     "ecs:RegisterContainerInstance",
                     "ecs:Submit*",
-                    "kinesis:PutRecords"
+                    "kinesis:PutRecords",
+                    "ec2:DescribeInstances",
+                    "autoscaling:DescribeAutoScalingInstances"
                   ],
                   "Resource": [
                     "*"
