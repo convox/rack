@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/convox/cli/stdcli"
-	"github.com/dustin/go-humanize"
 )
 
 type Datapoint struct {
