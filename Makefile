@@ -19,5 +19,8 @@ ifeq ($(LATEST),yes)
 	echo $(VERSION) > /tmp/version && aws s3 cp /tmp/version s3://convox/release/latest/version --acl public-read
 endif
 
+test:
+	go test -v ./...
+
 vendor:
 	godep save -r -copy=true ./...
