@@ -16,6 +16,7 @@ import (
 
 type Process struct {
 	App         string
+	Binds       []string
 	Command     string
 	ContainerId string
 	Count       int
@@ -80,6 +81,12 @@ func ListProcesses(app string) (Processes, error) {
 			definitions[*cd.Name] = cd
 		}
 
+		hostVolumes := make(map[string]string)
+
+		for _, v := range tres.TaskDefinition.Volumes {
+			hostVolumes[*v.Name] = *v.Host.SourcePath
+		}
+
 		for _, container := range task.Containers {
 			parts := strings.Split(*container.ContainerARN, "-")
 			id := parts[len(parts)-1]
@@ -96,6 +103,10 @@ func ListProcesses(app string) (Processes, error) {
 					if *env.Name == "RELEASE" {
 						ps.Release = *env.Value
 					}
+				}
+
+				for _, m := range td.MountPoints {
+					ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
 				}
 			}
 
@@ -198,6 +209,11 @@ func GetProcessById(app, id string) (*Process, error) {
 
 func (p *Process) Docker() *docker.Client {
 	client, _ := docker.NewClient(fmt.Sprintf("http://%s:2376", p.DockerHost))
+
+	if os.Getenv("TEST_DOCKER_HOST") != "" {
+		client, _ = docker.NewClient(os.Getenv("TEST_DOCKER_HOST"))
+	}
+
 	return client
 }
 
@@ -290,6 +306,9 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 			Tty:          true,
 			Cmd:          []string{"sh", "-c", command},
 			Image:        fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), p.App, p.Name, release.Build),
+		},
+		HostConfig: &docker.HostConfig{
+			Binds: p.Binds,
 		},
 	})
 

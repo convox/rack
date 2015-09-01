@@ -145,6 +145,11 @@
 			"Rev": "a6f041ac33b84488bb44137d6866cd3c8706d792"
 		},
 		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.0-40-g7c2b1e5",
+			"Rev": "7c2b1e5640dcf2631213ca962d892bffa1e08860"
+		},
+		{
 			"ImportPath": "github.com/stvp/rollbar",
 			"Comment": "v0.3.1-8-g8b39372",
 			"Rev": "8b39372e6211ddf06fd182579c397b33c8b8d593"
