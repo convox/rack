@@ -192,7 +192,7 @@ func (s *Service) Create() error {
 }
 
 func (s *Service) Formation() (string, error) {
-	data, err := exec.Command("docker", "run", "convox/service", s.Type).CombinedOutput()
+	data, err := exec.Command("docker", "run", fmt.Sprintf("convox/service:%s", os.Getenv("RELEASE")), s.Type).CombinedOutput()
 
 	if err != nil {
 		return "", err
