@@ -244,7 +244,7 @@
       }
     },
     "AvailabilityZones": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [ "CustomTopic", "Vpc" ],
       "Type": "Custom::EC2AvailabilityZones",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -293,6 +293,7 @@
       }
     },
     "GatewayAttachment": {
+      "DependsOn": [ "Gateway", "Vpc" ],
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Properties": {
         "InternetGatewayId": { "Ref": "Gateway" },
@@ -300,6 +301,7 @@
       }
     },
     "Subnet0": {
+      "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
@@ -308,6 +310,7 @@
       }
     },
     "Subnet1": {
+      "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
@@ -316,6 +319,7 @@
       }
     },
     "Subnet2": {
+      "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
@@ -324,12 +328,14 @@
       }
     },
     "Routes": {
+      "DependsOn": "Vpc",
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Ref": "Vpc" }
       }
     },
     "RouteDefault": {
+      "DependsOn": [ "Gateway", "GatewayAttachment", "Routes" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
@@ -338,6 +344,7 @@
       }
     },
     "Subnet0Routes": {
+      "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "Subnet0" },
@@ -345,6 +352,7 @@
       }
     },
     "Subnet1Routes": {
+      "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "Subnet1" },
@@ -352,6 +360,7 @@
       }
     },
     "Subnet2Routes": {
+      "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "Subnet2" },
@@ -359,6 +368,7 @@
       }
     },
     "SecurityGroup": {
+      "DependsOn": "Vpc",
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Instances",
@@ -412,6 +422,7 @@
       }
     },
     "InstanceProfile": {
+      "DependsOn": "IamRole",
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": "/",
@@ -419,6 +430,7 @@
       }
     },
     "LaunchConfiguration": {
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
@@ -455,6 +467,7 @@
       }
     },
     "Instances": {
+      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1", "Subnet2" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
@@ -518,6 +531,7 @@
       }
     },
     "RegistryAccess": {
+      "DependsOn": "RegistryUser",
       "Type": "AWS::IAM::AccessKey",
       "Properties": {
         "Serial": "1",
@@ -526,6 +540,7 @@
       }
     },
     "Balancer": {
+      "DependsOn": [ "BalancerSecurityGroup", "Subnet0", "Subnet1", "Subnet2" ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -602,6 +617,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerSecurityGroup": {
+      "DependsOn": "Vpc",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -641,7 +657,7 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "Kernel": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "KernelTasks", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
@@ -760,7 +776,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "KernelTasks": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "EncryptionKey", "KernelAccess", "Kinesis", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": {
           "Ref": "AWS::StackName"
