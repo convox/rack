@@ -19,6 +19,7 @@ import (
 )
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
+var isDevelopment = false
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
 var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true}
@@ -181,6 +182,7 @@ func cmdInstall(c *cli.Context) {
 
 	development := "No"
 	if c.Bool("development") {
+		isDevelopment = true
 		development = "Yes"
 	}
 
@@ -407,9 +409,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 		switch *dres.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
 			// Dump .env if DEVELOPMENT
-			development := os.Getenv("DEVELOPMENT")
-
-			if development == "Yes" {
+			if isDevelopment {
 				fmt.Printf("Development .env:\n")
 
 				// convert Port5432TcpAddr to PORT_5432_TCP_ADDR
