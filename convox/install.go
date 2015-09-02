@@ -153,13 +153,8 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
-
-	if err != nil {
-		handleError("install", distinctId, err)
-		return
-	}
-
 	access, secret, err := readCredentials(c)
+
 	if err != nil {
 		handleError("install", distinctId, err)
 		return
@@ -262,6 +257,7 @@ func cmdUninstall(c *cli.Context) {
 
 	access, secret, err := readCredentials(c)
 	if err != nil {
+		stdcli.Error(err)
 		return
 	}
 
@@ -588,15 +584,13 @@ func readCredentials(c *cli.Context) (access, secret string, err error) {
 	if access == "" || secret == "" {
 		fmt.Println(CredentialsMessage)
 
-		var err error
-
 		fmt.Print("AWS Access Key ID: ")
 
 		reader := bufio.NewReader(os.Stdin)
 		access, err = reader.ReadString('\n')
 
 		if err != nil {
-			stdcli.Error(err)
+			return access, secret, err
 		}
 
 		fmt.Print("AWS Secret Access Key: ")
@@ -604,7 +598,7 @@ func readCredentials(c *cli.Context) (access, secret string, err error) {
 		secret, err = reader.ReadString('\n')
 
 		if err != nil {
-			stdcli.Error(err)
+			return access, secret, err
 		}
 
 		fmt.Println("")
