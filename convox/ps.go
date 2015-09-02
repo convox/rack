@@ -115,7 +115,7 @@ func cmdPsTop(c *cli.Context) {
 
 	process := c.Args()[0]
 
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/processes/%s/top", app, process))
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/process_types/%s/top", app, process))
 
 	if err != nil {
 		stdcli.Error(err)
