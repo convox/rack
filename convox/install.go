@@ -32,7 +32,6 @@ var Banner = `
 `
 
 var CredentialsMessage = `This installer needs AWS credentials to install the Convox platform into
-
 your AWS account. These credentials will only be used to communicate
 between this installer running on your computer and the AWS API.
 
