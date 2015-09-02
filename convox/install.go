@@ -21,6 +21,28 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
+var Banner = `
+
+     ___    ___     ___   __  __    ___   __  _
+    / ___\ / __ \ /  _  \/\ \/\ \  / __ \/\ \/ \
+   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
+   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
+    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
+
+`
+
+var CredentialsMessage = `This installer needs AWS credentials to install the Convox platform into
+
+your AWS account. These credentials will only be used to communicate
+between this installer running on your computer and the AWS API.
+
+We recommend that you create a new set of credentials exclusively for this
+install process and then delete them once the installer has completed.
+
+To generate a new set of AWS credentials go to:
+https://docs.convox.com/docs/creating-an-iam-user-and-credentials
+`
+
 var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
 var isDevelopment = false
 
@@ -128,26 +150,7 @@ func cmdInstall(c *cli.Context) {
 		}
 	}
 
-	fmt.Println(`
-
-     ___    ___     ___   __  __    ___   __  _
-    / ___\ / __ \ /  _  \/\ \/\ \  / __ \/\ \/ \
-   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
-   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
-    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
-
- `)
-
-	fmt.Println("This installer needs AWS credentials to install the Convox platform into")
-	fmt.Println("your AWS account. These credentials will only be used to communicate")
-	fmt.Println("between this installer running on your computer and the AWS API.")
-	fmt.Println("")
-	fmt.Println("We recommend that you create a new set of credentials exclusively for this")
-	fmt.Println("install process and then delete them once the installer has completed.")
-	fmt.Println("")
-	fmt.Println("To generate a new set of AWS credentials go to:")
-	fmt.Println("https://docs.convox.com/docs/creating-an-iam-user-and-credentials")
-	fmt.Println("")
+	fmt.Println(Banner)
 
 	distinctId, err := currentId()
 
@@ -156,56 +159,10 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-
-	// read credentials from environment
-	access := os.Getenv("AWS_ACCESS_KEY_ID")
-	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
-
-	// read credentials from credentials.csv file
-	if len(c.Args()) > 0 {
-		credentialsCsvFileName := c.Args()[0]
-		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
-		if err != nil {
-			handleError("install", distinctId, err)
-			return
-		}
-
-		r := csv.NewReader(bytes.NewReader(credsFile))
-		records, err := r.ReadAll()
-		if err != nil {
-			handleError("install", distinctId, err)
-			return
-		}
-
-		if len(records) == 2 && len(records[1]) == 3 {
-			access = records[1][1]
-			secret = records[1][2]
-		}
-	}
-
-	// read credentials interactively
-	if access == "" || secret == "" {
-		var err error
-
-		fmt.Print("AWS Access Key ID: ")
-
-		access, err = reader.ReadString('\n')
-
-		if err != nil {
-			stdcli.Error(err)
-		}
-
-		fmt.Print("AWS Secret Access Key: ")
-
-		secret, err = reader.ReadString('\n')
-
-		if err != nil {
-			stdcli.Error(err)
-		}
-
-		fmt.Println("")
+	access, secret, err := readCredentials(c)
+	if err != nil {
+		handleError("install", distinctId, err)
+		return
 	}
 
 	development := "No"
@@ -297,74 +254,14 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}
 
-	fmt.Println(`
+	fmt.Println(Banner)
 
-     ___    ___     ___   __  __    ___   __  _
-    /'___\ / __'\ /' _ '\/\ \/\ \  / __'\/\ \/'\
-   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
-   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
-    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
+	access, secret, err := readCredentials(c)
+	if err != nil {
+		return
+	}
 
- `)
-
-	fmt.Println("This uninstaller needs AWS credentials to uninstall the Convox platform from")
-	fmt.Println("your AWS account. These credentials will only be used to communicate")
-	fmt.Println("between this uninstaller running on your computer and the AWS API.")
-	fmt.Println("")
-	fmt.Println("We recommend that you create a new set of credentials exclusively for this")
-	fmt.Println("uninstall process and then delete them once the uninstaller has completed.")
-	fmt.Println("")
-	fmt.Println("To generate a new set of AWS credentials go to:")
-	fmt.Println("https://docs.convox.com/docs/creating-an-iam-user-and-credentials")
-	fmt.Println("")
-
-	reader := bufio.NewReader(os.Stdin)
-
-	access := os.Getenv("AWS_ACCESS_KEY_ID")
-	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
 	region := c.String("region")
-
-	// read credentials from credentials.csv file
-	if len(c.Args()) > 0 {
-		credentialsCsvFileName := c.Args()[0]
-		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
-		if err != nil {
-			return
-		}
-
-		r := csv.NewReader(bytes.NewReader(credsFile))
-		records, err := r.ReadAll()
-		if err != nil {
-			return
-		}
-
-		if len(records) == 2 && len(records[1]) == 3 {
-			access = records[1][1]
-			secret = records[1][2]
-		}
-	}
-
-	if access == "" || secret == "" {
-		var err error
-
-		fmt.Print("AWS Access Key: ")
-
-		access, err = reader.ReadString('\n')
-
-		if err != nil {
-			stdcli.Error(err)
-		}
-
-		fmt.Print("AWS Secret Access Key: ")
-
-		secret, err = reader.ReadString('\n')
-
-		if err != nil {
-			stdcli.Error(err)
-		}
-	}
-
 	stackName := c.String("stack-name")
 
 	fmt.Println("")
@@ -654,4 +551,60 @@ func randomString(size int) string {
 		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
 	}
 	return string(b)
+}
+
+func readCredentials(c *cli.Context) (access, secret string, err error) {
+	// read credentials from ENV
+	access = os.Getenv("AWS_ACCESS_KEY_ID")
+	secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	// read credentials from credentials.csv file
+	// note: takes precendence over ENV
+	if len(c.Args()) > 0 {
+		credentialsCsvFileName := c.Args()[0]
+		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
+
+		if err != nil {
+			return access, secret, err
+		}
+
+		r := csv.NewReader(bytes.NewReader(credsFile))
+		records, err := r.ReadAll()
+		if err != nil {
+			return access, secret, err
+		}
+
+		if len(records) == 2 && len(records[1]) == 3 {
+			access = records[1][1]
+			secret = records[1][2]
+		}
+	}
+
+	// read credentials interactively
+	if access == "" || secret == "" {
+		fmt.Println(CredentialsMessage)
+
+		var err error
+
+		fmt.Print("AWS Access Key ID: ")
+
+		reader := bufio.NewReader(os.Stdin)
+		access, err = reader.ReadString('\n')
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+
+		fmt.Print("AWS Secret Access Key: ")
+
+		secret, err = reader.ReadString('\n')
+
+		if err != nil {
+			stdcli.Error(err)
+		}
+
+		fmt.Println("")
+	}
+
+	return
 }
