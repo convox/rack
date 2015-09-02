@@ -15,7 +15,7 @@ Pre-reqs
 
 * [Boot2Docker](http://boot2docker.io/)
 * `mkdir -p ~/.convox ; echo dev@convox.com > ~/.convox/id`
-* A sandbox `DEVELOPMENT=Yes STACK_NAME=convox-dev convox install`
+* A sandbox `STACK_NAME=convox-dev convox install --development`
 * An .env file with all the convox-dev stack outputs, i.e. `DYNAMO_BUILDS=convox-dev-builds`
 
 ```bash
