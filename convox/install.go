@@ -183,6 +183,10 @@ func cmdInstall(c *cli.Context) {
 
 	fmt.Println("Installing Convox...")
 
+	if isDevelopment {
+		fmt.Println("(Development Mode)")
+	}
+
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
 
