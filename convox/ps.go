@@ -7,7 +7,13 @@ import (
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
+	"github.com/dustin/go-humanize"
 )
+
+type GetMetricStatisticsOutput struct {
+	Datapoints []*Datapoint `type:"list"`
+	Label      *string      `type:"string"`
+}
 
 type Process struct {
 	App         string
@@ -39,8 +45,15 @@ func init() {
 			{
 				Name:        "stop",
 				Description: "stop a process",
-				Usage:       "id",
+				Usage:       "<id>",
 				Action:      cmdPsStop,
+				Flags:       []cli.Flag{appFlag},
+			},
+			{
+				Name:        "top",
+				Description: "view utilization stats for a given process type",
+				Usage:       "<process>",
+				Action:      cmdPsTop,
 				Flags:       []cli.Flag{appFlag},
 			},
 		},
@@ -85,6 +98,66 @@ func cmdPsStop(c *cli.Context) {
 	}
 
 	fmt.Printf("Stopping %s\n", id)
+}
+
+func cmdPsTop(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "top")
+		return
+	}
+
+	process := c.Args()[0]
+
+	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/processes/%s/top", app, process))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if string(data) == "null" {
+		stdcli.Error(fmt.Errorf("No process named %s", process))
+		return
+	}
+
+	var outputs []GetMetricStatisticsOutput
+
+	err = json.Unmarshal(data, &outputs)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	t := stdcli.NewTable("", "MIN", "AVG", "MAX", "UPDATED")
+	label := ""
+
+	for _, output := range outputs {
+		switch *output.Label {
+		case "MemoryUtilization":
+			label = "MEM"
+		case "CPUUtilization":
+			label = "CPU"
+		}
+
+		if len(output.Datapoints) == 0 {
+			stdcli.Error(fmt.Errorf("No %s data available", process))
+			return
+		}
+
+		dp := output.Datapoints[0]
+
+		t.AddRow(label, fmt.Sprintf("%.1f%%", dp.Minimum), fmt.Sprintf("%.1f%%", dp.Average), fmt.Sprintf("%.1f%%", dp.Maximum), humanize.Time(dp.Timestamp))
+	}
+
+	t.Print()
 }
 
 func processList(app string) {
