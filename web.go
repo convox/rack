@@ -8,9 +8,11 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/convox/kernel/helpers"
 
 	"github.com/convox/kernel/controllers"
 )
@@ -72,6 +74,27 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 
 func check(rw http.ResponseWriter, r *http.Request) {
 	rw.Write([]byte("ok"))
+}
+
+// Handler for any panics within an HTTP request
+func NewErrorHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
+	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		// use defer to register recovery function
+		defer func() {
+			if r := recover(); r != nil {
+				// coerce r to error type
+				err, ok := r.(error)
+				if !ok {
+					err = fmt.Errorf("%v", r)
+				}
+
+				helpers.Error(log, err)
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+			}
+		}()
+
+		next(rw, r)
+	}
 }
 
 func startWeb() {
@@ -136,6 +159,7 @@ func startWeb() {
 	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
 	router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
+	router.HandleFunc("/panic", controllers.Panic).Methods("GET")
 
 	n := negroni.New(
 		negroni.NewRecovery(),
@@ -143,6 +167,7 @@ func startWeb() {
 		negroni.NewStatic(http.Dir("public")),
 	)
 
+	n.Use(negroni.HandlerFunc(NewErrorHandler(logger.New("ns=kernel"))))
 	n.Use(negroni.HandlerFunc(parseForm))
 	n.Use(negroni.HandlerFunc(basicAuthentication))
 	n.UseHandler(router)

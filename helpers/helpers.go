@@ -15,7 +15,7 @@ func init() {
 }
 
 func Error(log *logger.Logger, err error) {
-	if log == nil {
+	if log != nil {
 		log.Error(err)
 	}
 	rollbar.Error(rollbar.ERR, err)
