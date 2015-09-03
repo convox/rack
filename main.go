@@ -484,6 +484,10 @@ func (m Manifest) FirstRandom() string {
 }
 
 func (m Manifest) HasPorts() bool {
+	if len(m) == 0 {
+		return true // special case to pre-initialize ELB at app create
+	}
+
 	for _, me := range m {
 		if len(me.Ports) > 0 {
 			return true

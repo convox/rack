@@ -41,6 +41,19 @@ func TestStagingWebPostgis(t *testing.T) {
 	_assert(t, cases)
 }
 
+func TestStagingWorker(t *testing.T) {
+	manifest := readManifest(t, "fixtures", "worker.yml")
+	template := readFile(t, "fixtures", "worker.json")
+
+	data, _ := buildTemplate("staging", "formation", func() string { return "12345" }, manifest)
+
+	cases := Cases{
+		{strings.TrimSpace(data), strings.TrimSpace(string(template))},
+	}
+
+	_assert(t, cases)
+}
+
 func readFile(t *testing.T, dir string, name string) []byte {
 	filename := filepath.Join(dir, name)
 
