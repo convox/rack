@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/csv"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -30,7 +33,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "install",
 		Description: "install convox into an aws account",
-		Usage:       "",
+		Usage:       "[credentials.csv]",
 		Action:      cmdInstall,
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -85,7 +88,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "uninstall",
 		Description: "uninstall convox from an aws account",
-		Usage:       "",
+		Usage:       "[credentials.csv]",
 		Action:      cmdUninstall,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
@@ -155,9 +158,34 @@ func cmdInstall(c *cli.Context) {
 
 	reader := bufio.NewReader(os.Stdin)
 
+	// read credentials from environment
 	access := os.Getenv("AWS_ACCESS_KEY_ID")
 	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
 
+	// read credentials from credentials.csv file
+	if len(c.Args()) > 0 {
+		credentialsCsvFileName := c.Args()[0]
+		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
+
+		if err != nil {
+			handleError("install", distinctId, err)
+			return
+		}
+
+		r := csv.NewReader(bytes.NewReader(credsFile))
+		records, err := r.ReadAll()
+		if err != nil {
+			handleError("install", distinctId, err)
+			return
+		}
+
+		if len(records) == 2 && len(records[1]) == 3 {
+			access = records[1][1]
+			secret = records[1][2]
+		}
+	}
+
+	// read credentials interactively
 	if access == "" || secret == "" {
 		var err error
 
@@ -295,6 +323,27 @@ func cmdUninstall(c *cli.Context) {
 	access := os.Getenv("AWS_ACCESS_KEY_ID")
 	secret := os.Getenv("AWS_SECRET_ACCESS_KEY")
 	region := c.String("region")
+
+	// read credentials from credentials.csv file
+	if len(c.Args()) > 0 {
+		credentialsCsvFileName := c.Args()[0]
+		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
+
+		if err != nil {
+			return
+		}
+
+		r := csv.NewReader(bytes.NewReader(credsFile))
+		records, err := r.ReadAll()
+		if err != nil {
+			return
+		}
+
+		if len(records) == 2 && len(records[1]) == 3 {
+			access = records[1][1]
+			secret = records[1][2]
+		}
+	}
 
 	if access == "" || secret == "" {
 		var err error
