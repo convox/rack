@@ -495,6 +495,8 @@ func injectDockerfile(dir string) error {
 	detect := ""
 
 	switch {
+	case exists(filepath.Join(dir, ".meteor")):
+		detect = "meteor"
 	case exists(filepath.Join(dir, "package.json")):
 		detect = "node"
 	case exists(filepath.Join(dir, "config/application.rb")):
