@@ -73,9 +73,7 @@ func AppShow(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, a)
 }
 
-func AppCreate(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("create").Start()
-
+func AppCreate(rw http.ResponseWriter, r *http.Request) error {
 	name := GetForm(r, "name")
 
 	app := &models.App{
@@ -86,24 +84,25 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) {
 
 	if awsError(err) == "AlreadyExistsException" {
 		app, err := models.GetApp(name)
+
 		if err != nil {
-			helpers.Error(log, err)
-			RenderError(rw, err)
-			return
+			return err
 		}
-		err = fmt.Errorf("There is already an app named %s (%s)", name, app.Status)
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+
+		return RenderForbidden(rw, fmt.Sprintf("There is already an app named %s (%s)", name, app.Status))
 	}
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	Redirect(rw, r, fmt.Sprintf("/apps/%s", name))
+	app, err = models.GetApp(name)
+
+	if err != nil {
+		return err
+	}
+
+	return RenderJson(rw, app)
 }
 
 func AppUpdate(rw http.ResponseWriter, r *http.Request) {

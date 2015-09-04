@@ -10,7 +10,7 @@ host: docker.local
 schemes:
   - https
 consumes:
-  - application/json
+  - application/x-www-form-urlencoded
 produces:
   - application/json
 paths:
@@ -28,6 +28,14 @@ paths:
           description: unexpected error
           schema:
             $ref: '#/definitions/error'
+    post:
+      description: Create an app
+      parameters:
+      - name: name
+        description: app name
+        type: string
+        in: formData
+        required: true
   /apps/{app}:
     get:
       description: Get an app

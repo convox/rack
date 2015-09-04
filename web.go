@@ -124,10 +124,10 @@ func startWeb() {
 
 	// normalized
 	router.HandleFunc("/apps", api("app.list", controllers.AppList)).Methods("GET")
+	router.HandleFunc("/apps", api("app.create", controllers.AppCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}", api("app.get", controllers.AppShow)).Methods("GET")
 
 	// todo
-	router.HandleFunc("/apps", controllers.AppCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}", controllers.AppUpdate).Methods("POST")
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/available", controllers.AppNameAvailable).Methods("GET")
