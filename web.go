@@ -126,7 +126,13 @@ func startWeb() {
 	router.HandleFunc("/apps", api("app.list", controllers.AppList)).Methods("GET")
 	router.HandleFunc("/apps", api("app.create", controllers.AppCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}", api("app.get", controllers.AppShow)).Methods("GET")
+	router.HandleFunc("/apps/{app}/processes", api("process.list", controllers.ProcessList)).Methods("GET")
+	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
+	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detached", controllers.ProcessRunDetached)).Methods("POST")
 	router.HandleFunc("/apps/{app}/processes/{process}/scale", api("process.scale", controllers.ProcessScale)).Methods("POST")
+
+	// websockets
+	router.Handle("/apps/{app}/processes/{process}/run", websocket.Handler(controllers.ProcessRunAttached)).Methods("GET")
 
 	// todo
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
@@ -146,14 +152,9 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/events", controllers.AppEvents).Methods("GET")
 	router.HandleFunc("/apps/{app}/logs", controllers.AppLogs)
 	router.HandleFunc("/apps/{app}/logs/stream", controllers.AppStream)
-	router.HandleFunc("/apps/{app}/processes", controllers.ProcessList).Methods("GET")
-	router.HandleFunc("/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
-	router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
-	router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
-	router.HandleFunc("/apps/{app}/process_types/{process_type}/top", controllers.ProcessTypeTop).Methods("GET")
-	router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
-	router.Handle("/apps/{app}/processes/{process}/run", websocket.Handler(controllers.ProcessRunAttached)).Methods("GET")
-	router.HandleFunc("/apps/{app}/processes/{process}/run", controllers.ProcessRun).Methods("POST")
+	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
+	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
+	// router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")

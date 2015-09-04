@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -25,32 +26,25 @@ func init() {
 	RegisterTemplate("process", "layout", "process")
 }
 
-func ProcessList(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("processes").Start()
-
+func ProcessList(rw http.ResponseWriter, r *http.Request) error {
 	app := mux.Vars(r)["app"]
 
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
 	processes, err := models.ListProcesses(app)
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	RenderJson(rw, processes)
+	return RenderJson(rw, processes)
 }
 
-func ProcessShow(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("show").Start()
-
+func ProcessShow(rw http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -58,19 +52,16 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
 	p, err := models.GetProcess(app, process)
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	RenderTemplate(rw, "process", p)
+	return RenderJson(rw, p)
 }
 
 func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
@@ -139,9 +130,7 @@ func ProcessScale(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, p)
 }
 
-func ProcessRun(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("run").Start()
-
+func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -150,21 +139,17 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
 	ps, err := models.GetProcess(app, process)
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	if ps == nil {
-		RenderNotFound(rw, fmt.Sprintf("no such process: %s", process))
-		return
+		return RenderNotFound(rw, fmt.Sprintf("no such process: %s", process))
 	}
 
 	err = ps.Run(models.ProcessRunOptions{
@@ -173,12 +158,10 @@ func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	RenderText(rw, "ok")
+	return RenderSuccess(rw)
 }
 
 func ProcessRunAttached(ws *websocket.Conn) {
@@ -214,81 +197,81 @@ func ProcessRunAttached(ws *websocket.Conn) {
 	log.Success("step=ended app=%q", ps.App)
 }
 
-func ProcessStop(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("stop").Start()
+// func ProcessStop(rw http.ResponseWriter, r *http.Request) {
+//   log := processesLogger("stop").Start()
 
-	vars := mux.Vars(r)
-	app := vars["app"]
-	id := vars["id"]
+//   vars := mux.Vars(r)
+//   app := vars["app"]
+//   id := vars["id"]
 
-	_, err := models.GetApp(app)
+//   _, err := models.GetApp(app)
 
-	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
-	}
+//   if awsError(err) == "ValidationError" {
+//     RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+//     return
+//   }
 
-	ps, err := models.GetProcessById(app, id)
+//   ps, err := models.GetProcessById(app, id)
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
+//   if err != nil {
+//     helpers.Error(log, err)
+//     RenderError(rw, err)
+//     return
+//   }
 
-	if ps == nil {
-		RenderNotFound(rw, fmt.Sprintf("no such process: %s", id))
-		return
-	}
+//   if ps == nil {
+//     RenderNotFound(rw, fmt.Sprintf("no such process: %s", id))
+//     return
+//   }
 
-	err = ps.Stop()
+//   err = ps.Stop()
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
+//   if err != nil {
+//     helpers.Error(log, err)
+//     RenderError(rw, err)
+//     return
+//   }
 
-	RenderText(rw, "ok")
-}
+//   RenderText(rw, "ok")
+// }
 
-func ProcessTop(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("info").Start()
+// func ProcessTop(rw http.ResponseWriter, r *http.Request) {
+//   log := processesLogger("info").Start()
 
-	vars := mux.Vars(r)
-	app := vars["app"]
-	id := vars["id"]
+//   vars := mux.Vars(r)
+//   app := vars["app"]
+//   id := vars["id"]
 
-	_, err := models.GetApp(app)
+//   _, err := models.GetApp(app)
 
-	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
-	}
+//   if awsError(err) == "ValidationError" {
+//     RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+//     return
+//   }
 
-	ps, err := models.GetProcessById(app, id)
+//   ps, err := models.GetProcessById(app, id)
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
+//   if err != nil {
+//     helpers.Error(log, err)
+//     RenderError(rw, err)
+//     return
+//   }
 
-	if ps == nil {
-		RenderNotFound(rw, fmt.Sprintf("no such process: %s", id))
-		return
-	}
+//   if ps == nil {
+//     RenderNotFound(rw, fmt.Sprintf("no such process: %s", id))
+//     return
+//   }
 
-	info, err := ps.Top()
+//   info, err := ps.Top()
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
+//   if err != nil {
+//     helpers.Error(log, err)
+//     RenderError(rw, err)
+//     return
+//   }
 
-	RenderJson(rw, info)
-}
+//   RenderJson(rw, info)
+// }
 
 func ProcessTypeTop(rw http.ResponseWriter, r *http.Request) {
 	log := processesLogger("info").Start()

@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
@@ -199,6 +199,12 @@ func RenderTemplate(rw http.ResponseWriter, name string, data interface{}) error
 
 func RenderText(rw http.ResponseWriter, text string) error {
 	_, err := rw.Write([]byte(text))
+	return err
+}
+
+func RenderSuccess(rw http.ResponseWriter) error {
+	_, err := rw.Write([]byte(`{"success":true}`))
+
 	return err
 }
 

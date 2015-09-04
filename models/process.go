@@ -4,31 +4,27 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Process struct {
-	App         string
-	Binds       []string
-	Command     string
-	ContainerId string
-	Count       int
-	CPU         int64
-	DockerHost  string
-	Id          string
-	Image       string
-	Memory      int64
-	Name        string
-	Release     string
-	ServiceType string
-	TaskARN     string
+	App     string `json:"app"`
+	Command string `json:"command"`
+	Count   int    `json:"count"`
+	Image   string `json:"image"`
+	Memory  int64  `json:"memory"`
+	Name    string `json:"name"`
+	Release string `json:"release"`
+
+	Binds   []string `json:"-"`
+	TaskARN string   `json:"-"`
 }
 
 type Processes []Process
@@ -44,6 +40,12 @@ type ProcessRunOptions struct {
 }
 
 func ListProcesses(app string) (Processes, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 	}
@@ -76,102 +78,51 @@ func ListProcesses(app string) (Processes, error) {
 			continue
 		}
 
-		definitions := map[string]*ecs.ContainerDefinition{}
-
-		for _, cd := range tres.TaskDefinition.ContainerDefinitions {
-			definitions[*cd.Name] = cd
-		}
-
 		hostVolumes := make(map[string]string)
 
 		for _, v := range tres.TaskDefinition.Volumes {
 			hostVolumes[*v.Name] = *v.Host.SourcePath
 		}
 
-		for _, container := range task.Containers {
-			parts := strings.Split(*container.ContainerARN, "-")
-			id := parts[len(parts)-1]
+		if len(tres.TaskDefinition.ContainerDefinitions) < 1 {
+			return nil, fmt.Errorf("no container definition")
+		}
 
-			ps := Process{
-				Id:      id,
-				TaskARN: *task.TaskARN,
-				Name:    *container.Name,
-				App:     app,
-			}
+		cd := *(tres.TaskDefinition.ContainerDefinitions[0])
 
-			if td, ok := definitions[ps.Name]; ok {
-				for _, env := range td.Environment {
-					if *env.Name == "RELEASE" {
-						ps.Release = *env.Value
-					}
-				}
+		count, err := strconv.Atoi(a.Parameters[UpperName(*cd.Name)+"DesiredCount"])
 
-				for _, m := range td.MountPoints {
-					ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
-				}
-			}
+		if err != nil {
+			return nil, err
+		}
 
-			ps.Image = *definitions[ps.Name].Image
-			ps.CPU = *definitions[ps.Name].CPU
-			ps.Memory = *definitions[ps.Name].Memory
+		ps := Process{
+			App:   app,
+			Count: count,
+			Image: *cd.Image,
+			Name:  *cd.Name,
+		}
 
-			cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-				Cluster:            aws.String(os.Getenv("CLUSTER")),
-				ContainerInstances: []*string{task.ContainerInstanceARN},
-			})
-
-			if err != nil {
-				return nil, err
-			}
-
-			if len(cres.ContainerInstances) == 1 {
-				ci := cres.ContainerInstances[0]
-
-				ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-					Filters: []*ec2.Filter{
-						&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.EC2InstanceID}},
-					},
-				})
-
-				if err != nil {
-					return nil, err
-				}
-
-				if len(ires.Reservations) == 1 && len(ires.Reservations[0].Instances) == 1 {
-					instance := ires.Reservations[0].Instances[0]
-
-					ip := *instance.PrivateIPAddress
-
-					if os.Getenv("DEVELOPMENT") == "true" {
-						ip = *instance.PublicIPAddress
-					}
-
-					ps.DockerHost = ip
-
-					containers, err := ps.Docker().ListContainers(docker.ListContainersOptions{
-						Filters: map[string][]string{
-							"label": []string{
-								fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.TaskARN),
-								fmt.Sprintf("com.amazonaws.ecs.container-name=%s", ps.Name),
-							},
-						},
-					})
-
-					if err != nil {
-						return nil, err
-					}
-
-					if len(containers) == 1 {
-						ps.ContainerId = containers[0].ID
-						ps.Command = containers[0].Command
-					}
-				}
-			}
-
-			if !strings.HasPrefix(*container.Name, "convox-") {
-				pss = append(pss, ps)
+		for _, env := range cd.Environment {
+			if *env.Name == "RELEASE" {
+				ps.Release = *env.Value
 			}
 		}
+
+		for _, m := range cd.MountPoints {
+			ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
+		}
+
+		cp := make([]string, len(cd.Command))
+
+		for i, part := range cd.Command {
+			cp[i] = *part
+		}
+
+		ps.Command = strings.Join(cp, " ")
+		ps.Memory = *cd.Memory
+
+		pss = append(pss, ps)
 	}
 
 	return pss, nil
@@ -193,46 +144,20 @@ func GetProcess(app, name string) (*Process, error) {
 	return nil, nil
 }
 
-func GetProcessById(app, id string) (*Process, error) {
-	processes, err := ListProcesses(app)
+// func (p *Process) Top() (*ProcessTop, error) {
+//   res, err := p.Docker().TopContainer(p.ContainerId, "")
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	for _, p := range processes {
-		if p.Id == id {
-			return &p, nil
-		}
-	}
+//   info := &ProcessTop{
+//     Titles:    res.Titles,
+//     Processes: res.Processes,
+//   }
 
-	return nil, nil
-}
-
-func (p *Process) Docker() *docker.Client {
-	client, _ := docker.NewClient(fmt.Sprintf("http://%s:2376", p.DockerHost))
-
-	if os.Getenv("TEST_DOCKER_HOST") != "" {
-		client, _ = docker.NewClient(os.Getenv("TEST_DOCKER_HOST"))
-	}
-
-	return client
-}
-
-func (p *Process) Top() (*ProcessTop, error) {
-	res, err := p.Docker().TopContainer(p.ContainerId, "")
-
-	if err != nil {
-		return nil, err
-	}
-
-	info := &ProcessTop{
-		Titles:    res.Titles,
-		Processes: res.Processes,
-	}
-
-	return info, nil
-}
+//   return info, nil
+// }
 
 func (p *Process) Run(options ProcessRunOptions) error {
 	app, err := GetApp(p.App)
@@ -286,7 +211,9 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 		ea = append(ea, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	res, err := p.Docker().CreateContainer(docker.CreateContainerOptions{
+	d := Docker()
+
+	res, err := d.CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
 			AttachStdin:  true,
 			AttachStdout: true,
@@ -306,7 +233,7 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	go p.Docker().AttachToContainer(docker.AttachToContainerOptions{
+	go d.AttachToContainer(docker.AttachToContainerOptions{
 		Container:    res.ID,
 		InputStream:  rw,
 		OutputStream: rw,
@@ -321,13 +248,13 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 	// hacky
 	time.Sleep(100 * time.Millisecond)
 
-	err = p.Docker().StartContainer(res.ID, nil)
+	err = d.StartContainer(res.ID, nil)
 
 	if err != nil {
 		return err
 	}
 
-	code, err := p.Docker().WaitContainer(res.ID)
+	code, err := d.WaitContainer(res.ID)
 
 	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
 
