@@ -3,6 +3,9 @@
   "Conditions": {
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
+    "BlankDockerImageApp": { "Fn::Equals": [ { "Ref": "DockerImageApp" }, "" ] },
+    "BlankDockerImageBuild": { "Fn::Equals": [ { "Ref": "DockerImageBuild" }, "" ] },
+    "BlankDockerImageService": { "Fn::Equals": [ { "Ref": "DockerImageService" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] }
@@ -101,6 +104,21 @@
       "Description": "Development mode",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "DockerImageApp": {
+      "Type": "String",
+      "Description": "Image to use for the app container. Overrides current Version.",
+      "Default": ""
+    },
+    "DockerImageBuild": {
+      "Type": "String",
+      "Description": "Image to use for the build container. Overrides current Version.",
+      "Default": ""
+    },
+    "DockerImageService": {
+      "Type": "String",
+      "Description": "Image to use for the service container. Overrides current Version.",
+      "Default": ""
     },
     "InstanceCount": {
       "Default": "3",
@@ -801,6 +819,18 @@
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
+              "DOCKER_IMAGE_APP": { "Fn::If": [ "BlankDockerImageApp",
+                { "Fn::Join": [ ":", [ "convox/app", { "Ref": "Version" } ] ] },
+                { "Ref": "DockerImageApp" }
+              ] },
+              "DOCKER_IMAGE_BUILD": { "Fn::If": [ "BlankDockerImageBuild",
+                { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
+                { "Ref": "DockerImageBuild" }
+              ] },
+              "DOCKER_IMAGE_SERVICE": { "Fn::If": [ "BlankDockerImageService",
+                { "Fn::Join": [ ":", [ "convox/service", { "Ref": "Version" } ] ] },
+                { "Ref": "DockerImageService" }
+              ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
