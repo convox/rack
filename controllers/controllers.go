@@ -202,6 +202,14 @@ func RenderText(rw http.ResponseWriter, text string) error {
 	return err
 }
 
+func RenderForbidden(rw http.ResponseWriter, message string) error {
+	rw.WriteHeader(403)
+
+	_, err := rw.Write([]byte(fmt.Sprintf(`{"error":%q}`, message)))
+
+	return err
+}
+
 func RenderNotFound(rw http.ResponseWriter, message string) error {
 	rw.WriteHeader(404)
 
