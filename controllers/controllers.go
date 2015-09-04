@@ -166,6 +166,8 @@ func RenderJson(rw http.ResponseWriter, object interface{}) error {
 		return RenderError(rw, err)
 	}
 
+	rw.Header().Set("Content-Type", "application/json")
+
 	_, err = rw.Write(data)
 
 	return err
