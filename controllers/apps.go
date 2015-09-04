@@ -5,10 +5,8 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
-	"strings"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
@@ -103,64 +101,6 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	return RenderJson(rw, app)
-}
-
-func AppUpdate(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("update").Start()
-
-	vars := mux.Vars(r)
-	name := vars["app"]
-
-	app, err := models.GetApp(name)
-
-	if err != nil {
-		log.Error(err)
-		RenderError(rw, err)
-		return
-	}
-
-	params := map[string]string{}
-
-	if process := GetForm(r, "process"); process != "" {
-		process = models.UpperName(process)
-
-		if count := GetForm(r, "count"); count != "" {
-			params[process+"DesiredCount"] = count
-		}
-
-		if cpu := GetForm(r, "cpu"); cpu != "" {
-			params[process+"Cpu"] = cpu
-		}
-
-		if mem := GetForm(r, "mem"); mem != "" {
-			params[process+"Memory"] = mem
-		}
-	}
-
-	if len(params) > 0 {
-		err := app.UpdateParams(params)
-
-		if ae, ok := err.(awserr.Error); ok {
-			if ae.Code() == "ValidationError" {
-				switch {
-				case strings.Index(ae.Error(), "No updates are to be performed") > -1:
-					RenderNotFound(rw, fmt.Sprintf("no updates are to be performed: %s", name))
-					return
-				case strings.Index(ae.Error(), "can not be updated") > -1:
-					RenderNotFound(rw, fmt.Sprintf("app is already updating: %s", name))
-					return
-				}
-			}
-		}
-
-		if err != nil {
-			log.Error(err)
-			RenderError(rw, err)
-			return
-		}
-	}
-
-	Redirect(rw, r, fmt.Sprintf("/apps/%s", name))
 }
 
 func AppDelete(rw http.ResponseWriter, r *http.Request) {

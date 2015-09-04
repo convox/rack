@@ -88,6 +88,57 @@ func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
 	RenderPartial(rw, "process", "logs", params)
 }
 
+func ProcessScale(rw http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process"]
+
+	a, err := models.GetApp(app)
+
+	if err != nil {
+		return err
+	}
+
+	p, err := models.GetProcess(app, process)
+
+	if err != nil {
+		return err
+	}
+
+	params := map[string]string{}
+
+	un := models.UpperName(process)
+
+	if count := GetForm(r, "count"); count != "" {
+		params[un+"DesiredCount"] = count
+	}
+
+	if mem := GetForm(r, "memory"); mem != "" {
+		params[un+"Memory"] = mem
+	}
+
+	if len(params) > 0 {
+		err := a.UpdateParams(params)
+
+		if ae, ok := err.(awserr.Error); ok {
+			if ae.Code() == "ValidationError" {
+				switch {
+				case strings.Index(ae.Error(), "No updates are to be performed") > -1:
+					return fmt.Errorf("no updates are to be performed: %s", app)
+				case strings.Index(ae.Error(), "can not be updated") > -1:
+					return fmt.Errorf("app is already updating: %s", app)
+				}
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return RenderJson(rw, p)
+}
+
 func ProcessRun(rw http.ResponseWriter, r *http.Request) {
 	log := processesLogger("run").Start()
 
