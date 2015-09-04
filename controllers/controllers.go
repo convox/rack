@@ -210,8 +210,10 @@ func RenderNotFound(rw http.ResponseWriter, message string) error {
 	return err
 }
 
-func Redirect(rw http.ResponseWriter, r *http.Request, path string) {
+func Redirect(rw http.ResponseWriter, r *http.Request, path string) error {
 	http.Redirect(rw, r, path, http.StatusFound)
+
+	return nil
 }
 
 func duration(start, end time.Time) string {
