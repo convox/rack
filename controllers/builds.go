@@ -176,26 +176,18 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) {
 	RenderError(rw, err)
 }
 
-func BuildLogs(ws *websocket.Conn) {
+func BuildLogs(ws *websocket.Conn) error {
 	defer ws.Close()
-
-	log := buildsLogger("logs").Start()
 
 	vars := mux.Vars(ws.Request())
 	id := vars["build"]
-
-	log.Success("step=upgrade build=%q", id)
-
-	defer ws.Close()
 
 	// proxy to docker container logs
 	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 
 	if err != nil {
-		helpers.Error(log, err)
-		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
-		return
+		return err
 	}
 
 	r, w := io.Pipe()
@@ -218,11 +210,7 @@ func BuildLogs(ws *websocket.Conn) {
 
 	quit <- true
 
-	if err != nil {
-		helpers.Error(log, err)
-		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
-		return
-	}
+	return err
 }
 
 func BuildStatus(rw http.ResponseWriter, r *http.Request) {

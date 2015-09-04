@@ -164,10 +164,8 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
 	return RenderSuccess(rw)
 }
 
-func ProcessRunAttached(ws *websocket.Conn) {
+func ProcessRunAttached(ws *websocket.Conn) error {
 	defer ws.Close()
-
-	log := processesLogger("run.attached").Start()
 
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
@@ -177,24 +175,10 @@ func ProcessRunAttached(ws *websocket.Conn) {
 	ps, err := models.GetProcess(app, process)
 
 	if err != nil {
-		helpers.Error(log, err)
-		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
-		return
+		return err
 	}
 
-	log.Success("step=upgrade app=%q", ps.App)
-
-	defer ws.Close()
-
-	err = ps.RunAttached(command, ws)
-
-	if err != nil {
-		helpers.Error(log, err)
-		ws.Write([]byte(fmt.Sprintf("error: %s\n", err)))
-		return
-	}
-
-	log.Success("step=ended app=%q", ps.App)
+	return ps.RunAttached(command, ws)
 }
 
 // func ProcessStop(rw http.ResponseWriter, r *http.Request) {

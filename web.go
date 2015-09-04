@@ -79,8 +79,9 @@ func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 }
 
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
+type ApiWebsocketFunc func(*websocket.Conn) error
 
-func api(at string, handler ApiHandlerFunc) func(http.ResponseWriter, *http.Request) {
+func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		log := logger.New("ns=kernel").At(at)
 		err := handler(rw, r)
@@ -91,6 +92,19 @@ func api(at string, handler ApiHandlerFunc) func(http.ResponseWriter, *http.Requ
 			controllers.RenderError(rw, err)
 		}
 	}
+}
+
+func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
+	return websocket.Handler(func(ws *websocket.Conn) {
+		log := logger.New("ns=kernel").At(at)
+		err := handler(ws)
+
+		if err != nil {
+			log.Error(err)
+			rollbar.Error(rollbar.ERR, err)
+			ws.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
+		}
+	})
 }
 
 func check(rw http.ResponseWriter, r *http.Request) {
@@ -132,15 +146,15 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/processes/{process}/scale", api("process.scale", controllers.ProcessScale)).Methods("POST")
 
 	// websockets
-	router.Handle("/apps/{app}/processes/{process}/run", websocket.Handler(controllers.ProcessRunAttached)).Methods("GET")
+	router.Handle("/apps/{app}/builds/{build}/logs", ws("build.logs", controllers.BuildLogs)).Methods("GET")
+	router.Handle("/apps/{app}/logs", ws("app.logs", controllers.AppLogs)).Methods("GET")
+	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run", controllers.ProcessRunAttached)).Methods("GET")
 
 	// todo
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
-	router.HandleFunc("/apps/{app}/available", controllers.AppNameAvailable).Methods("GET")
 	router.HandleFunc("/apps/{app}/build", controllers.BuildCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/builds", controllers.BuildList).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds/{build}", controllers.BuildGet).Methods("GET")
-	router.Handle("/apps/{app}/builds/{build}/logs", websocket.Handler(controllers.BuildLogs)).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds/{build}/status", controllers.BuildStatus).Methods("GET")
 	router.HandleFunc("/apps/{app}/changes", controllers.AppChanges).Methods("GET")
 	router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
@@ -150,8 +164,6 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentDelete).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/events", controllers.AppEvents).Methods("GET")
-	router.HandleFunc("/apps/{app}/logs", controllers.AppLogs)
-	router.HandleFunc("/apps/{app}/logs/stream", controllers.AppStream)
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 	// router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")

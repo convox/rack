@@ -9,7 +9,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
 	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
@@ -286,52 +286,19 @@ func AppEvents(rw http.ResponseWriter, r *http.Request) {
 	RenderText(rw, data)
 }
 
-func AppLogs(rw http.ResponseWriter, r *http.Request) {
-	// log := appsLogger("logs").Start()
-
-	app := mux.Vars(r)["app"]
-
-	RenderPartial(rw, "app", "logs", app)
-}
-
-func AppNameAvailable(rw http.ResponseWriter, r *http.Request) {
-	app, _ := models.GetApp(mux.Vars(r)["app"])
-
-	if app != nil {
-		RenderText(rw, "false")
-	} else {
-		RenderText(rw, "true")
-	}
-}
-
-func AppStream(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("stream").Start()
-
-	app := mux.Vars(r)["app"]
-
-	ws, err := upgrader.Upgrade(rw, r, nil)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	log.Success("step=upgrade app=%q", app)
-
+func AppLogs(ws *websocket.Conn) error {
 	defer ws.Close()
 
-	a, err := models.GetApp(mux.Vars(r)["app"])
+	app := mux.Vars(ws.Request())["app"]
+
+	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("ERROR: no such app: %s\n", app)))
-		return
+		return fmt.Errorf("no such app: %s", app)
 	}
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	logs := make(chan []byte)
@@ -340,10 +307,10 @@ func AppStream(rw http.ResponseWriter, r *http.Request) {
 	a.SubscribeLogs(logs, done)
 
 	for data := range logs {
-		ws.WriteMessage(websocket.TextMessage, data)
+		ws.Write(data)
 	}
 
-	log.Success("step=ended app=%q", app)
+	return nil
 }
 
 func AppReleases(rw http.ResponseWriter, r *http.Request) {
