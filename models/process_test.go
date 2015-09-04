@@ -43,7 +43,7 @@ func TestRunAttached(t *testing.T) {
 			},
 			Response: awsutil.Response{
 				StatusCode: 200,
-				Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"worker-0-0"}],"containerDefinitions":[{"name":"worker1","cpu":200,"memory":256,"environment":[{"name":"PROCESS","value":"worker1"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"worker-worker1"}}`,
+				Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"worker-0-0"}],"containerDefinitions":[{"name":"worker1","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker1"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"worker-worker1"}}`,
 			},
 		},
 		awsutil.Cycle{
