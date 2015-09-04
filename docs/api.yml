@@ -26,10 +26,16 @@ paths:
         default:
           description: unexpected error
           schema:
-            $ref: '#definitions/error'
+            $ref: '#/definitions/error'
   /apps/{app}:
     get:
       description: Get an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
       responses:
         200:
           schema:
