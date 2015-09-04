@@ -8,7 +8,7 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0
 host: docker.local
 schemes:
-  - https
+  - http
 consumes:
   - application/x-www-form-urlencoded
 produces:
@@ -24,10 +24,6 @@ paths:
             type: array
             items:
               $ref: '#/definitions/app'
-        default:
-          description: unexpected error
-          schema:
-            $ref: '#/definitions/error'
     post:
       description: Create an app
       parameters:
@@ -36,6 +32,15 @@ paths:
         type: string
         in: formData
         required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/app'
+        403:
+          description: invalid name
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}:
     get:
       description: Get an app
@@ -51,11 +56,111 @@ paths:
           schema:
             $ref: '#/definitions/app'
         404:
-          description: app not found
+          description: not found
           schema:
             $ref: '#/definitions/error'
-        default:
-          description: unexpected error
+  /apps/{app}/processes:
+    get:
+      description: List processes for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: processes
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/process'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/processes/{process}:
+    get:
+      description: List processes for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: process
+          schema:
+            $ref: '#/definitions/process'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/processes/{process}/run:
+    post:
+      description: Run a detached process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      - name: command
+        description: command
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/processes/{process}/scale:
+    post:
+      description: Scale a process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      - name: count
+        description: process count
+        type: integer
+        in: formData
+        required: false
+      - name: memory
+        description: process memory
+        type: integer
+        in: formData
+        required: false
+      responses:
+        200:
+          description: process
+          schema:
+            $ref: '#/definitions/process'
+        404:
+          description: not found
           schema:
             $ref: '#/definitions/error'
 definitions:
@@ -69,3 +174,23 @@ definitions:
     properties:
       error:
         type: string
+  process:
+    properties:
+      app:
+        type: string
+      command:
+        type: string
+      count:
+        type: integer
+      image:
+        type: string
+      memory:
+        type: integer
+      name:
+        type: string
+      release:
+        type: string
+  success:
+    properties:
+      success:
+        type: boolean
