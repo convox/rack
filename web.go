@@ -72,6 +72,12 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 	next(rw, r)
 }
 
+func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	rw.Header().Set("Access-Control-Allow-Origin", "http://editor.swagger.io")
+	rw.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept")
+	next(rw, r)
+}
+
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
 
 func api(at string, handler ApiHandlerFunc) func(http.ResponseWriter, *http.Request) {
@@ -177,6 +183,10 @@ func startWeb() {
 		nlogger.New("ns=kernel", nil),
 		negroni.NewStatic(http.Dir("public")),
 	)
+
+	if os.Getenv("DEVELOPMENT") == "true" {
+		n.Use(negroni.HandlerFunc(development))
+	}
 
 	n.Use(negroni.HandlerFunc(NewPanicHandler(logger.New("ns=kernel"))))
 	n.Use(negroni.HandlerFunc(parseForm))
