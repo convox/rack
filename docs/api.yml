@@ -8,7 +8,7 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0
 host: docker.local
 schemes:
-  - http
+  - https
 consumes:
   - application/json
 produces:
@@ -19,6 +19,7 @@ paths:
       description: List apps
       responses:
         200:
+          description: app list
           schema:
             type: array
             items:
@@ -38,10 +39,11 @@ paths:
         required: true
       responses:
         200:
+          description: app
           schema:
             $ref: '#/definitions/app'
         404:
-          descripton: app not found
+          description: app not found
           schema:
             $ref: '#/definitions/error'
         default:
