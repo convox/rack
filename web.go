@@ -110,6 +110,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/processes/{process}", controllers.ProcessShow).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
+	router.HandleFunc("/apps/{app}/process_types/{process_type}/top", controllers.ProcessTypeTop).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
 	router.Handle("/apps/{app}/processes/{process}/run", websocket.Handler(controllers.ProcessRunAttached)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", controllers.ProcessRun).Methods("POST")

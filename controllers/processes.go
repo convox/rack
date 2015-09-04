@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
@@ -159,11 +163,6 @@ func ProcessRunAttached(ws *websocket.Conn) {
 	log.Success("step=ended app=%q", ps.App)
 }
 
-func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
-	io.Copy(w, r)
-	wg.Done()
-}
-
 func ProcessStop(rw http.ResponseWriter, r *http.Request) {
 	log := processesLogger("stop").Start()
 
@@ -238,6 +237,75 @@ func ProcessTop(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderJson(rw, info)
+}
+
+func ProcessTypeTop(rw http.ResponseWriter, r *http.Request) {
+	log := processesLogger("info").Start()
+
+	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process_type"]
+
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return
+	}
+
+	params := &cloudwatch.ListMetricsInput{
+		Namespace: aws.String("AWS/ECS"),
+	}
+
+	output, err := models.CloudWatch().ListMetrics(params)
+
+	if err != nil {
+		helpers.Error(log, err)
+		RenderError(rw, err)
+		return
+	}
+
+	var outputs []*cloudwatch.GetMetricStatisticsOutput
+	serviceStr := fmt.Sprintf("%s-%s", app, process)
+
+	for _, metric := range output.Metrics {
+		for _, dimension := range metric.Dimensions {
+			if (*dimension.Name == "ServiceName") && (strings.Contains(*dimension.Value, serviceStr)) {
+
+				params := &cloudwatch.GetMetricStatisticsInput{
+					MetricName: aws.String(*metric.MetricName),
+					StartTime:  aws.Time(time.Now().Add(-2 * time.Minute)),
+					EndTime:    aws.Time(time.Now()),
+					Period:     aws.Long(60),
+					Namespace:  aws.String("AWS/ECS"),
+					Statistics: []*string{
+						aws.String("Maximum"),
+						aws.String("Average"),
+						aws.String("Minimum"),
+					},
+					Dimensions: metric.Dimensions,
+				}
+
+				output, err := models.CloudWatch().GetMetricStatistics(params)
+
+				if err != nil {
+					RenderError(rw, err)
+					return
+				}
+
+				if output.Datapoints != nil {
+					outputs = append(outputs, output)
+				}
+			}
+		}
+	}
+
+	RenderJson(rw, outputs)
+}
+
+func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
+	io.Copy(w, r)
+	wg.Done()
 }
 
 func processesLogger(at string) *logger.Logger {
