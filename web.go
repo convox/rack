@@ -11,10 +11,10 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stvp/rollbar"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
-	"github.com/convox/kernel/helpers"
-
 	"github.com/convox/kernel/controllers"
+	"github.com/convox/kernel/helpers"
 )
 
 var port string = "5000"
@@ -72,6 +72,21 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 	next(rw, r)
 }
 
+type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
+
+func api(at string, handler ApiHandlerFunc) func(http.ResponseWriter, *http.Request) {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		log := logger.New("ns=kernel").At(at)
+		err := handler(rw, r)
+
+		if err != nil {
+			log.Error(err)
+			rollbar.Error(rollbar.ERR, err)
+			controllers.RenderError(rw, err)
+		}
+	}
+}
+
 func check(rw http.ResponseWriter, r *http.Request) {
 	rw.Write([]byte("ok"))
 }
@@ -97,13 +112,16 @@ func startWeb() {
 
 	router := mux.NewRouter()
 
-	// router.HandleFunc("/", redirect("/apps")).Methods("GET")
-
+	// utility
+	router.HandleFunc("/boom", controllers.Boom).Methods("GET")
 	router.HandleFunc("/check", check).Methods("GET")
 
-	router.HandleFunc("/apps", controllers.AppList).Methods("GET")
+	// normalized
+	router.HandleFunc("/apps", api("app.list", controllers.AppList)).Methods("GET")
+	router.HandleFunc("/apps/{app}", api("app.get", controllers.AppShow)).Methods("GET")
+
+	// todo
 	router.HandleFunc("/apps", controllers.AppCreate).Methods("POST")
-	router.HandleFunc("/apps/{app}", controllers.AppShow).Methods("GET")
 	router.HandleFunc("/apps/{app}", controllers.AppUpdate).Methods("POST")
 	router.HandleFunc("/apps/{app}", controllers.AppDelete).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/available", controllers.AppNameAvailable).Methods("GET")
@@ -153,7 +171,6 @@ func startWeb() {
 	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
 	router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
-	router.HandleFunc("/boom", controllers.Boom).Methods("GET")
 
 	n := negroni.New(
 		negroni.NewRecovery(),

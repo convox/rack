@@ -1,0 +1,55 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: Convox Rack API
+  description: Convox Rack API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+host: docker.local
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /apps:
+    get:
+      description: List apps
+      responses:
+        200:
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/app'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#definitions/error'
+  /apps/{app}:
+    get:
+      description: Get an app
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/app'
+        404:
+          descripton: app not found
+          schema:
+            $ref: '#/definitions/error'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/error'
+definitions:
+  app:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+  error:
+    properties:
+      error:
+        type: string

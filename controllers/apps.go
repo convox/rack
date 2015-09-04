@@ -45,66 +45,41 @@ func init() {
 	RegisterTemplate("app", "layout", "app")
 }
 
-func AppList(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("list").Start()
-
+func AppList(rw http.ResponseWriter, r *http.Request) error {
 	apps, err := models.ListApps()
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	sort.Sort(apps)
 
-	params := map[string]interface{}{
-		"Apps": apps,
-	}
-
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		RenderJson(rw, apps)
-	default:
-		RenderTemplate(rw, "apps", params)
-	}
+	return RenderJson(rw, apps)
 }
 
-func AppShow(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("show").Start()
-
+func AppShow(rw http.ResponseWriter, r *http.Request) error {
 	app := mux.Vars(r)["app"]
 
-	a, err := models.GetApp(app)
+	a, err := models.GetApp(mux.Vars(r)["app"])
 
 	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		RenderJson(rw, a)
-	default:
-		RenderTemplate(rw, "app", a)
-	}
+	return RenderJson(rw, a)
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("create").Start()
 
 	name := GetForm(r, "name")
-	repo := GetForm(r, "repo")
 
 	app := &models.App{
-		Name:       name,
-		Repository: repo,
+		Name: name,
 	}
 
 	err := app.Create()

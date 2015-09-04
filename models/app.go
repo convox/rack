@@ -20,14 +20,12 @@ import (
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
 
 type App struct {
-	Name string
+	Name   string `json:"name"`
+	Status string `json:"status"`
 
-	Status     string
-	Repository string
-
-	Outputs    map[string]string
-	Parameters map[string]string
-	Tags       map[string]string
+	Outputs    map[string]string `json:"-"`
+	Parameters map[string]string `json:"-"`
+	Tags       map[string]string `json:"-"`
 }
 
 type Apps []App
@@ -83,11 +81,10 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"Cluster":    os.Getenv("CLUSTER"),
-		"Repository": a.Repository,
-		"Subnets":    os.Getenv("SUBNETS"),
-		"Version":    os.Getenv("RELEASE"),
-		"VPC":        os.Getenv("VPC"),
+		"Cluster": os.Getenv("CLUSTER"),
+		"Subnets": os.Getenv("SUBNETS"),
+		"Version": os.Getenv("RELEASE"),
+		"VPC":     os.Getenv("VPC"),
 	}
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {
@@ -495,12 +492,9 @@ func (a *App) Services() Services {
 }
 
 func appFromStack(stack *cloudformation.Stack) *App {
-	params := stackParameters(stack)
-
 	return &App{
-		Name:       *stack.StackName,
-		Status:     humanStatus(*stack.StackStatus),
-		Repository: params["Repository"],
+		Name:   *stack.StackName,
+		Status: humanStatus(*stack.StackStatus),
 	}
 }
 

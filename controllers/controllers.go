@@ -153,7 +153,7 @@ func RegisterTemplate(name string, names ...string) {
 
 func RenderError(rw http.ResponseWriter, err error) error {
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusInternalServerError)
 	}
 
 	return err
@@ -202,7 +202,9 @@ func RenderText(rw http.ResponseWriter, text string) error {
 
 func RenderNotFound(rw http.ResponseWriter, message string) error {
 	rw.WriteHeader(404)
-	_, err := rw.Write([]byte(message))
+
+	_, err := rw.Write([]byte(fmt.Sprintf(`{"error":%q}`, message)))
+
 	return err
 }
 
