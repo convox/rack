@@ -59,6 +59,50 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /apps/{app}/logs:
+    get:
+      description: Logs for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: Connection
+        description: Connection header
+        type: string
+        in: header
+        required: true
+        default: upgrade
+      - name: Upgrade
+        description: Upgrade header
+        type: string
+        in: header
+        required: true
+        default: websocket
+      - name: Sec-WebSocket-Key
+        description: Sec-WebSocket-Key header
+        type: string
+        in: header
+        required: true
+        default: x3JJHMbDL1EzLkh9GBhXDw==
+      - name: Sec-WebSocket-Protocol
+        description: Sec-WebSocket-Protocol header
+        type: string
+        in: header
+        required: true
+        default: chat, superchat
+      - name: Sec-WebSocket-Version
+        description: Connection header
+        type: string
+        in: header
+        required: true
+        default: "13"
+      responses:
+        101:
+          description: websocket upgrade
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}/processes:
     get:
       description: List processes for an app
