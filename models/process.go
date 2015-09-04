@@ -23,6 +23,7 @@ type Process struct {
 	CPU         int64
 	DockerHost  string
 	Id          string
+	Image       string
 	Memory      int64
 	Name        string
 	Release     string
@@ -110,6 +111,7 @@ func ListProcesses(app string) (Processes, error) {
 				}
 			}
 
+			ps.Image = *definitions[ps.Name].Image
 			ps.CPU = *definitions[ps.Name].CPU
 			ps.Memory = *definitions[ps.Name].Memory
 
@@ -272,18 +274,6 @@ func (p *Process) Run(options ProcessRunOptions) error {
 }
 
 func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
-	app, err := GetApp(p.App)
-
-	if err != nil {
-		return err
-	}
-
-	release, err := app.LatestRelease()
-
-	if err != nil {
-		return err
-	}
-
 	env, err := GetEnvironment(p.App)
 
 	if err != nil {
@@ -305,7 +295,7 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 			OpenStdin:    true,
 			Tty:          true,
 			Cmd:          []string{"sh", "-c", command},
-			Image:        fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), p.App, p.Name, release.Build),
+			Image:        p.Image,
 		},
 		HostConfig: &docker.HostConfig{
 			Binds: p.Binds,
