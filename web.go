@@ -143,6 +143,7 @@ func startWeb() {
 	router.HandleFunc("/apps", api("app.create", controllers.AppCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}", api("app.get", controllers.AppShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}", api("app.delete", controllers.AppDelete)).Methods("DELETE")
+	router.HandleFunc("/apps/{app}/builds", api("build.list", controllers.BuildList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes", api("process.list", controllers.ProcessList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detached", controllers.ProcessRunDetached)).Methods("POST")
@@ -155,7 +156,6 @@ func startWeb() {
 
 	// todo
 	router.HandleFunc("/apps/{app}/build", controllers.BuildCreate).Methods("POST")
-	router.HandleFunc("/apps/{app}/builds", controllers.BuildList).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds/{build}", controllers.BuildGet).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds/{build}/status", controllers.BuildStatus).Methods("GET")
 	router.HandleFunc("/apps/{app}/changes", controllers.AppChanges).Methods("GET")

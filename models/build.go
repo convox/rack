@@ -16,28 +16,25 @@ import (
 )
 
 type Build struct {
-	Id string
+	App      string `json:"app"`
+	Id       string `json:"id"`
+	Logs     string `json:"logs"`
+	Manifest string `json:"manifest"`
+	Release  string `json:"release"`
+	Status   string `json:"status"`
 
-	App string
+	Started time.Time `json:"started"`
+	Ended   time.Time `json:"ended"`
 
-	Logs     string
-	Manifest string
-	Release  string
-	Status   string
-
-	Started time.Time
-	Ended   time.Time
-
-	kinesis string
+	kinesis string `json:"-"`
 }
 
 type Builds []Build
 
 func NewBuild(app string) Build {
 	return Build{
-		Id:  generateId("B", 10),
-		App: app,
-
+		App:    app,
+		Id:     generateId("B", 10),
 		Status: "created",
 	}
 }

@@ -18,11 +18,8 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-func BuildList(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("list").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
+func BuildList(rw http.ResponseWriter, r *http.Request) error {
+	app := mux.Vars(r)["app"]
 
 	l := map[string]string{
 		"id":      r.URL.Query().Get("id"),
@@ -32,17 +29,17 @@ func BuildList(rw http.ResponseWriter, r *http.Request) {
 	builds, err := models.ListBuilds(app, l)
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	a, err := models.GetApp(app)
 
+	if awsError(err) == "ValidationError" {
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+	}
+
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	params := map[string]interface{}{
@@ -54,12 +51,7 @@ func BuildList(rw http.ResponseWriter, r *http.Request) {
 		params["Last"] = builds[len(builds)-1]
 	}
 
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		RenderJson(rw, builds)
-	default:
-		RenderPartial(rw, "app", "builds", params)
-	}
+	return RenderJson(rw, builds)
 }
 
 func BuildGet(rw http.ResponseWriter, r *http.Request) {
