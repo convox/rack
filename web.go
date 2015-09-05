@@ -77,7 +77,7 @@ func check(rw http.ResponseWriter, r *http.Request) {
 }
 
 // Handler for any panics within an HTTP request
-func NewErrorHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
+func NewPanicHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
 	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		defer recoverWith(func(err error) {
 			helpers.Error(log, err)
@@ -158,7 +158,7 @@ func startWeb() {
 		negroni.NewStatic(http.Dir("public")),
 	)
 
-	n.Use(negroni.HandlerFunc(NewErrorHandler(logger.New("ns=kernel"))))
+	n.Use(negroni.HandlerFunc(NewPanicHandler(logger.New("ns=kernel"))))
 	n.Use(negroni.HandlerFunc(parseForm))
 	n.Use(negroni.HandlerFunc(basicAuthentication))
 	n.UseHandler(router)
