@@ -172,7 +172,6 @@ func startWeb() {
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 
 	// todo
-	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases/{release}", controllers.ReleaseShow).Methods("GET")

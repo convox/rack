@@ -123,27 +123,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) error {
 	return RenderSuccess(rw)
 }
 
-func AppPromote(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	app := vars["app"]
-
-	release, err := models.GetRelease(app, GetForm(r, "release"))
-
-	if err != nil {
-		RenderError(rw, err)
-		return
-	}
-
-	err = release.Promote()
-
-	if err != nil {
-		RenderError(rw, err)
-		return
-	}
-
-	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
-}
-
 // func AppDebug(rw http.ResponseWriter, r *http.Request) {
 //   log := appsLogger("environment").Start()
 
