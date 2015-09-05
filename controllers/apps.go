@@ -103,38 +103,26 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, app)
 }
 
-func AppDelete(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("delete").Start()
-
-	vars := mux.Vars(r)
-	name := vars["app"]
+func AppDelete(rw http.ResponseWriter, r *http.Request) error {
+	name := mux.Vars(r)["app"]
 
 	app, err := models.GetApp(name)
 
 	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", name))
-		return
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", name))
 	}
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
-
-	log.Success("step=app.get app=%q", app.Name)
 
 	err = app.Delete()
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	log.Success("step=app.delete app=%q", app.Name)
-
-	RenderText(rw, "ok")
+	return RenderSuccess(rw)
 }
 
 func AppPromote(rw http.ResponseWriter, r *http.Request) {
