@@ -17,65 +17,59 @@ import (
 	"github.com/convox/kernel/helpers"
 )
 
-var port string = "5000"
-
-func redirect(path string) func(http.ResponseWriter, *http.Request) {
-	return func(rw http.ResponseWriter, r *http.Request) {
-		http.Redirect(rw, r, path, http.StatusFound)
-	}
-}
-
-func parseForm(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	// r.ParseMultipartForm(2048)
-	next(rw, r)
-}
-
-func authRequired(rw http.ResponseWriter) {
-	rw.Header().Set("WWW-Authenticate", `Basic realm="Convox"`)
+func authRequired(rw http.ResponseWriter, message string) error {
+	rw.Header().Set("WWW-Authenticate", `Basic realm="Convox Rack"`)
 	rw.WriteHeader(401)
-	rw.Write([]byte("unauthorized"))
+	rw.Write([]byte(message))
+	return fmt.Errorf(message)
 }
 
-func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	if r.RequestURI == "/check" {
-		next(rw, r)
-		return
+func authenticate(rw http.ResponseWriter, r *http.Request) error {
+	if os.Getenv("PASSWORD") == "" {
+		return nil
 	}
 
-	if password := os.Getenv("PASSWORD"); password != "" {
-		auth := r.Header.Get("Authorization")
+	auth := r.Header.Get("Authorization")
 
-		if auth == "" {
-			authRequired(rw)
-			return
-		}
-
-		if !strings.HasPrefix(auth, "Basic ") {
-			authRequired(rw)
-			return
-		}
-
-		c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(auth, "Basic "))
-
-		if err != nil {
-			return
-		}
-
-		parts := strings.SplitN(string(c), ":", 2)
-
-		if len(parts) != 2 || parts[1] != password {
-			authRequired(rw)
-			return
-		}
+	if auth == "" {
+		return authRequired(rw, "invalid authorization header")
 	}
 
-	next(rw, r)
+	if !strings.HasPrefix(auth, "Basic ") {
+		return authRequired(rw, "no basic auth")
+	}
+
+	c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(auth, "Basic "))
+
+	if err != nil {
+		return err
+	}
+
+	parts := strings.SplitN(string(c), ":", 2)
+
+	if len(parts) != 2 || parts[1] != os.Getenv("PASSWORD") {
+		return authRequired(rw, "invalid password")
+	}
+
+	return nil
 }
 
 func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	rw.Header().Set("Access-Control-Allow-Origin", "*")
-	rw.Header().Set("Access-Control-Allow-Headers", "*")
-	rw.Header().Set("Access-Control-Allow-Methods", "*")
+	if os.Getenv("DEVELOPMENT") == "true" {
+		rw.Header().Set("Access-Control-Allow-Origin", "*")
+		rw.Header().Set("Access-Control-Allow-Headers", "*")
+		rw.Header().Set("Access-Control-Allow-Methods", "*")
+	}
+
+	next(rw, r)
+}
+
+func recovery(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	defer recoverWith(func(err error) {
+		log := logger.New("ns=kernel").At("panic")
+		helpers.Error(log, err)
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	})
 
 	next(rw, r)
 }
@@ -86,7 +80,15 @@ type ApiWebsocketFunc func(*websocket.Conn) error
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		log := logger.New("ns=kernel").At(at).Start()
-		err := handler(rw, r)
+
+		err := authenticate(rw, r)
+
+		if err != nil {
+			log.Log("state=unauthorized")
+			return
+		}
+
+		err = handler(rw, r)
 
 		if err != nil {
 			log.Error(err)
@@ -115,23 +117,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 	})
 }
 
-func check(rw http.ResponseWriter, r *http.Request) {
-	rw.Write([]byte("ok"))
-}
-
-// This function returns a negroni middleware with a closure
-// over the Logger instance
-func NewPanicHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
-	// Handler for any panics within an HTTP request
-	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		defer recoverWith(func(err error) {
-			helpers.Error(log, err)
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-		})
-
-		next(rw, r)
-	}
-}
+var port string = "5000"
 
 func startWeb() {
 	if p := os.Getenv("PORT"); p != "" {
@@ -140,11 +126,6 @@ func startWeb() {
 
 	router := mux.NewRouter()
 
-	// utility
-	router.HandleFunc("/boom", controllers.Boom).Methods("GET")
-	router.HandleFunc("/check", check).Methods("GET")
-
-	// normalized
 	router.HandleFunc("/apps", api("app.list", controllers.AppList)).Methods("GET")
 	router.HandleFunc("/apps", api("app.create", controllers.AppCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}", api("app.get", controllers.AppShow)).Methods("GET")
@@ -175,25 +156,22 @@ func startWeb() {
 	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run.attach", controllers.ProcessRunAttached)).Methods("GET")
 	router.Handle("/services/{service}/logs", ws("service.logs", controllers.ServiceLogs)).Methods("GET")
 
+	// utility
+	router.HandleFunc("/boom", controllers.UtilityBoom).Methods("GET")
+	router.HandleFunc("/check", controllers.UtilityCheck).Methods("GET")
+
 	// limbo
-	// router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
-	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
-	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
-	// router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
+	// auth.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
+	// auth.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
+	// auth.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
+	// auth.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
 
-	n := negroni.New(
-		negroni.NewRecovery(),
-		nlogger.New("ns=kernel", nil),
-		negroni.NewStatic(http.Dir("public")),
-	)
+	n := negroni.New()
 
-	if os.Getenv("DEVELOPMENT") == "true" {
-		n.Use(negroni.HandlerFunc(development))
-	}
+	n.Use(negroni.HandlerFunc(recovery))
+	n.Use(negroni.HandlerFunc(development))
+	n.Use(nlogger.New("ns=kernel", nil))
 
-	n.Use(negroni.HandlerFunc(NewPanicHandler(logger.New("ns=kernel"))))
-	n.Use(negroni.HandlerFunc(parseForm))
-	n.Use(negroni.HandlerFunc(basicAuthentication))
 	n.UseHandler(router)
 
 	n.Run(fmt.Sprintf(":%s", port))
