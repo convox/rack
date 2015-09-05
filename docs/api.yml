@@ -59,6 +59,96 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+    delete:
+      description: Delete an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/app'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/builds:
+    get:
+      description: Builds for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: builds
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/build:
+    post:
+      description: Start a build for an app
+      consumes:
+        - multipart/form-data
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: repo
+        description: repository
+        type: string
+        in: formData
+        required: false
+      - name: source
+        description: source tarball
+        type: file
+        in: formData
+        required: false
+      responses:
+        200:
+          description: build
+          schema:
+            $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/builds/{build}:
+    get:
+      description: List builds for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: build
+        description: build id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: build
+          schema:
+            $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}/logs:
     get:
       description: Logs for an app
@@ -213,6 +303,24 @@ definitions:
       name:
         type: string
       status:
+        type: string
+  build:
+    properties:
+      app:
+        type: string
+      id:
+        type: string
+      logs:
+        type: string
+      manifest:
+        type: string
+      release:
+        type: string
+      status:
+        type: string
+      started:
+        type: string
+      ended:
         type: string
   error:
     properties:
