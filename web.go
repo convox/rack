@@ -150,7 +150,7 @@ func startWeb() {
 	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
 	router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
-	router.HandleFunc("/panic", controllers.Panic).Methods("GET")
+	router.HandleFunc("/boom", controllers.Boom).Methods("GET")
 
 	n := negroni.New(
 		negroni.NewRecovery(),
