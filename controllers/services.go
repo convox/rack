@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
@@ -123,8 +122,4 @@ func ServiceLogs(ws *websocket.Conn) error {
 	}
 
 	return nil
-}
-
-func servicesLogger(at string) *logger.Logger {
-	return logger.New("ns=kernel cn=services").At(at)
 }

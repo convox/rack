@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 
 	"github.com/convox/kernel/models"
@@ -88,8 +87,4 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	return RenderJson(rw, rr)
-}
-
-func releasesLogger(at string) *logger.Logger {
-	return logger.New("ns=kernel cn=releases").At(at)
 }

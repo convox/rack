@@ -6,16 +6,11 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
-	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -62,21 +57,6 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	return RenderJson(rw, p)
-}
-
-func ProcessLogs(rw http.ResponseWriter, r *http.Request) {
-	// log := processesLogger("logs").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
-	process := vars["process"]
-
-	params := map[string]string{
-		"App":     app,
-		"Process": process,
-	}
-
-	RenderPartial(rw, "process", "logs", params)
 }
 
 func ProcessScale(rw http.ResponseWriter, r *http.Request) error {
@@ -257,75 +237,71 @@ func ProcessRunAttached(ws *websocket.Conn) error {
 //   RenderJson(rw, info)
 // }
 
-func ProcessTypeTop(rw http.ResponseWriter, r *http.Request) {
-	log := processesLogger("info").Start()
+// func ProcessTypeTop(rw http.ResponseWriter, r *http.Request) {
+//   log := processesLogger("info").Start()
 
-	vars := mux.Vars(r)
-	app := vars["app"]
-	process := vars["process_type"]
+//   vars := mux.Vars(r)
+//   app := vars["app"]
+//   process := vars["process_type"]
 
-	_, err := models.GetApp(app)
+//   _, err := models.GetApp(app)
 
-	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
-	}
+//   if awsError(err) == "ValidationError" {
+//     RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+//     return
+//   }
 
-	params := &cloudwatch.ListMetricsInput{
-		Namespace: aws.String("AWS/ECS"),
-	}
+//   params := &cloudwatch.ListMetricsInput{
+//     Namespace: aws.String("AWS/ECS"),
+//   }
 
-	output, err := models.CloudWatch().ListMetrics(params)
+//   output, err := models.CloudWatch().ListMetrics(params)
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
+//   if err != nil {
+//     helpers.Error(log, err)
+//     RenderError(rw, err)
+//     return
+//   }
 
-	var outputs []*cloudwatch.GetMetricStatisticsOutput
-	serviceStr := fmt.Sprintf("%s-%s", app, process)
+//   var outputs []*cloudwatch.GetMetricStatisticsOutput
+//   serviceStr := fmt.Sprintf("%s-%s", app, process)
 
-	for _, metric := range output.Metrics {
-		for _, dimension := range metric.Dimensions {
-			if (*dimension.Name == "ServiceName") && (strings.Contains(*dimension.Value, serviceStr)) {
+//   for _, metric := range output.Metrics {
+//     for _, dimension := range metric.Dimensions {
+//       if (*dimension.Name == "ServiceName") && (strings.Contains(*dimension.Value, serviceStr)) {
 
-				params := &cloudwatch.GetMetricStatisticsInput{
-					MetricName: aws.String(*metric.MetricName),
-					StartTime:  aws.Time(time.Now().Add(-2 * time.Minute)),
-					EndTime:    aws.Time(time.Now()),
-					Period:     aws.Long(60),
-					Namespace:  aws.String("AWS/ECS"),
-					Statistics: []*string{
-						aws.String("Maximum"),
-						aws.String("Average"),
-						aws.String("Minimum"),
-					},
-					Dimensions: metric.Dimensions,
-				}
+//         params := &cloudwatch.GetMetricStatisticsInput{
+//           MetricName: aws.String(*metric.MetricName),
+//           StartTime:  aws.Time(time.Now().Add(-2 * time.Minute)),
+//           EndTime:    aws.Time(time.Now()),
+//           Period:     aws.Long(60),
+//           Namespace:  aws.String("AWS/ECS"),
+//           Statistics: []*string{
+//             aws.String("Maximum"),
+//             aws.String("Average"),
+//             aws.String("Minimum"),
+//           },
+//           Dimensions: metric.Dimensions,
+//         }
 
-				output, err := models.CloudWatch().GetMetricStatistics(params)
+//         output, err := models.CloudWatch().GetMetricStatistics(params)
 
-				if err != nil {
-					RenderError(rw, err)
-					return
-				}
+//         if err != nil {
+//           RenderError(rw, err)
+//           return
+//         }
 
-				if output.Datapoints != nil {
-					outputs = append(outputs, output)
-				}
-			}
-		}
-	}
+//         if output.Datapoints != nil {
+//           outputs = append(outputs, output)
+//         }
+//       }
+//     }
+//   }
 
-	RenderJson(rw, outputs)
-}
+//   RenderJson(rw, outputs)
+// }
 
 func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
 	io.Copy(w, r)
 	wg.Done()
-}
-
-func processesLogger(at string) *logger.Logger {
-	return logger.New("ns=kernel cn=processes").At(at)
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
-	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -174,28 +173,6 @@ func BuildLogs(ws *websocket.Conn) error {
 	quit <- true
 
 	return err
-}
-
-func BuildStatus(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("status").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
-	id := vars["build"]
-
-	build, err := models.GetBuild(app, id)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderText(rw, build.Status)
-}
-
-func buildsLogger(at string) *logger.Logger {
-	return logger.New("ns=kernel cn=builds").At(at)
 }
 
 func scanLines(r io.Reader, ws *websocket.Conn) {

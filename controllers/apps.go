@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
@@ -163,8 +162,4 @@ func AppLogs(ws *websocket.Conn) error {
 	}
 
 	return nil
-}
-
-func appsLogger(at string) *logger.Logger {
-	return logger.New("ns=kernel cn=apps").At(at)
 }
