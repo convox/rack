@@ -46,7 +46,7 @@ func init() {
 }
 
 func cmdRack(c *cli.Context) {
-	data, err := ConvoxGet("/system")
+	data, err := ConvoxGet("/rack")
 
 	if err != nil {
 		stdcli.Error(err)
@@ -92,7 +92,7 @@ func cmdRackUpdate(c *cli.Context) {
 	v := url.Values{}
 	v.Set("version", version)
 
-	_, err := ConvoxPostForm("/system", v)
+	_, err := ConvoxPostForm("/rack", v)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -114,7 +114,7 @@ func cmdRackScale(c *cli.Context) {
 	}
 
 	if len(v) > 0 {
-		_, err := ConvoxPostForm("/system", v)
+		_, err := ConvoxPostForm("/rack", v)
 
 		if err != nil {
 			stdcli.Error(err)
