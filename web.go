@@ -174,14 +174,13 @@ func startWeb() {
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 	// router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
+	// router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
+	// router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
 
 	// todo
-	router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
-	router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
 	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")
-	router.HandleFunc("/services/{service}/status", controllers.ServiceStatus).Methods("GET")
 	router.HandleFunc("/services/{service}", controllers.ServiceDelete).Methods("DELETE")
 	router.HandleFunc("/services/{service}/logs", controllers.ServiceLogs).Methods("GET")
 	router.HandleFunc("/services/{service}/logs/stream", controllers.ServiceStream).Methods("GET")

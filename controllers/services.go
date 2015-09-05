@@ -53,21 +53,6 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) {
 	RenderJson(rw, service)
 }
 
-func ServiceStatus(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("show").Start()
-
-	name := mux.Vars(r)["service"]
-	service, err := models.GetServiceFromName(name)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderText(rw, service.Status)
-}
-
 func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
 	log := servicesLogger("nameList").Start()
 
