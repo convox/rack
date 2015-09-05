@@ -21,18 +21,13 @@ import (
 func BuildList(rw http.ResponseWriter, r *http.Request) error {
 	app := mux.Vars(r)["app"]
 
-	l := map[string]string{
-		"id":      r.URL.Query().Get("id"),
-		"created": r.URL.Query().Get("created"),
-	}
-
-	builds, err := models.ListBuilds(app, l)
+	builds, err := models.ListBuilds(app)
 
 	if err != nil {
 		return err
 	}
 
-	a, err := models.GetApp(app)
+	_, err = models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
 		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
@@ -40,15 +35,6 @@ func BuildList(rw http.ResponseWriter, r *http.Request) error {
 
 	if err != nil {
 		return err
-	}
-
-	params := map[string]interface{}{
-		"App":    a,
-		"Builds": builds,
-	}
-
-	if len(builds) > 0 {
-		params["Last"] = builds[len(builds)-1]
 	}
 
 	return RenderJson(rw, builds)

@@ -16,15 +16,12 @@ import (
 )
 
 type Release struct {
-	Id string
-
-	App string
-
-	Build    string
-	Env      string
-	Manifest string
-
-	Created time.Time
+	App      string    `json:"app"`
+	Build    string    `json:"build"`
+	Env      string    `json:"env"`
+	Id       string    `json:"id"`
+	Manifest string    `json:"manifest"`
+	Created  time.Time `json:"created"`
 }
 
 type Releases []Release
@@ -36,7 +33,7 @@ func NewRelease(app string) Release {
 	}
 }
 
-func ListReleases(app string, last map[string]string) (Releases, error) {
+func ListReleases(app string) (Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
@@ -47,17 +44,9 @@ func ListReleases(app string, last map[string]string) (Releases, error) {
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Long(10),
+		Limit:            aws.Long(20),
 		ScanIndexForward: aws.Boolean(false),
 		TableName:        aws.String(releasesTable(app)),
-	}
-
-	if last["id"] != "" {
-		req.ExclusiveStartKey = &map[string]*dynamodb.AttributeValue{
-			"app":     &dynamodb.AttributeValue{S: aws.String(app)},
-			"id":      &dynamodb.AttributeValue{S: aws.String(last["id"])},
-			"created": &dynamodb.AttributeValue{S: aws.String(last["created"])},
-		}
 	}
 
 	res, err := DynamoDB().Query(req)
@@ -91,7 +80,7 @@ func GetRelease(app, id string) (*Release, error) {
 	}
 
 	if res.Item == nil {
-		return nil, fmt.Errorf("release %s not found", id)
+		return nil, fmt.Errorf("no such release: %s", id)
 	}
 
 	release := releaseFromItem(*res.Item)

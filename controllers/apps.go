@@ -9,7 +9,6 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
-	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -164,50 +163,6 @@ func AppLogs(ws *websocket.Conn) error {
 	}
 
 	return nil
-}
-
-func AppReleases(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("releases").Start()
-
-	vars := mux.Vars(r)
-	app := vars["app"]
-
-	l := map[string]string{
-		"id":      r.URL.Query().Get("id"),
-		"created": r.URL.Query().Get("created"),
-	}
-
-	a, err := models.GetApp(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	releases, err := models.ListReleases(app, l)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	params := map[string]interface{}{
-		"App":      a,
-		"Releases": releases,
-	}
-
-	if len(releases) > 0 {
-		params["Last"] = releases[len(releases)-1]
-	}
-
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		RenderJson(rw, releases)
-	default:
-		RenderPartial(rw, "app", "releases", params)
-	}
 }
 
 func appsLogger(at string) *logger.Logger {

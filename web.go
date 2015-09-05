@@ -159,6 +159,9 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detached", controllers.ProcessRunDetached)).Methods("POST")
 	router.HandleFunc("/apps/{app}/processes/{process}/scale", api("process.scale", controllers.ProcessScale)).Methods("POST")
+	router.HandleFunc("/apps/{app}/releases", api("release.list", controllers.ReleaseList)).Methods("GET")
+	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", controllers.ReleaseShow)).Methods("GET")
+	router.HandleFunc("/apps/{app}/releases/{release}/promote", api("release.promote", controllers.ReleasePromote)).Methods("POST")
 
 	// websockets
 	router.Handle("/apps/{app}/logs", ws("app.logs", controllers.AppLogs)).Methods("GET")
@@ -172,10 +175,6 @@ func startWeb() {
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 
 	// todo
-	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
-	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")
-	router.HandleFunc("/apps/{app}/releases/{release}", controllers.ReleaseShow).Methods("GET")
-	router.HandleFunc("/apps/{app}/releases/{release}/promote", controllers.ReleasePromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
 	router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")

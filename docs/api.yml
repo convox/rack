@@ -363,6 +363,72 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /apps/{app}/releases:
+    get:
+      description: List releases for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: releases
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/release'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/releases/{release}:
+    get:
+      description: Get a release for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: release
+        description: release id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: release
+          schema:
+            $ref: '#/definitions/release'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/releases/{release}/promote:
+    post:
+      description: Promote a release for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: release
+        description: release id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: release
+          schema:
+            $ref: '#/definitions/release'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
 definitions:
   app:
     properties:
@@ -410,6 +476,20 @@ definitions:
       name:
         type: string
       release:
+        type: string
+  release:
+    properties:
+      app:
+        type: string
+      build:
+        type: string
+      env:
+        type: string
+      id:
+        type: string
+      manifest:
+        type: string
+      created:
         type: string
   success:
     properties:
