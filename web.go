@@ -151,6 +151,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}", api("app.delete", controllers.AppDelete)).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/builds", api("build.list", controllers.BuildList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/build", api("build.create", controllers.BuildCreate)).Methods("POST")
+	router.HandleFunc("/apps/{app}/builds/{build}", api("build.get", controllers.BuildGet)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes", api("process.list", controllers.ProcessList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detached", controllers.ProcessRunDetached)).Methods("POST")
@@ -161,17 +162,16 @@ func startWeb() {
 	router.Handle("/apps/{app}/logs", ws("app.logs", controllers.AppLogs)).Methods("GET")
 	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run", controllers.ProcessRunAttached)).Methods("GET")
 
-	// todo
-	router.HandleFunc("/apps/{app}/builds/{build}", controllers.BuildGet).Methods("GET")
-	router.HandleFunc("/apps/{app}/builds/{build}/status", controllers.BuildStatus).Methods("GET")
+	// limbo
 	// router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
+
+	// todo
 	router.HandleFunc("/apps/{app}/environment", controllers.AppEnvironment).Methods("GET")
 	router.HandleFunc("/apps/{app}/environment", controllers.EnvironmentSet).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentDelete).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
-	// router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")

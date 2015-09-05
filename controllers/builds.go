@@ -54,22 +54,28 @@ func BuildList(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, builds)
 }
 
-func BuildGet(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("list").Start()
-
+func BuildGet(rw http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	build := vars["build"]
 
-	b, err := models.GetBuild(app, build)
+	_, err := models.GetApp(app)
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+	if awsError(err) == "ValidationError" {
+		return fmt.Errorf("no such app: %s", app)
 	}
 
-	RenderJson(rw, b)
+	b, err := models.GetBuild(app, build)
+
+	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
+		return RenderNotFound(rw, err.Error())
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return RenderJson(rw, b)
 }
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
