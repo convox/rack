@@ -161,17 +161,17 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/processes/{process}/scale", api("process.scale", controllers.ProcessScale)).Methods("POST")
 
 	// websockets
-	router.Handle("/apps/{app}/builds/{build}/logs", ws("build.logs", controllers.BuildLogs)).Methods("GET")
 	router.Handle("/apps/{app}/logs", ws("app.logs", controllers.AppLogs)).Methods("GET")
+	router.Handle("/apps/{app}/builds/{build}/logs", ws("build.logs", controllers.BuildLogs)).Methods("GET")
 	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run", controllers.ProcessRunAttached)).Methods("GET")
 
 	// limbo
 	// router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
 	// router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
-
-	// todo
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
+
+	// todo
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", controllers.AppReleases).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")
