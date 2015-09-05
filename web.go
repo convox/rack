@@ -8,9 +8,11 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/convox/kernel/helpers"
 
 	"github.com/convox/kernel/controllers"
 )
@@ -72,6 +74,20 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 
 func check(rw http.ResponseWriter, r *http.Request) {
 	rw.Write([]byte("ok"))
+}
+
+// This function returns a negroni middleware with a closure
+// over the Logger instance
+func NewPanicHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
+	// Handler for any panics within an HTTP request
+	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		defer recoverWith(func(err error) {
+			helpers.Error(log, err)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		})
+
+		next(rw, r)
+	}
 }
 
 func startWeb() {
@@ -137,6 +153,7 @@ func startWeb() {
 	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
 	router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
+	router.HandleFunc("/boom", controllers.Boom).Methods("GET")
 
 	n := negroni.New(
 		negroni.NewRecovery(),
@@ -144,6 +161,7 @@ func startWeb() {
 		negroni.NewStatic(http.Dir("public")),
 	)
 
+	n.Use(negroni.HandlerFunc(NewPanicHandler(logger.New("ns=kernel"))))
 	n.Use(negroni.HandlerFunc(parseForm))
 	n.Use(negroni.HandlerFunc(basicAuthentication))
 	n.UseHandler(router)
