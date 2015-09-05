@@ -149,6 +149,72 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /apps/{app}/environment:
+    get:
+      description: List environment for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    post:
+      description: Set environment for an app
+      consumes:
+        - text/plain
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: body
+        description: environment
+        in: body
+        schema:
+          type: string
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/environment/{key}:
+    delete:
+      description: List environment for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: key
+        description: environment key
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}/logs:
     get:
       description: Logs for an app
@@ -326,6 +392,9 @@ definitions:
     properties:
       error:
         type: string
+  environment:
+    additionalProperties:
+      type: string
   process:
     properties:
       app:

@@ -152,6 +152,9 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/builds", api("build.list", controllers.BuildList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/build", api("build.create", controllers.BuildCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}/builds/{build}", api("build.get", controllers.BuildGet)).Methods("GET")
+	router.HandleFunc("/apps/{app}/environment", api("environment.list", controllers.EnvironmentList)).Methods("GET")
+	router.HandleFunc("/apps/{app}/environment", api("environment.set", controllers.EnvironmentSet)).Methods("POST")
+	router.HandleFunc("/apps/{app}/environment/{name}", api("environment.delete", controllers.EnvironmentDelete)).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/processes", api("process.list", controllers.ProcessList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detached", controllers.ProcessRunDetached)).Methods("POST")
@@ -164,12 +167,9 @@ func startWeb() {
 
 	// limbo
 	// router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
+	// router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 
 	// todo
-	router.HandleFunc("/apps/{app}/environment", controllers.AppEnvironment).Methods("GET")
-	router.HandleFunc("/apps/{app}/environment", controllers.EnvironmentSet).Methods("POST")
-	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
-	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentDelete).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 	router.HandleFunc("/apps/{app}/promote", controllers.AppPromote).Methods("POST")

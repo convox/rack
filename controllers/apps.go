@@ -144,37 +144,6 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 }
 
-func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("environment").Start()
-
-	app := mux.Vars(r)["app"]
-
-	env, err := models.GetEnvironment(app)
-
-	if awsError(err) == "ValidationError" {
-		RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
-		return
-	}
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	params := map[string]interface{}{
-		"App":         app,
-		"Environment": env,
-	}
-
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		RenderJson(rw, params["Environment"])
-	default:
-		RenderPartial(rw, "app", "environment", params)
-	}
-}
-
 // func AppDebug(rw http.ResponseWriter, r *http.Request) {
 //   log := appsLogger("environment").Start()
 
