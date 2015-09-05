@@ -245,7 +245,7 @@ func (r *Release) EnvironmentUrl() string {
 }
 
 func (r *Release) Formation() (string, error) {
-	args := []string{"run", "-i", fmt.Sprintf("convox/app:%s", os.Getenv("RELEASE")), "-mode", "staging"}
+	args := []string{"run", "-i", os.Getenv("DOCKER_IMAGE_APP"), "-mode", "staging"}
 
 	cmd := exec.Command("docker", args...)
 	cmd.Stderr = os.Stderr
