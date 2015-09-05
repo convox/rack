@@ -160,8 +160,6 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 
 	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", fmt.Sprintf("%q", os.Getenv("PASSWORD")), name, "-"}
 
-	fmt.Printf("args %+v\n", args)
-
 	err := b.execute(args, r, ch)
 
 	if err != nil {

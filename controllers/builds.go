@@ -149,8 +149,6 @@ func BuildLogs(ws *websocket.Conn) error {
 
 	_, err = models.GetBuild(app, build)
 
-	fmt.Printf("err %+v\n", err)
-
 	if err != nil {
 		return err
 	}

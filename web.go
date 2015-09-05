@@ -85,27 +85,33 @@ type ApiWebsocketFunc func(*websocket.Conn) error
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		log := logger.New("ns=kernel").At(at)
+		log := logger.New("ns=kernel").At(at).Start()
 		err := handler(rw, r)
 
 		if err != nil {
 			log.Error(err)
 			rollbar.Error(rollbar.ERR, err)
 			controllers.RenderError(rw, err)
+			return
 		}
+
+		log.Log("state=success")
 	}
 }
 
 func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
-		log := logger.New("ns=kernel").At(at)
+		log := logger.New("ns=kernel").At(at).Start()
 		err := handler(ws)
 
 		if err != nil {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
 			log.Error(err)
 			rollbar.Error(rollbar.ERR, err)
+			return
 		}
+
+		log.Log("state=success")
 	})
 }
 
