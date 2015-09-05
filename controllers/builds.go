@@ -72,107 +72,88 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) {
 	RenderJson(rw, b)
 }
 
-func BuildCreate(rw http.ResponseWriter, r *http.Request) {
-	log := buildsLogger("create").Start()
-
+func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 	build := models.NewBuild(mux.Vars(r)["app"])
 
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
-	logEvent(log, build, "ParseMultipartForm", err)
-
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	err = build.Save()
 
-	logEvent(log, build, "Save", err)
-
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	source, _, err := r.FormFile("source")
-
-	logEvent(log, build, "FormFile", err)
-
-	if err != nil && err != http.ErrMissingFile {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	resources, err := models.ListResources(os.Getenv("RACK"))
 
-	logEvent(log, build, "ListResources", err)
-
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
-
-	logEvent(log, build, "S3Put", err)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	ch := make(chan error)
 
+	source, _, err := r.FormFile("source")
+
+	if err != nil && err != http.ErrMissingFile {
+		return err
+	}
+
 	if source != nil {
+		err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
+
+		if err != nil {
+			return err
+		}
+
 		go build.ExecuteLocal(source, ch)
 
 		err = <-ch
 
-		logEvent(log, build, "ExecuteLocal", err)
+		if err != nil {
+			return err
+		} else {
+			return RenderJson(rw, build)
+		}
+	}
+
+	if repo := r.FormValue("repo"); repo != "" {
+		go build.ExecuteRemote(repo, ch)
+
+		err = <-ch
 
 		if err != nil {
-			RenderError(rw, err)
+			return err
 		} else {
-			RenderText(rw, build.Id)
-		}
-
-		return
-	}
-
-	if err == http.ErrMissingFile {
-		if repo := r.FormValue("repo"); repo != "" {
-			go build.ExecuteRemote(repo, ch)
-
-			err = <-ch
-
-			logEvent(log, build, "ExecuteRemote", err)
-
-			if err != nil {
-				RenderError(rw, err)
-			} else {
-				RenderText(rw, build.Id)
-			}
-
-			return
+			return RenderJson(rw, build)
 		}
 	}
 
-	err = fmt.Errorf("no source or repo")
-	helpers.Error(log, err)
-	RenderError(rw, err)
+	return fmt.Errorf("no source or repo")
 }
 
 func BuildLogs(ws *websocket.Conn) error {
 	defer ws.Close()
 
 	vars := mux.Vars(ws.Request())
-	id := vars["build"]
+	app := vars["app"]
+	build := vars["build"]
+
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		return fmt.Errorf("no such app: %s", app)
+	}
+
+	_, err = models.GetBuild(app, build)
+
+	fmt.Printf("err %+v\n", err)
+
+	if err != nil {
+		return err
+	}
 
 	// proxy to docker container logs
 	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
@@ -190,7 +171,7 @@ func BuildLogs(ws *websocket.Conn) error {
 	go keepAlive(ws, quit)
 
 	err = client.Logs(docker.LogsOptions{
-		Container:    fmt.Sprintf("build-%s", id),
+		Container:    fmt.Sprintf("build-%s", build),
 		Follow:       true,
 		Stdout:       true,
 		Stderr:       true,
