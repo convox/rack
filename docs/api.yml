@@ -429,6 +429,104 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /rack:
+    get:
+      description: Get rack information
+      responses:
+        200:
+          description: rack
+          schema:
+            $ref: '#/definitions/rack'
+    put:
+      description: Update rack information
+      parameters:
+      - name: count
+        description: instance count
+        type: integer
+        in: formData
+        required: false
+      - name: type
+        description: instance type
+        type: string
+        in: formData
+        required: false
+      - name: version
+        description: rack version
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: rack
+          schema:
+            $ref: '#/definitions/rack'
+  /services:
+    get:
+      description: List services
+      responses:
+        200:
+          description: service list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/service'
+    post:
+      description: Create a service
+      parameters:
+      - name: name
+        description: service name
+        type: string
+        in: formData
+        required: true
+      - name: type
+        description: service type
+        type: string
+        in: formData
+        required: true
+      responses:
+        200:
+          description: service
+          schema:
+            $ref: '#/definitions/service'
+        403:
+          description: invalid name
+          schema:
+            $ref: '#/definitions/error'
+  /services/{service}:
+    get:
+      description: Get a service
+      parameters:
+      - name: service
+        description: service name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/service'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    delete:
+      description: Delete an app
+      parameters:
+      - name: service
+        description: service name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: service
+          schema:
+            $ref: '#/definitions/service'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
 definitions:
   app:
     properties:
@@ -477,6 +575,18 @@ definitions:
         type: string
       release:
         type: string
+  rack:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      version:
+        type: string
   release:
     properties:
       app:
@@ -490,6 +600,16 @@ definitions:
       manifest:
         type: string
       created:
+        type: string
+  service:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      url:
         type: string
   success:
     properties:
