@@ -102,9 +102,9 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 		err := handler(ws)
 
 		if err != nil {
+			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
 			log.Error(err)
 			rollbar.Error(rollbar.ERR, err)
-			ws.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
 		}
 	})
 }
@@ -158,14 +158,11 @@ func startWeb() {
 	// todo
 	router.HandleFunc("/apps/{app}/builds/{build}", controllers.BuildGet).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds/{build}/status", controllers.BuildStatus).Methods("GET")
-	router.HandleFunc("/apps/{app}/changes", controllers.AppChanges).Methods("GET")
-	router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
-	router.HandleFunc("/apps/{app}/deployments", controllers.AppDeployments).Methods("GET")
+	// router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
 	router.HandleFunc("/apps/{app}/environment", controllers.AppEnvironment).Methods("GET")
 	router.HandleFunc("/apps/{app}/environment", controllers.EnvironmentSet).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentDelete).Methods("DELETE")
-	router.HandleFunc("/apps/{app}/events", controllers.AppEvents).Methods("GET")
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 	// router.HandleFunc("/apps/{app}/processes/{process}/logs", controllers.ProcessLogs).Methods("GET")
@@ -174,10 +171,8 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/releases", controllers.ReleaseCreate).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases/{release}", controllers.ReleaseShow).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", controllers.ReleasePromote).Methods("POST")
-	router.HandleFunc("/apps/{app}/resources", controllers.AppResources).Methods("GET")
 	router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
 	router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
-	router.HandleFunc("/apps/{app}/status", controllers.AppStatus).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
 	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
 	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")

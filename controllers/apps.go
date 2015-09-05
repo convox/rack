@@ -3,9 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"sort"
-	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -146,38 +144,6 @@ func AppPromote(rw http.ResponseWriter, r *http.Request) {
 	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
 }
 
-func AppChanges(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("changes").Start()
-
-	app := mux.Vars(r)["app"]
-
-	changes, err := models.ListChanges(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderPartial(rw, "app", "changes", changes)
-}
-
-func AppDeployments(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("deployments").Start()
-
-	app := mux.Vars(r)["app"]
-
-	deployments, err := models.ListDeployments(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderPartial(rw, "app", "deployments", deployments)
-}
-
 func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	log := appsLogger("environment").Start()
 
@@ -209,70 +175,21 @@ func AppEnvironment(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func AppDebug(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("environment").Start()
+// func AppDebug(rw http.ResponseWriter, r *http.Request) {
+//   log := appsLogger("environment").Start()
 
-	app := mux.Vars(r)["app"]
+//   app := mux.Vars(r)["app"]
 
-	a, err := models.GetApp(app)
+//   a, err := models.GetApp(app)
 
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
+//   if err != nil {
+//     helpers.Error(log, err)
+//     RenderError(rw, err)
+//     return
+//   }
 
-	RenderPartial(rw, "app", "debug", a)
-}
-
-var regexServiceCleaner = regexp.MustCompile(`\(service ([^)]+)\) (.*)`)
-
-func AppEvents(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("events").Start()
-
-	app := mux.Vars(r)["app"]
-
-	events, err := models.ListECSEvents(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	for i, _ := range events {
-		match := regexServiceCleaner.FindStringSubmatch(events[i].Message)
-
-		if len(match) == 3 {
-			events[i].Message = fmt.Sprintf("[ECS] (%s) %s", match[1], match[2])
-		}
-	}
-
-	es, err := models.ListEvents(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	for _, e := range es {
-		events = append(events, models.ServiceEvent{
-			Message:   fmt.Sprintf("[CFM] (%s) %s %s", e.Name, e.Status, e.Reason),
-			CreatedAt: e.Time,
-		})
-	}
-
-	sort.Sort(sort.Reverse(events))
-
-	data := ""
-
-	for _, e := range events {
-		data += fmt.Sprintf("%s: %s\n", e.CreatedAt.Format(time.RFC3339), e.Message)
-	}
-
-	RenderText(rw, data)
-}
+//   RenderPartial(rw, "app", "debug", a)
+// }
 
 func AppLogs(ws *websocket.Conn) error {
 	defer ws.Close()
@@ -343,36 +260,6 @@ func AppReleases(rw http.ResponseWriter, r *http.Request) {
 	default:
 		RenderPartial(rw, "app", "releases", params)
 	}
-}
-
-func AppResources(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("resources").Start()
-
-	app := mux.Vars(r)["app"]
-
-	resources, err := models.ListResources(app)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderPartial(rw, "app", "resources", resources)
-}
-
-func AppStatus(rw http.ResponseWriter, r *http.Request) {
-	log := appsLogger("status").Start()
-
-	app, err := models.GetApp(mux.Vars(r)["app"])
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	RenderText(rw, app.Status)
 }
 
 func appsLogger(at string) *logger.Logger {
