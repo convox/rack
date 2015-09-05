@@ -157,34 +157,29 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/environment/{name}", api("environment.delete", controllers.EnvironmentDelete)).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/processes", api("process.list", controllers.ProcessList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
-	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detached", controllers.ProcessRunDetached)).Methods("POST")
+	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detach", controllers.ProcessRunDetached)).Methods("POST")
 	router.HandleFunc("/apps/{app}/processes/{process}/scale", api("process.scale", controllers.ProcessScale)).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", api("release.list", controllers.ReleaseList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", controllers.ReleaseShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", api("release.promote", controllers.ReleasePromote)).Methods("POST")
+	router.HandleFunc("/services", api("service.list", controllers.ServiceList)).Methods("GET")
+	router.HandleFunc("/services", api("service.create", controllers.ServiceCreate)).Methods("POST")
+	router.HandleFunc("/services/{service}", api("service.show", controllers.ServiceShow)).Methods("GET")
+	router.HandleFunc("/services/{service}", api("service.delete", controllers.ServiceDelete)).Methods("DELETE")
 
 	// websockets
 	router.Handle("/apps/{app}/logs", ws("app.logs", controllers.AppLogs)).Methods("GET")
 	router.Handle("/apps/{app}/builds/{build}/logs", ws("build.logs", controllers.BuildLogs)).Methods("GET")
-	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run", controllers.ProcessRunAttached)).Methods("GET")
+	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run.attach", controllers.ProcessRunAttached)).Methods("GET")
+	router.Handle("/services/{service}/logs", ws("service.logs", controllers.ServiceLogs)).Methods("GET")
 
 	// limbo
 	// router.HandleFunc("/apps/{app}/debug", controllers.AppDebug).Methods("GET")
-	// router.HandleFunc("/apps/{app}/environment/{name}", controllers.EnvironmentCreate).Methods("POST")
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 	// router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
-	// router.HandleFunc("/apps/{app}/services", controllers.ServiceLink).Methods("POST")
-	// router.HandleFunc("/apps/{app}/services/{name}", controllers.ServiceUnlink).Methods("DELETE")
 
 	// todo
-	router.HandleFunc("/services", controllers.ServiceList).Methods("GET")
-	router.HandleFunc("/services", controllers.ServiceCreate).Methods("POST")
-	router.HandleFunc("/services/{service}", controllers.ServiceShow).Methods("GET")
-	router.HandleFunc("/services/{service}", controllers.ServiceDelete).Methods("DELETE")
-	router.HandleFunc("/services/{service}/logs", controllers.ServiceLogs).Methods("GET")
-	router.HandleFunc("/services/{service}/logs/stream", controllers.ServiceStream).Methods("GET")
-	router.HandleFunc("/services/types/{type}", controllers.ServiceNameList).Methods("GET")
 	router.HandleFunc("/system", controllers.SystemShow).Methods("GET")
 	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
 	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
@@ -203,5 +198,6 @@ func startWeb() {
 	n.Use(negroni.HandlerFunc(parseForm))
 	n.Use(negroni.HandlerFunc(basicAuthentication))
 	n.UseHandler(router)
+
 	n.Run(fmt.Sprintf(":%s", port))
 }

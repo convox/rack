@@ -28,10 +28,3 @@ web:
   volumes:
     - ./:/go/src/github.com/convox/kernel
     - /var/run/docker.sock:/var/run/docker.sock
-registry:
-  environment:
-    - SETTINGS_FLAVOR=local
-    - PASSWORD
-  image: convox/registry
-  ports:
-    - 5000:443

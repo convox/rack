@@ -36,12 +36,7 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		RenderJson(rw, a)
-	default:
-		RenderTemplate(rw, "app", a)
-	}
+	RenderJson(rw, a)
 }
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) {

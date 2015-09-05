@@ -477,16 +477,6 @@ func (a *App) Resources() Resources {
 	return resources
 }
 
-func (a *App) Services() Services {
-	services, err := ListServices(a.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return services
-}
-
 func appFromStack(stack *cloudformation.Stack) *App {
 	return &App{
 		Name:   *stack.StackName,

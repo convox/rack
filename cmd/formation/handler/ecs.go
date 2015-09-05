@@ -6,13 +6,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 	"github.com/convox/kernel/models"
@@ -307,39 +305,6 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 				Name:  aws.String("RELEASE"),
 				Value: aws.String(release),
 			})
-		}
-
-		// link to Service Stacks via environment
-		if task["Services"] != nil {
-			services := task["Services"].([]interface{})
-
-			for _, service := range services {
-				parts := strings.Split(service.(string), ":")
-
-				res, err := CloudFormation(req).DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(parts[0])})
-
-				if err != nil {
-					return "", nil, fmt.Errorf("SERVICE CREATION: %s", err)
-				}
-
-				s := models.ServiceFromStack(res.Stacks[0])
-
-				// convert Port5432TcpAddr to POSTGRES_PORT_5432_TCP_ADDR
-				re := regexp.MustCompile("([a-z])([A-Z0-9])") // lower case letter followed by upper case or number, i.e. Port5432
-				re2 := regexp.MustCompile("([0-9])([A-Z])")   // number followed by upper case letter, i.e. 5432Tcp
-
-				for k, v := range s.Outputs {
-					u := re.ReplaceAllString(k, "${1}_${2}")
-					u = re2.ReplaceAllString(u, "${1}_${2}")
-					u = parts[1] + "_" + u
-					u = strings.ToUpper(u)
-
-					r.ContainerDefinitions[i].Environment = append(r.ContainerDefinitions[i].Environment, &ecs.KeyValuePair{
-						Name:  aws.String(u),
-						Value: aws.String(v),
-					})
-				}
-			}
 		}
 
 		// set links

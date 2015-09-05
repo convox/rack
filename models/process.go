@@ -92,8 +92,9 @@ func ListProcesses(app string) (Processes, error) {
 
 		count, err := strconv.Atoi(a.Parameters[UpperName(*cd.Name)+"DesiredCount"])
 
+		// default count to 1 if unparseable
 		if err != nil {
-			return nil, err
+			count = 1
 		}
 
 		ps := Process{

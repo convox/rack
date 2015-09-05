@@ -1,16 +1,13 @@
 package controllers
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
 
-	"github.com/convox/kernel/helpers"
 	"github.com/convox/kernel/models"
 )
 
@@ -23,231 +20,109 @@ func init() {
 	// RegisterTemplate("app", "layout", "app")
 }
 
-func ServiceList(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("list").Start()
-
-	services, err := models.ListServiceStacks()
+func ServiceList(rw http.ResponseWriter, r *http.Request) error {
+	services, err := models.ListServices()
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	RenderJson(rw, services)
+	return RenderJson(rw, services)
 }
 
-func ServiceShow(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("show").Start()
+func ServiceShow(rw http.ResponseWriter, r *http.Request) error {
+	service := mux.Vars(r)["service"]
 
-	name := mux.Vars(r)["service"]
+	s, err := models.GetService(service)
 
-	service, err := models.GetServiceFromName(name)
+	if awsError(err) == "ValidationError" {
+		return RenderNotFound(rw, fmt.Sprintf("no such service: %s", service))
+	}
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	RenderJson(rw, service)
+	return RenderJson(rw, s)
 }
 
-func ServiceNameList(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("nameList").Start()
-
-	t := mux.Vars(r)["type"]
-
-	services, err := models.ListServiceStacks()
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	s := models.Services{}
-
-	for _, item := range services {
-		if item.Tags["Service"] == t {
-			s = append(s, item)
-		}
-	}
-
-	RenderPartial(rw, "services", "names", s)
-}
-
-func ServiceCreate(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("create").Start()
-
+func ServiceCreate(rw http.ResponseWriter, r *http.Request) error {
 	name := GetForm(r, "name")
 	t := GetForm(r, "type")
 
-	password, err := rand_password(20)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
 	service := &models.Service{
-		Name:     name,
-		Password: password,
-		Type:     t,
+		Name: name,
+		Type: t,
 	}
 
-	err = service.Create()
+	err := service.Create()
+
+	if awsError(err) == "ValidationError" {
+		return RenderForbidden(rw, fmt.Sprintf("invalid service name: %s", name))
+	}
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	Redirect(rw, r, "/services")
+	service, err = models.GetService(name)
+
+	if err != nil {
+		return err
+	}
+
+	return RenderJson(rw, service)
 }
 
-func ServiceDelete(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("delete").Start()
+func ServiceDelete(rw http.ResponseWriter, r *http.Request) error {
+	service := mux.Vars(r)["service"]
 
-	vars := mux.Vars(r)
-	name := vars["service"]
+	s, err := models.GetService(service)
 
-	service, err := models.GetServiceFromName(name)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+	if awsError(err) == "ValidationError" {
+		return RenderNotFound(rw, fmt.Sprintf("no such service: %s", service))
 	}
 
-	log.Success("step=services.get service=%q", service.Name)
-
-	err = service.Delete()
-
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
-	log.Success("step=service.delete service=%q", service.Name)
+	err = s.Delete()
 
-	RenderText(rw, "ok")
+	if err != nil {
+		return err
+	}
+
+	s, err = models.GetService(service)
+
+	if err != nil {
+		return err
+	}
+
+	return RenderJson(rw, s)
 }
 
-func ServiceLink(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("link").Start()
+func ServiceLogs(ws *websocket.Conn) error {
+	defer ws.Close()
 
-	vars := mux.Vars(r)
+	service := mux.Vars(ws.Request())["service"]
 
-	app := vars["app"]
-	name := GetForm(r, "name")
-	stack := GetForm(r, "stack")
-
-	err := models.LinkService(app, name, stack)
+	s, err := models.GetService(service)
 
 	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-	}
-
-	Redirect(rw, r, fmt.Sprintf("/apps/%s", app))
-}
-
-func ServiceUnlink(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("unlink").Start()
-
-	vars := mux.Vars(r)
-
-	app := vars["app"]
-	name := vars["name"]
-
-	err := models.UnlinkService(app, name)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-	}
-
-	RenderText(rw, "ok")
-}
-
-func ServiceLogs(rw http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["service"]
-
-	service, err := models.GetServiceFromName(name)
-
-	if err != nil {
-		RenderError(rw, err)
-		return
-	}
-
-	RenderPartial(rw, "service", "logs", service)
-}
-
-func ServiceStream(rw http.ResponseWriter, r *http.Request) {
-	log := servicesLogger("stream").Start()
-
-	service, err := models.GetServiceFromName(mux.Vars(r)["service"])
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
+		return err
 	}
 
 	logs := make(chan []byte)
 	done := make(chan bool)
 
-	service.SubscribeLogs(logs, done)
-
-	ws, err := upgrader.Upgrade(rw, r, nil)
-
-	if err != nil {
-		helpers.Error(log, err)
-		RenderError(rw, err)
-		return
-	}
-
-	log.Success("step=upgrade service=%q", service.Name)
-
-	defer ws.Close()
+	s.SubscribeLogs(logs, done)
 
 	for data := range logs {
-		ws.WriteMessage(websocket.TextMessage, data)
+		ws.Write(data)
 	}
 
-	log.Success("step=ended service=%q", service.Name)
-}
-
-func rand_password(length int) (string, error) {
-	// Take from https://github.com/cmiceli/password-generator-go
-
-	var chars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") // no /@" and space allowed for RDS password
-
-	new_pword := make([]byte, length)
-	random_data := make([]byte, length+(length/4)) // storage for random bytes.
-	clen := byte(len(chars))
-	maxrb := byte(256 - (256 % len(chars)))
-	i := 0
-	for {
-		if _, err := io.ReadFull(rand.Reader, random_data); err != nil {
-			return "", err
-		}
-		for _, c := range random_data {
-			if c >= maxrb {
-				continue
-			}
-			new_pword[i] = chars[c%clen]
-			i++
-			if i == length {
-				return string(new_pword), nil
-			}
-		}
-	}
-	return "", fmt.Errorf("unreachable")
+	return nil
 }
 
 func servicesLogger(at string) *logger.Logger {

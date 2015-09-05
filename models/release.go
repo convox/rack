@@ -284,21 +284,7 @@ func (r *Release) Processes() (Processes, error) {
 		return nil, err
 	}
 
-	ps := manifest.Processes()
-
-	ss, err := ListServices(r.App)
-
-	for _, s := range ss {
-		if s.Stack == "" {
-			ps = append(ps, Process{
-				App:   r.App,
-				Name:  s.Name,
-				Count: 1,
-			})
-		}
-	}
-
-	return ps, nil
+	return manifest.Processes(), nil
 }
 
 func releasesTable(app string) string {
