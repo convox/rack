@@ -76,8 +76,10 @@ func check(rw http.ResponseWriter, r *http.Request) {
 	rw.Write([]byte("ok"))
 }
 
-// Handler for any panics within an HTTP request
+// This function returns a negroni middleware with a closure
+// over the Logger instance
 func NewPanicHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
+	// Handler for any panics within an HTTP request
 	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		defer recoverWith(func(err error) {
 			helpers.Error(log, err)
