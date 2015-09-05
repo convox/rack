@@ -162,6 +162,8 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/releases", api("release.list", controllers.ReleaseList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", controllers.ReleaseShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", api("release.promote", controllers.ReleasePromote)).Methods("POST")
+	router.HandleFunc("/rack", api("rack.show", controllers.RackShow)).Methods("GET")
+	router.HandleFunc("/rack", api("rack.update", controllers.RackUpdate)).Methods("PUT")
 	router.HandleFunc("/services", api("service.list", controllers.ServiceList)).Methods("GET")
 	router.HandleFunc("/services", api("service.create", controllers.ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", controllers.ServiceShow)).Methods("GET")
@@ -178,11 +180,6 @@ func startWeb() {
 	// router.HandleFunc("/apps/{app}/processes/{id}", controllers.ProcessStop).Methods("DELETE")
 	// router.HandleFunc("/apps/{app}/processes/{id}/top", controllers.ProcessTop).Methods("GET")
 	// router.HandleFunc("/top/{metric}", controllers.ClusterTop).Methods("GET")
-
-	// todo
-	router.HandleFunc("/system", controllers.SystemShow).Methods("GET")
-	router.HandleFunc("/system", controllers.SystemUpdate).Methods("POST")
-	router.HandleFunc("/version", controllers.VersionGet).Methods("GET")
 
 	n := negroni.New(
 		negroni.NewRecovery(),
