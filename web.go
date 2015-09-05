@@ -73,8 +73,10 @@ func basicAuthentication(rw http.ResponseWriter, r *http.Request, next http.Hand
 }
 
 func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	rw.Header().Set("Access-Control-Allow-Origin", "http://editor.swagger.io")
-	rw.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Accept")
+	rw.Header().Set("Access-Control-Allow-Origin", "*")
+	rw.Header().Set("Access-Control-Allow-Headers", "*")
+	rw.Header().Set("Access-Control-Allow-Methods", "*")
+
 	next(rw, r)
 }
 
