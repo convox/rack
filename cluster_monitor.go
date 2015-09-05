@@ -22,6 +22,10 @@ import (
 func startClusterMonitor() {
 	var log = logger.New("ns=cluster_monitor")
 
+	defer recoverWith(func(err error) {
+		helpers.Error(log, err)
+	})
+
 Tick:
 	for _ = range time.Tick(5 * time.Minute) {
 		log.Log("tick")

@@ -79,19 +79,10 @@ func check(rw http.ResponseWriter, r *http.Request) {
 // Handler for any panics within an HTTP request
 func NewErrorHandler(log *logger.Logger) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
 	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		// use defer to register recovery function
-		defer func() {
-			if r := recover(); r != nil {
-				// coerce r to error type
-				err, ok := r.(error)
-				if !ok {
-					err = fmt.Errorf("%v", r)
-				}
-
-				helpers.Error(log, err)
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-			}
-		}()
+		defer recoverWith(func(err error) {
+			helpers.Error(log, err)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		})
 
 		next(rw, r)
 	}
