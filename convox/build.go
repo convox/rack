@@ -95,14 +95,14 @@ func executeBuild(dir string, app string) (string, error) {
 		return "", err
 	}
 
-	err = streamBuild(app, build, 0)
+	err = streamBuild(app, build.Id, 0)
 
 	if err != nil {
 		fmt.Printf("%+v\n", err)
 		return "", err
 	}
 
-	release, err := waitForBuild(app, build)
+	release, err := waitForBuild(app, build.Id)
 
 	if err != nil {
 		return "", err
@@ -111,7 +111,7 @@ func executeBuild(dir string, app string) (string, error) {
 	return release, nil
 }
 
-func postBuild(tar []byte, app string) (string, error) {
+func postBuild(tar []byte, app string) (*Build, error) {
 	body := &bytes.Buffer{}
 
 	writer := multipart.NewWriter(body)
@@ -119,25 +119,25 @@ func postBuild(tar []byte, app string) (string, error) {
 	part, err := writer.CreateFormFile("source", "source.tgz")
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	_, err = io.Copy(part, bytes.NewReader(tar))
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	err = writer.Close()
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req, err := convoxRequest("POST", fmt.Sprintf("/apps/%s/build", app), body)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -145,7 +145,7 @@ func postBuild(tar []byte, app string) (string, error) {
 	res, err := convoxClient().Do(req)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	defer res.Body.Close()
@@ -153,14 +153,22 @@ func postBuild(tar []byte, app string) (string, error) {
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if res.StatusCode/100 > 3 {
-		return "", fmt.Errorf(string(data))
+		return nil, fmt.Errorf(string(data))
 	}
 
-	return string(data), nil
+	var build Build
+
+	err = json.Unmarshal(data, &build)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &build, nil
 }
 
 func streamBuild(app, build string, offset int) error {

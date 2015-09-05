@@ -44,7 +44,7 @@ func cmdLogsStream(c *cli.Context) {
 	}
 
 	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("wss://%s/apps/%s/logs/stream", host, app)
+	url := fmt.Sprintf("wss://%s/apps/%s/logs", host, app)
 
 	config, err := websocket.NewConfig(url, origin)
 

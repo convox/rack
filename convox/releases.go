@@ -187,13 +187,21 @@ func postRelease(app, release string) (*App, error) {
 
 	// poll for complete
 	for {
-		data, err := ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
+		data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
 
 		if err != nil {
 			return nil, err
 		}
 
-		if string(data) == "running" {
+		var app App
+
+		err = json.Unmarshal(data, &app)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if app.Status == "running" {
 			break
 		}
 
