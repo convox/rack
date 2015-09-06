@@ -14,13 +14,6 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-func init() {
-	RegisterPartial("process", "logs")
-	RegisterPartial("process", "resources")
-
-	RegisterTemplate("process", "layout", "process")
-}
-
 func ProcessList(rw http.ResponseWriter, r *http.Request) error {
 	app := mux.Vars(r)["app"]
 

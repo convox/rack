@@ -11,34 +11,6 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-func init() {
-	RegisterPartial("app", "builds")
-	RegisterPartial("app", "changes")
-	RegisterPartial("app", "debug")
-	RegisterPartial("app", "deployments")
-	RegisterPartial("app", "environment")
-	RegisterPartial("app", "logs")
-	RegisterPartial("app", "releases")
-	RegisterPartial("app", "resources")
-
-	RegisterPartial("app", "AMI")
-	RegisterPartial("app", "AWS::AutoScaling::AutoScalingGroup")
-	RegisterPartial("app", "AWS::AutoScaling::LaunchConfiguration")
-	RegisterPartial("app", "AWS::CloudFormation::Stack")
-	RegisterPartial("app", "AWS::EC2::SecurityGroup")
-	RegisterPartial("app", "AWS::EC2::VPC")
-	RegisterPartial("app", "AWS::ElasticLoadBalancing::LoadBalancer")
-	RegisterPartial("app", "AWS::IAM::InstanceProfile")
-	RegisterPartial("app", "AWS::IAM::Role")
-	RegisterPartial("app", "AWS::Kinesis::Stream")
-	RegisterPartial("app", "AWS::RDS::DBInstance")
-	RegisterPartial("app", "AWS::S3::Bucket")
-	RegisterPartial("app", "Env::Diff")
-
-	RegisterTemplate("apps", "layout", "apps")
-	RegisterTemplate("app", "layout", "app")
-}
-
 func AppList(rw http.ResponseWriter, r *http.Request) error {
 	apps, err := models.ListApps()
 

@@ -10,15 +10,6 @@ import (
 	"github.com/convox/kernel/models"
 )
 
-func init() {
-	RegisterPartial("service", "logs")
-	RegisterPartial("services", "names")
-
-	RegisterTemplate("service", "layout", "service")
-	RegisterTemplate("services", "layout", "services")
-	// RegisterTemplate("app", "layout", "app")
-}
-
 func ServiceList(rw http.ResponseWriter, r *http.Request) error {
 	services, err := models.ListServices()
 
