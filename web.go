@@ -18,7 +18,7 @@ import (
 )
 
 func authRequired(rw http.ResponseWriter, message string) error {
-	rw.Header().Set("WWW-Authenticate", `Basic realm="Convox Rack"`)
+	rw.Header().Set("WWW-Authenticate", `Basic realm="Convox System"`)
 	rw.WriteHeader(401)
 	rw.Write([]byte(message))
 	return fmt.Errorf(message)
@@ -143,12 +143,12 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/releases", api("release.list", controllers.ReleaseList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", controllers.ReleaseShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", api("release.promote", controllers.ReleasePromote)).Methods("POST")
-	router.HandleFunc("/rack", api("rack.show", controllers.RackShow)).Methods("GET")
-	router.HandleFunc("/rack", api("rack.update", controllers.RackUpdate)).Methods("PUT")
 	router.HandleFunc("/services", api("service.list", controllers.ServiceList)).Methods("GET")
 	router.HandleFunc("/services", api("service.create", controllers.ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", controllers.ServiceShow)).Methods("GET")
 	router.HandleFunc("/services/{service}", api("service.delete", controllers.ServiceDelete)).Methods("DELETE")
+	router.HandleFunc("/system", api("system.show", controllers.SystemShow)).Methods("GET")
+	router.HandleFunc("/system", api("system.update", controllers.SystemUpdate)).Methods("PUT")
 
 	// websockets
 	router.Handle("/apps/{app}/logs", ws("app.logs", controllers.AppLogs)).Methods("GET")

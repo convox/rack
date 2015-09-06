@@ -429,37 +429,6 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
-  /rack:
-    get:
-      description: Get rack information
-      responses:
-        200:
-          description: rack
-          schema:
-            $ref: '#/definitions/rack'
-    put:
-      description: Update rack information
-      parameters:
-      - name: count
-        description: instance count
-        type: integer
-        in: formData
-        required: false
-      - name: type
-        description: instance type
-        type: string
-        in: formData
-        required: false
-      - name: version
-        description: rack version
-        type: string
-        in: formData
-        required: false
-      responses:
-        200:
-          description: rack
-          schema:
-            $ref: '#/definitions/rack'
   /services:
     get:
       description: List services
@@ -527,6 +496,37 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /system:
+    get:
+      description: Get system information
+      responses:
+        200:
+          description: system
+          schema:
+            $ref: '#/definitions/system'
+    put:
+      description: Update system information
+      parameters:
+      - name: count
+        description: instance count
+        type: integer
+        in: formData
+        required: false
+      - name: type
+        description: instance type
+        type: string
+        in: formData
+        required: false
+      - name: version
+        description: system version
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: system
+          schema:
+            $ref: '#/definitions/system'
 definitions:
   app:
     properties:
@@ -575,7 +575,7 @@ definitions:
         type: string
       release:
         type: string
-  rack:
+  system:
     properties:
       count:
         type: integer

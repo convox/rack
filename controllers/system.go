@@ -12,8 +12,8 @@ import (
 func init() {
 }
 
-func RackShow(rw http.ResponseWriter, r *http.Request) error {
-	rack, err := models.GetRack()
+func SystemShow(rw http.ResponseWriter, r *http.Request) error {
+	rack, err := models.GetSystem()
 
 	if awsError(err) == "ValidationError" {
 		return RenderNotFound(rw, fmt.Sprintf("no such stack: %s", rack))
@@ -26,8 +26,8 @@ func RackShow(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, rack)
 }
 
-func RackUpdate(rw http.ResponseWriter, r *http.Request) error {
-	rack, err := models.GetRack()
+func SystemUpdate(rw http.ResponseWriter, r *http.Request) error {
+	rack, err := models.GetSystem()
 
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func RackUpdate(rw http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	rack, err = models.GetRack()
+	rack, err = models.GetSystem()
 
 	if err != nil {
 		return err

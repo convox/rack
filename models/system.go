@@ -9,7 +9,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 )
 
-type Rack struct {
+type System struct {
 	Count   int    `json:"count"`
 	Name    string `json:"name"`
 	Status  string `json:"status"`
@@ -17,7 +17,7 @@ type Rack struct {
 	Version string `json:"version"`
 }
 
-func GetRack() (*Rack, error) {
+func GetSystem() (*System, error) {
 	rack := os.Getenv("RACK")
 
 	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rack)})
@@ -39,7 +39,7 @@ func GetRack() (*Rack, error) {
 		return nil, err
 	}
 
-	r := &Rack{
+	r := &System{
 		Count:   count,
 		Name:    rack,
 		Status:  humanStatus(*stack.StackStatus),
@@ -50,7 +50,7 @@ func GetRack() (*Rack, error) {
 	return r, nil
 }
 
-func (r *Rack) Save() error {
+func (r *System) Save() error {
 	rack := os.Getenv("RACK")
 
 	app, err := GetApp(rack)
