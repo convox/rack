@@ -44,6 +44,27 @@
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
+    "DockerImageApp": {
+      "Condition": "Development",
+      "Value": { "Fn::If": [ "BlankDockerImageApp",
+        { "Fn::Join": [ ":", [ "convox/app", { "Ref": "Version" } ] ] },
+        { "Ref": "DockerImageApp" }
+      ] }
+    },
+    "DockerImageBuild": {
+      "Condition": "Development",
+      "Value": { "Fn::If": [ "BlankDockerImageBuild",
+        { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
+        { "Ref": "DockerImageBuild" }
+      ] }
+    },
+    "DockerImageService": {
+      "Condition": "Development",
+      "Value": { "Fn::If": [ "BlankDockerImageService",
+        { "Fn::Join": [ ":", [ "convox/service", { "Ref": "Version" } ] ] },
+        { "Ref": "DockerImageService" }
+      ] }
+    },
     "DynamoBuilds": {
       "Condition": "Development",
       "Value": { "Ref": "DynamoBuilds" }
