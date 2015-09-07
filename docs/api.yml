@@ -215,48 +215,24 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
-  /apps/{app}/logs:
+  /apps/{app}/formation:
     get:
-      description: Logs for an app
+      description: List formation for an app
       parameters:
       - name: app
         description: app name
         type: string
         in: path
         required: true
-      - name: Connection
-        description: Connection header
-        type: string
-        in: header
-        required: true
-        default: upgrade
-      - name: Upgrade
-        description: Upgrade header
-        type: string
-        in: header
-        required: true
-        default: websocket
-      - name: Sec-WebSocket-Key
-        description: Sec-WebSocket-Key header
-        type: string
-        in: header
-        required: true
-        default: x3JJHMbDL1EzLkh9GBhXDw==
-      - name: Sec-WebSocket-Protocol
-        description: Sec-WebSocket-Protocol header
-        type: string
-        in: header
-        required: true
-        default: chat, superchat
-      - name: Sec-WebSocket-Version
-        description: Connection header
-        type: string
-        in: header
-        required: true
-        default: "13"
       responses:
-        101:
-          description: websocket upgrade
+        200:
+          description: processes
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/formation'
+        404:
+          description: not found
           schema:
             $ref: '#/definitions/error'
   /apps/{app}/processes:
@@ -563,24 +539,30 @@ definitions:
   environment:
     additionalProperties:
       type: string
-  process:
+  formation:
     properties:
-      app:
-        type: string
-      command:
+      name:
         type: string
       count:
         type: integer
-      image:
-        type: string
-      memory:
-        type: integer
       name:
-        type: string
+        type: integer
       ports:
         type: array
         items:
           type: integer
+  process:
+    properties:
+      id:
+        type: string
+      app:
+        type: string
+      command:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
   system:
     properties:
       count:
