@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -129,6 +130,8 @@ func ListProcesses(app string) (Processes, error) {
 
 		pss = append(pss, ps)
 	}
+
+	sort.Sort(pss)
 
 	return pss, nil
 }
@@ -273,6 +276,18 @@ func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
 func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
 	io.Copy(w, r)
 	wg.Done()
+}
+
+func (ps Processes) Len() int {
+	return len(ps)
+}
+
+func (ps Processes) Less(i, j int) bool {
+	return ps[i].Name < ps[j].Name
+}
+
+func (ps Processes) Swap(i, j int) {
+	ps[i], ps[j] = ps[j], ps[i]
 }
 
 func (p *Process) Stop() error {
