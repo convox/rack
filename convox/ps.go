@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
@@ -59,16 +56,10 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("NAME", "COUNT", "MEMORY", "PORTS", "COMMAND")
+	t := stdcli.NewTable("ID", "NAME", "COMMAND")
 
 	for _, p := range ps {
-		ports := make([]string, len(p.Ports))
-
-		for i, pp := range p.Ports {
-			ports[i] = fmt.Sprintf("%d", pp)
-		}
-
-		t.AddRow(p.Name, fmt.Sprintf("%d", p.Count), fmt.Sprintf("%d", p.Memory), strings.Join(ports, " "), p.Command)
+		t.AddRow(p.Id, p.Name, p.Command)
 	}
 
 	t.Print()

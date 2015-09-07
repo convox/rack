@@ -147,35 +147,31 @@ func cmdAppInfo(c *cli.Context) {
 		return
 	}
 
-	ps, err := rackClient().GetProcesses(app)
+	formation, err := rackClient().GetFormation(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	pss := make([]string, len(ps))
-
-	for i, p := range ps {
-		pss[i] = p.Name
-	}
-
-	sort.Strings(pss)
-
+	ps := make([]string, len(formation))
 	ports := []string{}
 
-	for _, p := range ps {
-		for _, port := range p.Ports {
-			ports = append(ports, fmt.Sprintf("%s:%d", p.Name, port))
+	for i, f := range formation {
+		ps[i] = f.Name
+
+		for _, p := range f.Ports {
+			ports = append(ports, fmt.Sprintf("%s:%d", f.Name, p))
 		}
 	}
 
+	sort.Strings(ps)
 	sort.Strings(ports)
 
 	fmt.Printf("Name       %s\n", a.Name)
 	fmt.Printf("Status     %s\n", a.Status)
 	fmt.Printf("Release    %s\n", stdcli.Default(a.Release, "(none)"))
-	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(pss, " "), "(none)"))
+	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(ps, " "), "(none)"))
 
 	if a.Balancer != "" {
 		fmt.Printf("Hostname   %s\n", a.Balancer)
