@@ -476,12 +476,10 @@ func (a *App) Resources() Resources {
 }
 
 func appFromStack(stack *cloudformation.Stack) *App {
-	params := stackParameters(stack)
-
 	return &App{
-		Balancer: params["BalancerHost"],
+		Balancer: stackOutputs(stack)["BalancerHost"],
 		Name:     *stack.StackName,
-		Release:  params["Release"],
+		Release:  stackParameters(stack)["Release"],
 		Status:   humanStatus(*stack.StackStatus),
 	}
 }
