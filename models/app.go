@@ -20,8 +20,10 @@ import (
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
 
 type App struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
+	Balancer string `json:"balancer"`
+	Name     string `json:"name"`
+	Release  string `json:"release"`
+	Status   string `json:"status"`
 
 	Outputs    map[string]string `json:"-"`
 	Parameters map[string]string `json:"-"`
@@ -217,10 +219,6 @@ func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
 	go subscribeKinesis(a.Outputs["Kinesis"], output, done)
 
 	return nil
-}
-
-func (a *App) ActiveRelease() string {
-	return a.Parameters["Release"]
 }
 
 func (a *App) ForkRelease() (*Release, error) {
@@ -478,9 +476,13 @@ func (a *App) Resources() Resources {
 }
 
 func appFromStack(stack *cloudformation.Stack) *App {
+	params := stackParameters(stack)
+
 	return &App{
-		Name:   *stack.StackName,
-		Status: humanStatus(*stack.StackStatus),
+		Balancer: params["BalancerHost"],
+		Name:     *stack.StackName,
+		Release:  params["Release"],
+		Status:   humanStatus(*stack.StackStatus),
 	}
 }
 

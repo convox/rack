@@ -530,9 +530,13 @@ paths:
 definitions:
   app:
     properties:
+      balancer:
+        type: string
       name:
         type: string
       status:
+        type: string
+      release:
         type: string
   build:
     properties:
