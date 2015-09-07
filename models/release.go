@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strconv"
 	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -181,16 +180,15 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	pss, err := r.Processes()
+	manifest, err := LoadManifest(r.Manifest)
 
 	if err != nil {
 		return err
 	}
 
-	for _, ps := range pss {
-		app.Parameters[fmt.Sprintf("%sCommand", UpperName(ps.Name))] = ps.Command
-		app.Parameters[fmt.Sprintf("%sImage", UpperName(ps.Name))] = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, ps.Name, r.Build)
-		app.Parameters[fmt.Sprintf("%sScale", UpperName(ps.Name))] = strconv.Itoa(ps.Count)
+	for _, me := range manifest {
+		app.Parameters[fmt.Sprintf("%sCommand", UpperName(me.Name))] = me.CommandString()
+		app.Parameters[fmt.Sprintf("%sImage", UpperName(me.Name))] = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, me.Name, r.Build)
 	}
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
@@ -273,18 +271,6 @@ func (r *Release) Formation() (string, error) {
 	}
 
 	return string(data), nil
-}
-
-func (r *Release) Processes() (Processes, error) {
-	manifest, err := LoadManifest(r.Manifest)
-
-	fmt.Printf("%+v\n", manifest)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return manifest.Processes(), nil
 }
 
 func releasesTable(app string) string {

@@ -42,21 +42,21 @@ func LoadManifest(data string) (Manifest, error) {
 	return manifest, nil
 }
 
-func (m *Manifest) Processes() Processes {
-	processes := Processes{}
+// func (m *Manifest) Processes() Processes {
+//   processes := Processes{}
 
-	for _, entry := range *m {
-		ps := Process{
-			Name:    entry.Name,
-			Command: entry.CommandString(),
-			Count:   1,
-		}
+//   for _, entry := range *m {
+//     ps := Process{
+//       Name:    entry.Name,
+//       Command: entry.CommandString(),
+//       Count:   1,
+//     }
 
-		processes = append(processes, ps)
-	}
+//     processes = append(processes, ps)
+//   }
 
-	return processes
-}
+//   return processes
+// }
 
 func (me *ManifestEntry) CommandString() string {
 	switch cmd := me.Command.(type) {

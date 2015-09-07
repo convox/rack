@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,13 +15,11 @@ import (
 )
 
 type Process struct {
+	Id      string `json:"id"`
 	App     string `json:"app"`
 	Command string `json:"command"`
-	Count   int    `json:"count"`
 	Image   string `json:"image"`
-	Memory  int64  `json:"memory"`
 	Name    string `json:"name"`
-	Ports   []int  `json:"ports"`
 
 	Binds   []string `json:"-"`
 	TaskARN string   `json:"-"`
@@ -41,7 +38,7 @@ type ProcessRunOptions struct {
 }
 
 func ListProcesses(app string) (Processes, error) {
-	a, err := GetApp(app)
+	_, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
@@ -67,68 +64,56 @@ func ListProcesses(app string) (Processes, error) {
 	pss := Processes{}
 
 	for _, task := range tres.Tasks {
-		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-			TaskDefinition: task.TaskDefinitionARN,
-		})
+		for _, c := range task.Containers {
+			tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+				TaskDefinition: task.TaskDefinitionARN,
+			})
 
-		if err != nil {
-			return nil, err
-		}
-
-		if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") && *tres.TaskDefinition.Family != app {
-			continue
-		}
-
-		hostVolumes := make(map[string]string)
-
-		for _, v := range tres.TaskDefinition.Volumes {
-			hostVolumes[*v.Name] = *v.Host.SourcePath
-		}
-
-		if len(tres.TaskDefinition.ContainerDefinitions) < 1 {
-			return nil, fmt.Errorf("no container definition")
-		}
-
-		cd := *(tres.TaskDefinition.ContainerDefinitions[0])
-
-		count, err := strconv.Atoi(a.Parameters[UpperName(*cd.Name)+"DesiredCount"])
-
-		// default count to 1 if unparseable
-		if err != nil {
-			count = 1
-		}
-
-		ps := Process{
-			App:   app,
-			Count: count,
-			Image: *cd.Image,
-			Name:  *cd.Name,
-		}
-
-		for _, m := range cd.MountPoints {
-			ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
-		}
-
-		ps.Ports = make([]int, 0)
-
-		for _, pm := range cd.PortMappings {
-			port := a.Parameters[fmt.Sprintf("%sPort%dBalancer", UpperName(ps.Name), *pm.ContainerPort)]
-
-			if iport, err := strconv.Atoi(port); err == nil {
-				ps.Ports = append(ps.Ports, iport)
+			if err != nil {
+				return nil, err
 			}
+
+			if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") && *tres.TaskDefinition.Family != app {
+				continue
+			}
+
+			if len(tres.TaskDefinition.ContainerDefinitions) < 1 {
+				return nil, fmt.Errorf("no container definition")
+			}
+
+			cd := *(tres.TaskDefinition.ContainerDefinitions[0])
+
+			idp := strings.Split(*c.ContainerARN, "-")
+			id := idp[len(idp)-1]
+
+			cp := make([]string, len(cd.Command))
+
+			for i, part := range cd.Command {
+				cp[i] = *part
+			}
+
+			ps := Process{
+				Id:      id,
+				App:     app,
+				Command: strings.Join(cp, " "),
+				Image:   *cd.Image,
+				Name:    *cd.Name,
+			}
+
+			hostVolumes := make(map[string]string)
+
+			for _, v := range tres.TaskDefinition.Volumes {
+				hostVolumes[*v.Name] = *v.Host.SourcePath
+			}
+
+			for _, m := range cd.MountPoints {
+				ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
+			}
+
+			ps.TaskARN = *task.TaskARN
+
+			pss = append(pss, ps)
 		}
-
-		cp := make([]string, len(cd.Command))
-
-		for i, part := range cd.Command {
-			cp[i] = *part
-		}
-
-		ps.Command = strings.Join(cp, " ")
-		ps.Memory = *cd.Memory
-
-		pss = append(pss, ps)
 	}
 
 	sort.Sort(pss)
