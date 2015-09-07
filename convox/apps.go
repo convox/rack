@@ -1,10 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/url"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -56,19 +53,16 @@ func init() {
 }
 
 func cmdApps(c *cli.Context) {
-	apps := getApps()
+	apps, err := rackClient().GetApps()
 
-	longest := 3
-
-	for _, app := range *apps {
-		if len(app.Name) > longest {
-			longest = len(app.Name)
-		}
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
 	t := stdcli.NewTable("APP", "STATUS")
 
-	for _, app := range *apps {
+	for _, app := range apps {
 		t.AddRow(app.Name, app.Status)
 	}
 
@@ -93,24 +87,7 @@ func cmdAppCreate(c *cli.Context) {
 		fmt.Printf("Creating app %s... ", app)
 	}
 
-	v := url.Values{}
-	v.Set("name", app)
-	data, err := ConvoxPostForm("/apps", v)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	data, err = ConvoxGet("/apps/" + app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var a *App
-	err = json.Unmarshal(data, &a)
+	a, err := rackClient().CreateApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -119,14 +96,14 @@ func cmdAppCreate(c *cli.Context) {
 
 	// poll for complete
 	for {
-		data, err = ConvoxGet(fmt.Sprintf("/apps/%s/status", app))
+		app, err := rackClient().GetApp(a.Name)
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		if string(data) == "running" {
+		if app.Status == "running" {
 			break
 		}
 
@@ -150,7 +127,7 @@ func cmdAppDelete(c *cli.Context) {
 
 	fmt.Printf("Deleting %s... ", app)
 
-	_, err := ConvoxDelete(fmt.Sprintf("/apps/%s", app))
+	_, err := rackClient().DeleteApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -163,81 +140,45 @@ func cmdAppDelete(c *cli.Context) {
 func cmdAppInfo(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
 
-	data, err := ConvoxGet("/apps/" + app)
+	a, err := rackClient().GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var a *App
-	err = json.Unmarshal(data, &a)
+	ps, err := rackClient().GetProcesses(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	matcher := regexp.MustCompile(`^(\w+)Port\d+Balancer`)
+	pss := make([]string, len(ps))
+
+	for i, p := range ps {
+		pss[i] = p.Name
+	}
+
+	sort.Strings(pss)
 
 	ports := []string{}
 
-	for key, value := range a.Outputs {
-		if m := matcher.FindStringSubmatch(key); m != nil {
-			ports = append(ports, fmt.Sprintf("%s:%s", strings.ToLower(m[1]), value))
+	for _, p := range ps {
+		for _, port := range p.Ports {
+			ports = append(ports, fmt.Sprintf("%s:%d", p.Name, port))
 		}
 	}
 
-	processes := []string{}
-
-	for key, _ := range a.Parameters {
-		if strings.HasSuffix(key, "Image") {
-			processes = append(processes, strings.ToLower(key[0:len(key)-5]))
-		}
-	}
-
-	sort.Strings(processes)
-
-	if len(processes) == 0 {
-		processes = append(processes, "(none)")
-	}
-
-	if len(ports) == 0 {
-		ports = append(ports, "(none)")
-	}
-
-	release := a.Parameters["Release"]
-
-	if release == "" {
-		release = "(none)"
-	}
+	sort.Strings(ports)
 
 	fmt.Printf("Name       %s\n", a.Name)
 	fmt.Printf("Status     %s\n", a.Status)
-	fmt.Printf("Release    %s\n", release)
-	fmt.Printf("Processes  %s\n", strings.Join(processes, " "))
+	fmt.Printf("Release    %s\n", stdcli.Default(a.Release, "(none)"))
+	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(pss, " "), "(none)"))
 
-	if a.Outputs["BalancerHost"] != "" {
-		fmt.Printf("Hostname   %s\n", a.Outputs["BalancerHost"])
-		fmt.Printf("Ports      %s\n", strings.Join(ports, " "))
+	if a.Balancer != "" {
+		fmt.Printf("Hostname   %s\n", a.Balancer)
+		fmt.Printf("Ports      %s\n", stdcli.Default(strings.Join(ports, " "), "(none)"))
 	}
-}
-
-func getApps() *Apps {
-	data, err := ConvoxGet("/apps")
-
-	if err != nil {
-		stdcli.Error(err)
-		return nil
-	}
-
-	var apps *Apps
-	err = json.Unmarshal(data, &apps)
-
-	if err != nil {
-		stdcli.Error(err)
-		return nil
-	}
-
-	return apps
 }

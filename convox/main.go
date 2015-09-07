@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/cli/client"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -46,6 +47,17 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func rackClient() *client.Client {
+	host, password, err := currentLogin()
+
+	if err != nil {
+		stdcli.Error(err)
+		return nil
+	}
+
+	return client.New(host, password)
 }
 
 func ConvoxGet(path string) ([]byte, error) {

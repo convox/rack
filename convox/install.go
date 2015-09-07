@@ -245,9 +245,14 @@ func cmdInstall(c *cli.Context) {
 
 func cmdUninstall(c *cli.Context) {
 	if !c.Bool("force") {
-		apps := getApps()
+		apps, err := rackClient().GetApps()
 
-		if len(*apps) != 0 {
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		if len(apps) != 0 {
 			stdcli.Error(fmt.Errorf("Please delete all apps before uninstalling."))
 		}
 	}
