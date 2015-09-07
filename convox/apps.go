@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -82,39 +81,20 @@ func cmdAppCreate(c *cli.Context) {
 	}
 
 	if app == "" {
-		fmt.Printf("Creating app... ")
-	} else {
-		fmt.Printf("Creating app %s... ", app)
+		stdcli.Error(fmt.Errorf("must specify an app name"))
+		return
 	}
 
-	a, err := rackClient().CreateApp(app)
+	fmt.Printf("Creating app %s... ", app)
+
+	_, err = rackClient().CreateApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	// poll for complete
-	for {
-		app, err := rackClient().GetApp(a.Name)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		if app.Status == "running" {
-			break
-		}
-
-		time.Sleep(3 * time.Second)
-	}
-
-	if app == "" {
-		fmt.Printf("OK, %s\n", a.Name)
-	} else {
-		fmt.Println("OK")
-	}
+	fmt.Println("CREATING")
 }
 
 func cmdAppDelete(c *cli.Context) {

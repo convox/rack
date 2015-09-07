@@ -1,12 +1,20 @@
 package main
 
 import (
-	"encoding/json"
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
+	"github.com/dustin/go-humanize"
+	"golang.org/x/net/websocket"
 )
 
 func init() {
@@ -21,7 +29,7 @@ func init() {
 				Name:        "create",
 				Description: "create a new build",
 				Usage:       "",
-				Action:      cmdBuild,
+				Action:      cmdBuildsCreate,
 				Flags:       []cli.Flag{appFlag},
 			},
 			{
@@ -43,31 +51,54 @@ func cmdBuilds(c *cli.Context) {
 		return
 	}
 
-	path := fmt.Sprintf("/apps/%s/builds", app)
-
-	resp, err := ConvoxGet(path)
+	builds, err := rackClient().GetBuilds(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var builds []Build
-
-	err = json.Unmarshal(resp, &builds)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Printf("%-12s  %-12s  %-9s  %-22s  %s\n", "ID", "RELEASE", "STATUS", "STARTED", "ENDED")
+	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED")
 
 	for _, build := range builds {
-		started := build.Started
-		ended := build.Ended
-		fmt.Printf("%-12s  %-12s  %-9s  %-22s  %s\n", build.Id, build.Release, build.Status, started.Format(time.RFC822Z), ended.Format(time.RFC822Z))
+		started := humanize.Time(build.Started)
+		elapsed := stdcli.Duration(build.Started, build.Ended)
+
+		t.AddRow(build.Id, build.Status, build.Release, started, elapsed)
 	}
+
+	t.Print()
+}
+
+func cmdBuildsCreate(c *cli.Context) {
+	wd := "."
+
+	if len(c.Args()) > 0 {
+		wd = c.Args()[0]
+	}
+
+	dir, app, err := stdcli.DirApp(c, wd)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	release, err := executeBuild(dir, app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Release: %s\n", release)
 }
 
 func cmdBuildsInfo(c *cli.Context) {
@@ -85,18 +116,7 @@ func cmdBuildsInfo(c *cli.Context) {
 
 	build := c.Args()[0]
 
-	path := fmt.Sprintf("/apps/%s/builds/%s", app, build)
-
-	resp, err := ConvoxGet(path)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var b Build
-
-	err = json.Unmarshal(resp, &b)
+	b, err := rackClient().GetBuild(app, build)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -104,4 +124,246 @@ func cmdBuildsInfo(c *cli.Context) {
 	}
 
 	fmt.Println(b.Logs)
+}
+
+func executeBuild(dir string, app string) (string, error) {
+	dir, err := filepath.Abs(dir)
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
+	// fmt.Print("Uploading... ")
+
+	// tar, err := createTarball(dir)
+
+	// if err != nil {
+	//   return "", err
+	// }
+
+	// fmt.Println("OK")
+
+	// build, err := postBuild(tar, app)
+
+	// if err != nil {
+	//   return "", err
+	// }
+
+	// err = streamBuild(app, build.Id, 0)
+
+	// if err != nil {
+	//   fmt.Printf("%+v\n", err)
+	//   return "", err
+	// }
+
+	// release, err := waitForBuild(app, build.Id)
+
+	// if err != nil {
+	//   return "", err
+	// }
+
+	// return release, nil
+
+	return "", fmt.Errorf("unimplemented")
+}
+
+// func postBuild(tar []byte, app string) (*Build, error) {
+//   body := &bytes.Buffer{}
+
+//   writer := multipart.NewWriter(body)
+
+//   part, err := writer.CreateFormFile("source", "source.tgz")
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   _, err = io.Copy(part, bytes.NewReader(tar))
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   err = writer.Close()
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   req, err := convoxRequest("POST", fmt.Sprintf("/apps/%s/build", app), body)
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   req.Header.Set("Content-Type", writer.FormDataContentType())
+
+//   res, err := convoxClient().Do(req)
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   defer res.Body.Close()
+
+//   data, err := ioutil.ReadAll(res.Body)
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   if res.StatusCode/100 > 3 {
+//     return nil, fmt.Errorf(string(data))
+//   }
+
+//   var build Build
+
+//   err = json.Unmarshal(data, &build)
+
+//   if err != nil {
+//     return nil, err
+//   }
+
+//   return &build, nil
+// }
+
+func streamBuild(app, build string, offset int) error {
+	host, password, err := currentLogin()
+
+	if err != nil {
+		stdcli.Error(err)
+		return err
+	}
+
+	origin := fmt.Sprintf("https://%s", host)
+	url := fmt.Sprintf("wss://%s/apps/%s/builds/%s/logs", host, app, build)
+
+	config, err := websocket.NewConfig(url, origin)
+
+	if err != nil {
+		stdcli.Error(err)
+		return err
+	}
+
+	userpass := fmt.Sprintf("convox:%s", password)
+	userpass_encoded := base64.StdEncoding.EncodeToString([]byte(userpass))
+
+	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+
+	config.TlsConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	ws, err := websocket.DialConfig(config)
+
+	if err != nil {
+		stdcli.Error(err)
+		return err
+	}
+
+	defer ws.Close()
+
+	var message []byte
+
+	lineno := 0
+
+	for {
+		err := websocket.Message.Receive(ws, &message)
+
+		if err == io.EOF {
+			b, err := rackClient().GetBuild(app, build)
+
+			if err != nil {
+				stdcli.Error(err)
+				return err
+			}
+
+			if b.Status == "building" {
+				time.Sleep(2 * time.Second)
+				continue
+			} else {
+				return nil
+			}
+		}
+
+		if err != nil {
+			// fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
+			return streamBuild(app, build, lineno)
+		}
+
+		if lineno >= offset {
+			fmt.Print(string(message))
+		}
+
+		lineno += 1
+	}
+
+	return nil
+}
+
+func waitForBuild(app, id string) (string, error) {
+	for {
+		build, err := rackClient().GetBuild(app, id)
+
+		if err != nil {
+			return "", err
+		}
+
+		switch build.Status {
+		case "complete":
+			return build.Release, nil
+		case "error":
+			return "", fmt.Errorf("%s build failed", app)
+		case "failed":
+			return "", fmt.Errorf("%s build failed", app)
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	return "", fmt.Errorf("can't get here")
+}
+
+func createTarball(base string) ([]byte, error) {
+	cwd, err := os.Getwd()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(base)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command("tar", "cz", ".")
+
+	out, err := cmd.StdoutPipe()
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Start()
+
+	bytes, err := ioutil.ReadAll(out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(cwd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
