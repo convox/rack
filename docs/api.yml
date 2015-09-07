@@ -577,8 +577,10 @@ definitions:
         type: integer
       name:
         type: string
-      release:
-        type: string
+      ports:
+        type: array
+        items:
+          type: integer
   system:
     properties:
       count:

@@ -21,7 +21,7 @@ type Process struct {
 	Image   string `json:"image"`
 	Memory  int64  `json:"memory"`
 	Name    string `json:"name"`
-	Release string `json:"release"`
+	Ports   []int  `json:"ports"`
 
 	Binds   []string `json:"-"`
 	TaskARN string   `json:"-"`
@@ -104,14 +104,18 @@ func ListProcesses(app string) (Processes, error) {
 			Name:  *cd.Name,
 		}
 
-		for _, env := range cd.Environment {
-			if *env.Name == "RELEASE" {
-				ps.Release = *env.Value
-			}
-		}
-
 		for _, m := range cd.MountPoints {
 			ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
+		}
+
+		ps.Ports = make([]int, 0)
+
+		for _, pm := range cd.PortMappings {
+			port := a.Parameters[fmt.Sprintf("%sPort%dBalancer", UpperName(ps.Name), *pm.ContainerPort)]
+
+			if iport, err := strconv.Atoi(port); err == nil {
+				ps.Ports = append(ps.Ports, iport)
+			}
 		}
 
 		cp := make([]string, len(cd.Command))
