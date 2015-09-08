@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -96,17 +95,16 @@ func cmdRunDetached(c *cli.Context) {
 		command = strings.Join(args, " ")
 	}
 
-	v := url.Values{}
-	v.Set("command", command)
+	fmt.Printf("Running `%s` on %s... ", command, ps)
 
-	_, err = ConvoxPostForm(fmt.Sprintf("/apps/%s/processes/%s/run", app, ps), v)
+	err = rackClient().RunProcessDetached(app, ps, command)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Printf("Running %s `%s`\n", ps, command)
+	fmt.Println("OK")
 }
 
 var CodeRemoverRegex = regexp.MustCompile(`\x1b\[.n`)

@@ -50,6 +50,21 @@ func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, 
 	return code, nil
 }
 
+func (c *Client) RunProcessDetached(app, process, command string) error {
+	var success interface{}
+
+	params := map[string]string{
+		"command": command,
+	}
+
+	err := c.Post(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), params, &success)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func (c *Client) StopProcess(app, id string) (*Process, error) {
 	var process Process
 
