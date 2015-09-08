@@ -109,26 +109,13 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
 	process := vars["process"]
 	command := GetForm(r, "command")
 
-	_, err := models.GetApp(app)
+	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
 		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
-	ps, err := models.GetProcess(app, process)
-
-	if err != nil {
-		return err
-	}
-
-	if ps == nil {
-		return RenderNotFound(rw, fmt.Sprintf("no such process: %s", process))
-	}
-
-	err = ps.Run(models.ProcessRunOptions{
-		Command: command,
-		Process: process,
-	})
+	err = a.RunDetached(process, command)
 
 	if err != nil {
 		return err

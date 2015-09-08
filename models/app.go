@@ -15,6 +15,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
@@ -347,6 +348,39 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 	code, err := d.WaitContainer(res.ID)
 
 	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) RunDetached(process, command string) error {
+	resources := a.Resources()
+
+	req := &ecs.RunTaskInput{
+		Cluster:        aws.String(os.Getenv("CLUSTER")),
+		Count:          aws.Long(1),
+		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
+	}
+
+	if command != "" {
+		req.Overrides = &ecs.TaskOverride{
+			ContainerOverrides: []*ecs.ContainerOverride{
+				&ecs.ContainerOverride{
+					Name: aws.String(process),
+					Command: []*string{
+						aws.String("sh"),
+						aws.String("-c"),
+						aws.String(command),
+					},
+				},
+			},
+		}
+	}
+
+	_, err := ECS().RunTask(req)
 
 	if err != nil {
 		return err
