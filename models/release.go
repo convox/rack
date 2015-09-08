@@ -15,10 +15,10 @@ import (
 )
 
 type Release struct {
+	Id       string    `json:"id"`
 	App      string    `json:"app"`
 	Build    string    `json:"build"`
 	Env      string    `json:"env"`
-	Id       string    `json:"id"`
 	Manifest string    `json:"manifest"`
 	Created  time.Time `json:"created"`
 }

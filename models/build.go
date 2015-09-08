@@ -16,8 +16,8 @@ import (
 )
 
 type Build struct {
-	App      string `json:"app"`
 	Id       string `json:"id"`
+	App      string `json:"app"`
 	Logs     string `json:"logs"`
 	Manifest string `json:"manifest"`
 	Release  string `json:"release"`
