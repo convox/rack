@@ -96,7 +96,6 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
-  /apps/{app}/build:
     post:
       description: Start a build for an app
       consumes:
