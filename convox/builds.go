@@ -60,6 +60,10 @@ func cmdBuilds(c *cli.Context) {
 		started := humanize.Time(build.Started)
 		elapsed := stdcli.Duration(build.Started, build.Ended)
 
+		if build.Ended.IsZero() {
+			elapsed = ""
+		}
+
 		t.AddRow(build.Id, build.Status, build.Release, started, elapsed)
 	}
 
