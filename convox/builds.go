@@ -84,7 +84,7 @@ func cmdBuildsCreate(c *cli.Context) {
 		return
 	}
 
-	_, err = ConvoxGet(fmt.Sprintf("/apps/%s", app))
+	_, err = rackClient().GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
