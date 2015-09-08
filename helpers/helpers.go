@@ -12,13 +12,21 @@ import (
 
 func init() {
 	rollbar.Token = os.Getenv("ROLLBAR_TOKEN")
+	rollbar.Environment = os.Getenv("CLIENT_ID")
 }
 
 func Error(log *logger.Logger, err error) {
 	if log != nil {
 		log.Error(err)
 	}
-	rollbar.Error(rollbar.ERR, err)
+	extraData := map[string]string{
+		"VPC":     os.Getenv("VPC"),
+		"RELEASE": os.Getenv("RELEASE"),
+		"RACK":    os.Getenv("RACK"),
+	}
+	extraField := &rollbar.Field{"env", extraData}
+
+	rollbar.Error(rollbar.ERR, err, extraField)
 }
 
 func SendMixpanelEvent(event, message string) {
