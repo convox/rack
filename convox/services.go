@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -38,7 +36,7 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new service",
-				Usage:       "<name> <postgres|redis>",
+				Usage:       "<type> <name>",
 				Action:      cmdServiceCreate,
 			},
 			{
@@ -58,42 +56,20 @@ func init() {
 }
 
 func cmdServices(c *cli.Context) {
-	data, err := ConvoxGet("/services")
+	services, err := rackClient().ListServices()
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var services *Services
-	err = json.Unmarshal(data, &services)
+	t := stdcli.NewTable("NAME", "TYPE", "STATUS")
 
-	if err != nil {
-		stdcli.Error(err)
-		return
+	for _, service := range services {
+		t.AddRow(service.Name, service.Type, service.Status)
 	}
 
-	lname := 7
-
-	for _, service := range *services {
-		if len(service.Name) > lname {
-			lname = len(service.Name)
-		}
-	}
-
-	ltype := 4
-
-	for _, service := range *services {
-		if len(service.Tags["Service"]) > ltype {
-			ltype = len(service.Tags["Service"])
-		}
-	}
-
-	fmt.Printf(fmt.Sprintf("%%-%ds  %%-%ds  STATUS\n", lname, ltype), "SERVICE", "TYPE")
-
-	for _, service := range *services {
-		fmt.Printf(fmt.Sprintf("%%-%ds  %%-%ds  %%s\n", lname, ltype), service.Name, service.Tags["Service"], service.Status)
-	}
+	t.Print()
 }
 
 func cmdServiceCreate(c *cli.Context) {
@@ -102,53 +78,34 @@ func cmdServiceCreate(c *cli.Context) {
 		return
 	}
 
-	name := c.Args()[0]
-	t := c.Args()[1]
+	t := c.Args()[0]
+	name := c.Args()[1]
 
-	fmt.Printf("Creating service %s (%s)... ", name, t)
+	fmt.Printf("Creating %s (%s)... ", name, t)
 
-	v := url.Values{}
-	v.Set("name", name)
-	v.Set("type", t)
-	data, err := ConvoxPostForm("/services", v)
+	service, err := rackClient().CreateService(t, name)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	data, err = ConvoxGet("/services/" + name)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var s *Service
-	err = json.Unmarshal(data, &s)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	// poll for complete
 	for {
-		data, err = ConvoxGet(fmt.Sprintf("/services/%s/status", name))
+		s, err := rackClient().GetService(service.Name)
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		if string(data) == "running" {
+		if s.Status == "running" {
 			break
 		}
 
 		time.Sleep(3 * time.Second)
 	}
 
-	fmt.Printf("OK, %s\n", s.Name)
+	fmt.Println("OK")
 }
 
 func cmdServiceDelete(c *cli.Context) {
@@ -161,14 +118,14 @@ func cmdServiceDelete(c *cli.Context) {
 
 	fmt.Printf("Deleting %s... ", name)
 
-	_, err := ConvoxDelete(fmt.Sprintf("/services/%s", name))
+	_, err := rackClient().DeleteService(name)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Println("OK")
+	fmt.Println("DELETING")
 }
 
 func cmdServiceInfo(c *cli.Context) {
@@ -179,22 +136,14 @@ func cmdServiceInfo(c *cli.Context) {
 
 	name := c.Args()[0]
 
-	data, err := ConvoxGet("/services/" + name)
+	service, err := rackClient().GetService(name)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var s *Service
-	err = json.Unmarshal(data, &s)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Printf("Name    %s\n", s.Name)
-	fmt.Printf("Status  %s\n", s.Status)
-	fmt.Printf("URL     %s\n", s.URL)
+	fmt.Printf("Name    %s\n", service.Name)
+	fmt.Printf("Status  %s\n", service.Status)
+	fmt.Printf("URL     %s\n", service.URL)
 }
