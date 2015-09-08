@@ -23,3 +23,15 @@ func (c *Client) GetProcesses(app string) (Processes, error) {
 
 	return processes, nil
 }
+
+func (c *Client) StopProcess(app, id string) (*Process, error) {
+	var process Process
+
+	err := c.Delete(fmt.Sprintf("/apps/%s/processes/%s", app, id), &process)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &process, nil
+}
