@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -46,81 +44,90 @@ func init() {
 }
 
 func cmdRack(c *cli.Context) {
-	data, err := ConvoxGet("/system")
+	system, err := rackClient().GetSystem()
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var a *App
-	err = json.Unmarshal(data, &a)
-
-	fmt.Printf("Name       %s\n", a.Name)
-	fmt.Printf("Status     %s\n", a.Status)
-	fmt.Printf("Version    %s\n", a.Parameters["Version"])
-	fmt.Printf("Count      %s\n", a.Parameters["InstanceCount"])
-	fmt.Printf("Type       %s\n", a.Parameters["InstanceType"])
+	fmt.Printf("Name     %s\n", system.Name)
+	fmt.Printf("Status   %s\n", system.Status)
+	fmt.Printf("Version  %s\n", system.Version)
+	fmt.Printf("Count    %d\n", system.Count)
+	fmt.Printf("Type     %s\n", system.Type)
 }
 
 func cmdRackUpdate(c *cli.Context) {
 	version := ""
 
 	if len(c.Args()) == 0 {
-		resp, err := http.Get("http://convox.s3.amazonaws.com/release/latest/version")
-
-		if err != nil {
-			fmt.Printf("ERROR")
-			stdcli.Error(err)
-			return
-		}
-
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
+		v, err := latestVersion()
 
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
-		version = strings.TrimSpace(string(body))
+		version = v
 	} else {
 		version = c.Args()[0]
 	}
 
-	v := url.Values{}
-	v.Set("version", version)
-
-	_, err := ConvoxPostForm("/system", v)
+	system, err := rackClient().UpdateSystem(version)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	cmdRack(c)
+	fmt.Printf("Name     %s\n", system.Name)
+	fmt.Printf("Status   %s\n", system.Status)
+	fmt.Printf("Version  %s\n", system.Version)
+	fmt.Printf("Count    %d\n", system.Count)
+	fmt.Printf("Type     %s\n", system.Type)
 }
 
 func cmdRackScale(c *cli.Context) {
-	v := url.Values{}
+	count := 0
+	typ := ""
 
 	if c.IsSet("count") {
-		v.Set("count", c.String("count"))
+		count = c.Int("count")
 	}
 
 	if c.IsSet("type") {
-		v.Set("type", c.String("type"))
+		typ = c.String("type")
 	}
 
-	if len(v) > 0 {
-		_, err := ConvoxPostForm("/system", v)
+	system, err := rackClient().ScaleSystem(count, typ)
 
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
-	cmdRack(c)
+	fmt.Printf("Name     %s\n", system.Name)
+	fmt.Printf("Status   %s\n", system.Status)
+	fmt.Printf("Version  %s\n", system.Version)
+	fmt.Printf("Count    %d\n", system.Count)
+	fmt.Printf("Type     %s\n", system.Type)
+}
+
+func latestVersion() (string, error) {
+	resp, err := http.Get("http://convox.s3.amazonaws.com/release/latest/version")
+
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(body)), nil
 }

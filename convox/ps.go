@@ -67,7 +67,7 @@ func cmdPsStop(c *cli.Context) {
 
 	fmt.Printf("Stopping %s... ", id)
 
-	_, err := rackClient().StopProcess(app, id)
+	_, err = rackClient().StopProcess(app, id)
 
 	if err != nil {
 		stdcli.Error(err)

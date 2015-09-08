@@ -166,6 +166,51 @@ func (c *Client) PostMultipart(path string, source []byte, out interface{}) erro
 	return nil
 }
 
+func (c *Client) Put(path string, params Params, out interface{}) error {
+	form := url.Values{}
+
+	for k, v := range params {
+		form.Set(k, v)
+	}
+
+	return c.PutBody(path, strings.NewReader(form.Encode()), out)
+}
+
+func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
+	req, err := c.request("PUT", path, body)
+
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := c.client().Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+
+	if err := responseError(res); err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(data, out)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func (c *Client) Delete(path string, out interface{}) error {
 	req, err := c.request("DELETE", path, nil)
 
