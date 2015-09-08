@@ -127,7 +127,7 @@ func cmdAppInfo(c *cli.Context) {
 		return
 	}
 
-	formation, err := rackClient().GetFormation(app)
+	formation, err := rackClient().ListFormation(app)
 
 	if err != nil {
 		stdcli.Error(err)

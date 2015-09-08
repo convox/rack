@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
@@ -18,12 +22,12 @@ func init() {
 			},
 			cli.IntFlag{
 				Name:  "count",
-				Value: 1,
+				Value: 0,
 				Usage: "Number of processes to keep running for specified process type.",
 			},
 			cli.IntFlag{
 				Name:  "memory",
-				Value: 256,
+				Value: 0,
 				Usage: "Amount of memory, in MB, available to specified process type.",
 			},
 		},
@@ -31,86 +35,52 @@ func init() {
 }
 
 func cmdScale(c *cli.Context) {
-	// _, app, err := stdcli.DirApp(c, ".")
+	_, app, err := stdcli.DirApp(c, ".")
 
-	// if err != nil {
-	//   stdcli.Error(err)
-	//   return
-	// }
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
-	// v := url.Values{}
+	if len(c.Args()) == 0 {
+		displayFormation(app)
+		return
+	}
 
-	// if c.IsSet("count") {
-	//   v.Set("count", c.String("count"))
-	// }
+	process := c.Args()[0]
+	count := c.Int("count")
+	memory := c.Int("memory")
 
-	// if c.IsSet("memory") {
-	//   v.Set("mem", c.String("memory"))
-	// }
+	err = rackClient().SetFormation(app, process, count, memory)
 
-	// if len(v) > 0 {
-	//   v.Set("process", c.Args()[0])
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
-	//   _, err = ConvoxPostForm("/apps/"+app, v)
+	displayFormation(app)
+}
 
-	//   if err != nil {
-	//     stdcli.Error(err)
-	//     return
-	//   }
-	// }
+func displayFormation(app string) {
+	formation, err := rackClient().ListFormation(app)
 
-	// data, err := ConvoxGet("/apps/" + app)
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
-	// if err != nil {
-	//   stdcli.Error(err)
-	//   return
-	// }
+	t := stdcli.NewTable("NAME", "COUNT", "MEMORY", "PORTS")
 
-	// var a *App
-	// err = json.Unmarshal(data, &a)
+	for _, f := range formation {
+		ports := []string{}
 
-	// if err != nil {
-	//   stdcli.Error(err)
-	//   return
-	// }
+		for _, p := range f.Ports {
+			ports = append(ports, strconv.Itoa(p))
+		}
 
-	// processes := map[string]Process{}
-	// names := []string{}
+		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", f.Memory), strings.Join(ports, " "))
+	}
 
-	// for k, v := range a.Parameters {
-	//   if !strings.HasSuffix(k, "DesiredCount") {
-	//     continue
-	//   }
+	t.Print()
 
-	//   ps := strings.Replace(k, "DesiredCount", "", 1)
-	//   p := strings.ToLower(ps)
-
-	//   i, err := strconv.ParseInt(v, 10, 64)
-
-	//   if err != nil {
-	//     stdcli.Error(err)
-	//     return
-	//   }
-
-	//   m, err := strconv.ParseInt(a.Parameters[ps+"Memory"], 10, 64)
-
-	//   if err != nil {
-	//     stdcli.Error(err)
-	//     return
-	//   }
-
-	//   processes[p] = Process{Name: p, Count: i, Memory: m}
-	//   names = append(names, p)
-	// }
-
-	// sort.Strings(names)
-
-	// t := stdcli.NewTable("PROCESS", "COUNT", "MEM")
-
-	// for _, name := range names {
-	//   ps := processes[name]
-	//   t.AddRow(ps.Name, fmt.Sprintf("%d", ps.Count), fmt.Sprintf("%d", ps.Memory))
-	// }
-
-	// t.Print()
 }
