@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 
 	"github.com/convox/kernel/models"
@@ -81,6 +82,10 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	err = rr.Promote()
+
+	if awsError(err) == "ValidationError" {
+		return RenderForbidden(rw, err.(awserr.Error).Message())
+	}
 
 	if err != nil {
 		return err
