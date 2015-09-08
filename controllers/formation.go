@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
@@ -33,11 +32,8 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
-	count, _ := strconv.Atoi(GetForm(r, "count"))
-	memory, _ := strconv.Atoi(GetForm(r, "memory"))
-
-	fmt.Printf("count: %+v\n", count)
-	fmt.Printf("memory: %+v\n", memory)
+	count := GetForm(r, "count")
+	memory := GetForm(r, "memory")
 
 	_, err := models.GetApp(app)
 
