@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
@@ -251,6 +253,106 @@ func (a *App) LatestRelease() (*Release, error) {
 	}
 
 	return &releases[0], nil
+}
+
+func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
+	env, err := GetEnvironment(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	ea := make([]string, 0)
+
+	for k, v := range env {
+		ea = append(ea, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	release, err := a.LatestRelease()
+
+	if err != nil {
+		return err
+	}
+
+	manifest, err := LoadManifest(release.Manifest)
+
+	if err != nil {
+		return err
+	}
+
+	me := manifest.Entry(process)
+
+	if me == nil {
+		return fmt.Errorf("no such process: %s", process)
+	}
+
+	image := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
+
+	d := Docker()
+
+	err = d.PullImage(docker.PullImageOptions{
+		Repository: fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name),
+		Tag:        release.Build,
+	}, docker.AuthConfiguration{
+		ServerAddress: os.Getenv("REGISTRY_HOST"),
+		Username:      "convox",
+		Password:      os.Getenv("PASSWORD"),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	res, err := d.CreateContainer(docker.CreateContainerOptions{
+		Config: &docker.Config{
+			AttachStdin:  true,
+			AttachStdout: true,
+			AttachStderr: true,
+			Env:          ea,
+			OpenStdin:    true,
+			Tty:          true,
+			Cmd:          []string{"sh", "-c", command},
+			Image:        image,
+		},
+		// HostConfig: &docker.HostConfig{
+		//   Binds: p.Binds,
+		// },
+	})
+
+	if err != nil {
+		return err
+	}
+
+	go d.AttachToContainer(docker.AttachToContainerOptions{
+		Container:    res.ID,
+		InputStream:  rw,
+		OutputStream: rw,
+		ErrorStream:  rw,
+		Stream:       true,
+		Stdin:        true,
+		Stdout:       true,
+		Stderr:       true,
+		RawTerminal:  true,
+	})
+
+	// hacky
+	time.Sleep(100 * time.Millisecond)
+
+	err = d.StartContainer(res.ID, nil)
+
+	if err != nil {
+		return err
+	}
+
+	code, err := d.WaitContainer(res.ID)
+
+	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *App) TaskDefinitionFamily() string {

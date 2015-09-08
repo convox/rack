@@ -2,16 +2,12 @@ package models
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Process struct {
@@ -189,78 +185,6 @@ func (p *Process) Run(options ProcessRunOptions) error {
 	}
 
 	return nil
-}
-
-func (p *Process) RunAttached(command string, rw io.ReadWriter) error {
-	env, err := GetEnvironment(p.App)
-
-	if err != nil {
-		return err
-	}
-
-	ea := make([]string, 0)
-
-	for k, v := range env {
-		ea = append(ea, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	d := Docker()
-
-	res, err := d.CreateContainer(docker.CreateContainerOptions{
-		Config: &docker.Config{
-			AttachStdin:  true,
-			AttachStdout: true,
-			AttachStderr: true,
-			Env:          ea,
-			OpenStdin:    true,
-			Tty:          true,
-			Cmd:          []string{"sh", "-c", command},
-			Image:        p.Image,
-		},
-		HostConfig: &docker.HostConfig{
-			Binds: p.Binds,
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	go d.AttachToContainer(docker.AttachToContainerOptions{
-		Container:    res.ID,
-		InputStream:  rw,
-		OutputStream: rw,
-		ErrorStream:  rw,
-		Stream:       true,
-		Stdin:        true,
-		Stdout:       true,
-		Stderr:       true,
-		RawTerminal:  true,
-	})
-
-	// hacky
-	time.Sleep(100 * time.Millisecond)
-
-	err = d.StartContainer(res.ID, nil)
-
-	if err != nil {
-		return err
-	}
-
-	code, err := d.WaitContainer(res.ID)
-
-	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func copyWait(w io.Writer, r io.Reader, wg *sync.WaitGroup) {
-	io.Copy(w, r)
-	wg.Done()
 }
 
 func (ps Processes) Len() int {

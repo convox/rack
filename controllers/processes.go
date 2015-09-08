@@ -145,13 +145,17 @@ func ProcessRunAttached(ws *websocket.Conn) error {
 	process := vars["process"]
 	command := ws.Request().Header.Get("Command")
 
-	ps, err := models.GetProcess(app, process)
+	a, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		return fmt.Errorf("no such app: %s", app)
+	}
 
 	if err != nil {
 		return err
 	}
 
-	return ps.RunAttached(command, ws)
+	return a.RunAttached(process, command, ws)
 }
 
 func ProcessStop(rw http.ResponseWriter, r *http.Request) error {

@@ -58,6 +58,16 @@ func LoadManifest(data string) (Manifest, error) {
 //   return processes
 // }
 
+func (m Manifest) Entry(name string) *ManifestEntry {
+	for _, me := range m {
+		if me.Name == name {
+			return &me
+		}
+	}
+
+	return nil
+}
+
 func (me *ManifestEntry) CommandString() string {
 	switch cmd := me.Command.(type) {
 	case nil:
