@@ -57,5 +57,5 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 }
 
 func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
-	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, output)
+	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
 }

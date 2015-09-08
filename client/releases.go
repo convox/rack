@@ -54,5 +54,5 @@ func (c *Client) PromoteRelease(app, id string) (*Release, error) {
 }
 
 func (c *Client) StreamReleaseLogs(app, id string, output io.Writer) error {
-	return c.Stream(fmt.Sprintf("/apps/%s/releases/%s/logs", app, id), nil, output)
+	return c.Stream(fmt.Sprintf("/apps/%s/releases/%s/logs", app, id), nil, nil, output)
 }

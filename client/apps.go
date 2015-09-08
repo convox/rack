@@ -67,5 +67,5 @@ func (c *Client) DeleteApp(name string) (*App, error) {
 }
 
 func (c *Client) StreamAppLogs(app string, output io.Writer) error {
-	return c.Stream(fmt.Sprintf("/apps/%s/logs", app), nil, output)
+	return c.Stream(fmt.Sprintf("/apps/%s/logs", app), nil, nil, output)
 }

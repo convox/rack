@@ -245,7 +245,7 @@ func (c *Client) Delete(path string, out interface{}) error {
 	return nil
 }
 
-func (c *Client) Stream(path string, in io.Reader, out io.Writer) error {
+func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.Writer) error {
 	origin := fmt.Sprintf("https://%s", c.Host)
 	url := fmt.Sprintf("wss://%s%s", c.Host, path)
 
@@ -260,6 +260,10 @@ func (c *Client) Stream(path string, in io.Reader, out io.Writer) error {
 	userpass_encoded := base64.StdEncoding.EncodeToString([]byte(userpass))
 
 	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
+
+	for k, v := range headers {
+		config.Header.Add(k, v)
+	}
 
 	config.TlsConfig = &tls.Config{
 		InsecureSkipVerify: true,
@@ -276,7 +280,6 @@ func (c *Client) Stream(path string, in io.Reader, out io.Writer) error {
 	var wg sync.WaitGroup
 
 	if in != nil {
-		wg.Add(1)
 		go copyAsync(ws, in, &wg)
 	}
 
