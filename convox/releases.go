@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -75,40 +74,30 @@ func cmdReleases(c *cli.Context) {
 		return
 	}
 
-	data, err := ConvoxGet("/apps/" + app)
+	a, err := rackClient().GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var a *App
-	err = json.Unmarshal(data, &a)
-
-	data, err = ConvoxGet(fmt.Sprintf("/apps/%s/releases", a.Name))
+	releases, err := rackClient().GetReleases(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	var releases *Releases
-	err = json.Unmarshal(data, &releases)
+	t := stdcli.NewTable("ID", "CREATED", "STATUS")
 
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
+	for _, r := range releases {
+		status := ""
 
-	t := stdcli.NewTable("ID", "CREATED", "ACTIVE")
-
-	for _, r := range *releases {
-		active := ""
-		if a.Parameters["Release"] == r.Id {
-			active = "yes"
+		if a.Release == r.Id {
+			status = "active"
 		}
 
-		t.AddRow(r.Id, humanize.Time(r.Created), active)
+		t.AddRow(r.Id, humanize.Time(r.Created), status)
 	}
 
 	t.Print()
@@ -129,16 +118,7 @@ func cmdReleaseInfo(c *cli.Context) {
 		return
 	}
 
-	data, err := ConvoxGet(fmt.Sprintf("/apps/%s/releases/%s", app, release))
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var r Release
-
-	err = json.Unmarshal(data, &r)
+	r, err := rackClient().GetRelease(app, release)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -149,6 +129,7 @@ func cmdReleaseInfo(c *cli.Context) {
 	fmt.Printf("Build    %s\n", r.Build)
 	fmt.Printf("Created  %s\n", r.Created)
 	fmt.Printf("Env      ")
+
 	fmt.Println(strings.Replace(r.Env, "\n", "\n         ", -1))
 }
 
@@ -167,61 +148,14 @@ func cmdReleasePromote(c *cli.Context) {
 		return
 	}
 
-	_, err = postRelease(app, release)
+	fmt.Printf("Promoting %s... ", release)
+
+	_, err = rackClient().PromoteRelease(app, release)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
-}
 
-func postRelease(app, release string) (*App, error) {
-	fmt.Printf("Promoting %s... ", release)
-
-	// promote release
-	_, err := ConvoxPost(fmt.Sprintf("/apps/%s/releases/%s/promote", app, release), "")
-
-	if err != nil {
-		return nil, err
-	}
-
-	// poll for complete
-	for {
-		data, err := ConvoxGet(fmt.Sprintf("/apps/%s", app))
-
-		if err != nil {
-			return nil, err
-		}
-
-		var app App
-
-		err = json.Unmarshal(data, &app)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if app.Status == "running" {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	data, err := ConvoxGet("/apps/" + app)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var a *App
-	err = json.Unmarshal(data, &a)
-
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("OK, %s\n", a.Parameters["Release"])
-
-	return a, nil
+	fmt.Println("UPDATING")
 }
