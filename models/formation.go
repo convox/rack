@@ -63,3 +63,23 @@ func ListFormation(app string) (Formation, error) {
 
 	return formation, nil
 }
+
+func SetFormation(app, process string, count, memory int) error {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return err
+	}
+
+	params := map[string]string{}
+
+	if count > 0 {
+		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = strconv.Itoa(count)
+	}
+
+	if memory > 0 {
+		params[fmt.Sprintf("%sMemory", UpperName(process))] = strconv.Itoa(memory)
+	}
+
+	return a.UpdateParams(params)
+}
