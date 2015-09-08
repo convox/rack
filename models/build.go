@@ -304,15 +304,21 @@ func (b *Build) scanLines(r io.Reader, wg *sync.WaitGroup) {
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
-		b.log(scanner.Text())
-
 		parts := strings.SplitN(scanner.Text(), "|", 2)
+
+		if len(parts) < 2 {
+			b.log(parts[0])
+			continue
+		}
 
 		switch parts[0] {
 		case "manifest":
 			b.Manifest += fmt.Sprintf("%s\n", parts[1])
 		case "error":
+			b.log(fmt.Sprintf("ERROR: %s", parts[1]))
 			b.Status = "failed"
+		default:
+			b.log(parts[1])
 		}
 	}
 }
