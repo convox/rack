@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
@@ -38,6 +39,8 @@ func ListServices() (Services, error) {
 			services = append(services, *serviceFromStack(stack))
 		}
 	}
+
+	sort.Sort(services)
 
 	return services, nil
 }
@@ -128,6 +131,18 @@ func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
 		go subscribeKinesis(resources["Kinesis"].Id, output, done)
 	}
 	return nil
+}
+
+func (ss Services) Len() int {
+	return len(ss)
+}
+
+func (ss Services) Less(i, j int) bool {
+	return ss[i].Name < ss[j].Name
+}
+
+func (ss Services) Swap(i, j int) {
+	ss[i], ss[j] = ss[j], ss[i]
 }
 
 func serviceFromStack(stack *cloudformation.Stack) *Service {
