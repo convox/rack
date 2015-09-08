@@ -63,7 +63,7 @@ func cmdRun(c *cli.Context) {
 
 	ps := c.Args()[0]
 
-	code, err := rackClient().RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
+	code, err := rackClient(c).RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -97,7 +97,7 @@ func cmdRunDetached(c *cli.Context) {
 
 	fmt.Printf("Running `%s` on %s... ", command, ps)
 
-	err = rackClient().RunProcessDetached(app, ps, command)
+	err = rackClient(c).RunProcessDetached(app, ps, command)
 
 	if err != nil {
 		stdcli.Error(err)

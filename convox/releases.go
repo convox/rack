@@ -74,14 +74,14 @@ func cmdReleases(c *cli.Context) {
 		return
 	}
 
-	a, err := rackClient().GetApp(app)
+	a, err := rackClient(c).GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	releases, err := rackClient().GetReleases(app)
+	releases, err := rackClient(c).GetReleases(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -118,7 +118,7 @@ func cmdReleaseInfo(c *cli.Context) {
 		return
 	}
 
-	r, err := rackClient().GetRelease(app, release)
+	r, err := rackClient(c).GetRelease(app, release)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -150,7 +150,7 @@ func cmdReleasePromote(c *cli.Context) {
 
 	fmt.Printf("Promoting %s... ", release)
 
-	_, err = rackClient().PromoteRelease(app, release)
+	_, err = rackClient(c).PromoteRelease(app, release)
 
 	if err != nil {
 		stdcli.Error(err)

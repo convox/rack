@@ -245,7 +245,7 @@ func cmdInstall(c *cli.Context) {
 
 func cmdUninstall(c *cli.Context) {
 	if !c.Bool("force") {
-		apps, err := rackClient().GetApps()
+		apps, err := rackClient(c).GetApps()
 
 		if err != nil {
 			stdcli.Error(err)

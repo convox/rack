@@ -44,7 +44,7 @@ func init() {
 }
 
 func cmdRack(c *cli.Context) {
-	system, err := rackClient().GetSystem()
+	system, err := rackClient(c).GetSystem()
 
 	if err != nil {
 		stdcli.Error(err)
@@ -74,7 +74,7 @@ func cmdRackUpdate(c *cli.Context) {
 		version = c.Args()[0]
 	}
 
-	system, err := rackClient().UpdateSystem(version)
+	system, err := rackClient(c).UpdateSystem(version)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -100,7 +100,7 @@ func cmdRackScale(c *cli.Context) {
 		typ = c.String("type")
 	}
 
-	system, err := rackClient().ScaleSystem(count, typ)
+	system, err := rackClient(c).ScaleSystem(count, typ)
 
 	if err != nil {
 		stdcli.Error(err)

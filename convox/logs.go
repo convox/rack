@@ -30,7 +30,7 @@ func cmdLogsStream(c *cli.Context) {
 		return
 	}
 
-	err = rackClient().StreamAppLogs(app, os.Stdout)
+	err = rackClient(c).StreamAppLogs(app, os.Stdout)
 
 	if err != nil {
 		stdcli.Error(err)

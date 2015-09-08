@@ -38,7 +38,7 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Printf("Deploying %s\n", app)
 
-	_, err = rackClient().GetApp(app)
+	_, err = rackClient(c).GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -46,7 +46,7 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	// build
-	release, err := executeBuild(dir, app)
+	release, err := executeBuild(c, dir, app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -59,7 +59,7 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Print("Promoting %s... ", release)
 
-	r, err := rackClient().PromoteRelease(app, release)
+	r, err := rackClient(c).PromoteRelease(app, release)
 
 	fmt.Printf("r: %+v\n", r)
 

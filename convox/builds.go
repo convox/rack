@@ -47,7 +47,7 @@ func cmdBuilds(c *cli.Context) {
 		return
 	}
 
-	builds, err := rackClient().GetBuilds(app)
+	builds, err := rackClient(c).GetBuilds(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -84,14 +84,14 @@ func cmdBuildsCreate(c *cli.Context) {
 		return
 	}
 
-	_, err = rackClient().GetApp(app)
+	_, err = rackClient(c).GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	release, err := executeBuild(dir, app)
+	release, err := executeBuild(c, dir, app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -116,7 +116,7 @@ func cmdBuildsInfo(c *cli.Context) {
 
 	build := c.Args()[0]
 
-	b, err := rackClient().GetBuild(app, build)
+	b, err := rackClient(c).GetBuild(app, build)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -126,7 +126,7 @@ func cmdBuildsInfo(c *cli.Context) {
 	fmt.Println(b.Logs)
 }
 
-func executeBuild(dir string, app string) (string, error) {
+func executeBuild(c *cli.Context, dir string, app string) (string, error) {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
@@ -143,19 +143,19 @@ func executeBuild(dir string, app string) (string, error) {
 
 	fmt.Println("OK")
 
-	build, err := rackClient().CreateBuild(app, tar)
+	build, err := rackClient(c).CreateBuild(app, tar)
 
 	if err != nil {
 		return "", err
 	}
 
-	err = rackClient().StreamBuildLogs(app, build.Id, os.Stdout)
+	err = rackClient(c).StreamBuildLogs(app, build.Id, os.Stdout)
 
 	if err != nil {
 		return "", err
 	}
 
-	release, err := waitForBuild(app, build.Id)
+	release, err := waitForBuild(c, app, build.Id)
 
 	if err != nil {
 		return "", err
@@ -208,9 +208,9 @@ func createTarball(base string) ([]byte, error) {
 	return bytes, nil
 }
 
-func waitForBuild(app, id string) (string, error) {
+func waitForBuild(c *cli.Context, app, id string) (string, error) {
 	for {
-		build, err := rackClient().GetBuild(app, id)
+		build, err := rackClient(c).GetBuild(app, id)
 
 		if err != nil {
 			return "", err

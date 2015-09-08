@@ -15,7 +15,7 @@ func init() {
 	stdcli.VersionPrinter(func(c *cli.Context) {
 		fmt.Printf("client: %s\n", c.App.Version)
 
-		system, err := rackClient().GetSystem()
+		system, err := rackClient(c).GetSystem()
 
 		if err != nil {
 			stdcli.Error(err)
@@ -36,13 +36,15 @@ func main() {
 	app := stdcli.New()
 	app.Version = Version
 	app.Usage = "command-line application management"
+
 	err := app.Run(os.Args)
+
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
-func rackClient() *client.Client {
+func rackClient(c *cli.Context) *client.Client {
 	host, password, err := currentLogin()
 
 	if err != nil {
@@ -50,5 +52,6 @@ func rackClient() *client.Client {
 		return nil
 	}
 
-	return client.New(host, password)
+	return client.New(host, password, "20150904181016")
+	// return client.New(host, password, c.App.Version)
 }

@@ -21,14 +21,16 @@ import (
 type Client struct {
 	Host     string
 	Password string
+	Version  string
 }
 
 type Params map[string]string
 
-func New(host, password string) *Client {
+func New(host, password, version string) *Client {
 	return &Client{
 		Host:     host,
 		Password: password,
+		Version:  version,
 	}
 }
 
@@ -319,7 +321,9 @@ func (c *Client) request(method, path string, body io.Reader) (*http.Request, er
 	}
 
 	req.SetBasicAuth("convox", string(c.Password))
+
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Version", c.Version)
 
 	return req, nil
 }

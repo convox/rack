@@ -56,7 +56,7 @@ func init() {
 }
 
 func cmdServices(c *cli.Context) {
-	services, err := rackClient().ListServices()
+	services, err := rackClient(c).ListServices()
 
 	if err != nil {
 		stdcli.Error(err)
@@ -83,7 +83,7 @@ func cmdServiceCreate(c *cli.Context) {
 
 	fmt.Printf("Creating %s (%s)... ", name, t)
 
-	service, err := rackClient().CreateService(t, name)
+	service, err := rackClient(c).CreateService(t, name)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -91,7 +91,7 @@ func cmdServiceCreate(c *cli.Context) {
 	}
 
 	for {
-		s, err := rackClient().GetService(service.Name)
+		s, err := rackClient(c).GetService(service.Name)
 
 		if err != nil {
 			stdcli.Error(err)
@@ -118,7 +118,7 @@ func cmdServiceDelete(c *cli.Context) {
 
 	fmt.Printf("Deleting %s... ", name)
 
-	_, err := rackClient().DeleteService(name)
+	_, err := rackClient(c).DeleteService(name)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -136,7 +136,7 @@ func cmdServiceInfo(c *cli.Context) {
 
 	name := c.Args()[0]
 
-	service, err := rackClient().GetService(name)
+	service, err := rackClient(c).GetService(name)
 
 	if err != nil {
 		stdcli.Error(err)

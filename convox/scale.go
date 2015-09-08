@@ -43,7 +43,7 @@ func cmdScale(c *cli.Context) {
 	}
 
 	if len(c.Args()) == 0 {
-		displayFormation(app)
+		displayFormation(c, app)
 		return
 	}
 
@@ -51,18 +51,18 @@ func cmdScale(c *cli.Context) {
 	count := c.String("count")
 	memory := c.String("memory")
 
-	err = rackClient().SetFormation(app, process, count, memory)
+	err = rackClient(c).SetFormation(app, process, count, memory)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	displayFormation(app)
+	displayFormation(c, app)
 }
 
-func displayFormation(app string) {
-	formation, err := rackClient().ListFormation(app)
+func displayFormation(c *cli.Context, app string) {
+	formation, err := rackClient(c).ListFormation(app)
 
 	if err != nil {
 		stdcli.Error(err)

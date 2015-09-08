@@ -52,7 +52,7 @@ func init() {
 }
 
 func cmdApps(c *cli.Context) {
-	apps, err := rackClient().GetApps()
+	apps, err := rackClient(c).GetApps()
 
 	if err != nil {
 		stdcli.Error(err)
@@ -87,7 +87,7 @@ func cmdAppCreate(c *cli.Context) {
 
 	fmt.Printf("Creating app %s... ", app)
 
-	_, err = rackClient().CreateApp(app)
+	_, err = rackClient(c).CreateApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -107,7 +107,7 @@ func cmdAppDelete(c *cli.Context) {
 
 	fmt.Printf("Deleting %s... ", app)
 
-	_, err := rackClient().DeleteApp(app)
+	_, err := rackClient(c).DeleteApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -120,14 +120,14 @@ func cmdAppDelete(c *cli.Context) {
 func cmdAppInfo(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
 
-	a, err := rackClient().GetApp(app)
+	a, err := rackClient(c).GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	formation, err := rackClient().ListFormation(app)
+	formation, err := rackClient(c).ListFormation(app)
 
 	if err != nil {
 		stdcli.Error(err)

@@ -58,7 +58,7 @@ func cmdEnvList(c *cli.Context) {
 		return
 	}
 
-	env, err := rackClient().GetEnvironment(app)
+	env, err := rackClient(c).GetEnvironment(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -98,7 +98,7 @@ func cmdEnvGet(c *cli.Context) {
 
 	variable := c.Args()[0]
 
-	env, err := rackClient().GetEnvironment(app)
+	env, err := rackClient(c).GetEnvironment(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -116,7 +116,7 @@ func cmdEnvSet(c *cli.Context) {
 		return
 	}
 
-	env, err := rackClient().GetEnvironment(app)
+	env, err := rackClient(c).GetEnvironment(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -151,7 +151,7 @@ func cmdEnvSet(c *cli.Context) {
 		data += fmt.Sprintf("%s\n", value)
 	}
 
-	_, err = rackClient().SetEnvironment(app, strings.NewReader(data))
+	_, err = rackClient(c).SetEnvironment(app, strings.NewReader(data))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -179,7 +179,7 @@ func cmdEnvUnset(c *cli.Context) {
 
 	key := c.Args()[0]
 
-	_, err = rackClient().DeleteEnvironment(app, key)
+	_, err = rackClient(c).DeleteEnvironment(app, key)
 
 	if err != nil {
 		stdcli.Error(err)
