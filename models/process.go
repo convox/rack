@@ -23,16 +23,6 @@ type Process struct {
 
 type Processes []Process
 
-type ProcessTop struct {
-	Titles    []string
-	Processes [][]string
-}
-
-type ProcessRunOptions struct {
-	Command string
-	Process string
-}
-
 func ListProcesses(app string) (Processes, error) {
 	_, err := GetApp(app)
 
@@ -133,45 +123,6 @@ func GetProcess(app, id string) (*Process, error) {
 	return nil, nil
 }
 
-func (p *Process) Run(options ProcessRunOptions) error {
-	app, err := GetApp(p.App)
-
-	if err != nil {
-		return err
-	}
-
-	resources := app.Resources()
-
-	req := &ecs.RunTaskInput{
-		Cluster:        aws.String(os.Getenv("CLUSTER")),
-		Count:          aws.Long(1),
-		TaskDefinition: aws.String(resources[UpperName(options.Process)+"ECSTaskDefinition"].Id),
-	}
-
-	if options.Command != "" {
-		req.Overrides = &ecs.TaskOverride{
-			ContainerOverrides: []*ecs.ContainerOverride{
-				&ecs.ContainerOverride{
-					Name: aws.String(p.Name),
-					Command: []*string{
-						aws.String("sh"),
-						aws.String("-c"),
-						aws.String(options.Command),
-					},
-				},
-			},
-		}
-	}
-
-	_, err = ECS().RunTask(req)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (ps Processes) Len() int {
 	return len(ps)
 }
@@ -197,38 +148,4 @@ func (p *Process) Stop() error {
 	}
 
 	return nil
-}
-
-func (p *Process) Instances() Instances {
-	instances, err := ListInstances(p.App, p.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return instances
-}
-
-func (p *Process) Metrics() *Metrics {
-	metrics, err := ProcessMetrics(p.App, p.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return metrics
-}
-
-func (p *Process) Resources() Resources {
-	resources, err := ListProcessResources(p.App, p.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return resources
-}
-
-func (p *Process) Userdata() string {
-	return `""`
 }
