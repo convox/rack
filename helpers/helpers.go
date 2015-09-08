@@ -20,9 +20,10 @@ func Error(log *logger.Logger, err error) {
 		log.Error(err)
 	}
 	extraData := map[string]string{
-		"VPC":     os.Getenv("VPC"),
-		"RELEASE": os.Getenv("RELEASE"),
-		"RACK":    os.Getenv("RACK"),
+		"AWS_REGION": os.Getenv("AWS_REGION"),
+		"RACK":       os.Getenv("RACK"),
+		"RELEASE":    os.Getenv("RELEASE"),
+		"VPC":        os.Getenv("VPC"),
 	}
 	extraField := &rollbar.Field{"env", extraData}
 
