@@ -186,15 +186,3 @@ func cmdEnvUnset(c *cli.Context) {
 		return
 	}
 }
-
-func fetchEnv(app string) ([]byte, error) {
-	path := fmt.Sprintf("/apps/%s/environment", app)
-
-	resp, err := ConvoxGet(path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
