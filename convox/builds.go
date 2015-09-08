@@ -1,10 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
-	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,7 +11,6 @@ import (
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 	"github.com/dustin/go-humanize"
-	"golang.org/x/net/websocket"
 )
 
 func init() {
@@ -130,198 +126,38 @@ func executeBuild(dir string, app string) (string, error) {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
-		stdcli.Error(err)
+		return "", err
 	}
 
-	// fmt.Print("Uploading... ")
+	fmt.Print("Uploading... ")
 
-	// tar, err := createTarball(dir)
-
-	// if err != nil {
-	//   return "", err
-	// }
-
-	// fmt.Println("OK")
-
-	// build, err := postBuild(tar, app)
-
-	// if err != nil {
-	//   return "", err
-	// }
-
-	// err = streamBuild(app, build.Id, 0)
-
-	// if err != nil {
-	//   fmt.Printf("%+v\n", err)
-	//   return "", err
-	// }
-
-	// release, err := waitForBuild(app, build.Id)
-
-	// if err != nil {
-	//   return "", err
-	// }
-
-	// return release, nil
-
-	return "", fmt.Errorf("unimplemented")
-}
-
-// func postBuild(tar []byte, app string) (*Build, error) {
-//   body := &bytes.Buffer{}
-
-//   writer := multipart.NewWriter(body)
-
-//   part, err := writer.CreateFormFile("source", "source.tgz")
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   _, err = io.Copy(part, bytes.NewReader(tar))
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   err = writer.Close()
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   req, err := convoxRequest("POST", fmt.Sprintf("/apps/%s/build", app), body)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   req.Header.Set("Content-Type", writer.FormDataContentType())
-
-//   res, err := convoxClient().Do(req)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   defer res.Body.Close()
-
-//   data, err := ioutil.ReadAll(res.Body)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   if res.StatusCode/100 > 3 {
-//     return nil, fmt.Errorf(string(data))
-//   }
-
-//   var build Build
-
-//   err = json.Unmarshal(data, &build)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   return &build, nil
-// }
-
-func streamBuild(app, build string, offset int) error {
-	host, password, err := currentLogin()
+	tar, err := createTarball(dir)
 
 	if err != nil {
-		stdcli.Error(err)
-		return err
+		return "", err
 	}
 
-	origin := fmt.Sprintf("https://%s", host)
-	url := fmt.Sprintf("wss://%s/apps/%s/builds/%s/logs", host, app, build)
+	fmt.Println("OK")
 
-	config, err := websocket.NewConfig(url, origin)
+	build, err := rackClient().CreateBuild(app, tar)
 
 	if err != nil {
-		stdcli.Error(err)
-		return err
+		return "", err
 	}
 
-	userpass := fmt.Sprintf("convox:%s", password)
-	userpass_encoded := base64.StdEncoding.EncodeToString([]byte(userpass))
-
-	config.Header.Add("Authorization", fmt.Sprintf("Basic %s", userpass_encoded))
-
-	config.TlsConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
-	ws, err := websocket.DialConfig(config)
+	err = rackClient().StreamBuildLogs(app, build.Id, os.Stdout)
 
 	if err != nil {
-		stdcli.Error(err)
-		return err
+		return "", err
 	}
 
-	defer ws.Close()
+	release, err := waitForBuild(app, build.Id)
 
-	var message []byte
-
-	lineno := 0
-
-	for {
-		err := websocket.Message.Receive(ws, &message)
-
-		if err == io.EOF {
-			b, err := rackClient().GetBuild(app, build)
-
-			if err != nil {
-				stdcli.Error(err)
-				return err
-			}
-
-			if b.Status == "building" {
-				time.Sleep(2 * time.Second)
-				continue
-			} else {
-				return nil
-			}
-		}
-
-		if err != nil {
-			// fmt.Fprintf(os.Stderr, "ws %s, retrying...\n", err.Error())
-			return streamBuild(app, build, lineno)
-		}
-
-		if lineno >= offset {
-			fmt.Print(string(message))
-		}
-
-		lineno += 1
+	if err != nil {
+		return "", err
 	}
 
-	return nil
-}
-
-func waitForBuild(app, id string) (string, error) {
-	for {
-		build, err := rackClient().GetBuild(app, id)
-
-		if err != nil {
-			return "", err
-		}
-
-		switch build.Status {
-		case "complete":
-			return build.Release, nil
-		case "error":
-			return "", fmt.Errorf("%s build failed", app)
-		case "failed":
-			return "", fmt.Errorf("%s build failed", app)
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	return "", fmt.Errorf("can't get here")
+	return release, nil
 }
 
 func createTarball(base string) ([]byte, error) {
@@ -366,4 +202,27 @@ func createTarball(base string) ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+func waitForBuild(app, id string) (string, error) {
+	for {
+		build, err := rackClient().GetBuild(app, id)
+
+		if err != nil {
+			return "", err
+		}
+
+		switch build.Status {
+		case "complete":
+			return build.Release, nil
+		case "error":
+			return "", fmt.Errorf("%s build failed", app)
+		case "failed":
+			return "", fmt.Errorf("%s build failed", app)
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	return "", fmt.Errorf("can't get here")
 }

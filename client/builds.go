@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -31,12 +32,10 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	return builds, nil
 }
 
-func (c *Client) CreateBuild(app, repo string) (*Build, error) {
-	params := Params{}
-
+func (c *Client) CreateBuild(app string, source []byte) (*Build, error) {
 	var build Build
 
-	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
+	err := c.PostBody(fmt.Sprintf("/apps/%s/builds", app), source, &build)
 
 	if err != nil {
 		return nil, err
@@ -55,4 +54,8 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 	}
 
 	return &build, nil
+}
+
+func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
+	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, output)
 }
