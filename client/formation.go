@@ -1,9 +1,6 @@
 package client
 
-import (
-	"fmt"
-	"strconv"
-)
+import "fmt"
 
 type FormationEntry struct {
 	Name   string `json:"name"`
@@ -26,17 +23,17 @@ func (c *Client) ListFormation(app string) (Formation, error) {
 	return formation, nil
 }
 
-func (c *Client) SetFormation(app, process string, count, memory int) error {
+func (c *Client) SetFormation(app, process, count, memory string) error {
 	var success interface{}
 
 	params := map[string]string{}
 
-	if count > 0 {
-		params["count"] = strconv.Itoa(count)
+	if count != "" {
+		params["count"] = count
 	}
 
-	if memory > 0 {
-		params["memory"] = strconv.Itoa(memory)
+	if memory != "" {
+		params["memory"] = memory
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/formation/%s", app, process), params, &success)

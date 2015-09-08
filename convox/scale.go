@@ -20,14 +20,14 @@ func init() {
 				Name:  "app",
 				Usage: "App name. Inferred from current directory if not specified.",
 			},
-			cli.IntFlag{
+			cli.StringFlag{
 				Name:  "count",
-				Value: 0,
+				Value: "",
 				Usage: "Number of processes to keep running for specified process type.",
 			},
-			cli.IntFlag{
+			cli.StringFlag{
 				Name:  "memory",
-				Value: 0,
+				Value: "",
 				Usage: "Amount of memory, in MB, available to specified process type.",
 			},
 		},
@@ -48,8 +48,8 @@ func cmdScale(c *cli.Context) {
 	}
 
 	process := c.Args()[0]
-	count := c.Int("count")
-	memory := c.Int("memory")
+	count := c.String("count")
+	memory := c.String("memory")
 
 	err = rackClient().SetFormation(app, process, count, memory)
 
