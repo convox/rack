@@ -139,6 +139,7 @@ func startWeb() {
 	router.HandleFunc("/apps/{app}/formation", api("formation.list", controllers.FormationList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes", api("process.list", controllers.ProcessList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.get", controllers.ProcessShow)).Methods("GET")
+	router.HandleFunc("/apps/{app}/processes/{process}", api("process.stop", controllers.ProcessStop)).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detach", controllers.ProcessRunDetached)).Methods("POST")
 	router.HandleFunc("/apps/{app}/processes/{process}/scale", api("process.scale", controllers.ProcessScale)).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", api("release.list", controllers.ReleaseList)).Methods("GET")

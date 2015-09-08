@@ -121,7 +121,7 @@ func ListProcesses(app string) (Processes, error) {
 	return pss, nil
 }
 
-func GetProcess(app, name string) (*Process, error) {
+func GetProcess(app, id string) (*Process, error) {
 	processes, err := ListProcesses(app)
 
 	if err != nil {
@@ -129,7 +129,7 @@ func GetProcess(app, name string) (*Process, error) {
 	}
 
 	for _, p := range processes {
-		if p.Name == name {
+		if p.Id == id {
 			return &p, nil
 		}
 	}
@@ -286,20 +286,6 @@ func (p *Process) Stop() error {
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (p *Process) SubscribeLogs(output chan []byte, quit chan bool) error {
-	// resources, err := ListResources(p.App)
-	// fmt.Printf("err %+v\n", err)
-
-	// if err != nil {
-	//   return err
-	// }
-
-	// done := make(chan bool)
-	// go subscribeKinesis(p.Name, resources[fmt.Sprintf("%sKinesis", upperName(p.Name))].Id, output, done)
 
 	return nil
 }

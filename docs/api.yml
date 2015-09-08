@@ -264,7 +264,29 @@ paths:
         in: path
         required: true
       - name: process
-        description: process name
+        description: process id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: process
+          schema:
+            $ref: '#/definitions/process'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    delete:
+      description: Stop a process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process id
         type: string
         in: path
         required: true
