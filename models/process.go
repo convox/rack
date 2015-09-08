@@ -133,21 +133,6 @@ func GetProcess(app, id string) (*Process, error) {
 	return nil, nil
 }
 
-// func (p *Process) Top() (*ProcessTop, error) {
-//   res, err := p.Docker().TopContainer(p.ContainerId, "")
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   info := &ProcessTop{
-//     Titles:    res.Titles,
-//     Processes: res.Processes,
-//   }
-
-//   return info, nil
-// }
-
 func (p *Process) Run(options ProcessRunOptions) error {
 	app, err := GetApp(p.App)
 
