@@ -234,6 +234,39 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /apps/{app}/formation/{process}:
+    post:
+      description: Set formation for a process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      - name: count
+        description: process count
+        type: integer
+        in: formData
+        required: false
+      - name: memory
+        description: process memory
+        type: integer
+        in: formData
+        required: false
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}/processes:
     get:
       description: List processes for an app
@@ -323,39 +356,6 @@ paths:
           description: success
           schema:
             $ref: '#/definitions/success'
-        404:
-          description: not found
-          schema:
-            $ref: '#/definitions/error'
-  /apps/{app}/processes/{process}/scale:
-    post:
-      description: Scale a process
-      parameters:
-      - name: app
-        description: app name
-        type: string
-        in: path
-        required: true
-      - name: process
-        description: process name
-        type: string
-        in: path
-        required: true
-      - name: count
-        description: process count
-        type: integer
-        in: formData
-        required: false
-      - name: memory
-        description: process memory
-        type: integer
-        in: formData
-        required: false
-      responses:
-        200:
-          description: process
-          schema:
-            $ref: '#/definitions/process'
         404:
           description: not found
           schema:
