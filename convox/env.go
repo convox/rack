@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
@@ -22,7 +22,7 @@ func init() {
 		Name:        "env",
 		Description: "manage an app's environment variables",
 		Usage:       "[get|set|unset]",
-		Action:      cmdEnvGetAll,
+		Action:      cmdEnvList,
 		Flags:       []cli.Flag{appFlag},
 		Subcommands: []cli.Command{
 			{
@@ -50,7 +50,7 @@ func init() {
 	})
 }
 
-func cmdEnvGetAll(c *cli.Context) {
+func cmdEnvList(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
@@ -58,16 +58,8 @@ func cmdEnvGetAll(c *cli.Context) {
 		return
 	}
 
-	resp, err := fetchEnv(app)
+	env, err := rackClient().GetEnvironment(app)
 
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var env map[string]string
-	err = json.Unmarshal(resp, &env)
-	
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -94,12 +86,11 @@ func cmdEnvGet(c *cli.Context) {
 		return
 	}
 
-	
 	if len(c.Args()) == 0 {
 		stdcli.Error(errors.New("No variable specified"))
 		return
 	}
-	
+
 	if len(c.Args()) > 1 {
 		stdcli.Error(errors.New("Only 1 variable can be retrieved at a time"))
 		return
@@ -107,15 +98,7 @@ func cmdEnvGet(c *cli.Context) {
 
 	variable := c.Args()[0]
 
-	resp, err := fetchEnv(app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var env map[string]string
-	err = json.Unmarshal(resp, &env)
+	env, err := rackClient().GetEnvironment(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -133,15 +116,7 @@ func cmdEnvSet(c *cli.Context) {
 		return
 	}
 
-	resp, err := fetchEnv(app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	var old map[string]string
-	err = json.Unmarshal(resp, &old)
+	env, err := rackClient().GetEnvironment(app)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -150,7 +125,7 @@ func cmdEnvSet(c *cli.Context) {
 
 	data := ""
 
-	for key, value := range old {
+	for key, value := range env {
 		data += fmt.Sprintf("%s=%s\n", key, value)
 	}
 
@@ -176,9 +151,7 @@ func cmdEnvSet(c *cli.Context) {
 		data += fmt.Sprintf("%s\n", value)
 	}
 
-	path := fmt.Sprintf("/apps/%s/environment", app)
-
-	resp, err = ConvoxPost(path, data)
+	_, err = rackClient().SetEnvironment(app, strings.NewReader(data))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -193,22 +166,20 @@ func cmdEnvUnset(c *cli.Context) {
 		stdcli.Error(err)
 		return
 	}
-	
+
 	if len(c.Args()) == 0 {
 		stdcli.Error(errors.New("No variable specified"))
 		return
 	}
-	
+
 	if len(c.Args()) > 1 {
 		stdcli.Error(errors.New("Only 1 variable can be unset at a time"))
 		return
 	}
 
-	variable := c.Args()[0]
+	key := c.Args()[0]
 
-	path := fmt.Sprintf("/apps/%s/environment/%s", app, variable)
-
-	_, err = ConvoxDelete(path)
+	_, err = rackClient().DeleteEnvironment(app, key)
 
 	if err != nil {
 		stdcli.Error(err)

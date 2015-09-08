@@ -35,7 +35,7 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 func (c *Client) CreateBuild(app string, source []byte) (*Build, error) {
 	var build Build
 
-	err := c.PostBody(fmt.Sprintf("/apps/%s/builds", app), source, &build)
+	err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), source, &build)
 
 	if err != nil {
 		return nil, err

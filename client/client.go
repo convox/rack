@@ -73,7 +73,11 @@ func (c *Client) Post(path string, params Params, out interface{}) error {
 		form.Set(k, v)
 	}
 
-	req, err := c.request("POST", path, strings.NewReader(form.Encode()))
+	return c.PostBody(path, strings.NewReader(form.Encode()), out)
+}
+
+func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
+	req, err := c.request("POST", path, body)
 
 	if err != nil {
 		return err
@@ -108,7 +112,7 @@ func (c *Client) Post(path string, params Params, out interface{}) error {
 	return nil
 }
 
-func (c *Client) PostBody(path string, source []byte, out interface{}) error {
+func (c *Client) PostMultipart(path string, source []byte, out interface{}) error {
 	body := &bytes.Buffer{}
 
 	writer := multipart.NewWriter(body)
