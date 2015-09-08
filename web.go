@@ -117,6 +117,29 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 	})
 }
 
+const MinimumClientVersion = "20150904181017"
+
+func versionCheck(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	if r.URL.Path == "/system" {
+		next(rw, r)
+		return
+	}
+
+	switch v := r.Header.Get("Version"); v {
+	case "":
+		controllers.RenderForbidden(rw, "unknown client version")
+	case "dev":
+		next(rw, r)
+	default:
+		if v < MinimumClientVersion {
+			controllers.RenderForbidden(rw, fmt.Sprintf("client too old, must be at least: %s", MinimumClientVersion))
+			return
+		}
+
+		next(rw, r)
+	}
+}
+
 var port string = "5000"
 
 func startWeb() {
@@ -172,6 +195,7 @@ func startWeb() {
 
 	n.Use(negroni.HandlerFunc(recovery))
 	n.Use(negroni.HandlerFunc(development))
+	n.Use(negroni.HandlerFunc(versionCheck))
 	n.Use(nlogger.New("ns=kernel", nil))
 
 	n.UseHandler(router)
