@@ -55,3 +55,7 @@ func rackClient(c *cli.Context) *client.Client {
 	// return client.New(host, password, "20150904181016")
 	return client.New(host, password, c.App.Version)
 }
+
+func rackClientManual(host, password, version string) *client.Client {
+	return client.New(host, password, version)
+}

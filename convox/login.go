@@ -1,12 +1,10 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -93,31 +91,9 @@ func cmdLogin(c *cli.Context) {
 		password = string(in)
 	}
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/apps", host), nil)
+	_, err = rackClientManual(host, password, c.App.Version).GetApps()
 
 	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	req.SetBasicAuth("convox", string(password))
-
-	res, err := client.Do(req)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
 		stdcli.Error(fmt.Errorf("invalid login"))
 		return
 	}
