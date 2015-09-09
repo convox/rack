@@ -3,16 +3,69 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"reflect"
 	"testing"
 
+	"github.com/convox/cli/client"
 	"github.com/convox/cli/stdcli"
 )
+
+type Stub struct {
+	Method   string
+	Path     string
+	Code     int
+	Response interface{}
+}
+
+func httpStub(stubs ...Stub) *httptest.Server {
+	stubs = append(stubs, Stub{Method: "GET", Path: "/system", Code: 200, Response: client.System{
+		Version: "latest",
+	}})
+
+	found := false
+
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, stub := range stubs {
+			if stub.Method == r.Method && stub.Path == r.URL.Path {
+				data, err := json.Marshal(stub.Response)
+
+				if err != nil {
+					http.Error(w, err.Error(), 503)
+				}
+
+				w.WriteHeader(stub.Code)
+				w.Write(data)
+
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			fmt.Printf("unknown request: %+v\n", r)
+			http.Error(w, "not found", 404)
+		}
+	}))
+
+	u, _ := url.Parse(ts.URL)
+
+	dir, _ := ioutil.TempDir("", "convox-test")
+
+	ConfigRoot, _ = ioutil.TempDir("", "convox-test")
+
+	os.Setenv("CONVOX_CONFIG", dir)
+	os.Setenv("CONVOX_HOST", u.Host)
+	os.Setenv("CONVOX_PASSWORD", "foo")
+
+	return ts
+}
 
 func appRun(args []string) (string, string) {
 	app := stdcli.New()

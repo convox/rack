@@ -9,19 +9,6 @@ import (
 	"github.com/convox/cli/stdcli"
 )
 
-type App struct {
-	Name string
-
-	Status     string
-	Repository string
-
-	Outputs    map[string]string
-	Parameters map[string]string
-	Tags       map[string]string
-}
-
-type Apps []App
-
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "apps",

@@ -1,26 +1,19 @@
 package main
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
+
+	"github.com/convox/cli/client"
 )
 
 func TestApps(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		apps := make(Apps, 0)
-		apps = append(apps, App{
-			Name:   "sinatra",
-			Status: "running",
-		})
+	ts := httpStub(
+		Stub{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{
+			client.App{Name: "sinatra", Status: "running"},
+		}},
+	)
 
-		data, _ := json.Marshal(apps)
-		_, _ = w.Write(data)
-	}))
 	defer ts.Close()
-
-	setLoginEnv(ts)
 
 	stdout, stderr := appRun([]string{"convox", "apps"})
 
@@ -29,38 +22,24 @@ func TestApps(t *testing.T) {
 }
 
 func TestAppsCreate(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/apps":
-			_ = App{Name: r.FormValue("name")}
-			http.Error(w, "ok", 302)
+	ts := httpStub(
+		Stub{Method: "POST", Path: "/apps", Code: 200, Response: client.App{}},
+	)
 
-		case "/apps/foobar":
-			app := App{Name: "foobar"}
-			data, _ := json.Marshal(app)
-			_, _ = w.Write(data)
-
-		case "/apps/foobar/status":
-			w.Write([]byte("running"))
-		}
-	}))
 	defer ts.Close()
-
-	setLoginEnv(ts)
 
 	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
 
-	expect(t, stdout, "Creating app foobar... OK\n")
+	expect(t, stdout, "Creating app foobar... CREATING\n")
 	expect(t, stderr, "")
 }
 
 func TestAppsCreateFail(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "app already exists", 400)
-	}))
-	defer ts.Close()
+	ts := httpStub(
+		Stub{Method: "POST", Path: "/apps", Code: 403, Response: client.Error{Error: "app already exists"}},
+	)
 
-	setLoginEnv(ts)
+	defer ts.Close()
 
 	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
 

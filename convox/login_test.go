@@ -1,16 +1,16 @@
 package main
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"testing"
+
+	"github.com/convox/cli/client"
 )
 
 func TestInvalidLogin(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "unauthorized", 401)
-	}))
+	ts := httpStub(
+		Stub{Method: "GET", Path: "/apps", Code: 401, Response: "unauthorized"},
+	)
+
 	defer ts.Close()
 
 	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
@@ -20,9 +20,10 @@ func TestInvalidLogin(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "ok", 200)
-	}))
+	ts := httpStub(
+		Stub{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{}},
+	)
+
 	defer ts.Close()
 
 	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
@@ -32,18 +33,13 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLoginHost(t *testing.T) {
-	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "ok", 200)
-	}))
+	ts := httpStub(
+		Stub{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{}},
+	)
+
 	defer ts.Close()
 
 	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
-
-	expect(t, stdout, "Logged in successfully.\n")
-	expect(t, stderr, "")
-
-	u, _ := url.Parse(ts.URL)
-	stdout, stderr = appRun([]string{"convox", "login", "--password", "foobar", u.Host})
 
 	expect(t, stdout, "Logged in successfully.\n")
 	expect(t, stderr, "")

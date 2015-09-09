@@ -56,7 +56,7 @@ func rackClient(c *cli.Context) *client.Client {
 
 	if err != nil {
 		stdcli.Error(err)
-		return nil
+		os.Exit(1)
 	}
 
 	return cl
@@ -67,7 +67,7 @@ func rackClientManual(host, password, version string) *client.Client {
 
 	if err != nil {
 		stdcli.Error(err)
-		return nil
+		os.Exit(1)
 	}
 
 	return cl
