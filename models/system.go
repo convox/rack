@@ -44,7 +44,7 @@ func GetSystem() (*System, error) {
 		Name:    rack,
 		Status:  humanStatus(*stack.StackStatus),
 		Type:    params["InstanceType"],
-		Version: params["Version"],
+		Version: os.Getenv("RELEASE"),
 	}
 
 	return r, nil
