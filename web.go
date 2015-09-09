@@ -127,12 +127,13 @@ func versionCheck(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc
 
 	switch v := r.Header.Get("Version"); v {
 	case "":
-		controllers.RenderForbidden(rw, "unknown client version")
+		rw.WriteHeader(403)
+		rw.Write([]byte("client outdated, please update with `convox update`"))
 	case "dev":
 		next(rw, r)
 	default:
 		if v < MinimumClientVersion {
-			controllers.RenderForbidden(rw, fmt.Sprintf("client too old, must be at least: %s", MinimumClientVersion))
+			controllers.RenderForbidden(rw, "client outdated, please update with `convox update`")
 			return
 		}
 
