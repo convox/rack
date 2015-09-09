@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stvp/rollbar"
 	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
-	"github.com/gorilla/mux"
 )
 
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
@@ -91,6 +91,11 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		log.Log("state=success")
 	})
+}
+
+func SingleRequest(w http.ResponseWriter, req *http.Request) {
+	router := NewRouter()
+	router.ServeHTTP(w, req)
 }
 
 func NewRouter() (router *mux.Router) {
