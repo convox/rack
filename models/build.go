@@ -118,18 +118,6 @@ func (b *Build) Save() error {
 		TableName: aws.String(buildsTable(b.App)),
 	}
 
-	if b.Logs != "" {
-		logMax := 1024 * 395 // Dynamo attribute can be 400k max
-
-		logs := b.Logs
-
-		if len(logs) > logMax {
-			logs = logs[0:logMax]
-		}
-
-		(*req.Item)["logs"] = &dynamodb.AttributeValue{S: aws.String(logs)}
-	}
-
 	if b.Manifest != "" {
 		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
 	}
@@ -142,7 +130,19 @@ func (b *Build) Save() error {
 		(*req.Item)["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
 	}
 
-	_, err := DynamoDB().PutItem(req)
+	a, err := GetApp(b.App)
+
+	if err != nil {
+		return err
+	}
+
+	err = S3Put(a.Outputs["Settings"], fmt.Sprintf("builds/%s.log", b.Id), []byte(b.Logs), true)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = DynamoDB().PutItem(req)
 
 	return err
 }
