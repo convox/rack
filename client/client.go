@@ -18,6 +18,8 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+const MinimumServerVersion = "20150904181007"
+
 type Client struct {
 	Host     string
 	Password string
@@ -26,12 +28,30 @@ type Client struct {
 
 type Params map[string]string
 
-func New(host, password, version string) *Client {
-	return &Client{
+func New(host, password, version string) (*Client, error) {
+	client := &Client{
 		Host:     host,
 		Password: password,
 		Version:  version,
 	}
+
+	system, err := client.GetSystem()
+
+	if err != nil {
+		return nil, err
+	}
+
+	switch v := system.Version; v {
+	case "":
+		return nil, fmt.Errorf("rack outdated, please update with `convox rack update`")
+	case "latest":
+	default:
+		if v < MinimumServerVersion {
+			return nil, fmt.Errorf("rack outdated, please update with `convox rack update`")
+		}
+	}
+
+	return client, nil
 }
 
 func (c *Client) Get(path string, out interface{}) error {
