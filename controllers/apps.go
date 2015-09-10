@@ -26,6 +26,8 @@ func AppList(rw http.ResponseWriter, r *http.Request) error {
 func AppShow(rw http.ResponseWriter, r *http.Request) error {
 	app := mux.Vars(r)["app"]
 
+	fmt.Println("WTF", mux.Vars(r), r.URL)
+
 	a, err := models.GetApp(mux.Vars(r)["app"])
 
 	if awsError(err) == "ValidationError" {

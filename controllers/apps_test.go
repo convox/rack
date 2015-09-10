@@ -13,13 +13,13 @@ import (
 
 func TestAppList(t *testing.T) {
 	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStacksCycle(),
+		DescribeStacksCycle("bar"),
 	})
 	s := httptest.NewServer(handler)
+	aws.DefaultConfig.Endpoint = s.URL
 	defer s.Close()
 
-	aws.DefaultConfig.Endpoint = s.URL
-	body := assert.HTTPBody(controllers.SingleRequest, "GET", "http://convox/apps", nil)
+	body := assert.HTTPBody(controllers.HandlerFunc, "GET", "http://convox/apps", nil)
 
 	var resp []map[string]string
 	err := json.Unmarshal([]byte(body), &resp)
@@ -29,7 +29,47 @@ func TestAppList(t *testing.T) {
 	}
 }
 
-func DescribeStacksCycle() awsutil.Cycle {
+func TestAppShowFound(t *testing.T) {
+	handler := awsutil.NewHandler([]awsutil.Cycle{
+		DescribeStackCycle("bar"),
+	})
+	s := httptest.NewServer(handler)
+	aws.DefaultConfig.Endpoint = s.URL
+	defer s.Close()
+
+	router := controllers.NewRouter()
+	body := assert.HTTPBody(router.ServeHTTP, "GET", "http://convox/apps/bar", nil)
+
+	t.Log(body)
+
+	//assert.Nil(t, err)
+}
+
+func TestAppShowWithNoApp(t *testing.T) {
+
+}
+
+func TestAppCreate(t *testing.T) {
+
+}
+
+func TestAppCreateWithAlreadyExists(t *testing.T) {
+
+}
+
+func TestAppDelete(t *testing.T) {
+
+}
+
+func TestAppDeleteWithNoApp(t *testing.T) {
+
+}
+
+func TestAppLogs(t *testing.T) {
+
+}
+
+func DescribeStacksCycle(appName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
 			RequestURI: "/",
@@ -51,9 +91,9 @@ func DescribeStacksCycle() awsutil.Cycle {
             <Key>System</Key>
           </member>
         </Tags>
-        <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/bar/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
+        <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/` + appName + `/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
         <StackStatus>CREATE_COMPLETE</StackStatus>
-        <StackName>bar</StackName>
+        <StackName>` + appName + `</StackName>
         <NotificationARNs/>
         <CreationTime>2015-09-03T00:49:16.068Z</CreationTime>
         <Parameters>

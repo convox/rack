@@ -28,7 +28,7 @@ func TestNoPassword(t *testing.T) {
 
 	os.Setenv("RACK", "convox-test")
 
-	assert.HTTPSuccess(t, controllers.SingleRequest, "GET", "http://convox/system", nil)
+	assert.HTTPSuccess(t, controllers.HandlerFunc, "GET", "http://convox/system", nil)
 }
 
 func TestBasicAuth(t *testing.T) {
@@ -43,7 +43,7 @@ func TestBasicAuth(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "http://convox/system", nil)
 	w := httptest.NewRecorder()
-	controllers.SingleRequest(w, req)
+	controllers.HandlerFunc(w, req)
 
 	if !assert.Equal(401, w.Code) {
 		return
@@ -51,7 +51,7 @@ func TestBasicAuth(t *testing.T) {
 
 	w = httptest.NewRecorder()
 	req.SetBasicAuth("", "keymaster")
-	controllers.SingleRequest(w, req)
+	controllers.HandlerFunc(w, req)
 
 	assert.Equal(200, w.Code)
 }

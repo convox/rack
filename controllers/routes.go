@@ -3,10 +3,10 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
-func SingleRequest(w http.ResponseWriter, req *http.Request) {
+func HandlerFunc(w http.ResponseWriter, req *http.Request) {
 	router := NewRouter()
 	router.ServeHTTP(w, req)
 }
