@@ -3,9 +3,9 @@ package models
 import (
 	"fmt"
 	"net/http/httptest"
-	"os"
 	"testing"
 
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/awsutil"
 )
 
@@ -158,8 +158,8 @@ func TestRunAttached(t *testing.T) {
 
 	defer s.Close()
 
-	os.Setenv("AWS_REGION", "test")
-	os.Setenv("AWS_ENDPOINT", s.URL)
+	aws.DefaultConfig.Region = "test"
+	aws.DefaultConfig.Endpoint = s.URL
 
 	app, err := GetApp("worker")
 

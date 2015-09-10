@@ -41,10 +41,6 @@ func awsConfig() *aws.Config {
 		Region:      os.Getenv("AWS_REGION"),
 	})
 
-	if endpoint := os.Getenv("AWS_ENDPOINT"); endpoint != "" {
-		config.Endpoint = endpoint
-	}
-
 	return config
 }
 
