@@ -376,14 +376,41 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
+	logs := ""
+	var err error
+
+	if item["logs"] == nil {
+		logs, err = getS3BuildLogs(coalesce(item["app"], ""), coalesce(item["id"], ""))
+
+		if err != nil {
+			logs = ""
+		}
+	}
+
 	return &Build{
 		Id:       coalesce(item["id"], ""),
 		App:      coalesce(item["app"], ""),
-		Logs:     coalesce(item["logs"], ""),
+		Logs:     coalesce(item["logs"], logs),
 		Manifest: coalesce(item["manifest"], ""),
 		Release:  coalesce(item["release"], ""),
 		Status:   coalesce(item["status"], ""),
 		Started:  started,
 		Ended:    ended,
 	}
+}
+
+func getS3BuildLogs(app, build_id string) (string, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return "", err
+	}
+
+	logs, err := s3Get(a.Outputs["Settings"], fmt.Sprintf("builds/%s.log", build_id))
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(logs), nil
 }
