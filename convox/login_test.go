@@ -13,10 +13,12 @@ func TestInvalidLogin(t *testing.T) {
 
 	defer ts.Close()
 
-	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
-
-	expect(t, stdout, "")
-	expect(t, stderr, "ERROR: invalid login\n")
+	testRuns(t,
+		Run{
+			Command: []string{"convox", "login", "--password", "foobar", ts.URL},
+			Stderr:  "ERROR: invalid login\n",
+		},
+	)
 }
 
 func TestLogin(t *testing.T) {
@@ -26,26 +28,14 @@ func TestLogin(t *testing.T) {
 
 	defer ts.Close()
 
-	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
-
-	expect(t, stdout, "Logged in successfully.\n")
-	expect(t, stderr, "")
-}
-
-func TestLoginHost(t *testing.T) {
-	ts := httpStub(
-		Stub{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{}},
+	testRuns(t,
+		Run{
+			Command: []string{"convox", "login", "--password", "foobar", ts.URL},
+			Stdout:  "Logged in successfully.\n",
+		},
+		Run{
+			Command: []string{"convox", "login", "--password", "foobar", "BAD"},
+			Stderr:  "ERROR: Get https://BAD/system: dial tcp: lookup BAD: no such host\n",
+		},
 	)
-
-	defer ts.Close()
-
-	stdout, stderr := appRun([]string{"convox", "login", "--password", "foobar", ts.URL})
-
-	expect(t, stdout, "Logged in successfully.\n")
-	expect(t, stderr, "")
-
-	stdout, stderr = appRun([]string{"convox", "login", "--password", "foobar", "BAD"})
-
-	expect(t, stdout, "")
-	expect(t, stderr, "ERROR: Get https://BAD/apps: dial tcp: lookup BAD: no such host\n")
 }

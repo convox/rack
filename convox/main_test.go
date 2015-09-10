@@ -15,13 +15,28 @@ import (
 
 	"github.com/convox/cli/client"
 	"github.com/convox/cli/stdcli"
+	"github.com/stretchr/testify/assert"
 )
+
+type Run struct {
+	Command []string
+	Stdout  string
+	Stderr  string
+}
 
 type Stub struct {
 	Method   string
 	Path     string
 	Code     int
 	Response interface{}
+}
+
+func testRuns(t *testing.T, runs ...Run) {
+	for _, run := range runs {
+		stdout, stderr := appRun(run.Command)
+		assert.Equal(t, run.Stdout, stdout, "stdout should be equal")
+		assert.Equal(t, run.Stderr, stderr, "stderr should be equal")
+	}
 }
 
 func httpStub(stubs ...Stub) *httptest.Server {

@@ -91,7 +91,13 @@ func cmdLogin(c *cli.Context) {
 		password = string(in)
 	}
 
-	_, err = rackClientManual(host, password, c.App.Version).GetApps()
+	cl := rackClientManual(host, password, c.App.Version)
+
+	if cl == nil {
+		return
+	}
+
+	_, err = cl.GetApps()
 
 	if err != nil {
 		stdcli.Error(fmt.Errorf("invalid login"))
