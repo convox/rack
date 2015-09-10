@@ -1,11 +1,11 @@
 # convox/cli
 
-<a href="https://travis-ci.org/convox/cli">
-  <img align="right" src="https://travis-ci.org/convox/cli.svg?branch=master">
+<a href='https://coveralls.io/github/convox/cli?branch=master'>
+  <img style="margin-left: 8px;" align="right" src='https://coveralls.io/repos/convox/cli/badge.svg?branch=master&service=github' alt='Coverage Status' />
 </a>
 
-<a href='https://coveralls.io/github/convox/cli?branch=master'>
-  <img align="right" src='https://coveralls.io/repos/convox/cli/badge.svg?branch=master&service=github' alt='Coverage Status' />
+<a href="https://travis-ci.org/convox/cli">
+  <img style="margin-left: 8px;" align="right" src="https://travis-ci.org/convox/cli.svg?branch=master">
 </a>
 
 Launch a private cloud and deploy apps from the command line.
