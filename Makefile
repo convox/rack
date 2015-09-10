@@ -17,11 +17,6 @@ release: build
 
 test:
 	go test -v -cover ./...
-	gocov annotat
-	goveralls -gocovdata /tmp/convox-cli-gocov.json -service=travis-ci
-
-test-coverage:
-
 
 vendor:
 	godep save -r ./...

@@ -8,4 +8,4 @@ before_install:
 script:
   - go get ./...
   - gocov test -v ./... > /tmp/gocov.json
-  - goveralls -gocovdata gocov.json -service travis-ci
+  - goveralls -gocovdata /tmp/gocov.json -service travis-ci

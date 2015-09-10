@@ -12,8 +12,7 @@ import (
 )
 
 func init() {
-	dir, _ := ioutil.TempDir("", "convox-test")
-	os.Setenv("CONVOX_CONFIG", dir)
+	ConfigRoot, _ = ioutil.TempDir("", "convox-test")
 }
 
 func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
