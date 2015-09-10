@@ -1,5 +1,13 @@
-install: make deps
-script: make test
 language: go
 go:
   - 1.4
+before_install:
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+script:
+  - gocov -v test ./... > /tmp/gocov.json
+  - goveralls -gocovdata gocov.json -service travis-ci
+
+install: make deps
+script: make test
