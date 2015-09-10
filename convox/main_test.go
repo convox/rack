@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/convox/cli/client"
@@ -138,31 +137,4 @@ func appRun(args []string) (string, string) {
 	out := <-outC
 
 	return out, err
-}
-
-func setLoginEnv(ts *httptest.Server) {
-	u, _ := url.Parse(ts.URL)
-
-	dir, _ := ioutil.TempDir("", "convox-test")
-
-	ConfigRoot, _ = ioutil.TempDir("", "convox-test")
-
-	os.Setenv("CONVOX_CONFIG", dir)
-	os.Setenv("CONVOX_HOST", u.Host)
-	os.Setenv("CONVOX_PASSWORD", "foo")
-}
-
-func expect(t *testing.T, a interface{}, b interface{}) {
-	aj, _ := json.Marshal(a)
-	bj, _ := json.Marshal(b)
-
-	if !bytes.Equal(aj, bj) {
-		t.Errorf("Expected %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
-	}
-}
-
-func refute(t *testing.T, a interface{}, b interface{}) {
-	if a == b {
-		t.Errorf("Did not expect %v (type %v) - Got %v (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
-	}
 }
