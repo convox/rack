@@ -36,12 +36,9 @@ func (ec *AwsCredentials) Retrieve() (credentials.Value, error) {
 }
 
 func awsConfig() *aws.Config {
-	config := aws.DefaultConfig.Merge(&aws.Config{
+	return &aws.Config{
 		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
-
-	return config
+	}
 }
 
 func AutoScaling() *autoscaling.AutoScaling {
