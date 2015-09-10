@@ -161,6 +161,9 @@ func TestRunAttached(t *testing.T) {
 	aws.DefaultConfig.Region = "test"
 	aws.DefaultConfig.Endpoint = s.URL
 
+	t.Skip("Waiting for first pass elsewhere")
+	return
+
 	app, err := GetApp("worker")
 
 	fmt.Printf("app: %+v\n", app)
