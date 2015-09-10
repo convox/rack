@@ -23,7 +23,9 @@ func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
 	server := test.Server(t, stubs...)
 
 	u, _ := url.Parse(server.URL)
+
 	os.Setenv("CONVOX_HOST", u.Host)
+	os.Setenv("CONVOX_PASSWORD", "test")
 
 	return server
 }

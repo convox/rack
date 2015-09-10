@@ -12,15 +12,7 @@ import (
 func testClient(t *testing.T, serverUrl string) *Client {
 	u, _ := url.Parse(serverUrl)
 
-	password := ""
-
-	if u.User != nil {
-		if pw, ok := u.User.Password(); ok {
-			password = pw
-		}
-	}
-
-	client, err := New(u.Host, password, "test")
+	client, err := New(u.Host, "test", "test")
 
 	assert.NotNil(t, client, "client should not be nil")
 	assert.Nil(t, err, "err should be nil")
