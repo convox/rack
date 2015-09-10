@@ -78,6 +78,11 @@ func GetApp(name string) (*App, error) {
 func (a *App) Create() error {
 	helpers.SendMixpanelEvent("kernel-app-create-start", "")
 
+	if len(a.Name) < 2 {
+		helpers.SendMixpanelEvent("kernel-app-create-error", "")
+		return fmt.Errorf("invalid app name")
+	}
+
 	formation, err := a.Formation()
 
 	if err != nil {
