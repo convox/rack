@@ -1,16 +1,6 @@
 package controllers_test
 
-import (
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
-
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/kernel/awsutil"
-	"github.com/convox/kernel/controllers"
-)
-
+/*
 func TestAppList(t *testing.T) {
 	s := httptest.NewServer(awsutil.NewHandler([]awsutil.Cycle{
 		awsutil.Cycle{
@@ -34,7 +24,7 @@ func TestAppList(t *testing.T) {
 	os.Setenv("DYNAMO_RELEASES", "releases")
 	os.Setenv("TEST_DOCKER_HOST", s.URL)
 
-	req, _ := http.NewRequest("GET", "", nil)
+	req, _ := http.NewRequest("GET", "http://convox/apps", nil)
 	w := httptest.NewRecorder()
 	controllers.SingleRequest(w, req)
 
@@ -46,7 +36,6 @@ func TestAppList(t *testing.T) {
 	}
 }
 
-/*
 func TestAppCreate(t *testing.T) {
 	req, _ := http.NewRequest("GET", "", nil)
 	w := httptest.NewRecorder()
