@@ -12,10 +12,9 @@ import (
 	"github.com/convox/kernel/controllers"
 )
 
-func stubSystem() (s *httptest.Server) {
-	os.Setenv("RACK", "convox-test")
+func stubDescribeStack(stackName string) (s *httptest.Server) {
 	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStackCycle("convox-test"),
+		DescribeStackCycle(stackName),
 	})
 	s = httptest.NewServer(handler)
 	aws.DefaultConfig.Endpoint = s.URL
@@ -23,19 +22,25 @@ func stubSystem() (s *httptest.Server) {
 }
 
 func TestNoPassword(t *testing.T) {
-	server := stubSystem()
+	server := stubDescribeStack("convox-test")
 	defer server.Close()
+	defer os.Setenv("RACK", os.Getenv("RACK"))
+
+	os.Setenv("RACK", "convox-test")
 
 	assert.HTTPSuccess(t, controllers.SingleRequest, "GET", "http://convox/system", nil)
 }
 
 func TestBasicAuth(t *testing.T) {
 	assert := assert.New(t)
-	server := stubSystem()
+	server := stubDescribeStack("convox-test")
 	defer server.Close()
 	defer os.Setenv("PASSWORD", os.Getenv("PASSWORD"))
+	defer os.Setenv("RACK", os.Getenv("RACK"))
 
 	os.Setenv("PASSWORD", "keymaster")
+	os.Setenv("RACK", "convox-test")
+
 	req, _ := http.NewRequest("GET", "http://convox/system", nil)
 	w := httptest.NewRecorder()
 	controllers.SingleRequest(w, req)
