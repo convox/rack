@@ -41,10 +41,8 @@ func stubSystem() {
 	defer s.Close()
 
 	aws.DefaultConfig.Region = "test"
-	os.Setenv("AWS_REGION", "test")
+	aws.DefaultConfig.Endpoint = s.URL
 	os.Setenv("CLUSTER", "convox")
-	os.Setenv("DYNAMO_RELEASES", "releases")
-	os.Setenv("TEST_DOCKER_HOST", s.URL)
 }
 
 func TestBasicAuth(t *testing.T) {
