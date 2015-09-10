@@ -1,3 +1,4 @@
+install: make deps
 script: make test
 language: go
 go:
