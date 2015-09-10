@@ -5,7 +5,7 @@
 </a>
 
 <a href='https://coveralls.io/github/convox/cli?branch=master'>
-  <img src='https://coveralls.io/repos/convox/cli/badge.svg?branch=master&service=github' alt='Coverage Status' />
+  <img align="right" src='https://coveralls.io/repos/convox/cli/badge.svg?branch=master&service=github' alt='Coverage Status' />
 </a>
 
 Launch a private cloud and deploy apps from the command line.
