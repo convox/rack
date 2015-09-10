@@ -14,7 +14,7 @@ import (
 
 func stubDescribeStack(stackName string) (s *httptest.Server) {
 	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStackCycle(stackName),
+		DescribeStackCycleWithQuery(stackName),
 	})
 	s = httptest.NewServer(handler)
 	aws.DefaultConfig.Endpoint = s.URL
