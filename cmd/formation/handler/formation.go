@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
 var MessageQueueUrl = os.Getenv("FORMATION_QUEUE")

@@ -3,8 +3,8 @@ package handler
 import (
 	"fmt"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 func HandleS3BucketCleanup(req Request) (string, map[string]string, error) {

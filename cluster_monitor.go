@@ -13,10 +13,10 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
 )
 
 func startClusterMonitor() {

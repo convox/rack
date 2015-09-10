@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/rds"
 )
 
 func subscribeKinesis(stream string, output chan []byte, quit chan bool) {

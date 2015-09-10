@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
 )
 
@@ -38,7 +38,7 @@ func NewRelease(app string) Release {
 
 func ListReleases(app string, last map[string]string) (Releases, error) {
 	req := &dynamodb.QueryInput{
-		KeyConditions: map[string]*dynamodb.Condition{
+		KeyConditions: &map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
 				AttributeValueList: []*dynamodb.AttributeValue{
 					&dynamodb.AttributeValue{S: aws.String(app)},
@@ -53,7 +53,7 @@ func ListReleases(app string, last map[string]string) (Releases, error) {
 	}
 
 	if last["id"] != "" {
-		req.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
+		req.ExclusiveStartKey = &map[string]*dynamodb.AttributeValue{
 			"app":     &dynamodb.AttributeValue{S: aws.String(app)},
 			"id":      &dynamodb.AttributeValue{S: aws.String(last["id"])},
 			"created": &dynamodb.AttributeValue{S: aws.String(last["created"])},
@@ -69,7 +69,7 @@ func ListReleases(app string, last map[string]string) (Releases, error) {
 	releases := make(Releases, len(res.Items))
 
 	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
+		releases[i] = *releaseFromItem(*item)
 	}
 
 	return releases, nil
@@ -78,7 +78,7 @@ func ListReleases(app string, last map[string]string) (Releases, error) {
 func GetRelease(app, id string) (*Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Boolean(true),
-		Key: map[string]*dynamodb.AttributeValue{
+		Key: &map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
 		TableName: aws.String(releasesTable(app)),
@@ -94,7 +94,7 @@ func GetRelease(app, id string) (*Release, error) {
 		return nil, fmt.Errorf("release %s not found", id)
 	}
 
-	release := releaseFromItem(res.Item)
+	release := releaseFromItem(*res.Item)
 
 	return release, nil
 }
@@ -126,7 +126,7 @@ func (r *Release) Save() error {
 	}
 
 	req := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
+		Item: &map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
 			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
@@ -135,15 +135,15 @@ func (r *Release) Save() error {
 	}
 
 	if r.Build != "" {
-		req.Item["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
+		(*req.Item)["build"] = &dynamodb.AttributeValue{S: aws.String(r.Build)}
 	}
 
 	if r.Env != "" {
-		req.Item["env"] = &dynamodb.AttributeValue{S: aws.String(r.Env)}
+		(*req.Item)["env"] = &dynamodb.AttributeValue{S: aws.String(r.Env)}
 	}
 
 	if r.Manifest != "" {
-		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
+		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
 	_, err := DynamoDB().PutItem(req)
