@@ -35,72 +35,55 @@ func (ec *AwsCredentials) Retrieve() (credentials.Value, error) {
 	return creds, nil
 }
 
-func AutoScaling() *autoscaling.AutoScaling {
-	return autoscaling.New(&aws.Config{
+func awsConfig() *aws.Config {
+	config := aws.DefaultConfig.Merge(&aws.Config{
 		Credentials: credentials.NewCredentials(&AwsCredentials{}),
 		Region:      os.Getenv("AWS_REGION"),
 	})
+
+	if endpoint := os.Getenv("AWS_ENDPOINT"); endpoint != "" {
+		config.Endpoint = endpoint
+	}
+
+	return config
+}
+
+func AutoScaling() *autoscaling.AutoScaling {
+	return autoscaling.New(awsConfig())
 }
 
 func CloudFormation() *cloudformation.CloudFormation {
-	return cloudformation.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return cloudformation.New(awsConfig())
 }
 
 func CloudWatch() *cloudwatch.CloudWatch {
-	return cloudwatch.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return cloudwatch.New(awsConfig())
 }
 
 func DynamoDB() *dynamodb.DynamoDB {
-	return dynamodb.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return dynamodb.New(awsConfig())
 }
 
 func EC2() *ec2.EC2 {
-	return ec2.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return ec2.New(awsConfig())
 }
 
 func ECS() *ecs.ECS {
-	return ecs.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return ecs.New(awsConfig())
 }
 
 func Kinesis() *kinesis.Kinesis {
-	return kinesis.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return kinesis.New(awsConfig())
 }
 
 func RDS() *rds.RDS {
-	return rds.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return rds.New(awsConfig())
 }
 
 func S3() *s3.S3 {
-	return s3.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return s3.New(awsConfig())
 }
 
 func SQS() *sqs.SQS {
-	return sqs.New(&aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
-		Region:      os.Getenv("AWS_REGION"),
-	})
+	return sqs.New(awsConfig())
 }
