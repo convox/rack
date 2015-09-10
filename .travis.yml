@@ -8,6 +8,3 @@ before_install:
 script:
   - gocov -v test ./... > /tmp/gocov.json
   - goveralls -gocovdata gocov.json -service travis-ci
-
-install: make deps
-script: make test
