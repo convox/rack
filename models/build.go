@@ -118,18 +118,6 @@ func (b *Build) Save() error {
 		TableName: aws.String(buildsTable(b.App)),
 	}
 
-	if b.Logs != "" {
-		logMax := 1024 * 395 // Dynamo attribute can be 400k max
-
-		logs := b.Logs
-
-		if len(logs) > logMax {
-			logs = logs[0:logMax]
-		}
-
-		(*req.Item)["logs"] = &dynamodb.AttributeValue{S: aws.String(logs)}
-	}
-
 	if b.Manifest != "" {
 		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
 	}
@@ -142,7 +130,19 @@ func (b *Build) Save() error {
 		(*req.Item)["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
 	}
 
-	_, err := DynamoDB().PutItem(req)
+	a, err := GetApp(b.App)
+
+	if err != nil {
+		return err
+	}
+
+	err = S3Put(a.Outputs["Settings"], fmt.Sprintf("builds/%s.log", b.Id), []byte(b.Logs), true)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = DynamoDB().PutItem(req)
 
 	return err
 }
@@ -376,14 +376,41 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
+	logs := ""
+	var err error
+
+	if item["logs"] == nil {
+		logs, err = getS3BuildLogs(coalesce(item["app"], ""), coalesce(item["id"], ""))
+
+		if err != nil {
+			logs = ""
+		}
+	}
+
 	return &Build{
 		Id:       coalesce(item["id"], ""),
 		App:      coalesce(item["app"], ""),
-		Logs:     coalesce(item["logs"], ""),
+		Logs:     coalesce(item["logs"], logs),
 		Manifest: coalesce(item["manifest"], ""),
 		Release:  coalesce(item["release"], ""),
 		Status:   coalesce(item["status"], ""),
 		Started:  started,
 		Ended:    ended,
 	}
+}
+
+func getS3BuildLogs(app, build_id string) (string, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return "", err
+	}
+
+	logs, err := s3Get(a.Outputs["Settings"], fmt.Sprintf("builds/%s.log", build_id))
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(logs), nil
 }
