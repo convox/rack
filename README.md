@@ -1,6 +1,6 @@
 # convox/cli
 
-<a href="https://travis-ci.org/convox/cli">
+<a href="https://travis-ci.org/convox/cli" style="float: left;">
   <img align="left" src="https://travis-ci.org/convox/cli.svg?branch=master">
 </a>
 
