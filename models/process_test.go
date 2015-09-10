@@ -1,11 +1,9 @@
 package models
 
 import (
-	"fmt"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/awsutil"
 )
 
@@ -158,20 +156,5 @@ func TestRunAttached(t *testing.T) {
 
 	defer s.Close()
 
-	aws.DefaultConfig.Region = "test"
-	aws.DefaultConfig.Endpoint = s.URL
-
 	t.Skip("Waiting for first pass elsewhere")
-	return
-
-	app, err := GetApp("worker")
-
-	fmt.Printf("app: %+v\n", app)
-	fmt.Printf("err: %+v\n", err)
-
-	// assert.Nil(t, err, "")
-	// assert.Equal(t, "worker", ps[0].App)
-	// assert.Equal(t, "worker1", ps[0].Name)
-
-	// ps[0].RunAttached("echo hi", &bytes.Buffer{})
 }
