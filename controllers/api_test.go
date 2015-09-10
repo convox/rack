@@ -6,24 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
-	"github.com/convox/kernel/awsutil"
 	"github.com/convox/kernel/controllers"
 )
 
-func stubDescribeStack(stackName string) (s *httptest.Server) {
-	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStackCycleWithQuery(stackName),
-	})
-	s = httptest.NewServer(handler)
-	aws.DefaultConfig.Endpoint = s.URL
-	return
-}
-
 func TestNoPassword(t *testing.T) {
-	server := stubDescribeStack("convox-test")
-	defer server.Close()
+	aws := stubAws(DescribeStackCycleWithQuery("convox-test"))
+	defer aws.Close()
 	defer os.Setenv("RACK", os.Getenv("RACK"))
 
 	os.Setenv("RACK", "convox-test")
@@ -33,8 +22,8 @@ func TestNoPassword(t *testing.T) {
 
 func TestBasicAuth(t *testing.T) {
 	assert := assert.New(t)
-	server := stubDescribeStack("convox-test")
-	defer server.Close()
+	aws := stubAws(DescribeStackCycleWithQuery("convox-test"))
+	defer aws.Close()
 	defer os.Setenv("PASSWORD", os.Getenv("PASSWORD"))
 	defer os.Setenv("RACK", os.Getenv("RACK"))
 

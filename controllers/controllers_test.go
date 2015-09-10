@@ -1,6 +1,8 @@
 package controllers_test
 
 import (
+	"net/http/httptest"
+
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/awsutil"
 )
@@ -9,7 +11,22 @@ func init() {
 	aws.DefaultConfig.Region = "test"
 }
 
-func DescribeStackEmptyResponse(stackName string) awsutil.Cycle {
+/*
+Create a test server that mocks an AWS request/response cycle,
+suitable for a single test
+
+Example:
+		s := stubAws(DescribeStackCycleWithoutQuery("bar"))
+		defer s.Close()
+*/
+func stubAws(cycles ...awsutil.Cycle) (s *httptest.Server) {
+	handler := awsutil.NewHandler(cycles)
+	s = httptest.NewServer(handler)
+	aws.DefaultConfig.Endpoint = s.URL
+	return s
+}
+
+func DescribeStackNotFound(stackName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
 			RequestURI: "/",
@@ -17,11 +34,15 @@ func DescribeStackEmptyResponse(stackName string) awsutil.Cycle {
 			Body:       `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`,
 		},
 		Response: awsutil.Response{
-			StatusCode: 200,
-			Body: `<DescribeStacksResult>
-    <Stacks>
-    </Stacks>
-  </DescribeStacksResult>`,
+			StatusCode: 400,
+			Body: `<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>ValidationError</Code>
+    <Message>Stack with id ` + stackName + ` does not exist</Message>
+  </Error>
+  <RequestId>bc91dc86-5803-11e5-a24f-85fde26a90fa</RequestId>
+</ErrorResponse>`,
 		},
 	}
 }

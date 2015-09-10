@@ -6,19 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
-	"github.com/convox/kernel/awsutil"
 	"github.com/convox/kernel/controllers"
 )
 
 func TestAppList(t *testing.T) {
-	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStackCycleWithoutQuery("bar"),
-	})
-	s := httptest.NewServer(handler)
-	aws.DefaultConfig.Endpoint = s.URL
-	defer s.Close()
+	aws := stubAws(DescribeStackCycleWithoutQuery("bar"))
+	defer aws.Close()
 
 	body := assert.HTTPBody(controllers.HandlerFunc, "GET", "http://convox/apps", nil)
 
@@ -31,13 +25,9 @@ func TestAppList(t *testing.T) {
 	}
 }
 
-func TestAppShowFound(t *testing.T) {
-	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStackCycleWithQuery("bar"),
-	})
-	s := httptest.NewServer(handler)
-	aws.DefaultConfig.Endpoint = s.URL
-	defer s.Close()
+func TestAppShow(t *testing.T) {
+	aws := stubAws(DescribeStackCycleWithQuery("bar"))
+	defer aws.Close()
 
 	body := assert.HTTPBody(controllers.HandlerFunc, "GET", "http://convox/apps/bar", nil)
 
@@ -50,13 +40,9 @@ func TestAppShowFound(t *testing.T) {
 	}
 }
 
-func TestAppShowWithNoApp(t *testing.T) {
-	handler := awsutil.NewHandler([]awsutil.Cycle{
-		DescribeStackEmptyResponse("bar"),
-	})
-	s := httptest.NewServer(handler)
-	aws.DefaultConfig.Endpoint = s.URL
-	defer s.Close()
+func TestAppShowWithAppNotFound(t *testing.T) {
+	aws := stubAws(DescribeStackNotFound("bar"))
+	defer aws.Close()
 
 	req, _ := http.NewRequest("GET", "http://convox/apps/bar", nil)
 	w := httptest.NewRecorder()
@@ -77,8 +63,15 @@ func TestAppDelete(t *testing.T) {
 
 }
 
-func TestAppDeleteWithNoApp(t *testing.T) {
+func TestAppDeleteWithAppNotFound(t *testing.T) {
+	aws := stubAws(DescribeStackNotFound("bar"))
+	defer aws.Close()
 
+	req, _ := http.NewRequest("DELETE", "http://convox/apps/bar", nil)
+	w := httptest.NewRecorder()
+	controllers.HandlerFunc(w, req)
+
+	assert.Equal(t, 404, w.Code)
 }
 
 func TestAppLogs(t *testing.T) {
