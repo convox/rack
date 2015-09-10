@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -26,4 +27,18 @@ func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
 	}})
 
 	return test.Server(t, stubs...)
+}
+
+func TestClientNonJson(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/", Code: 503, Response: "not-json"},
+	)
+
+	defer ts.Close()
+
+	var err Error
+
+	testClient(t, ts.URL).Get("/", &err)
+
+	fmt.Printf("err: %+v\n", err)
 }
