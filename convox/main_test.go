@@ -31,9 +31,19 @@ type Stub struct {
 	Response interface{}
 }
 
-func testRuns(t *testing.T, runs ...Run) {
+func init() {
+	dir, _ := ioutil.TempDir("", "convox-test")
+	os.Setenv("CONVOX_CONFIG", dir)
+}
+
+func testRuns(t *testing.T, ts *httptest.Server, runs ...Run) {
+	u, _ := url.Parse(ts.URL)
+
+	os.Setenv("CONVOX_HOST", u.Host)
+
 	for _, run := range runs {
 		stdout, stderr := appRun(run.Command)
+
 		assert.Equal(t, run.Stdout, stdout, "stdout should be equal")
 		assert.Equal(t, run.Stderr, stderr, "stderr should be equal")
 	}

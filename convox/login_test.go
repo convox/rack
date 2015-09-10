@@ -13,7 +13,7 @@ func TestInvalidLogin(t *testing.T) {
 
 	defer ts.Close()
 
-	testRuns(t,
+	testRuns(t, ts,
 		Run{
 			Command: []string{"convox", "login", "--password", "foobar", ts.URL},
 			Stderr:  "ERROR: invalid login\n",
@@ -28,7 +28,7 @@ func TestLogin(t *testing.T) {
 
 	defer ts.Close()
 
-	testRuns(t,
+	testRuns(t, ts,
 		Run{
 			Command: []string{"convox", "login", "--password", "foobar", ts.URL},
 			Stdout:  "Logged in successfully.\n",

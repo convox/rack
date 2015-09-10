@@ -15,10 +15,12 @@ func TestApps(t *testing.T) {
 
 	defer ts.Close()
 
-	stdout, stderr := appRun([]string{"convox", "apps"})
-
-	expect(t, stdout, "APP      STATUS \nsinatra  running\n")
-	expect(t, stderr, "")
+	testRuns(t, ts,
+		Run{
+			Command: []string{"convox", "apps"},
+			Stdout:  "APP      STATUS \nsinatra  running\n",
+		},
+	)
 }
 
 func TestAppsCreate(t *testing.T) {
@@ -28,10 +30,12 @@ func TestAppsCreate(t *testing.T) {
 
 	defer ts.Close()
 
-	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
-
-	expect(t, stdout, "Creating app foobar... CREATING\n")
-	expect(t, stderr, "")
+	testRuns(t, ts,
+		Run{
+			Command: []string{"convox", "apps", "create", "foobar"},
+			Stdout:  "Creating app foobar... CREATING\n",
+		},
+	)
 }
 
 func TestAppsCreateFail(t *testing.T) {
@@ -41,8 +45,11 @@ func TestAppsCreateFail(t *testing.T) {
 
 	defer ts.Close()
 
-	stdout, stderr := appRun([]string{"convox", "apps", "create", "foobar"})
-
-	expect(t, stdout, "Creating app foobar... ")
-	expect(t, stderr, "ERROR: app already exists\n")
+	testRuns(t, ts,
+		Run{
+			Command: []string{"convox", "apps", "create", "foobar"},
+			Stdout:  "Creating app foobar... ",
+			Stderr:  "ERROR: app already exists\n",
+		},
+	)
 }
