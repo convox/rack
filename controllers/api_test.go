@@ -11,7 +11,7 @@ import (
 )
 
 func TestNoPassword(t *testing.T) {
-	aws := stubAws(DescribeStackCycleWithQuery("convox-test"))
+	aws := stubAws(DescribeConvoxStackCycle("convox-test"))
 	defer aws.Close()
 	defer os.Setenv("RACK", os.Getenv("RACK"))
 
@@ -22,7 +22,7 @@ func TestNoPassword(t *testing.T) {
 
 func TestBasicAuth(t *testing.T) {
 	assert := assert.New(t)
-	aws := stubAws(DescribeStackCycleWithQuery("convox-test"))
+	aws := stubAws(DescribeConvoxStackCycle("convox-test"))
 	defer aws.Close()
 	defer os.Setenv("PASSWORD", os.Getenv("PASSWORD"))
 	defer os.Setenv("RACK", os.Getenv("RACK"))

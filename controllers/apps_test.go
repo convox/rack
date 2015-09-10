@@ -26,7 +26,7 @@ func TestAppList(t *testing.T) {
 }
 
 func TestAppShow(t *testing.T) {
-	aws := stubAws(DescribeStackCycleWithQuery("bar"))
+	aws := stubAws(DescribeAppStackCycle("bar"))
 	defer aws.Close()
 
 	body := assert.HTTPBody(controllers.HandlerFunc, "GET", "http://convox/apps/bar", nil)
@@ -60,7 +60,17 @@ func TestAppCreateWithAlreadyExists(t *testing.T) {
 }
 
 func TestAppDelete(t *testing.T) {
+	aws := stubAws(DescribeAppStackCycle("bar"), DeleteStackCycle("bar"))
+	defer aws.Close()
 
+	body := assert.HTTPBody(controllers.HandlerFunc, "DELETE", "http://convox/apps/bar", nil)
+
+	var resp map[string]bool
+	err := json.Unmarshal([]byte(body), &resp)
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, true, resp["success"])
+	}
 }
 
 func TestAppDeleteWithAppNotFound(t *testing.T) {

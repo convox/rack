@@ -26,16 +26,48 @@ func stubAws(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	return s
 }
 
+// returns the stack you asked for
+func DescribeAppStackCycle(stackName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{200,
+			` <DescribeStacksResult><Stacks>` + appStackXML(stackName) + `</Stacks></DescribeStacksResult>`},
+	}
+}
+
+// no filter - returns convox stack and an app
+func DescribeStackCycleWithoutQuery(appName string) awsutil.Cycle {
+	xml := appStackXML(appName) + convoxStackXML("convox")
+
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=DescribeStacks&Version=2010-05-15`},
+		awsutil.Response{200, ` <DescribeStacksResult><Stacks>` + xml + `</Stacks></DescribeStacksResult>`},
+	}
+}
+
+// returns convox stack
+func DescribeConvoxStackCycle(stackName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{200,
+			` <DescribeStacksResult><Stacks>` + convoxStackXML(stackName) + `</Stacks></DescribeStacksResult>`},
+	}
+}
+
+func DeleteStackCycle(stackName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=DeleteStack&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{200, ""},
+	}
+}
+
+// search for stack, return missing
 func DescribeStackNotFound(stackName string) awsutil.Cycle {
 	return awsutil.Cycle{
-		Request: awsutil.Request{
-			RequestURI: "/",
-			Operation:  "",
-			Body:       `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`,
-		},
-		Response: awsutil.Response{
-			StatusCode: 400,
-			Body: `<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+		awsutil.Request{"/", "", `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{
+			400,
+			`<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <Error>
     <Type>Sender</Type>
     <Code>ValidationError</Code>
@@ -47,17 +79,8 @@ func DescribeStackNotFound(stackName string) awsutil.Cycle {
 	}
 }
 
-func DescribeStackCycleWithQuery(stackName string) awsutil.Cycle {
-	return awsutil.Cycle{
-		Request: awsutil.Request{
-			RequestURI: "/",
-			Operation:  "",
-			Body:       `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`,
-		},
-		Response: awsutil.Response{
-			StatusCode: 200,
-			Body: ` <DescribeStacksResult>
-    <Stacks>
+func convoxStackXML(stackName string) string {
+	return `
       <member>
         <Tags/>
         <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/` + stackName + `/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
@@ -130,23 +153,13 @@ func DescribeStackCycleWithQuery(stackName string) awsutil.Cycle {
           </member>
         </Outputs>
       </member>
-    </Stacks>
-  </DescribeStacksResult>`,
-		},
-	}
+`
+
 }
 
-func DescribeStackCycleWithoutQuery(appName string) awsutil.Cycle {
-	return awsutil.Cycle{
-		Request: awsutil.Request{
-			RequestURI: "/",
-			Operation:  "",
-			Body:       `Action=DescribeStacks&Version=2010-05-15`,
-		},
-		Response: awsutil.Response{
-			StatusCode: 200,
-			Body: ` <DescribeStacksResult>
-    <Stacks>
+func appStackXML(appName string) string {
+
+	return `
       <member>
 				<Tags>
           <member>
@@ -233,91 +246,24 @@ func DescribeStackCycleWithoutQuery(appName string) awsutil.Cycle {
           <member>CAPABILITY_IAM</member>
         </Capabilities>
         <DisableRollback>false</DisableRollback>
-        <Outputs>
+				<Outputs>
           <member>
-            <OutputValue>convox-1842138601.us-east-1.elb.amazonaws.com</OutputValue>
-            <OutputKey>Dashboard</OutputKey>
+            <OutputValue>apache-app-2311461.test.elb.amazonaws.com</OutputValue>
+            <OutputKey>BalancerHost</OutputKey>
           </member>
           <member>
-            <OutputValue>convox-Kinesis-1BGCFIB6PK55Y</OutputValue>
+            <OutputValue>apache-app-Kinesis-6OTFWDVFK9BB</OutputValue>
             <OutputKey>Kinesis</OutputKey>
           </member>
-        </Outputs>
-      </member>
-      <member>
-        <Tags/>
-        <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/foo/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
-        <StackStatus>CREATE_COMPLETE</StackStatus>
-        <StackName>foo</StackName>
-        <NotificationARNs/>
-        <CreationTime>2015-09-03T00:49:16.068Z</CreationTime>
-        <Parameters>
           <member>
-            <ParameterValue>3</ParameterValue>
-            <ParameterKey>InstanceCount</ParameterKey>
+            <OutputValue>80</OutputValue>
+            <OutputKey>MainPort80Balancer</OutputKey>
           </member>
           <member>
-            <ParameterValue/>
-            <ParameterKey>RegistryHost</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue/>
-            <ParameterKey>Key</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue/>
-            <ParameterKey>Ami</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>LmAlykMYpjFVKopVgibGfxjVnNCZVi</ParameterValue>
-            <ParameterKey>Password</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue/>
-            <ParameterKey>RegistryPort</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>No</ParameterValue>
-            <ParameterKey>Development</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>latest</ParameterValue>
-            <ParameterKey>Version</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>test@convox.com</ParameterValue>
-            <ParameterKey>ClientId</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue/>
-            <ParameterKey>Certificate</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>default</ParameterValue>
-            <ParameterKey>Tenancy</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>t2.small</ParameterValue>
-            <ParameterKey>InstanceType</ParameterKey>
-          </member>
-        </Parameters>
-        <Capabilities>
-          <member>CAPABILITY_IAM</member>
-        </Capabilities>
-        <DisableRollback>false</DisableRollback>
-        <Outputs>
-          <member>
-            <OutputValue>convox-1842138601.us-east-1.elb.amazonaws.com</OutputValue>
-            <OutputKey>Dashboard</OutputKey>
-          </member>
-          <member>
-            <OutputValue>convox-Kinesis-1BGCFIB6PK55Y</OutputValue>
-            <OutputKey>Kinesis</OutputKey>
+            <OutputValue>apache-app-settings-2gkjc9lf123nm</OutputValue>
+            <OutputKey>Settings</OutputKey>
           </member>
         </Outputs>
-      </member>
-    </Stacks>
-  </DescribeStacksResult>`,
-		},
-	}
+      </member>`
+
 }
