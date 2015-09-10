@@ -6,6 +6,6 @@ before_install:
   - go get github.com/axw/gocov/gocov
   - go get github.com/mattn/goveralls
 script:
-  - go get ./convox
+  - go get ./...
   - gocov test -v ./... > /tmp/gocov.json
   - goveralls -gocovdata gocov.json -service travis-ci
