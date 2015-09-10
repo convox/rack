@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 type Change struct {
@@ -32,7 +32,7 @@ type ChangeMetadata struct {
 
 func ListChanges(app string) (Changes, error) {
 	req := &dynamodb.QueryInput{
-		KeyConditions: &map[string]*dynamodb.Condition{
+		KeyConditions: map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
 				AttributeValueList: []*dynamodb.AttributeValue{
 					&dynamodb.AttributeValue{S: aws.String(app)},
@@ -54,7 +54,7 @@ func ListChanges(app string) (Changes, error) {
 	changes := make(Changes, len(res.Items))
 
 	for i, item := range res.Items {
-		changes[i] = *changeFromItem(*item)
+		changes[i] = *changeFromItem(item)
 	}
 
 	return changes, nil
@@ -62,7 +62,7 @@ func ListChanges(app string) (Changes, error) {
 
 func (e *Change) Save() error {
 	req := &dynamodb.PutItemInput{
-		Item: &map[string]*dynamodb.AttributeValue{
+		Item: map[string]*dynamodb.AttributeValue{
 			"app":       &dynamodb.AttributeValue{S: aws.String(e.App)},
 			"created":   &dynamodb.AttributeValue{S: aws.String(e.Created.Format(SortableTime))},
 			"metadata":  &dynamodb.AttributeValue{S: aws.String(e.Metadata)},

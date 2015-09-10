@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
 type Build struct {
@@ -44,7 +44,7 @@ func NewBuild(app string) Build {
 
 func ListBuilds(app string, last map[string]string) (Builds, error) {
 	req := &dynamodb.QueryInput{
-		KeyConditions: &map[string]*dynamodb.Condition{
+		KeyConditions: map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
 				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(app)}},
 				ComparisonOperator: aws.String("EQ"),
@@ -57,7 +57,7 @@ func ListBuilds(app string, last map[string]string) (Builds, error) {
 	}
 
 	if last["id"] != "" {
-		req.ExclusiveStartKey = &map[string]*dynamodb.AttributeValue{
+		req.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
 			"app":     &dynamodb.AttributeValue{S: aws.String(app)},
 			"id":      &dynamodb.AttributeValue{S: aws.String(last["id"])},
 			"created": &dynamodb.AttributeValue{S: aws.String(last["created"])},
@@ -73,7 +73,7 @@ func ListBuilds(app string, last map[string]string) (Builds, error) {
 	builds := make(Builds, len(res.Items))
 
 	for i, item := range res.Items {
-		builds[i] = *buildFromItem(*item)
+		builds[i] = *buildFromItem(item)
 	}
 
 	return builds, nil
@@ -82,7 +82,7 @@ func ListBuilds(app string, last map[string]string) (Builds, error) {
 func GetBuild(app, id string) (*Build, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Boolean(true),
-		Key: &map[string]*dynamodb.AttributeValue{
+		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
 		TableName: aws.String(buildsTable(app)),
@@ -94,7 +94,7 @@ func GetBuild(app, id string) (*Build, error) {
 		return nil, err
 	}
 
-	build := buildFromItem(*res.Item)
+	build := buildFromItem(res.Item)
 
 	return build, nil
 }
@@ -109,7 +109,7 @@ func (b *Build) Save() error {
 	}
 
 	req := &dynamodb.PutItemInput{
-		Item: &map[string]*dynamodb.AttributeValue{
+		Item: map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
@@ -127,19 +127,19 @@ func (b *Build) Save() error {
 			logs = logs[0:logMax]
 		}
 
-		(*req.Item)["logs"] = &dynamodb.AttributeValue{S: aws.String(logs)}
+		req.Item["logs"] = &dynamodb.AttributeValue{S: aws.String(logs)}
 	}
 
 	if b.Manifest != "" {
-		(*req.Item)["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
+		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
 	}
 
 	if b.Release != "" {
-		(*req.Item)["release"] = &dynamodb.AttributeValue{S: aws.String(b.Release)}
+		req.Item["release"] = &dynamodb.AttributeValue{S: aws.String(b.Release)}
 	}
 
 	if !b.Ended.IsZero() {
-		(*req.Item)["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
+		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
 	}
 
 	_, err := DynamoDB().PutItem(req)
