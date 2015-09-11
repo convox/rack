@@ -36,7 +36,7 @@ func recovery(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 const MinimumClientVersion = "20150911185302"
 
 func versionCheck(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	if r.URL.Path == "/system" {
+	if r.URL.Path == "/boom" || r.URL.Path == "/check" || r.URL.Path == "/system" {
 		next(rw, r)
 		return
 	}
