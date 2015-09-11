@@ -225,7 +225,7 @@ paths:
         required: true
       responses:
         200:
-          description: processes
+          description: formation
           schema:
             type: array
             items:
@@ -289,7 +289,7 @@ paths:
             $ref: '#/definitions/error'
   /apps/{app}/processes/{process}:
     get:
-      description: List processes for an app
+      description: Get a process for an app
       parameters:
       - name: app
         description: app name
@@ -565,8 +565,6 @@ definitions:
       name:
         type: string
       count:
-        type: integer
-      name:
         type: integer
       ports:
         type: array
