@@ -17,8 +17,8 @@ type Process struct {
 	Image   string `json:"image"`
 	Name    string `json:"name"`
 
-	Binds   []string `json:"-"`
-	TaskARN string   `json:"-"`
+	binds   []string `json:"-"`
+	taskARN string   `json:"-"`
 }
 
 type Processes []Process
@@ -93,10 +93,10 @@ func ListProcesses(app string) (Processes, error) {
 			}
 
 			for _, m := range cd.MountPoints {
-				ps.Binds = append(ps.Binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
+				ps.binds = append(ps.binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
 			}
 
-			ps.TaskARN = *task.TaskARN
+			ps.taskARN = *task.TaskARN
 
 			pss = append(pss, ps)
 		}
@@ -138,7 +138,7 @@ func (ps Processes) Swap(i, j int) {
 func (p *Process) Stop() error {
 	req := &ecs.StopTaskInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Task:    aws.String(p.TaskARN),
+		Task:    aws.String(p.taskARN),
 	}
 
 	_, err := ECS().StopTask(req)

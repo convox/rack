@@ -309,6 +309,21 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return err
 	}
 
+	binds := []string{}
+
+	pss, err := ListProcesses(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, ps := range pss {
+		if ps.Name == process {
+			binds = ps.binds
+			break
+		}
+	}
+
 	res, err := d.CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
 			AttachStdin:  true,
@@ -320,9 +335,9 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 			Cmd:          []string{"sh", "-c", command},
 			Image:        image,
 		},
-		// HostConfig: &docker.HostConfig{
-		//   Binds: p.Binds,
-		// },
+		HostConfig: &docker.HostConfig{
+			Binds: binds,
+		},
 	})
 
 	if err != nil {
