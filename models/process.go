@@ -93,8 +93,6 @@ func ListProcesses(app string) (Processes, error) {
 				hostVolumes[*v.Name] = *v.Host.SourcePath
 			}
 
-			fmt.Printf("cd %+v\n", cd)
-
 			for _, m := range cd.MountPoints {
 				ps.binds = append(ps.binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
 			}

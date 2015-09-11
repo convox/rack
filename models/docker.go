@@ -26,8 +26,6 @@ func Docker(host string) (*docker.Client, error) {
 		host = h
 	}
 
-	fmt.Printf("host %+v\n", host)
-
 	return docker.NewClient(host)
 }
 
