@@ -3,6 +3,7 @@ language: go
 go:
   - 1.4
 
-sudo: true
+sudo: required
 
-before_install: wget -qO- https://get.docker.com/ | sh -ex
+services:
+  - docker
