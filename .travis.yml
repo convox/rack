@@ -6,4 +6,4 @@ go:
 sudo: true
 
 install:
-  - ./ci/install-docker.sh
+  - wget -qO- https://get.docker.com/ | sh -ex
