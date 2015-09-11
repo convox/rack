@@ -26,6 +26,30 @@ func stubAws(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	return s
 }
 
+func CreateAppStackCycle(appName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", createAppUrlBody()},
+		awsutil.Response{200, ""},
+	}
+}
+
+func CreateAppStackExistsCycle(appName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", createAppUrlBody()},
+		awsutil.Response{
+			400,
+			`<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>AlreadyExistsException</Code>
+    <Message>Stack with id ` + appName + ` already exists</Message>
+  </Error>
+  <RequestId>bc91dc86-5803-11e5-a24f-85fde26a90fa</RequestId>
+</ErrorResponse>`,
+		},
+	}
+}
+
 // returns the stack you asked for
 func DescribeAppStackCycle(stackName string) awsutil.Cycle {
 	return awsutil.Cycle{
@@ -266,4 +290,11 @@ func appStackXML(appName string) string {
         </Outputs>
       </member>`
 
+}
+
+// NOTE: app stack paramter serialization does not guarantee order,
+// 			 so even the same source object is not guaranteed to serialize
+//       correctly for comparison.
+func createAppUrlBody() string {
+	return `/^Action=CreateStack/`
 }

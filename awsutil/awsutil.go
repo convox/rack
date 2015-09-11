@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -63,11 +64,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Body:       string(b),
 	}
 
-	if cycle.Request.Body == "ignore" {
-		match.Body = cycle.Request.Body
+	var matched bool
+
+	matched = (cycle.Request.Body == "ignore")
+
+	if matched || strings.HasPrefix(cycle.Request.Body, "/") {
+		size := len(cycle.Request.Body)
+		trimmed := cycle.Request.Body[1 : size-1]
+		matched, _ = regexp.MatchString(trimmed, match.Body)
 	}
 
-	if cycle.Request.String() == match.String() {
+	if !matched {
+		matched = (cycle.Request.String() == match.String())
+	}
+
+	if matched {
 		w.WriteHeader(cycle.Response.StatusCode)
 		io.WriteString(w, cycle.Response.Body)
 	} else {

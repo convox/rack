@@ -40,7 +40,7 @@ func AppShow(rw http.ResponseWriter, r *http.Request) error {
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) error {
-	name := GetForm(r, "name")
+	name := r.FormValue("name")
 
 	app := &models.App{
 		Name: name,
