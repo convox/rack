@@ -589,7 +589,7 @@ definitions:
       ports:
         type: array
         items:
-          type: integer
+          type: string
   system:
     properties:
       count:

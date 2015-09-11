@@ -20,7 +20,7 @@ type Process struct {
 	Host    string    `json:"host"`
 	Image   string    `json:"image"`
 	Name    string    `json:"name"`
-	Ports   []int     `json:"ports"`
+	Ports   []string  `json:"ports"`
 	Started time.Time `json:"started"`
 
 	binds       []string `json:"-"`
@@ -84,7 +84,7 @@ func ListProcesses(app string) (Processes, error) {
 				App:   app,
 				Image: *cd.Image,
 				Name:  *cd.Name,
-				Ports: []int{},
+				Ports: []string{},
 			}
 
 			hostVolumes := make(map[string]string)
@@ -161,7 +161,7 @@ func ListProcesses(app string) (Processes, error) {
 						ps.Started = time.Unix(containers[0].Created, 0)
 
 						for _, port := range containers[0].Ports {
-							ps.Ports = append(ps.Ports, int(port.PublicPort))
+							ps.Ports = append(ps.Ports, fmt.Sprintf("%d:%d", port.PublicPort, port.PrivatePort))
 						}
 					}
 				}
