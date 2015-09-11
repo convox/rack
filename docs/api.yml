@@ -578,10 +578,14 @@ definitions:
         type: string
       command:
         type: string
+      cpu:
+        type: float
       host:
         type: string
       image:
         type: string
+      memory:
+        type: float
       name:
         type: string
       ports:
