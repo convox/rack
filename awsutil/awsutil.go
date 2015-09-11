@@ -68,7 +68,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	matched = (cycle.Request.Body == "ignore")
 
-	if matched || strings.HasPrefix(cycle.Request.Body, "/") {
+	// treat "/a string with slashes/" as a regex
+	if !matched && strings.HasPrefix(cycle.Request.Body, "/") {
 		size := len(cycle.Request.Body)
 		trimmed := cycle.Request.Body[1 : size-1]
 		matched, _ = regexp.MatchString(trimmed, match.Body)
