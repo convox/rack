@@ -21,6 +21,7 @@ type Process struct {
 	Image   string    `json:"image"`
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`
+	Release string    `json:"release"`
 	Cpu     float64   `json:"cpu"`
 	Memory  float64   `json:"memory"`
 	Started time.Time `json:"started"`
@@ -113,6 +114,12 @@ func fetchProcess(app string, task *ecs.Task, td *ecs.TaskDefinition, c *ecs.Con
 		Image: *cd.Image,
 		Name:  *cd.Name,
 		Ports: []string{},
+	}
+
+	for _, env := range cd.Environment {
+		if *env.Name == "RELEASE" {
+			ps.Release = *env.Value
+		}
 	}
 
 	hostVolumes := make(map[string]string)

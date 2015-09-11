@@ -592,6 +592,8 @@ definitions:
         type: array
         items:
           type: string
+      release:
+        type: string
   system:
     properties:
       count:
