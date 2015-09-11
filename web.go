@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -36,6 +37,11 @@ const MinimumClientVersion = "20150904181017"
 
 func versionCheck(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	if r.URL.Path == "/system" {
+		next(rw, r)
+		return
+	}
+
+	if strings.HasPrefix(r.Header.Get("User-Agent"), "curl/") {
 		next(rw, r)
 		return
 	}
