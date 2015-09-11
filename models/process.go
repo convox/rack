@@ -21,6 +21,8 @@ type Process struct {
 	Image   string    `json:"image"`
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`
+	Cpu     float64   `json:"cpu"`
+	Memory  float64   `json:"memory"`
 	Started time.Time `json:"started"`
 
 	binds       []string `json:"-"`
@@ -56,6 +58,10 @@ func ListProcesses(app string) (Processes, error) {
 
 	pss := Processes{}
 
+	psch := make(chan Process)
+	errch := make(chan error)
+	num := 0
+
 	for _, task := range tres.Tasks {
 		for _, c := range task.Containers {
 			tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
@@ -70,108 +76,158 @@ func ListProcesses(app string) (Processes, error) {
 				continue
 			}
 
-			if len(tres.TaskDefinition.ContainerDefinitions) < 1 {
-				return nil, fmt.Errorf("no container definition")
-			}
+			go fetchProcess(app, task, tres.TaskDefinition, c, psch, errch)
 
-			cd := *(tres.TaskDefinition.ContainerDefinitions[0])
+			num += 1
+		}
+	}
 
-			idp := strings.Split(*c.ContainerARN, "-")
-			id := idp[len(idp)-1]
-
-			ps := Process{
-				Id:    id,
-				App:   app,
-				Image: *cd.Image,
-				Name:  *cd.Name,
-				Ports: []string{},
-			}
-
-			hostVolumes := make(map[string]string)
-
-			for _, v := range tres.TaskDefinition.Volumes {
-				hostVolumes[*v.Name] = *v.Host.SourcePath
-			}
-
-			for _, m := range cd.MountPoints {
-				ps.binds = append(ps.binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
-			}
-
-			ps.taskARN = *task.TaskARN
-
-			cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-				Cluster:            aws.String(os.Getenv("CLUSTER")),
-				ContainerInstances: []*string{task.ContainerInstanceARN},
-			})
-
-			if err != nil {
-				return nil, err
-			}
-
-			if len(cres.ContainerInstances) == 1 {
-				ci := cres.ContainerInstances[0]
-
-				ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-					Filters: []*ec2.Filter{
-						&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.EC2InstanceID}},
-					},
-				})
-
-				if err != nil {
-					return nil, err
-				}
-
-				if len(ires.Reservations) == 1 && len(ires.Reservations[0].Instances) == 1 {
-					instance := ires.Reservations[0].Instances[0]
-
-					ip := *instance.PrivateIPAddress
-
-					if os.Getenv("DEVELOPMENT") == "true" {
-						ip = *instance.PublicIPAddress
-					}
-
-					ps.Host = ip
-
-					d, err := ps.Docker()
-
-					if err != nil {
-						return nil, fmt.Errorf("could not communicate with docker")
-					}
-
-					containers, err := d.ListContainers(docker.ListContainersOptions{
-						Filters: map[string][]string{
-							"label": []string{
-								fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.taskARN),
-								fmt.Sprintf("com.amazonaws.ecs.container-name=%s", ps.Name),
-							},
-						},
-					})
-
-					if err != nil {
-						return nil, err
-					}
-
-					if len(containers) == 1 {
-						fmt.Printf("containers[0] %+v\n", containers[0])
-
-						ps.containerId = containers[0].ID
-						ps.Command = containers[0].Command
-						ps.Started = time.Unix(containers[0].Created, 0)
-
-						for _, port := range containers[0].Ports {
-							ps.Ports = append(ps.Ports, fmt.Sprintf("%d:%d", port.PublicPort, port.PrivatePort))
-						}
-					}
-				}
-			}
-
+	for i := 0; i < num; i++ {
+		select {
+		case ps := <-psch:
 			pss = append(pss, ps)
+		case err := <-errch:
+			return nil, err
 		}
 	}
 
 	sort.Sort(pss)
 
 	return pss, nil
+}
+
+func fetchProcess(app string, task *ecs.Task, td *ecs.TaskDefinition, c *ecs.Container, psch chan Process, errch chan error) {
+	if len(td.ContainerDefinitions) < 1 {
+		errch <- fmt.Errorf("no container definition")
+		return
+	}
+
+	cd := td.ContainerDefinitions[0]
+
+	idp := strings.Split(*c.ContainerARN, "-")
+	id := idp[len(idp)-1]
+
+	ps := Process{
+		Id:    id,
+		App:   app,
+		Image: *cd.Image,
+		Name:  *cd.Name,
+		Ports: []string{},
+	}
+
+	hostVolumes := make(map[string]string)
+
+	for _, v := range td.Volumes {
+		hostVolumes[*v.Name] = *v.Host.SourcePath
+	}
+
+	for _, m := range cd.MountPoints {
+		ps.binds = append(ps.binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
+	}
+
+	ps.taskARN = *task.TaskARN
+
+	cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(os.Getenv("CLUSTER")),
+		ContainerInstances: []*string{task.ContainerInstanceARN},
+	})
+
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	if len(cres.ContainerInstances) != 1 {
+		errch <- fmt.Errorf("could not find instance")
+		return
+	}
+
+	ci := cres.ContainerInstances[0]
+
+	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.EC2InstanceID}},
+		},
+	})
+
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
+		errch <- fmt.Errorf("could not find instance")
+		return
+	}
+
+	instance := ires.Reservations[0].Instances[0]
+
+	ip := *instance.PrivateIPAddress
+
+	if os.Getenv("DEVELOPMENT") == "true" {
+		ip = *instance.PublicIPAddress
+	}
+
+	ps.Host = ip
+
+	d, err := ps.Docker()
+
+	if err != nil {
+		errch <- fmt.Errorf("could not communicate with docker")
+		return
+	}
+
+	containers, err := d.ListContainers(docker.ListContainersOptions{
+		Filters: map[string][]string{
+			"label": []string{
+				fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.taskARN),
+				fmt.Sprintf("com.amazonaws.ecs.container-name=%s", ps.Name),
+			},
+		},
+	})
+
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	if len(containers) != 1 {
+		errch <- fmt.Errorf("could not find container")
+		return
+	}
+
+	ps.containerId = containers[0].ID
+	ps.Command = containers[0].Command
+	ps.Started = time.Unix(containers[0].Created, 0)
+
+	for _, port := range containers[0].Ports {
+		ps.Ports = append(ps.Ports, fmt.Sprintf("%d:%d", port.PublicPort, port.PrivatePort))
+	}
+
+	stch := make(chan *docker.Stats)
+	dnch := make(chan bool)
+
+	options := docker.StatsOptions{
+		ID:    containers[0].ID,
+		Stats: stch,
+		Done:  dnch,
+	}
+
+	go d.Stats(options)
+
+	stat := <-stch
+	dnch <- true
+
+	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+	psys := stat.PreCPUStats.SystemCPUUsage
+
+	ps.Cpu = float64(int(calculateCPUPercent(pcpu, psys, stat)*10000)) / 10000
+
+	if stat.MemoryStats.Limit > 0 {
+		ps.Memory = float64(int(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit)*10000)) / 10000
+	}
+
+	psch <- ps
 }
 
 func GetProcess(app, id string) (*Process, error) {
@@ -219,4 +275,20 @@ func (p *Process) Stop() error {
 	}
 
 	return nil
+}
+
+// from https://github.com/docker/docker/blob/master/api/client/stats.go
+func calculateCPUPercent(previousCPU, previousSystem uint64, v *docker.Stats) float64 {
+	var (
+		cpuPercent = 0.0
+		// calculate the change for the cpu usage of the container in between readings
+		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage - previousCPU)
+		// calculate the change for the entire system between readings
+		systemDelta = float64(v.CPUStats.SystemCPUUsage - previousSystem)
+	)
+
+	if systemDelta > 0.0 && cpuDelta > 0.0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+	}
+	return cpuPercent
 }
