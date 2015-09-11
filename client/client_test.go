@@ -104,6 +104,18 @@ func TestClientNonJson(t *testing.T) {
 	var err Error
 
 	testClient(t, ts.URL).Get("/", &err)
+}
 
-	fmt.Printf("err: %+v\n", err)
+func TestClientGetErrors(t *testing.T) {
+	client := NewWithoutVersionCheck("", "", "")
+
+	err := client.Get("", nil)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, "Get https://: http: no Host in request URL", err.Error())
+
+	err = client.Get("/%", nil)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, "parse https:///%: invalid URL escape \"%\"", err.Error())
 }

@@ -29,11 +29,7 @@ type Client struct {
 type Params map[string]string
 
 func New(host, password, version string) (*Client, error) {
-	client := &Client{
-		Host:     host,
-		Password: password,
-		Version:  version,
-	}
+	client := NewWithoutVersionCheck(host, password, version)
 
 	system, err := client.GetSystem()
 
@@ -54,11 +50,21 @@ func New(host, password, version string) (*Client, error) {
 	return client, nil
 }
 
+func NewWithoutVersionCheck(host, password, version string) *Client {
+	client := &Client{
+		Host:     host,
+		Password: password,
+		Version:  version,
+	}
+
+	return client
+}
+
 func (c *Client) Get(path string, out interface{}) error {
 	req, err := c.request("GET", path, nil)
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	res, err := c.client().Do(req)
@@ -233,6 +239,7 @@ func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
 
 	return nil
 }
+
 func (c *Client) Delete(path string, out interface{}) error {
 	req, err := c.request("DELETE", path, nil)
 
@@ -336,7 +343,6 @@ func (c *Client) request(method, path string, body io.Reader) (*http.Request, er
 	req, err := http.NewRequest(method, fmt.Sprintf("https://%s%s", c.Host, path), body)
 
 	if err != nil {
-		stdcli.Error(err)
 		return nil, err
 	}
 
