@@ -285,6 +285,12 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 		return err
 	}
 
+	config.TlsConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	config.Header.Set("Version", c.Version)
+
 	userpass := fmt.Sprintf("convox:%s", c.Password)
 	userpass_encoded := base64.StdEncoding.EncodeToString([]byte(userpass))
 
