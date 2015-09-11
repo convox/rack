@@ -28,6 +28,10 @@ func ListFormation(app string) (Formation, error) {
 		return nil, err
 	}
 
+	if release == nil {
+		return Formation{}, nil
+	}
+
 	manifest, err := LoadManifest(release.Manifest)
 
 	if err != nil {
