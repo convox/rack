@@ -64,20 +64,28 @@ func ListProcesses(app string) (Processes, error) {
 	num := 0
 
 	for _, task := range tres.Tasks {
-		for _, c := range task.Containers {
-			tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-				TaskDefinition: task.TaskDefinitionARN,
-			})
+		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: task.TaskDefinitionARN,
+		})
 
-			if err != nil {
-				return nil, err
-			}
+		if err != nil {
+			return nil, err
+		}
 
+		for _, cd := range tres.TaskDefinition.ContainerDefinitions {
 			if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") && *tres.TaskDefinition.Family != app {
 				continue
 			}
 
-			go fetchProcess(app, task, tres.TaskDefinition, c, psch, errch)
+			var cc *ecs.Container
+
+			for _, c := range task.Containers {
+				if *c.Name == *cd.Name {
+					cc = c
+				}
+			}
+
+			go fetchProcess(app, *task, *tres.TaskDefinition, *cd, *cc, psch, errch)
 
 			num += 1
 		}
@@ -97,14 +105,7 @@ func ListProcesses(app string) (Processes, error) {
 	return pss, nil
 }
 
-func fetchProcess(app string, task *ecs.Task, td *ecs.TaskDefinition, c *ecs.Container, psch chan Process, errch chan error) {
-	if len(td.ContainerDefinitions) < 1 {
-		errch <- fmt.Errorf("no container definition")
-		return
-	}
-
-	cd := td.ContainerDefinitions[0]
-
+func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.ContainerDefinition, c ecs.Container, psch chan Process, errch chan error) {
 	idp := strings.Split(*c.ContainerARN, "-")
 	id := idp[len(idp)-1]
 
