@@ -35,11 +35,13 @@ func RenderError(rw http.ResponseWriter, err error) error {
 }
 
 func RenderJson(rw http.ResponseWriter, object interface{}) error {
-	data, err := json.Marshal(object)
+	data, err := json.MarshalIndent(object, "", "  ")
 
 	if err != nil {
 		return RenderError(rw, err)
 	}
+
+	data = append(data, '\n')
 
 	rw.Header().Set("Content-Type", "application/json")
 
