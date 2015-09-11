@@ -294,7 +294,11 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 
 	image := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
 
-	d := Docker()
+	d, err := Docker("")
+
+	if err != nil {
+		return err
+	}
 
 	err = d.PullImage(docker.PullImageOptions{
 		Repository: fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name),

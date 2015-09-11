@@ -580,10 +580,16 @@ definitions:
         type: string
       command:
         type: string
+      host:
+        type: string
       image:
         type: string
       name:
         type: string
+      ports:
+        type: array
+        items:
+          type: integer
   system:
     properties:
       count:

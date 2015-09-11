@@ -11,20 +11,24 @@ import (
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
-func Docker() *docker.Client {
-	host, err := DockerHost()
+func Docker(host string) (*docker.Client, error) {
+	if host == "" {
+		h, err := DockerHost()
 
-	if err != nil {
-		panic(err)
+		if err != nil {
+			return nil, err
+		}
+
+		host = h
 	}
 
-	client, _ := docker.NewClient(host)
-
-	if os.Getenv("TEST_DOCKER_HOST") != "" {
-		client, _ = docker.NewClient(os.Getenv("TEST_DOCKER_HOST"))
+	if h := os.Getenv("TEST_DOCKER_HOST"); h != "" {
+		host = h
 	}
 
-	return client
+	fmt.Printf("host %+v\n", host)
+
+	return docker.NewClient(host)
 }
 
 func DockerHost() (string, error) {
