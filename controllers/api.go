@@ -82,7 +82,7 @@ func versionCheck(r *http.Request) bool {
 		return true
 	}
 
-	if strings.HasPrefix(r.Header.Get("User-Agent"), "cur/") {
+	if strings.HasPrefix(r.Header.Get("User-Agent"), "curl/") {
 		return true
 	}
 
