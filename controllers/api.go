@@ -20,10 +20,6 @@ func authenticate(rw http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	if r.URL.Path == "/boom" || r.URL.Path == "/check" {
-		return nil
-	}
-
 	auth := r.Header.Get("Authorization")
 
 	if auth == "" {
