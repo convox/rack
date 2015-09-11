@@ -5,5 +5,4 @@ go:
 
 sudo: true
 
-install:
-  - wget -qO- https://get.docker.com/ | sh -ex
+before_install: wget -qO- https://get.docker.com/ | sh -ex
