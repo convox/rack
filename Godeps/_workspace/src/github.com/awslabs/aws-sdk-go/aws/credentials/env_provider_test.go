@@ -1,7 +1,7 @@
 package credentials
 
 import (
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )

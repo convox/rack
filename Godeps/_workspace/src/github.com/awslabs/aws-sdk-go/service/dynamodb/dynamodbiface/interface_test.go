@@ -7,7 +7,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 func TestInterface(t *testing.T) {

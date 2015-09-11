@@ -7,7 +7,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/rds/rdsiface"
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 func TestInterface(t *testing.T) {

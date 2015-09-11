@@ -5,7 +5,7 @@ import (
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 var service = func() *aws.Service {

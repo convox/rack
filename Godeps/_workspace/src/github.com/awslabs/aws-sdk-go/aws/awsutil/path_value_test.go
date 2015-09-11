@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 type Struct struct {

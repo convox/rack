@@ -4,10 +4,11 @@
 
 // Package docker provides a client for the Docker remote API.
 //
-// See http://goo.gl/G3plxW for more details on the remote API.
+// See https://goo.gl/G3plxW for more details on the remote API.
 package docker
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
@@ -20,11 +21,18 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/vendor/github.com/docker/docker/pkg/stdcopy"
+	"time"
+
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/opts"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/homedir"
+	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/stdcopy"
 )
 
 const userAgent = "go-dockerclient"
@@ -37,6 +45,8 @@ var (
 	ErrConnectionRefused = errors.New("cannot connect to Docker endpoint")
 
 	apiVersion112, _ = NewAPIVersion("1.12")
+
+	apiVersion119, _ = NewAPIVersion("1.19")
 )
 
 // APIVersion is an internal representation of a version of the Remote API.
@@ -120,6 +130,7 @@ type Client struct {
 	SkipServerVersionCheck bool
 	HTTPClient             *http.Client
 	TLSConfig              *tls.Config
+	Dialer                 *net.Dialer
 
 	endpoint            string
 	endpointURL         *url.URL
@@ -181,6 +192,7 @@ func NewVersionedClient(endpoint string, apiVersionString string) (*Client, erro
 	}
 	return &Client{
 		HTTPClient:          http.DefaultClient,
+		Dialer:              &net.Dialer{},
 		endpoint:            endpoint,
 		endpointURL:         u,
 		eventMonitor:        new(eventMonitoringState),
@@ -209,6 +221,46 @@ func NewVersionedTLSClient(endpoint string, cert, key, ca, apiVersionString stri
 		return nil, err
 	}
 	return NewVersionedTLSClientFromBytes(endpoint, certPEMBlock, keyPEMBlock, caPEMCert, apiVersionString)
+}
+
+// NewClientFromEnv returns a Client instance ready for communication created from
+// Docker's default logic for the environment variables DOCKER_HOST, DOCKER_TLS_VERIFY, and DOCKER_CERT_PATH.
+//
+// See https://github.com/docker/docker/blob/1f963af697e8df3a78217f6fdbf67b8123a7db94/docker/docker.go#L68.
+// See https://github.com/docker/compose/blob/81707ef1ad94403789166d2fe042c8a718a4c748/compose/cli/docker_client.py#L7.
+func NewClientFromEnv() (*Client, error) {
+	client, err := NewVersionedClientFromEnv("")
+	if err != nil {
+		return nil, err
+	}
+	client.SkipServerVersionCheck = true
+	return client, nil
+}
+
+// NewVersionedClientFromEnv returns a Client instance ready for TLS communications created from
+// Docker's default logic for the environment variables DOCKER_HOST, DOCKER_TLS_VERIFY, and DOCKER_CERT_PATH,
+// and using a specific remote API version.
+//
+// See https://github.com/docker/docker/blob/1f963af697e8df3a78217f6fdbf67b8123a7db94/docker/docker.go#L68.
+// See https://github.com/docker/compose/blob/81707ef1ad94403789166d2fe042c8a718a4c748/compose/cli/docker_client.py#L7.
+func NewVersionedClientFromEnv(apiVersionString string) (*Client, error) {
+	dockerEnv, err := getDockerEnv()
+	if err != nil {
+		return nil, err
+	}
+	dockerHost := dockerEnv.dockerHost
+	if dockerEnv.dockerTLSVerify {
+		parts := strings.SplitN(dockerHost, "://", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("could not split %s into two parts by ://", dockerHost)
+		}
+		dockerHost = fmt.Sprintf("https://%s", parts[1])
+		cert := filepath.Join(dockerEnv.dockerCertPath, "cert.pem")
+		key := filepath.Join(dockerEnv.dockerCertPath, "key.pem")
+		ca := filepath.Join(dockerEnv.dockerCertPath, "ca.pem")
+		return NewVersionedTLSClient(dockerHost, cert, key, ca, apiVersionString)
+	}
+	return NewVersionedClient(dockerHost, apiVersionString)
 }
 
 // NewVersionedTLSClientFromBytes returns a Client instance ready for TLS communications with the givens
@@ -252,6 +304,7 @@ func NewVersionedTLSClientFromBytes(endpoint string, certPEMBlock, keyPEMBlock, 
 	return &Client{
 		HTTPClient:          &http.Client{Transport: tr},
 		TLSConfig:           tlsConfig,
+		Dialer:              &net.Dialer{},
 		endpoint:            endpoint,
 		endpointURL:         u,
 		eventMonitor:        new(eventMonitoringState),
@@ -278,7 +331,7 @@ func (c *Client) checkAPIVersion() error {
 
 // Ping pings the docker server
 //
-// See http://goo.gl/stJENm for more details.
+// See https://goo.gl/kQCfJj for more details.
 func (c *Client) Ping() error {
 	path := "/_ping"
 	body, status, err := c.do("GET", path, doOptions{})
@@ -344,17 +397,18 @@ func (c *Client) do(method, path string, doOptions doOptions) ([]byte, int, erro
 	protocol := c.endpointURL.Scheme
 	address := c.endpointURL.Path
 	if protocol == "unix" {
-		dial, err := net.Dial(protocol, address)
+		var dial net.Conn
+		dial, err = c.Dialer.Dial(protocol, address)
 		if err != nil {
 			return nil, -1, err
 		}
 		defer dial.Close()
-		clientconn := httputil.NewClientConn(dial, nil)
-		resp, err = clientconn.Do(req)
+		breader := bufio.NewReader(dial)
+		err = req.Write(dial)
 		if err != nil {
 			return nil, -1, err
 		}
-		defer clientconn.Close()
+		resp, err = http.ReadResponse(breader, req)
 	} else {
 		resp, err = c.HTTPClient.Do(req)
 	}
@@ -378,10 +432,13 @@ func (c *Client) do(method, path string, doOptions doOptions) ([]byte, int, erro
 type streamOptions struct {
 	setRawTerminal bool
 	rawJSONStream  bool
+	useJSONDecoder bool
 	headers        map[string]string
 	in             io.Reader
 	stdout         io.Writer
 	stderr         io.Writer
+	// timeout is the inital connection timeout
+	timeout time.Duration
 }
 
 func (c *Client) stream(method, path string, streamOptions streamOptions) error {
@@ -410,26 +467,48 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 	address := c.endpointURL.Path
 	if streamOptions.stdout == nil {
 		streamOptions.stdout = ioutil.Discard
+	} else if t, ok := streamOptions.stdout.(io.Closer); ok {
+		defer t.Close()
 	}
 	if streamOptions.stderr == nil {
 		streamOptions.stderr = ioutil.Discard
+	} else if t, ok := streamOptions.stderr.(io.Closer); ok {
+		defer t.Close()
 	}
 	if protocol == "unix" {
-		dial, err := net.Dial(protocol, address)
+		dial, err := c.Dialer.Dial(protocol, address)
 		if err != nil {
 			return err
 		}
-		clientconn := httputil.NewClientConn(dial, nil)
-		resp, err = clientconn.Do(req)
-		defer clientconn.Close()
-	} else {
-		resp, err = c.HTTPClient.Do(req)
-	}
-	if err != nil {
-		if strings.Contains(err.Error(), "connection refused") {
-			return ErrConnectionRefused
+		defer dial.Close()
+		breader := bufio.NewReader(dial)
+		err = req.Write(dial)
+		if err != nil {
+			return err
 		}
-		return err
+
+		// ReadResponse may hang if server does not replay
+		if streamOptions.timeout > 0 {
+			dial.SetDeadline(time.Now().Add(streamOptions.timeout))
+		}
+
+		if resp, err = http.ReadResponse(breader, req); err != nil {
+			// Cancel timeout for future I/O operations
+			if streamOptions.timeout > 0 {
+				dial.SetDeadline(time.Time{})
+			}
+			if strings.Contains(err.Error(), "connection refused") {
+				return ErrConnectionRefused
+			}
+			return err
+		}
+	} else {
+		if resp, err = c.HTTPClient.Do(req); err != nil {
+			if strings.Contains(err.Error(), "connection refused") {
+				return ErrConnectionRefused
+			}
+			return err
+		}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
@@ -439,7 +518,7 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 		}
 		return newError(resp.StatusCode, body)
 	}
-	if resp.Header.Get("Content-Type") == "application/json" {
+	if streamOptions.useJSONDecoder || resp.Header.Get("Content-Type") == "application/json" {
 		// if we want to get raw json stream, just copy it back to output
 		// without decoding it
 		if streamOptions.rawJSONStream {
@@ -513,6 +592,8 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 		return err
 	}
 	req.Header.Set("Content-Type", "plain/text")
+	req.Header.Set("Connection", "Upgrade")
+	req.Header.Set("Upgrade", "tcp")
 	protocol := c.endpointURL.Scheme
 	address := c.endpointURL.Path
 	if protocol != "unix" {
@@ -521,12 +602,12 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 	}
 	var dial net.Conn
 	if c.TLSConfig != nil && protocol != "unix" {
-		dial, err = tlsDial(protocol, address, c.TLSConfig)
+		dial, err = tlsDialWithDialer(c.Dialer, protocol, address, c.TLSConfig)
 		if err != nil {
 			return err
 		}
 	} else {
-		dial, err = net.Dial(protocol, address)
+		dial, err = c.Dialer.Dial(protocol, address)
 		if err != nil {
 			return err
 		}
@@ -542,13 +623,16 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 	defer rwc.Close()
 	errChanOut := make(chan error, 1)
 	errChanIn := make(chan error, 1)
-	exit := make(chan bool)
 	go func() {
-		defer close(exit)
-		defer close(errChanOut)
+		defer func() {
+			if hijackOptions.in != nil {
+				if closer, ok := hijackOptions.in.(io.Closer); ok {
+					closer.Close()
+				}
+			}
+		}()
 		var err error
 		if hijackOptions.setRawTerminal {
-			// When TTY is ON, use regular copy
 			_, err = io.Copy(hijackOptions.stdout, br)
 		} else {
 			_, err = stdcopy.StdCopy(hijackOptions.stdout, hijackOptions.stderr, br)
@@ -556,21 +640,21 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) error 
 		errChanOut <- err
 	}()
 	go func() {
+		var err error
 		if hijackOptions.in != nil {
-			_, err := io.Copy(rwc, hijackOptions.in)
-			errChanIn <- err
+			_, err = io.Copy(rwc, hijackOptions.in)
 		}
+		errChanIn <- err
 		rwc.(interface {
 			CloseWrite() error
 		}).CloseWrite()
 	}()
-	<-exit
-	select {
-	case err = <-errChanIn:
-		return err
-	case err = <-errChanOut:
-		return err
+	errIn := <-errChanIn
+	errOut := <-errChanOut
+	if errIn != nil {
+		return errIn
 	}
+	return errOut
 }
 
 func (c *Client) getURL(path string) string {
@@ -682,28 +766,10 @@ func parseEndpoint(endpoint string, tls bool) (*url.URL, error) {
 	if tls {
 		u.Scheme = "https"
 	}
-	if u.Scheme == "tcp" {
-		_, port, err := net.SplitHostPort(u.Host)
-		if err != nil {
-			if e, ok := err.(*net.AddrError); ok {
-				if e.Err == "missing port in address" {
-					return u, nil
-				}
-			}
-			return nil, ErrInvalidEndpoint
-		}
-
-		number, err := strconv.ParseInt(port, 10, 64)
-		if err == nil && number == 2376 {
-			u.Scheme = "https"
-		} else {
-			u.Scheme = "http"
-		}
-	}
-	if u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "unix" {
-		return nil, ErrInvalidEndpoint
-	}
-	if u.Scheme != "unix" {
+	switch u.Scheme {
+	case "unix":
+		return u, nil
+	case "http", "https", "tcp":
 		_, port, err := net.SplitHostPort(u.Host)
 		if err != nil {
 			if e, ok := err.(*net.AddrError); ok {
@@ -715,10 +781,67 @@ func parseEndpoint(endpoint string, tls bool) (*url.URL, error) {
 		}
 		number, err := strconv.ParseInt(port, 10, 64)
 		if err == nil && number > 0 && number < 65536 {
+			if u.Scheme == "tcp" {
+				if number == 2376 {
+					u.Scheme = "https"
+				} else {
+					u.Scheme = "http"
+				}
+			}
 			return u, nil
 		}
-	} else {
-		return u, nil // we don't need port when using a unix socket
+		return nil, ErrInvalidEndpoint
+	default:
+		return nil, ErrInvalidEndpoint
 	}
-	return nil, ErrInvalidEndpoint
+}
+
+type dockerEnv struct {
+	dockerHost      string
+	dockerTLSVerify bool
+	dockerCertPath  string
+}
+
+func getDockerEnv() (*dockerEnv, error) {
+	dockerHost := os.Getenv("DOCKER_HOST")
+	var err error
+	if dockerHost == "" {
+		dockerHost, err = getDefaultDockerHost()
+		if err != nil {
+			return nil, err
+		}
+	}
+	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY") != ""
+	var dockerCertPath string
+	if dockerTLSVerify {
+		dockerCertPath = os.Getenv("DOCKER_CERT_PATH")
+		if dockerCertPath == "" {
+			home := homedir.Get()
+			if home == "" {
+				return nil, errors.New("environment variable HOME must be set if DOCKER_CERT_PATH is not set")
+			}
+			dockerCertPath = filepath.Join(home, ".docker")
+			dockerCertPath, err = filepath.Abs(dockerCertPath)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return &dockerEnv{
+		dockerHost:      dockerHost,
+		dockerTLSVerify: dockerTLSVerify,
+		dockerCertPath:  dockerCertPath,
+	}, nil
+}
+
+func getDefaultDockerHost() (string, error) {
+	var defaultHost string
+	if runtime.GOOS != "windows" {
+		// If we do not have a host, default to unix socket
+		defaultHost = fmt.Sprintf("unix://%s", opts.DefaultUnixSocket)
+	} else {
+		// If we do not have a host, default to TCP socket on Windows
+		defaultHost = fmt.Sprintf("tcp://%s:%d", opts.DefaultHTTPHost, opts.DefaultHTTPPort)
+	}
+	return opts.ValidateHost(defaultHost)
 }

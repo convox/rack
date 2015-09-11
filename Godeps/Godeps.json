@@ -129,8 +129,8 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Comment": "0.2.1-553-g419285e",
-			"Rev": "419285e90ed27813d1df4be3e47249f9eb215dcf"
+			"Comment": "0.2.1-714-gc9ad0ce",
+			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
