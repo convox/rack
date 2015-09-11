@@ -42,10 +42,10 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("ID", "NAME", "CPU", "MEM", "STARTED", "COMMAND")
+	t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU", "MEM", "STARTED", "COMMAND")
 
 	for _, p := range ps {
-		t.AddRow(p.Id, p.Name, fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanize.Time(p.Started), p.Command)
+		t.AddRow(p.Id, p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanize.Time(p.Started), p.Command)
 	}
 
 	t.Print()
