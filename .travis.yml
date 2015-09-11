@@ -3,15 +3,7 @@ language: go
 go:
   - 1.4
 
-sudo: false
+sudo: true
 
 install:
   - ./ci/install-docker.sh
-
-before_script:
-  - export PATH=$PATH:$PWD
-
-addons:
-  apt:
-    packages:
-      - ca-certificates
