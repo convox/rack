@@ -10,11 +10,6 @@
 			"Rev": "035af7c09b120b0909dd998c92745b82f61e0b1c"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/aws/awserr",
-			"Comment": "v0.6.1-14-g7e9078c",
-			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
-		},
-		{
 			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
 			"Rev": "fa66a1839e64ec5a52a1230821097fb54c6561b7"
 		},
@@ -139,10 +134,6 @@
 		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
-		},
-		{
-			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "a6f041ac33b84488bb44137d6866cd3c8706d792"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
