@@ -52,23 +52,5 @@ func rackClient(c *cli.Context) *client.Client {
 		return nil
 	}
 
-	cl, err := client.New(host, password, c.App.Version)
-
-	if err != nil {
-		stdcli.Error(err)
-		return nil
-	}
-
-	return cl
-}
-
-func rackClientManual(host, password, version string) *client.Client {
-	cl, err := client.New(host, password, version)
-
-	if err != nil {
-		stdcli.Error(err)
-		return nil
-	}
-
-	return cl
+	return client.New(host, password, c.App.Version)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
 	homedir "github.com/convox/cli/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
+	"github.com/convox/cli/client"
 	"github.com/convox/cli/stdcli"
 )
 
@@ -91,7 +92,7 @@ func cmdLogin(c *cli.Context) {
 		password = string(in)
 	}
 
-	cl := rackClientManual(host, password, c.App.Version)
+	cl := client.New(host, password, c.App.Version)
 
 	if cl == nil {
 		return

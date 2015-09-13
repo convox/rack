@@ -24,43 +24,27 @@ type Client struct {
 	Host     string
 	Password string
 	Version  string
+
+	skipVersionCheck bool
 }
 
 type Params map[string]string
 
-func New(host, password, version string) (*Client, error) {
-	client := NewWithoutVersionCheck(host, password, version)
-
-	system, err := client.GetSystem()
-
-	if err != nil {
-		return nil, err
-	}
-
-	switch v := system.Version; v {
-	case "":
-		return nil, fmt.Errorf("rack outdated, please update with `convox rack update`")
-	case "latest":
-	default:
-		if v < MinimumServerVersion {
-			return nil, fmt.Errorf("rack outdated, please update with `convox rack update`")
-		}
-	}
-
-	return client, nil
-}
-
-func NewWithoutVersionCheck(host, password, version string) *Client {
-	client := &Client{
+func New(host, password, version string) *Client {
+	return &Client{
 		Host:     host,
 		Password: password,
 		Version:  version,
 	}
-
-	return client
 }
 
 func (c *Client) Get(path string, out interface{}) error {
+	err := c.versionCheck()
+
+	if err != nil {
+		return err
+	}
+
 	req, err := c.request("GET", path, nil)
 
 	if err != nil {
@@ -105,6 +89,12 @@ func (c *Client) Post(path string, params Params, out interface{}) error {
 }
 
 func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
+	err := c.versionCheck()
+
+	if err != nil {
+		return err
+	}
+
 	req, err := c.request("POST", path, body)
 
 	if err != nil {
@@ -141,6 +131,12 @@ func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
 }
 
 func (c *Client) PostMultipart(path string, source []byte, out interface{}) error {
+	err := c.versionCheck()
+
+	if err != nil {
+		return err
+	}
+
 	body := &bytes.Buffer{}
 
 	writer := multipart.NewWriter(body)
@@ -168,6 +164,8 @@ func (c *Client) PostMultipart(path string, source []byte, out interface{}) erro
 	if err != nil {
 		return err
 	}
+
+	req.SetBasicAuth("convox", string(c.Password))
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
@@ -205,6 +203,12 @@ func (c *Client) Put(path string, params Params, out interface{}) error {
 }
 
 func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
+	err := c.versionCheck()
+
+	if err != nil {
+		return err
+	}
+
 	req, err := c.request("PUT", path, body)
 
 	if err != nil {
@@ -241,6 +245,12 @@ func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
 }
 
 func (c *Client) Delete(path string, out interface{}) error {
+	err := c.versionCheck()
+
+	if err != nil {
+		return err
+	}
+
 	req, err := c.request("DELETE", path, nil)
 
 	if err != nil {
@@ -328,6 +338,13 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 	return nil
 }
 
+func (c *Client) WithoutVersionCheck(fn func(c *Client)) {
+	check := c.skipVersionCheck
+	c.skipVersionCheck = true
+	fn(c)
+	c.skipVersionCheck = check
+}
+
 func (c *Client) client() *http.Client {
 	client := &http.Client{}
 
@@ -358,6 +375,30 @@ func (c *Client) request(method, path string, body io.Reader) (*http.Request, er
 	req.Header.Add("Version", c.Version)
 
 	return req, nil
+}
+
+func (c *Client) versionCheck() error {
+	if c.skipVersionCheck {
+		return nil
+	}
+
+	system, err := c.GetSystem()
+
+	if err != nil {
+		return err
+	}
+
+	switch v := system.Version; v {
+	case "":
+		return fmt.Errorf("rack outdated, please update with `convox rack update`")
+	case "latest":
+	default:
+		if v < MinimumServerVersion {
+			return fmt.Errorf("rack outdated, please update with `convox rack update`")
+		}
+	}
+
+	return nil
 }
 
 func (c *Client) url(path string) string {
