@@ -59,9 +59,7 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Printf("Promoting %s... ", release)
 
-	r, err := rackClient(c).PromoteRelease(app, release)
-
-	fmt.Printf("r: %+v\n", r)
+	_, err = rackClient(c).PromoteRelease(app, release)
 
 	if err != nil {
 		stdcli.Error(err)
