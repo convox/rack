@@ -150,7 +150,13 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 
 	name := b.App
 
-	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", fmt.Sprintf("%q", os.Getenv("PASSWORD")), name, "-"}
+	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST")}
+
+	if pw := os.Getenv("PASSWORD"); pw != "" {
+		args = append(args, "-auth", pw)
+	}
+
+	args = append(args, name, "-")
 
 	err := b.execute(args, r, ch)
 
@@ -169,7 +175,13 @@ func (b *Build) ExecuteRemote(repo string, ch chan error) {
 
 	name := b.App
 
-	args := []string{"run", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_BUILD"), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST"), "-auth", os.Getenv("PASSWORD"), name}
+	args := []string{"run", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_BUILD"), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST")}
+
+	if pw := os.Getenv("PASSWORD"); pw != "" {
+		args = append(args, "-auth", pw)
+	}
+
+	args = append(args, name)
 
 	parts := strings.Split(repo, "#")
 
