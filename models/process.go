@@ -200,7 +200,8 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	}
 
 	if len(containers) != 1 {
-		errch <- fmt.Errorf("could not find container")
+		fmt.Println(`ns=kernel at=processes.list state=error message="could not find container"`)
+		psch <- ps
 		return
 	}
 
