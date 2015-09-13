@@ -890,6 +890,7 @@
               "KINESIS": { "Ref": "Kinesis" },
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "registry",
+              "RELEASE": { "Ref": "Version" },
               "SETTINGS_FLAVOR": "s3"
             },
             "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
