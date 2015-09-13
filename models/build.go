@@ -150,7 +150,7 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 
 	name := b.App
 
-	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", fmt.Sprintf("convox/build:%s", os.Getenv("RELEASE")), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST")}
+	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_BUILD"), "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST")}
 
 	if pw := os.Getenv("PASSWORD"); pw != "" {
 		args = append(args, "-auth", pw)
