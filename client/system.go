@@ -52,7 +52,12 @@ func (c *Client) GetSystem() (*System, error) {
 func (c *Client) UpdateSystem(version string) (*System, error) {
 	var system System
 
+	check := c.skipVersionCheck
+	c.skipVersionCheck = true
+
 	err := c.Get("/system", &system)
+
+	c.skipVersionCheck = check
 
 	if err != nil {
 		return nil, err
