@@ -65,5 +65,7 @@ func (r *System) Save() error {
 		"Version":       r.Version,
 	}
 
-	return app.UpdateParams(params)
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", r.Version)
+
+	return app.UpdateParamsAndTemplate(params, template)
 }

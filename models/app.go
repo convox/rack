@@ -186,11 +186,16 @@ func (a *App) Delete() error {
 	return nil
 }
 
-func (a *App) UpdateParams(changes map[string]string) error {
+func (a *App) UpdateParamsAndTemplate(changes map[string]string, template string) error {
 	req := &cloudformation.UpdateStackInput{
-		StackName:           aws.String(a.Name),
-		UsePreviousTemplate: aws.Boolean(true),
-		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(a.Name),
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+	}
+
+	if template != "" {
+		req.TemplateURL = aws.String(template)
+	} else {
+		req.UsePreviousTemplate = aws.Boolean(true)
 	}
 
 	params := a.Parameters
@@ -209,6 +214,10 @@ func (a *App) UpdateParams(changes map[string]string) error {
 	_, err := CloudFormation().UpdateStack(req)
 
 	return err
+}
+
+func (a *App) UpdateParams(changes map[string]string) error {
+	return a.UpdateParamsAndTemplate(changes, "")
 }
 
 func (a *App) Formation() (string, error) {
