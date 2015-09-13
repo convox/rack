@@ -831,7 +831,7 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
-            "CPU": "100",
+            "CPU": "128",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
@@ -881,7 +881,7 @@
             ]
           },
           {
-            "CPU": "100",
+            "CPU": "256",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "RegistryAccess" },
