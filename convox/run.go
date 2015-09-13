@@ -42,12 +42,9 @@ func cmdRun(c *cli.Context) {
 
 	oldState, err := term.SetRawTerminal(fd)
 
-	if err != nil {
-		stdcli.Error(err)
-		return
+	if err == nil {
+		defer term.RestoreTerminal(fd, oldState)
 	}
-
-	defer term.RestoreTerminal(fd, oldState)
 
 	_, app, err := stdcli.DirApp(c, ".")
 
