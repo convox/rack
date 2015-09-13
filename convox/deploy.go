@@ -57,7 +57,7 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	fmt.Print("Promoting %s... ", release)
+	fmt.Printf("Promoting %s... ", release)
 
 	r, err := rackClient(c).PromoteRelease(app, release)
 
