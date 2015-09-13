@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/convox/cli/client"
@@ -9,6 +10,8 @@ import (
 )
 
 func TestInvalidLogin(t *testing.T) {
+	temp, _ := ioutil.TempDir("", "convox-test")
+
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps", Code: 401, Response: "unauthorized"},
 	)
@@ -18,11 +21,13 @@ func TestInvalidLogin(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: fmt.Sprintf("convox login --password foobar %s", ts.URL),
+			Env:     map[string]string{"CONVOX_CONFIG": temp},
 			Exit:    1,
 			Stderr:  "ERROR: invalid login\n",
 		},
 		test.ExecRun{
 			Command: "convox login --password foobar BAD",
+			Env:     map[string]string{"CONVOX_CONFIG": temp},
 			Exit:    1,
 			Stderr:  "ERROR: invalid login\n",
 		},
@@ -30,6 +35,8 @@ func TestInvalidLogin(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
+	temp, _ := ioutil.TempDir("", "convox-test")
+
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{}},
 	)
@@ -39,6 +46,7 @@ func TestLogin(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: fmt.Sprintf("convox login --password foobar %s", ts.URL),
+			Env:     map[string]string{"CONVOX_CONFIG": temp},
 			Exit:    0,
 			Stdout:  "Logged in successfully.\n",
 		},

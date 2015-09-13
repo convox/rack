@@ -2,6 +2,8 @@ package test
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 	"os/exec"
 	"syscall"
 	"testing"
@@ -11,13 +13,14 @@ import (
 
 type ExecRun struct {
 	Command string
+	Env     map[string]string
 	Exit    int
 	Stdout  string
 	Stderr  string
 }
 
 func (er ExecRun) Test(t *testing.T) {
-	stdout, stderr, code, err := Exec(er.Command)
+	stdout, stderr, code, err := er.exec()
 
 	assert.Nil(t, err, "should be nil")
 	assert.Equal(t, er.Exit, code, "exit code should be equal")
@@ -25,14 +28,20 @@ func (er ExecRun) Test(t *testing.T) {
 	assert.Equal(t, er.Stderr, stderr, "stderr should be equal")
 }
 
-func Exec(command string) (string, string, int, error) {
-	cmd := exec.Command("sh", "-c", command)
+func (er ExecRun) exec() (string, string, int, error) {
+	cmd := exec.Command("sh", "-c", er.Command)
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+
+	cmd.Env = os.Environ()
+
+	for k, v := range er.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
 
 	code := exitCode(cmd.Run())
 

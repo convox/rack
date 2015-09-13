@@ -43,6 +43,10 @@ func init() {
 
 	ConfigRoot = filepath.Join(home, ".convox")
 
+	if root := os.Getenv("CONVOX_CONFIG"); root != "" {
+		ConfigRoot = root
+	}
+
 	stat, err := os.Stat(ConfigRoot)
 
 	if err != nil && !os.IsNotExist(err) {
