@@ -301,9 +301,26 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
+	binds := []string{}
+	host := ""
+
+	pss, err := ListProcesses(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, ps := range pss {
+		if ps.Name == process {
+			binds = ps.binds
+			host = fmt.Sprintf("http://%s:2376", ps.Host)
+			break
+		}
+	}
+
 	image := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
 
-	d, err := Docker("")
+	d, err := Docker(host)
 
 	if err != nil {
 		return err
@@ -320,21 +337,6 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 
 	if err != nil {
 		return err
-	}
-
-	binds := []string{}
-
-	pss, err := ListProcesses(a.Name)
-
-	if err != nil {
-		return err
-	}
-
-	for _, ps := range pss {
-		if ps.Name == process {
-			binds = ps.binds
-			break
-		}
 	}
 
 	res, err := d.CreateContainer(docker.CreateContainerOptions{
@@ -357,17 +359,23 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return err
 	}
 
+	ir, iw := io.Pipe()
+	or, ow := io.Pipe()
+
 	go d.AttachToContainer(docker.AttachToContainerOptions{
 		Container:    res.ID,
-		InputStream:  rw,
-		OutputStream: rw,
-		ErrorStream:  rw,
+		InputStream:  ir,
+		OutputStream: ow,
+		ErrorStream:  ow,
 		Stream:       true,
 		Stdin:        true,
 		Stdout:       true,
 		Stderr:       true,
 		RawTerminal:  true,
 	})
+
+	go io.Copy(iw, rw)
+	go io.Copy(rw, or)
 
 	// hacky
 	time.Sleep(100 * time.Millisecond)
@@ -380,7 +388,11 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 
 	code, err := d.WaitContainer(res.ID)
 
-	rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d", code)))
+	if err != nil {
+		return err
+	}
+
+	_, err = rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d\n", code)))
 
 	if err != nil {
 		return err
