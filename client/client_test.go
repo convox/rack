@@ -15,10 +15,9 @@ import (
 func testClient(t *testing.T, serverUrl string) *Client {
 	u, _ := url.Parse(serverUrl)
 
-	client, err := New(u.Host, "test", "test")
+	client := New(u.Host, "test", "test")
 
 	require.NotNil(t, client, "client should not be nil")
-	require.Nil(t, err, "err should be nil")
 
 	return client
 }
@@ -56,10 +55,13 @@ func TestClientRackNoVersion(t *testing.T) {
 
 	u, _ := url.Parse(ts.URL)
 
-	client, err := New(u.Host, "test", "test")
+	client := New(u.Host, "test", "test")
 
-	assert.Nil(t, client, "client is nil")
-	assert.NotNil(t, err, "err is not nil")
+	var out interface{}
+
+	err := client.Get("/apps", &out)
+
+	assert.NotNil(t, err)
 	assert.Equal(t, "rack outdated, please update with `convox rack update`", err.Error())
 }
 
@@ -78,9 +80,12 @@ func TestClientRackOldVersion(t *testing.T) {
 
 	MinimumServerVersion = "2"
 
-	client, err := New(u.Host, "test", "test")
+	client := New(u.Host, "test", "test")
 
-	assert.Nil(t, client, "client is nil")
+	var out interface{}
+
+	err := client.Get("/apps", &out)
+
 	assert.NotNil(t, err, "err is not nil")
 	assert.Equal(t, "rack outdated, please update with `convox rack update`", err.Error())
 }
@@ -107,7 +112,8 @@ func TestClientNonJson(t *testing.T) {
 }
 
 func TestClientGetErrors(t *testing.T) {
-	client := NewWithoutVersionCheck("", "", "")
+	client := New("", "", "")
+	client.skipVersionCheck = true
 
 	err := client.Get("", nil)
 

@@ -24,7 +24,7 @@ func TestInvalidLogin(t *testing.T) {
 		test.ExecRun{
 			Command: "convox login --password foobar BAD",
 			Exit:    1,
-			Stderr:  "ERROR: Get https://BAD/system: dial tcp: lookup BAD: no such host\n",
+			Stderr:  "ERROR: invalid login\n",
 		},
 	)
 }

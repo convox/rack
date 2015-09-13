@@ -44,10 +44,11 @@ func TestGetSystemFailure(t *testing.T) {
 
 	u, _ := url.Parse(ts.URL)
 
-	client, err := New(u.Host, "test", "test")
+	client := New(u.Host, "test", "test")
 
-	assert.Nil(t, client, "client should be nil")
-	assert.NotNil(t, err, "err should not be nil")
+	system, err := client.GetSystem()
 
+	assert.Nil(t, system)
+	assert.NotNil(t, err)
 	assert.Equal(t, "invalid system", err.Error(), "err should be invalid system")
 }
