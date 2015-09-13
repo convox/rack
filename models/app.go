@@ -304,7 +304,9 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 	binds := []string{}
 	host := ""
 
+	fmt.Println("start")
 	pss, err := ListProcesses(a.Name)
+	fmt.Println("done")
 
 	if err != nil {
 		return err
@@ -326,17 +328,19 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	err = d.PullImage(docker.PullImageOptions{
-		Repository: fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name),
-		Tag:        release.Build,
-	}, docker.AuthConfiguration{
-		ServerAddress: os.Getenv("REGISTRY_HOST"),
-		Username:      "convox",
-		Password:      os.Getenv("PASSWORD"),
-	})
+	if host == "" {
+		err = d.PullImage(docker.PullImageOptions{
+			Repository: fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name),
+			Tag:        release.Build,
+		}, docker.AuthConfiguration{
+			ServerAddress: os.Getenv("REGISTRY_HOST"),
+			Username:      "convox",
+			Password:      os.Getenv("PASSWORD"),
+		})
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	res, err := d.CreateContainer(docker.CreateContainerOptions{
