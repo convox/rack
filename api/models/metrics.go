@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 type Metrics struct {
@@ -105,7 +105,7 @@ func getMetric(metric string, dimensions []*cloudwatch.Dimension, span, precisio
 		EndTime:    aws.Time(time.Now()),
 		MetricName: aws.String(metric),
 		Namespace:  aws.String("Convox"),
-		Period:     aws.Long(precision * 60),
+		Period:     aws.Int64(precision * 60),
 		StartTime:  aws.Time(time.Now().Add(time.Duration(-1*span) * time.Minute)),
 		Statistics: []*string{aws.String("Average")},
 	}

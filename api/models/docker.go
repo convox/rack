@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -34,13 +34,13 @@ func DockerHost() (string, error) {
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 	})
 
-	if len(ares.ContainerInstanceARNs) == 0 {
+	if len(ares.ContainerInstanceArns) == 0 {
 		return "", fmt.Errorf("no container instances")
 	}
 
 	cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: ares.ContainerInstanceARNs,
+		ContainerInstances: ares.ContainerInstanceArns,
 	})
 
 	if err != nil {
@@ -51,7 +51,7 @@ func DockerHost() (string, error) {
 		return "", fmt.Errorf("no container instances")
 	}
 
-	id := *cres.ContainerInstances[rand.Intn(len(cres.ContainerInstances))].EC2InstanceID
+	id := *cres.ContainerInstances[rand.Intn(len(cres.ContainerInstances))].Ec2InstanceId
 
 	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -63,10 +63,10 @@ func DockerHost() (string, error) {
 		return "", fmt.Errorf("could not describe container instance")
 	}
 
-	ip := *ires.Reservations[0].Instances[0].PrivateIPAddress
+	ip := *ires.Reservations[0].Instances[0].PrivateIpAddress
 
 	if os.Getenv("DEVELOPMENT") == "true" {
-		ip = *ires.Reservations[0].Instances[0].PublicIPAddress
+		ip = *ires.Reservations[0].Instances[0].PublicIpAddress
 	}
 
 	return fmt.Sprintf("http://%s:2376", ip), nil

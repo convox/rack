@@ -1,9 +1,9 @@
 package s3
 
 import (
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/internal/protocol/restxml"
-	"github.com/awslabs/aws-sdk-go/internal/signer/v4"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/internal/protocol/restxml"
+	"github.com/aws/aws-sdk-go/internal/signer/v4"
 )
 
 type S3 struct // S3 is a client for Amazon S3.

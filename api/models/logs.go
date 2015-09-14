@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/kinesis"
-	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
@@ -24,7 +24,7 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 	shards := make([]string, len(sres.StreamDescription.Shards))
 
 	for i, s := range sres.StreamDescription.Shards {
-		shards[i] = *s.ShardID
+		shards[i] = *s.ShardId
 	}
 
 	done := make([](chan bool), len(shards))
@@ -37,7 +37,7 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 
 func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan bool) {
 	ireq := &kinesis.GetShardIteratorInput{
-		ShardID:           aws.String(shard),
+		ShardId:           aws.String(shard),
 		ShardIteratorType: aws.String("LATEST"),
 		StreamName:        aws.String(stream),
 	}
@@ -88,7 +88,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	for {
 		params := &rds.DescribeDBLogFilesInput{
 			DBInstanceIdentifier: aws.String(id),
-			MaxRecords:           aws.Long(100),
+			MaxRecords:           aws.Int64(100),
 		}
 
 		if marker != "" {
@@ -115,7 +115,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	params := &rds.DownloadDBLogFilePortionInput{
 		DBInstanceIdentifier: aws.String(id),
 		LogFileName:          aws.String(*details.LogFileName),
-		NumberOfLines:        aws.Long(50),
+		NumberOfLines:        aws.Int64(50),
 	}
 
 	res, err := RDS().DownloadDBLogFilePortion(params)

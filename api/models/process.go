@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -28,7 +28,7 @@ type Process struct {
 
 	binds       []string `json:"-"`
 	containerId string   `json:"-"`
-	taskARN     string   `json:"-"`
+	taskArn     string   `json:"-"`
 }
 
 type Processes []Process
@@ -52,7 +52,7 @@ func ListProcesses(app string) (Processes, error) {
 
 	treq := &ecs.DescribeTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Tasks:   res.TaskARNs,
+		Tasks:   res.TaskArns,
 	}
 
 	tres, err := ECS().DescribeTasks(treq)
@@ -65,7 +65,7 @@ func ListProcesses(app string) (Processes, error) {
 
 	for _, task := range tres.Tasks {
 		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-			TaskDefinition: task.TaskDefinitionARN,
+			TaskDefinition: task.TaskDefinitionArn,
 		})
 
 		if err != nil {
@@ -106,7 +106,7 @@ func ListProcesses(app string) (Processes, error) {
 }
 
 func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.ContainerDefinition, c ecs.Container, psch chan Process, errch chan error) {
-	idp := strings.Split(*c.ContainerARN, "-")
+	idp := strings.Split(*c.ContainerArn, "-")
 	id := idp[len(idp)-1]
 
 	ps := Process{
@@ -133,11 +133,11 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		ps.binds = append(ps.binds, fmt.Sprintf("%v:%v", hostVolumes[*m.SourceVolume], *m.ContainerPath))
 	}
 
-	ps.taskARN = *task.TaskARN
+	ps.taskArn = *task.TaskArn
 
 	cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
 		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: []*string{task.ContainerInstanceARN},
+		ContainerInstances: []*string{task.ContainerInstanceArn},
 	})
 
 	if err != nil {
@@ -154,7 +154,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 
 	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.EC2InstanceID}},
+			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.Ec2InstanceId}},
 		},
 	})
 
@@ -170,10 +170,10 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 
 	instance := ires.Reservations[0].Instances[0]
 
-	ip := *instance.PrivateIPAddress
+	ip := *instance.PrivateIpAddress
 
 	if os.Getenv("DEVELOPMENT") == "true" {
-		ip = *instance.PublicIPAddress
+		ip = *instance.PublicIpAddress
 	}
 
 	ps.Host = ip
@@ -188,7 +188,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	containers, err := d.ListContainers(docker.ListContainersOptions{
 		Filters: map[string][]string{
 			"label": []string{
-				fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.taskARN),
+				fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", ps.taskArn),
 				fmt.Sprintf("com.amazonaws.ecs.container-name=%s", ps.Name),
 			},
 		},
@@ -274,7 +274,7 @@ func (p *Process) Docker() (*docker.Client, error) {
 func (p *Process) Stop() error {
 	req := &ecs.StopTaskInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Task:    aws.String(p.taskARN),
+		Task:    aws.String(p.taskArn),
 	}
 
 	_, err := ECS().StopTask(req)

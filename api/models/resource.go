@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 type Resource struct {
@@ -31,9 +31,9 @@ func ListResources(app string) (Resources, error) {
 	resources := make(Resources)
 
 	for _, r := range res.StackResources {
-		resources[*r.LogicalResourceID] = Resource{
-			Id:     cs(r.PhysicalResourceID, ""),
-			Name:   cs(r.LogicalResourceID, ""),
+		resources[*r.LogicalResourceId] = Resource{
+			Id:     cs(r.PhysicalResourceId, ""),
+			Name:   cs(r.LogicalResourceId, ""),
 			Reason: cs(r.ResourceStatusReason, ""),
 			Status: cs(r.ResourceStatus, ""),
 			Type:   cs(r.ResourceType, ""),

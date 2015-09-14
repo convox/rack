@@ -4,7 +4,7 @@
 package autoscalingiface
 
 import (
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 )
 
 type AutoScalingAPI interface {

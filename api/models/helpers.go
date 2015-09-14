@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func init() {
@@ -186,7 +186,7 @@ func S3Put(bucket, key string, data []byte, public bool) error {
 	req := &s3.PutObjectInput{
 		Body:          bytes.NewReader(data),
 		Bucket:        aws.String(bucket),
-		ContentLength: aws.Long(int64(len(data))),
+		ContentLength: aws.Int64(int64(len(data))),
 		Key:           aws.String(key),
 	}
 
@@ -216,7 +216,7 @@ func S3PutFile(bucket, key string, f io.ReadSeeker, public bool) error {
 	req := &s3.PutObjectInput{
 		Body:          f,
 		Bucket:        aws.String(bucket),
-		ContentLength: aws.Long(l),
+		ContentLength: aws.Int64(l),
 		Key:           aws.String(key),
 	}
 

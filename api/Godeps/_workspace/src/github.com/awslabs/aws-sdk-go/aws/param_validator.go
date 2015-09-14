@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/aws/aws-sdk-go/internal/apierr"
 	"reflect"
 	"strings"
 )

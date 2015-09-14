@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 func KernelUpdate() error {

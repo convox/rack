@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/gorilla/mux"
 	"github.com/convox/rack/api/models"
 )

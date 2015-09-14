@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -12,11 +11,11 @@ import (
 
 	"github.com/convox/rack/api/helpers"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/awslabs/aws-sdk-go/service/ecs"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -195,7 +194,7 @@ func (a *App) UpdateParamsAndTemplate(changes map[string]string, template string
 	if template != "" {
 		req.TemplateURL = aws.String(template)
 	} else {
-		req.UsePreviousTemplate = aws.Boolean(true)
+		req.UsePreviousTemplate = aws.Bool(true)
 	}
 
 	params := a.Parameters
@@ -410,7 +409,7 @@ func (a *App) RunDetached(process, command string) error {
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
-		Count:          aws.Long(1),
+		Count:          aws.Int64(1),
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
 	}
 
@@ -440,56 +439,6 @@ func (a *App) RunDetached(process, command string) error {
 
 func (a *App) TaskDefinitionFamily() string {
 	return a.Name
-}
-
-func (a *App) WatchForCompletion(change *Change, original Events) {
-	for {
-		req := &cloudformation.DescribeStacksInput{StackName: aws.String(a.Name)}
-
-		res, err := CloudFormation().DescribeStacks(req)
-
-		if err != nil {
-			panic(err)
-		}
-
-		if len(res.Stacks) < 1 {
-			panic(fmt.Errorf("no such stack: %s", a.Name))
-		}
-
-		status := *res.Stacks[0].StackStatus
-
-		latest, err := ListEvents(a.Name)
-
-		events := Events{}
-		for _, event := range latest {
-			if event.Id == original[0].Id {
-				break
-			}
-			events = append(events, event)
-		}
-
-		transactions, err := GroupEvents(events)
-		if err != nil {
-			panic(err)
-		}
-
-		data, err := json.Marshal(ChangeMetadata{
-			Events:       events,
-			Transactions: transactions,
-		})
-
-		change.Metadata = string(data)
-		change.Save()
-
-		if status == "UPDATE_COMPLETE" || status == "UPDATE_ROLLBACK_COMPLETE" {
-			break
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-
-	change.Status = "complete"
-	change.Save()
 }
 
 func (a *App) BalancerHost() string {
@@ -534,16 +483,6 @@ func (a *App) Builds() Builds {
 	}
 
 	return builds
-}
-
-func (a *App) Changes() Changes {
-	changes, err := ListChanges(a.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return changes
 }
 
 func (a *App) Created() bool {
@@ -681,11 +620,11 @@ func cleanupBucket(bucket string) error {
 	}
 
 	for _, d := range res.DeleteMarkers {
-		go cleanupBucketObject(bucket, *d.Key, *d.VersionID)
+		go cleanupBucketObject(bucket, *d.Key, *d.VersionId)
 	}
 
 	for _, v := range res.Versions {
-		go cleanupBucketObject(bucket, *v.Key, *v.VersionID)
+		go cleanupBucketObject(bucket, *v.Key, *v.VersionId)
 	}
 
 	return nil
@@ -695,7 +634,7 @@ func cleanupBucketObject(bucket, key, version string) {
 	req := &s3.DeleteObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(key),
-		VersionID: aws.String(version),
+		VersionId: aws.String(version),
 	}
 
 	_, err := S3().DeleteObject(req)

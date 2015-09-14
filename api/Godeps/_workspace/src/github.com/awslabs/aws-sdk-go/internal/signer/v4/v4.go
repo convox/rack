@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/credentials"
-	"github.com/awslabs/aws-sdk-go/internal/protocol/rest"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/internal/protocol/rest"
 )
 
 const (

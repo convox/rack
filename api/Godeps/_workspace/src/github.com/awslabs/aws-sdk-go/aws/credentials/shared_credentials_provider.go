@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/aws/aws-sdk-go/internal/apierr"
 	"github.com/vaughan0/go-ini" // ErrSharedCredentialsHomeNotFound is emitted when the user directory cannot be found.
 )
 

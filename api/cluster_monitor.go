@@ -11,10 +11,10 @@ import (
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/models"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	"github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/ddollar/logger"
 )
 
@@ -78,7 +78,7 @@ Tick:
 		dres, err := models.ECS().DescribeContainerInstances(
 			&ecs.DescribeContainerInstancesInput{
 				Cluster:            aws.String(os.Getenv("CLUSTER")),
-				ContainerInstances: ires.ContainerInstanceARNs,
+				ContainerInstances: ires.ContainerInstanceArns,
 			},
 		)
 
@@ -91,10 +91,10 @@ Tick:
 		cInstanceConnections := make(map[string]bool)
 
 		for _, i := range dres.ContainerInstances {
-			cInstanceConnections[*i.EC2InstanceID] = *i.AgentConnected
+			cInstanceConnections[*i.Ec2InstanceId] = *i.AgentConnected
 
 			if *i.AgentConnected {
-				cInstanceIds = append(cInstanceIds, *i.EC2InstanceID)
+				cInstanceIds = append(cInstanceIds, *i.Ec2InstanceId)
 			}
 		}
 
@@ -120,16 +120,16 @@ Tick:
 		uInstanceIds := []string{}
 
 		for _, i := range ares.AutoScalingGroups[0].Instances {
-			if connected, exists := cInstanceConnections[*i.InstanceID]; connected && exists {
-				aInstanceIds = append(aInstanceIds, *i.InstanceID)
+			if connected, exists := cInstanceConnections[*i.InstanceId]; connected && exists {
+				aInstanceIds = append(aInstanceIds, *i.InstanceId)
 			} else {
 				// Not registered or not connected => set Unhealthy
 				if *i.LifecycleState == "InService" {
 					_, err := models.AutoScaling().SetInstanceHealth(
 						&autoscaling.SetInstanceHealthInput{
 							HealthStatus:             aws.String("Unhealthy"),
-							InstanceID:               aws.String(*i.InstanceID),
-							ShouldRespectGracePeriod: aws.Boolean(true),
+							InstanceId:               aws.String(*i.InstanceId),
+							ShouldRespectGracePeriod: aws.Bool(true),
 						},
 					)
 
@@ -138,7 +138,7 @@ Tick:
 						continue
 					}
 
-					uInstanceIds = append(uInstanceIds, *i.InstanceID)
+					uInstanceIds = append(uInstanceIds, *i.InstanceId)
 				}
 			}
 		}
