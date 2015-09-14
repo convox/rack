@@ -1,0 +1,67 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters": {
+      "Database": {
+        "Type" : "String",
+        "Default" : "0",
+        "Description" : "Default database index"
+      },
+      "InstanceType": {
+        "Type": "String",
+        "Default": "cache.t2.micro",
+        "Description": "The type of instance to use"
+      },
+      "Password": {
+        "Type" : "String",
+        "Description" : "Unused (to be removed)"
+      },
+      "Subnets": {
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Description": "VPC subnets"
+      },
+      "Vpc": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "VPC"
+      }
+    },
+    "Outputs": {
+      "Port6379TcpAddr": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
+      "Port6379TcpPort": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Port" ] } },
+      "EnvRedisDatabase": { "Value": { "Ref": "Database" } }
+    },
+    "Resources": {
+      "SecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "redis service",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "10.0.0.0/16" }
+          ],
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "CacheSubnetGroup": {
+        "Type": "AWS::ElastiCache::SubnetGroup",
+        "Properties": {
+          "Description": "Redis subnet group",
+          "SubnetIds": { "Ref": "Subnets" }
+        }
+      },
+      "ReplicationGroup": {
+        "Type": "AWS::ElastiCache::ReplicationGroup",
+        "Properties": {
+          "AutomaticFailoverEnabled": false,
+          "AutoMinorVersionUpgrade": true,
+          "CacheNodeType": { "Ref": "InstanceType" },
+          "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
+          "Engine": "redis",
+          "NumCacheClusters": "1",
+          "Port": "6379",
+          "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
+          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+        }
+      }
+    }
+  }
+{{ end }}
