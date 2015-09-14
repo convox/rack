@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/briandowns/spinner"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"/github.com/briandowns/spinner"
+	"/github.com/codegangsta/cli"
 )
 
 var (

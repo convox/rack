@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/inconshreveable/go-update/check"
+	"/github.com/codegangsta/cli"
+	"/github.com/inconshreveable/go-update"
+	"/github.com/inconshreveable/go-update/check"
 	"github.com/convox/cli/stdcli"
 )
 

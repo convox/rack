@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"/github.com/aws/aws-sdk-go/aws"
+	"/github.com/aws/aws-sdk-go/aws/awserr"
+	"/github.com/aws/aws-sdk-go/aws/credentials"
+	"/github.com/aws/aws-sdk-go/service/cloudformation"
+	"/github.com/codegangsta/cli"
 	"github.com/convox/cli/stdcli"
 )
 

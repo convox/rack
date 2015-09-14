@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	yaml "github.com/convox/cli/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	yaml "/gopkg.in/yaml.v2"
 )
 
 type Cases []struct {

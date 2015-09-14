@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/cli/Godeps/_workspace/src/github.com/codegangsta/cli"
-	homedir "github.com/convox/cli/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
-	"github.com/convox/cli/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
+	"/github.com/codegangsta/cli"
+	homedir "/github.com/mitchellh/go-homedir"
+	"/golang.org/x/crypto/ssh/terminal"
 	"github.com/convox/cli/client"
 	"github.com/convox/cli/stdcli"
 )
