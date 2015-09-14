@@ -5,7 +5,7 @@ VERSION=edge
 all: build
 
 build:
-	docker build -t convox/kernel .
+	docker build -t convox/api .
 
 release:
 	cd cmd/formation && make release VERSION=$(VERSION)
