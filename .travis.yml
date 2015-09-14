@@ -10,5 +10,6 @@ before_install:
   - go get github.com/mattn/goveralls
 
 script:
+  - go get ./...
   - gocov test -v ./... > /tmp/gocov.json
   - goveralls -gocovdata /tmp/gocov.json -service travis-ci
