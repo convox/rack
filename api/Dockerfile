@@ -5,7 +5,7 @@ RUN apk-install docker git
 COPY pkg/haproxy-1.5.10-r0.apk /tmp/haproxy-1.5.10-r0.apk
 RUN apk add --allow-untrusted /tmp/haproxy-1.5.10-r0.apk
 RUN rm /tmp/haproxy-1.5.10-r0.apk
-COPY data/haproxy.cfg /etc/haproxy/haproxy.cfg
+COPY conf/haproxy.cfg /etc/haproxy/haproxy.cfg
 
 RUN apk-install go
 ENV GOPATH /go
