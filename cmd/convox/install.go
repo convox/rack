@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/codegangsta/cli"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 )
 
@@ -187,7 +187,7 @@ func cmdInstall(c *cli.Context) {
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      region,
+		Region:      aws.String(region),
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
@@ -222,7 +222,7 @@ func cmdInstall(c *cli.Context) {
 
 	sendMixpanelEvent("convox-install-start", "")
 
-	host, err := waitForCompletion(*res.StackID, CloudFormation, false)
+	host, err := waitForCompletion(*res.StackId, CloudFormation, false)
 
 	if err != nil {
 		handleError("install", distinctId, err)
@@ -278,7 +278,7 @@ func cmdUninstall(c *cli.Context) {
 	secret = strings.TrimSpace(secret)
 
 	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      region,
+		Region:      aws.String(region),
 		Credentials: credentials.NewStaticCredentials(access, secret, ""),
 	})
 
@@ -298,7 +298,7 @@ func cmdUninstall(c *cli.Context) {
 		stdcli.Error(err)
 	}
 
-	stackId := *res.Stacks[0].StackID
+	stackId := *res.Stacks[0].StackId
 
 	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: aws.String(stackId),
@@ -408,11 +408,11 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 	}
 
 	for _, event := range res.StackEvents {
-		if events[*event.EventID] == true {
+		if events[*event.EventId] == true {
 			continue
 		}
 
-		events[*event.EventID] = true
+		events[*event.EventId] = true
 
 		// Log all CREATE_FAILED to display and MixPanel
 		if !isDeleting && *event.ResourceStatus == "CREATE_FAILED" {
@@ -431,10 +431,10 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 		case "CREATE_IN_PROGRESS":
 		case "CREATE_COMPLETE":
 			if !isDeleting {
-				id := *event.PhysicalResourceID
+				id := *event.PhysicalResourceId
 
 				if strings.HasPrefix(id, "arn:") {
-					id = *event.LogicalResourceID
+					id = *event.LogicalResourceId
 				}
 
 				fmt.Printf("Created %s: %s\n", name, id)
@@ -442,18 +442,18 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 		case "CREATE_FAILED":
 		case "DELETE_IN_PROGRESS":
 		case "DELETE_COMPLETE":
-			id := *event.PhysicalResourceID
+			id := *event.PhysicalResourceId
 
 			if strings.HasPrefix(id, "arn:") {
-				id = *event.LogicalResourceID
+				id = *event.LogicalResourceId
 			}
 
 			fmt.Printf("Deleted %s: %s\n", name, id)
 		case "DELETE_SKIPPED":
-			id := *event.PhysicalResourceID
+			id := *event.PhysicalResourceId
 
 			if strings.HasPrefix(id, "arn:") {
-				id = *event.LogicalResourceID
+				id = *event.LogicalResourceId
 			}
 
 			fmt.Printf("Skipped %s: %s\n", name, id)

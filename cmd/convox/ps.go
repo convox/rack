@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/dustin/go-humanize"
 	"github.com/convox/rack/stdcli"
-	"github.com/dustin/go-humanize"
 )
 
 func init() {
