@@ -365,9 +365,11 @@ func (m *Manifest) prefixForEntry(name string, pos int) string {
 		}
 	}
 
-	c := color.New(Colors[pos%len(Colors)]).SprintFunc()
+	c := color.New(Colors[pos%len(Colors)])
 
-	return c(name + strings.Repeat(" ", longest-len(name)) + " |")
+	c.EnableColor()
+
+	return c.SprintFunc()(name + strings.Repeat(" ", longest-len(name)) + " |")
 }
 
 func (m *Manifest) runOrder() []string {
