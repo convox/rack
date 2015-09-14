@@ -1,7 +1,6 @@
 package workers
 
 import (
-	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -61,7 +60,7 @@ Tick:
 			}
 		}
 
-		helpers.SendMixpanelEvent("kernel-cluster-monitor", fmt.Sprintf("count=%d type=%s", instanceCount, instanceType))
+		// helpers.SendMixpanelEvent("kernel-cluster-monitor", fmt.Sprintf("count=%d type=%s", instanceCount, instanceType))
 
 		// List and Describe ECS Container Instances
 		ires, err := models.ECS().ListContainerInstances(
@@ -147,9 +146,9 @@ Tick:
 		sort.Strings(cInstanceIds)
 		sort.Strings(uInstanceIds)
 
-		if len(uInstanceIds) > 0 {
-			helpers.SendMixpanelEvent("kernel-cluster-monitor-mark", strings.Join(uInstanceIds, ","))
-		}
+		// if len(uInstanceIds) > 0 {
+		//   helpers.SendMixpanelEvent("kernel-cluster-monitor-mark", strings.Join(uInstanceIds, ","))
+		// }
 
 		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
 	}
