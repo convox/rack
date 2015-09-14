@@ -1,28 +1,10 @@
 # convox/app
 
-<a href="https://travis-ci.org/convox/app">
-  <img align="right" src="https://travis-ci.org/convox/app.svg?branch=master">
-</a>
-
-Create a CloudFormation template from an app manifest.
-
-This is a guide to developing the convox/app project. For detailed
-installation and usage instructions, see [http://docs.convox.com/](http://docs.convox.com/).
+Create CloudFormation stacks for Convox apps.
 
 ## Development
 
-```bash
-$ go get github.com/convox/app
-$ cd $GOPATH/src/github.com/convox/app
-$ make test
-$ make build
-
-$ cat fixtures/web_postgis.yml | docker run -i convox/app
-{
-  "AWSTemplateFormatVersion": "2010-09-09",
-  ...
-}
-```
+    $ make test
 
 ## Contributing
 
