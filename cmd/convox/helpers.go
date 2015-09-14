@@ -19,7 +19,7 @@ func exists(filename string) bool {
 	return true
 }
 
-func humanTime(t time.Time) string {
+func humanizeTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	} else {
