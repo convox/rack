@@ -30,7 +30,7 @@ Tick:
 
 		// Ger Rack InstanceCount Parameter
 		instanceCount := 0
-		instanceType := "unknown"
+		// instanceType := "unknown"
 
 		res, err := models.CloudFormation().DescribeStacks(
 			&cloudformation.DescribeStacksInput{
@@ -55,9 +55,9 @@ Tick:
 				instanceCount = c
 			}
 
-			if *p.ParameterKey == "InstanceType" {
-				instanceType = *p.ParameterValue
-			}
+			// if *p.ParameterKey == "InstanceType" {
+			//   instanceType = *p.ParameterValue
+			// }
 		}
 
 		// helpers.SendMixpanelEvent("kernel-cluster-monitor", fmt.Sprintf("count=%d type=%s", instanceCount, instanceType))
