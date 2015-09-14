@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
-	docker "github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/kinesis"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 type Monitor struct {
