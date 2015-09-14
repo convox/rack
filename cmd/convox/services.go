@@ -82,7 +82,7 @@ func cmdServiceCreate(c *cli.Context) {
 
 	fmt.Printf("Creating %s (%s)... ", name, t)
 
-	service, err := rackClient(c).CreateService(t, name)
+	_, err := rackClient(c).CreateService(t, name)
 
 	if err != nil {
 		stdcli.Error(err)
