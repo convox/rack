@@ -1,20 +1,24 @@
 sudo: required
 
 services:
-  - docker
+- docker
 
 language: go
 
 go:
-  - 1.4
-  - 1.5
+- 1.4
+- 1.5
 
 before_install:
-  - go get golang.org/x/tools/cmd/cover
-  - go get github.com/axw/gocov/gocov
-  - go get github.com/mattn/goveralls
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/axw/gocov/gocov
+- go get github.com/mattn/goveralls
 
 script:
-  - go get -t ./...
-  - gocov test -v ./... > /tmp/gocov.json
-  - goveralls -gocovdata /tmp/gocov.json -service travis-ci
+- go get -t ./...
+- gocov test -v ./... > /tmp/gocov.json
+- goveralls -gocovdata /tmp/gocov.json -service travis-ci
+
+notifications:
+  slack:
+    secure: Qsljy6aIcPpDTqRH3e9UTq0DWSA3eqoX+W/3yJTv+sHOHdo87vb4SesEXr1eprHan+ew9b+WW9vANwiFBd6llkIgbXrhsCB/XhRA2J9+IlrulES8kmdKT6L7tNmR8axdJnR3kvtl4KlpZoX8bgAItd6DxvDwbBhlyqdeSYnQPMgRkRpHBoN2XA7/g4aKV5Jvedoy2gs/iGp53yJUct3MndcuWeTNajrsSMlrH9ESsBFDeDjoR9y0G0wVZigazyI9GggAMWRmDByIKfnN9zcAPzqzP38Wqbhldunana3TWD9yoGHB7u/tHhJMq5aSs3f0Odg+lhc1SzFZ6qDOeRT6oMXabkypv97anJchITz1p72qR91oUIrKQyIGM2lmhsSQ+rGes5Pha9K4DYpopmwm30taHCr0ZCNL4b4yK5lWiFdmw8w7z9lJ8/rQ3OjCuCbnBH28WKtSqtSjxKBVmFlP/VVzOzrpy3FduFkaqqejWoEOzy0G9C6OQrZhlmg/QlQVyuWU1VS9YTnCli22CcbXZBSSrwpknLEU3AJavo+CjR2C1R4ke6KM56NkRgJr16GP0iajmRotJWpi7RooPU7+1kicY3VVfAInlfmgNgpWOVMIfRKtsc9LNjcXI+ccAcS8iVrFg1dfBjFCqjfnGhYyict/sKN+mdUqZ8/Z+mIK4ck=
