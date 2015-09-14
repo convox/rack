@@ -22,18 +22,18 @@ func TestBuild(t *testing.T) {
 	t.Skip("skipping until i can figure out regex")
 	return
 
-	destDir := mkBuildDir(t, "../examples/docker-compose")
+	destDir := mkBuildDir(t, "../examples/compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
 
-	stdout, stderr := testBuild(m, "docker-compose")
+	stdout, stderr := testBuild(m, "compose")
 
 	cases := Cases{
 		{stdout, `RUNNING: docker build -t xvlbzgbaic .
 RUNNING: docker pull convox/postgres
-RUNNING: docker tag -f convox/postgres docker-compose/postgres
-RUNNING: docker tag -f xvlbzgbaic docker-compose/web
+RUNNING: docker tag -f convox/postgres compose/postgres
+RUNNING: docker tag -f xvlbzgbaic compose/web
 `},
 		{stderr, ""},
 	}
@@ -42,7 +42,7 @@ RUNNING: docker tag -f xvlbzgbaic docker-compose/web
 }
 
 func TestPortsWanted(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose")
+	destDir := mkBuildDir(t, "../examples/compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
@@ -85,15 +85,15 @@ postgres:
 }
 
 func TestRun(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose")
+	destDir := mkBuildDir(t, "../examples/compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
 
-	stdout, stderr := testRun(m, "docker-compose")
+	stdout, stderr := testRun(m, "compose")
 
 	cases := Cases{
-		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name docker-compose-postgres docker-compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name docker-compose-web --link docker-compose-postgres:postgres -p 5000:3000 -v %s:/app docker-compose/web\n", destDir)},
+		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name compose-postgres compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name compose-web --link compose-postgres:postgres -p 5000:3000 -v %s:/app compose/web\n", destDir)},
 		{stderr, ""},
 	}
 
@@ -101,7 +101,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestGenerateDockerCompose(t *testing.T) {
-	destDir := mkBuildDir(t, "../examples/docker-compose")
+	destDir := mkBuildDir(t, "../examples/compose")
 	defer os.RemoveAll(destDir)
 
 	m, _ := Generate(destDir)
