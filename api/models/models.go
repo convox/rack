@@ -1,6 +1,9 @@
 package models
 
 import (
+	"bytes"
+	"fmt"
+	"html/template"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -79,4 +82,24 @@ func S3() *s3.S3 {
 
 func SQS() *sqs.SQS {
 	return sqs.New(awsConfig())
+}
+
+func buildTemplate(name, section string, data interface{}) (string, error) {
+	data, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
+
+	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data.([]byte)))
+
+	if err != nil {
+		return "", err
+	}
+
+	var formation bytes.Buffer
+
+	err = tmpl.Execute(&formation, data)
+
+	if err != nil {
+		return "", err
+	}
+
+	return formation.String(), nil
 }

@@ -33,10 +33,6 @@ Convox CLI
 
 Encrypt/decrypt sensitive information
 
-### [cmd/service](https://github.com/service/rack/tree/master/cmd/service)
-
-Build CloudFormation stacks for external services
-
 ## Contributing
 
 * Open a [GitHub Issue](https://github.com/convox/rack/issues/new) for bugs and feature requests

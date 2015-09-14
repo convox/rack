@@ -5,7 +5,6 @@
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApp": { "Fn::Equals": [ { "Ref": "DockerImageApp" }, "" ] },
     "BlankDockerImageBuild": { "Fn::Equals": [ { "Ref": "DockerImageBuild" }, "" ] },
-    "BlankDockerImageService": { "Fn::Equals": [ { "Ref": "DockerImageService" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] }
@@ -56,13 +55,6 @@
       "Value": { "Fn::If": [ "BlankDockerImageBuild",
         { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
         { "Ref": "DockerImageBuild" }
-      ] }
-    },
-    "DockerImageService": {
-      "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageService",
-        { "Fn::Join": [ ":", [ "convox/service", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageService" }
       ] }
     },
     "DynamoBuilds": {
@@ -134,11 +126,6 @@
     "DockerImageBuild": {
       "Type": "String",
       "Description": "Image to use for the build container. Overrides current Version.",
-      "Default": ""
-    },
-    "DockerImageService": {
-      "Type": "String",
-      "Description": "Image to use for the service container. Overrides current Version.",
       "Default": ""
     },
     "InstanceCount": {
@@ -846,10 +833,6 @@
               "DOCKER_IMAGE_BUILD": { "Fn::If": [ "BlankDockerImageBuild",
                 { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
                 { "Ref": "DockerImageBuild" }
-              ] },
-              "DOCKER_IMAGE_SERVICE": { "Fn::If": [ "BlankDockerImageService",
-                { "Fn::Join": [ ":", [ "convox/service", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageService" }
               ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },

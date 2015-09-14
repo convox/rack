@@ -13,11 +13,13 @@ ENV PATH $GOPATH/bin:$PATH
 
 RUN go get github.com/ddollar/init
 RUN go get github.com/ddollar/rerun
+RUN go get -u github.com/jteeuwen/go-bindata/...
 
 ENV PORT 3000
 WORKDIR /go/src/github.com/convox/rack/api
 COPY . /go/src/github.com/convox/rack/api
 RUN go get .
+RUN go-bindata -pkg=models -prefix=models -o=models/templates.go models/templates/...
 
 ENTRYPOINT ["/go/bin/init"]
 CMD ["bin/web"]

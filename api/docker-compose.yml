@@ -10,7 +10,6 @@ web:
     - CUSTOM_TOPIC
     - DOCKER_IMAGE_APP
     - DOCKER_IMAGE_BUILD
-    - DOCKER_IMAGE_SERVICE
     - DYNAMO_BUILDS
     - DYNAMO_RELEASES
     - ENCRYPTION_KEY
@@ -26,7 +25,7 @@ web:
     - 80:3000
     - 443:4443
   volumes:
-    - ./:/go/src/github.com/convox/kernel
+    - ./:/go/src/github.com/convox/rack/api
     - /var/run/docker.sock:/var/run/docker.sock
 registry:
   environment:

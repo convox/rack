@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -106,7 +105,7 @@ func (s *Service) Delete() error {
 }
 
 func (s *Service) Formation() (string, error) {
-	data, err := exec.Command("docker", "run", fmt.Sprintf("convox/service:%s", os.Getenv("RELEASE")), s.Type).Output()
+	data, err := buildTemplate(fmt.Sprintf("service/%s", s.Type), "service", nil)
 
 	if err != nil {
 		return "", err
