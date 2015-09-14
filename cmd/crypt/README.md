@@ -1,6 +1,6 @@
 # convox/crypt
 
-Encrypt and decrypt environments with [AWS KMS](http://aws.amazon.com/kms/).
+Encrypt/decrypt sensitive information
 
 ## Usage
 
