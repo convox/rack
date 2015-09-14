@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
-	"github.com/dustin/go-humanize"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -57,7 +56,7 @@ func cmdBuilds(c *cli.Context) {
 	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED")
 
 	for _, build := range builds {
-		started := humanize.Time(build.Started)
+		started := humanizeTime(build.Started)
 		elapsed := stdcli.Duration(build.Started, build.Ended)
 
 		if build.Ended.IsZero() {

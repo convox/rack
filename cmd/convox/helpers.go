@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 func exists(filename string) bool {
@@ -14,6 +17,14 @@ func exists(filename string) bool {
 	}
 
 	return true
+}
+
+func humanTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	} else {
+		return humanize.Time(t)
+	}
 }
 
 func sendMixpanelEvent(event, message string) {

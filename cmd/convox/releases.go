@@ -7,8 +7,6 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
-
-	humanize "github.com/dustin/go-humanize"
 )
 
 type Release struct {
@@ -97,7 +95,7 @@ func cmdReleases(c *cli.Context) {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, humanize.Time(r.Created), status)
+		t.AddRow(r.Id, humanizeTime(r.Created), status)
 	}
 
 	t.Print()
