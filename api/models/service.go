@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"sort"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/cloudformation"
 )
 
 type Service struct {

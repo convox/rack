@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/ddollar/logger"
-	docker "/github.com/fsouza/go-dockerclient"
-	"/github.com/gorilla/mux"
-	"/golang.org/x/net/websocket"
+	"github.com/ddollar/logger"
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/gorilla/mux"
+	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/models"
 )

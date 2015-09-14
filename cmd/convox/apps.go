@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 )
 

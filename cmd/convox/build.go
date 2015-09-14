@@ -1,7 +1,7 @@
 package main
 
 import (
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 )
 

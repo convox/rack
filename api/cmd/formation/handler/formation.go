@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/sqs"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
 var MessageQueueUrl = os.Getenv("FORMATION_QUEUE")

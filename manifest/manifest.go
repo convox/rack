@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/fatih/color"
-	yaml "/gopkg.in/yaml.v2"
+	"github.com/fatih/color"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (

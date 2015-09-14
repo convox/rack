@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"/github.com/aws/aws-sdk-go/aws"
-	"/github.com/aws/aws-sdk-go/service/kms"
-	"/golang.org/x/crypto/nacl/secretbox"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/kms"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
 const (
@@ -100,7 +100,7 @@ func NewIam(role string) (*Crypt, error) {
 
 func (c *Crypt) Encrypt(keyArn string, dec []byte) ([]byte, error) {
 	req := &kms.GenerateDataKeyInput{
-		KeyID:         aws.String(keyArn),
+		KeyId:         aws.String(keyArn),
 		NumberOfBytes: aws.Int64(KeyLength),
 	}
 

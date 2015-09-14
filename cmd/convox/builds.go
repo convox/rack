@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 	"github.com/dustin/go-humanize"
 )

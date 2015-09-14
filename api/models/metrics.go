@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/cloudwatch"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/cloudwatch"
 )
 
 type Metrics struct {

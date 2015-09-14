@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/kms"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/kms"
 )
 
 func HandleKMSKey(req Request) (string, map[string]string, error) {

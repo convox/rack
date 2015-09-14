@@ -6,8 +6,8 @@ import (
 	"strings"
 	"strconv"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 func HandleEC2AvailabilityZones(req Request) (string, map[string]string, error) {

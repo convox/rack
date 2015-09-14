@@ -3,7 +3,7 @@ package controllers_test
 import (
 	"net/http/httptest"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/rack/api/awsutil"
 )
 

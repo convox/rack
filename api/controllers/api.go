@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"/github.com/ddollar/logger"
-	"/github.com/stvp/rollbar"
-	"/golang.org/x/net/websocket"
+	"github.com/ddollar/logger"
+	"github.com/stvp/rollbar"
+	"golang.org/x/net/websocket"
 )
 
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error

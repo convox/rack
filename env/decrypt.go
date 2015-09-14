@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 )
 
 func init() {

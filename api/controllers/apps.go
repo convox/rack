@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"sort"
 
-	"/github.com/gorilla/mux"
-	"/golang.org/x/net/websocket"
+	"github.com/gorilla/mux"
+	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/models"
 )

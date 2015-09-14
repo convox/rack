@@ -15,8 +15,8 @@ RUN go get github.com/ddollar/init
 RUN go get github.com/ddollar/rerun
 
 ENV PORT 3000
-WORKDIR /go/src/github.com/convox/kernel
-COPY . /go/src/github.com/convox/kernel
+WORKDIR /go/src/github.com/convox/rack/api
+COPY . /go/src/github.com/convox/rack/api
 RUN go get .
 
 ENTRYPOINT ["/go/bin/init"]

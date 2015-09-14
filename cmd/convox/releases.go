@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 
-	humanize "/github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 )
 
 type Release struct {

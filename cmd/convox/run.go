@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"/github.com/docker/docker/pkg/term"
+	"github.com/docker/docker/pkg/term"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 )
 

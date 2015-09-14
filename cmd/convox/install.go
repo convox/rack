@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/aws/aws-sdk-go/aws"
-	"/github.com/aws/aws-sdk-go/aws/awserr"
-	"/github.com/aws/aws-sdk-go/aws/credentials"
-	"/github.com/aws/aws-sdk-go/service/cloudformation"
-	"/github.com/codegangsta/cli"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 )
 

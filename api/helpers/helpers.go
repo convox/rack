@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"/github.com/ddollar/logger"
-	"/github.com/stvp/rollbar"
+	"github.com/ddollar/logger"
+	"github.com/stvp/rollbar"
 )
 
 func init() {

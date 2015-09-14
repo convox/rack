@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/manifest"
 	"github.com/convox/rack/stdcli"
 )

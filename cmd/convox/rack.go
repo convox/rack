@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/stdcli"
 )
 

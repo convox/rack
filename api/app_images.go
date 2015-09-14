@@ -9,7 +9,7 @@ import (
 
 	"github.com/convox/rack/api/models"
 
-	"/github.com/ddollar/logger"
+	"github.com/ddollar/logger"
 )
 
 func pullAppImages() {

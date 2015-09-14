@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/awslabs/aws-sdk-go/service/ecs"
 )
 
 type Event struct {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/ec2"
-	"/github.com/awslabs/aws-sdk-go/service/ecs"
-	"/github.com/fsouza/go-dockerclient"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/fsouza/go-dockerclient"
 )
 
 type Process struct {

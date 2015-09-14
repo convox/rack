@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"/github.com/aryann/difflib"
-	"/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"/github.com/convox/rack/env/crypt"
+	"github.com/aryann/difflib"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/env/crypt"
 )
 
 type Environment map[string]string

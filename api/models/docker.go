@@ -5,10 +5,10 @@ import (
 	"math/rand"
 	"os"
 
-	"/github.com/awslabs/aws-sdk-go/aws"
-	"/github.com/awslabs/aws-sdk-go/service/ec2"
-	"/github.com/awslabs/aws-sdk-go/service/ecs"
-	"/github.com/fsouza/go-dockerclient"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/fsouza/go-dockerclient"
 )
 
 func Docker(host string) (*docker.Client, error) {
