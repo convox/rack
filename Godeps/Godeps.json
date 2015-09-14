@@ -1,0 +1,58 @@
+{
+	"ImportPath": "github.com/convox/agent",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/apierr",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/endpoints",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/json/jsonutil",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/jsonrpc",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/rest",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/kinesis",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Comment": "0.2.1-553-g419285e",
+			"Rev": "419285e90ed27813d1df4be3e47249f9eb215dcf"
+		},
+		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		}
+	]
+}
