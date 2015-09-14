@@ -3,12 +3,13 @@ package controllers_test
 import (
 	"net/http/httptest"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/convox/rack/api/awsutil"
 )
 
 func init() {
-	aws.DefaultConfig.Region = "test"
+	region := "test"
+	defaults.DefaultConfig.Region = &region
 }
 
 /*
@@ -22,7 +23,7 @@ Example:
 func stubAws(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	handler := awsutil.NewHandler(cycles)
 	s = httptest.NewServer(handler)
-	aws.DefaultConfig.Endpoint = s.URL
+	defaults.DefaultConfig.Endpoint = &s.URL
 	return s
 }
 
