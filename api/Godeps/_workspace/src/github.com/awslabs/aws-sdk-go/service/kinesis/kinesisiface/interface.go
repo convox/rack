@@ -4,7 +4,7 @@
 package kinesisiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/awslabs/aws-sdk-go/service/kinesis"
 )
 
 type KinesisAPI interface {

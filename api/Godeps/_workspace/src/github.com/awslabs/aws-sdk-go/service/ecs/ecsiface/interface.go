@@ -4,7 +4,7 @@
 package ecsiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/awslabs/aws-sdk-go/service/ecs"
 )
 
 type ECSAPI interface {

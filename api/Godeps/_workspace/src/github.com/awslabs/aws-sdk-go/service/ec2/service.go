@@ -1,9 +1,9 @@
 package ec2
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/ec2query"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/ec2query"
+	"github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
 type EC2 struct // EC2 is a client for Amazon EC2.

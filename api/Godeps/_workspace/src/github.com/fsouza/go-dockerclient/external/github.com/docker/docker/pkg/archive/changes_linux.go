@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system"
 )
 
 // walker is used to implement collectFileInfoForChanges on linux. Where this

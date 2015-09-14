@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 )
 
 // ValidateParameters is a request handler to validate the input parameters.

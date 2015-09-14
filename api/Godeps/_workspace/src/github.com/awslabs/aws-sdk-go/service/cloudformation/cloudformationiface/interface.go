@@ -4,7 +4,7 @@
 package cloudformationiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/awslabs/aws-sdk-go/service/cloudformation"
 )
 
 type CloudFormationAPI interface {

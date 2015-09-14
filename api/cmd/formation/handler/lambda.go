@@ -7,8 +7,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/lambda"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/lambda"
 )
 
 func HandleLambdaFunction(req Request) (string, error) {

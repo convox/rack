@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/rack/stdcli"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/codegangsta/cli"
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 var Banner = `

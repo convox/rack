@@ -4,9 +4,9 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
 )
 
 var errSSERequiresSSL = apierr.New("ConfigError", "cannot send SSE keys over HTTP.", nil)

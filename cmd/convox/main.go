@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/rack/stdcli"
+	"github.com/codegangsta/cli"
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 var Version = "dev"

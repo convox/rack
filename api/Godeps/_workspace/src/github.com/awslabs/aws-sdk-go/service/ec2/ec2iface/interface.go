@@ -4,7 +4,7 @@
 package ec2iface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 type EC2API interface {

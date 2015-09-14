@@ -6,9 +6,9 @@ import (
 	"github.com/aws/aws-sdk-go/internal/test/unit"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/stretchr/testify/assert"
 )
 
 var _ = unit.Imported

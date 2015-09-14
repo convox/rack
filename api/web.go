@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/nlogger"
+	"github.com/codegangsta/negroni"
+	"github.com/ddollar/logger"
+	"github.com/ddollar/nlogger"
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/helpers"
 )

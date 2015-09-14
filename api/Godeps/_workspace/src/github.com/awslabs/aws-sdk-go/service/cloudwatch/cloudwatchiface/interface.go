@@ -4,7 +4,7 @@
 package cloudwatchiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
+	"github.com/awslabs/aws-sdk-go/service/cloudwatch"
 )
 
 type CloudWatchAPI interface {

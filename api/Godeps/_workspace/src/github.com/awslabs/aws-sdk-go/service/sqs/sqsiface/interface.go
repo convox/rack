@@ -4,7 +4,7 @@
 package sqsiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
+	"github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
 type SQSAPI interface {

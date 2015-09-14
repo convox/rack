@@ -11,10 +11,10 @@ import (
 	"strings"
 
 	"github.com/convox/rack/client"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/codegangsta/cli"
-	homedir "github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
-	"github.com/convox/rack/stdcli"
+	"github.com/codegangsta/cli"
+	homedir "github.com/mitchellh/go-homedir"
+	"golang.org/x/crypto/ssh/terminal"
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 var ConfigRoot string

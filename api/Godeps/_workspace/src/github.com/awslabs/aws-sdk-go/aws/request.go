@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
 )
 
 // A Request is the service request to be made.

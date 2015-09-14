@@ -4,7 +4,7 @@
 package lambdaiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/lambda"
+	"github.com/awslabs/aws-sdk-go/service/lambda"
 )
 
 type LambdaAPI interface {

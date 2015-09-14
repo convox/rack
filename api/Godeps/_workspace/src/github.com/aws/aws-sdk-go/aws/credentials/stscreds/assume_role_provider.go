@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
 // AssumeRoler represents the minimal subset of the STS client API used by this provider.

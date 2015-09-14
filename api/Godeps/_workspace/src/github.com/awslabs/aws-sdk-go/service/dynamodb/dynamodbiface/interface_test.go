@@ -5,9 +5,9 @@ package dynamodbiface_test
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/awslabs/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterface(t *testing.T) {

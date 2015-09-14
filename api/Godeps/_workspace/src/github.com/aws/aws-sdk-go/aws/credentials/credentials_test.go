@@ -3,8 +3,8 @@ package credentials
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/stretchr/testify/assert"
 )
 
 type stubProvider struct {

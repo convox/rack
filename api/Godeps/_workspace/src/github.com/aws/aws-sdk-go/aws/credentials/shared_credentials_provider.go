@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/vaughan0/go-ini"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/vaughan0/go-ini"
 )
 
 var (

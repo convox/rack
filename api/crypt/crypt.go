@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
-	"github.com/convox/rack/api/Godeps/_workspace/src/golang.org/x/crypto/nacl/secretbox"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/kms"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
 const (

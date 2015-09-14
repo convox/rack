@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/rest"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/rest"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system"
 )
 
 // CanonicalTarNameForPath returns platform-specific filepath

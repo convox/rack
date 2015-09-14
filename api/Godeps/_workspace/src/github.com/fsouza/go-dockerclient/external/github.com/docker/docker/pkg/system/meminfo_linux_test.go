@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/units"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/units"
 )
 
 // TestMemInfo tests parseMemInfo with a static meminfo string

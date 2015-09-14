@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
 	"net/http"
 	"time"
 )

@@ -3,13 +3,13 @@
 package kms
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service/serviceinfo"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/jsonrpc"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/signer/v4"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/service"
+	"github.com/aws/aws-sdk-go/aws/service/serviceinfo"
+	"github.com/aws/aws-sdk-go/internal/protocol/jsonrpc"
+	"github.com/aws/aws-sdk-go/internal/signer/v4"
 )
 
 // AWS Key Management Service (KMS) is an encryption and key management web

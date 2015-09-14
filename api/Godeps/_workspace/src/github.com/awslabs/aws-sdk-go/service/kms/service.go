@@ -1,9 +1,9 @@
 package kms
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/jsonrpc"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/jsonrpc"
+	"github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
 type KMS struct { // KMS is a client for KMS.

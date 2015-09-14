@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/ddollar/logger"
 )
 
 type logResponseWriter struct {

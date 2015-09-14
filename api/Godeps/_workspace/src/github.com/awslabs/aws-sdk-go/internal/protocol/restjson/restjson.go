@@ -8,10 +8,10 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/jsonrpc"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/rest"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/jsonrpc"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/rest"
 )
 
 // Build builds a request for the REST JSON protocol.

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/convox/rack/stdcli"
 	"golang.org/x/net/websocket"
 )
 
@@ -291,7 +290,6 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 	config, err := websocket.NewConfig(url, origin)
 
 	if err != nil {
-		stdcli.Error(err)
 		return err
 	}
 

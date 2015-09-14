@@ -1,7 +1,7 @@
 package credentials
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
 	"os"
 )
 

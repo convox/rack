@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/credentials"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/stretchr/testify/assert"
 )
 
 func buildSigner(serviceName string, region string, signTime time.Time, expireTime time.Duration, body string) signer {

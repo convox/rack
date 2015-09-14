@@ -1,6 +1,6 @@
 package s3
 
-import "github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+import "github.com/awslabs/aws-sdk-go/aws"
 
 func init() {
 	initService = func(s *aws.Service) {

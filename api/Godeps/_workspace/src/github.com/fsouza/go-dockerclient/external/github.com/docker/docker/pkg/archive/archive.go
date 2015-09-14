@@ -17,11 +17,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/pools"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/promise"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system"
+	"github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/pools"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/promise"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system"
 )
 
 type (

@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/internal/test/unit"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/sqs"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/awslabs/aws-sdk-go/service/sqs"
+	"github.com/stretchr/testify/assert"
 )
 
 var _ = unit.Imported

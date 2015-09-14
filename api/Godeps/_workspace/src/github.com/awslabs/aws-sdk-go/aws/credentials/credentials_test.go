@@ -1,9 +1,9 @@
 package credentials
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 

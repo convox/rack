@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/json/jsonutil"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/json/jsonutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func S(s string) *string {

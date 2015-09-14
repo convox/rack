@@ -5,9 +5,9 @@ package ec2query
 import (
 	"net/url"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/query/queryutil"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/query/queryutil"
 )
 
 // Build builds a request for the EC2 protocol.

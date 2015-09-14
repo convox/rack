@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/convox/rack/cmd/convox/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/rack/stdcli"
+	"github.com/codegangsta/cli"
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 func init() {

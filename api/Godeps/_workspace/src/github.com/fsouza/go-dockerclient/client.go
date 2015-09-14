@@ -30,9 +30,9 @@ import (
 
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/opts"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/homedir"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/stdcopy"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/opts"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/homedir"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/stdcopy"
 )
 
 const userAgent = "go-dockerclient"

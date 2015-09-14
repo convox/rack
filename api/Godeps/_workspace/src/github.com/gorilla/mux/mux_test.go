@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/gorilla/context"
+	"github.com/gorilla/context"
 )
 
 type routeTest struct {

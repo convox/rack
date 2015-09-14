@@ -5,9 +5,9 @@ package kmsiface_test
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kms"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/kms/kmsiface"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/service/kms"
+	"github.com/awslabs/aws-sdk-go/service/kms/kmsiface"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterface(t *testing.T) {

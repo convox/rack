@@ -3,10 +3,10 @@ package dynamodb_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/dynamodb"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/awslabs/aws-sdk-go/service/dynamodb"
 	"time"
 )
 

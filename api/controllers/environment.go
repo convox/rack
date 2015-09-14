@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 	"github.com/convox/rack/api/models"
 )
 

@@ -6,7 +6,7 @@ package kinesis
 import (
 	"sync"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws"
 )
 
 var oprw sync.Mutex

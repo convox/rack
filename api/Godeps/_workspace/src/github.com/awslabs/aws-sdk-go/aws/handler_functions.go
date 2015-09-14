@@ -3,8 +3,8 @@ package aws
 import (
 	"bytes"
 	"fmt"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
 	"io"
 	"io/ioutil"
 	"net/http"

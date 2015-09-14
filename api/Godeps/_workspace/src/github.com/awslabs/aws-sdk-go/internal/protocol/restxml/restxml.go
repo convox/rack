@@ -7,11 +7,11 @@ import (
 	"bytes"
 	"encoding/xml"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/query"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/rest"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/xml/xmlutil"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/query"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/rest"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/xml/xmlutil"
 )
 
 // Build builds a request payload for the REST XML protocol.

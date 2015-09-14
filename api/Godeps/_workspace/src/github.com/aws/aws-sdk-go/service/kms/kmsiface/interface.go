@@ -4,8 +4,8 @@
 package kmsiface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/kms"
 )
 
 type // KMSAPI is the interface type for kms.KMS.

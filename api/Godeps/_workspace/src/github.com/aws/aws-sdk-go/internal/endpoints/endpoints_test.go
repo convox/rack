@@ -3,7 +3,7 @@ package endpoints
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGlobalEndpoints(t *testing.T) {

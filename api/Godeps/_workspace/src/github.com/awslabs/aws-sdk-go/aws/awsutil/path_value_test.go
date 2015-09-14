@@ -3,8 +3,8 @@ package awsutil_test
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/stretchr/testify/assert"
 )
 
 type Struct struct {

@@ -5,9 +5,9 @@ package cloudformationiface_test
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation/cloudformationiface"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"github.com/awslabs/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterface(t *testing.T) {

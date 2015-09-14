@@ -4,7 +4,7 @@
 package s3iface
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type S3API interface {

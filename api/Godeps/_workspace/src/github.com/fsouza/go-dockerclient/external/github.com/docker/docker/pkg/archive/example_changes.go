@@ -13,8 +13,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
+	"github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 )
 
 var (

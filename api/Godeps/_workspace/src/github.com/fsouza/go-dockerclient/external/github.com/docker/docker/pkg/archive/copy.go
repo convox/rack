@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus"
+	"github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus"
 )
 
 // Errors used or returned by this file.

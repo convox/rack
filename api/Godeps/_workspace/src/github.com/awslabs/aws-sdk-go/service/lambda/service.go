@@ -1,9 +1,9 @@
 package lambda
 
 import (
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/protocol/restjson"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/signer/v4"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/internal/protocol/restjson"
+	"github.com/awslabs/aws-sdk-go/internal/signer/v4"
 )
 
 type Lambda struct // Lambda is a client for AWS Lambda.

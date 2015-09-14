@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/internal/test/unit"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/stretchr/testify/assert"
 )
 
 type s3BucketTest struct {

@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awsutil"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 // The default part size to buffer chunks of a payload into.

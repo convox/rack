@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/internal/apierr"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/vaughan0/go-ini" // ErrSharedCredentialsHomeNotFound is emitted when the user directory cannot be found.
+	"github.com/awslabs/aws-sdk-go/internal/apierr"
+	"github.com/vaughan0/go-ini" // ErrSharedCredentialsHomeNotFound is emitted when the user directory cannot be found.
 )
 
 var (

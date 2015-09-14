@@ -13,14 +13,14 @@ import (
 
 	"github.com/aws/aws-sdk-go/internal/protocol/xml/xmlutil"
 	"github.com/aws/aws-sdk-go/internal/util"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service/serviceinfo"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/jsonrpc"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/signer/v4"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/service"
+	"github.com/aws/aws-sdk-go/aws/service/serviceinfo"
+	"github.com/aws/aws-sdk-go/internal/protocol/jsonrpc"
+	"github.com/aws/aws-sdk-go/internal/signer/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 var _ bytes.Buffer

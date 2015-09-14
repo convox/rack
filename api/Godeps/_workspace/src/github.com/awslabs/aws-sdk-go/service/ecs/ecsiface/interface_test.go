@@ -5,9 +5,9 @@ package ecsiface_test
 import (
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs/ecsiface"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/awslabs/aws-sdk-go/service/ecs/ecsiface"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterface(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/stretchr/testify/assert"
 )
 
 type stubSTS struct {
