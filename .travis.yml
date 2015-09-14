@@ -15,7 +15,7 @@ before_install:
 - go get github.com/mattn/goveralls
 
 script:
-  - go get -t -u ./...
+- go get -t -u ./...
 - goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
 
 notifications:
