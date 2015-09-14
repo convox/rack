@@ -16,6 +16,7 @@ release: build
 	equinox release --config=.equinox.yaml --version=$(shell convox/convox --version | cut -d' ' -f3) ./convox
 
 test:
+	go get -t ./...
 	go test -v -cover ./...
 
 test-coverage:

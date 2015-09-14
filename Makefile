@@ -21,6 +21,7 @@ service:
 	go get ./cmd/service
 
 test:
+	go get -t ./...
 	go test -v -cover ./...
 
 vendor:

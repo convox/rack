@@ -4,6 +4,7 @@ build:
 	docker build -t convox/agent .
 
 test: 
+	go get -t ./...
 	go test -v -cover ./...
 
 release: build

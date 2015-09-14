@@ -13,6 +13,7 @@ release:
 	aws s3 cp /tmp/kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 
 test:
+	go get -t ./...
 	go test -v -cover ./...
 
 test-coverage:
