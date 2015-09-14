@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -90,22 +89,7 @@ func cmdServiceCreate(c *cli.Context) {
 		return
 	}
 
-	for {
-		s, err := rackClient(c).GetService(service.Name)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		if s.Status == "running" {
-			break
-		}
-
-		time.Sleep(3 * time.Second)
-	}
-
-	fmt.Println("OK")
+	fmt.Println("CREATING")
 }
 
 func cmdServiceDelete(c *cli.Context) {
