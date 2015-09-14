@@ -8,8 +8,8 @@ ENV PATH $GOBIN:$PATH
 
 RUN go get -u github.com/jteeuwen/go-bindata/...
 
-WORKDIR /go/src/github.com/convox/app
-COPY . /go/src/github.com/convox/app
+WORKDIR /go/src/github.com/convox/rack/cmd/app
+COPY . /go/src/github.com/convox/rack/cmd/app
 RUN go get .
 RUN go-bindata template/
 

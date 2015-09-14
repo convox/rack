@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/convox/app/Godeps/_workspace/src/github.com/aryann/difflib"
-	yaml "github.com/convox/app/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/aryann/difflib"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type Cases []struct {
