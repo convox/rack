@@ -3,11 +3,11 @@ package handler
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 func HandleEC2AvailabilityZones(req Request) (string, map[string]string, error) {
@@ -49,7 +49,7 @@ func EC2AvailabilityZonesCreate(req Request) (string, map[string]string, error) 
 
 	outputs := make(map[string]string)
 	for i, az := range matches {
-		outputs["AvailabilityZone" + strconv.Itoa(i)] = az
+		outputs["AvailabilityZone"+strconv.Itoa(i)] = az
 	}
 
 	physical := strings.Join(matches, ",")

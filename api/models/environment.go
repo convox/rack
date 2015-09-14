@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aryann/difflib"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aryann/difflib"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/env/crypt"
 )
 

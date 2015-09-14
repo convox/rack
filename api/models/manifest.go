@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/convox/rack/api/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 type Manifest []ManifestEntry
