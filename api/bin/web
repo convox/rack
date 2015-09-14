@@ -14,7 +14,7 @@ pull_image $DOCKER_IMAGE_SERVICE
 haproxy -f /etc/haproxy/haproxy.cfg &
 
 if [ "$DEVELOPMENT" == "true" ]; then
-  $GOPATH/bin/rerun -build github.com/convox/kernel
+  $GOPATH/bin/rerun -build github.com/convox/rack/api
 else
-  $GOPATH/bin/kernel
+  $GOPATH/bin/api
 fi
