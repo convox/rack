@@ -1,0 +1,20 @@
+#!/bin/sh
+
+pull_image() {
+  image=$1
+  echo "ns=kernel at=boot pull=$image"
+  docker pull $image >/dev/null 2>&1 &
+}
+
+pull_image $DOCKER_IMAGE_APP
+pull_image $DOCKER_IMAGE_BUILD
+pull_image $DOCKER_IMAGE_SERVICE
+
+./bin/gen-cert
+haproxy -f /etc/haproxy/haproxy.cfg &
+
+if [ "$DEVELOPMENT" == "true" ]; then
+  $GOPATH/bin/rerun -build github.com/convox/kernel
+else
+  $GOPATH/bin/kernel
+fi

@@ -1,0 +1,636 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: Convox Rack API
+  description: Convox Rack API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+host: docker.local
+schemes:
+  - http
+consumes:
+  - application/x-www-form-urlencoded
+produces:
+  - application/json
+paths:
+  /apps:
+    get:
+      description: List apps
+      responses:
+        200:
+          description: app list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/app'
+    post:
+      description: Create an app
+      parameters:
+      - name: name
+        description: app name
+        type: string
+        in: formData
+        required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/app'
+        403:
+          description: invalid name
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}:
+    get:
+      description: Get an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/app'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    delete:
+      description: Delete an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/app'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/builds:
+    get:
+      description: Builds for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: builds
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    post:
+      description: Start a build for an app
+      consumes:
+        - multipart/form-data
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: repo
+        description: repository
+        type: string
+        in: formData
+        required: false
+      - name: source
+        description: source tarball
+        type: file
+        in: formData
+        required: false
+      responses:
+        200:
+          description: build
+          schema:
+            $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/builds/{build}:
+    get:
+      description: List builds for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: build
+        description: build id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: build
+          schema:
+            $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/environment:
+    get:
+      description: List environment for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    post:
+      description: Set environment for an app
+      consumes:
+        - text/plain
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: body
+        description: environment
+        in: body
+        schema:
+          type: string
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/environment/{key}:
+    delete:
+      description: List environment for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: key
+        description: environment key
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/formation:
+    get:
+      description: List formation for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: formation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/formation'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/formation/{process}:
+    post:
+      description: Set formation for a process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      - name: count
+        description: process count
+        type: integer
+        in: formData
+        required: false
+      - name: memory
+        description: process memory
+        type: integer
+        in: formData
+        required: false
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/processes:
+    get:
+      description: List processes for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: processes
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/process'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/processes/{process}:
+    get:
+      description: Get a process for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: process
+          schema:
+            $ref: '#/definitions/process'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    delete:
+      description: Stop a process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: process
+          schema:
+            $ref: '#/definitions/process'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/processes/{process}/run:
+    post:
+      description: Run a detached process
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      - name: command
+        description: command
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/releases:
+    get:
+      description: List releases for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: releases
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/release'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/releases/{release}:
+    get:
+      description: Get a release for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: release
+        description: release id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: release
+          schema:
+            $ref: '#/definitions/release'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/releases/{release}/promote:
+    post:
+      description: Promote a release for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: release
+        description: release id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: release
+          schema:
+            $ref: '#/definitions/release'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /services:
+    get:
+      description: List services
+      responses:
+        200:
+          description: service list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/service'
+    post:
+      description: Create a service
+      parameters:
+      - name: name
+        description: service name
+        type: string
+        in: formData
+        required: true
+      - name: type
+        description: service type
+        type: string
+        in: formData
+        required: true
+      responses:
+        200:
+          description: service
+          schema:
+            $ref: '#/definitions/service'
+        403:
+          description: invalid name
+          schema:
+            $ref: '#/definitions/error'
+  /services/{service}:
+    get:
+      description: Get a service
+      parameters:
+      - name: service
+        description: service name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: app
+          schema:
+            $ref: '#/definitions/service'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    delete:
+      description: Delete an app
+      parameters:
+      - name: service
+        description: service name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: service
+          schema:
+            $ref: '#/definitions/service'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /system:
+    get:
+      description: Get system information
+      responses:
+        200:
+          description: system
+          schema:
+            $ref: '#/definitions/system'
+    put:
+      description: Update system information
+      parameters:
+      - name: count
+        description: instance count
+        type: integer
+        in: formData
+        required: false
+      - name: type
+        description: instance type
+        type: string
+        in: formData
+        required: false
+      - name: version
+        description: system version
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: system
+          schema:
+            $ref: '#/definitions/system'
+definitions:
+  app:
+    properties:
+      balancer:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      release:
+        type: string
+  build:
+    properties:
+      app:
+        type: string
+      id:
+        type: string
+      logs:
+        type: string
+      manifest:
+        type: string
+      release:
+        type: string
+      status:
+        type: string
+      started:
+        type: string
+      ended:
+        type: string
+  error:
+    properties:
+      error:
+        type: string
+  environment:
+    additionalProperties:
+      type: string
+  formation:
+    properties:
+      name:
+        type: string
+      count:
+        type: integer
+      ports:
+        type: array
+        items:
+          type: integer
+  process:
+    properties:
+      id:
+        type: string
+      app:
+        type: string
+      command:
+        type: string
+      cpu:
+        type: float
+      host:
+        type: string
+      image:
+        type: string
+      memory:
+        type: float
+      name:
+        type: string
+      ports:
+        type: array
+        items:
+          type: string
+      release:
+        type: string
+  system:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      version:
+        type: string
+  release:
+    properties:
+      app:
+        type: string
+      build:
+        type: string
+      env:
+        type: string
+      id:
+        type: string
+      manifest:
+        type: string
+      created:
+        type: string
+  service:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      url:
+        type: string
+  success:
+    properties:
+      success:
+        type: boolean

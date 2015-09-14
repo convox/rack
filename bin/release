@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+latest=$(curl -s https://api.github.com/repos/convox/kernel/tags | jq -r '.[].name' | sort | tail -n 1)
+
+date=${latest:0:8}
+today=$(date +%Y%m%d)
+
+if [ "$date" == "$today" ]; then
+  crev=${latest:8:2}
+  rev=$(printf "%02d" $((crev+1)))
+else
+  rev="01"
+fi
+
+tag="$today$rev"
+
+echo "releasing: $tag"
+
+git tag $tag
+git push --tags
+
+mkdir -p /tmp/convox/releases
+git log --pretty=format:"%s" $latest..$tag > /tmp/convox/releases/$tag
+aws s3 cp /tmp/convox/releases/$tag s3://convox/releases/$tag/changes
+
+docker build -t convox/kernel:$tag .
+docker push convox/kernel:$tag
+
+cd ../registry
+docker build -t convox/registry:$tag .
+docker push convox/registry:$tag
+
+echo "released: $tag"

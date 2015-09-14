@@ -1,0 +1,2 @@
+aws iam delete-role-policy --role-name convox-formation --policy-name all >/dev/null 2>&1
+aws iam delete-role --role-name convox-formation >/dev/null 2>&1

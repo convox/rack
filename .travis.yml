@@ -1,0 +1,20 @@
+language: go
+
+go:
+  - 1.4
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker pull convox/build
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+
+script:
+  - go get ./...
+  - gocov test -v ./... > /tmp/gocov.json
+  - goveralls -gocovdata /tmp/gocov.json -service travis-ci
