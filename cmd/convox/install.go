@@ -152,7 +152,7 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
-	access, secret, err := readCredentials(c)
+	access, secret, token, err := readCredentials(c)
 
 	if err != nil {
 		handleError("install", distinctId, err)
@@ -183,12 +183,13 @@ func cmdInstall(c *cli.Context) {
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
+	token = strings.TrimSpace(token)
 
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(access, secret, ""),
+		Credentials: credentials.NewStaticCredentials(access, secret, token),
 	})
 
 	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
@@ -259,7 +260,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println(Banner)
 
-	access, secret, err := readCredentials(c)
+	access, secret, token, err := readCredentials(c)
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -276,10 +277,11 @@ func cmdUninstall(c *cli.Context) {
 
 	access = strings.TrimSpace(access)
 	secret = strings.TrimSpace(secret)
+	token = strings.TrimSpace(token)
 
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(access, secret, ""),
+		Credentials: credentials.NewStaticCredentials(access, secret, token),
 	})
 
 	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -561,6 +563,7 @@ func readCredentials(c *cli.Context) (access, secret string, err error) {
 	// read credentials from ENV
 	access = os.Getenv("AWS_ACCESS_KEY_ID")
 	secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	token = os.Getenv("AWS_SESSION_TOKEN")
 
 	// read credentials from credentials.csv file
 	// note: takes precendence over ENV
@@ -569,13 +572,13 @@ func readCredentials(c *cli.Context) (access, secret string, err error) {
 		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
 
 		if err != nil {
-			return access, secret, err
+			return access, secret, token, err
 		}
 
 		r := csv.NewReader(bytes.NewReader(credsFile))
 		records, err := r.ReadAll()
 		if err != nil {
-			return access, secret, err
+			return access, secret, token, err
 		}
 
 		if len(records) == 2 && len(records[1]) == 3 {
@@ -594,7 +597,7 @@ func readCredentials(c *cli.Context) (access, secret string, err error) {
 		access, err = reader.ReadString('\n')
 
 		if err != nil {
-			return access, secret, err
+			return access, secret, token, err
 		}
 
 		fmt.Print("AWS Secret Access Key: ")
@@ -602,7 +605,7 @@ func readCredentials(c *cli.Context) (access, secret string, err error) {
 		secret, err = reader.ReadString('\n')
 
 		if err != nil {
-			return access, secret, err
+			return access, secret, token, err
 		}
 
 		fmt.Println("")
