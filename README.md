@@ -1,5 +1,8 @@
 # Convox Rack
 
+[![Build Status](https://travis-ci.org/convox/rack.svg?branch=master)](https://travis-ci.org/convox/rack)
+[![Coverage Status](https://coveralls.io/repos/convox/rack/badge.svg?branch=master&service=github)](https://coveralls.io/github/convox/rack?branch=master)
+
 ## Projects
 
 ### [api](https://github.com/convox/rack/tree/master/api)
