@@ -857,7 +857,7 @@
               "KINESIS": { "Ref": "Kinesis" },
               "MIXPANEL_TOKEN": "43fb68427548c5e99978a598a9b14e55",
               "PASSWORD": { "Ref": "Password" },
-              "PROCESS": "kernel",
+              "PROCESS": "web",
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
                 { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
@@ -868,7 +868,7 @@
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
               "VPC": { "Ref": "Vpc" }
             },
-            "Image": { "Fn::Join": [ ":", [ "convox/kernel", { "Ref": "Version" } ] ] },
+            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
             "Links": [],
             "Memory": "128",
             "Name": "web",
