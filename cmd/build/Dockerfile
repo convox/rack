@@ -17,4 +17,4 @@ WORKDIR /go/src/github.com/convox/rack/cmd/build
 RUN go-bindata data/
 RUN go get .
 
-ENTRYPOINT ["/go/src/github.com/convox/build/bin/entrypoint"]
+ENTRYPOINT ["/go/src/github.com/convox/rack/cmd/build/bin/entrypoint"]
