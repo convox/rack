@@ -2,9 +2,6 @@
 
 all: build
 
-build:
-	go build -o convox/convox ./convox
-
 data:
 	go-bindata -o convox/asset.go -prefix convox convox/data
 	go-bindata -o manifest/asset.go -prefix manifest -pkg manifest manifest/data
@@ -12,8 +9,8 @@ data:
 install:
 	go get ./convox
 
-release: build
-	equinox release --config=.equinox.yaml --version=$(shell convox/convox --version | cut -d' ' -f3) ./convox
+release:
+	equinox release --config=.equinox.yaml --version=$(shell convox/convox --version | cut -d' ' -f3) .
 
 test:
 	go get -t ./...
