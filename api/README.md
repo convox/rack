@@ -2,7 +2,7 @@
 
 ## Development
 
-$ convox start
+    $ convox start
 
 ## Contributing
 
