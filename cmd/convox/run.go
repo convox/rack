@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/codegangsta/cli"
-	"github.com/docker/docker/pkg/term"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/docker/docker/pkg/term"
 )
 
 func init() {
@@ -41,9 +41,7 @@ func cmdRun(c *cli.Context) {
 
 	oldState, err := term.SetRawTerminal(fd)
 
-	if err == nil {
-		defer term.RestoreTerminal(fd, oldState)
-	}
+	defer term.RestoreTerminal(fd, oldState)
 
 	_, app, err := stdcli.DirApp(c, ".")
 
@@ -65,6 +63,8 @@ func cmdRun(c *cli.Context) {
 		stdcli.Error(err)
 		return
 	}
+
+	term.RestoreTerminal(fd, oldState)
 
 	os.Exit(code)
 }
