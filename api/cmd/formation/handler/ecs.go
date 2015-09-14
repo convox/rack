@@ -12,8 +12,8 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/env/crypt"
 )
 
 func HandleECSCluster(req Request) (string, map[string]string, error) {
