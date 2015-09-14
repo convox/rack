@@ -16,8 +16,7 @@ before_install:
 
 script:
 - go get -t ./...
-- gocov test -v ./... > /tmp/gocov.json
-- goveralls -gocovdata /tmp/gocov.json -service travis-ci
+- goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
 
 notifications:
   slack:
