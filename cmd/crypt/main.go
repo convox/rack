@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
-	"github.com/convox/rack/env/crypt"
+	"github.com/convox/rack/api/crypt"
 )
 
 func main() {
