@@ -1,6 +1,6 @@
 # convox/agent
 
-Instance agent for collecting metrics and logs.
+Convox agent for ECS instances
 
 ## Running
 

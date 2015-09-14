@@ -10,6 +10,10 @@ Rack API server
 
 Rack API client
 
+### [cmd/agent](https://github.com/convox/rack/tree/master/cmd/agent)
+
+Convox agent for ECS instances.
+
 ### [cmd/app](https://github.com/convox/rack/tree/master/cmd/app)
 
 Build CloudFormation stacks for Convox apps
