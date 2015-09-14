@@ -132,6 +132,19 @@ func humanStatus(original string) string {
 	}
 }
 
+func linkParts(link string) (string, string, error) {
+	parts := strings.Split(link, ":")
+
+	switch len(parts) {
+	case 1:
+		return parts[0], parts[0], nil
+	case 2:
+		return parts[0], parts[1], nil
+	}
+
+	return "", "", fmt.Errorf("invalid link name")
+}
+
 func prettyJson(raw string) (string, error) {
 	var parsed map[string]interface{}
 
@@ -290,6 +303,166 @@ func templateHelpers() template.FuncMap {
 		},
 		"upper": func(s string) string {
 			return UpperName(s)
+		},
+		"command": func(command interface{}) string {
+			switch cmd := command.(type) {
+			case nil:
+				return ""
+			case string:
+				return cmd
+			case []interface{}:
+				parts := make([]string, len(cmd))
+
+				for i, c := range cmd {
+					parts[i] = c.(string)
+				}
+
+				return strings.Join(parts, " ")
+			default:
+				fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
+			}
+			return ""
+		},
+		"entry_loadbalancers": func(entry ManifestEntry, ps string) template.HTML {
+			ls := []string{}
+
+			for _, port := range entry.Ports {
+				parts := strings.SplitN(port, ":", 2)
+
+				if len(parts) != 2 {
+					continue
+				}
+
+				ls = append(ls, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "%s", "%s" ] ] }`, ps, parts[1]))
+			}
+
+			return template.HTML(strings.Join(ls, ","))
+		},
+		"entry_task": func(entry ManifestEntry, ps string) template.HTML {
+			mappings := []string{}
+
+			for _, port := range entry.Ports {
+				parts := strings.SplitN(port, ":", 2)
+
+				if len(parts) != 2 {
+					continue
+				}
+
+				mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, UpperName(ps), parts[0], parts[1]))
+			}
+
+			envs := make([]string, 0)
+			envs = append(envs, fmt.Sprintf("\"PROCESS\": \"%s\"", ps))
+
+			for _, env := range entry.Env {
+				parts := strings.SplitN(env, "=", 2)
+				if len(parts) == 2 {
+					envs = append(envs, fmt.Sprintf("\"%s\": \"%s\"", parts[0], parts[1]))
+				}
+			}
+
+			links := make([]string, len(entry.Links))
+
+			for i, link := range entry.Links {
+				name, _, err := linkParts(link)
+
+				if err != nil {
+					continue
+				}
+
+				// Don't define any links for now, as they won't work with one TaskDefinition per process
+				links[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", { "Ref" : "AWS::NoValue" }, { "Ref" : "AWS::NoValue" } ] }`, UpperName(name))
+			}
+
+			services := make([]string, len(entry.Links))
+
+			for i, link := range entry.Links {
+				name, _, err := linkParts(link)
+
+				if err != nil {
+					continue
+				}
+
+				services[i] = fmt.Sprintf(`{ "Fn::If": [ "Blank%sService", { "Ref" : "AWS::NoValue" }, { "Fn::Join": [ ":", [ { "Ref" : "%sService" }, "%s" ] ] } ] }`, UpperName(name), UpperName(name), name)
+			}
+
+			volumes := []string{}
+
+			for _, volume := range entry.Volumes {
+				if strings.HasPrefix(volume, "/var/run/docker.sock") {
+					volumes = append(volumes, fmt.Sprintf(`"%s"`, volume))
+				}
+			}
+
+			l := fmt.Sprintf(`{ "Fn::If": [ "Blank%sService",
+			{
+				"Name": "%s",
+				"Image": { "Ref": "%sImage" },
+				"Command": { "Ref": "%sCommand" },
+				"CPU": { "Ref": "Cpu" },
+				"Memory": { "Ref": "%sMemory" },
+				"Environment": {
+					"KINESIS": { "Ref": "Kinesis" },
+					%s
+				},
+				"Links": [ %s ],
+				"Volumes": [ %s ],
+				"Services": [ %s ],
+				"PortMappings": [ %s ]
+			}, { "Ref" : "AWS::NoValue" } ] }`, UpperName(ps), ps, UpperName(ps), UpperName(ps), UpperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ","))
+
+			return template.HTML(l)
+		},
+		"ingress": func(m Manifest) template.HTML {
+			ls := []string{}
+
+			for _, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
+
+					if len(parts) != 2 {
+						continue
+					}
+
+					ls = append(ls, fmt.Sprintf(`{ "CidrIp": "0.0.0.0/0", "IpProtocol": "tcp", "FromPort": { "Ref": "%sPort%sBalancer" }, "ToPort": { "Ref": "%sPort%sBalancer" } }`, UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0]))
+				}
+			}
+
+			return template.HTML(strings.Join(ls, ","))
+		},
+		"listeners": func(m Manifest) template.HTML {
+			ls := []string{}
+
+			for _, entry := range m {
+				for _, port := range entry.Ports {
+					parts := strings.SplitN(port, ":", 2)
+
+					if len(parts) != 2 {
+						continue
+					}
+
+					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%sBalancer" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%sPort%sHost" } }`, UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0]))
+				}
+			}
+
+			if len(ls) == 0 {
+				ls = append(ls, `{ "Protocol": "TCP", "LoadBalancerPort": "80", "InstanceProtocol": "TCP", "InstancePort": "80" }`)
+			}
+
+			return template.HTML(strings.Join(ls, ","))
+		},
+		"split": func(ss string, t string) []string {
+			return strings.Split(ss, t)
+		},
+		"firstcheck": func(m Manifest) template.HTML {
+			for _, me := range m {
+				if len(me.Ports) > 0 {
+					parts := strings.Split(me.Ports[0], ":")
+					port := parts[0]
+					return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ ":", [ "TCP", { "Ref": "%sPort%sHost" } ] ] }`, UpperName(me.Name), port))
+				}
+			}
+			return `"TCP:80"`
 		},
 	}
 }

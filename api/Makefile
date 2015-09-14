@@ -12,6 +12,9 @@ release:
 	jq '.Parameters.Version.Default |= "$(VERSION)"' dist/kernel.json > /tmp/kernel.json
 	aws s3 cp /tmp/kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 
+templates:
+	go-bindata -pkg=models -prefix=models -o=models/templates.go models/templates/...
+
 test:
 	go get -t ./...
 	go test -v -cover ./...

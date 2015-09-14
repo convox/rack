@@ -6,9 +6,7 @@ pull_image() {
   docker pull $image >/dev/null 2>&1 &
 }
 
-pull_image $DOCKER_IMAGE_APP
 pull_image $DOCKER_IMAGE_BUILD
-pull_image $DOCKER_IMAGE_SERVICE
 
 ./bin/gen-cert
 haproxy -f /etc/haproxy/haproxy.cfg &

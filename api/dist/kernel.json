@@ -3,7 +3,6 @@
   "Conditions": {
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
-    "BlankDockerImageApp": { "Fn::Equals": [ { "Ref": "DockerImageApp" }, "" ] },
     "BlankDockerImageBuild": { "Fn::Equals": [ { "Ref": "DockerImageBuild" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
@@ -42,13 +41,6 @@
     },
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
-    },
-    "DockerImageApp": {
-      "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageApp",
-        { "Fn::Join": [ ":", [ "convox/app", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageApp" }
-      ] }
     },
     "DockerImageBuild": {
       "Condition": "Development",
@@ -117,11 +109,6 @@
       "Description": "Development mode",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
-    },
-    "DockerImageApp": {
-      "Type": "String",
-      "Description": "Image to use for the app container. Overrides current Version.",
-      "Default": ""
     },
     "DockerImageBuild": {
       "Type": "String",
@@ -826,10 +813,6 @@
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
-              "DOCKER_IMAGE_APP": { "Fn::If": [ "BlankDockerImageApp",
-                { "Fn::Join": [ ":", [ "convox/app", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageApp" }
-              ] },
               "DOCKER_IMAGE_BUILD": { "Fn::If": [ "BlankDockerImageBuild",
                 { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
                 { "Ref": "DockerImageBuild" }

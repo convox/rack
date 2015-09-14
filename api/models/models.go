@@ -84,10 +84,14 @@ func SQS() *sqs.SQS {
 	return sqs.New(awsConfig())
 }
 
-func buildTemplate(name, section string, data interface{}) (string, error) {
+func buildTemplate(name, section string, input interface{}) (string, error) {
 	data, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
 
-	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data.([]byte)))
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data))
 
 	if err != nil {
 		return "", err
@@ -95,7 +99,7 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 
 	var formation bytes.Buffer
 
-	err = tmpl.Execute(&formation, data)
+	err = tmpl.Execute(&formation, input)
 
 	if err != nil {
 		return "", err

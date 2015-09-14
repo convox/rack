@@ -17,10 +17,6 @@ Rack API client
 
 Convox agent for ECS instances
 
-### [cmd/app](https://github.com/convox/rack/tree/master/cmd/app)
-
-Build CloudFormation stacks for Convox apps
-
 ### [cmd/build](https://github.com/convox/rack/tree/master/cmd/build)
 
 Build and push Docker images for Convox apps

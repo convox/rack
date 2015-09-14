@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/exec"
 	"regexp"
 	"time"
 
@@ -220,7 +219,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 }
 
 func (a *App) Formation() (string, error) {
-	data, err := exec.Command("docker", "run", os.Getenv("DOCKER_IMAGE_APP"), "-mode", "staging").Output()
+	data, err := buildTemplate("app", "app", Manifest{})
 
 	if err != nil {
 		return "", err
