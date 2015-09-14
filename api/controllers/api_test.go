@@ -6,9 +6,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/controllers"
+	"github.com/stretchr/testify/assert"
 )
+
+// Note: these tests don't use the api helpers to ensure a naked
+//       client can connect
 
 func TestNoPassword(t *testing.T) {
 	aws := stubAws(DescribeConvoxStackCycle("convox-test"))

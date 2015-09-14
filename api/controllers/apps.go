@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
-	"github.com/convox/rack/api/models"
 )
 
 func AppList(rw http.ResponseWriter, r *http.Request) error {
