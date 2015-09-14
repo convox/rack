@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/codegangsta/cli"
-	"github.com/inconshreveable/go-update"
-	"github.com/inconshreveable/go-update/check"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/inconshreveable/go-update.v0"
+	"gopkg.in/inconshreveable/go-update.v0/check"
 )
 
 func init() {
