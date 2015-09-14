@@ -2,21 +2,17 @@ package controllers_test
 
 import (
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/convox/rack/api/controllers"
 )
 
 func TestAppList(t *testing.T) {
 	aws := stubAws(DescribeStackCycleWithoutQuery("bar"))
 	defer aws.Close()
 
-	body := assert.HTTPBody(controllers.HandlerFunc, "GET", "http://convox/apps", nil)
+	body := HTTPBody("GET", "http://convox/apps", nil)
 
 	var resp []map[string]string
 	err := json.Unmarshal([]byte(body), &resp)
@@ -31,7 +27,7 @@ func TestAppShow(t *testing.T) {
 	aws := stubAws(DescribeAppStackCycle("bar"))
 	defer aws.Close()
 
-	body := assert.HTTPBody(controllers.HandlerFunc, "GET", "http://convox/apps/bar", nil)
+	body := HTTPBody("GET", "http://convox/apps/bar", nil)
 
 	var resp map[string]string
 	err := json.Unmarshal([]byte(body), &resp)
@@ -46,11 +42,7 @@ func TestAppShowWithAppNotFound(t *testing.T) {
 	aws := stubAws(DescribeStackNotFound("bar"))
 	defer aws.Close()
 
-	req, _ := http.NewRequest("GET", "http://convox/apps/bar", nil)
-	w := httptest.NewRecorder()
-	controllers.HandlerFunc(w, req)
-
-	assert.Equal(t, 404, w.Code)
+	AssertStatus(t, 404, "GET", "http://convox/apps/bar", nil)
 }
 
 func TestAppCreate(t *testing.T) {
@@ -61,15 +53,11 @@ func TestAppCreate(t *testing.T) {
 	defer aws.Close()
 
 	val := url.Values{"name": []string{"application"}}
-	postBody := strings.NewReader(val.Encode())
-	req, _ := http.NewRequest("POST", "http://convox/apps", postBody)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	controllers.HandlerFunc(w, req)
+	body := HTTPBody("POST", "http://convox/apps", val)
 
-	if assert.Equal(t, 200, w.Code) {
+	if assert.NotEqual(t, "", body) {
 		var resp map[string]string
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		err := json.Unmarshal([]byte(body), &resp)
 
 		if assert.Nil(t, err) {
 			assert.Equal(t, "application", resp["name"])
@@ -86,13 +74,7 @@ func TestAppCreateWithAlreadyExists(t *testing.T) {
 	defer aws.Close()
 
 	val := url.Values{"name": []string{"application"}}
-	postBody := strings.NewReader(val.Encode())
-	req, _ := http.NewRequest("POST", "http://convox/apps", postBody)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	controllers.HandlerFunc(w, req)
-
-	assert.Equal(t, 403, w.Code)
+	AssertStatus(t, 403, "POST", "http://convox/apps", val)
 }
 
 // TODO: test bucket cleanup. this is handled via goroutines.
@@ -106,7 +88,7 @@ func TestAppDelete(t *testing.T) {
 	)
 	defer aws.Close()
 
-	body := assert.HTTPBody(controllers.HandlerFunc, "DELETE", "http://convox/apps/bar", nil)
+	body := HTTPBody("DELETE", "http://convox/apps/bar", nil)
 
 	var resp map[string]bool
 	err := json.Unmarshal([]byte(body), &resp)
@@ -120,11 +102,7 @@ func TestAppDeleteWithAppNotFound(t *testing.T) {
 	aws := stubAws(DescribeStackNotFound("bar"))
 	defer aws.Close()
 
-	req, _ := http.NewRequest("DELETE", "http://convox/apps/bar", nil)
-	w := httptest.NewRecorder()
-	controllers.HandlerFunc(w, req)
-
-	assert.Equal(t, 404, w.Code)
+	AssertStatus(t, 404, "DELETE", "http://convox/apps/bar", nil)
 }
 
 func TestAppLogs(t *testing.T) {
