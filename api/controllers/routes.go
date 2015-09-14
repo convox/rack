@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"/github.com/gorilla/mux"
 )
 
 func HandlerFunc(w http.ResponseWriter, req *http.Request) {

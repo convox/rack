@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
+	"/github.com/ddollar/logger"
 	"github.com/convox/kernel/helpers"
 )
 

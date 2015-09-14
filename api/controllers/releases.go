@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"/github.com/gorilla/mux"
 
 	"github.com/convox/kernel/models"
 )

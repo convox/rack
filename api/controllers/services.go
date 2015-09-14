@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/kernel/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"/github.com/gorilla/mux"
+	"/golang.org/x/net/websocket"
 
 	"github.com/convox/kernel/models"
 )

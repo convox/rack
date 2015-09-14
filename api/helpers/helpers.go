@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/stvp/rollbar"
+	"/github.com/ddollar/logger"
+	"/github.com/stvp/rollbar"
 )
 
 func init() {

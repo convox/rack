@@ -12,12 +12,12 @@ import (
 
 	"github.com/convox/kernel/helpers"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/s3"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"/github.com/awslabs/aws-sdk-go/aws"
+	"/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"/github.com/awslabs/aws-sdk-go/service/ecs"
+	"/github.com/awslabs/aws-sdk-go/service/s3"
+	"/github.com/fsouza/go-dockerclient"
 )
 
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"/github.com/awslabs/aws-sdk-go/aws/awserr"
 )
 
 func awsError(err error) string {

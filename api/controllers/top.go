@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudformation"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/cloudwatch"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/gorilla/mux"
+	"/github.com/awslabs/aws-sdk-go/aws"
+	"/github.com/awslabs/aws-sdk-go/service/cloudformation"
+	"/github.com/awslabs/aws-sdk-go/service/cloudwatch"
+	"/github.com/gorilla/mux"
 	"github.com/convox/kernel/models"
 )
 

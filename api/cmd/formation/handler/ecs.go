@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/service/ecs"
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/convox/env/crypt"
+	"/github.com/awslabs/aws-sdk-go/aws"
+	"/github.com/awslabs/aws-sdk-go/aws/awserr"
+	"/github.com/awslabs/aws-sdk-go/service/ecs"
+	"/github.com/convox/env/crypt"
 	"github.com/convox/kernel/models"
 )
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/convox/kernel/models"
 
-	"github.com/convox/kernel/Godeps/_workspace/src/github.com/ddollar/logger"
+	"/github.com/ddollar/logger"
 )
 
 func pullAppImages() {
