@@ -1,6 +1,6 @@
 # convox/app
 
-Create CloudFormation stacks for Convox apps.
+Build CloudFormation stacks for Convox apps.
 
 ## Development
 
