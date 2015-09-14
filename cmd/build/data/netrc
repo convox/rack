@@ -1,0 +1,1 @@
+machine github.com login convox/build password {{GITHUB_TOKEN}}
