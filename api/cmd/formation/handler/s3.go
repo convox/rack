@@ -64,11 +64,11 @@ func cleanupBucket(bucket string, S3 *s3.S3) error {
 	}
 
 	for _, d := range res.DeleteMarkers {
-		go cleanupBucketObject(bucket, *d.Key, *d.VersionID, S3)
+		go cleanupBucketObject(bucket, *d.Key, *d.VersionId, S3)
 	}
 
 	for _, v := range res.Versions {
-		go cleanupBucketObject(bucket, *v.Key, *v.VersionID, S3)
+		go cleanupBucketObject(bucket, *v.Key, *v.VersionId, S3)
 	}
 
 	return nil
@@ -78,7 +78,7 @@ func cleanupBucketObject(bucket, key, version string, S3 *s3.S3) {
 	req := &s3.DeleteObjectInput{
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(key),
-		VersionID: aws.String(version),
+		VersionId: aws.String(version),
 	}
 
 	_, err := S3.DeleteObject(req)

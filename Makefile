@@ -1,4 +1,22 @@
-all: test
+all: api app build convox crypt service
+
+api:
+	go get ./api
+
+app:
+	go get ./cmd/app
+
+build:
+	go get ./cmd/build
+
+convox:
+	go get ./cmd/convox
+
+crypt:
+	go get ./cmd/crypt
+
+service:
+	go get ./cmd/service
 
 test:
 	go test -v -cover ./...

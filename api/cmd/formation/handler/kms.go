@@ -39,7 +39,7 @@ func KMSKeyCreate(req Request) (string, map[string]string, error) {
 		return "", nil, err
 	}
 
-	return *res.KeyMetadata.ARN, nil, nil
+	return *res.KeyMetadata.Arn, nil, nil
 }
 
 func KMSKeyUpdate(req Request) (string, map[string]string, error) {
@@ -48,7 +48,7 @@ func KMSKeyUpdate(req Request) (string, map[string]string, error) {
 
 func KMSKeyDelete(req Request) (string, map[string]string, error) {
 	_, err := KMS(req).DisableKey(&kms.DisableKeyInput{
-		KeyID: aws.String(req.PhysicalResourceId),
+		KeyId: aws.String(req.PhysicalResourceId),
 	})
 
 	// TODO let the cloudformation finish thinking this deleted

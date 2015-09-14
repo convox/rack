@@ -57,8 +57,8 @@ func LambdaFunctionCreate(req Request) (string, error) {
 	res, err := Lambda(req).CreateFunction(&lambda.CreateFunctionInput{
 		FunctionName: aws.String(req.ResourceProperties["Name"].(string)),
 		Handler:      aws.String(req.ResourceProperties["Handler"].(string)),
-		MemorySize:   aws.Long(int64(memory)),
-		Timeout:      aws.Long(int64(timeout)),
+		MemorySize:   aws.Int64(int64(memory)),
+		Timeout:      aws.Int64(int64(timeout)),
 		Role:         aws.String(role),
 		Runtime:      aws.String(req.ResourceProperties["Runtime"].(string)),
 		Code: &lambda.FunctionCode{
@@ -70,7 +70,7 @@ func LambdaFunctionCreate(req Request) (string, error) {
 		return "", err
 	}
 
-	return *res.FunctionARN, nil
+	return *res.FunctionArn, nil
 }
 
 func LambdaFunctionUpdate(req Request) (string, error) {

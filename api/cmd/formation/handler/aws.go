@@ -31,14 +31,14 @@ func Credentials(req *Request) *credentials.Credentials {
 	return credentials.NewEnvCredentials()
 }
 
-func Region(req *Request) string {
+func Region(req *Request) *string {
 	if req != nil {
 		if region, ok := req.ResourceProperties["Region"].(string); ok && region != "" {
-			return region
+			return aws.String(region)
 		}
 	}
 
-	return os.Getenv("AWS_REGION")
+	return aws.String(os.Getenv("AWS_REGION"))
 }
 
 func CloudFormation(req Request) *cloudformation.CloudFormation {

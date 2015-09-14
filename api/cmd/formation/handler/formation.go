@@ -106,9 +106,9 @@ func handleFormation(message Message) {
 
 func dequeueMessage() ([]Message, error) {
 	req := &sqs.ReceiveMessageInput{
-		MaxNumberOfMessages: aws.Long(10),
-		QueueURL:            aws.String(MessageQueueUrl),
-		WaitTimeSeconds:     aws.Long(10),
+		MaxNumberOfMessages: aws.Int64(10),
+		QueueUrl:            aws.String(MessageQueueUrl),
+		WaitTimeSeconds:     aws.Int64(10),
 	}
 
 	res, err := SQS().ReceiveMessage(req)
@@ -128,7 +128,7 @@ func dequeueMessage() ([]Message, error) {
 			return nil, err
 		}
 
-		message.MessageID = m.MessageID
+		message.MessageID = m.MessageId
 		message.ReceiptHandle = m.ReceiptHandle
 
 		messages[i] = message
@@ -139,14 +139,14 @@ func dequeueMessage() ([]Message, error) {
 
 func ackMessage(messages []Message) (int, error) {
 	dreq := &sqs.DeleteMessageBatchInput{
-		QueueURL: aws.String(MessageQueueUrl),
+		QueueUrl: aws.String(MessageQueueUrl),
 	}
 
 	dreq.Entries = make([]*sqs.DeleteMessageBatchRequestEntry, len(messages))
 
 	for i, message := range messages {
 		dreq.Entries[i] = &sqs.DeleteMessageBatchRequestEntry{
-			ID:            message.MessageID,
+			Id:            message.MessageID,
 			ReceiptHandle: message.ReceiptHandle,
 		}
 	}

@@ -36,8 +36,8 @@ var regexMatchAvailabilityZones = regexp.MustCompile(`following availability zon
 func EC2AvailabilityZonesCreate(req Request) (string, map[string]string, error) {
 	_, err := EC2(req).CreateSubnet(&ec2.CreateSubnetInput{
 		AvailabilityZone: aws.String("garbage"),
-		CIDRBlock:        aws.String("10.200.0.0/16"),
-		VPCID:            aws.String(req.ResourceProperties["Vpc"].(string)),
+		CidrBlock:        aws.String("10.200.0.0/16"),
+		VpcId:            aws.String(req.ResourceProperties["Vpc"].(string)),
 	})
 
 	matches := regexMatchAvailabilityZones.FindStringSubmatch(err.Error())
