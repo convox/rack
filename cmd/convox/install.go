@@ -559,7 +559,7 @@ func randomString(size int) string {
 	return string(b)
 }
 
-func readCredentials(c *cli.Context) (access, secret string, err error) {
+func readCredentials(c *cli.Context) (access string, secret string, token string, err error) {
 	// read credentials from ENV
 	access = os.Getenv("AWS_ACCESS_KEY_ID")
 	secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
