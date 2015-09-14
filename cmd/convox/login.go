@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/client"
 	"github.com/codegangsta/cli"
+	"github.com/convox/rack/client"
+	"github.com/convox/rack/cmd/convox/stdcli"
 	homedir "github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh/terminal"
-	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 var ConfigRoot string
@@ -185,7 +185,7 @@ func addLogin(host, password string) error {
 
 	auth[host] = password
 
-	data, err = json.Marshal(auth)
+	data, err = json.MarshalIndent(auth, "", "  ")
 
 	if err != nil {
 		return err
