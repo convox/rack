@@ -5,33 +5,33 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/convox/env/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"/github.com/codegangsta/cli"
 )
 
 func init() {
 	RegisterCommand(cli.Command{
-		Name:        "decrypt",
-		Description: "decrypt an env",
+		Name:        "encrypt",
+		Description: "encrypt an env",
 		Usage:       "<key> [filename]",
-		Action:      cmdDecrypt,
+		Action:      cmdEncrypt,
 	})
 }
 
-func cmdDecrypt(c *cli.Context) {
+func cmdEncrypt(c *cli.Context) {
 	if len(c.Args()) < 1 {
-		Usage(c, "decrypt")
+		Usage(c, "encrypt")
 		return
 	}
 
 	key := c.Args()[0]
 
-	var data []byte
+	var env []byte
 	var err error
 
 	if len(c.Args()) == 1 {
-		data, err = ioutil.ReadAll(os.Stdin)
+		env, err = ioutil.ReadAll(os.Stdin)
 	} else {
-		data, err = ioutil.ReadFile(c.Args()[1])
+		env, err = ioutil.ReadFile(c.Args()[1])
 	}
 
 	if err != nil {
@@ -44,11 +44,11 @@ func cmdDecrypt(c *cli.Context) {
 		panic(err)
 	}
 
-	dec, err := cr.Decrypt(key, data)
+	data, err := cr.Encrypt(key, env)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Print(string(dec))
+	fmt.Print(string(data))
 }

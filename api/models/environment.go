@@ -11,7 +11,7 @@ import (
 
 	"/github.com/aryann/difflib"
 	"/github.com/awslabs/aws-sdk-go/aws/awserr"
-	"/github.com/convox/env/crypt"
+	"/github.com/convox/rack/env/crypt"
 )
 
 type Environment map[string]string
