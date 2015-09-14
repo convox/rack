@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/convox/cli/test"
+	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 

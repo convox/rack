@@ -9,7 +9,7 @@ import (
 	"/github.com/codegangsta/cli"
 	"/github.com/inconshreveable/go-update"
 	"/github.com/inconshreveable/go-update/check"
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/stdcli"
 )
 
 func init() {

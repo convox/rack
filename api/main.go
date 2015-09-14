@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"/github.com/ddollar/logger"
-	"github.com/convox/kernel/helpers"
+	"github.com/convox/rack/api/helpers"
 )
 
 func recoverWith(f func(err error)) {

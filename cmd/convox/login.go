@@ -13,8 +13,8 @@ import (
 	"/github.com/codegangsta/cli"
 	homedir "/github.com/mitchellh/go-homedir"
 	"/golang.org/x/crypto/ssh/terminal"
-	"github.com/convox/cli/client"
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/client"
+	"github.com/convox/rack/stdcli"
 )
 
 var ConfigRoot string

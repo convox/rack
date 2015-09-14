@@ -7,7 +7,7 @@ import (
 
 	"/github.com/awslabs/aws-sdk-go/aws/awserr"
 	"/github.com/gorilla/mux"
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/models"
 )
 
 func FormationList(rw http.ResponseWriter, r *http.Request) error {

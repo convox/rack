@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/convox/kernel/helpers"
+	"github.com/convox/rack/api/helpers"
 
 	"/github.com/awslabs/aws-sdk-go/aws"
 	"/github.com/awslabs/aws-sdk-go/aws/awserr"

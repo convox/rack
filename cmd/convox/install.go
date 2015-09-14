@@ -18,7 +18,7 @@ import (
 	"/github.com/aws/aws-sdk-go/aws/credentials"
 	"/github.com/aws/aws-sdk-go/service/cloudformation"
 	"/github.com/codegangsta/cli"
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/stdcli"
 )
 
 var Banner = `

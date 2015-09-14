@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"/github.com/gorilla/mux"
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/models"
 )
 
 func EnvironmentList(rw http.ResponseWriter, r *http.Request) error {

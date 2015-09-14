@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/models"
 )
 
 func init() {

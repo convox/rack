@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 
 	"/github.com/awslabs/aws-sdk-go/aws"
-	"github.com/convox/kernel/awsutil"
+	"github.com/convox/rack/api/awsutil"
 )
 
 func init() {

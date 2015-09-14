@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/cli/client"
-	"github.com/convox/cli/test"
+	"github.com/convox/rack/client"
+	"github.com/convox/rack/test"
 )
 
 func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {

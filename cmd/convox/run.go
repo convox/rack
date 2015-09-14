@@ -10,7 +10,7 @@ import (
 	"/github.com/docker/docker/pkg/term"
 
 	"/github.com/codegangsta/cli"
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/stdcli"
 )
 
 func init() {

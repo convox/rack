@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/convox/kernel/awsutil"
+	"github.com/convox/rack/api/awsutil"
 )
 
 func TestRunAttached(t *testing.T) {

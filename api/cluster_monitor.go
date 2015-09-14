@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/kernel/helpers"
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/api/models"
 
 	"/github.com/ddollar/logger"
 

@@ -10,7 +10,7 @@ import (
 	"/github.com/awslabs/aws-sdk-go/service/cloudformation"
 	"/github.com/awslabs/aws-sdk-go/service/cloudwatch"
 	"/github.com/gorilla/mux"
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/models"
 )
 
 func ClusterTop(rw http.ResponseWriter, r *http.Request) {

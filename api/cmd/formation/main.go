@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/kernel/cmd/formation/handler"
+	"github.com/convox/rack/api/cmd/formation/handler"
 )
 
 type Message struct {

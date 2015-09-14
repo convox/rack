@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"/github.com/codegangsta/cli"
-	"github.com/convox/cli/manifest"
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/stdcli"
 )
 
 func init() {

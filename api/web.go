@@ -8,8 +8,8 @@ import (
 	"/github.com/codegangsta/negroni"
 	"/github.com/ddollar/logger"
 	"/github.com/ddollar/nlogger"
-	"github.com/convox/kernel/controllers"
-	"github.com/convox/kernel/helpers"
+	"github.com/convox/rack/api/controllers"
+	"github.com/convox/rack/api/helpers"
 )
 
 func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"/github.com/codegangsta/cli"
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/stdcli"
 )
 
 func init() {

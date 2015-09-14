@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/models"
 
 	"/github.com/ddollar/logger"
 )

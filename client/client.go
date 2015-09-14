@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/convox/cli/stdcli"
+	"github.com/convox/rack/stdcli"
 	"golang.org/x/net/websocket"
 )
 

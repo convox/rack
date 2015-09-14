@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"/github.com/stretchr/testify/assert"
-	"github.com/convox/kernel/controllers"
+	"github.com/convox/rack/api/controllers"
 )
 
 func TestNoPassword(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"/github.com/gorilla/mux"
 	"/golang.org/x/net/websocket"
 
-	"github.com/convox/kernel/models"
+	"github.com/convox/rack/api/models"
 )
 
 func ProcessList(rw http.ResponseWriter, r *http.Request) error {
