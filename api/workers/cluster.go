@@ -1,4 +1,4 @@
-package main
+package workers
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 	"github.com/ddollar/logger"
 )
 
-func startClusterMonitor() {
+func StartCluster() {
 	var log = logger.New("ns=cluster_monitor")
 
 	defer recoverWith(func(err error) {

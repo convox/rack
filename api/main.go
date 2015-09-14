@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/ddollar/logger"
-	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/api/workers"
 )
 
 func recoverWith(f func(err error)) {
@@ -21,22 +19,9 @@ func recoverWith(f func(err error)) {
 }
 
 func main() {
+	go workers.StartCluster()
+	go workers.StartHeartbeat()
+	go workers.StartImages()
 
-	go heartbeat()
-	go startClusterMonitor()
-	go pullAppImages()
 	startWeb()
-}
-
-func heartbeat() {
-	log := logger.New("ns=heartbeat")
-	defer recoverWith(func(err error) {
-		helpers.Error(log, err)
-	})
-
-	helpers.SendMixpanelEvent("kernel-heartbeat", "")
-
-	for _ = range time.Tick(1 * time.Hour) {
-		helpers.SendMixpanelEvent("kernel-heartbeat", "")
-	}
 }

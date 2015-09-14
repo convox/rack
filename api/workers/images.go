@@ -1,4 +1,4 @@
-package main
+package workers
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/ddollar/logger"
 )
 
-func pullAppImages() {
+func StartImages() {
 	var log = logger.New("ns=app_images")
 
 	if os.Getenv("DEVELOPMENT") == "true" {
