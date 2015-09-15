@@ -1,0 +1,77 @@
+{
+  "description": "Convox App",
+  "variables": {
+    "NAME": null,
+    "SOURCE": null,
+    "BASE_AMI": "ami-86cad3ee",
+    "AWS_REGION": "us-east-1",
+    "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
+    "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{user \"AWS_REGION\"}}",
+      "access_key": "{{user \"AWS_ACCESS\"}}",
+      "secret_key": "{{user \"AWS_SECRET\"}}",
+      "source_ami": "{{user \"BASE_AMI\"}}",
+      "instance_type": "t2.micro",
+      "ssh_username": "ubuntu",
+      "ami_name": "{{user \"NAME\"}}-{{timestamp}}",
+      "run_tags": {
+        "Name": "{{user \"NAME\"}}-builder"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "env {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "mkdir /build",
+        "chown ubuntu:ubuntu /build"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "{{user \"SOURCE\"}}/",
+      "destination": "/build"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "set -e",
+        "cd /build",
+        "/usr/local/bin/docker-compose -p app build",
+        "/usr/local/bin/docker-compose -p app pull"
+      ]
+    },
+    {
+      "type": "shell",
+      "execute_command": "env {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "rm -rf /build"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "app.conf",
+      "destination": "/tmp/app.conf"
+    },
+    {
+      "type": "shell",
+      "execute_command": "{{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "mv /tmp/app.conf /etc/init/app.conf"
+      ]
+    },
+    {
+      "type": "shell",
+      "execute_command": "{{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "docker pull convox/agent",
+        "docker pull convox/init"
+      ]
+    }
+  ]
+}
