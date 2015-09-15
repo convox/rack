@@ -99,8 +99,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		}
 
 		if !isTerminalRaw {
-			fd := os.Stdin.Fd()
-			terminal.MakeRaw(int(fd))
+			terminal.MakeRaw(int(os.Stdin.Fd()))
 			isTerminalRaw = true
 		}
 
