@@ -115,6 +115,21 @@
       "Description": "Image to use for the api container. Overrides current Version.",
       "Default": ""
     },
+    "DockerImageApp": {
+      "Type": "String",
+      "Description": "Deprecated",
+      "Default": ""
+    },
+    "DockerImageBuild": {
+      "Type": "String",
+      "Description": "Deprecated",
+      "Default": ""
+    },
+    "DockerImageService": {
+      "Type": "String",
+      "Description": "Deprecated",
+      "Default": ""
+    },
     "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
