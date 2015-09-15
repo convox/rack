@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
-	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
