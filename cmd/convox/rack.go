@@ -8,6 +8,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/release/version"
 )
 
 func init() {
@@ -17,12 +18,6 @@ func init() {
 		Usage:       "",
 		Action:      cmdRack,
 		Subcommands: []cli.Command{
-			{
-				Name:        "update",
-				Description: "update rack to the latest version",
-				Usage:       "[version]",
-				Action:      cmdRackUpdate,
-			},
 			{
 				Name:        "scale",
 				Description: "scale the rack capacity",
@@ -36,6 +31,32 @@ func init() {
 					cli.StringFlag{
 						Name:  "type",
 						Usage: "vertically scale the instance type, e.g. t2.small or c3.xlargs",
+					},
+				},
+			},
+			{
+				Name:        "update",
+				Description: "update rack to the given version",
+				Usage:       "",
+				Action:      cmdRackUpdate,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:   "version",
+						EnvVar: "VERSION",
+						Value:  "latest",
+						Usage:  "release version in the format of '20150810161818', or 'latest' by default",
+					},
+				},
+			},
+			{
+				Name:        "versions",
+				Description: "list convox versions",
+				Usage:       "",
+				Action:      cmdVersions,
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name:  "unpublished",
+						Usage: "include unpublished versions",
 					},
 				},
 			},
@@ -59,22 +80,23 @@ func cmdRack(c *cli.Context) {
 }
 
 func cmdRackUpdate(c *cli.Context) {
-	version := ""
+	versions, err := version.All()
 
-	if len(c.Args()) == 0 {
-		v, err := latestVersion()
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		version = v
-	} else {
-		version = c.Args()[0]
+	if err != nil {
+		stdcli.Error(err)
+		return
 	}
 
-	system, err := rackClient(c).UpdateSystem(version)
+	version, err := versions.Resolve(c.String("version"))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	versionName := version.Version
+
+	system, err := rackClient(c).UpdateSystem(versionName)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -112,6 +134,32 @@ func cmdRackScale(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+}
+
+func cmdVersions(c *cli.Context) {
+	vs, err := version.All()
+
+	if err != nil {
+		return
+	}
+
+	var t *stdcli.Table
+
+	if c.Bool("unpublished") {
+		t = stdcli.NewTable("RELEASE", "PUBLISHED", "REQUIRED", "DESCRIPTION")
+		for _, v := range vs {
+			t.AddRow(v.Version, humanizeBool(v.Published), humanizeBool(v.Required), v.Description)
+		}
+	} else {
+		t = stdcli.NewTable("RELEASE", "REQUIRED", "DESCRIPTION")
+		for _, v := range vs {
+			if v.Published {
+				t.AddRow(v.Version, humanizeBool(v.Required), v.Description)
+			}
+		}
+	}
+
+	t.Print()
 }
 
 func latestVersion() (string, error) {

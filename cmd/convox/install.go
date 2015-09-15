@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/release/version"
 )
 
 var Banner = `
@@ -42,7 +43,7 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/docs/creating-an-iam-user-and-credentials
 `
 
-var FormationUrl = "http://convox.s3.amazonaws.com/release/latest/formation.json"
+var FormationUrl = "http://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
@@ -171,11 +172,26 @@ func cmdInstall(c *cli.Context) {
 
 	stackName := c.String("stack-name")
 
-	version := c.String("version")
+	versions, err := version.All()
+
+	if err != nil {
+		handleError("install", distinctId, err)
+		return
+	}
+
+	version, err := versions.Resolve(c.String("version"))
+
+	if err != nil {
+		handleError("install", distinctId, err)
+		return
+	}
+
+	versionName := version.Version
+	formationUrl := fmt.Sprintf(FormationUrl, versionName)
 
 	instanceCount := fmt.Sprintf("%d", c.Int("instance-count"))
 
-	fmt.Println("Installing Convox...")
+	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
 	if isDevelopment {
 		fmt.Println("(Development Mode)")
@@ -203,10 +219,10 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
-			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(version)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
 		},
 		StackName:   aws.String(stackName),
-		TemplateURL: aws.String(FormationUrl),
+		TemplateURL: aws.String(formationUrl),
 	})
 
 	if err != nil {
