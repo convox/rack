@@ -29,7 +29,7 @@ func TestInvalidLogin(t *testing.T) {
 			Command: "convox login --password foobar BAD",
 			Env:     map[string]string{"CONVOX_CONFIG": temp},
 			Exit:    1,
-			Stderr:  "ERROR: Get https://BAD/system: dial tcp: lookup BAD: no such host\n",
+			Stderr:  "ERROR: could not contact host\n",
 		},
 	)
 }

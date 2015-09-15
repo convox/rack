@@ -110,7 +110,7 @@ func cmdLogin(c *cli.Context) {
 		if strings.Contains(err.Error(), "401") {
 			stdcli.Error(fmt.Errorf("invalid login"))
 		} else {
-			stdcli.Error(err)
+			stdcli.Error(fmt.Errorf("could not contact host"))
 		}
 		return
 	}
