@@ -56,7 +56,7 @@ func cmdRun(c *cli.Context) {
 
 	ps := c.Args()[0]
 
-	code, err := rackClient(c).RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, true)
+	code, err := rackClient(c).RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
 	terminal.Restore(int(fd), stdinState)
 
 	if err != nil {

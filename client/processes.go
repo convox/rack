@@ -39,7 +39,7 @@ func (c *Client) GetProcesses(app string) (Processes, error) {
 	return processes, nil
 }
 
-func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.Writer, raw bool) (int, error) {
+func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.Writer) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
