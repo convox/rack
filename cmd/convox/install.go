@@ -191,7 +191,7 @@ func cmdInstall(c *cli.Context) {
 
 	instanceCount := fmt.Sprintf("%d", c.Int("instance-count"))
 
-	fmt.Println("Installing Convox...")
+	fmt.Printf("Installing Convox (%s)...\n", v)
 
 	if isDevelopment {
 		fmt.Println("(Development Mode)")
