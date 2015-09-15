@@ -3,7 +3,7 @@
   "Conditions": {
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
-    "BlankDockerImageBuild": { "Fn::Equals": [ { "Ref": "DockerImageBuild" }, "" ] },
+    "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] }
@@ -42,11 +42,11 @@
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
-    "DockerImageBuild": {
+    "DockerImageApi": {
       "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageBuild",
-        { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageBuild" }
+      "Value": { "Fn::If": [ "BlankDockerImageApi",
+        { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+        { "Ref": "DockerImageApi" }
       ] }
     },
     "DynamoBuilds": {
@@ -110,9 +110,9 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
-    "DockerImageBuild": {
+    "DockerImageApi": {
       "Type": "String",
-      "Description": "Image to use for the build container. Overrides current Version.",
+      "Description": "Image to use for the api container. Overrides current Version.",
       "Default": ""
     },
     "InstanceCount": {
@@ -813,9 +813,9 @@
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
-              "DOCKER_IMAGE_BUILD": { "Fn::If": [ "BlankDockerImageBuild",
-                { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageBuild" }
+              "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
+                { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+                { "Ref": "DockerImageApi" }
               ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
