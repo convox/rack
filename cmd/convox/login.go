@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -38,7 +37,8 @@ func init() {
 	home, err := homedir.Dir()
 
 	if err != nil {
-		log.Fatal(err)
+		stdcli.Error(err)
+		return
 	}
 
 	ConfigRoot = filepath.Join(home, ".convox")
@@ -50,14 +50,16 @@ func init() {
 	stat, err := os.Stat(ConfigRoot)
 
 	if err != nil && !os.IsNotExist(err) {
-		log.Fatal(err)
+		stdcli.Error(err)
+		return
 	}
 
 	if stat != nil && !stat.IsDir() {
 		err := upgradeConfig()
 
 		if err != nil {
-			log.Fatal(err)
+			stdcli.Error(err)
+			return
 		}
 	}
 }
@@ -105,7 +107,11 @@ func cmdLogin(c *cli.Context) {
 	_, err = cl.GetApps()
 
 	if err != nil {
-		stdcli.Error(fmt.Errorf("invalid login"))
+		if strings.Contains(err.Error(), "401") {
+			stdcli.Error(fmt.Errorf("invalid login"))
+		} else {
+			stdcli.Error(err)
+		}
 		return
 	}
 
