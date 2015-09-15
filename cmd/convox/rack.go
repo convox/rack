@@ -96,6 +96,10 @@ func cmdRackUpdate(c *cli.Context) {
 
 	versionName := version.Version
 
+	if len(c.Args()) > 0 {
+		versionName = c.Args()[0]
+	}
+
 	system, err := rackClient(c).UpdateSystem(versionName)
 
 	if err != nil {
