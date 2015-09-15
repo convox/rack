@@ -2,6 +2,10 @@
 
 ## Development
 
+    $ convox install --stack-name=convox-dev --development ~/credentials.csv
+
+    # add env vars to .env
+
     $ convox start
 
 ## Contributing
