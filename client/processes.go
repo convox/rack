@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/pkg/term"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Process struct {
@@ -47,7 +47,7 @@ func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, 
 
 	ch := make(chan int)
 
-	go copyWithExit(out, r, ch, raw)
+	go copyWithExit(out, r, ch)
 
 	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), map[string]string{"Command": command}, in, w)
 
@@ -87,7 +87,7 @@ func (c *Client) StopProcess(app, id string) (*Process, error) {
 	return &process, nil
 }
 
-func copyWithExit(w io.Writer, r io.Reader, ch chan int, raw bool) {
+func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 	buf := make([]byte, 1024)
 	isTerminalRaw := false
 
@@ -98,14 +98,9 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int, raw bool) {
 			break
 		}
 
-		// don't make the terminal raw until we've read some data
-		if raw && !isTerminalRaw {
+		if !isTerminalRaw {
 			fd := os.Stdin.Fd()
-			oldState, err := term.SetRawTerminal(fd)
-			if err != nil {
-				break
-			}
-			defer term.RestoreTerminal(fd, oldState)
+			terminal.MakeRaw(int(fd))
 			isTerminalRaw = true
 		}
 
