@@ -1,14 +1,7 @@
 #!/bin/sh
 
-pull_image() {
-  image=$1
-  echo "ns=kernel at=boot pull=$image"
-  docker pull $image >/dev/null 2>&1 &
-}
-
-pull_image $DOCKER_IMAGE_BUILD
-
 ./bin/gen-cert
+
 haproxy -f /etc/haproxy/haproxy.cfg &
 
 if [ "$DEVELOPMENT" == "true" ]; then
