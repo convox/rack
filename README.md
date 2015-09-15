@@ -17,14 +17,6 @@ Rack API client
 
 Convox agent for ECS instances
 
-### [cmd/app](https://github.com/convox/rack/tree/master/cmd/app)
-
-Build CloudFormation stacks for Convox apps
-
-### [cmd/build](https://github.com/convox/rack/tree/master/cmd/build)
-
-Build and push Docker images for Convox apps
-
 ### [cmd/convox](https://github.com/convox/rack/tree/master/cmd/convox)
 
 Convox CLI
@@ -32,10 +24,6 @@ Convox CLI
 ### [cmd/crypt](https://github.com/crypt/rack/tree/master/cmd/crypt)
 
 Encrypt/decrypt sensitive information
-
-### [cmd/service](https://github.com/service/rack/tree/master/cmd/service)
-
-Build CloudFormation stacks for external services
 
 ## Contributing
 

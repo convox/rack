@@ -3,9 +3,7 @@
   "Conditions": {
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
-    "BlankDockerImageApp": { "Fn::Equals": [ { "Ref": "DockerImageApp" }, "" ] },
-    "BlankDockerImageBuild": { "Fn::Equals": [ { "Ref": "DockerImageBuild" }, "" ] },
-    "BlankDockerImageService": { "Fn::Equals": [ { "Ref": "DockerImageService" }, "" ] },
+    "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] }
@@ -44,25 +42,11 @@
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
-    "DockerImageApp": {
+    "DockerImageApi": {
       "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageApp",
-        { "Fn::Join": [ ":", [ "convox/app", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageApp" }
-      ] }
-    },
-    "DockerImageBuild": {
-      "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageBuild",
-        { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageBuild" }
-      ] }
-    },
-    "DockerImageService": {
-      "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageService",
-        { "Fn::Join": [ ":", [ "convox/service", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageService" }
+      "Value": { "Fn::If": [ "BlankDockerImageApi",
+        { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+        { "Ref": "DockerImageApi" }
       ] }
     },
     "DynamoBuilds": {
@@ -126,19 +110,9 @@
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
-    "DockerImageApp": {
+    "DockerImageApi": {
       "Type": "String",
-      "Description": "Image to use for the app container. Overrides current Version.",
-      "Default": ""
-    },
-    "DockerImageBuild": {
-      "Type": "String",
-      "Description": "Image to use for the build container. Overrides current Version.",
-      "Default": ""
-    },
-    "DockerImageService": {
-      "Type": "String",
-      "Description": "Image to use for the service container. Overrides current Version.",
+      "Description": "Image to use for the api container. Overrides current Version.",
       "Default": ""
     },
     "InstanceCount": {
@@ -839,17 +813,9 @@
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
-              "DOCKER_IMAGE_APP": { "Fn::If": [ "BlankDockerImageApp",
-                { "Fn::Join": [ ":", [ "convox/app", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageApp" }
-              ] },
-              "DOCKER_IMAGE_BUILD": { "Fn::If": [ "BlankDockerImageBuild",
-                { "Fn::Join": [ ":", [ "convox/build", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageBuild" }
-              ] },
-              "DOCKER_IMAGE_SERVICE": { "Fn::If": [ "BlankDockerImageService",
-                { "Fn::Join": [ ":", [ "convox/service", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageService" }
+              "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
+                { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+                { "Ref": "DockerImageApi" }
               ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },

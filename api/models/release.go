@@ -2,10 +2,7 @@ package models
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -232,39 +229,13 @@ func (r *Release) EnvironmentUrl() string {
 }
 
 func (r *Release) Formation() (string, error) {
-	args := []string{"run", "-i", os.Getenv("DOCKER_IMAGE_APP"), "-mode", "staging"}
-
-	cmd := exec.Command("docker", args...)
-	cmd.Stderr = os.Stderr
-
-	in, err := cmd.StdinPipe()
+	manifest, err := LoadManifest(r.Manifest)
 
 	if err != nil {
 		return "", err
 	}
 
-	out, err := cmd.StdoutPipe()
-
-	if err != nil {
-		return "", err
-	}
-
-	err = cmd.Start()
-
-	if err != nil {
-		return "", err
-	}
-
-	io.WriteString(in, r.Manifest)
-	in.Close()
-
-	data, err := ioutil.ReadAll(out)
-
-	if err != nil {
-		return "", err
-	}
-
-	err = cmd.Wait()
+	data, err := buildTemplate("app", "app", manifest)
 
 	if err != nil {
 		return "", err
