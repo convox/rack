@@ -27,6 +27,14 @@ func humanizeTime(t time.Time) string {
 	}
 }
 
+func humanizeBool(b bool) string {
+	if b {
+		return "true"
+	} else {
+		return "false"
+	}
+}
+
 func sendMixpanelEvent(event, message string) {
 	if os.Getenv("DEVELOPMENT") == "Yes" {
 		return // don't log dev events

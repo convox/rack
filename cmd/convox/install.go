@@ -179,19 +179,19 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
-	_version, err := versions.Resolve(c.String("version"))
+	version, err := versions.Resolve(c.String("version"))
 
 	if err != nil {
 		handleError("install", distinctId, err)
 		return
 	}
 
-	v := _version.Version
-	formationUrl := fmt.Sprintf(FormationUrl, v)
+	versionName := version.Version
+	formationUrl := fmt.Sprintf(FormationUrl, versionName)
 
 	instanceCount := fmt.Sprintf("%d", c.Int("instance-count"))
 
-	fmt.Printf("Installing Convox (%s)...\n", v)
+	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
 	if isDevelopment {
 		fmt.Println("(Development Mode)")
@@ -219,7 +219,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
-			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(v)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
 		},
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(formationUrl),
