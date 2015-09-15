@@ -3,9 +3,12 @@ package client
 import (
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/docker/docker/pkg/term"
 )
 
 type Process struct {
@@ -36,7 +39,7 @@ func (c *Client) GetProcesses(app string) (Processes, error) {
 	return processes, nil
 }
 
-func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.Writer) (int, error) {
+func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.Writer, raw bool) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -44,7 +47,7 @@ func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, 
 
 	ch := make(chan int)
 
-	go copyWithExit(out, r, ch)
+	go copyWithExit(out, r, ch, raw)
 
 	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), map[string]string{"Command": command}, in, w)
 
@@ -84,14 +87,26 @@ func (c *Client) StopProcess(app, id string) (*Process, error) {
 	return &process, nil
 }
 
-func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
+func copyWithExit(w io.Writer, r io.Reader, ch chan int, raw bool) {
 	buf := make([]byte, 1024)
+	isTerminalRaw := false
 
 	for {
 		n, err := r.Read(buf)
 
 		if err != nil {
 			break
+		}
+
+		// don't make the terminal raw until we've read some data
+		if raw && !isTerminalRaw {
+			fd := os.Stdin.Fd()
+			oldState, err := term.SetRawTerminal(fd)
+			if err != nil {
+				break
+			}
+			defer term.RestoreTerminal(fd, oldState)
+			isTerminalRaw = true
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:") {
