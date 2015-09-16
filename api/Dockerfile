@@ -1,4 +1,4 @@
-FROM convox/alpine:3.1
+FROM gliderlabs/alpine:3.2
 
 RUN apk-install docker git
 
