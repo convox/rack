@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -37,22 +38,14 @@ func init() {
 			{
 				Name:        "update",
 				Description: "update rack to the given version",
-				Usage:       "",
+				Usage:       "[version]",
 				Action:      cmdRackUpdate,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:   "version",
-						EnvVar: "VERSION",
-						Value:  "latest",
-						Usage:  "release version in the format of '20150810161818', or 'latest' by default",
-					},
-				},
 			},
 			{
-				Name:        "versions",
-				Description: "list convox versions",
+				Name:        "releases",
+				Description: "list rack releases",
 				Usage:       "",
-				Action:      cmdVersions,
+				Action:      cmdRackReleases,
 				Flags: []cli.Flag{
 					cli.BoolFlag{
 						Name:  "unpublished",
@@ -87,20 +80,20 @@ func cmdRackUpdate(c *cli.Context) {
 		return
 	}
 
-	version, err := versions.Resolve(c.String("version"))
+	specified := "stable"
+
+	if len(c.Args()) > 0 {
+		specified = c.Args()[0]
+	}
+
+	version, err := versions.Resolve(specified)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	versionName := version.Version
-
-	if len(c.Args()) > 0 {
-		versionName = c.Args()[0]
-	}
-
-	system, err := rackClient(c).UpdateSystem(versionName)
+	system, err := rackClient(c).UpdateSystem(version.Version)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -140,30 +133,33 @@ func cmdRackScale(c *cli.Context) {
 	fmt.Printf("Type     %s\n", system.Type)
 }
 
-func cmdVersions(c *cli.Context) {
+func cmdRackReleases(c *cli.Context) {
 	vs, err := version.All()
 
 	if err != nil {
 		return
 	}
 
-	var t *stdcli.Table
+	selected := version.Versions{}
 
-	if c.Bool("unpublished") {
-		t = stdcli.NewTable("RELEASE", "PUBLISHED", "REQUIRED", "DESCRIPTION")
-		for _, v := range vs {
-			t.AddRow(v.Version, humanizeBool(v.Published), humanizeBool(v.Required), v.Description)
-		}
-	} else {
-		t = stdcli.NewTable("RELEASE", "REQUIRED", "DESCRIPTION")
-		for _, v := range vs {
-			if v.Published {
-				t.AddRow(v.Version, humanizeBool(v.Required), v.Description)
-			}
+	for _, v := range vs {
+		switch {
+		case !v.Published && c.Bool("unpublished"):
+			selected = append(selected, v)
+		case v.Published:
+			selected = append(selected, v)
 		}
 	}
 
-	t.Print()
+	sort.Sort(sort.Reverse(selected))
+
+	if len(selected) > 20 {
+		selected = selected[0:20]
+	}
+
+	for _, v := range selected {
+		fmt.Println(v.Version)
+	}
 }
 
 func latestVersion() (string, error) {

@@ -27,7 +27,7 @@ func TestApps(t *testing.T) {
 
 func TestAppsCreate(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "POST", Path: "/apps", Code: 200, Response: client.App{}},
+		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 200, Response: client.App{}},
 	)
 
 	defer ts.Close()
@@ -43,7 +43,7 @@ func TestAppsCreate(t *testing.T) {
 
 func TestAppsCreateFail(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "POST", Path: "/apps", Code: 403, Response: client.Error{Error: "app already exists"}},
+		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 403, Response: client.Error{Error: "app already exists"}},
 	)
 
 	defer ts.Close()

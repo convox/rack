@@ -3,10 +3,13 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Server(t *testing.T, stubs ...Http) *httptest.Server {
@@ -21,6 +24,15 @@ func Server(t *testing.T, stubs ...Http) *httptest.Server {
 					w.WriteHeader(503)
 					w.Write(serverError(err.Error()))
 				}
+
+				rb, err := ioutil.ReadAll(r.Body)
+
+				if err != nil {
+					w.WriteHeader(503)
+					w.Write(serverError(err.Error()))
+				}
+
+				assert.Equal(t, string(rb), stub.Body)
 
 				w.WriteHeader(stub.Code)
 				w.Write(data)
