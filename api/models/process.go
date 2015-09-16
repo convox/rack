@@ -40,6 +40,12 @@ func ListProcesses(app string) (Processes, error) {
 		return nil, err
 	}
 
+	system, err := GetSystem()
+
+	if err != nil {
+		return nil, err
+	}
+
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 	}
@@ -73,8 +79,22 @@ func ListProcesses(app string) (Processes, error) {
 		}
 
 		for _, cd := range tres.TaskDefinition.ContainerDefinitions {
-			if !strings.HasPrefix(*tres.TaskDefinition.Family, app+"-") && *tres.TaskDefinition.Family != app {
+			family := *tres.TaskDefinition.Family
+
+			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
 				continue
+			}
+
+			// if this is the kernel the family name is the app name
+			// otherwise family should be app name + process name
+			if app == system.Name {
+				if family != app {
+					continue
+				}
+			} else {
+				if family != fmt.Sprintf("%s-%s", app, *tres.TaskDefinition.ContainerDefinitions[0].Name) {
+					continue
+				}
 			}
 
 			var cc *ecs.Container
