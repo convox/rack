@@ -10,9 +10,10 @@ go:
 - 1.5
 
 before_install:
-- go get golang.org/x/tools/cmd/cover
-- go get github.com/axw/gocov/gocov
-- go get github.com/mattn/goveralls
+- go get -u golang.org/x/tools/cmd/cover
+- go get -u github.com/axw/gocov/gocov
+- go get -u github.com/mattn/goveralls
+- go get -u github.com/convox/release/version
 
 script:
 - go get -t ./...
