@@ -14,6 +14,13 @@ import (
 
 func init() {
 	stdcli.RegisterCommand(cli.Command{
+		Name:        "build",
+		Description: "create a new build",
+		Usage:       "",
+		Action:      cmdBuildsCreate,
+		Flags:       []cli.Flag{appFlag},
+	})
+	stdcli.RegisterCommand(cli.Command{
 		Name:        "builds",
 		Description: "manage an app's builds",
 		Usage:       "",
