@@ -3,10 +3,11 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
-	"github.com/convox/rack/api/models"
 )
 
 func ServiceList(rw http.ResponseWriter, r *http.Request) error {
@@ -45,6 +46,10 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	err := service.Create()
+
+	if strings.HasSuffix(err.Error(), "not found") {
+		return RenderForbidden(rw, fmt.Sprintf("invalid service type: %s", t))
+	}
 
 	if awsError(err) == "ValidationError" {
 		return RenderForbidden(rw, fmt.Sprintf("invalid service name: %s", name))
