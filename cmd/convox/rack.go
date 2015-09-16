@@ -79,7 +79,7 @@ func cmdRackUpdate(c *cli.Context) {
 		return
 	}
 
-	specified := ""
+	specified := "stable"
 
 	if len(c.Args()) > 0 {
 		specified = c.Args()[0]
