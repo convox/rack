@@ -49,15 +49,17 @@ func (c *Client) GetSystem() (*System, error) {
 	return &system, nil
 }
 
+func (c *Client) restoreVersionCheck(check bool) {
+	c.skipVersionCheck = check
+}
+
 func (c *Client) UpdateSystem(version string) (*System, error) {
 	var system System
 
-	check := c.skipVersionCheck
+	defer c.restoreVersionCheck(c.skipVersionCheck)
 	c.skipVersionCheck = true
 
 	err := c.Get("/system", &system)
-
-	c.skipVersionCheck = check
 
 	if err != nil {
 		return nil, err
