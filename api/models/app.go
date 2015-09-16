@@ -73,12 +73,13 @@ func GetApp(name string) (*App, error) {
 	return app, nil
 }
 
+var regexValidAppName = regexp.MustCompile(`\A[a-z0-9_]{4,30}\z`)
+
 func (a *App) Create() error {
 	helpers.SendMixpanelEvent("kernel-app-create-start", "")
 
-	if len(a.Name) < 2 {
-		helpers.SendMixpanelEvent("kernel-app-create-error", "")
-		return fmt.Errorf("invalid app name")
+	if !regexValidAppName.MatchString(a.Name) {
+		return fmt.Errorf("app name must be [a-z0-9_] and between 4 and 30 characters")
 	}
 
 	formation, err := a.Formation()
