@@ -7,9 +7,10 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/docker/docker/pkg/term"
 )
 
 func init() {
@@ -38,10 +39,8 @@ func cmdRun(c *cli.Context) {
 	}
 
 	fd := os.Stdin.Fd()
-
-	oldState, err := term.SetRawTerminal(fd)
-
-	defer term.RestoreTerminal(fd, oldState)
+	stdinState, err := terminal.GetState(int(fd))
+	defer terminal.Restore(int(fd), stdinState)
 
 	_, app, err := stdcli.DirApp(c, ".")
 
@@ -58,13 +57,12 @@ func cmdRun(c *cli.Context) {
 	ps := c.Args()[0]
 
 	code, err := rackClient(c).RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
+	terminal.Restore(int(fd), stdinState)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
-
-	term.RestoreTerminal(fd, oldState)
 
 	os.Exit(code)
 }

@@ -3,9 +3,12 @@ package client
 import (
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Process struct {
@@ -86,12 +89,18 @@ func (c *Client) StopProcess(app, id string) (*Process, error) {
 
 func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 	buf := make([]byte, 1024)
+	isTerminalRaw := false
 
 	for {
 		n, err := r.Read(buf)
 
 		if err != nil {
 			break
+		}
+
+		if !isTerminalRaw {
+			terminal.MakeRaw(int(os.Stdin.Fd()))
+			isTerminalRaw = true
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:") {
