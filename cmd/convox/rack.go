@@ -37,16 +37,8 @@ func init() {
 			{
 				Name:        "update",
 				Description: "update rack to the given version",
-				Usage:       "",
+				Usage:       "[version]",
 				Action:      cmdRackUpdate,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:   "version",
-						EnvVar: "VERSION",
-						Value:  "latest",
-						Usage:  "release version in the format of '20150810161818', or 'latest' by default",
-					},
-				},
 			},
 			{
 				Name:        "versions",
@@ -87,20 +79,20 @@ func cmdRackUpdate(c *cli.Context) {
 		return
 	}
 
-	version, err := versions.Resolve(c.String("version"))
+	specified := ""
+
+	if len(c.Args()) > 0 {
+		specified = c.Args()[0]
+	}
+
+	version, err := versions.Resolve(specified)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	versionName := version.Version
-
-	if len(c.Args()) > 0 {
-		versionName = c.Args()[0]
-	}
-
-	system, err := rackClient(c).UpdateSystem(versionName)
+	system, err := rackClient(c).UpdateSystem(version.Version)
 
 	if err != nil {
 		stdcli.Error(err)
