@@ -67,7 +67,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
-	if err != nil {
+	if err != nil && err != http.ErrNotMultipart {
 		return err
 	}
 
@@ -87,7 +87,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 
 	source, _, err := r.FormFile("source")
 
-	if err != nil && err != http.ErrMissingFile {
+	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
 		return err
 	}
 

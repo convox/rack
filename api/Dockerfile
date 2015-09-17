@@ -1,6 +1,6 @@
 FROM gliderlabs/alpine:3.2
 
-RUN apk-install docker git
+RUN apk-install docker git python
 
 COPY pkg/haproxy-1.5.10-r0.apk /tmp/haproxy-1.5.10-r0.apk
 RUN apk add --allow-untrusted /tmp/haproxy-1.5.10-r0.apk

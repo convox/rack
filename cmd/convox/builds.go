@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -107,6 +108,10 @@ func cmdBuildsCreate(c *cli.Context) {
 		return
 	}
 
+	if len(c.Args()) > 0 {
+		dir = c.Args()[0]
+	}
+
 	release, err := executeBuild(c, dir, app)
 
 	if err != nil {
@@ -142,7 +147,20 @@ func cmdBuildsInfo(c *cli.Context) {
 	fmt.Println(b.Logs)
 }
 
-func executeBuild(c *cli.Context, dir string, app string) (string, error) {
+func executeBuild(c *cli.Context, source string, app string) (string, error) {
+	u, _ := url.Parse(source)
+
+	switch u.Scheme {
+	case "http", "https":
+		return executeBuildUrl(c, source, app)
+	default:
+		return executeBuildDir(c, source, app)
+	}
+
+	return "", fmt.Errorf("unreachable")
+}
+
+func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
@@ -159,7 +177,29 @@ func executeBuild(c *cli.Context, dir string, app string) (string, error) {
 
 	fmt.Println("OK")
 
-	build, err := rackClient(c).CreateBuild(app, tar)
+	build, err := rackClient(c).CreateBuildSource(app, tar)
+
+	if err != nil {
+		return "", err
+	}
+
+	err = rackClient(c).StreamBuildLogs(app, build.Id, os.Stdout)
+
+	if err != nil {
+		return "", err
+	}
+
+	release, err := waitForBuild(c, app, build.Id)
+
+	if err != nil {
+		return "", err
+	}
+
+	return release, nil
+}
+
+func executeBuildUrl(c *cli.Context, url string, app string) (string, error) {
+	build, err := rackClient(c).CreateBuildUrl(app, url)
 
 	if err != nil {
 		return "", err
