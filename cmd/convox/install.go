@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -21,6 +24,13 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/release/version"
 )
+
+type AwsCredentials struct {
+	Access     string `json:"AccessKeyId"`
+	Secret     string `json:"SecretAccessKey"`
+	Session    string `json:"SessionToken"`
+	Expiration time.Time
+}
 
 var Banner = `
 
@@ -153,7 +163,7 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
-	access, secret, token, err := readCredentials(c)
+	creds, err := readCredentials(c)
 
 	if err != nil {
 		handleError("install", distinctId, err)
@@ -197,15 +207,11 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("(Development Mode)")
 	}
 
-	access = strings.TrimSpace(access)
-	secret = strings.TrimSpace(secret)
-	token = strings.TrimSpace(token)
-
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(access, secret, token),
+		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
 	})
 
 	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
@@ -276,7 +282,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println(Banner)
 
-	access, secret, token, err := readCredentials(c)
+	creds, err := readCredentials(c)
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -291,13 +297,9 @@ func cmdUninstall(c *cli.Context) {
 
 	distinctId := randomString(10)
 
-	access = strings.TrimSpace(access)
-	secret = strings.TrimSpace(secret)
-	token = strings.TrimSpace(token)
-
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(access, secret, token),
+		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
 	})
 
 	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -575,11 +577,11 @@ func randomString(size int) string {
 	return string(b)
 }
 
-func readCredentials(c *cli.Context) (access string, secret string, token string, err error) {
+func readCredentials(c *cli.Context) (creds AwsCredentials, err error) {
 	// read credentials from ENV
-	access = os.Getenv("AWS_ACCESS_KEY_ID")
-	secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	token = os.Getenv("AWS_SESSION_TOKEN")
+	creds.Access = os.Getenv("AWS_ACCESS_KEY_ID")
+	creds.Secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	creds.Session = os.Getenv("AWS_SESSION_TOKEN")
 
 	// read credentials from credentials.csv file
 	// note: takes precendence over ENV
@@ -588,44 +590,62 @@ func readCredentials(c *cli.Context) (access string, secret string, token string
 		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
 
 		if err != nil {
-			return access, secret, token, err
+			return creds, err
 		}
 
 		r := csv.NewReader(bytes.NewReader(credsFile))
 		records, err := r.ReadAll()
 		if err != nil {
-			return access, secret, token, err
+			return creds, err
 		}
 
 		if len(records) == 2 && len(records[1]) == 3 {
-			access = records[1][1]
-			secret = records[1][2]
+			creds.Access = records[1][1]
+			creds.Secret = records[1][2]
 		}
+	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		// read from STDIN if not a terminal
+		stdin, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return creds, err
+		}
+		var input struct {
+			Credentials AwsCredentials
+		}
+		err = json.Unmarshal(stdin, &input)
+		if err != nil {
+			return creds, err
+		}
+		creds = input.Credentials
 	}
 
 	// read credentials interactively
-	if access == "" || secret == "" {
+	if creds.Access == "" || creds.Secret == "" {
 		fmt.Println(CredentialsMessage)
 
 		fmt.Print("AWS Access Key ID: ")
 
 		reader := bufio.NewReader(os.Stdin)
-		access, err = reader.ReadString('\n')
+		creds.Access, err = reader.ReadString('\n')
 
 		if err != nil {
-			return access, secret, token, err
+			return creds, err
 		}
 
 		fmt.Print("AWS Secret Access Key: ")
 
-		secret, err = reader.ReadString('\n')
+		creds.Secret, err = reader.ReadString('\n')
 
 		if err != nil {
-			return access, secret, token, err
+			return creds, err
 		}
 
 		fmt.Println("")
 	}
+
+	creds.Access = strings.TrimSpace(creds.Access)
+	creds.Secret = strings.TrimSpace(creds.Secret)
+	creds.Session = strings.TrimSpace(creds.Session)
 
 	return
 }
