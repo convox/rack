@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -15,6 +16,7 @@ type ExecRun struct {
 	Command string
 	Env     map[string]string
 	Exit    int
+	Stdin   string
 	Stdout  string
 	Stderr  string
 }
@@ -41,6 +43,10 @@ func (er ExecRun) exec() (string, string, int, error) {
 
 	for k, v := range er.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	if er.Stdin != "" {
+		cmd.Stdin = strings.NewReader(er.Stdin)
 	}
 
 	code := exitCode(cmd.Run())
