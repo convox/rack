@@ -323,7 +323,7 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 	var wg sync.WaitGroup
 
 	if in != nil {
-		go copyAsync(ws, in, nil)
+		go io.Copy(ws, in)
 	}
 
 	if out != nil {
@@ -358,10 +358,7 @@ func (c *Client) client() *http.Client {
 }
 
 func copyAsync(dst io.Writer, src io.Reader, wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
-	}
-
+	defer wg.Done()
 	io.Copy(dst, src)
 }
 
