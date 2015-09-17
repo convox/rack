@@ -283,7 +283,7 @@ func (c *Client) Delete(path string, out interface{}) error {
 	return nil
 }
 
-func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.Writer) error {
+func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.WriteCloser) error {
 	origin := fmt.Sprintf("https://%s", c.Host)
 	url := fmt.Sprintf("wss://%s%s", c.Host, path)
 
@@ -332,6 +332,8 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 	}
 
 	wg.Wait()
+
+	out.Close()
 
 	return nil
 }
