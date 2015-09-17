@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
@@ -28,6 +29,10 @@ func AppShow(rw http.ResponseWriter, r *http.Request) error {
 	a, err := models.GetApp(mux.Vars(r)["app"])
 
 	if awsError(err) == "ValidationError" {
+		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+	}
+
+	if strings.HasPrefix(err.Error(), "no such app") {
 		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
