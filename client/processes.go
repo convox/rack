@@ -95,7 +95,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		n, err := r.Read(buf)
 
 		if err == io.EOF {
-			ch <- 127
+			ch <- 1
 			return
 		}
 
