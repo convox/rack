@@ -97,8 +97,6 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) error {
 }
 
 func ServiceLogs(ws *websocket.Conn) error {
-	defer ws.Close()
-
 	service := mux.Vars(ws.Request())["service"]
 
 	s, err := models.GetService(service)

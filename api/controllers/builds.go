@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/api/models"
 	"github.com/ddollar/logger"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
-	"github.com/convox/rack/api/models"
 )
 
 func BuildList(rw http.ResponseWriter, r *http.Request) error {
@@ -125,8 +125,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 }
 
 func BuildLogs(ws *websocket.Conn) error {
-	defer ws.Close()
-
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	build := vars["build"]
