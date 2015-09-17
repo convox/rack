@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -57,7 +58,7 @@ var FormationUrl = "http://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
-var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true}
+var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true, "test": true}
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -230,6 +231,12 @@ func cmdInstall(c *cli.Context) {
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(formationUrl),
 	})
+
+	// NOTE: we start making lots of network requests here
+	if *defaults.DefaultConfig.Region == "test" {
+		fmt.Println(*res.StackId)
+		return
+	}
 
 	if err != nil {
 		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())
@@ -419,6 +426,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 var events = map[string]bool{}
 
 func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) error {
+
 	res, err := CloudFormation.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stack),
 	})
@@ -583,43 +591,22 @@ func readCredentials(c *cli.Context) (creds AwsCredentials, err error) {
 	creds.Secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
 	creds.Session = os.Getenv("AWS_SESSION_TOKEN")
 
-	// read credentials from credentials.csv file
-	// note: takes precendence over ENV
-	if len(c.Args()) > 0 {
-		credentialsCsvFileName := c.Args()[0]
-		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
-		if err != nil {
-			return creds, err
-		}
-
-		r := csv.NewReader(bytes.NewReader(credsFile))
-		records, err := r.ReadAll()
-		if err != nil {
-			return creds, err
-		}
-
-		if len(records) == 2 && len(records[1]) == 3 {
-			creds.Access = records[1][1]
-			creds.Secret = records[1][2]
-		}
-	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		// read from STDIN if not a terminal
-		stdin, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			return creds, err
-		}
-		var input struct {
-			Credentials AwsCredentials
-		}
-		err = json.Unmarshal(stdin, &input)
-		if err != nil {
-			return creds, err
-		}
-		creds = input.Credentials
+	if os.Getenv("AWS_ENDPOINT_URL") != "" {
+		url := os.Getenv("AWS_ENDPOINT_URL")
+		defaults.DefaultConfig.Endpoint = &url
 	}
 
-	// read credentials interactively
+	if len(c.Args()) > 0 {
+		fileName := c.Args()[0]
+		creds, err = readCredentialsFromFile(fileName)
+	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		creds, err = readCredentialsFromSTDIN()
+	}
+
+	if err != nil {
+		return creds, err
+	}
+
 	if creds.Access == "" || creds.Secret == "" {
 		fmt.Println(CredentialsMessage)
 
@@ -648,4 +635,43 @@ func readCredentials(c *cli.Context) (creds AwsCredentials, err error) {
 	creds.Session = strings.TrimSpace(creds.Session)
 
 	return
+}
+
+func readCredentialsFromFile(credentialsCsvFileName string) (creds AwsCredentials, err error) {
+	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
+
+	if err != nil {
+		return creds, err
+	}
+
+	r := csv.NewReader(bytes.NewReader(credsFile))
+	records, err := r.ReadAll()
+	if err != nil {
+		return creds, err
+	}
+
+	if len(records) == 2 && len(records[1]) == 3 {
+		creds.Access = records[1][1]
+		creds.Secret = records[1][2]
+	}
+
+	return
+}
+
+func readCredentialsFromSTDIN() (creds AwsCredentials, err error) {
+	stdin, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return creds, err
+	}
+
+	var input struct {
+		Credentials AwsCredentials
+	}
+	err = json.Unmarshal(stdin, &input)
+
+	if err != nil {
+		return creds, err
+	}
+
+	return input.Credentials, err
 }
