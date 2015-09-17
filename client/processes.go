@@ -39,7 +39,7 @@ func (c *Client) GetProcesses(app string) (Processes, error) {
 	return processes, nil
 }
 
-func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.Writer) (int, error) {
+func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -93,6 +93,11 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 
 	for {
 		n, err := r.Read(buf)
+
+		if err == io.EOF {
+			ch <- 1
+			return
+		}
 
 		if err != nil {
 			break

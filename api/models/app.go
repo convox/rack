@@ -263,7 +263,7 @@ func (a *App) LatestRelease() (*Release, error) {
 	}
 
 	if len(releases) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("no releases for app: %s", a.Name)
 	}
 
 	return &releases[0], nil

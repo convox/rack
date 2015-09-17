@@ -109,8 +109,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) error {
 // }
 
 func AppLogs(ws *websocket.Conn) error {
-	defer ws.Close()
-
 	app := mux.Vars(ws.Request())["app"]
 
 	a, err := models.GetApp(app)
