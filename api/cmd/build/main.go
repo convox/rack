@@ -10,10 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"syscall"
-	"time"
 
 	"github.com/convox/rack/api/manifest"
 )
@@ -223,10 +220,6 @@ func prefixReader(r io.Reader, prefix string) {
 }
 
 func run(prefix, dir string, command string, args ...string) error {
-	started := time.Now()
-
-	writeSystem(fmt.Sprintf("cmd='%s %s' start=true\n", command, strings.Join(args, " ")))
-
 	cmd := exec.Command(command, args...)
 	cmd.Dir = dir
 
@@ -237,27 +230,13 @@ func run(prefix, dir string, command string, args ...string) error {
 		return err
 	}
 
-	exitCode := "0"
-
 	cmd.Start()
 	go prefixReader(stdout, prefix)
 	err = cmd.Wait()
 
 	if err != nil {
-		if exiterr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exiterr.ProcessState.Sys().(syscall.WaitStatus); ok {
-				exitCode = strconv.Itoa(status.ExitStatus())
-			}
-		} else {
-			exitCode = "FAIL"
-		}
-
 		writeSystem("error: " + err.Error())
 	}
-
-	elapsed := time.Now().Sub(started).Nanoseconds() / 1000000
-	writeSystem(fmt.Sprintf("cmd='%s %s' finished=true exit=%s elapsed=%d\n",
-		command, strings.Join(args, " "), exitCode, elapsed))
 
 	return err
 }
