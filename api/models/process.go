@@ -40,12 +40,6 @@ func ListProcesses(app string) (Processes, error) {
 		return nil, err
 	}
 
-	system, err := GetSystem()
-
-	if err != nil {
-		return nil, err
-	}
-
 	req := &ecs.ListTasksInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 	}
@@ -85,9 +79,9 @@ func ListProcesses(app string) (Processes, error) {
 				continue
 			}
 
-			// if this is the kernel the family name is the app name
+			// if this is the rack stack the family name is the app name
 			// otherwise family should be app name + process name
-			if app == system.Name {
+			if app == os.Getenv("RACK") {
 				if family != app {
 					continue
 				}

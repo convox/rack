@@ -46,7 +46,9 @@ func ListApps() (Apps, error) {
 		tags := stackTags(stack)
 
 		if tags["System"] == "convox" && tags["Type"] == "app" {
-			apps = append(apps, *appFromStack(stack))
+			if tags["Rack"] == "" || tags["Rack"] == os.Getenv("RACK") {
+				apps = append(apps, *appFromStack(stack))
+			}
 		}
 	}
 
@@ -62,6 +64,12 @@ func GetApp(name string) (*App, error) {
 
 	if len(res.Stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for app: %s", name)
+	}
+
+	tags := stackTags(res.Stacks[0])
+
+	if tags["Rack"] != "" && tags["Rack"] != os.Getenv("RACK") {
+		return nil, fmt.Errorf("no such app: %s", name)
 	}
 
 	app := appFromStack(res.Stacks[0])
@@ -101,6 +109,7 @@ func (a *App) Create() error {
 	}
 
 	tags := map[string]string{
+		"Rack":   os.Getenv("RACK"),
 		"System": "convox",
 		"Type":   "app",
 	}
