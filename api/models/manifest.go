@@ -73,6 +73,22 @@ func (m Manifest) EntryNames() []string {
 	return names
 }
 
+func (m Manifest) Formation() (string, error) {
+	data, err := buildTemplate("app", "app", m)
+
+	if err != nil {
+		return "", err
+	}
+
+	pretty, err := prettyJson(string(data))
+
+	if err != nil {
+		return "", err
+	}
+
+	return pretty, nil
+}
+
 func (m Manifest) HasPorts() bool {
 	if len(m) == 0 {
 		return true // special case to pre-initialize ELB at app create

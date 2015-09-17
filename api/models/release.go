@@ -235,13 +235,7 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	data, err := buildTemplate("app", "app", manifest)
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
+	return manifest.Formation()
 }
 
 func releasesTable(app string) string {
