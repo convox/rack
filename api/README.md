@@ -35,7 +35,7 @@ then its simply `localhost`. If you're on OS X, then it is one of:
 
 And the `PASSWORD` is in the ENV data in your `.env` file.
 
-### Building locally
+### `convox build`
 
 For pushes to the convox registry to work locally, you need to configure the docker daemon to talk to the
 registry that is running in Amazon.
@@ -50,6 +50,7 @@ And then do `convox start` again against this new docker installation.
 
 If you're running Docker yourself, just pass the `REGISTRY_HOST` as the option to  `--insecure-registry` when starting
 the docker daemon.
+
 
 
 ## Contributing
