@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
-	"github.com/convox/rack/api/models"
 )
 
 func ProcessList(rw http.ResponseWriter, r *http.Request) error {
@@ -71,8 +71,6 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
 }
 
 func ProcessRunAttached(ws *websocket.Conn) error {
-	defer ws.Close()
-
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	process := vars["process"]
