@@ -1,10 +1,7 @@
-.PHONY: all api app build convox crypt service test vendor
+.PHONY: all test
 
 all: test
 
 test:
 	go get -t ./...
 	go test -v -cover ./...
-
-vendor:
-	godep save -r -copy=true ./...
