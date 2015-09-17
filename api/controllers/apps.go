@@ -32,7 +32,7 @@ func AppShow(rw http.ResponseWriter, r *http.Request) error {
 		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
-	if strings.HasPrefix(err.Error(), "no such app") {
+	if err != nil && strings.HasPrefix(err.Error(), "no such app") {
 		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
 	}
 
