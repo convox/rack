@@ -21,7 +21,7 @@ Convox agent for ECS instances
 
 Convox CLI
 
-### [cmd/crypt](https://github.com/crypt/rack/tree/master/cmd/crypt)
+### [cmd/crypt](https://github.com/convox/rack/tree/master/cmd/crypt)
 
 Encrypt/decrypt sensitive information
 
