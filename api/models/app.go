@@ -87,7 +87,7 @@ func (a *App) Create() error {
 	helpers.SendMixpanelEvent("kernel-app-create-start", "")
 
 	if !regexValidAppName.MatchString(a.Name) {
-		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must between 4 and 30 characters")
+		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
 	}
 
 	formation, err := a.Formation()
