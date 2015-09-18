@@ -36,7 +36,7 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) error {
 		go p.FetchStatsAsync(psch, errch)
 	}
 
-	for range processes {
+	for _, _ = range processes {
 		err := <-errch
 
 		if err != nil {
