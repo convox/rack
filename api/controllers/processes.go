@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"sync"
 
 	"github.com/convox/rack/api/models"
@@ -26,7 +27,28 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return RenderJson(rw, processes)
+	final := models.Processes{}
+	psch := make(chan models.Process)
+	errch := make(chan error)
+
+	for _, p := range processes {
+		p := p
+		go p.FetchStatsAsync(psch, errch)
+	}
+
+	for range processes {
+		err := <-errch
+
+		if err != nil {
+			return err
+		}
+
+		final = append(final, <-psch)
+	}
+
+	sort.Sort(final)
+
+	return RenderJson(rw, final)
 }
 
 func ProcessShow(rw http.ResponseWriter, r *http.Request) error {
@@ -41,6 +63,12 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	p, err := models.GetProcess(app, process)
+
+	if err != nil {
+		return err
+	}
+
+	err = p.FetchStats()
 
 	if err != nil {
 		return err

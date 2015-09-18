@@ -227,29 +227,6 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		ps.Ports = append(ps.Ports, fmt.Sprintf("%d:%d", port.PublicPort, port.PrivatePort))
 	}
 
-	stch := make(chan *docker.Stats)
-	dnch := make(chan bool)
-
-	options := docker.StatsOptions{
-		ID:    containers[0].ID,
-		Stats: stch,
-		Done:  dnch,
-	}
-
-	go d.Stats(options)
-
-	stat := <-stch
-	dnch <- true
-
-	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
-	psys := stat.PreCPUStats.SystemCPUUsage
-
-	ps.Cpu = float64(int(calculateCPUPercent(pcpu, psys, stat)*10000)) / 10000
-
-	if stat.MemoryStats.Limit > 0 {
-		ps.Memory = float64(int(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit)*10000)) / 10000
-	}
-
 	psch <- ps
 }
 
@@ -283,6 +260,45 @@ func (ps Processes) Swap(i, j int) {
 
 func (p *Process) Docker() (*docker.Client, error) {
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
+}
+
+func (p *Process) FetchStats() error {
+	d, err := p.Docker()
+
+	if err != nil {
+		return fmt.Errorf("could not communicate with docker")
+	}
+
+	stch := make(chan *docker.Stats)
+	dnch := make(chan bool)
+
+	options := docker.StatsOptions{
+		ID:     p.containerId,
+		Stats:  stch,
+		Done:   dnch,
+		Stream: false,
+	}
+
+	go d.Stats(options)
+
+	stat := <-stch
+	dnch <- true
+
+	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+	psys := stat.PreCPUStats.SystemCPUUsage
+
+	p.Cpu = float64(int(calculateCPUPercent(pcpu, psys, stat)*10000)) / 10000
+
+	if stat.MemoryStats.Limit > 0 {
+		p.Memory = float64(int(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit)*10000)) / 10000
+	}
+
+	return nil
+}
+
+func (p *Process) FetchStatsAsync(psch chan Process, errch chan error) {
+	errch <- p.FetchStats()
+	psch <- *p
 }
 
 func (p *Process) Stop() error {
