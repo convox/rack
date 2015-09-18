@@ -25,7 +25,8 @@ func TestBuild(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	m, _ := Generate(destDir)
+	_, _ = Init(destDir)
+	m, _ := Read(destDir)
 
 	stdout, stderr := testBuild(m, "compose")
 
@@ -45,7 +46,8 @@ func TestPortsWanted(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	m, _ := Generate(destDir)
+	_, _ = Init(destDir)
+	m, _ := Read(destDir)
 	ps, _ := m.PortsWanted()
 
 	cases := Cases{
@@ -88,7 +90,8 @@ func TestRun(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	m, _ := Generate(destDir)
+	_, _ = Init(destDir)
+	m, _ := Read(destDir)
 
 	stdout, stderr := testRun(m, "compose")
 
@@ -104,7 +107,8 @@ func TestGenerateDockerCompose(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	m, _ := Generate(destDir)
+	_, _ = Init(destDir)
+	m, _ := Read(destDir)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
@@ -128,7 +132,8 @@ func TestGenerateDockerfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/dockerfile")
 	defer os.RemoveAll(destDir)
 
-	m, _ := Generate(destDir)
+	_, _ = Init(destDir)
+	m, _ := Read(destDir)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `main:
@@ -146,7 +151,8 @@ func TestGenerateProcfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/procfile")
 	defer os.RemoveAll(destDir)
 
-	m, _ := Generate(destDir)
+	_, _ = Init(destDir)
+	m, _ := Read(destDir)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:

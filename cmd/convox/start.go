@@ -46,7 +46,7 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	m, err := manifest.Generate(dir)
+	m, err := manifest.Read(dir)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -195,10 +195,14 @@ func cmdInit(c *cli.Context) {
 		return
 	}
 
-	_, err = manifest.Generate(dir)
+	changed, err := manifest.Init(dir)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
+	}
+
+	if len(changed) > 0 {
+		fmt.Printf("Generated: %s\n", strings.Join(changed, ", "))
 	}
 }
