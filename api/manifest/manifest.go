@@ -43,6 +43,10 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+func Read(dir string) (m *Manifest, err error) {
+	return m, nil
+}
+
 func Generate(dir string) (*Manifest, error) {
 	wd, err := os.Getwd()
 
