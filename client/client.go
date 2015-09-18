@@ -129,7 +129,7 @@ func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
 	return nil
 }
 
-func (c *Client) PostMultipart(path string, source []byte, out interface{}) error {
+func (c *Client) PostMultipart(path string, files map[string][]byte, out interface{}) error {
 	err := c.versionCheck()
 
 	if err != nil {
@@ -140,22 +140,24 @@ func (c *Client) PostMultipart(path string, source []byte, out interface{}) erro
 
 	writer := multipart.NewWriter(body)
 
-	part, err := writer.CreateFormFile("source", "source.tgz")
+	for name, source := range files {
+		part, err := writer.CreateFormFile(name, "source.tgz")
 
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
 
-	_, err = io.Copy(part, bytes.NewReader(source))
+		_, err = io.Copy(part, bytes.NewReader(source))
 
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
 
-	err = writer.Close()
+		err = writer.Close()
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	req, err := c.request("POST", path, body)
