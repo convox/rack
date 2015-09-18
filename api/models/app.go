@@ -316,9 +316,7 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 	binds := []string{}
 	host := ""
 
-	fmt.Println("start")
 	pss, err := ListProcesses(a.Name)
-	fmt.Println("done")
 
 	if err != nil {
 		return err
