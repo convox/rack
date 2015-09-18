@@ -272,7 +272,7 @@ func (a *App) LatestRelease() (*Release, error) {
 	}
 
 	if len(releases) == 0 {
-		return nil, fmt.Errorf("no releases for app: %s", a.Name)
+		return nil, nil
 	}
 
 	return &releases[0], nil
@@ -295,6 +295,10 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 
 	if err != nil {
 		return err
+	}
+
+	if release == nil {
+		return fmt.Errorf("no releases for app: %s", a.Name)
 	}
 
 	manifest, err := LoadManifest(release.Manifest)
