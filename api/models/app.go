@@ -81,7 +81,7 @@ func GetApp(name string) (*App, error) {
 	return app, nil
 }
 
-var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{4,30}\z`)
+var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
 func (a *App) Create() error {
 	helpers.SendMixpanelEvent("kernel-app-create-start", "")
