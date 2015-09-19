@@ -579,13 +579,13 @@ definitions:
       command:
         type: string
       cpu:
-        type: float
+        type: number
       host:
         type: string
       image:
         type: string
       memory:
-        type: float
+        type: number
       name:
         type: string
       ports:
