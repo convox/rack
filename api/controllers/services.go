@@ -47,11 +47,11 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) error {
 
 	err := service.Create()
 
-	if strings.HasSuffix(err.Error(), "not found") {
+	if err != nil && strings.HasSuffix(err.Error(), "not found") {
 		return RenderForbidden(rw, fmt.Sprintf("invalid service type: %s", t))
 	}
 
-	if awsError(err) == "ValidationError" {
+	if err != nil && awsError(err) == "ValidationError" {
 		return RenderForbidden(rw, fmt.Sprintf("invalid service name: %s", name))
 	}
 
