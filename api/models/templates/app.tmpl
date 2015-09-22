@@ -231,7 +231,14 @@
 
 {{ define "balancer-params" }}
   {{ range $entry := . }}
-    {{ range $i, $port := $entry.Ports }}
+    {{ range $i, $port := $entry.InternalPorts }}
+      "{{ upper $entry.Name }}Port{{ $port }}Host": {
+        "Type" : "String",
+        "Default" : "{{ index $entry.Randoms $port }}",
+        "Description" : ""
+      },
+    {{ end }}
+    {{ range $i, $port := $entry.ExternalPorts }}
       {{ $parts := (split $port ":") }}
       "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer": {
         "Type" : "String",
@@ -240,7 +247,7 @@
       },
       "{{ upper $entry.Name }}Port{{ index $parts 0 }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $entry.Randoms $i }}",
+        "Default" : "{{ index $entry.Randoms $port }}",
         "Description" : ""
       },
     {{ end }}
@@ -248,25 +255,23 @@
 {{ end }}
 
 {{ define "balancer-outputs" }}
-  {{ if .HasPorts }}
+  {{ if .HasExternalPorts }}
     "BalancerHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     {{ range $entry := . }}
-      {{ if $entry.HasPorts }}
-        {{ range $entry.Ports }}
-          {{ $parts := (split . ":") }}
-          "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer": {
-            "Value": { "Ref": "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer" }
-          },
-        {{ end }}
+      {{ range $entry.ExternalPorts }}
+        {{ $parts := (split . ":") }}
+        "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer": {
+          "Value": { "Ref": "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer" }
+        },
       {{ end }}
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ if .HasPorts }}
+  {{ if .HasExternalPorts }}
     "BalancerSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
