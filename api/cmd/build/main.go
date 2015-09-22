@@ -49,7 +49,7 @@ func main() {
 		die(err)
 	}
 
-	m, err := manifest.Generate(dir)
+	m, err := manifest.Read(dir)
 
 	if err != nil {
 		die(err)

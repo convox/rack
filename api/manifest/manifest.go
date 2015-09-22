@@ -43,7 +43,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func Generate(dir string) (*Manifest, error) {
+func Init(dir string) (changed []string, err error) {
 	wd, err := os.Getwd()
 
 	if err != nil {
@@ -58,24 +58,22 @@ func Generate(dir string) (*Manifest, error) {
 		return nil, err
 	}
 
-	var m *Manifest
-
 	switch {
 	case exists(filepath.Join(dir, "docker-compose.yml")):
-		m, err = buildDockerCompose(dir)
+		fmt.Println("Manifest already exists")
 	case exists(filepath.Join(dir, "Dockerfile")):
-		m, err = buildDockerfile(dir)
+		changed, err = initDockerfile(dir)
 	case exists(filepath.Join(dir, "Procfile")):
-		m, err = buildProcfile(dir)
+		changed, err = initProcfile(dir)
 	default:
-		m, err = buildDefault(dir)
+		changed, err = initDefault(dir)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return m, nil
+	return changed, nil
 }
 
 func buildAsync(source, tag string, ch chan error) {

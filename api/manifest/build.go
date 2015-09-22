@@ -13,11 +13,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func buildDockerCompose(dir string) (*Manifest, error) {
+func Read(dir string) (*Manifest, error) {
 	data, err := ioutil.ReadFile(filepath.Join(dir, "docker-compose.yml"))
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not read manifest at ./docker-compose.yml \nRun `convox init` to generate it.")
 	}
 
 	var m Manifest
@@ -73,7 +73,7 @@ func buildDockerCompose(dir string) (*Manifest, error) {
 
 var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
 
-func buildDockerfile(dir string) (*Manifest, error) {
+func initDockerfile(dir string) ([]string, error) {
 	entry := ManifestEntry{
 		Build: ".",
 		Ports: []string{},
@@ -106,12 +106,12 @@ func buildDockerfile(dir string) (*Manifest, error) {
 		return nil, err
 	}
 
-	return manifest, nil
+	return []string{"docker-compose.yml"}, nil
 }
 
 var procfileEntryRegexp = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 
-func buildProcfile(dir string) (*Manifest, error) {
+func initProcfile(dir string) ([]string, error) {
 	m := Manifest{}
 
 	err := injectDockerfile(dir)
@@ -154,10 +154,10 @@ func buildProcfile(dir string) (*Manifest, error) {
 		return nil, err
 	}
 
-	return &m, err
+	return []string{"Dockerfile", "docker-compose.yml"}, nil
 }
 
-func buildDefault(dir string) (*Manifest, error) {
+func initDefault(dir string) ([]string, error) {
 	m := Manifest{}
 
 	err := injectDockerfile(dir)
@@ -177,5 +177,5 @@ func buildDefault(dir string) (*Manifest, error) {
 		return nil, err
 	}
 
-	return &m, err
+	return []string{"Dockerfile", "docker-compose.yml"}, nil
 }
