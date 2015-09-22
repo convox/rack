@@ -1,0 +1,82 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters": {
+      "AllocatedStorage": {
+        "Type" : "Number",
+        "Default" : "10",
+        "Description" : "Allocated storage size (GB)"
+      },
+      "Database": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Default database name"
+      },
+      "InstanceType": {
+        "Type" : "String",
+        "Default" : "db.t2.micro",
+        "Description" : "Instance class for database nodes"
+      },
+      "Password": {
+        "Type" : "String",
+        "Description" : "Server password"
+      },
+      "Subnets": {
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Description": "VPC subnets"
+      },
+      "Username": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Server username"
+      },
+      "Vpc": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "VPC"
+      }
+    },
+    "Outputs": {
+      "Port3306TcpAddr": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Address" ] } },
+      "Port3306TcpPort": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Port" ] } },
+      "EnvMysqlDatabase": { "Value": { "Ref": "Database" } },
+      "EnvMysqlPassword": { "Value": { "Ref": "Password" } },
+      "EnvMysqlUsername": { "Value": { "Ref": "Username" } }
+    },
+    "Resources": {
+      "SecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "mysql service",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": "0.0.0.0/0" }
+          ],
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "SubnetGroup": {
+        "Type": "AWS::RDS::DBSubnetGroup",
+        "Properties": {
+          "DBSubnetGroupDescription": "mysql service",
+          "SubnetIds": { "Ref": "Subnets" }
+        }
+      },
+      "Instance": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+          "AllocatedStorage": { "Ref": "AllocatedStorage" },
+          "DBInstanceClass": { "Ref": "InstanceType" },
+          "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+          "DBName": { "Ref": "Database" },
+          "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+          "Engine": "mysql",
+          "MasterUsername": { "Ref": "Username" },
+          "MasterUserPassword": { "Ref": "Password" },
+          "Port": "3306",
+          "PubliclyAccessible": "false",
+          "StorageType": "gp2",
+          "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+        }
+      }
+    }
+  }
+{{ end }}
