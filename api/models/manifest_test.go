@@ -68,6 +68,7 @@ func TestManifestInvalid(t *testing.T) {
 }
 
 func TestManifestFixtures(t *testing.T) {
+	assertFixture(t, "web_external_internal")
 	assertFixture(t, "web_postgis")
 	assertFixture(t, "web_postgis_internal")
 	assertFixture(t, "worker")

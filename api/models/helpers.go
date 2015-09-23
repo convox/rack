@@ -435,7 +435,7 @@ func templateHelpers() template.FuncMap {
 			ls := []string{}
 
 			for _, entry := range m {
-				for _, port := range entry.Ports {
+				for _, port := range entry.ExternalPorts() {
 					parts := strings.SplitN(port, ":", 2)
 
 					if len(parts) != 2 {
