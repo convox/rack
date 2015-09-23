@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/aryann/difflib"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,56 +15,60 @@ type Cases []struct {
 	got, want interface{}
 }
 
-func manifestFromFixture(t *testing.T, name string) Manifest {
+func assertFixture(t *testing.T, name string) {
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
 	require.Nil(t, err)
 
 	manifest, err := LoadManifest(string(data))
 	require.Nil(t, err)
 
-	return manifest
-}
-
-func compareToFixture(t *testing.T, manifest Manifest, name string) {
-	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.json", name))
-	require.Nil(t, err)
-
 	formation, err := manifest.Formation()
 	require.Nil(t, err)
 
-	assertWithDiff(t, strings.TrimSpace(string(data)), strings.TrimSpace(formation))
-}
+	data, err = ioutil.ReadFile(fmt.Sprintf("fixtures/%s.json", name))
+	require.Nil(t, err)
 
-func assertWithDiff(t *testing.T, s1, s2 string) {
-	diff := difflib.Diff(strings.Split(s1, "\n"), strings.Split(s2, "\n"))
+	diff1 := strings.Split(strings.TrimSpace(string(data)), "\n")
+	diff2 := strings.Split(strings.TrimSpace(formation), "\n")
+
+	diff := difflib.Diff(diff1, diff2)
 	diffs := []string{}
+
+	// bigger than max
+	prev := 1000000
 
 	for l, d := range diff {
 		switch d.Delta {
 		case difflib.LeftOnly:
+			if (l - prev) > 1 {
+				diffs = append(diffs, "")
+			}
 			diffs = append(diffs, fmt.Sprintf("%04d - %s", l, d.Payload))
+			prev = l
 		case difflib.RightOnly:
+			if (l - prev) > 1 {
+				diffs = append(diffs, "")
+			}
 			diffs = append(diffs, fmt.Sprintf("%04d + %s", l, d.Payload))
+			prev = l
 		}
 	}
 
 	if len(diffs) > 0 {
-		t.Errorf("Unexpected result:\n%s", strings.Join(diffs, "\n"))
+		t.Errorf("Unexpected results for %s:\n%s", name, strings.Join(diffs, "\n"))
 	}
 }
 
-func testFixture(t *testing.T, name string) {
-	compareToFixture(t, manifestFromFixture(t, name), name)
+func TestManifestInvalid(t *testing.T) {
+	manifest, err := LoadManifest("invalid-manifest")
+
+	assert.Nil(t, manifest)
+	assert.NotNil(t, err)
+	assert.Regexp(t, "^invalid manifest: ", err.Error())
 }
 
-func TestManifestWebPostgis(t *testing.T) {
-	testFixture(t, "web_postgis")
-}
-
-func TestManifestWebPostgisInternal(t *testing.T) {
-	testFixture(t, "web_postgis_internal")
-}
-
-func TestManifestWorker(t *testing.T) {
-	testFixture(t, "worker")
+func TestManifestFixtures(t *testing.T) {
+	assertFixture(t, "web_postgis")
+	assertFixture(t, "web_postgis_internal")
+	assertFixture(t, "worker")
 }

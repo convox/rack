@@ -32,7 +32,7 @@ func LoadManifest(data string) (Manifest, error) {
 	err := yaml.Unmarshal([]byte(data), &entries)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid manifest: %s", err)
 	}
 
 	manifest := make(Manifest, 0)
