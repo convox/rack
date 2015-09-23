@@ -49,8 +49,21 @@ func cmdStart(c *cli.Context) {
 	m, err := manifest.Read(dir)
 
 	if err != nil {
-		stdcli.Error(err)
-		return
+		changes, err := manifest.Init(dir)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		fmt.Printf("Generated: %s\n", strings.Join(changes, ", "))
+
+		m, err = manifest.Read(dir)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
 	}
 
 	missing := m.MissingEnvironment()
