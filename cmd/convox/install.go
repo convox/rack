@@ -40,7 +40,7 @@ We recommend that you create a new set of credentials exclusively for this
 install process and then delete them once the installer has completed.
 
 To generate a new set of AWS credentials go to:
-https://docs.convox.com/docs/creating-an-iam-user-and-credentials
+https://docs.convox.com/docs/creating-an-iam-user
 `
 
 var FormationUrl = "http://convox.s3.amazonaws.com/release/%s/formation.json"
