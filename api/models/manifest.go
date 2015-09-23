@@ -90,20 +90,6 @@ func (m Manifest) Formation() (string, error) {
 	return pretty, nil
 }
 
-func (m Manifest) HasPorts() bool {
-	if len(m) == 0 {
-		return true // special case to pre-initialize ELB at app create
-	}
-
-	for _, me := range m {
-		if len(me.Ports) > 0 {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (m Manifest) HasExternalPorts() bool {
 	if len(m) == 0 {
 		return true // special case to pre-initialize ELB at app create
@@ -164,10 +150,6 @@ func (me ManifestEntry) ExternalPorts() []string {
 	}
 
 	return ext
-}
-
-func (me ManifestEntry) HasPorts() bool {
-	return len(me.Ports) > 0
 }
 
 func (me ManifestEntry) Randoms() map[string]int {
