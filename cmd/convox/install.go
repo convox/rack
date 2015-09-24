@@ -171,6 +171,12 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
+	if creds == nil {
+		err = fmt.Errorf("error reading credentials")
+		handleError("install", distinctId, err)
+		return
+	}
+
 	development := "No"
 	if c.Bool("development") {
 		isDevelopment = true
@@ -293,6 +299,11 @@ func cmdUninstall(c *cli.Context) {
 	creds, err := readCredentials(c)
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+
+	if creds == nil {
+		stdcli.Error(fmt.Errorf("error reading credentials"))
 		return
 	}
 
@@ -586,26 +597,33 @@ func randomString(size int) string {
 	return string(b)
 }
 
-func readCredentials(c *cli.Context) (creds AwsCredentials, err error) {
+func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 	// read credentials from ENV
-	creds.Access = os.Getenv("AWS_ACCESS_KEY_ID")
-	creds.Secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	creds.Session = os.Getenv("AWS_SESSION_TOKEN")
+	creds = &AwsCredentials{
+		Access:  os.Getenv("AWS_ACCESS_KEY_ID"),
+		Secret:  os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		Session: os.Getenv("AWS_SESSION_TOKEN"),
+	}
 
 	if os.Getenv("AWS_ENDPOINT_URL") != "" {
 		url := os.Getenv("AWS_ENDPOINT_URL")
 		defaults.DefaultConfig.Endpoint = &url
 	}
 
+	var inputCreds *AwsCredentials
 	if len(c.Args()) > 0 {
 		fileName := c.Args()[0]
-		creds, err = readCredentialsFromFile(fileName)
+		inputCreds, err = readCredentialsFromFile(fileName)
 	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		creds, err = readCredentialsFromSTDIN()
+		inputCreds, err = readCredentialsFromSTDIN()
+	}
+
+	if inputCreds != nil {
+		creds = inputCreds
 	}
 
 	if err != nil {
-		return creds, err
+		return nil, err
 	}
 
 	if creds.Access == "" || creds.Secret == "" {
@@ -638,17 +656,17 @@ func readCredentials(c *cli.Context) (creds AwsCredentials, err error) {
 	return
 }
 
-func readCredentialsFromFile(credentialsCsvFileName string) (creds AwsCredentials, err error) {
+func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentials, err error) {
 	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
 
 	if err != nil {
-		return creds, err
+		return nil, err
 	}
 
 	r := csv.NewReader(bytes.NewReader(credsFile))
 	records, err := r.ReadAll()
 	if err != nil {
-		return creds, err
+		return nil, err
 	}
 
 	if len(records) == 2 && len(records[1]) == 3 {
@@ -659,10 +677,15 @@ func readCredentialsFromFile(credentialsCsvFileName string) (creds AwsCredential
 	return
 }
 
-func readCredentialsFromSTDIN() (creds AwsCredentials, err error) {
+func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 	stdin, err := ioutil.ReadAll(os.Stdin)
+
 	if err != nil {
-		return creds, err
+		return nil, err
+	}
+
+	if len(stdin) == 0 {
+		return nil, nil
 	}
 
 	var input struct {
@@ -671,8 +694,8 @@ func readCredentialsFromSTDIN() (creds AwsCredentials, err error) {
 	err = json.Unmarshal(stdin, &input)
 
 	if err != nil {
-		return creds, err
+		return nil, err
 	}
 
-	return input.Credentials, err
+	return &input.Credentials, err
 }
