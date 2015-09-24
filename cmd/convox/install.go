@@ -233,7 +233,8 @@ func cmdInstall(c *cli.Context) {
 	})
 
 	// NOTE: we start making lots of network requests here
-	if *defaults.DefaultConfig.Region == "test" {
+	//			 so we're just going to return for testability
+	if os.Getenv("AWS_REGION") == "test" {
 		fmt.Println(*res.StackId)
 		return
 	}
