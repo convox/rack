@@ -25,6 +25,14 @@ Convox CLI
 
 Encrypt/decrypt sensitive information
 
+## Test
+
+On a fresh checkout, run `make test-deps` first. Then:
+
+```
+$ make test
+```
+
 ## Contributing
 
 * Open a [GitHub Issue](https://github.com/convox/rack/issues/new) for bugs and feature requests
