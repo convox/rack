@@ -38,10 +38,20 @@ func cmdDeploy(c *cli.Context) {
 
 	fmt.Printf("Deploying %s\n", app)
 
-	_, err = rackClient(c).GetApp(app)
+	a, err := rackClient(c).GetApp(app)
 
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+
+	switch a.Status {
+	case "creating":
+		stdcli.Error(fmt.Errorf("app is still creating: %s", app))
+		return
+	case "running", "updating":
+	default:
+		stdcli.Error(fmt.Errorf("unable to build app: %s", app))
 		return
 	}
 
