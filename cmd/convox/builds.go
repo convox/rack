@@ -183,6 +183,10 @@ func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 		return "", err
 	}
 
+	if build.Id == "" {
+		return "", fmt.Errorf("unable to fetch build id")
+	}
+
 	err = rackClient(c).StreamBuildLogs(app, build.Id, os.Stdout)
 
 	if err != nil {
@@ -203,6 +207,10 @@ func executeBuildUrl(c *cli.Context, url string, app string) (string, error) {
 
 	if err != nil {
 		return "", err
+	}
+
+	if build.Id == "" {
+		return "", fmt.Errorf("unable to fetch build id")
 	}
 
 	err = rackClient(c).StreamBuildLogs(app, build.Id, os.Stdout)
