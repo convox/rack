@@ -27,7 +27,7 @@ func cmdSwitch(c *cli.Context) {
 	res, err := rackClient(c).Switch(rackName)
 
 	if err != nil {
-		stdcli.Error(err)
+		cmdLogin(c)
 		return
 	}
 
