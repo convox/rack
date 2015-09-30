@@ -7,7 +7,7 @@ data:
 	go-bindata -o manifest/asset.go -prefix manifest -pkg manifest manifest/data
 
 install:
-	go get ./convox
+	go get .
 
 release:
 	equinox release --config=.equinox.yaml --version=$(shell convox/convox --version | cut -d' ' -f3) .
