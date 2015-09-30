@@ -217,7 +217,7 @@ func cmdInstall(c *cli.Context) {
 		Credentials: credentials.NewStaticCredentials(access, secret, token),
 	})
 
-	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
+	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
@@ -233,7 +233,20 @@ func cmdInstall(c *cli.Context) {
 		},
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(formationUrl),
-	})
+	}
+
+	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
+		dat, err := ioutil.ReadFile(tf)
+
+		if err != nil {
+			handleError("install", distinctId, err)
+		}
+
+		req.TemplateURL = nil
+		req.TemplateBody = aws.String(string(dat))
+	}
+
+	res, err := CloudFormation.CreateStack(req)
 
 	if err != nil {
 		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())
