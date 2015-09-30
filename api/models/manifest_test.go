@@ -68,8 +68,19 @@ func TestManifestInvalid(t *testing.T) {
 }
 
 func TestManifestFixtures(t *testing.T) {
+	ManifestRandomPorts = false
 	assertFixture(t, "web_external_internal")
 	assertFixture(t, "web_postgis")
 	assertFixture(t, "web_postgis_internal")
 	assertFixture(t, "worker")
+	ManifestRandomPorts = true
+}
+
+func TestManifestRandomPorts(t *testing.T) {
+	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001")
+
+	require.Nil(t, err)
+
+	// kinda hacky but just making sure we're not in sequence here
+	assert.NotEqual(t, 1, (manifest[0].randoms["3001"] - manifest[0].randoms["80:3000"]))
 }

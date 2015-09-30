@@ -2,11 +2,15 @@ package models
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
+
+// set to false when testing for deterministic ports
+var ManifestRandomPorts = true
 
 type Manifest []ManifestEntry
 
@@ -44,8 +48,12 @@ func LoadManifest(data string) (Manifest, error) {
 		entry.randoms = make(map[string]int)
 
 		for _, port := range entry.Ports {
-			entry.randoms[port] = currentPort
-			currentPort += 1
+			if ManifestRandomPorts {
+				entry.randoms[port] = rand.Intn(62000) + 3000
+			} else {
+				entry.randoms[port] = currentPort
+				currentPort += 1
+			}
 		}
 
 		manifest = append(manifest, ManifestEntry(entry))
