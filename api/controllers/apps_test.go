@@ -5,11 +5,12 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAppList(t *testing.T) {
-	aws := stubAws(DescribeStackCycleWithoutQuery("bar"))
+	aws := stubAws(test.DescribeStackCycleWithoutQuery("bar"))
 	defer aws.Close()
 
 	body := HTTPBody("GET", "http://convox/apps", nil)
@@ -24,7 +25,7 @@ func TestAppList(t *testing.T) {
 }
 
 func TestAppShow(t *testing.T) {
-	aws := stubAws(DescribeAppStackCycle("bar"))
+	aws := stubAws(test.DescribeAppStackCycle("bar"))
 	defer aws.Close()
 
 	body := HTTPBody("GET", "http://convox/apps/bar", nil)
@@ -39,7 +40,7 @@ func TestAppShow(t *testing.T) {
 }
 
 func TestAppShowWithAppNotFound(t *testing.T) {
-	aws := stubAws(DescribeStackNotFound("bar"))
+	aws := stubAws(test.DescribeStackNotFound("bar"))
 	defer aws.Close()
 
 	AssertStatus(t, 404, "GET", "http://convox/apps/bar", nil)
@@ -47,8 +48,8 @@ func TestAppShowWithAppNotFound(t *testing.T) {
 
 func TestAppCreate(t *testing.T) {
 	aws := stubAws(
-		CreateAppStackCycle("application"),
-		DescribeAppStackCycle("application"),
+		test.CreateAppStackCycle("application"),
+		test.DescribeAppStackCycle("application"),
 	)
 	defer aws.Close()
 
@@ -68,8 +69,8 @@ func TestAppCreate(t *testing.T) {
 
 func TestAppCreateWithAlreadyExists(t *testing.T) {
 	aws := stubAws(
-		CreateAppStackExistsCycle("application"),
-		DescribeAppStackCycle("application"),
+		test.CreateAppStackExistsCycle("application"),
+		test.DescribeAppStackCycle("application"),
 	)
 	defer aws.Close()
 
@@ -83,8 +84,8 @@ bucket name to the ephermeral host, so you get `app-XXX.127.0.0.1`
 */
 func TestAppDelete(t *testing.T) {
 	aws := stubAws(
-		DescribeAppStackCycle("bar"),
-		DeleteStackCycle("bar"),
+		test.DescribeAppStackCycle("bar"),
+		test.DeleteStackCycle("bar"),
 	)
 	defer aws.Close()
 
@@ -99,7 +100,7 @@ func TestAppDelete(t *testing.T) {
 }
 
 func TestAppDeleteWithAppNotFound(t *testing.T) {
-	aws := stubAws(DescribeStackNotFound("bar"))
+	aws := stubAws(test.DescribeStackNotFound("bar"))
 	defer aws.Close()
 
 	AssertStatus(t, 404, "DELETE", "http://convox/apps/bar", nil)

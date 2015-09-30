@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -13,14 +14,24 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/release/version"
 )
+
+type AwsCredentials struct {
+	Access     string `json:"AccessKeyId"`
+	Secret     string `json:"SecretAccessKey"`
+	Session    string `json:"SessionToken"`
+	Expiration time.Time
+}
 
 var Banner = `
 
@@ -47,7 +58,7 @@ var FormationUrl = "http://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
-var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true}
+var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true, "test": true}
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -157,9 +168,15 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
-	access, secret, token, err := readCredentials(c)
+	creds, err := readCredentials(c)
 
 	if err != nil {
+		handleError("install", distinctId, err)
+		return
+	}
+
+	if creds == nil {
+		err = fmt.Errorf("error reading credentials")
 		handleError("install", distinctId, err)
 		return
 	}
@@ -206,15 +223,11 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("(Development Mode)")
 	}
 
-	access = strings.TrimSpace(access)
-	secret = strings.TrimSpace(secret)
-	token = strings.TrimSpace(token)
-
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(access, secret, token),
+		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
 	})
 
 	req := &cloudformation.CreateStackInput{
@@ -247,6 +260,13 @@ func cmdInstall(c *cli.Context) {
 	}
 
 	res, err := CloudFormation.CreateStack(req)
+
+	// NOTE: we start making lots of network requests here
+	//			 so we're just going to return for testability
+	if os.Getenv("AWS_REGION") == "test" {
+		fmt.Println(*res.StackId)
+		return
+	}
 
 	if err != nil {
 		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())
@@ -299,9 +319,14 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println(Banner)
 
-	access, secret, token, err := readCredentials(c)
+	creds, err := readCredentials(c)
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+
+	if creds == nil {
+		stdcli.Error(fmt.Errorf("error reading credentials"))
 		return
 	}
 
@@ -314,13 +339,9 @@ func cmdUninstall(c *cli.Context) {
 
 	distinctId := randomString(10)
 
-	access = strings.TrimSpace(access)
-	secret = strings.TrimSpace(secret)
-	token = strings.TrimSpace(token)
-
 	CloudFormation := cloudformation.New(&aws.Config{
 		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(access, secret, token),
+		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
 	})
 
 	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
@@ -440,6 +461,7 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 var events = map[string]bool{}
 
 func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) error {
+
 	res, err := CloudFormation.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stack),
 	})
@@ -598,57 +620,105 @@ func randomString(size int) string {
 	return string(b)
 }
 
-func readCredentials(c *cli.Context) (access string, secret string, token string, err error) {
+func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 	// read credentials from ENV
-	access = os.Getenv("AWS_ACCESS_KEY_ID")
-	secret = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	token = os.Getenv("AWS_SESSION_TOKEN")
-
-	// read credentials from credentials.csv file
-	// note: takes precendence over ENV
-	if len(c.Args()) > 0 {
-		credentialsCsvFileName := c.Args()[0]
-		credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
-		if err != nil {
-			return access, secret, token, err
-		}
-
-		r := csv.NewReader(bytes.NewReader(credsFile))
-		records, err := r.ReadAll()
-		if err != nil {
-			return access, secret, token, err
-		}
-
-		if len(records) == 2 && len(records[1]) == 3 {
-			access = records[1][1]
-			secret = records[1][2]
-		}
+	creds = &AwsCredentials{
+		Access:  os.Getenv("AWS_ACCESS_KEY_ID"),
+		Secret:  os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		Session: os.Getenv("AWS_SESSION_TOKEN"),
 	}
 
-	// read credentials interactively
-	if access == "" || secret == "" {
+	if os.Getenv("AWS_ENDPOINT_URL") != "" {
+		url := os.Getenv("AWS_ENDPOINT_URL")
+		defaults.DefaultConfig.Endpoint = &url
+	}
+
+	var inputCreds *AwsCredentials
+	if len(c.Args()) > 0 {
+		fileName := c.Args()[0]
+		inputCreds, err = readCredentialsFromFile(fileName)
+	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		inputCreds, err = readCredentialsFromSTDIN()
+	}
+
+	if inputCreds != nil {
+		creds = inputCreds
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if creds.Access == "" || creds.Secret == "" {
 		fmt.Println(CredentialsMessage)
 
 		fmt.Print("AWS Access Key ID: ")
 
 		reader := bufio.NewReader(os.Stdin)
-		access, err = reader.ReadString('\n')
+		creds.Access, err = reader.ReadString('\n')
 
 		if err != nil {
-			return access, secret, token, err
+			return creds, err
 		}
 
 		fmt.Print("AWS Secret Access Key: ")
 
-		secret, err = reader.ReadString('\n')
+		creds.Secret, err = reader.ReadString('\n')
 
 		if err != nil {
-			return access, secret, token, err
+			return creds, err
 		}
 
 		fmt.Println("")
 	}
 
+	creds.Access = strings.TrimSpace(creds.Access)
+	creds.Secret = strings.TrimSpace(creds.Secret)
+	creds.Session = strings.TrimSpace(creds.Session)
+
 	return
+}
+
+func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentials, err error) {
+	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	r := csv.NewReader(bytes.NewReader(credsFile))
+	records, err := r.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(records) == 2 && len(records[1]) == 3 {
+		creds.Access = records[1][1]
+		creds.Secret = records[1][2]
+	}
+
+	return
+}
+
+func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
+	stdin, err := ioutil.ReadAll(os.Stdin)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(stdin) == 0 {
+		return nil, nil
+	}
+
+	var input struct {
+		Credentials AwsCredentials
+	}
+	err = json.Unmarshal(stdin, &input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &input.Credentials, err
 }
