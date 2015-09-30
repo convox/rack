@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/convox/rack/client"
 	"github.com/codegangsta/cli"
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
