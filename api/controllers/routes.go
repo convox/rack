@@ -39,6 +39,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/services/{service}", api("service.delete", ServiceDelete)).Methods("DELETE")
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
+	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
 
 	// websockets
 	router.Handle("/apps/{app}/logs", ws("app.logs", AppLogs)).Methods("GET")

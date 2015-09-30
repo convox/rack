@@ -82,35 +82,26 @@ func cmdLogin(c *cli.Context) {
 	}
 
 	password := c.String("password")
+	if password != "" {
+		// password flag
+		err = testLogin(host, password, c.App.Version)
+	} else {
+		// first try current login
+		password, err = getLogin(host)
+		err = testLogin(host, password, c.App.Version)
 
-	if password == "" {
-		fmt.Print("Password: ")
-
-		in, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-
-		fmt.Println()
-
+		// then prompt for password
 		if err != nil {
-			stdcli.Error(err)
-			return
+			password = promptForPassword()
+			err = testLogin(host, password, c.App.Version)
 		}
-
-		password = string(in)
 	}
-
-	cl := client.New(host, password, c.App.Version)
-
-	if cl == nil {
-		return
-	}
-
-	_, err = cl.GetApps()
 
 	if err != nil {
 		if strings.Contains(err.Error(), "401") {
 			stdcli.Error(fmt.Errorf("invalid login"))
 		} else {
-			stdcli.Error(fmt.Errorf("could not contact host"))
+			stdcli.Error(fmt.Errorf("error logging in"))
 		}
 		return
 	}
@@ -170,6 +161,23 @@ func upgradeConfig() error {
 	}
 
 	return nil
+}
+
+func getLogin(host string) (string, error) {
+	config := filepath.Join(ConfigRoot, "auth")
+	data, _ := ioutil.ReadFile(filepath.Join(config))
+	if data == nil {
+		data = []byte("{}")
+	}
+
+	var auth ConfigAuth
+	err := json.Unmarshal(data, &auth)
+
+	if err != nil {
+		return "", err
+	}
+
+	return auth[host], nil
 }
 
 func addLogin(host, password string) error {
@@ -340,4 +348,35 @@ func currentId() (string, error) {
 	}
 
 	return strings.TrimSpace(string(data)), nil
+}
+
+func testLogin(host, password, version string) (err error) {
+	cl := client.New(host, password, version)
+
+	if cl == nil {
+		return
+	}
+
+	_, err = cl.GetApps()
+
+	if err != nil {
+		return
+	}
+
+	return nil
+}
+
+func promptForPassword() string {
+	fmt.Print("Password: ")
+
+	in, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+
+	fmt.Println()
+
+	if err != nil {
+		stdcli.Error(err)
+		return ""
+	}
+
+	return string(in)
 }

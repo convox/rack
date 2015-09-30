@@ -11,7 +11,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "switch",
 		Description: "switch to another Convox rack",
-		Usage:       "[hostname]",
+		Usage:       "[rack name]",
 		Action:      cmdSwitch,
 	})
 }
@@ -22,14 +22,19 @@ func cmdSwitch(c *cli.Context) {
 		return
 	}
 
-	host := c.Args()[0]
+	rackName := c.Args()[0]
 
-	err := switchHost(host)
+	res, err := rackClient(c).Switch(rackName)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Printf("Switched to %s\n", host)
+	switch {
+	case res["source"] == "rack":
+		cmdLogin(c)
+	case res["source"] == "grid":
+		fmt.Println(res["message"])
+	}
 }
