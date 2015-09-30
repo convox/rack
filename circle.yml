@@ -1,0 +1,19 @@
+machine:
+  environment:
+    INSTALL_DIR: /home/ubuntu/.go_workspace/src/github.com/convox/rack
+
+dependencies:
+  pre:
+    - >
+      [ -n "${RUN_AWS}" ] && ci/dependencies-pre.sh || true
+
+test:
+  pre:
+    - >
+      [ -n "${RUN_AWS}" ] && ci/test-pre.sh || true
+  override:
+    - >
+      [ -n "${RUN_AWS}" ] && ci/tests/create-httpd.sh || true
+  post:
+    - >
+      [ -n "${RUN_AWS}" ] && ci/test-post.sh || true

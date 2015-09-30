@@ -94,6 +94,10 @@ func init() {
 				EnvVar: "DEVELOPMENT",
 				Usage:  "create additional CloudFormation outputs to copy development .env file",
 			},
+			cli.BoolFlag{
+				Name:  "disable-encryption",
+				Usage: "disable encrypting secrets with KMS",
+			},
 			cli.StringFlag{
 				Name:  "key",
 				Usage: "name of an SSH keypair to install on EC2 instances",
@@ -166,6 +170,11 @@ func cmdInstall(c *cli.Context) {
 		development = "Yes"
 	}
 
+	encryption := "Yes"
+	if c.Bool("disable-encryption") {
+		encryption = "No"
+	}
+
 	ami := c.String("ami")
 
 	key := c.String("key")
@@ -208,12 +217,13 @@ func cmdInstall(c *cli.Context) {
 		Credentials: credentials.NewStaticCredentials(access, secret, token),
 	})
 
-	res, err := CloudFormation.CreateStack(&cloudformation.CreateStackInput{
+	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Encryption"), ParameterValue: aws.String(encryption)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
@@ -223,7 +233,20 @@ func cmdInstall(c *cli.Context) {
 		},
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(formationUrl),
-	})
+	}
+
+	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
+		dat, err := ioutil.ReadFile(tf)
+
+		if err != nil {
+			handleError("install", distinctId, err)
+		}
+
+		req.TemplateURL = nil
+		req.TemplateBody = aws.String(string(dat))
+	}
+
+	res, err := CloudFormation.CreateStack(req)
 
 	if err != nil {
 		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())

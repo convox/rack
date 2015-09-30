@@ -1,0 +1,4 @@
+web:
+  image: httpd
+  ports:
+    - 3000:80

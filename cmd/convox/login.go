@@ -81,7 +81,12 @@ func cmdLogin(c *cli.Context) {
 		host = u.Host
 	}
 
-	password := c.String("password")
+	password := os.Getenv("CONVOX_PASSWORD")
+
+	if password == "" {
+		password = c.String("password")
+	}
+
 	if password != "" {
 		// password flag
 		err = testLogin(host, password, c.App.Version)
