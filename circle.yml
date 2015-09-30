@@ -4,12 +4,16 @@ machine:
 
 dependencies:
   pre:
-    - ci/dependencies-pre.sh
+    - >
+      [ -n "${RUN_AWS}" ] && ci/dependencies-pre.sh || true
 
 test:
   pre:
-    - ci/test-pre.sh
+    - >
+      [ -n "${RUN_AWS}" ] && ci/test-pre.sh || true
   override:
-    - ci/tests/create-httpd.sh
+    - >
+      [ -n "${RUN_AWS}" ] && ci/tests/create-httpd.sh || true
   post:
-    - ci/test-post.sh
+    - >
+      [ -n "${RUN_AWS}" ] && ci/test-post.sh || true
