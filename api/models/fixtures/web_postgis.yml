@@ -1,0 +1,17 @@
+web:
+  build: .
+  environment:
+   - AWS_ACCESS_KEY
+   - AWS_SECRET_ACCESS_KEY
+  links:
+    - postgres
+  ports:
+    - 80:3000
+    - 443:3001
+  volumes:
+    - .:/app
+postgres:
+  image: mdillon/postgis
+  environment:
+   - POSTGRES_USERNAME=postgres
+   - POSTGRES_PASSWORD=password

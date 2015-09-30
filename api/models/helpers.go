@@ -344,11 +344,12 @@ func templateHelpers() template.FuncMap {
 			for _, port := range entry.Ports {
 				parts := strings.SplitN(port, ":", 2)
 
-				if len(parts) != 2 {
-					continue
+				switch len(parts) {
+				case 1:
+					mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, UpperName(ps), parts[0], parts[0]))
+				case 2:
+					mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, UpperName(ps), parts[0], parts[1]))
 				}
-
-				mappings = append(mappings, fmt.Sprintf(`{ "Fn::Join": [ ":", [ { "Ref": "%sPort%sHost" }, "%s" ] ] }`, UpperName(ps), parts[0], parts[1]))
 			}
 
 			envs := make([]string, 0)
@@ -434,7 +435,7 @@ func templateHelpers() template.FuncMap {
 			ls := []string{}
 
 			for _, entry := range m {
-				for _, port := range entry.Ports {
+				for _, port := range entry.ExternalPorts() {
 					parts := strings.SplitN(port, ":", 2)
 
 					if len(parts) != 2 {

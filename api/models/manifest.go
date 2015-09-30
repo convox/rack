@@ -15,13 +15,13 @@ type ManifestEntry struct {
 
 	Build   string      `yaml:"build"`
 	Command interface{} `yaml:"command"`
-	Env     []string    `yaml:"env"`
+	Env     []string    `yaml:"environment"`
 	Image   string      `yaml:"image"`
 	Links   []string    `yaml:"links"`
 	Ports   []string    `yaml:"ports"`
 	Volumes []string    `yaml:"volumes"`
 
-	randoms []int
+	randoms map[string]int
 }
 
 type ManifestEntries map[string]ManifestEntry
@@ -32,7 +32,7 @@ func LoadManifest(data string) (Manifest, error) {
 	err := yaml.Unmarshal([]byte(data), &entries)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid manifest: %s", err)
 	}
 
 	manifest := make(Manifest, 0)
@@ -41,9 +41,10 @@ func LoadManifest(data string) (Manifest, error) {
 
 	for name, entry := range entries {
 		entry.Name = name
+		entry.randoms = make(map[string]int)
 
-		for _ = range entry.Ports {
-			entry.randoms = append(entry.randoms, currentPort)
+		for _, port := range entry.Ports {
+			entry.randoms[port] = currentPort
 			currentPort += 1
 		}
 
@@ -89,13 +90,13 @@ func (m Manifest) Formation() (string, error) {
 	return pretty, nil
 }
 
-func (m Manifest) HasPorts() bool {
+func (m Manifest) HasExternalPorts() bool {
 	if len(m) == 0 {
 		return true // special case to pre-initialize ELB at app create
 	}
 
 	for _, me := range m {
-		if len(me.Ports) > 0 {
+		if len(me.ExternalPorts()) > 0 {
 			return true
 		}
 	}
@@ -127,10 +128,30 @@ func (me *ManifestEntry) CommandString() string {
 	}
 }
 
-func (me ManifestEntry) HasPorts() bool {
-	return len(me.Ports) > 0
+func (me ManifestEntry) InternalPorts() []string {
+	internal := []string{}
+
+	for _, port := range me.Ports {
+		if len(strings.Split(port, ":")) == 1 {
+			internal = append(internal, port)
+		}
+	}
+
+	return internal
 }
 
-func (me *ManifestEntry) Randoms() []int {
+func (me ManifestEntry) ExternalPorts() []string {
+	ext := []string{}
+
+	for _, port := range me.Ports {
+		if len(strings.Split(port, ":")) == 2 {
+			ext = append(ext, port)
+		}
+	}
+
+	return ext
+}
+
+func (me ManifestEntry) Randoms() map[string]int {
 	return me.randoms
 }
