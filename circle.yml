@@ -1,0 +1,15 @@
+machine:
+  environment:
+    INSTALL_DIR: /home/ubuntu/.go_workspace/src/github.com/convox/rack
+
+dependencies:
+  pre:
+    - ci/dependencies-pre.sh
+
+test:
+  pre:
+    - ci/test-pre.sh
+  override:
+    - ci/tests/create-httpd.sh
+  post:
+    - ci/test-post.sh
