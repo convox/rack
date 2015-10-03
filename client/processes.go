@@ -39,6 +39,27 @@ func (c *Client) GetProcesses(app string) (Processes, error) {
 	return processes, nil
 }
 
+func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out io.WriteCloser) (int, error) {
+	r, w := io.Pipe()
+
+	defer r.Close()
+	defer w.Close()
+
+	ch := make(chan int)
+
+	go copyWithExit(out, r, ch)
+
+	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), map[string]string{"Command": command}, in, w)
+
+	if err != nil {
+		return 0, err
+	}
+
+	code := <-ch
+
+	return code, nil
+}
+
 func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
