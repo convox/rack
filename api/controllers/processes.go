@@ -77,6 +77,25 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, p)
 }
 
+func ProcessExecAttached(ws *websocket.Conn) error {
+	vars := mux.Vars(ws.Request())
+	app := vars["app"]
+	pid := vars["pid"]
+	command := ws.Request().Header.Get("Command")
+
+	a, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		return fmt.Errorf("no such app: %s", app)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return a.ExecAttached(pid, command, ws)
+}
+
 func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	app := vars["app"]
