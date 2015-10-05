@@ -332,7 +332,7 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 		RawTerminal:  true,
 	})
 
-	if err != nil {
+	if err != nil && err != io.ErrClosedPipe {
 		return err
 	}
 
