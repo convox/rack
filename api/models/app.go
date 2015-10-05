@@ -298,7 +298,7 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 		return fmt.Errorf("no such process id: %s", pid)
 	}
 
-	d, err := Docker(fmt.Sprintf("http://%s:2376", ps.Host))
+	d, err := ps.Docker()
 
 	if err != nil {
 		return err
@@ -317,6 +317,7 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 		return err
 	}
 
+	// Create pipes so StartExec closes pipes, not the websocket.
 	ir, iw := io.Pipe()
 	or, ow := io.Pipe()
 
