@@ -21,10 +21,6 @@ func init() {
 				Name:  "app",
 				Usage: "App name. Inferred from current directory if not specified.",
 			},
-			cli.BoolFlag{
-				Name:  "detach",
-				Usage: "run in the background",
-			},
 		},
 	})
 }
