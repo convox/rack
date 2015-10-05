@@ -39,6 +39,27 @@ func (c *Client) GetProcesses(app string) (Processes, error) {
 	return processes, nil
 }
 
+func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out io.WriteCloser) (int, error) {
+	r, w := io.Pipe()
+
+	defer r.Close()
+	defer w.Close()
+
+	ch := make(chan int)
+
+	go copyWithExit(out, r, ch)
+
+	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), map[string]string{"Command": command}, in, w)
+
+	if err != nil {
+		return 0, err
+	}
+
+	code := <-ch
+
+	return code, nil
+}
+
 func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
@@ -109,7 +130,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:") {
-			code, _ := strconv.Atoi(s[37:])
+			code, _ := strconv.Atoi(strings.TrimSpace(s[37:]))
 			ch <- code
 			return
 		}

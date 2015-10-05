@@ -1,8 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"os"
 	"strings"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -11,8 +13,8 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "exec",
-		Description: "run a one-off command in a local Convox process",
-		Usage:       "[process] [command]",
+		Description: "exec a command in a process in your Convox rack",
+		Usage:       "[pid] [command]",
 		Action:      cmdExec,
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -24,6 +26,10 @@ func init() {
 }
 
 func cmdExec(c *cli.Context) {
+	fd := os.Stdin.Fd()
+	stdinState, err := terminal.GetState(int(fd))
+	defer terminal.Restore(int(fd), stdinState)
+
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
@@ -31,24 +37,20 @@ func cmdExec(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) < 1 {
+	if len(c.Args()) < 2 {
 		stdcli.Usage(c, "exec")
 		return
 	}
 
 	ps := c.Args()[0]
 
-	command := ""
-
-	if len(c.Args()) > 1 {
-		args := c.Args()[1:]
-		command = strings.Join(args, " ")
-	}
-
-	err = stdcli.Run("docker", "exec", "-it", fmt.Sprintf("%s-%s", app, ps), "sh", "-c", command)
+	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
+	terminal.Restore(int(fd), stdinState)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
+
+	os.Exit(code)
 }

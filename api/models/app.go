@@ -278,6 +278,80 @@ func (a *App) LatestRelease() (*Release, error) {
 	return &releases[0], nil
 }
 
+func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
+	var ps Process
+
+	pss, err := ListProcesses(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	for _, p := range pss {
+		if p.Id == pid {
+			ps = p
+			break
+		}
+	}
+
+	if ps.Id == "" {
+		return fmt.Errorf("no such process id: %s", pid)
+	}
+
+	d, err := ps.Docker()
+
+	if err != nil {
+		return err
+	}
+
+	res, err := d.CreateExec(docker.CreateExecOptions{
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          true,
+		Cmd:          []string{"sh", "-c", command},
+		Container:    ps.containerId,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Create pipes so StartExec closes pipes, not the websocket.
+	ir, iw := io.Pipe()
+	or, ow := io.Pipe()
+
+	go io.Copy(iw, rw)
+	go io.Copy(rw, or)
+
+	err = d.StartExec(res.ID, docker.StartExecOptions{
+		Detach:       false,
+		Tty:          true,
+		InputStream:  ir,
+		OutputStream: ow,
+		ErrorStream:  ow,
+		RawTerminal:  true,
+	})
+
+	if err != nil && err != io.ErrClosedPipe {
+		return err
+	}
+
+	ires, err := d.InspectExec(res.ID)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d\n", ires.ExitCode)))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 	env, err := GetEnvironment(a.Name)
 
