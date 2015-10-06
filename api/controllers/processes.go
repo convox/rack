@@ -77,7 +77,7 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, p)
 }
 
-func ProcessExecAttached(ws *websocket.Conn) error {
+func ProcessExecAttached(ws *websocket.Conn) *Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	pid := vars["pid"]
@@ -86,14 +86,14 @@ func ProcessExecAttached(ws *websocket.Conn) error {
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return fmt.Errorf("no such app: %s", app)
+		return UserErrorf("no such app: %s", app)
 	}
 
 	if err != nil {
-		return err
+		return SystemError(err)
 	}
 
-	return a.ExecAttached(pid, command, ws)
+	return SystemError(a.ExecAttached(pid, command, ws))
 }
 
 func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
@@ -117,7 +117,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) error {
 	return RenderSuccess(rw)
 }
 
-func ProcessRunAttached(ws *websocket.Conn) error {
+func ProcessRunAttached(ws *websocket.Conn) *Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	process := vars["process"]
@@ -126,14 +126,14 @@ func ProcessRunAttached(ws *websocket.Conn) error {
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return fmt.Errorf("no such app: %s", app)
+		return UserErrorf("no such app: %s", app)
 	}
 
 	if err != nil {
-		return err
+		return SystemError(err)
 	}
 
-	return a.RunAttached(process, command, ws)
+	return SystemError(a.RunAttached(process, command, ws))
 }
 
 func ProcessStop(rw http.ResponseWriter, r *http.Request) error {

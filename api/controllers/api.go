@@ -13,7 +13,7 @@ import (
 )
 
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
-type ApiWebsocketFunc func(*websocket.Conn) error
+type ApiWebsocketFunc func(*websocket.Conn) *Error
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -116,8 +116,13 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		if err != nil {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-			log.Error(err)
-			rollbar.Error(rollbar.ERR, err)
+
+			if err.System() {
+				log.Error(err)
+			} else {
+				log.Log("state=error type=user message=%q", err.Error())
+			}
+
 			return
 		}
 

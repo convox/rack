@@ -124,7 +124,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("no source or repo")
 }
 
-func BuildLogs(ws *websocket.Conn) error {
+func BuildLogs(ws *websocket.Conn) *Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	build := vars["build"]
@@ -132,13 +132,13 @@ func BuildLogs(ws *websocket.Conn) error {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return fmt.Errorf("no such app: %s", app)
+		return UserErrorf("no such app: %s", app)
 	}
 
 	_, err = models.GetBuild(app, build)
 
 	if err != nil {
-		return err
+		return SystemError(err)
 	}
 
 	// proxy to docker container logs
@@ -146,7 +146,7 @@ func BuildLogs(ws *websocket.Conn) error {
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 
 	if err != nil {
-		return err
+		return SystemError(err)
 	}
 
 	r, w := io.Pipe()
@@ -169,7 +169,7 @@ func BuildLogs(ws *websocket.Conn) error {
 
 	quit <- true
 
-	return err
+	return SystemError(err)
 }
 
 func scanLines(r io.Reader, ws *websocket.Conn) {
