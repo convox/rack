@@ -96,13 +96,13 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, s)
 }
 
-func ServiceLogs(ws *websocket.Conn) *Error {
+func ServiceLogs(ws *websocket.Conn) *HttpError {
 	service := mux.Vars(ws.Request())["service"]
 
 	s, err := models.GetService(service)
 
 	if err != nil {
-		return SystemError(err)
+		return ServerError(err)
 	}
 
 	logs := make(chan []byte)

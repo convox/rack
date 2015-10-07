@@ -113,19 +113,19 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) error {
 //   RenderPartial(rw, "app", "debug", a)
 // }
 
-func AppLogs(ws *websocket.Conn) *Error {
+func AppLogs(ws *websocket.Conn) *HttpError {
 	app := mux.Vars(ws.Request())["app"]
 
 	a, err := models.GetApp(app)
 
-	return SystemError(fmt.Errorf("test1"))
+	return ServerError(fmt.Errorf("test1"))
 
 	if awsError(err) == "ValidationError" {
-		return UserErrorf("no such app: %s", app)
+		return HttpErrorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return SystemError(err)
+		return ServerError(err)
 	}
 
 	logs := make(chan []byte)

@@ -10,46 +10,50 @@ import (
 	"github.com/stvp/rollbar"
 )
 
-const (
-	ErrorTypeSystem = iota
-	ErrorTypeUser
-)
-
 const ErrorHandlerSkipLines = 7
 
-type Error struct {
-	err       error
-	errorType int
-	trace     []string
+type HttpError struct {
+	code  int
+	err   error
+	trace []string
 }
 
-func NewError(errorType int, err error) *Error {
-	return &Error{
-		err:       err,
-		errorType: errorType,
-		trace:     errorTrace(),
-	}
-}
-
-func SystemError(err error) *Error {
-	if err == nil {
+func NewHttpError(code int, err error) *HttpError {
+	if err != nil {
 		return nil
 	}
 
-	rollbar.ErrorWithStackSkip(rollbar.ERR, err, 1)
+	e := &HttpError{
+		code:  code,
+		err:   err,
+		trace: errorTrace(),
+	}
 
-	return NewError(ErrorTypeSystem, err)
+	if e.ServerError() {
+		rollbar.ErrorWithStackSkip(rollbar.ERR, err, 1)
+	}
+
+	return e
 }
 
-func UserErrorf(format string, args ...interface{}) *Error {
-	return NewError(ErrorTypeUser, fmt.Errorf(format, args...))
+func ServerError(err error) *HttpError {
+	return NewHttpError(500, err)
 }
 
-func (e *Error) Error() string {
+func HttpErrorf(code int, format string, args ...interface{}) *HttpError {
+	return NewHttpError(code, fmt.Errorf(format, args...))
+}
+
+func (e *HttpError) Error() string {
 	return e.err.Error()
 }
 
-func (e *Error) Log(log *logger.Logger) {
+func (e *HttpError) Log(log *logger.Logger) {
+	if e.UserError() {
+		log.Log("state=error type=user message=%q", e.Error())
+		return
+	}
+
 	id := rand.Int31()
 
 	log.Log("state=error id=%d message=%q", id, e.Error())
@@ -59,8 +63,12 @@ func (e *Error) Log(log *logger.Logger) {
 	}
 }
 
-func (e *Error) System() bool {
-	return e.errorType == ErrorTypeSystem
+func (e *HttpError) ServerError() bool {
+	return e.code >= 500 && e.code < 600
+}
+
+func (e *HttpError) UserError() bool {
+	return e.code >= 400 && e.code < 500
 }
 
 func errorTrace() []string {
