@@ -4,24 +4,25 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
 
-func ProcessList(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	processes, err := models.ListProcesses(app)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	final := models.Processes{}
@@ -37,7 +38,7 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *HttpError {
 		err := <-errch
 
 		if err != nil {
-			return ServerError(err)
+			return httperr.Server(err)
 		}
 
 		final = append(final, <-psch)
@@ -48,7 +49,7 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *HttpError {
 	return RenderJson(rw, final)
 }
 
-func ProcessShow(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ProcessShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -56,25 +57,25 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) *HttpError {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	p, err := models.GetProcess(app, process)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	err = p.FetchStats()
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, p)
 }
 
-func ProcessExecAttached(ws *websocket.Conn) *HttpError {
+func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	pid := vars["pid"]
@@ -83,17 +84,17 @@ func ProcessExecAttached(ws *websocket.Conn) *HttpError {
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
-	return ServerError(a.ExecAttached(pid, command, ws))
+	return httperr.Server(a.ExecAttached(pid, command, ws))
 }
 
-func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -102,19 +103,19 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *HttpError {
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	err = a.RunDetached(process, command)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderSuccess(rw)
 }
 
-func ProcessRunAttached(ws *websocket.Conn) *HttpError {
+func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	process := vars["process"]
@@ -123,17 +124,17 @@ func ProcessRunAttached(ws *websocket.Conn) *HttpError {
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
-	return ServerError(a.RunAttached(process, command, ws))
+	return httperr.Server(a.RunAttached(process, command, ws))
 }
 
-func ProcessStop(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ProcessStop(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
@@ -141,23 +142,23 @@ func ProcessStop(rw http.ResponseWriter, r *http.Request) *HttpError {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	ps, err := models.GetProcess(app, process)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	if ps == nil {
-		return HttpErrorf(404, "no such process: %s", process)
+		return httperr.Errorf(404, "no such process: %s", process)
 	}
 
 	err = ps.Stop()
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, ps)

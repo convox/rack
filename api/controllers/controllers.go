@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/api/httperr"
 )
 
 func awsError(err error) string {
@@ -26,15 +27,13 @@ func GetForm(r *http.Request, name string) string {
 	}
 }
 
-func RenderError(rw http.ResponseWriter, err error) *HttpError {
-	if err != nil {
-		http.Error(rw, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusInternalServerError)
-	}
+func RenderError(rw http.ResponseWriter, err error) *httperr.Error {
+	rw.Write([]byte(fmt.Sprintf(`{"error":%q}`, err.Error())))
 
-	return ServerError(err)
+	return httperr.Server(err)
 }
 
-func RenderJson(rw http.ResponseWriter, object interface{}) *HttpError {
+func RenderJson(rw http.ResponseWriter, object interface{}) *httperr.Error {
 	data, err := json.MarshalIndent(object, "", "  ")
 
 	if err != nil {
@@ -47,22 +46,22 @@ func RenderJson(rw http.ResponseWriter, object interface{}) *HttpError {
 
 	_, err = rw.Write(data)
 
-	return ServerError(err)
+	return httperr.Server(err)
 }
 
-func RenderText(rw http.ResponseWriter, text string) *HttpError {
+func RenderText(rw http.ResponseWriter, text string) *httperr.Error {
 	_, err := rw.Write([]byte(text))
 
-	return ServerError(err)
+	return httperr.Server(err)
 }
 
-func RenderSuccess(rw http.ResponseWriter) *HttpError {
+func RenderSuccess(rw http.ResponseWriter) *httperr.Error {
 	_, err := rw.Write([]byte(`{"success":true}`))
 
-	return ServerError(err)
+	return httperr.Server(err)
 }
 
-func Redirect(rw http.ResponseWriter, r *http.Request, path string) *HttpError {
+func Redirect(rw http.ResponseWriter, r *http.Request, path string) *httperr.Error {
 	http.Redirect(rw, r, path, http.StatusFound)
 
 	return nil

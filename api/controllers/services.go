@@ -4,38 +4,39 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
 
-func ServiceList(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ServiceList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	services, err := models.ListServices()
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, services)
 }
 
-func ServiceShow(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such service: %s", service)
+		return httperr.Errorf(404, "no such service: %s", service)
 	}
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, s)
 }
 
-func ServiceCreate(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := GetForm(r, "name")
 	t := GetForm(r, "type")
 
@@ -47,61 +48,61 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *HttpError {
 	err := service.Create()
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {
-		return HttpErrorf(403, "invalid service type: %s", t)
+		return httperr.Errorf(403, "invalid service type: %s", t)
 	}
 
 	if err != nil && awsError(err) == "ValidationError" {
-		return HttpErrorf(403, "invalid service name: %s", name)
+		return httperr.Errorf(403, "invalid service name: %s", name)
 	}
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	service, err = models.GetService(name)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, service)
 }
 
-func ServiceDelete(rw http.ResponseWriter, r *http.Request) *HttpError {
+func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
 
 	if awsError(err) == "ValidationError" {
-		return HttpErrorf(404, "no such service: %s", service)
+		return httperr.Errorf(404, "no such service: %s", service)
 	}
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	err = s.Delete()
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	s, err = models.GetService(service)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, s)
 }
 
-func ServiceLogs(ws *websocket.Conn) *HttpError {
+func ServiceLogs(ws *websocket.Conn) *httperr.Error {
 	service := mux.Vars(ws.Request())["service"]
 
 	s, err := models.GetService(service)
 
 	if err != nil {
-		return ServerError(err)
+		return httperr.Server(err)
 	}
 
 	logs := make(chan []byte)

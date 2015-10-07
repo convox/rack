@@ -1,4 +1,4 @@
-package controllers
+package httperr
 
 import (
 	"fmt"
@@ -10,19 +10,19 @@ import (
 
 const ErrorHandlerSkipLines = 7
 
-type HttpError struct {
+type Error struct {
 	code  int
 	err   error
 	stack rollbar.Stack
 	trace []string
 }
 
-func NewHttpError(code int, err error) *HttpError {
+func New(code int, err error) *Error {
 	if err == nil {
 		return nil
 	}
 
-	e := &HttpError{
+	e := &Error{
 		code:  code,
 		err:   err,
 		stack: rollbar.BuildStack(1),
@@ -32,36 +32,36 @@ func NewHttpError(code int, err error) *HttpError {
 	return e
 }
 
-func ServerError(err error) *HttpError {
-	return NewHttpError(500, err)
+func Server(err error) *Error {
+	return New(500, err)
 }
 
-func HttpErrorf(code int, format string, args ...interface{}) *HttpError {
-	return NewHttpError(code, fmt.Errorf(format, args...))
+func Errorf(code int, format string, args ...interface{}) *Error {
+	return New(code, fmt.Errorf(format, args...))
 }
 
-func (e *HttpError) Code() int {
+func (e *Error) Code() int {
 	return e.code
 }
 
-func (e *HttpError) Error() string {
+func (e *Error) Error() string {
 	return e.err.Error()
 }
 
-func (e *HttpError) Save() error {
+func (e *Error) Save() error {
 	rollbar.ErrorWithStack(rollbar.ERR, e.err, e.stack)
 	return nil
 }
 
-func (e *HttpError) Trace() []string {
+func (e *Error) Trace() []string {
 	return e.trace
 }
 
-func (e *HttpError) ServerError() bool {
+func (e *Error) Server() bool {
 	return e.code >= 500 && e.code < 600
 }
 
-func (e *HttpError) UserError() bool {
+func (e *Error) User() bool {
 	return e.code >= 400 && e.code < 500
 }
 

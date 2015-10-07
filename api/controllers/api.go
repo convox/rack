@@ -8,12 +8,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/convox/rack/api/httperr"
 	"github.com/ddollar/logger"
 	"golang.org/x/net/websocket"
 )
 
-type ApiHandlerFunc func(http.ResponseWriter, *http.Request) *HttpError
-type ApiWebsocketFunc func(*websocket.Conn) *HttpError
+type ApiHandlerFunc func(http.ResponseWriter, *http.Request) *httperr.Error
+type ApiWebsocketFunc func(*websocket.Conn) *httperr.Error
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -45,8 +46,8 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	}
 }
 
-func logError(log *logger.Logger, err *HttpError) {
-	if err.UserError() {
+func logError(log *logger.Logger, err *httperr.Error) {
+	if err.User() {
 		log.Log("state=error type=user message=%q", err.Error())
 		return
 	}
