@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"fmt"
+	"math/rand"
 	"runtime"
 	"strings"
 
+	"github.com/ddollar/logger"
 	"github.com/stvp/rollbar"
 )
 
@@ -19,14 +21,6 @@ type Error struct {
 	err       error
 	errorType int
 	trace     []string
-}
-
-func (e *Error) Error() string {
-	return e.err.Error()
-}
-
-func (e *Error) System() bool {
-	return e.errorType == ErrorTypeSystem
 }
 
 func NewError(errorType int, err error) *Error {
@@ -49,6 +43,24 @@ func SystemError(err error) *Error {
 
 func UserErrorf(format string, args ...interface{}) *Error {
 	return NewError(ErrorTypeUser, fmt.Errorf(format, args...))
+}
+
+func (e *Error) Error() string {
+	return e.err.Error()
+}
+
+func (e *Error) Log(log *logger.Logger) {
+	id := rand.Int31()
+
+	log.Log("state=error id=%d message=%q", id, e.Error())
+
+	for i, line := range e.trace {
+		log.Log("state=error id=%d line=%d trace=%q", id, i, line)
+	}
+}
+
+func (e *Error) System() bool {
+	return e.errorType == ErrorTypeSystem
 }
 
 func errorTrace() []string {

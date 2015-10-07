@@ -118,7 +118,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
 
 			if err.System() {
-				log.Error(err)
+				err.Log(log)
 			} else {
 				log.Log("state=error type=user message=%q", err.Error())
 			}

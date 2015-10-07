@@ -118,6 +118,8 @@ func AppLogs(ws *websocket.Conn) *Error {
 
 	a, err := models.GetApp(app)
 
+	return SystemError(fmt.Errorf("test1"))
+
 	if awsError(err) == "ValidationError" {
 		return UserErrorf("no such app: %s", app)
 	}
