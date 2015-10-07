@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,32 +11,32 @@ import (
 func init() {
 }
 
-func SystemShow(rw http.ResponseWriter, r *http.Request) error {
+func SystemShow(rw http.ResponseWriter, r *http.Request) *HttpError {
 	rack, err := models.GetSystem()
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such stack: %s", rack))
+		return HttpErrorf(404, "no such stack: %s", rack)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, rack)
 }
 
-func SystemUpdate(rw http.ResponseWriter, r *http.Request) error {
+func SystemUpdate(rw http.ResponseWriter, r *http.Request) *HttpError {
 	rack, err := models.GetSystem()
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	if count := GetForm(r, "count"); count != "" {
 		count, err := strconv.Atoi(count)
 
 		if err != nil {
-			return err
+			return ServerError(err)
 		}
 
 		rack.Count = count
@@ -56,20 +55,20 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) error {
 	if awsError(err) == "ValidationError" {
 		switch {
 		case strings.Index(err.Error(), "No updates are to be performed") > -1:
-			return RenderForbidden(rw, fmt.Sprintf("no system updates are to be performed."))
+			return HttpErrorf(403, "no system updates are to be performed")
 		case strings.Index(err.Error(), "can not be updated") > -1:
-			return RenderForbidden(rw, fmt.Sprintf("system is already updating."))
+			return HttpErrorf(403, "system is already updating")
 		}
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	rack, err = models.GetSystem()
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, rack)

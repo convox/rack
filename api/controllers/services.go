@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,33 +9,33 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func ServiceList(rw http.ResponseWriter, r *http.Request) error {
+func ServiceList(rw http.ResponseWriter, r *http.Request) *HttpError {
 	services, err := models.ListServices()
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, services)
 }
 
-func ServiceShow(rw http.ResponseWriter, r *http.Request) error {
+func ServiceShow(rw http.ResponseWriter, r *http.Request) *HttpError {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such service: %s", service))
+		return HttpErrorf(404, "no such service: %s", service)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, s)
 }
 
-func ServiceCreate(rw http.ResponseWriter, r *http.Request) error {
+func ServiceCreate(rw http.ResponseWriter, r *http.Request) *HttpError {
 	name := GetForm(r, "name")
 	t := GetForm(r, "type")
 
@@ -48,49 +47,49 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) error {
 	err := service.Create()
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {
-		return RenderForbidden(rw, fmt.Sprintf("invalid service type: %s", t))
+		return HttpErrorf(403, "invalid service type: %s", t)
 	}
 
 	if err != nil && awsError(err) == "ValidationError" {
-		return RenderForbidden(rw, fmt.Sprintf("invalid service name: %s", name))
+		return HttpErrorf(403, "invalid service name: %s", name)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	service, err = models.GetService(name)
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, service)
 }
 
-func ServiceDelete(rw http.ResponseWriter, r *http.Request) error {
+func ServiceDelete(rw http.ResponseWriter, r *http.Request) *HttpError {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such service: %s", service))
+		return HttpErrorf(404, "no such service: %s", service)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	err = s.Delete()
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	s, err = models.GetService(service)
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, s)

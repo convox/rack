@@ -9,11 +9,10 @@ import (
 	"strings"
 
 	"github.com/ddollar/logger"
-	"github.com/stvp/rollbar"
 	"golang.org/x/net/websocket"
 )
 
-type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
+type ApiHandlerFunc func(http.ResponseWriter, *http.Request) *HttpError
 type ApiWebsocketFunc func(*websocket.Conn) *HttpError
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
@@ -36,9 +35,9 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		err := handler(rw, r)
 
 		if err != nil {
-			log.Error(err)
-			rollbar.Error(rollbar.ERR, err)
+			rw.WriteHeader(err.Code())
 			RenderError(rw, err)
+			logError(log, err)
 			return
 		}
 
@@ -51,6 +50,8 @@ func logError(log *logger.Logger, err *HttpError) {
 		log.Log("state=error type=user message=%q", err.Error())
 		return
 	}
+
+	err.Save()
 
 	id := rand.Int31()
 

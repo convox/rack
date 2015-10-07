@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -11,11 +10,11 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func AppList(rw http.ResponseWriter, r *http.Request) error {
+func AppList(rw http.ResponseWriter, r *http.Request) *HttpError {
 	apps, err := models.ListApps()
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	sort.Sort(apps)
@@ -23,27 +22,27 @@ func AppList(rw http.ResponseWriter, r *http.Request) error {
 	return RenderJson(rw, apps)
 }
 
-func AppShow(rw http.ResponseWriter, r *http.Request) error {
+func AppShow(rw http.ResponseWriter, r *http.Request) *HttpError {
 	app := mux.Vars(r)["app"]
 
 	a, err := models.GetApp(mux.Vars(r)["app"])
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return HttpErrorf(404, "no such app: %s", app)
 	}
 
 	if err != nil && strings.HasPrefix(err.Error(), "no such app") {
-		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return HttpErrorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, a)
 }
 
-func AppCreate(rw http.ResponseWriter, r *http.Request) error {
+func AppCreate(rw http.ResponseWriter, r *http.Request) *HttpError {
 	name := r.FormValue("name")
 
 	app := &models.App{
@@ -56,62 +55,46 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) error {
 		app, err := models.GetApp(name)
 
 		if err != nil {
-			return err
+			return ServerError(err)
 		}
 
-		return RenderForbidden(rw, fmt.Sprintf("There is already an app named %s (%s)", name, app.Status))
+		return HttpErrorf(403, "there is already an app named %s (%s)", name, app.Status)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	app, err = models.GetApp(name)
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderJson(rw, app)
 }
 
-func AppDelete(rw http.ResponseWriter, r *http.Request) error {
+func AppDelete(rw http.ResponseWriter, r *http.Request) *HttpError {
 	name := mux.Vars(r)["app"]
 
 	app, err := models.GetApp(name)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", name))
+		return HttpErrorf(404, "no such app: %s", name)
 	}
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	err = app.Delete()
 
 	if err != nil {
-		return err
+		return ServerError(err)
 	}
 
 	return RenderSuccess(rw)
 }
-
-// func AppDebug(rw http.ResponseWriter, r *http.Request) {
-//   log := appsLogger("environment").Start()
-
-//   app := mux.Vars(r)["app"]
-
-//   a, err := models.GetApp(app)
-
-//   if err != nil {
-//     helpers.Error(log, err)
-//     RenderError(rw, err)
-//     return
-//   }
-
-//   RenderPartial(rw, "app", "debug", a)
-// }
 
 func AppLogs(ws *websocket.Conn) *HttpError {
 	app := mux.Vars(ws.Request())["app"]

@@ -13,6 +13,7 @@ const ErrorHandlerSkipLines = 7
 type HttpError struct {
 	code  int
 	err   error
+	stack rollbar.Stack
 	trace []string
 }
 
@@ -24,11 +25,8 @@ func NewHttpError(code int, err error) *HttpError {
 	e := &HttpError{
 		code:  code,
 		err:   err,
+		stack: rollbar.BuildStack(1),
 		trace: errorTrace(),
-	}
-
-	if e.ServerError() {
-		rollbar.ErrorWithStackSkip(rollbar.ERR, err, 1)
 	}
 
 	return e
@@ -42,8 +40,17 @@ func HttpErrorf(code int, format string, args ...interface{}) *HttpError {
 	return NewHttpError(code, fmt.Errorf(format, args...))
 }
 
+func (e *HttpError) Code() int {
+	return e.code
+}
+
 func (e *HttpError) Error() string {
 	return e.err.Error()
+}
+
+func (e *HttpError) Save() error {
+	rollbar.ErrorWithStack(rollbar.ERR, e.err, e.stack)
+	return nil
 }
 
 func (e *HttpError) Trace() []string {
