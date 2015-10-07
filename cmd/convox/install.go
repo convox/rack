@@ -181,6 +181,22 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Email Address (optional, to receive project updates): ")
+
+	email, err := reader.ReadString('\n')
+
+	if err != nil {
+		handleError("install", distinctId, err)
+		return
+	}
+
+	if strings.TrimSpace(email) != "" {
+		distinctId = email
+		updateId(email)
+	}
+
 	development := "No"
 	if c.Bool("development") {
 		isDevelopment = true
@@ -650,11 +666,12 @@ func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 	}
 
 	if creds.Access == "" || creds.Secret == "" {
+		reader := bufio.NewReader(os.Stdin)
+
 		fmt.Println(CredentialsMessage)
 
 		fmt.Print("AWS Access Key ID: ")
 
-		reader := bufio.NewReader(os.Stdin)
 		creds.Access, err = reader.ReadString('\n')
 
 		if err != nil {
