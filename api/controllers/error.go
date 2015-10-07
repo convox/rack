@@ -2,11 +2,9 @@ package controllers
 
 import (
 	"fmt"
-	"math/rand"
 	"runtime"
 	"strings"
 
-	"github.com/ddollar/logger"
 	"github.com/stvp/rollbar"
 )
 
@@ -19,7 +17,7 @@ type HttpError struct {
 }
 
 func NewHttpError(code int, err error) *HttpError {
-	if err != nil {
+	if err == nil {
 		return nil
 	}
 
@@ -48,19 +46,8 @@ func (e *HttpError) Error() string {
 	return e.err.Error()
 }
 
-func (e *HttpError) Log(log *logger.Logger) {
-	if e.UserError() {
-		log.Log("state=error type=user message=%q", e.Error())
-		return
-	}
-
-	id := rand.Int31()
-
-	log.Log("state=error id=%d message=%q", id, e.Error())
-
-	for i, line := range e.trace {
-		log.Log("state=error id=%d line=%d trace=%q", id, i, line)
-	}
+func (e *HttpError) Trace() []string {
+	return e.trace
 }
 
 func (e *HttpError) ServerError() bool {

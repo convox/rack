@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -42,6 +43,21 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		}
 
 		log.Log("state=success")
+	}
+}
+
+func logError(log *logger.Logger, err *HttpError) {
+	if err.UserError() {
+		log.Log("state=error type=user message=%q", err.Error())
+		return
+	}
+
+	id := rand.Int31()
+
+	log.Log("state=error id=%d message=%q", id, err.Error())
+
+	for i, line := range err.Trace() {
+		log.Log("state=error id=%d line=%d trace=%q", id, i, line)
 	}
 }
 
@@ -116,7 +132,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		if err != nil {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-			err.Log(log)
+			logError(log, err)
 			return
 		}
 
