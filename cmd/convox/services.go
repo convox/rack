@@ -35,8 +35,14 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new service",
-				Usage:       "<type> <name>",
+				Usage:       "<type> <name> [--url=value]",
 				Action:      cmdServiceCreate,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "url",
+						Usage: "URL to 3rd party service, e.g. logs1.papertrailapp.com:11235",
+					},
+				},
 			},
 			{
 				Name:        "delete",
@@ -49,6 +55,20 @@ func init() {
 				Description: "info about a service",
 				Usage:       "<name>",
 				Action:      cmdServiceInfo,
+			},
+			{
+				Name:        "link",
+				Description: "link a service to an app",
+				Usage:       "<name>",
+				Action:      cmdServiceLink,
+				Flags:       []cli.Flag{appFlag},
+			},
+			{
+				Name:        "unlink",
+				Description: "unlink a service from an app",
+				Usage:       "<name>",
+				Action:      cmdServiceUnlink,
+				Flags:       []cli.Flag{appFlag},
 			},
 		},
 	})
@@ -79,10 +99,11 @@ func cmdServiceCreate(c *cli.Context) {
 
 	t := c.Args()[0]
 	name := c.Args()[1]
+	url := c.String("url")
 
 	fmt.Printf("Creating %s (%s)... ", name, t)
 
-	_, err := rackClient(c).CreateService(t, name)
+	_, err := rackClient(c).CreateService(t, name, url)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -130,4 +151,54 @@ func cmdServiceInfo(c *cli.Context) {
 	fmt.Printf("Name    %s\n", service.Name)
 	fmt.Printf("Status  %s\n", service.Status)
 	fmt.Printf("URL     %s\n", service.URL)
+}
+
+func cmdServiceLink(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "link")
+		return
+	}
+
+	name := c.Args()[0]
+
+	_, err = rackClient(c).LinkService(app, name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Linked %s to %s\n", name, app)
+}
+
+func cmdServiceUnlink(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "unlink")
+		return
+	}
+
+	name := c.Args()[0]
+
+	_, err = rackClient(c).UnlinkService(app, name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Unlinked %s from %s\n", name, app)
 }
