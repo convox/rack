@@ -355,6 +355,12 @@ func currentId() (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
+func updateId(id string) error {
+	config := filepath.Join(ConfigRoot, "id")
+
+	return ioutil.WriteFile(config, []byte(id), 0600)
+}
+
 func testLogin(host, password, version string) (err error) {
 	cl := client.New(host, password, version)
 
