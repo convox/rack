@@ -400,7 +400,7 @@ func templateHelpers() template.FuncMap {
 				"Name": "%s",
 				"Image": { "Ref": "%sImage" },
 				"Command": { "Ref": "%sCommand" },
-				"CPU": { "Ref": "Cpu" },
+				"CPU": { "Ref": "%sMemory" },
 				"Memory": { "Ref": "%sMemory" },
 				"Environment": {
 					"KINESIS": { "Ref": "Kinesis" },
