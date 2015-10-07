@@ -183,18 +183,20 @@ func cmdInstall(c *cli.Context) {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Print("Email Address (optional, to receive project updates): ")
+	if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		fmt.Print("Email Address (optional, to receive project updates): ")
 
-	email, err := reader.ReadString('\n')
+		email, err := reader.ReadString('\n')
 
-	if err != nil {
-		handleError("install", distinctId, err)
-		return
-	}
+		if err != nil {
+			handleError("install", distinctId, err)
+			return
+		}
 
-	if strings.TrimSpace(email) != "" {
-		distinctId = email
-		updateId(email)
+		if strings.TrimSpace(email) != "" {
+			distinctId = email
+			updateId(email)
+		}
 	}
 
 	development := "No"
