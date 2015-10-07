@@ -110,7 +110,7 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	errors := m.Build(app, dir)
+	errors := m.Build(app, dir, true)
 
 	if len(errors) != 0 {
 		fmt.Printf("errors: %+v\n", errors)

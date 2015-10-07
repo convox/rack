@@ -28,6 +28,7 @@ func main() {
 	id := flag.String("id", "", "tag the build with this id")
 	push := flag.String("push", "", "push build to this prefix when done")
 	auth := flag.String("auth", "", "auth token for push")
+	noCache := flag.Bool("no-cache", false, "skip the docker cache")
 
 	flag.Parse()
 
@@ -78,7 +79,9 @@ func main() {
 		die(err)
 	}
 
-	errors := m.Build(app, dir)
+	cache := !*noCache
+
+	errors := m.Build(app, dir, cache)
 
 	if len(errors) > 0 {
 		die(errors[0])

@@ -144,7 +144,7 @@ func (b *Build) Cleanup() error {
 	return nil
 }
 
-func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
+func (b *Build) ExecuteLocal(r io.Reader, cache bool, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -154,6 +154,10 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 
 	if pw := os.Getenv("PASSWORD"); pw != "" {
 		args = append(args, "-auth", pw)
+	}
+
+	if !cache {
+		args = append(args, "-no-cache")
 	}
 
 	args = append(args, name, "-")
@@ -169,7 +173,7 @@ func (b *Build) ExecuteLocal(r io.Reader, ch chan error) {
 	}
 }
 
-func (b *Build) ExecuteRemote(repo string, ch chan error) {
+func (b *Build) ExecuteRemote(repo string, cache bool, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -179,6 +183,10 @@ func (b *Build) ExecuteRemote(repo string, ch chan error) {
 
 	if pw := os.Getenv("PASSWORD"); pw != "" {
 		args = append(args, "-auth", pw)
+	}
+
+	if !cache {
+		args = append(args, "-no-cache")
 	}
 
 	args = append(args, name)

@@ -91,6 +91,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	cache := !(r.FormValue("cache") == "false")
+
 	if source != nil {
 		err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
 
@@ -98,7 +100,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
-		go build.ExecuteLocal(source, ch)
+		go build.ExecuteLocal(source, cache, ch)
 
 		err = <-ch
 
@@ -110,7 +112,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 	}
 
 	if repo := r.FormValue("repo"); repo != "" {
-		go build.ExecuteRemote(repo, ch)
+		go build.ExecuteRemote(repo, cache, ch)
 
 		err = <-ch
 
