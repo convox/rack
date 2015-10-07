@@ -340,7 +340,7 @@
               "BlankPostgresService",
               {
                 "CPU": {
-                  "Ref": "Cpu"
+                  "Ref": "PostgresMemory"
                 },
                 "Command": {
                   "Ref": "PostgresCommand"
@@ -513,7 +513,7 @@
               "BlankWorkerService",
               {
                 "CPU": {
-                  "Ref": "Cpu"
+                  "Ref": "WorkerMemory"
                 },
                 "Command": {
                   "Ref": "WorkerCommand"
