@@ -410,7 +410,7 @@ func templateHelpers() template.FuncMap {
 				"Volumes": [ %s ],
 				"Services": [ %s ],
 				"PortMappings": [ %s ]
-			}, { "Ref" : "AWS::NoValue" } ] }`, UpperName(ps), ps, UpperName(ps), UpperName(ps), UpperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ","))
+			}, { "Ref" : "AWS::NoValue" } ] }`, UpperName(ps), ps, UpperName(ps), UpperName(ps), UpperName(ps), UpperName(ps), strings.Join(envs, ","), strings.Join(links, ","), strings.Join(volumes, ","), strings.Join(services, ","), strings.Join(mappings, ","))
 
 			return template.HTML(l)
 		},
