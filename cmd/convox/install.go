@@ -686,6 +686,8 @@ func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentia
 		return nil, err
 	}
 
+	creds = &AwsCredentials{}
+
 	r := csv.NewReader(bytes.NewReader(credsFile))
 	records, err := r.ReadAll()
 	if err != nil {
