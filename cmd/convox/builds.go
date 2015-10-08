@@ -19,7 +19,13 @@ func init() {
 		Description: "create a new build",
 		Usage:       "",
 		Action:      cmdBuildsCreate,
-		Flags:       []cli.Flag{appFlag},
+		Flags: []cli.Flag{
+			appFlag,
+			cli.BoolFlag{
+				Name:  "no-cache",
+				Usage: "Do not use Docker cache during build.",
+			},
+		},
 	})
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "builds",
@@ -177,7 +183,9 @@ func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 
 	fmt.Println("OK")
 
-	build, err := rackClient(c).CreateBuildSource(app, tar)
+	cache := !c.Bool("no-cache")
+
+	build, err := rackClient(c).CreateBuildSource(app, tar, cache)
 
 	if err != nil {
 		return "", err
@@ -203,7 +211,9 @@ func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 }
 
 func executeBuildUrl(c *cli.Context, url string, app string) (string, error) {
-	build, err := rackClient(c).CreateBuildUrl(app, url)
+	cache := !c.Bool("no-cache")
+
+	build, err := rackClient(c).CreateBuildUrl(app, url, cache)
 
 	if err != nil {
 		return "", err

@@ -136,24 +136,20 @@ func Read(dir string) (*Manifest, error) {
 	return &m, nil
 }
 
-func buildAsync(source, tag string, ch chan error) {
-	ch <- buildSync(source, tag)
-}
+func buildSync(source, tag string, cache bool) error {
+	args := []string{"build", "-t", tag}
 
-func buildSync(source, tag string) error {
-	return run("docker", "build", "-t", tag, source)
-}
+	if !cache {
+		args = append(args, "--no-cache")
+	}
 
-func pullAsync(image string, ch chan error) {
-	ch <- pullSync(image)
+	args = append(args, source)
+
+	return run("docker", args...)
 }
 
 func pullSync(image string) error {
 	return run("docker", "pull", image)
-}
-
-func pushAsync(local, remote string, ch chan error) {
-	ch <- pushSync(local, remote)
 }
 
 func pushSync(local, remote string) error {
@@ -172,7 +168,7 @@ func pushSync(local, remote string) error {
 	return nil
 }
 
-func (m *Manifest) Build(app, dir string) []error {
+func (m *Manifest) Build(app, dir string, cache bool) []error {
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
@@ -207,7 +203,7 @@ func (m *Manifest) Build(app, dir string) []error {
 	errors := []error{}
 
 	for source, tag := range builds {
-		err := buildSync(source, tag)
+		err := buildSync(source, tag, cache)
 
 		if err != nil {
 			return []error{err}

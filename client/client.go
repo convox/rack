@@ -129,7 +129,7 @@ func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
 	return nil
 }
 
-func (c *Client) PostMultipart(path string, files map[string][]byte, out interface{}) error {
+func (c *Client) PostMultipart(path string, files map[string][]byte, params Params, out interface{}) error {
 	err := c.versionCheck()
 
 	if err != nil {
@@ -152,12 +152,16 @@ func (c *Client) PostMultipart(path string, files map[string][]byte, out interfa
 		if err != nil {
 			return err
 		}
+	}
 
-		err = writer.Close()
+	for name, value := range params {
+		writer.WriteField(name, value)
+	}
 
-		if err != nil {
-			return err
-		}
+	err = writer.Close()
+
+	if err != nil {
+		return err
 	}
 
 	req, err := c.request("POST", path, body)

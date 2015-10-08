@@ -226,7 +226,7 @@ func _assert(t *testing.T, cases Cases) {
 type runnerFn func()
 
 func testBuild(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, func() { m.Build(app, ".") })
+	return testRunner(m, app, func() { m.Build(app, ".", true) })
 }
 
 func testRun(m *Manifest, app string) (string, string) {

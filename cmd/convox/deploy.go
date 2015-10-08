@@ -14,9 +14,10 @@ func init() {
 		Usage:       "<directory>",
 		Action:      cmdDeploy,
 		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "App name. Inferred from current directory if not specified.",
+			appFlag,
+			cli.BoolFlag{
+				Name:  "no-cache",
+				Usage: "Do not use Docker cache during build.",
 			},
 		},
 	})
