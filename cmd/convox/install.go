@@ -114,6 +114,11 @@ func init() {
 				Usage: "name of an SSH keypair to install on EC2 instances",
 			},
 			cli.StringFlag{
+				Name:   "email",
+				EnvVar: "CONVOX_EMAIL",
+				Usage:  "email address to receive project updates",
+			},
+			cli.StringFlag{
 				Name:   "version",
 				EnvVar: "VERSION",
 				Value:  "latest",
@@ -183,7 +188,10 @@ func cmdInstall(c *cli.Context) {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	if os.Getenv("AWS_REGION") != "test" && terminal.IsTerminal(int(os.Stdin.Fd())) {
+	if email := c.String("email"); email != "" {
+		distinctId = email
+		updateId(distinctId)
+	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
 		email, err := reader.ReadString('\n')
