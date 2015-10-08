@@ -2,11 +2,6 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Parameters": {
-      "Arns": {
-        "Type": "CommaDelimitedList",
-        "Default": "",
-        "Description": "ARNs of Kinesis Streams to send to Papertrail, i.e. 'arn:aws:kinesis:us-east-1:XXX:stream/convox-Kinesis-YYY,arn:aws:kinesis:us-east-1:XXX:stream/myapp-Kinesis-ZZZ'"
-      },
       "Url": {
         "Type" : "String",
         "Description" : "Papertrail URL, e.g. 'logs1.papertrailapp.com:11235'"
@@ -64,6 +59,16 @@
           "Runtime": "nodejs",
           "Timeout": "25"
         }
+      }
+    },
+    "Outputs": {
+      {{ range $k, $v := .ARNs }}
+        "{{ upper $k }}Link": {
+          "Value": "{{ $v }}"
+        },
+      {{ end }}
+      "Url": {
+        "Value": { "Ref": "Url" }
       }
     }
   }
