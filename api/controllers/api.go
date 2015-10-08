@@ -3,17 +3,18 @@ package controllers
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/convox/rack/api/httperr"
 	"github.com/ddollar/logger"
-	"github.com/stvp/rollbar"
 	"golang.org/x/net/websocket"
 )
 
-type ApiHandlerFunc func(http.ResponseWriter, *http.Request) error
-type ApiWebsocketFunc func(*websocket.Conn) error
+type ApiHandlerFunc func(http.ResponseWriter, *http.Request) *httperr.Error
+type ApiWebsocketFunc func(*websocket.Conn) *httperr.Error
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
@@ -35,13 +36,30 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		err := handler(rw, r)
 
 		if err != nil {
-			log.Error(err)
-			rollbar.Error(rollbar.ERR, err)
+			rw.WriteHeader(err.Code())
 			RenderError(rw, err)
+			logError(log, err)
 			return
 		}
 
 		log.Log("state=success")
+	}
+}
+
+func logError(log *logger.Logger, err *httperr.Error) {
+	if err.User() {
+		log.Log("state=error type=user message=%q", err.Error())
+		return
+	}
+
+	err.Save()
+
+	id := rand.Int31()
+
+	log.Log("state=error id=%d message=%q", id, err.Error())
+
+	for i, line := range err.Trace() {
+		log.Log("state=error id=%d line=%d trace=%q", id, i, line)
 	}
 }
 
@@ -116,8 +134,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		if err != nil {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-			log.Error(err)
-			rollbar.Error(rollbar.ERR, err)
+			logError(log, err)
 			return
 		}
 

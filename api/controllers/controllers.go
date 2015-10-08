@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/api/httperr"
 )
 
 func awsError(err error) string {
@@ -26,15 +27,13 @@ func GetForm(r *http.Request, name string) string {
 	}
 }
 
-func RenderError(rw http.ResponseWriter, err error) error {
-	if err != nil {
-		http.Error(rw, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusInternalServerError)
-	}
+func RenderError(rw http.ResponseWriter, err error) *httperr.Error {
+	rw.Write([]byte(fmt.Sprintf(`{"error":%q}`, err.Error())))
 
-	return err
+	return httperr.Server(err)
 }
 
-func RenderJson(rw http.ResponseWriter, object interface{}) error {
+func RenderJson(rw http.ResponseWriter, object interface{}) *httperr.Error {
 	data, err := json.MarshalIndent(object, "", "  ")
 
 	if err != nil {
@@ -47,37 +46,22 @@ func RenderJson(rw http.ResponseWriter, object interface{}) error {
 
 	_, err = rw.Write(data)
 
-	return err
+	return httperr.Server(err)
 }
 
-func RenderText(rw http.ResponseWriter, text string) error {
+func RenderText(rw http.ResponseWriter, text string) *httperr.Error {
 	_, err := rw.Write([]byte(text))
-	return err
+
+	return httperr.Server(err)
 }
 
-func RenderSuccess(rw http.ResponseWriter) error {
+func RenderSuccess(rw http.ResponseWriter) *httperr.Error {
 	_, err := rw.Write([]byte(`{"success":true}`))
 
-	return err
+	return httperr.Server(err)
 }
 
-func RenderForbidden(rw http.ResponseWriter, message string) error {
-	rw.WriteHeader(403)
-
-	_, err := rw.Write([]byte(fmt.Sprintf(`{"error":%q}`, message)))
-
-	return err
-}
-
-func RenderNotFound(rw http.ResponseWriter, message string) error {
-	rw.WriteHeader(404)
-
-	_, err := rw.Write([]byte(fmt.Sprintf(`{"error":%q}`, message)))
-
-	return err
-}
-
-func Redirect(rw http.ResponseWriter, r *http.Request, path string) error {
+func Redirect(rw http.ResponseWriter, r *http.Request, path string) *httperr.Error {
 	http.Redirect(rw, r, path, http.StatusFound)
 
 	return nil

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/ddollar/logger"
 	docker "github.com/fsouza/go-dockerclient"
@@ -16,29 +17,29 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func BuildList(rw http.ResponseWriter, r *http.Request) error {
+func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
 	builds, err := models.ListBuilds(app)
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	_, err = models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, builds)
 }
 
-func BuildGet(rw http.ResponseWriter, r *http.Request) error {
+func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	build := vars["build"]
@@ -46,41 +47,41 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) error {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return fmt.Errorf("no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	b, err := models.GetBuild(app, build)
 
 	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
-		return RenderNotFound(rw, err.Error())
+		return httperr.Errorf(404, err.Error())
 	}
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, b)
 }
 
-func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
+func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
 
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
 	if err != nil && err != http.ErrNotMultipart {
-		return err
+		return httperr.Server(err)
 	}
 
 	err = build.Save()
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	resources, err := models.ListResources(os.Getenv("RACK"))
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	ch := make(chan error)
@@ -88,7 +89,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 	source, _, err := r.FormFile("source")
 
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		return err
+		return httperr.Server(err)
 	}
 
 	cache := !(r.FormValue("cache") == "false")
@@ -97,7 +98,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 		err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
 
 		if err != nil {
-			return err
+			return httperr.Server(err)
 		}
 
 		go build.ExecuteLocal(source, cache, ch)
@@ -105,7 +106,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 		err = <-ch
 
 		if err != nil {
-			return err
+			return httperr.Server(err)
 		} else {
 			return RenderJson(rw, build)
 		}
@@ -117,16 +118,16 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) error {
 		err = <-ch
 
 		if err != nil {
-			return err
+			return httperr.Server(err)
 		} else {
 			return RenderJson(rw, build)
 		}
 	}
 
-	return fmt.Errorf("no source or repo")
+	return httperr.Errorf(403, "no source or repo")
 }
 
-func BuildLogs(ws *websocket.Conn) error {
+func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]
 	build := vars["build"]
@@ -134,13 +135,13 @@ func BuildLogs(ws *websocket.Conn) error {
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return fmt.Errorf("no such app: %s", app)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	_, err = models.GetBuild(app, build)
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	// proxy to docker container logs
@@ -148,7 +149,7 @@ func BuildLogs(ws *websocket.Conn) error {
 	client, err := docker.NewClient("unix:///var/run/docker.sock")
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	r, w := io.Pipe()
@@ -171,7 +172,7 @@ func BuildLogs(ws *websocket.Conn) error {
 
 	quit <- true
 
-	return err
+	return httperr.Server(err)
 }
 
 func scanLines(r io.Reader, ws *websocket.Conn) {
