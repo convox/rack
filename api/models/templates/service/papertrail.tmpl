@@ -24,12 +24,33 @@
           "Path": "/",
           "Policies": [
             {
-              "PolicyName": "Administrator",
+              "PolicyName": "LambdaCloudFormationKinesis",
               "PolicyDocument": {
                 "Version": "2012-10-17",
                 "Statement": [
-                  { "Effect": "Allow", "Action": "*", "Resource": "*" },
-                  { "Effect": "Deny", "Action": "s3:DeleteObject", "Resource": "*" }
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "lambda:InvokeFunction"
+                    ],
+                    "Resource": [
+                      "*"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "cloudformation:DescribeStacks",
+                      "kinesis:GetRecords",
+                      "kinesis:GetShardIterator",
+                      "kinesis:DescribeStream",
+                      "kinesis:ListStreams",
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "*"
+                  }
                 ]
               }
             }
