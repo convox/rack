@@ -64,31 +64,3 @@ func (c *Client) DeleteService(name string) (*Service, error) {
 
 	return &service, nil
 }
-
-func (c *Client) LinkService(app, name string) (*Service, error) {
-	params := Params{
-		"app": app,
-	}
-
-	var service Service
-
-	err := c.Post(fmt.Sprintf("/services/%s/link", name), params, &service)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &service, nil
-}
-
-func (c *Client) UnlinkService(app, name string) (*Service, error) {
-	var service Service
-
-	err := c.Delete(fmt.Sprintf("/services/%s/link/%s", name, app), &service)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &service, nil
-}

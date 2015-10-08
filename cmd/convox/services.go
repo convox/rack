@@ -58,16 +58,16 @@ func init() {
 			},
 			{
 				Name:        "link",
-				Description: "link a service to an app",
+				Description: "create a link between a service and an app",
 				Usage:       "<name>",
-				Action:      cmdServiceLink,
+				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag},
 			},
 			{
 				Name:        "unlink",
-				Description: "unlink a service from an app",
+				Description: "Delete a link between a service and an app",
 				Usage:       "<name>",
-				Action:      cmdServiceUnlink,
+				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag},
 			},
 		},
@@ -153,7 +153,7 @@ func cmdServiceInfo(c *cli.Context) {
 	fmt.Printf("URL     %s\n", service.URL)
 }
 
-func cmdServiceLink(c *cli.Context) {
+func cmdLinkCreate(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
@@ -168,7 +168,7 @@ func cmdServiceLink(c *cli.Context) {
 
 	name := c.Args()[0]
 
-	_, err = rackClient(c).LinkService(app, name)
+	_, err = rackClient(c).CreateLink(app, name)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -178,7 +178,7 @@ func cmdServiceLink(c *cli.Context) {
 	fmt.Printf("Linked %s to %s\n", name, app)
 }
 
-func cmdServiceUnlink(c *cli.Context) {
+func cmdLinkDelete(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
@@ -193,7 +193,7 @@ func cmdServiceUnlink(c *cli.Context) {
 
 	name := c.Args()[0]
 
-	_, err = rackClient(c).UnlinkService(app, name)
+	_, err = rackClient(c).DeleteLink(app, name)
 
 	if err != nil {
 		stdcli.Error(err)
