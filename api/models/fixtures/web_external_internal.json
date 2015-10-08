@@ -500,7 +500,7 @@
               "BlankWebService",
               {
                 "CPU": {
-                  "Ref": "Cpu"
+                  "Ref": "WebMemory"
                 },
                 "Command": {
                   "Ref": "WebCommand"

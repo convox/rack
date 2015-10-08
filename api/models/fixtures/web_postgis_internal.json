@@ -346,7 +346,7 @@
               "BlankPostgresService",
               {
                 "CPU": {
-                  "Ref": "Cpu"
+                  "Ref": "PostgresMemory"
                 },
                 "Command": {
                   "Ref": "PostgresCommand"
@@ -519,7 +519,7 @@
               "BlankWebService",
               {
                 "CPU": {
-                  "Ref": "Cpu"
+                  "Ref": "WebMemory"
                 },
                 "Command": {
                   "Ref": "WebCommand"
