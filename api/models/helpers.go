@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -468,7 +469,16 @@ func templateHelpers() template.FuncMap {
 	}
 }
 
+func DashName(name string) string {
+	// Myapp -> myapp; MyApp -> my-app
+	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
+
+	k := re.ReplaceAllString(name, "${1}-${2}")
+	return strings.ToLower(k)
+}
+
 func UpperName(name string) string {
+	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
 
 	for {
