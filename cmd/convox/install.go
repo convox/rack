@@ -183,7 +183,7 @@ func cmdInstall(c *cli.Context) {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	if terminal.IsTerminal(int(os.Stdin.Fd())) {
+	if os.Getenv("AWS_REGION") != "test" && terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
 		email, err := reader.ReadString('\n')
