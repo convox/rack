@@ -26,10 +26,6 @@ func (s *Service) CreatePapertrail() error {
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
-
 	params := map[string]string{
 		"Url": s.URL,
 	}
