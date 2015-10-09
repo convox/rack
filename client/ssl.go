@@ -4,7 +4,7 @@ import "fmt"
 
 type SSL struct {
 	Id   string `json:"id"`
-	Port int    `json:"port"`
+	Port string `json:"port"`
 }
 
 type SSLs []SSL
