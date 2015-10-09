@@ -15,6 +15,7 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
@@ -71,6 +72,10 @@ func ECS() *ecs.ECS {
 
 func ELB() *elb.ELB {
 	return elb.New(awsConfig())
+}
+
+func IAM() *iam.IAM {
+	return iam.New(awsConfig())
 }
 
 func Kinesis() *kinesis.Kinesis {
