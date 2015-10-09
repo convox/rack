@@ -1,32 +1,32 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
 )
 
-func LinkCreate(rw http.ResponseWriter, r *http.Request) error {
+func LinkCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such service: %s", service))
+		return httperr.Errorf(404, "no such service: %s", service)
 	}
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	if s.Status != "running" {
-		return RenderForbidden(rw, fmt.Sprintf("can not link service with status: %s", s.Status))
+		return httperr.Errorf(403, "can not link service with status: %s", s.Status)
 	}
 
 	if s.Type != "papertrail" {
-		return RenderForbidden(rw, fmt.Sprintf("linking is not yet implemented for service type: %s", s.Type))
+		return httperr.Errorf(403, "linking is not yet implemented for service type: %s", s.Type)
 	}
 
 	app := GetForm(r, "app")
@@ -34,58 +34,58 @@ func LinkCreate(rw http.ResponseWriter, r *http.Request) error {
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	err = s.LinkPapertrail(*a)
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, s)
 }
 
-func LinkDelete(rw http.ResponseWriter, r *http.Request) error {
+func LinkDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such service: %s", service))
+		return httperr.Errorf(404, "no such service: %s", service)
 	}
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	if s.Status != "running" {
-		return RenderForbidden(rw, fmt.Sprintf("can not unlink service with status: %s", s.Status))
+		return httperr.Errorf(403, "can not unlink service with status: %s", s.Status)
 	}
 
 	if s.Type != "papertrail" {
-		return RenderForbidden(rw, fmt.Sprintf("unlinking is not yet implemented for service type: %s", s.Type))
+		return httperr.Errorf(403, "unlinking is not yet implemented for service type: %s", s.Type)
 	}
 
 	a, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
-		return RenderNotFound(rw, fmt.Sprintf("no such app: %s", app))
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	err = s.UnlinkPapertrail(*a)
 
 	if err != nil {
-		return err
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, s)
