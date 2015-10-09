@@ -39,13 +39,21 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := GetForm(r, "name")
 	t := GetForm(r, "type")
+	url := GetForm(r, "url")
 
 	service := &models.Service{
 		Name: name,
 		Type: t,
+		URL:  url,
 	}
 
-	err := service.Create()
+	var err error
+
+	if t == "papertrail" {
+		err = service.CreatePapertrail()
+	} else {
+		err = service.Create()
+	}
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {
 		return httperr.Errorf(403, "invalid service type: %s", t)

@@ -498,6 +498,52 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /services/{service}/links:
+    post:
+      description: Create a link between a service and an app
+      parameters:
+      - name: service
+        description: service name
+        type: string
+        in: path
+        required: true
+      - name: app
+        description: app name
+        type: string
+        in: formData
+        required: true
+      responses:
+        200:
+          description: service
+          schema:
+            $ref: '#/definitions/service'
+        403:
+          description: invalid name
+          schema:
+            $ref: '#/definitions/error'
+  /services/{service}/links/{app}:
+    delete:
+      description: Delete a link between a service and an app
+      parameters:
+      - name: service
+        description: service name
+        type: string
+        in: path
+        required: true
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: service
+          schema:
+            $ref: '#/definitions/service'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /system:
     get:
       description: Get system information

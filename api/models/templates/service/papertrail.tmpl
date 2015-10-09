@@ -1,0 +1,102 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters": {
+      "Url": {
+        "Type" : "String",
+        "Description" : "Papertrail URL, e.g. 'logs1.papertrailapp.com:11235'"
+      }
+    },
+    "Resources": {
+      "LambdaExecutionRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+                "Action": [ "sts:AssumeRole" ]
+              }
+            ]
+          },
+          "Path": "/",
+          "Policies": [
+            {
+              "PolicyName": "LambdaCloudFormationKinesis",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "lambda:InvokeFunction"
+                    ],
+                    "Resource": [
+                      "*"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "kinesis:GetRecords",
+                      "kinesis:GetShardIterator",
+                      "kinesis:DescribeStream",
+                      "kinesis:ListStreams",
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "*"
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "cloudformation:DescribeStacks"
+                    ],
+                    "Resource": { "Fn::Join": [ "", [ "arn:aws:cloudformation:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":stack/", {"Ref" : "AWS::StackName"}, "/*" ] ] }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {{ range $k, $v := .ARNs }}
+        "{{ upper $k }}Mapping": {
+          "Type" : "AWS::Lambda::EventSourceMapping",
+          "Properties" : {
+            "Enabled" : true,
+            "EventSourceArn" : "{{ $v }}",
+            "FunctionName" : { "Fn::GetAtt" : ["PapertrailLogger", "Arn"] },
+            "StartingPosition" : "TRIM_HORIZON"
+          }
+        },
+      {{ end }}
+      "PapertrailLogger": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Handler": "index.handler",
+          "Role": { "Fn::GetAtt" : ["LambdaExecutionRole", "Arn"] },
+          "Code": {
+            "S3Bucket": "convox",
+            "S3Key": "lambda/papertrail.zip"
+          },
+          "Runtime": "nodejs",
+          "Timeout": "25"
+        }
+      }
+    },
+    "Outputs": {
+      {{ range $k, $v := .ARNs }}
+        "{{ upper $k }}Link": {
+          "Value": "{{ $v }}"
+        },
+      {{ end }}
+      "Url": {
+        "Value": { "Ref": "Url" }
+      }
+    }
+  }
+{{ end }}

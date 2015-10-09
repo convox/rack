@@ -23,10 +23,11 @@ func (c *Client) ListServices() (Services, error) {
 	return services, nil
 }
 
-func (c *Client) CreateService(typ, name string) (*Service, error) {
+func (c *Client) CreateService(typ, name, url string) (*Service, error) {
 	params := Params{
 		"name": name,
 		"type": typ,
+		"url":  url,
 	}
 
 	var service Service

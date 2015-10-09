@@ -37,6 +37,8 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/services", api("service.create", ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", ServiceShow)).Methods("GET")
 	router.HandleFunc("/services/{service}", api("service.delete", ServiceDelete)).Methods("DELETE")
+	router.HandleFunc("/services/{service}/links", api("link.create", LinkCreate)).Methods("POST")
+	router.HandleFunc("/services/{service}/links/{app}", api("link.delete", LinkDelete)).Methods("DELETE")
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
