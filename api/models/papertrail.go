@@ -105,8 +105,6 @@ func (s *Service) UnlinkPapertrail(app App) error {
 }
 
 func (s *Service) UpdatePapertrail(arns map[string]string) error {
-	fmt.Printf("%+v\n", arns)
-
 	input := struct {
 		ARNs map[string]string
 	}{

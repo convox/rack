@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -55,8 +54,6 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	} else {
 		err = service.Create()
 	}
-
-	fmt.Printf("%+v\n", err)
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {
 		return httperr.Errorf(403, "invalid service type: %s", t)
