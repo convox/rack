@@ -75,6 +75,43 @@ func SetFormation(app, process, count, memory string) error {
 		return err
 	}
 
+	rel, err := a.LatestRelease()
+
+	if err != nil {
+		return err
+	}
+
+	m, err := LoadManifest(rel.Manifest)
+
+	if err != nil {
+		return err
+	}
+
+	me := m.Entry(process)
+
+	if me == nil {
+		return fmt.Errorf("no such process: %s", process)
+	}
+
+	system, err := GetSystem()
+
+	if err != nil {
+		return err
+	}
+
+	c, err := strconv.Atoi(count)
+
+	if err != nil {
+		return err
+	}
+
+	// if the app has external ports we can only have n-1 instances of it
+	// because elbs expect the process to be available at the same port on
+	// every instance and we need room for the rolling updates
+	if len(me.ExternalPorts()) > 0 && c >= system.Count {
+		return fmt.Errorf("rack has %d instances, can't scale processes beyond %d", system.Count, system.Count-1)
+	}
+
 	params := map[string]string{}
 
 	if count != "" {
@@ -86,4 +123,14 @@ func SetFormation(app, process, count, memory string) error {
 	}
 
 	return a.UpdateParams(params)
+}
+
+func (f Formation) Entry(name string) *FormationEntry {
+	for _, fe := range f {
+		if fe.Name == name {
+			return &fe
+		}
+	}
+
+	return nil
 }
