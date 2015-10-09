@@ -22,8 +22,6 @@ func (s *Service) CreatePapertrail() error {
 
 	formation, err := buildTemplate(fmt.Sprintf("service/%s", s.Type), "service", input)
 
-	fmt.Printf("%s", formation)
-
 	if err != nil {
 		return err
 	}
