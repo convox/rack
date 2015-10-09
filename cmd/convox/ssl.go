@@ -23,6 +23,7 @@ func init() {
 					appFlag,
 					cli.IntFlag{
 						Name:  "port",
+						Value: 443,
 						Usage: "non-standard port number, e.g. 4443",
 					},
 				},
@@ -65,7 +66,7 @@ func cmdSSLAdd(c *cli.Context) {
 
 	p := strconv.Itoa(port)
 
-	fmt.Printf("Adding SSL to %s (%s)... ", app, port)
+	fmt.Printf("Adding SSL to %s (%s)... ", app, p)
 
 	_, err = rackClient(c).CreateSSL(app, string(body), string(key), p)
 

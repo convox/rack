@@ -23,7 +23,6 @@ func (c *Client) GetSSLs(app string) (SSLs, error) {
 
 func (c *Client) CreateSSL(app, body, key, port string) (*SSL, error) {
 	params := Params{
-		"app":  app,
 		"body": body,
 		"key":  key,
 		"port": port,
