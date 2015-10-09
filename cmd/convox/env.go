@@ -37,14 +37,26 @@ func init() {
 				Description: "set an environment variable",
 				Usage:       "VARIABLE=VALUE",
 				Action:      cmdEnvSet,
-				Flags:       []cli.Flag{appFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					cli.BoolFlag{
+						Name:  "promote",
+						Usage: "promote the release after env change",
+					},
+				},
 			},
 			{
 				Name:        "unset",
 				Description: "delete an environment varible",
 				Usage:       "VARIABLE",
 				Action:      cmdEnvUnset,
-				Flags:       []cli.Flag{appFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					cli.BoolFlag{
+						Name:  "promote",
+						Usage: "promote the release after env change",
+					},
+				},
 			},
 		},
 	})
@@ -151,11 +163,32 @@ func cmdEnvSet(c *cli.Context) {
 		data += fmt.Sprintf("%s\n", value)
 	}
 
-	_, err = rackClient(c).SetEnvironment(app, strings.NewReader(data))
+	fmt.Print("Updating environment... ")
+
+	_, releaseId, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
 
 	if err != nil {
 		stdcli.Error(err)
 		return
+	}
+
+	fmt.Println("OK")
+
+	if releaseId != "" {
+		if c.Bool("promote") {
+			fmt.Printf("Promoting %s... ", releaseId)
+
+			_, err = rackClient(c).PromoteRelease(app, releaseId)
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			fmt.Println("OK")
+		} else {
+			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseId)
+		}
 	}
 }
 
@@ -179,10 +212,31 @@ func cmdEnvUnset(c *cli.Context) {
 
 	key := c.Args()[0]
 
-	_, err = rackClient(c).DeleteEnvironment(app, key)
+	fmt.Print("Updating environment... ")
+
+	_, releaseId, err := rackClient(c).DeleteEnvironment(app, key)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
+	}
+
+	fmt.Println("OK")
+
+	if releaseId != "" {
+		if c.Bool("promote") {
+			fmt.Printf("Promoting %s... ", releaseId)
+
+			_, err = rackClient(c).PromoteRelease(app, releaseId)
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			fmt.Println("OK")
+		} else {
+			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseId)
+		}
 	}
 }

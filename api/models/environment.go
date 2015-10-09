@@ -62,17 +62,17 @@ func GetEnvironment(app string) (Environment, error) {
 	return LoadEnvironment(data), nil
 }
 
-func PutEnvironment(app string, env Environment) error {
+func PutEnvironment(app string, env Environment) (string, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	release, err := a.ForkRelease()
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	release.Env = env.Raw()
@@ -80,7 +80,7 @@ func PutEnvironment(app string, env Environment) error {
 	err = release.Save()
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	e := []byte(env.Raw())
@@ -91,11 +91,17 @@ func PutEnvironment(app string, env Environment) error {
 		e, err = cr.Encrypt(a.Parameters["Key"], e)
 
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return S3Put(a.Outputs["Settings"], "env", []byte(e), true)
+	err = S3Put(a.Outputs["Settings"], "env", []byte(e), true)
+
+	if err != nil {
+		return "", err
+	}
+
+	return release.Id, nil
 }
 
 func (e Environment) SortedNames() []string {

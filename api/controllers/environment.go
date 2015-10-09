@@ -42,11 +42,13 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	err = models.PutEnvironment(app, models.LoadEnvironment(body))
+	releaseId, err := models.PutEnvironment(app, models.LoadEnvironment(body))
 
 	if err != nil {
 		return httperr.Server(err)
 	}
+
+	rw.Header().Set("Release-Id", releaseId)
 
 	env, err := models.GetEnvironment(app)
 
@@ -74,11 +76,13 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	delete(env, name)
 
-	err = models.PutEnvironment(app, env)
+	releaseId, err := models.PutEnvironment(app, env)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
+
+	rw.Header().Set("Release-Id", releaseId)
 
 	env, err = models.GetEnvironment(app)
 
