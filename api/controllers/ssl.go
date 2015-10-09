@@ -26,9 +26,9 @@ func SSLList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	a := mux.Vars(r)["app"]
-	port := mux.Vars(r)["port"]
-	body := mux.Vars(r)["body"]
-	key := mux.Vars(r)["key"]
+	port := GetForm(r, "port")
+	body := GetForm(r, "body")
+	key := GetForm(r, "key")
 
 	ssl, err := models.CreateSSL(a, port, body, key)
 
