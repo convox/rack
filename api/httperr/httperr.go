@@ -25,7 +25,7 @@ func New(code int, err error) *Error {
 	e := &Error{
 		code:  code,
 		err:   err,
-		stack: rollbar.BuildStack(1),
+		stack: rollbar.BuildStack(3),
 		trace: errorTrace(),
 	}
 
