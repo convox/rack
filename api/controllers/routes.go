@@ -33,6 +33,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/releases", api("release.list", ReleaseList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", ReleaseShow)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", api("release.promote", ReleasePromote)).Methods("POST")
+	router.HandleFunc("/apps/{app}/ssl", api("ssl.list", SSLList)).Methods("GET")
 	router.HandleFunc("/services", api("service.list", ServiceList)).Methods("GET")
 	router.HandleFunc("/services", api("service.create", ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", ServiceShow)).Methods("GET")
