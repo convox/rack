@@ -42,3 +42,19 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	return RenderJson(rw, ssl)
 }
+
+func SSLDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	a := mux.Vars(r)["app"]
+
+	ssl, err := models.DeleteSSL(a)
+
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such app: %s", a)
+	}
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, ssl)
+}

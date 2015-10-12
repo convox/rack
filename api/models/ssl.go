@@ -18,7 +18,7 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(a, port, body, key string) (*SSL, error) {
-	_, err := GetApp(a)
+	app, err := GetApp(a)
 
 	if err != nil {
 		return nil, err
@@ -45,7 +45,37 @@ func CreateSSL(a, port, body, key string) (*SSL, error) {
 		Arn:  *arn,
 	}
 
+	stack_params := map[string]string{}
+	stack_params["SSLArn"] = ssl.Arn
+	stack_params["SSLPort"] = ssl.Port
+
+	err = app.UpdateParams(stack_params)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &ssl, nil
+}
+
+func DeleteSSL(a string) (*SSL, error) {
+	app, err := GetApp(a)
+
+	if err != nil {
+		return nil, err
+	}
+
+	params := &iam.DeleteServerCertificateInput{
+		ServerCertificateName: aws.String(app.Name),
+	}
+
+	resp, err := IAM().DeleteServerCertificate(params)
+
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("%+v\n", resp)
+	return nil, nil
 }
 
 func ListSSLs(a string) (SSLs, error) {
