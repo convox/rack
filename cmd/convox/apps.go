@@ -18,19 +18,19 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new application",
-				Usage:       "[name]",
+				Usage:       "<name>",
 				Action:      cmdAppCreate,
 			},
 			{
 				Name:        "delete",
 				Description: "delete an application",
-				Usage:       "[name]",
+				Usage:       "<name>",
 				Action:      cmdAppDelete,
 			},
 			{
 				Name:        "info",
 				Description: "see info about an app",
-				Usage:       "",
+				Usage:       "[name]",
 				Action:      cmdAppInfo,
 				Flags:       []cli.Flag{appFlag},
 			},
