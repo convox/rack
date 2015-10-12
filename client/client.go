@@ -88,16 +88,22 @@ func (c *Client) Post(path string, params Params, out interface{}) error {
 }
 
 func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
+	_, err := c.PostBodyResponse(path, body, out)
+
+	return err
+}
+
+func (c *Client) PostBodyResponse(path string, body io.Reader, out interface{}) (*http.Response, error) {
 	err := c.versionCheck()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := c.request("POST", path, body)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -105,28 +111,28 @@ func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
 	res, err := c.client().Do(req)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer res.Body.Close()
 
 	if err := responseError(res); err != nil {
-		return err
+		return nil, err
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = json.Unmarshal(data, out)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }
 
 func (c *Client) PostMultipart(path string, files map[string][]byte, params Params, out interface{}) error {
@@ -250,43 +256,49 @@ func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
 }
 
 func (c *Client) Delete(path string, out interface{}) error {
+	_, err := c.DeleteResponse(path, out)
+
+	return err
+}
+
+func (c *Client) DeleteResponse(path string, out interface{}) (*http.Response, error) {
 	err := c.versionCheck()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := c.request("DELETE", path, nil)
 
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 
 	res, err := c.client().Do(req)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer res.Body.Close()
 
 	if err := responseError(res); err != nil {
-		return err
+		return nil, err
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = json.Unmarshal(data, out)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }
 
 func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.WriteCloser) error {
