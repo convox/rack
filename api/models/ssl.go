@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
@@ -18,13 +17,33 @@ type SSL struct {
 
 type SSLs []SSL
 
-func CreateSSL(a, port, body, key string) (*SSL, error) {
+func CreateSSL(a, balancerPort, hostPort, body, key string) (*SSL, error) {
 	app, err := GetApp(a)
 
 	if err != nil {
 		return nil, err
 	}
 
+	// validate app has hostPort
+	release, err := app.LatestRelease()
+
+	if err != nil {
+		return nil, err
+	}
+
+	manifest, err := LoadManifest(release.Manifest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	me := manifest.EntryByInternalPort(hostPort)
+
+	if me == nil {
+		return nil, fmt.Errorf("Manifest does not specify port %s", hostPort)
+	}
+
+	// upload certificate
 	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
 		PrivateKey:            aws.String(key),
@@ -38,63 +57,19 @@ func CreateSSL(a, port, body, key string) (*SSL, error) {
 	arn := resp.ServerCertificateMetadata.Arn
 	name := resp.ServerCertificateMetadata.ServerCertificateName
 
+	params := map[string]string{}
+	params[fmt.Sprintf("%sPort%sCertificate", UpperName(me.Name), hostPort)] = *arn // e.g.WebPort3000Certificate
+
+	err = app.UpdateParams(params)
+
+	if err != nil {
+		return nil, err
+	}
+
 	ssl := SSL{
 		Id:   *name,
-		Port: port,
+		Port: hostPort,
 		Arn:  *arn,
-	}
-
-	release, err := app.LatestRelease()
-
-	if err != nil {
-		return nil, err
-	}
-
-	manifest, err := LoadManifest(release.Manifest)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: find correct entry based on internal port
-	manifest[0].SSLPorts = []string{fmt.Sprintf("%s:3000", port)}
-
-	template, err := manifest.Formation()
-
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("%s\n", template)
-
-	// WebPort443Balancer   443
-	// WebPort443Host       30753
-	// WebPort443ARN        iam::...
-
-	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(app.Name),
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-	}
-
-	params := app.Parameters
-
-	params[fmt.Sprintf("WebSSL%sArn", port)] = ssl.Arn
-	params[fmt.Sprintf("WebSSL%sBalancer", port)] = ssl.Port
-	params[fmt.Sprintf("WebSSL%sHost", port)] = "3000"
-
-	for key, val := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(val),
-		})
-	}
-
-	req.TemplateBody = aws.String(template)
-
-	_, err = CloudFormation().UpdateStack(req)
-
-	if err != nil {
-		return nil, err
 	}
 
 	return &ssl, nil

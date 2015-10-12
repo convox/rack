@@ -21,7 +21,7 @@ func (c *Client) GetSSLs(app string) (SSLs, error) {
 	return ssls, nil
 }
 
-func (c *Client) CreateSSL(app, body, key, port string) (*SSL, error) {
+func (c *Client) CreateSSL(app, port, body, key string) (*SSL, error) {
 	params := Params{
 		"body": body,
 		"key":  key,

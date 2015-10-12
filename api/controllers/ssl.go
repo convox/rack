@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
@@ -30,7 +32,15 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	body := GetForm(r, "body")
 	key := GetForm(r, "key")
 
-	ssl, err := models.CreateSSL(a, port, body, key)
+	var validPorts = regexp.MustCompile(`[0-9]+:[0-9]+`)
+
+	if !validPorts.MatchString(port) {
+		return httperr.Errorf(403, "port must be in 443:4443 format")
+	}
+
+	ports := strings.Split(port, ":")
+
+	ssl, err := models.CreateSSL(a, ports[0], ports[1], body, key)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "%s", err)
