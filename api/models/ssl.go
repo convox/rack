@@ -45,9 +45,10 @@ func CreateSSL(a, port, body, key string) (*SSL, error) {
 		Arn:  *arn,
 	}
 
+	fmt.Println("%+v\n", app)
 	stack_params := map[string]string{}
-	stack_params["SSLArn"] = ssl.Arn
-	stack_params["SSLPort"] = ssl.Port
+	stack_params[fmt.Sprintf("SSL%sArn", port)] = ssl.Arn
+	stack_params[fmt.Sprintf("SSL%sPort", port)] = ssl.Port
 
 	err = app.UpdateParams(stack_params)
 

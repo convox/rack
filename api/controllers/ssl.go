@@ -33,7 +33,7 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	ssl, err := models.CreateSSL(a, port, body, key)
 
 	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", a)
+		return httperr.Errorf(404, "%s", err)
 	}
 
 	if err != nil {
