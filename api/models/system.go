@@ -71,10 +71,6 @@ func (r *System) Save() error {
 		return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
 	}
 
-	fmt.Printf("mac %+v\n", mac)
-
-	return fmt.Errorf("stop")
-
 	params := map[string]string{
 		"InstanceCount": strconv.Itoa(r.Count),
 		"InstanceType":  r.Type,
