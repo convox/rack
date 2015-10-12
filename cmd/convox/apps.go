@@ -105,7 +105,14 @@ func cmdAppDelete(c *cli.Context) {
 }
 
 func cmdAppInfo(c *cli.Context) {
-	_, app, err := stdcli.DirApp(c, ".")
+	var app string
+	var err error
+
+	if len(c.Args()) > 0 {
+		app = c.Args()[0]
+	} else {
+		_, app, err = stdcli.DirApp(c, ".")
+	}
 
 	a, err := rackClient(c).GetApp(app)
 
