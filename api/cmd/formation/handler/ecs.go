@@ -264,14 +264,12 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	for i, itask := range tasks {
 		task := itask.(map[string]interface{})
 
-		cpu, _ := strconv.Atoi(task["CPU"].(string))
 		memory, _ := strconv.Atoi(task["Memory"].(string))
 
 		r.ContainerDefinitions[i] = &ecs.ContainerDefinition{
 			Name:      aws.String(task["Name"].(string)),
 			Essential: aws.Bool(true),
 			Image:     aws.String(task["Image"].(string)),
-			Cpu:       aws.Int64(int64(cpu)),
 			Memory:    aws.Int64(int64(memory)),
 		}
 
