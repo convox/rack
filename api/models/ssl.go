@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
@@ -24,13 +25,11 @@ func CreateSSL(a, port, body, key string) (*SSL, error) {
 		return nil, err
 	}
 
-	params := &iam.UploadServerCertificateInput{
+	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
 		PrivateKey:            aws.String(key),
 		ServerCertificateName: aws.String(fmt.Sprintf("%s", a)),
-	}
-
-	resp, err := IAM().UploadServerCertificate(params)
+	})
 
 	if err != nil {
 		return nil, err
@@ -45,12 +44,54 @@ func CreateSSL(a, port, body, key string) (*SSL, error) {
 		Arn:  *arn,
 	}
 
-	fmt.Println("%+v\n", app)
-	stack_params := map[string]string{}
-	stack_params[fmt.Sprintf("SSL%sArn", port)] = ssl.Arn
-	stack_params[fmt.Sprintf("SSL%sPort", port)] = ssl.Port
+	release, err := app.LatestRelease()
 
-	err = app.UpdateParams(stack_params)
+	if err != nil {
+		return nil, err
+	}
+
+	manifest, err := LoadManifest(release.Manifest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: find correct entry based on internal port
+	manifest[0].SSLPorts = []string{fmt.Sprintf("%s:3000", port)}
+
+	template, err := manifest.Formation()
+
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("%s\n", template)
+
+	// WebPort443Balancer   443
+	// WebPort443Host       30753
+	// WebPort443ARN        iam::...
+
+	req := &cloudformation.UpdateStackInput{
+		StackName:    aws.String(app.Name),
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+	}
+
+	params := app.Parameters
+
+	params[fmt.Sprintf("WebSSL%sArn", port)] = ssl.Arn
+	params[fmt.Sprintf("WebSSL%sBalancer", port)] = ssl.Port
+	params[fmt.Sprintf("WebSSL%sHost", port)] = "3000"
+
+	for key, val := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(val),
+		})
+	}
+
+	req.TemplateBody = aws.String(template)
+
+	_, err = CloudFormation().UpdateStack(req)
 
 	if err != nil {
 		return nil, err

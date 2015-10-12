@@ -8,6 +8,7 @@
     "Parameters" : {
       {{ template "balancer-params" . }}
       {{ template "process-params" . }}
+      {{ template "ssl-params" . }}
 
       "Cluster": {
         "Type" : "String",
@@ -248,6 +249,28 @@
       "{{ upper $entry.Name }}Port{{ index $parts 0 }}Host": {
         "Type" : "String",
         "Default" : "{{ index $entry.Randoms $port }}",
+        "Description" : ""
+      },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "ssl-params" }}
+  {{ range $entry := . }}
+    {{ range $i, $port := $entry.SSLPorts }}
+      {{ $parts := (split $port ":") }}
+      "{{ upper $entry.Name }}SSL{{ index $parts 0 }}Balancer": {
+        "Type" : "String",
+        "Default" : "{{ index $parts 0 }}",
+        "Description" : ""
+      },
+      "{{ upper $entry.Name }}SSL{{ index $parts 0 }}Host": {
+        "Type" : "String",
+        "Default" : "{{ index $entry.Randoms $port }}",
+        "Description" : ""
+      },
+      "{{ upper $entry.Name }}SSL{{ index $parts 0 }}Arn": {
+        "Type" : "String",
         "Description" : ""
       },
     {{ end }}

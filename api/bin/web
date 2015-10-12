@@ -5,6 +5,7 @@
 haproxy -f /etc/haproxy/haproxy.cfg &
 
 if [ "$DEVELOPMENT" == "true" ]; then
+  go get -u github.com/jteeuwen/go-bindata/...
   $GOPATH/bin/rerun -build github.com/convox/rack/api
 else
   $GOPATH/bin/api

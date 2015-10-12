@@ -17,13 +17,14 @@ type Manifest []ManifestEntry
 type ManifestEntry struct {
 	Name string
 
-	Build   string      `yaml:"build"`
-	Command interface{} `yaml:"command"`
-	Env     []string    `yaml:"environment"`
-	Image   string      `yaml:"image"`
-	Links   []string    `yaml:"links"`
-	Ports   []string    `yaml:"ports"`
-	Volumes []string    `yaml:"volumes"`
+	Build    string      `yaml:"build"`
+	Command  interface{} `yaml:"command"`
+	Env      []string    `yaml:"environment"`
+	Image    string      `yaml:"image"`
+	Links    []string    `yaml:"links"`
+	Ports    []string    `yaml:"ports"`
+	SSLPorts []string    `yaml:"ssl_ports"`
+	Volumes  []string    `yaml:"volumes"`
 
 	randoms map[string]int
 }
