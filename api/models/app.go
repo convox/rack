@@ -74,10 +74,6 @@ func GetApp(name string) (*App, error) {
 
 	app := appFromStack(res.Stacks[0])
 
-	app.Outputs = stackOutputs(res.Stacks[0])
-	app.Parameters = stackParameters(res.Stacks[0])
-	app.Tags = stackTags(res.Stacks[0])
-
 	return app, nil
 }
 
@@ -684,10 +680,13 @@ func (a *App) Resources() Resources {
 
 func appFromStack(stack *cloudformation.Stack) *App {
 	return &App{
-		Balancer: stackOutputs(stack)["BalancerHost"],
-		Name:     *stack.StackName,
-		Release:  stackParameters(stack)["Release"],
-		Status:   humanStatus(*stack.StackStatus),
+		Balancer:   stackOutputs(stack)["BalancerHost"],
+		Name:       *stack.StackName,
+		Release:    stackParameters(stack)["Release"],
+		Status:     humanStatus(*stack.StackStatus),
+		Outputs:    stackOutputs(stack),
+		Parameters: stackParameters(stack),
+		Tags:       stackTags(stack),
 	}
 }
 

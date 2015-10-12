@@ -59,6 +59,22 @@ func (r *System) Save() error {
 		return err
 	}
 
+	mac, err := maxAppConcurrency()
+
+	if err != nil {
+		return err
+	}
+
+	// dont scale the rack below the max concurrency plus one
+	// see formation.go for more details
+	if r.Count < (mac + 1) {
+		return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
+	}
+
+	fmt.Printf("mac %+v\n", mac)
+
+	return fmt.Errorf("stop")
+
 	params := map[string]string{
 		"InstanceCount": strconv.Itoa(r.Count),
 		"InstanceType":  r.Type,
@@ -68,4 +84,46 @@ func (r *System) Save() error {
 	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", r.Version)
 
 	return app.UpdateParamsAndTemplate(params, template)
+}
+
+func maxAppConcurrency() (int, error) {
+	apps, err := ListApps()
+
+	if err != nil {
+		return 0, err
+	}
+
+	max := 0
+
+	for _, app := range apps {
+		rel, err := app.LatestRelease()
+
+		if err != nil {
+			return 0, err
+		}
+
+		m, err := LoadManifest(rel.Manifest)
+
+		if err != nil {
+			return 0, err
+		}
+
+		f, err := ListFormation(app.Name)
+
+		if err != nil {
+			return 0, err
+		}
+
+		for _, me := range m {
+			if m.HasExternalPorts() {
+				entry := f.Entry(me.Name)
+
+				if entry != nil && entry.Count > max {
+					max = entry.Count
+				}
+			}
+		}
+	}
+
+	return max, nil
 }
