@@ -339,9 +339,6 @@
             "Fn::If": [
               "BlankPostgresService",
               {
-                "CPU": {
-                  "Ref": "PostgresMemory"
-                },
                 "Command": {
                   "Ref": "PostgresCommand"
                 },
@@ -512,9 +509,6 @@
             "Fn::If": [
               "BlankWorkerService",
               {
-                "CPU": {
-                  "Ref": "WorkerMemory"
-                },
                 "Command": {
                   "Ref": "WorkerCommand"
                 },

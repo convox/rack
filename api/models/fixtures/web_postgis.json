@@ -486,9 +486,6 @@
             "Fn::If": [
               "BlankPostgresService",
               {
-                "CPU": {
-                  "Ref": "PostgresMemory"
-                },
                 "Command": {
                   "Ref": "PostgresCommand"
                 },
@@ -684,9 +681,6 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "CPU": {
-                  "Ref": "WebMemory"
-                },
                 "Command": {
                   "Ref": "WebCommand"
                 },

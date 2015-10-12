@@ -499,9 +499,6 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "CPU": {
-                  "Ref": "WebMemory"
-                },
                 "Command": {
                   "Ref": "WebCommand"
                 },
