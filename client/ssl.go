@@ -38,3 +38,15 @@ func (c *Client) CreateSSL(app, body, key, port string) (*SSL, error) {
 
 	return &ssl, nil
 }
+
+func (c *Client) DeleteSSL(app, port string) (*SSL, error) {
+	var ssl SSL
+
+	err := c.Delete(fmt.Sprintf("/apps/%s/ssl/%s", app, port), &ssl)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ssl, nil
+}

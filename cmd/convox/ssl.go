@@ -28,6 +28,15 @@ func init() {
 					},
 				},
 			},
+			{
+				Name:        "delete",
+				Description: "add a new certificate",
+				Usage:       "[port]",
+				Action:      cmdSSLDelete,
+				Flags: []cli.Flag{
+					appFlag,
+				},
+			},
 		},
 	})
 }
@@ -69,6 +78,37 @@ func cmdSSLAdd(c *cli.Context) {
 	fmt.Printf("Adding SSL to %s (%s)... ", app, p)
 
 	_, err = rackClient(c).CreateSSL(app, string(body), string(key), p)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("Done.")
+}
+
+func cmdSSLDelete(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) > 1 {
+		stdcli.Usage(c, "delete")
+		return
+	}
+
+	port := "443"
+
+	if len(c.Args()) == 1 {
+		port = c.Args()[0]
+	}
+
+	fmt.Printf("Deleting SSL from %s (%s)... ", app, port)
+
+	_, err = rackClient(c).DeleteSSL(app, port)
 
 	if err != nil {
 		stdcli.Error(err)
