@@ -1,10 +1,14 @@
 {
 	"ImportPath": "github.com/convox/rack/api",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/aryann/difflib",
+			"Rev": "035af7c09b120b0909dd998c92745b82f61e0b1c"
+		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",
 			"Comment": "v0.9.6",
@@ -12,11 +16,6 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/internal/endpoints",
-			"Comment": "v0.9.6",
-			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
-		},
-		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/model/api",
 			"Comment": "v0.9.6",
 			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
 		},
@@ -62,16 +61,6 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
-			"Comment": "v0.9.6",
-			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
-		},
-		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/test/unit",
-			"Comment": "v0.9.6",
-			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
-		},
-		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/util",
 			"Comment": "v0.9.6",
 			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
 		},
@@ -141,12 +130,22 @@
 			"Rev": "1dd3ab0ff59e13f5b73dcbf70703710aebe50d2f"
 		},
 		{
+			"ImportPath": "github.com/convox/rack/test",
+			"Comment": "2015062904-1679-g2e85ad7",
+			"Rev": "2e85ad790498c7569a11b7efd70bf84f59d7aa3d"
+		},
+		{
 			"ImportPath": "github.com/ddollar/logger",
 			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
 		},
 		{
 			"ImportPath": "github.com/ddollar/nlogger",
 			"Rev": "1a2c3a205e082ae17f32bd9f9113c07cfa7f31e2"
+		},
+		{
+			"ImportPath": "github.com/fatih/color",
+			"Comment": "v0.1-8-g76d4231",
+			"Rev": "76d423163af754ff6423d2d9be0057fbf03c57c2"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
@@ -160,6 +159,14 @@
 		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "7fcbc72f853b92b5720db4a6b8482be612daef24"
+		},
+		{
+			"ImportPath": "github.com/shiena/ansicolor",
+			"Rev": "d445752f6f66f9cd987722f109149f6799cdf1de"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",

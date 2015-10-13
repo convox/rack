@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/gorilla/mux"
 )
 
 func FormationList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
