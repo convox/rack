@@ -246,6 +246,11 @@
         "Default" : "{{ index $parts 0 }}",
         "Description" : ""
       },
+      "{{ upper $entry.Name }}Port{{ index $parts 0 }}Certificate": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : ""
+      },
       "{{ upper $entry.Name }}Port{{ index $parts 0 }}Host": {
         "Type" : "String",
         "Default" : "{{ index $entry.Randoms $port }}",

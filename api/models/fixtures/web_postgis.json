@@ -152,6 +152,11 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort443Host": {
       "Default": "5001",
       "Description": "",
@@ -159,6 +164,11 @@
     },
     "WebPort80Balancer": {
       "Default": "80",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort80Certificate": {
+      "Default": "",
       "Description": "",
       "Type": "String"
     },

@@ -119,6 +119,11 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort80Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort80Host": {
       "Default": "5000",
       "Description": "",
