@@ -28,5 +28,4 @@ test-deps:
 	go get gopkg.in/matm/v1/gocov-html
 
 vendor:
-	godep restore
 	godep save -r ./...
