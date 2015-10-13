@@ -26,22 +26,27 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	final := models.Processes{}
-	psch := make(chan models.Process)
-	errch := make(chan error)
 
-	for _, p := range processes {
-		p := p
-		go p.FetchStatsAsync(psch, errch)
-	}
+	if r.URL.Query().Get("stats") != "false" {
+		psch := make(chan models.Process)
+		errch := make(chan error)
 
-	for _, _ = range processes {
-		err := <-errch
-
-		if err != nil {
-			return httperr.Server(err)
+		for _, p := range processes {
+			p := p
+			go p.FetchStatsAsync(psch, errch)
 		}
 
-		final = append(final, <-psch)
+		for _, _ = range processes {
+			err := <-errch
+
+			if err != nil {
+				return httperr.Server(err)
+			}
+
+			final = append(final, <-psch)
+		}
+	} else {
+		final = processes
 	}
 
 	sort.Sort(final)
