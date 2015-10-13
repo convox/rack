@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -191,23 +193,7 @@ func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 		return "", err
 	}
 
-	if build.Id == "" {
-		return "", fmt.Errorf("unable to fetch build id")
-	}
-
-	err = rackClient(c).StreamBuildLogs(app, build.Id, os.Stdout)
-
-	if err != nil {
-		return "", err
-	}
-
-	release, err := waitForBuild(c, app, build.Id)
-
-	if err != nil {
-		return "", err
-	}
-
-	return release, nil
+	return finishBuild(c, app, build)
 }
 
 func executeBuildUrl(c *cli.Context, url string, app string) (string, error) {
@@ -219,23 +205,7 @@ func executeBuildUrl(c *cli.Context, url string, app string) (string, error) {
 		return "", err
 	}
 
-	if build.Id == "" {
-		return "", fmt.Errorf("unable to fetch build id")
-	}
-
-	err = rackClient(c).StreamBuildLogs(app, build.Id, os.Stdout)
-
-	if err != nil {
-		return "", err
-	}
-
-	release, err := waitForBuild(c, app, build.Id)
-
-	if err != nil {
-		return "", err
-	}
-
-	return release, nil
+	return finishBuild(c, app, build)
 }
 
 func createTarball(base string) ([]byte, error) {
@@ -280,6 +250,28 @@ func createTarball(base string) ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+func finishBuild(c *cli.Context, app string, build *client.Build) (string, error) {
+	if build.Id == "" {
+		return "", fmt.Errorf("unable to fetch build id")
+	}
+
+	reader, writer := io.Pipe()
+	go io.Copy(os.Stdout, reader)
+	err := rackClient(c).StreamBuildLogs(app, build.Id, writer)
+
+	if err != nil {
+		return "", err
+	}
+
+	release, err := waitForBuild(c, app, build.Id)
+
+	if err != nil {
+		return "", err
+	}
+
+	return release, nil
 }
 
 func waitForBuild(c *cli.Context, app, id string) (string, error) {
