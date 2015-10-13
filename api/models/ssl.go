@@ -3,8 +3,10 @@ package models
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
@@ -17,7 +19,7 @@ type SSL struct {
 
 type SSLs []SSL
 
-func CreateSSL(a, balancerPort, hostPort, body, key string) (*SSL, error) {
+func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 	app, err := GetApp(a)
 
 	if err != nil {
@@ -37,10 +39,11 @@ func CreateSSL(a, balancerPort, hostPort, body, key string) (*SSL, error) {
 		return nil, err
 	}
 
-	me := manifest.EntryByInternalPort(hostPort)
+	// TODO: validate based on manifest defining EXTERNAL port
+	me := manifest.EntryByBalancerPort(balancerPort)
 
 	if me == nil {
-		return nil, fmt.Errorf("Manifest does not specify port %s", hostPort)
+		return nil, fmt.Errorf("Manifest does not specify balancer port %s", balancerPort)
 	}
 
 	// upload certificate
@@ -57,10 +60,36 @@ func CreateSSL(a, balancerPort, hostPort, body, key string) (*SSL, error) {
 	arn := resp.ServerCertificateMetadata.Arn
 	name := resp.ServerCertificateMetadata.ServerCertificateName
 
-	params := map[string]string{}
-	params[fmt.Sprintf("%sPort%sCertificate", UpperName(me.Name), hostPort)] = *arn // e.g.WebPort3000Certificate
+	tmpl, err := release.Formation()
 
-	err = app.UpdateParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		StackName:    aws.String(app.Name),
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		TemplateBody: aws.String(tmpl),
+	}
+
+	params := app.Parameters
+
+	// TODO: make name (e.g.) WebPort3001Balancer based on EXTERNAL PORT and Manifest Process Name
+	// WebPort3001Balancer, WebPort3001Certificate
+	params[fmt.Sprintf("%sPort%sBalancer", UpperName(me.Name), balancerPort)] = balancerPort // e.g.WebPort3000Certificate
+	params[fmt.Sprintf("%sPort%sCertificate", UpperName(me.Name), balancerPort)] = *arn      // e.g.WebPort3000Certificate
+
+	for key, val := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(val),
+		})
+	}
+
+	fmt.Printf("%+v\n", req.Parameters)
+	fmt.Printf("%s\n", *req.TemplateBody)
+
+	_, err = CloudFormation().UpdateStack(req)
 
 	if err != nil {
 		return nil, err
@@ -68,19 +97,46 @@ func CreateSSL(a, balancerPort, hostPort, body, key string) (*SSL, error) {
 
 	ssl := SSL{
 		Id:   *name,
-		Port: hostPort,
+		Port: balancerPort,
 		Arn:  *arn,
 	}
 
 	return &ssl, nil
 }
 
-func DeleteSSL(a string) (*SSL, error) {
+func DeleteSSL(a, balancerPort string) (*SSL, error) {
 	app, err := GetApp(a)
 
 	if err != nil {
 		return nil, err
 	}
+
+	// validate app stack has certificate
+
+	if err != nil {
+		return nil, err
+	}
+
+	param := ""
+
+	for k, v := range app.Parameters {
+		if strings.HasSuffix(k, fmt.Sprintf("%sCertificate", balancerPort)) {
+			if v != "" {
+				param = k
+			}
+		}
+	}
+
+	if param == "" {
+		return nil, fmt.Errorf("Stack does not have a Certificate on Balancer port %s", balancerPort)
+	}
+
+	changes := map[string]string{}
+	changes[param] = ""
+
+	app.UpdateParams(changes)
+
+	// TODO: wait for stack update to finish, so we can delete certificate
 
 	params := &iam.DeleteServerCertificateInput{
 		ServerCertificateName: aws.String(app.Name),
@@ -91,6 +147,7 @@ func DeleteSSL(a string) (*SSL, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	fmt.Printf("%+v\n", resp)
 	return nil, nil
 }
