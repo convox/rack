@@ -442,7 +442,24 @@ func templateHelpers() template.FuncMap {
 						continue
 					}
 
-					ls = append(ls, fmt.Sprintf(`{ "Protocol": "TCP", "LoadBalancerPort": { "Ref": "%sPort%sBalancer" }, "InstanceProtocol": "TCP", "InstancePort": { "Ref": "%sPort%sHost" } }`, UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0]))
+					l := fmt.Sprintf(`{ "Fn::If": [ "Blank%sPort%sCertificate",
+					{
+						"Protocol": "TCP",
+						"LoadBalancerPort": {
+							"Ref": "%sPort%sBalancer" },
+							"InstanceProtocol": "TCP",
+							"InstancePort": { "Ref": "%sPort%sHost" }
+					},
+					{
+						"Protocol": "SSL",
+						"LoadBalancerPort": {
+							"Ref": "%sPort%sBalancer" },
+							"InstanceProtocol": "TCP",
+							"InstancePort": { "Ref": "%sPort%sHost" },
+							"SSLCertificateId": { "Ref": "%sPort%sCertificate" }
+					} ] }`, UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0], UpperName(entry.Name), parts[0])
+
+					ls = append(ls, l)
 				}
 			}
 

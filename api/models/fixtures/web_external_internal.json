@@ -165,14 +165,32 @@
         ],
         "Listeners": [
           {
-            "InstancePort": {
-              "Ref": "WebPort80Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": {
-              "Ref": "WebPort80Balancer"
-            },
-            "Protocol": "TCP"
+            "Fn::If": [
+              "BlankWebPort80Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "SSL",
+                "SSLCertificateId": {
+                  "Ref": "WebPort80Certificate"
+                }
+              }
+            ]
           }
         ],
         "LoadBalancerName": {
