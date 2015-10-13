@@ -75,7 +75,7 @@ func init() {
 }
 
 func cmdServices(c *cli.Context) {
-	services, err := rackClient(c).ListServices()
+	services, err := rackClient(c).GetServices()
 
 	if err != nil {
 		stdcli.Error(err)
