@@ -141,6 +141,12 @@ func VersionPrinter(printer func(*cli.Context)) {
 	cli.VersionPrinter = printer
 }
 
+func WriteSetting(setting, value string) error {
+	err := ioutil.WriteFile(fmt.Sprintf(".convox/%s", setting), []byte(value), 0777)
+
+	return err
+}
+
 func Error(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	Exiter(1)
