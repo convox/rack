@@ -98,6 +98,10 @@ func maxAppConcurrency() (int, error) {
 			return 0, err
 		}
 
+		if rel == nil {
+			continue
+		}
+
 		m, err := LoadManifest(rel.Manifest)
 
 		if err != nil {
