@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -82,6 +83,7 @@ func Debug() bool {
 }
 
 // If user specifies the app's name from command line, then use it;
+// if not, try to read the app name from .convox/app
 // otherwise use the current working directory's name
 func DirApp(c *cli.Context, wd string) (string, string, error) {
 	abs, err := filepath.Abs(wd)
@@ -93,10 +95,30 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	app := c.String("app")
 
 	if app == "" {
+		app, err = ReadSetting("app")
+
+		if err != nil {
+			app = ""
+		}
+	}
+
+	if app == "" {
 		app = path.Base(abs)
 	}
 
 	return abs, app, nil
+}
+
+func ReadSetting(setting string) (string, error) {
+	value, err := ioutil.ReadFile(fmt.Sprintf(".convox/%s", setting))
+
+	if err != nil {
+		return "", err
+	}
+
+	output := strings.TrimSpace(string(value))
+
+	return output, nil
 }
 
 func RegisterCommand(cmd cli.Command) {
