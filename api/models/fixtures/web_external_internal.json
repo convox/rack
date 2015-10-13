@@ -9,6 +9,14 @@
         ""
       ]
     },
+    "BlankWebPort80Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Certificate"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         {

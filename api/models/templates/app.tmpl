@@ -2,6 +2,7 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
+      {{ template "balancer-conditions" . }}
       {{ template "process-conditions" . }}
       "BlankCluster": { "Fn::Equals": [ { "Ref": "Cluster" }, "" ] }
     },
@@ -226,6 +227,15 @@
           "LoadBalancers": [ {{ entry_loadbalancers . $e.Name }} ]
         }
       },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "balancer-conditions" }}
+  {{ range $entry := . }}
+    {{ range $i, $port := $entry.ExternalPorts }}
+      {{ $parts := (split $port ":") }}
+      "Blank{{ upper $entry.Name }}Port{{ index $parts 0 }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $entry.Name }}Port{{ index $parts 0 }}Certificate" }, "" ] },
     {{ end }}
   {{ end }}
 {{ end }}

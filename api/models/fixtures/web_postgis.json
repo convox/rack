@@ -17,6 +17,22 @@
         ""
       ]
     },
+    "BlankWebPort443Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort443Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankWebPort80Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Certificate"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         {
