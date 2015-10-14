@@ -95,6 +95,16 @@
 			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/elb",
+			"Comment": "v0.9.6",
+			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/iam",
+			"Comment": "v0.9.6",
+			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/kinesis",
 			"Comment": "v0.9.6",
 			"Rev": "69142c71761512d894b028dc5c8cc312758372dd"
