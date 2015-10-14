@@ -152,6 +152,8 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
+		case "papertrail":
+			url = parameters["Url"]
 		case "postgres":
 			url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 		case "redis":
