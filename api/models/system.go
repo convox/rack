@@ -115,7 +115,7 @@ func maxAppConcurrency() (int, error) {
 		}
 
 		for _, me := range m {
-			if m.HasExternalPorts() {
+			if len(me.ExternalPorts()) > 0 {
 				entry := f.Entry(me.Name)
 
 				if entry != nil && entry.Count > max {
