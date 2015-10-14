@@ -508,6 +508,8 @@
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             "curl -s http://convox.s3.amazonaws.com/agent/0.3/convox.conf > /etc/init/convox.conf",
+            { "Fn::Join": [ " ", [ "cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
+            { "Fn::Join": [ " ", [ "cfn-signal", "-s", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"
           ] ] }
         }
@@ -551,7 +553,9 @@
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": 1,
-          "MinInstancesInService": 1
+          "MinInstancesInService": 1,
+          "PauseTime" : "PT5M",
+          "WaitOnResourceSignals": "true"
         }
       }
     },
