@@ -3,6 +3,7 @@ package client
 import "fmt"
 
 type SSL struct {
+	Arn  string `json:"arn"`
 	Id   string `json:"id"`
 	Port string `json:"port"`
 }
@@ -49,4 +50,16 @@ func (c *Client) DeleteSSL(app, port string) (*SSL, error) {
 	}
 
 	return &ssl, nil
+}
+
+func (c *Client) ListSSL(app string) (*SSLs, error) {
+	var ssls SSLs
+
+	err := c.Get(fmt.Sprintf("/apps/%s/ssl", app), &ssls)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ssls, nil
 }

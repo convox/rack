@@ -11,6 +11,7 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "ssl",
+		Action:      cmdSSLList,
 		Description: "manage SSL certificates",
 		Subcommands: []cli.Command{
 			{
@@ -101,4 +102,22 @@ func cmdSSLDelete(c *cli.Context) {
 	}
 
 	fmt.Println("Done.")
+}
+
+func cmdSSLList(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	ssls, err := rackClient(c).ListSSL(app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("%+v\n", ssls)
 }
