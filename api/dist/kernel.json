@@ -554,7 +554,7 @@
         "AutoScalingRollingUpdate": {
           "MaxBatchSize": 1,
           "MinInstancesInService": 1,
-          "PauseTime" : "PT5M",
+          "PauseTime" : "PT15M",
           "WaitOnResourceSignals": "true"
         }
       }
