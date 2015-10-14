@@ -1,7 +1,10 @@
 package models
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -11,9 +14,11 @@ import (
 )
 
 type SSL struct {
-	Id   string `json:"id"`
-	Port string `json:"port"`
-	Arn  string `json:"arn"`
+	Id         string    `json:"id"`
+	Arn        string    `json:"arn"`
+	Expiration time.Time `json:"expiration"`
+	Name       string    `json:"name"`
+	Port       string    `json:"port"`
 }
 
 type SSLs []SSL
@@ -53,7 +58,7 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
 		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(fmt.Sprintf("%s-%s", a, balancerPort)),
+		ServerCertificateName: aws.String(certName(a, balancerPort)),
 	})
 
 	if err != nil {
@@ -138,7 +143,7 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 
 	go func() {
 		for {
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 
 			a, err := GetApp(app.Name)
 			fmt.Printf("%+v\n%+v\n", a, err)
@@ -149,7 +154,7 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 
 			if a.Status == "running" {
 				params := &iam.DeleteServerCertificateInput{
-					ServerCertificateName: aws.String(fmt.Sprintf("%s-%s", app.Name, balancerPort)),
+					ServerCertificateName: aws.String(certName(app.Name, balancerPort)),
 				}
 
 				resp, err := IAM().DeleteServerCertificate(params)
@@ -177,16 +182,39 @@ func ListSSLs(a string) (SSLs, error) {
 
 	ssls := make(SSLs, 0)
 
+	// Find stack Parameters like WebPort443Certificate with an ARN set for the value
+	// Get and decode corresponding certificate info
+	re := regexp.MustCompile(`(\w+)Port(\d+)Certificate`)
+
 	for k, v := range app.Parameters {
-		if strings.HasSuffix(k, fmt.Sprintf("Certificate")) {
-			if v != "" {
-				ssls = append(ssls, SSL{
-					Arn:  v,
-					Port: k,
-				})
+		if v == "" {
+			continue
+		}
+
+		if matches := re.FindStringSubmatch(k); len(matches) > 0 {
+			resp, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+				ServerCertificateName: aws.String(certName(a, matches[2])),
+			})
+
+			if err != nil {
+				return nil, err
 			}
+
+			pemBlock, _ := pem.Decode([]byte(*resp.ServerCertificate.CertificateBody))
+			c, err := x509.ParseCertificate(pemBlock.Bytes)
+
+			ssls = append(ssls, SSL{
+				Arn:        v,
+				Name:       c.Subject.CommonName,
+				Expiration: *resp.ServerCertificate.ServerCertificateMetadata.Expiration,
+				Port:       matches[2],
+			})
 		}
 	}
 
 	return ssls, nil
+}
+
+func certName(app, port string) string {
+	return UpperName(app) + port
 }

@@ -1,11 +1,16 @@
 package client
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type SSL struct {
-	Arn  string `json:"arn"`
-	Id   string `json:"id"`
-	Port string `json:"port"`
+	Id         string    `json:"id"`
+	Arn        string    `json:"arn"`
+	Expiration time.Time `json:"expiration"`
+	Name       string    `json:"name"`
+	Port       string    `json:"port"`
 }
 
 type SSLs []SSL
