@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -69,16 +67,23 @@ func displayFormation(c *cli.Context, app string) {
 		return
 	}
 
-	t := stdcli.NewTable("NAME", "COUNT", "MEMORY", "PORTS")
+	pss, err := rackClient(c).GetProcesses(app, false)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	running := map[string]int{}
+
+	for _, ps := range pss {
+		running[ps.Name] = running[ps.Name] + 1
+	}
+
+	t := stdcli.NewTable("NAME", "DESIRED", "RUNNING", "MEMORY")
 
 	for _, f := range formation {
-		ports := []string{}
-
-		for _, p := range f.Ports {
-			ports = append(ports, strconv.Itoa(p))
-		}
-
-		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", f.Memory), strings.Join(ports, " "))
+		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", running[f.Name]), fmt.Sprintf("%d", f.Memory))
 	}
 
 	t.Print()

@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 )
 
@@ -64,6 +65,8 @@ func ListFormation(app string) (Formation, error) {
 			Ports:  ports,
 		})
 	}
+
+	sort.Sort(formation)
 
 	return formation, nil
 }
@@ -133,4 +136,16 @@ func (f Formation) Entry(name string) *FormationEntry {
 	}
 
 	return nil
+}
+
+func (f Formation) Len() int {
+	return len(f)
+}
+
+func (f Formation) Less(a, b int) bool {
+	return f[a].Name < f[b].Name
+}
+
+func (f Formation) Swap(a, b int) {
+	f[a], f[b] = f[b], f[a]
 }
