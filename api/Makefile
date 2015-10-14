@@ -26,3 +26,6 @@ test-coverage:
 test-deps:
 	go get github.com/axw/gocov/gocov
 	go get gopkg.in/matm/v1/gocov-html
+
+vendor:
+	godep save -r ./...

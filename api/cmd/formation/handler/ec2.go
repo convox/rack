@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 )
 
 func HandleEC2AvailabilityZones(req Request) (string, map[string]string, error) {

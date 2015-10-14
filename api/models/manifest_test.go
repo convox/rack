@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aryann/difflib"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aryann/difflib"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/require"
 )
 
 type Cases []struct {

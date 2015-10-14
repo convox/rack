@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/stvp/rollbar"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stvp/rollbar"
 )
 
 const ErrorHandlerSkipLines = 7
