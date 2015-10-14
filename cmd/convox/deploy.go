@@ -78,4 +78,17 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	fmt.Println("UPDATING")
+
+	formation, err := rackClient(c).ListFormation(app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	for _, processType := range formation {
+		for _, port := range processType.Ports {
+			fmt.Printf("%s will be available at %s:%d\n", processType.Name, a.Balancer, port)
+		}
+	}
 }
