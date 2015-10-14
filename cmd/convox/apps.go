@@ -18,19 +18,19 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new application",
-				Usage:       "[name]",
+				Usage:       "<name>",
 				Action:      cmdAppCreate,
 			},
 			{
 				Name:        "delete",
 				Description: "delete an application",
-				Usage:       "[name]",
+				Usage:       "<name>",
 				Action:      cmdAppDelete,
 			},
 			{
 				Name:        "info",
 				Description: "see info about an app",
-				Usage:       "",
+				Usage:       "[name]",
 				Action:      cmdAppInfo,
 				Flags:       []cli.Flag{appFlag},
 			},
@@ -105,7 +105,14 @@ func cmdAppDelete(c *cli.Context) {
 }
 
 func cmdAppInfo(c *cli.Context) {
-	_, app, err := stdcli.DirApp(c, ".")
+	var app string
+	var err error
+
+	if len(c.Args()) > 0 {
+		app = c.Args()[0]
+	} else {
+		_, app, err = stdcli.DirApp(c, ".")
+	}
 
 	a, err := rackClient(c).GetApp(app)
 
