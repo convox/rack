@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -24,6 +25,11 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 		return nil, err
 	}
 
+	// validate app is not currently updating
+	if app.Status != "running" {
+		return nil, fmt.Errorf("can not update app with status: %s", app.Status)
+	}
+
 	// validate app has hostPort
 	release, err := app.LatestRelease()
 
@@ -37,7 +43,6 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 		return nil, err
 	}
 
-	// TODO: validate based on manifest defining EXTERNAL port
 	me := manifest.EntryByBalancerPort(balancerPort)
 
 	if me == nil {
@@ -72,10 +77,8 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 
 	params := app.Parameters
 
-	// TODO: make name (e.g.) WebPort3001Balancer based on EXTERNAL PORT and Manifest Process Name
-	// WebPort3001Balancer, WebPort3001Certificate
-	params[fmt.Sprintf("%sPort%sBalancer", UpperName(me.Name), balancerPort)] = balancerPort // e.g.WebPort3000Certificate
-	params[fmt.Sprintf("%sPort%sCertificate", UpperName(me.Name), balancerPort)] = *arn      // e.g.WebPort3000Certificate
+	params[fmt.Sprintf("%sPort%sBalancer", UpperName(me.Name), balancerPort)] = balancerPort // e.g.WebPort443Balancer = 443
+	params[fmt.Sprintf("%sPort%sCertificate", UpperName(me.Name), balancerPort)] = *arn      // e.g.WebPort443Certificate = arn:...
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
@@ -83,9 +86,6 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 			ParameterValue: aws.String(val),
 		})
 	}
-
-	fmt.Printf("%+v\n", req.Parameters)
-	fmt.Printf("%s\n", *req.TemplateBody)
 
 	_, err = CloudFormation().UpdateStack(req)
 
@@ -109,20 +109,26 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 		return nil, err
 	}
 
-	// validate app stack has certificate
+	// validate app is not currently updating
+	if app.Status != "running" {
+		return nil, fmt.Errorf("can not update app with status: %s", app.Status)
+	}
 
+	// validate app stack has certificate
 	param := ""
+	arn := ""
 
 	for k, v := range app.Parameters {
 		if strings.HasSuffix(k, fmt.Sprintf("%sCertificate", balancerPort)) {
 			if v != "" {
+				arn = v
 				param = k
 			}
 		}
 	}
 
 	if param == "" {
-		return nil, fmt.Errorf("Stack does not have a Certificate on Balancer port %s", balancerPort)
+		return nil, fmt.Errorf("app does not have a certificate on balancer port %s", balancerPort)
 	}
 
 	changes := map[string]string{}
@@ -130,20 +136,36 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 
 	app.UpdateParams(changes)
 
-	// TODO: wait for stack update to finish, so we can delete certificate
+	go func() {
+		for {
+			time.Sleep(2 * time.Second)
 
-	params := &iam.DeleteServerCertificateInput{
-		ServerCertificateName: aws.String(app.Name),
+			a, err := GetApp(app.Name)
+			fmt.Printf("%+v\n%+v\n", a, err)
+
+			if err != nil {
+				return
+			}
+
+			if a.Status == "running" {
+				params := &iam.DeleteServerCertificateInput{
+					ServerCertificateName: aws.String(fmt.Sprintf("%s-%s", app.Name, balancerPort)),
+				}
+
+				resp, err := IAM().DeleteServerCertificate(params)
+				fmt.Printf("%+v\n%+v\n", resp, err)
+
+				return
+			}
+		}
+	}()
+
+	ssl := SSL{
+		Port: balancerPort,
+		Arn:  arn,
 	}
 
-	resp, err := IAM().DeleteServerCertificate(params)
-
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("%+v\n", resp)
-	return nil, nil
+	return &ssl, nil
 }
 
 func ListSSLs(a string) (SSLs, error) {
@@ -155,14 +177,12 @@ func ListSSLs(a string) (SSLs, error) {
 
 	ssls := make(SSLs, 0)
 
-	fmt.Printf("%+v\n", app.Parameters)
-
 	for k, v := range app.Parameters {
 		if strings.HasSuffix(k, fmt.Sprintf("Certificate")) {
 			if v != "" {
 				ssls = append(ssls, SSL{
 					Arn:  v,
-					Port: "5000",
+					Port: k,
 				})
 			}
 		}
