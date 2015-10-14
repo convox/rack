@@ -508,16 +508,28 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 		}
 	}
 
+	ports := []string{}
+
 	switch t := me.Ports.(type) {
 	case []string:
 		for _, port := range t {
-			args = append(args, "-p", port)
+			ports = append(ports, port)
 		}
 	case []interface{}:
 		for _, port := range t {
-			if p, ok := port.(string); ok {
-				args = append(args, "-p", p)
-			}
+			ports = append(ports, fmt.Sprintf("%v", port))
+		}
+	}
+
+	for _, port := range ports {
+		switch len(strings.Split(port, ":")) {
+		case 1:
+			args = append(args, "-p", fmt.Sprintf("%s:%s", port, port))
+		case 2:
+			args = append(args, "-p", port)
+		default:
+			ch <- fmt.Errorf("unknown port declaration: %s", port)
+			return
 		}
 	}
 
