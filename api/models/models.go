@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
@@ -66,6 +67,10 @@ func EC2() *ec2.EC2 {
 
 func ECS() *ecs.ECS {
 	return ecs.New(awsConfig())
+}
+
+func IAM() *iam.IAM {
+	return iam.New(awsConfig())
 }
 
 func Kinesis() *kinesis.Kinesis {
