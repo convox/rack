@@ -72,6 +72,18 @@ func (m Manifest) Entry(name string) *ManifestEntry {
 	return nil
 }
 
+func (m Manifest) EntryByBalancerPort(port string) *ManifestEntry {
+	for _, me := range m {
+		for _, p := range me.ExternalPorts() {
+			if port == strings.Split(p, ":")[0] {
+				return &me
+			}
+		}
+	}
+
+	return nil
+}
+
 func (m Manifest) EntryNames() []string {
 	names := make([]string, len(m))
 
