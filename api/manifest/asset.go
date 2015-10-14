@@ -87,7 +87,7 @@ func dataDockerfileMeteor() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/Dockerfile.meteor", size: 33, mode: os.FileMode(420), modTime: time.Unix(1441248989, 0)}
+	info := bindataFileInfo{name: "data/Dockerfile.meteor", size: 33, mode: os.FileMode(420), modTime: time.Unix(1443527400, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -107,12 +107,12 @@ func dataDockerfileNode() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/Dockerfile.node", size: 144, mode: os.FileMode(420), modTime: time.Unix(1440031133, 0)}
+	info := bindataFileInfo{name: "data/Dockerfile.node", size: 144, mode: os.FileMode(420), modTime: time.Unix(1443527400, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
-var _dataDockerfileRails = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x72\x0b\xf2\xf7\x55\x28\x4a\xcc\xcc\x29\xe6\xe2\x0a\xf7\x0f\xf2\x76\xf1\x0c\x52\xd0\x4f\x2c\x28\xe0\xe2\x72\xf6\x0f\x88\x54\x70\x4f\xcd\x4d\xcb\xcc\x49\x05\x0b\xe9\x43\x39\x28\x32\x7a\x39\xf9\xc9\xd9\x28\xd2\x60\x11\xae\xa0\x50\x3f\x85\xa4\xd2\xbc\x14\xa0\xde\xcc\xbc\xe2\x92\xc4\x9c\x1c\xa8\x89\x7a\x30\xe3\x7d\x5d\x14\xa2\x95\xc0\x36\x2b\xe9\x28\x28\x15\xa7\x16\x95\xa5\x16\x81\x58\xba\x49\x20\xd2\x40\x0f\x0c\x95\x62\xb9\x00\x01\x00\x00\xff\xff\x0d\x61\xda\x52\xa2\x00\x00\x00")
+var _dataDockerfileRails = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x54\x8e\x41\xeb\xc2\x30\x0c\xc5\xef\xf9\x14\xa1\xe7\xff\xbf\xf5\xec\x75\x43\x11\x99\x1b\x05\x11\x11\x0f\xdd\x16\xa1\xac\xdb\x4a\x53\xfd\xfc\xda\x6e\x97\x11\x78\x24\xef\x25\x3f\x72\xd0\x75\x85\xc1\x58\xc7\x00\xb7\x5a\x9f\xcb\x93\x46\x65\xbc\x07\x28\xea\xe6\x8e\x47\x1a\x5f\xd6\x51\xb6\xd4\x3a\x6c\x12\xe9\xe6\x6e\xd8\xc4\xd9\x01\x7d\xbd\x60\xfb\x9e\xfa\xdf\xad\x9d\x38\x1a\xe7\x56\xa2\x5c\xf0\x29\x0f\x66\x20\x34\xcc\x14\x79\xef\x03\x75\xf3\xe8\x13\x1e\x8a\xaa\xc4\x87\xc8\x4f\x89\x3f\x14\x4c\xe1\x43\x21\x75\xff\x6d\xd2\x9d\xcc\x95\x8d\x26\xa9\x8a\xa3\x57\xcb\x96\xf4\xb6\x17\x4f\xf8\x06\x00\x00\xff\xff\x92\xd6\x85\x4d\xd6\x00\x00\x00")
 
 func dataDockerfileRailsBytes() ([]byte, error) {
 	return bindataRead(
@@ -127,7 +127,7 @@ func dataDockerfileRails() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/Dockerfile.rails", size: 162, mode: os.FileMode(420), modTime: time.Unix(1440031133, 0)}
+	info := bindataFileInfo{name: "data/Dockerfile.rails", size: 214, mode: os.FileMode(420), modTime: time.Unix(1444749451, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -147,7 +147,7 @@ func dataDockerfileRuby() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/Dockerfile.ruby", size: 152, mode: os.FileMode(420), modTime: time.Unix(1436484690, 0)}
+	info := bindataFileInfo{name: "data/Dockerfile.ruby", size: 152, mode: os.FileMode(420), modTime: time.Unix(1443527400, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -167,7 +167,7 @@ func dataDockerfileUnknown() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/Dockerfile.unknown", size: 118, mode: os.FileMode(420), modTime: time.Unix(1440031133, 0)}
+	info := bindataFileInfo{name: "data/Dockerfile.unknown", size: 118, mode: os.FileMode(420), modTime: time.Unix(1443527400, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
