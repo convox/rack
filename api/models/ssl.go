@@ -2,12 +2,10 @@ package models
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
@@ -50,7 +48,7 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
 		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(fmt.Sprintf("%s", a)),
+		ServerCertificateName: aws.String(fmt.Sprintf("%s-%s", a, balancerPort)),
 	})
 
 	if err != nil {
@@ -113,10 +111,6 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 
 	// validate app stack has certificate
 
-	if err != nil {
-		return nil, err
-	}
-
 	param := ""
 
 	for k, v := range app.Parameters {
@@ -159,34 +153,18 @@ func ListSSLs(a string) (SSLs, error) {
 		return nil, err
 	}
 
-	resources := app.Resources()
-
-	id := resources["Balancer"].Id
-
-	params := elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{
-			aws.String(id),
-		},
-	}
-
-	resp, err := ELB().DescribeLoadBalancers(&params)
-
-	if err != nil {
-		return nil, err
-	}
-
-	lds := resp.LoadBalancerDescriptions[0].ListenerDescriptions
-
 	ssls := make(SSLs, 0)
 
-	for _, ld := range lds {
-		listener := ld.Listener
-		if listener.SSLCertificateId != nil {
-			ssl := SSL{
-				Id:   *listener.SSLCertificateId,
-				Port: strconv.FormatInt(*listener.LoadBalancerPort, 10),
+	fmt.Printf("%+v\n", app.Parameters)
+
+	for k, v := range app.Parameters {
+		if strings.HasSuffix(k, fmt.Sprintf("Certificate")) {
+			if v != "" {
+				ssls = append(ssls, SSL{
+					Arn:  v,
+					Port: "5000",
+				})
 			}
-			ssls = append(ssls, ssl)
 		}
 	}
 
