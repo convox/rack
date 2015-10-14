@@ -67,7 +67,7 @@ func displayFormation(c *cli.Context, app string) {
 		return
 	}
 
-	pss, err := rackClient(c).GetProcesses(app)
+	pss, err := rackClient(c).GetProcesses(app, false)
 
 	if err != nil {
 		stdcli.Error(err)
