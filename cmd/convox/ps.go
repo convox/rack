@@ -13,7 +13,13 @@ func init() {
 		Description: "list an app's processes",
 		Usage:       "",
 		Action:      cmdPs,
-		Flags:       []cli.Flag{appFlag},
+		Flags: []cli.Flag{
+			appFlag,
+			cli.BoolFlag{
+				Name:  "stats",
+				Usage: "display process cpu/memory stats",
+			},
+		},
 		Subcommands: []cli.Command{
 			{
 				Name:        "stop",
@@ -34,20 +40,30 @@ func cmdPs(c *cli.Context) {
 		return
 	}
 
-	ps, err := rackClient(c).GetProcesses(app)
+	ps, err := rackClient(c).GetProcesses(app, c.Bool("stats"))
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU", "MEM", "STARTED", "COMMAND")
+	if c.Bool("stats") {
+		t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU", "MEM", "STARTED", "COMMAND")
 
-	for _, p := range ps {
-		t.AddRow(p.Id, p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+		for _, p := range ps {
+			t.AddRow(p.Id, p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+		}
+
+		t.Print()
+	} else {
+		t := stdcli.NewTable("ID", "NAME", "RELEASE", "STARTED", "COMMAND")
+
+		for _, p := range ps {
+			t.AddRow(p.Id, p.Name, p.Release, humanizeTime(p.Started), p.Command)
+		}
+
+		t.Print()
 	}
-
-	t.Print()
 }
 
 func cmdPsStop(c *cli.Context) {

@@ -27,10 +27,10 @@ type Process struct {
 
 type Processes []Process
 
-func (c *Client) GetProcesses(app string) (Processes, error) {
+func (c *Client) GetProcesses(app string, stats bool) (Processes, error) {
 	var processes Processes
 
-	err := c.Get(fmt.Sprintf("/apps/%s/processes", app), &processes)
+	err := c.Get(fmt.Sprintf("/apps/%s/processes?stats=%t", app, stats), &processes)
 
 	if err != nil {
 		return nil, err

@@ -281,6 +281,11 @@ paths:
         type: string
         in: path
         required: true
+      - name: stats
+        description: return cpu/memory stats
+        type: boolean
+        in: query
+        required: false
       responses:
         200:
           description: processes

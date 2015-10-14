@@ -11,7 +11,7 @@ type Service struct {
 
 type Services []Service
 
-func (c *Client) ListServices() (Services, error) {
+func (c *Client) GetServices() (Services, error) {
 	var services Services
 
 	err := c.Get("/services", &services)
