@@ -40,7 +40,6 @@ func cmdRun(c *cli.Context) {
 
 	fd := os.Stdin.Fd()
 	stdinState, err := terminal.GetState(int(fd))
-	defer terminal.Restore(int(fd), stdinState)
 
 	_, app, err := stdcli.DirApp(c, ".")
 
@@ -57,7 +56,9 @@ func cmdRun(c *cli.Context) {
 	ps := c.Args()[0]
 
 	code, err := rackClient(c).RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
-	terminal.Restore(int(fd), stdinState)
+	if terminal.IsTerminal(int(fd)) {
+		terminal.Restore(int(fd), stdinState)
+	}
 
 	if err != nil {
 		stdcli.Error(err)
