@@ -494,6 +494,7 @@
             "#!/bin/bash",
             "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
             "yum -y update",
+            "yum -y install aws-cfn-bootstrap",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::If": [ "BlankCertificate",
@@ -508,8 +509,8 @@
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             "curl -s http://convox.s3.amazonaws.com/agent/0.3/convox.conf > /etc/init/convox.conf",
-            { "Fn::Join": [ " ", [ "cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
-            { "Fn::Join": [ " ", [ "cfn-signal", "-s", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
+            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
+            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "-s", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"
           ] ] }
         }
