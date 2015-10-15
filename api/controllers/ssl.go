@@ -34,7 +34,7 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	var validPorts = regexp.MustCompile(`[0-9]+`)
 
 	if !validPorts.MatchString(port) {
-		return httperr.Errorf(403, "balancer port must be in 443 format")
+		return httperr.Errorf(403, "balancer port must be a number")
 	}
 
 	ssl, err := models.CreateSSL(a, port, body, key)
