@@ -1,10 +1,8 @@
 package workers
 
 import (
-	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,7 +11,6 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 )
@@ -41,16 +38,9 @@ func StartCluster() {
 	for _ = range time.Tick(30 * time.Second) {
 		log.Log("tick")
 
-		instanceCount, err := getRackInstanceCount()
-
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
 		instances := Instances{}
 
-		err = instances.describeASG()
+		err := instances.describeASG()
 
 		if err != nil {
 			log.Error(err)
@@ -85,7 +75,7 @@ func StartCluster() {
 			}
 		}
 
-		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(instances.inECS(), ","), strings.Join(instances.inASG(), ","), strings.Join(instances.inUnhealthy(), ","))
+		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", len(instances), strings.Join(instances.inECS(), ","), strings.Join(instances.inASG(), ","), strings.Join(instances.inUnhealthy(), ","))
 	}
 }
 
@@ -190,32 +180,4 @@ func (instances Instances) inUnhealthy() []string {
 	sort.Strings(ids)
 
 	return ids
-}
-
-func getRackInstanceCount() (int, error) {
-	name := os.Getenv("RACK")
-
-	res, err := models.CloudFormation().DescribeStacks(
-		&cloudformation.DescribeStacksInput{
-			StackName: aws.String(name),
-		},
-	)
-
-	if err != nil {
-		return 0, err
-	}
-
-	for _, p := range res.Stacks[0].Parameters {
-		if *p.ParameterKey == "InstanceCount" {
-			c, err := strconv.Atoi(*p.ParameterValue)
-
-			if err != nil {
-				return 0, err
-			}
-
-			return c, nil
-		}
-	}
-
-	return 0, fmt.Errorf("Stack %s InstanceCount parameter missing", name)
 }
