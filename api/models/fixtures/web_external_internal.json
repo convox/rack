@@ -9,6 +9,14 @@
         ""
       ]
     },
+    "BlankWebPort80Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Certificate"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         {
@@ -119,6 +127,11 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort80Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort80Host": {
       "Default": "5000",
       "Description": "",
@@ -165,14 +178,32 @@
         ],
         "Listeners": [
           {
-            "InstancePort": {
-              "Ref": "WebPort80Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": {
-              "Ref": "WebPort80Balancer"
-            },
-            "Protocol": "TCP"
+            "Fn::If": [
+              "BlankWebPort80Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "SSL",
+                "SSLCertificateId": {
+                  "Ref": "WebPort80Certificate"
+                }
+              }
+            ]
           }
         ],
         "LoadBalancerName": {
