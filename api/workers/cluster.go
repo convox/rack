@@ -19,11 +19,14 @@ import (
 )
 
 type Instance struct {
-	Id     string
+	Id string
+
 	ECS    bool
 	ASG    bool
 	Docker bool
 	Run    bool
+
+	Unhealthy bool
 }
 
 type Instances map[string]Instance
@@ -62,9 +65,6 @@ func StartCluster() {
 		}
 
 		// Test if ASG Instance is registered and connected in ECS cluster
-
-		uInstanceIds := []string{}
-
 		for _, i := range instances {
 			if i.ASG && !i.ECS {
 				// Not registered or not connected => set Unhealthy
@@ -76,18 +76,16 @@ func StartCluster() {
 					},
 				)
 
+				i.Unhealthy = true
+
 				if err != nil {
 					log.Error(err)
 					continue
 				}
-
-				uInstanceIds = append(uInstanceIds, i.Id)
 			}
 		}
 
-		sort.Strings(uInstanceIds)
-
-		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(instances.inECS(), ","), strings.Join(instances.inASG(), ","), strings.Join(uInstanceIds, ","))
+		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(instances.inECS(), ","), strings.Join(instances.inASG(), ","), strings.Join(instances.inUnhealthy(), ","))
 	}
 }
 
@@ -171,6 +169,20 @@ func (instances Instances) inECS() []string {
 
 	for _, i := range instances {
 		if i.ECS {
+			ids = append(ids, i.Id)
+		}
+	}
+
+	sort.Strings(ids)
+
+	return ids
+}
+
+func (instances Instances) inUnhealthy() []string {
+	ids := []string{}
+
+	for _, i := range instances {
+		if i.Unhealthy {
 			ids = append(ids, i.Id)
 		}
 	}
