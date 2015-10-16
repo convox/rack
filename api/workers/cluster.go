@@ -18,6 +18,16 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 )
 
+type Instance struct {
+	Id     string
+	ECS    bool
+	ASG    bool
+	Docker bool
+	Run    bool
+}
+
+type Instances map[string]Instance
+
 func StartCluster() {
 	var log = logger.New("ns=cluster_monitor")
 
@@ -42,16 +52,7 @@ func StartCluster() {
 			continue
 		}
 
-		// Get and Describe Rack ASG Resource
-		resources, err := models.ListResources(os.Getenv("RACK"))
-
-		ares, err := models.AutoScaling().DescribeAutoScalingGroups(
-			&autoscaling.DescribeAutoScalingGroupsInput{
-				AutoScalingGroupNames: []*string{
-					aws.String(resources["Instances"].Id),
-				},
-			},
-		)
+		instances, err := describeASGInstances()
 
 		if err != nil {
 			log.Error(err)
@@ -63,16 +64,16 @@ func StartCluster() {
 		aInstanceIds := []string{}
 		uInstanceIds := []string{}
 
-		for _, i := range ares.AutoScalingGroups[0].Instances {
-			if connected, exists := cInstanceConnections[*i.InstanceId]; connected && exists {
-				aInstanceIds = append(aInstanceIds, *i.InstanceId)
+		for _, i := range instances {
+			if connected, exists := cInstanceConnections[i.Id]; connected && exists {
+				aInstanceIds = append(aInstanceIds, i.Id)
 			} else {
 				// Not registered or not connected => set Unhealthy
-				if *i.LifecycleState == "InService" {
+				if i.ASG {
 					_, err := models.AutoScaling().SetInstanceHealth(
 						&autoscaling.SetInstanceHealthInput{
 							HealthStatus:             aws.String("Unhealthy"),
-							InstanceId:               aws.String(*i.InstanceId),
+							InstanceId:               aws.String(i.Id),
 							ShouldRespectGracePeriod: aws.Bool(true),
 						},
 					)
@@ -82,7 +83,7 @@ func StartCluster() {
 						continue
 					}
 
-					uInstanceIds = append(uInstanceIds, *i.InstanceId)
+					uInstanceIds = append(uInstanceIds, i.Id)
 				}
 			}
 		}
@@ -93,6 +94,34 @@ func StartCluster() {
 
 		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
 	}
+}
+
+func describeASGInstances() (Instances, error) {
+	instances := Instances{}
+
+	// Get and Describe Rack ASG Resource
+	resources, err := models.ListResources(os.Getenv("RACK"))
+
+	ares, err := models.AutoScaling().DescribeAutoScalingGroups(
+		&autoscaling.DescribeAutoScalingGroupsInput{
+			AutoScalingGroupNames: []*string{
+				aws.String(resources["Instances"].Id),
+			},
+		},
+	)
+
+	if err != nil {
+		return instances, err
+	}
+
+	for _, i := range ares.AutoScalingGroups[0].Instances {
+		instances[*i.InstanceId] = Instance{
+			Id:  *i.InstanceId,
+			ASG: *i.LifecycleState == "InService",
+		}
+	}
+
+	return instances, nil
 }
 
 func describeClusterInstances() ([]string, map[string]bool, error) {
