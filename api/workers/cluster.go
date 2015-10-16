@@ -63,40 +63,31 @@ func StartCluster() {
 
 		// Test if ASG Instance is registered and connected in ECS cluster
 
-		aInstanceIds := []string{}
-		cInstanceIds := []string{}
 		uInstanceIds := []string{}
 
 		for _, i := range instances {
-			if i.ECS {
-				aInstanceIds = append(aInstanceIds, i.Id)
-				cInstanceIds = append(cInstanceIds, i.Id)
-			} else {
+			if i.ASG && !i.ECS {
 				// Not registered or not connected => set Unhealthy
-				if i.ASG {
-					_, err := models.AutoScaling().SetInstanceHealth(
-						&autoscaling.SetInstanceHealthInput{
-							HealthStatus:             aws.String("Unhealthy"),
-							InstanceId:               aws.String(i.Id),
-							ShouldRespectGracePeriod: aws.Bool(true),
-						},
-					)
+				_, err := models.AutoScaling().SetInstanceHealth(
+					&autoscaling.SetInstanceHealthInput{
+						HealthStatus:             aws.String("Unhealthy"),
+						InstanceId:               aws.String(i.Id),
+						ShouldRespectGracePeriod: aws.Bool(true),
+					},
+				)
 
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-
-					uInstanceIds = append(uInstanceIds, i.Id)
+				if err != nil {
+					log.Error(err)
+					continue
 				}
+
+				uInstanceIds = append(uInstanceIds, i.Id)
 			}
 		}
 
-		sort.Strings(aInstanceIds)
-		sort.Strings(cInstanceIds)
 		sort.Strings(uInstanceIds)
 
-		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
+		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(instances.inECS(), ","), strings.Join(instances.inASG(), ","), strings.Join(uInstanceIds, ","))
 	}
 }
 
@@ -159,6 +150,34 @@ func (instances Instances) describeECS() error {
 	}
 
 	return nil
+}
+
+func (instances Instances) inASG() []string {
+	ids := []string{}
+
+	for _, i := range instances {
+		if i.ASG {
+			ids = append(ids, i.Id)
+		}
+	}
+
+	sort.Strings(ids)
+
+	return ids
+}
+
+func (instances Instances) inECS() []string {
+	ids := []string{}
+
+	for _, i := range instances {
+		if i.ECS {
+			ids = append(ids, i.Id)
+		}
+	}
+
+	sort.Strings(ids)
+
+	return ids
 }
 
 func getRackInstanceCount() (int, error) {
