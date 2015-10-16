@@ -35,7 +35,7 @@ func StartCluster() {
 		helpers.Error(log, err)
 	})
 
-	for _ = range time.Tick(5 * time.Minute) {
+	for _ = range time.Tick(30 * time.Second) {
 		log.Log("tick")
 
 		instanceCount, err := getRackInstanceCount()
@@ -52,7 +52,9 @@ func StartCluster() {
 			continue
 		}
 
-		instances, err := describeASGInstances()
+		instances := Instances{}
+
+		err = instances.describeASG()
 
 		if err != nil {
 			log.Error(err)
@@ -96,13 +98,10 @@ func StartCluster() {
 	}
 }
 
-func describeASGInstances() (Instances, error) {
-	instances := Instances{}
-
-	// Get and Describe Rack ASG Resource
+func (instances Instances) describeASG() error {
 	resources, err := models.ListResources(os.Getenv("RACK"))
 
-	ares, err := models.AutoScaling().DescribeAutoScalingGroups(
+	res, err := models.AutoScaling().DescribeAutoScalingGroups(
 		&autoscaling.DescribeAutoScalingGroupsInput{
 			AutoScalingGroupNames: []*string{
 				aws.String(resources["Instances"].Id),
@@ -111,17 +110,23 @@ func describeASGInstances() (Instances, error) {
 	)
 
 	if err != nil {
-		return instances, err
+		return err
 	}
 
-	for _, i := range ares.AutoScalingGroups[0].Instances {
-		instances[*i.InstanceId] = Instance{
-			Id:  *i.InstanceId,
-			ASG: *i.LifecycleState == "InService",
-		}
+	for _, i := range res.AutoScalingGroups[0].Instances {
+		instance := instances[*i.InstanceId]
+
+		instance.Id = *i.InstanceId
+		instance.ASG = *i.LifecycleState == "InService"
+
+		instances[*i.InstanceId] = instance
 	}
 
-	return instances, nil
+	return nil
+}
+	}
+
+	return nil
 }
 
 func describeClusterInstances() ([]string, map[string]bool, error) {
