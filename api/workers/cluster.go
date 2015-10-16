@@ -32,41 +32,14 @@ func StartCluster() {
 
 		if err != nil {
 			log.Error(err)
+			continue
 		}
 
-		// List and Describe ECS Container Instances
-		ires, err := models.ECS().ListContainerInstances(
-			&ecs.ListContainerInstancesInput{
-				Cluster: aws.String(os.Getenv("CLUSTER")),
-			},
-		)
+		cInstanceIds, cInstanceConnections, err := describeClusterInstances()
 
 		if err != nil {
 			log.Error(err)
 			continue
-		}
-
-		dres, err := models.ECS().DescribeContainerInstances(
-			&ecs.DescribeContainerInstancesInput{
-				Cluster:            aws.String(os.Getenv("CLUSTER")),
-				ContainerInstances: ires.ContainerInstanceArns,
-			},
-		)
-
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
-		cInstanceIds := make([]string, 0)
-		cInstanceConnections := make(map[string]bool)
-
-		for _, i := range dres.ContainerInstances {
-			cInstanceConnections[*i.Ec2InstanceId] = *i.AgentConnected
-
-			if *i.AgentConnected {
-				cInstanceIds = append(cInstanceIds, *i.Ec2InstanceId)
-			}
 		}
 
 		// Get and Describe Rack ASG Resource
@@ -120,6 +93,43 @@ func StartCluster() {
 
 		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
 	}
+}
+
+func describeClusterInstances() ([]string, map[string]bool, error) {
+	ids := make([]string, 0)
+	conns := make(map[string]bool)
+
+	// List and Describe ECS Container Instances
+	ires, err := models.ECS().ListContainerInstances(
+		&ecs.ListContainerInstancesInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+		},
+	)
+
+	if err != nil {
+		return ids, conns, err
+	}
+
+	dres, err := models.ECS().DescribeContainerInstances(
+		&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: ires.ContainerInstanceArns,
+		},
+	)
+
+	if err != nil {
+		return ids, conns, err
+	}
+
+	for _, i := range dres.ContainerInstances {
+		conns[*i.Ec2InstanceId] = *i.AgentConnected
+
+		if *i.AgentConnected {
+			ids = append(ids, *i.Ec2InstanceId)
+		}
+	}
+
+	return ids, conns, nil
 }
 
 func getRackInstanceCount() (int, error) {
