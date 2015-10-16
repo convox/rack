@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -56,7 +57,12 @@ func StartCluster() {
 
 		// Test if ASG Instance is registered and connected in ECS cluster
 		for _, i := range instances {
-			if i.ASG && !i.ECS {
+			if !i.ASG {
+				// TODO: Rogue instance?! Terminate?
+				continue
+			}
+
+			if !i.ECS {
 				// Not registered or not connected => set Unhealthy
 				_, err := models.AutoScaling().SetInstanceHealth(
 					&autoscaling.SetInstanceHealthInput{
@@ -75,7 +81,7 @@ func StartCluster() {
 			}
 		}
 
-		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", len(instances), strings.Join(instances.inECS(), ","), strings.Join(instances.inASG(), ","), strings.Join(instances.inUnhealthy(), ","))
+		log.Log(instances.log())
 	}
 }
 
@@ -140,44 +146,31 @@ func (instances Instances) describeECS() error {
 	return nil
 }
 
-func (instances Instances) inASG() []string {
-	ids := []string{}
+func (instances Instances) log() string {
+	var asgIds, ecsIds, unhealthyIds []string
 
 	for _, i := range instances {
 		if i.ASG {
-			ids = append(ids, i.Id)
+			asgIds = append(asgIds, i.Id)
 		}
-	}
 
-	sort.Strings(ids)
-
-	return ids
-}
-
-func (instances Instances) inECS() []string {
-	ids := []string{}
-
-	for _, i := range instances {
 		if i.ECS {
-			ids = append(ids, i.Id)
+			ecsIds = append(ecsIds, i.Id)
 		}
-	}
 
-	sort.Strings(ids)
-
-	return ids
-}
-
-func (instances Instances) inUnhealthy() []string {
-	ids := []string{}
-
-	for _, i := range instances {
 		if i.Unhealthy {
-			ids = append(ids, i.Id)
+			unhealthyIds = append(unhealthyIds, i.Id)
 		}
 	}
 
-	sort.Strings(ids)
+	sort.Strings(asgIds)
+	sort.Strings(ecsIds)
+	sort.Strings(unhealthyIds)
 
-	return ids
+	return fmt.Sprintf("InstanceCount=%v connected='%v' healthy='%v' marked='%s'",
+		len(instances),
+		strings.Join(ecsIds, ","),
+		strings.Join(asgIds, ","),
+		strings.Join(unhealthyIds, ","),
+	)
 }
