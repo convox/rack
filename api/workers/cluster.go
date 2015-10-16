@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -24,35 +25,13 @@ func StartCluster() {
 		helpers.Error(log, err)
 	})
 
-Tick:
 	for _ = range time.Tick(5 * time.Minute) {
 		log.Log("tick")
 
-		// Ger Rack InstanceCount Parameter
-		instanceCount := 0
-
-		res, err := models.CloudFormation().DescribeStacks(
-			&cloudformation.DescribeStacksInput{
-				StackName: aws.String(os.Getenv("RACK")),
-			},
-		)
+		instanceCount, err := getRackInstanceCount()
 
 		if err != nil {
 			log.Error(err)
-			continue
-		}
-
-		for _, p := range res.Stacks[0].Parameters {
-			if *p.ParameterKey == "InstanceCount" {
-				c, err := strconv.Atoi(*p.ParameterValue)
-
-				if err != nil {
-					log.Error(err)
-					break Tick
-				}
-
-				instanceCount = c
-			}
 		}
 
 		// List and Describe ECS Container Instances
@@ -141,4 +120,32 @@ Tick:
 
 		log.Log("InstanceCount=%v connected='%v' healthy='%v' marked='%s'", instanceCount, strings.Join(cInstanceIds, ","), strings.Join(aInstanceIds, ","), strings.Join(uInstanceIds, ","))
 	}
+}
+
+func getRackInstanceCount() (int, error) {
+	name := os.Getenv("RACK")
+
+	res, err := models.CloudFormation().DescribeStacks(
+		&cloudformation.DescribeStacksInput{
+			StackName: aws.String(name),
+		},
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	for _, p := range res.Stacks[0].Parameters {
+		if *p.ParameterKey == "InstanceCount" {
+			c, err := strconv.Atoi(*p.ParameterValue)
+
+			if err != nil {
+				return 0, err
+			}
+
+			return c, nil
+		}
+	}
+
+	return 0, fmt.Errorf("Stack %s InstanceCount parameter missing", name)
 }
