@@ -131,8 +131,8 @@
 		},
 		{
 			"ImportPath": "github.com/convox/rack/test",
-			"Comment": "2015062904-1679-g2e85ad7",
-			"Rev": "2e85ad790498c7569a11b7efd70bf84f59d7aa3d"
+			"Comment": "2015062904-1708-g3cfd380",
+			"Rev": "3cfd380a5b7b1ae2e97fe7705a5612574b1121c1"
 		},
 		{
 			"ImportPath": "github.com/ddollar/logger",

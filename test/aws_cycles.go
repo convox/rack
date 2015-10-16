@@ -31,13 +31,22 @@ func DescribeAppStackCycle(stackName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "", `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`},
 		awsutil.Response{200,
-			` <DescribeStacksResult><Stacks>` + appStackXML(stackName) + `</Stacks></DescribeStacksResult>`},
+			` <DescribeStacksResult><Stacks>` + appStackXML(stackName, "CREATE_COMPLETE") + `</Stacks></DescribeStacksResult>`},
+	}
+}
+
+// returns the stack you asked for with a status
+func DescribeAppStatusStackCycle(stackName string, status string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=DescribeStacks&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{200,
+			` <DescribeStacksResult><Stacks>` + appStackXML(stackName, status) + `</Stacks></DescribeStacksResult>`},
 	}
 }
 
 // no filter - returns convox stack and an app
 func DescribeStackCycleWithoutQuery(appName string) awsutil.Cycle {
-	xml := appStackXML(appName) + convoxStackXML("convox")
+	xml := appStackXML(appName, "CREATE_COMPLETE") + convoxStackXML("convox")
 
 	return awsutil.Cycle{
 		awsutil.Request{"/", "", `Action=DescribeStacks&Version=2010-05-15`},
@@ -157,7 +166,7 @@ func convoxStackXML(stackName string) string {
 
 }
 
-func appStackXML(appName string) string {
+func appStackXML(appName string, status string) string {
 
 	return `
       <member>
@@ -172,7 +181,7 @@ func appStackXML(appName string) string {
           </member>
         </Tags>
         <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/` + appName + `/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
-        <StackStatus>CREATE_COMPLETE</StackStatus>
+        <StackStatus>` + status + `</StackStatus>
         <StackName>` + appName + `</StackName>
         <NotificationARNs/>
         <CreationTime>2015-09-03T00:49:16.068Z</CreationTime>
