@@ -38,9 +38,6 @@ func cmdRun(c *cli.Context) {
 		return
 	}
 
-	fd := os.Stdin.Fd()
-	stdinState, err := terminal.GetState(int(fd))
-
 	_, app, err := stdcli.DirApp(c, ".")
 
 	if err != nil {
@@ -55,10 +52,9 @@ func cmdRun(c *cli.Context) {
 
 	ps := c.Args()[0]
 
-	code, err := rackClient(c).RunProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
-	if terminal.IsTerminal(int(fd)) {
-		terminal.Restore(int(fd), stdinState)
-	}
+	args := strings.Join(c.Args()[1:], " ")
+
+	code, err := runAttached(c, app, ps, args)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -100,6 +96,28 @@ func cmdRunDetached(c *cli.Context) {
 	}
 
 	fmt.Println("OK")
+}
+
+func runAttached(c *cli.Context, app string, ps string, args string) (int, error) {
+	fd := os.Stdin.Fd()
+
+	if terminal.IsTerminal(int(fd)) {
+		stdinState, err := terminal.GetState(int(fd))
+
+		if err != nil {
+			return -1, err
+		}
+
+		defer terminal.Restore(int(fd), stdinState)
+	}
+
+	code, err := rackClient(c).RunProcessAttached(app, ps, args, os.Stdin, os.Stdout)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return code, nil
 }
 
 var CodeRemoverRegex = regexp.MustCompile(`\x1b\[.n`)
