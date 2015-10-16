@@ -45,13 +45,6 @@ func StartCluster() {
 			continue
 		}
 
-		cInstanceIds, cInstanceConnections, err := describeClusterInstances()
-
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
 		instances := Instances{}
 
 		err = instances.describeASG()
@@ -61,14 +54,23 @@ func StartCluster() {
 			continue
 		}
 
+		err = instances.describeECS()
+
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
 		// Test if ASG Instance is registered and connected in ECS cluster
 
 		aInstanceIds := []string{}
+		cInstanceIds := []string{}
 		uInstanceIds := []string{}
 
 		for _, i := range instances {
-			if connected, exists := cInstanceConnections[i.Id]; connected && exists {
+			if i.ECS {
 				aInstanceIds = append(aInstanceIds, i.Id)
+				cInstanceIds = append(cInstanceIds, i.Id)
 			} else {
 				// Not registered or not connected => set Unhealthy
 				if i.ASG {
@@ -124,46 +126,39 @@ func (instances Instances) describeASG() error {
 
 	return nil
 }
-	}
 
-	return nil
-}
-
-func describeClusterInstances() ([]string, map[string]bool, error) {
-	ids := make([]string, 0)
-	conns := make(map[string]bool)
-
-	// List and Describe ECS Container Instances
-	ires, err := models.ECS().ListContainerInstances(
+func (instances Instances) describeECS() error {
+	res, err := models.ECS().ListContainerInstances(
 		&ecs.ListContainerInstancesInput{
 			Cluster: aws.String(os.Getenv("CLUSTER")),
 		},
 	)
 
 	if err != nil {
-		return ids, conns, err
+		return err
 	}
 
 	dres, err := models.ECS().DescribeContainerInstances(
 		&ecs.DescribeContainerInstancesInput{
 			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: ires.ContainerInstanceArns,
+			ContainerInstances: res.ContainerInstanceArns,
 		},
 	)
 
 	if err != nil {
-		return ids, conns, err
+		return err
 	}
 
 	for _, i := range dres.ContainerInstances {
-		conns[*i.Ec2InstanceId] = *i.AgentConnected
+		instance := instances[*i.Ec2InstanceId]
 
-		if *i.AgentConnected {
-			ids = append(ids, *i.Ec2InstanceId)
-		}
+		instance.Id = *i.Ec2InstanceId
+		instance.ECS = *i.AgentConnected
+
+		instances[*i.Ec2InstanceId] = instance
 	}
 
-	return ids, conns, nil
+	return nil
 }
 
 func getRackInstanceCount() (int, error) {
