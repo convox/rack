@@ -61,13 +61,9 @@ func (r *System) Save() error {
 
 	mac, err := maxAppConcurrency()
 
-	if err != nil {
-		return err
-	}
-
 	// dont scale the rack below the max concurrency plus one
 	// see formation.go for more details
-	if r.Count < (mac + 1) {
+	if err == nil && r.Count < (mac+1) {
 		return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
 	}
 
