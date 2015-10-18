@@ -1,18 +1,35 @@
 package helpers
 
 import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/segmentio/analytics-go"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stvp/rollbar"
 )
+
+var regexpEmail = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+var segment *analytics.Client
 
 func init() {
 	rollbar.Token = os.Getenv("ROLLBAR_TOKEN")
 	rollbar.Environment = os.Getenv("CLIENT_ID")
+
+	segment = analytics.New(os.Getenv("SEGMENT_WRITE_KEY"))
+
+	if os.Getenv("DEVELOPMENT") == "true" {
+		segment.Size = 1
+	}
+
+	if regexpEmail.MatchString(os.Getenv("CLIENT_ID")) {
+		segment.Identify(&analytics.Identify{
+			UserId: os.Getenv("CLIENT_ID"),
+			Traits: map[string]interface{}{
+				"email": os.Getenv("CLIENT_ID"),
+			},
+		})
+	}
 }
 
 func Error(log *logger.Logger, err error) {
@@ -32,19 +49,12 @@ func Error(log *logger.Logger, err error) {
 	}
 }
 
-func SendMixpanelEvent(event, message string) {
-	id := os.Getenv("CLIENT_ID")
-	token := os.Getenv("MIXPANEL_TOKEN")
-	if token != "" {
-		release := os.Getenv("RELEASE")
-
-		m := fmt.Sprintf(`{"event": %q, "properties": {"client_id": %q, "distinct_id": %q, "message": %q, "release": %q, "token": %q}}`, event, id, id, message, release, token)
-		encMessage := base64.StdEncoding.EncodeToString([]byte(m))
-
-		_, err := http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-
-		if err != nil {
-			Error(nil, err)
-		}
-	}
+func TrackEvent(event, message string) {
+	segment.Track(&analytics.Track{
+		Event:  event,
+		UserId: os.Getenv("CLIENT_ID"),
+		Properties: map[string]interface{}{
+			"message": message,
+		},
+	})
 }

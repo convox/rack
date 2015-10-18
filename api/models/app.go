@@ -80,7 +80,7 @@ func GetApp(name string) (*App, error) {
 var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
 func (a *App) Create() error {
-	helpers.SendMixpanelEvent("kernel-app-create-start", "")
+	helpers.TrackEvent("kernel-app-create-start", "")
 
 	if !regexValidAppName.MatchString(a.Name) {
 		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
@@ -89,7 +89,7 @@ func (a *App) Create() error {
 	formation, err := a.Formation()
 
 	if err != nil {
-		helpers.SendMixpanelEvent("kernel-app-create-error", "")
+		helpers.TrackEvent("kernel-app-create-error", "")
 		return err
 	}
 
@@ -133,11 +133,11 @@ func (a *App) Create() error {
 	_, err = CloudFormation().CreateStack(req)
 
 	if err != nil {
-		helpers.SendMixpanelEvent("kernel-app-create-error", "")
+		helpers.TrackEvent("kernel-app-create-error", "")
 		return err
 	}
 
-	helpers.SendMixpanelEvent("kernel-app-create-success", "")
+	helpers.TrackEvent("kernel-app-create-success", "")
 	return nil
 }
 
@@ -172,20 +172,20 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
-	helpers.SendMixpanelEvent("kernel-app-delete-start", "")
+	helpers.TrackEvent("kernel-app-delete-start", "")
 
 	name := a.Name
 
 	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
 
 	if err != nil {
-		helpers.SendMixpanelEvent("kernel-app-delete-error", "")
+		helpers.TrackEvent("kernel-app-delete-error", "")
 		return err
 	}
 
 	go a.Cleanup()
 
-	helpers.SendMixpanelEvent("kernel-app-delete-success", "")
+	helpers.TrackEvent("kernel-app-delete-success", "")
 
 	return nil
 }

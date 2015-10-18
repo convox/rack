@@ -166,8 +166,17 @@
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
 		},
 		{
+			"ImportPath": "github.com/jehiah/go-strftime",
+			"Rev": "834e15c05a45371503440cc195bbd05c9a0968d9"
+		},
+		{
 			"ImportPath": "github.com/mattn/go-isatty",
 			"Rev": "7fcbc72f853b92b5720db4a6b8482be612daef24"
+		},
+		{
+			"ImportPath": "github.com/segmentio/analytics-go",
+			"Comment": "v2.0.0-19-g2f4e6bf",
+			"Rev": "2f4e6bf54f7fe167d29eb9b6010ea8ea0551bc63"
 		},
 		{
 			"ImportPath": "github.com/shiena/ansicolor",
@@ -191,6 +200,10 @@
 		{
 			"ImportPath": "github.com/vaughan0/go-ini",
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
+			"ImportPath": "github.com/xtgo/uuid",
+			"Rev": "a0b114877d4caeffbd7f87e3757c17fce570fea7"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/nacl/secretbox",

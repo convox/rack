@@ -13,9 +13,9 @@ func StartHeartbeat() {
 		helpers.Error(log, err)
 	})
 
-	helpers.SendMixpanelEvent("kernel-heartbeat", "")
+	helpers.TrackEvent("kernel-heartbeat", "")
 
 	for _ = range time.Tick(1 * time.Hour) {
-		helpers.SendMixpanelEvent("kernel-heartbeat", "")
+		helpers.TrackEvent("kernel-heartbeat", "")
 	}
 }
