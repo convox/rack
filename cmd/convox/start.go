@@ -23,6 +23,12 @@ func init() {
 		Description: "start an app for local development",
 		Usage:       "[directory]",
 		Action:      cmdStart,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "file",
+				Usage: "a file to use in place of docker-compose.yml",
+			},
+		},
 	})
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "init",
@@ -46,7 +52,13 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	m, err := manifest.Read(dir)
+	file := c.String("file")
+
+	if file == "" {
+		file = "docker-compose.yml"
+	}
+
+	m, err := manifest.Read(dir, file)
 
 	if err != nil {
 		changes, err := manifest.Init(dir)
@@ -58,7 +70,7 @@ func cmdStart(c *cli.Context) {
 
 		fmt.Printf("Generated: %s\n", strings.Join(changes, ", "))
 
-		m, err = manifest.Read(dir)
+		m, err = manifest.Read(dir, file)
 
 		if err != nil {
 			stdcli.Error(err)

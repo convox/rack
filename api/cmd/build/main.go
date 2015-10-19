@@ -50,7 +50,7 @@ func main() {
 		die(err)
 	}
 
-	m, err := manifest.Read(dir)
+	m, err := manifest.Read(dir, "docker-compose.yml")
 
 	if err != nil {
 		die(err)
