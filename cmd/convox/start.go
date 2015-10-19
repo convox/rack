@@ -25,7 +25,7 @@ func init() {
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "file",
+				Name:  "file, f",
 				Value: "docker-compose.yml",
 				Usage: "a file to use in place of docker-compose.yml",
 			},
