@@ -69,7 +69,7 @@
       "Value": { "Ref": "Kinesis" }
     },
     "NotificationTopic": {
-      "Value" : { "Fn::GetAtt": [ "NotificationTopic", "Arn" ]}
+      "Value" : { "Ref": "NotificationTopic" }
 		},
     "Password": {
       "Condition": "Development",
@@ -280,7 +280,7 @@
     "NotificationTopic": {
       "Type": "AWS::SNS::Topic",
 			"Properties": {
-				"TopicName" : { "Fn::Join": ["", {"Ref":"StackName"}, "-notifications"] }
+				"TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
 			}
 		},
     "CustomTopic": {
@@ -852,7 +852,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-              "NOTIFICATION_TOPIC": { "Fn::GetAtt": [ "NotificationTopic", "Arn" ] },
+              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "CLUSTER": { "Ref": "Cluster" },
               "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
                 { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
