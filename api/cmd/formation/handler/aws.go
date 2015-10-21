@@ -11,6 +11,7 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -78,6 +79,13 @@ func KMS(req Request) *kms.KMS {
 
 func S3(req Request) *s3.S3 {
 	return s3.New(&aws.Config{
+		Credentials: Credentials(&req),
+		Region:      Region(&req),
+	})
+}
+
+func SNS(req Request) *sns.SNS {
+	return sns.New(&aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
