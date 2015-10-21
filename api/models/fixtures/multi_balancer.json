@@ -1,0 +1,904 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankCluster": {
+      "Fn::Equals": [
+        {
+          "Ref": "Cluster"
+        },
+        ""
+      ]
+    },
+    "BlankWebPort80Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankWebService": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebService"
+        },
+        ""
+      ]
+    },
+    "BlankWorkerPort80Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerPort80Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankWorkerService": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerService"
+        },
+        ""
+      ]
+    }
+  },
+  "Outputs": {
+    "BalancerWebHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Balancer",
+          "DNSName"
+        ]
+      }
+    },
+    "BalancerWorkerHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerWorker",
+          "DNSName"
+        ]
+      }
+    },
+    "Kinesis": {
+      "Value": {
+        "Ref": "Kinesis"
+      }
+    },
+    "Settings": {
+      "Value": {
+        "Ref": "Settings"
+      }
+    },
+    "WebPort80Balancer": {
+      "Value": {
+        "Ref": "WebPort80Balancer"
+      }
+    },
+    "WorkerPort80Balancer": {
+      "Value": {
+        "Ref": "WorkerPort80Balancer"
+      }
+    }
+  },
+  "Parameters": {
+    "Cluster": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Cpu": {
+      "Default": "200",
+      "Description": "CPU shares of each process",
+      "Type": "Number"
+    },
+    "Environment": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Key": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Release": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Repository": {
+      "Default": "",
+      "Description": "Source code repository",
+      "Type": "String"
+    },
+    "Subnets": {
+      "Default": "",
+      "Description": "VPC subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "VPC": {
+      "Default": "",
+      "Description": "VPC for this app",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "Version": {
+      "Default": "latest",
+      "Description": "Convox release version",
+      "Type": "String"
+    },
+    "WebCommand": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
+    "WebImage": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
+    },
+    "WebPort80Balancer": {
+      "Default": "80",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort80Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort80Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebService": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerCommand": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
+    "WorkerImage": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
+    },
+    "WorkerPort80Balancer": {
+      "Default": "80",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerPort80Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerPort80Host": {
+      "Default": "5001",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerService": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Balancer": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 60
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WebPort80Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BlankWebPort80Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "SSL",
+                "SSLCertificateId": {
+                  "Ref": "WebPort80Certificate"
+                }
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Ref": "AWS::StackName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "WebPort80Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "WebPort80Balancer"
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerWorker": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 60
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WorkerPort80Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BlankWorkerPort80Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WorkerPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WorkerPort80Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "InstancePort": {
+                  "Ref": "WorkerPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WorkerPort80Balancer"
+                },
+                "Protocol": "SSL",
+                "SSLCertificateId": {
+                  "Ref": "WorkerPort80Certificate"
+                }
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "worker"
+            ]
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerWorkerSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerWorkerSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "WorkerPort80Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "WorkerPort80Balancer"
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "CustomTopic": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                "release/",
+                {
+                  "Ref": "Version"
+                },
+                "/formation.zip"
+              ]
+            ]
+          }
+        },
+        "Handler": "lambda.external",
+        "MemorySize": "128",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomTopicRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": "30"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "CustomTopicRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "*",
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "Administrator"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Kinesis": {
+      "Properties": {
+        "ShardCount": 1
+      },
+      "Type": "AWS::Kinesis::Stream"
+    },
+    "LogsAccess": {
+      "Properties": {
+        "Serial": "1",
+        "Status": "Active",
+        "UserName": {
+          "Ref": "LogsUser"
+        }
+      },
+      "Type": "AWS::IAM::AccessKey"
+    },
+    "LogsUser": {
+      "Properties": {
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "kinesis:PutRecords"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:kinesis:*:*:stream/",
+                          {
+                            "Ref": "AWS::StackName"
+                          },
+                          "-*"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "LogsRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::User"
+    },
+    "ServiceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "elasticloadbalancing:Describe*",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "ec2:Describe*",
+                    "ec2:AuthorizeSecurityGroupIngress"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            },
+            "PolicyName": "ServiceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Settings": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "WebECService": {
+      "DependsOn": "CustomTopic",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "WebDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "Balancer"
+                },
+                "web",
+                "3000"
+              ]
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "WebECTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankWebService",
+              {
+                "Command": {
+                  "Ref": "WebCommand"
+                },
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "PROCESS": "web"
+                },
+                "Image": {
+                  "Ref": "WebImage"
+                },
+                "Links": [],
+                "Memory": {
+                  "Ref": "WebMemory"
+                },
+                "Name": "web",
+                "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "WebPort80Host"
+                        },
+                        "3000"
+                      ]
+                    ]
+                  }
+                ],
+                "Services": [],
+                "Volumes": []
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "WorkerECService": {
+      "DependsOn": "CustomTopic",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "WorkerDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerWorker"
+                },
+                "worker",
+                "3000"
+              ]
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "worker"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WorkerECTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "WorkerECTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "worker"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankWorkerService",
+              {
+                "Command": {
+                  "Ref": "WorkerCommand"
+                },
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "PROCESS": "worker"
+                },
+                "Image": {
+                  "Ref": "WorkerImage"
+                },
+                "Links": [],
+                "Memory": {
+                  "Ref": "WorkerMemory"
+                },
+                "Name": "worker",
+                "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "WorkerPort80Host"
+                        },
+                        "3000"
+                      ]
+                    ]
+                  }
+                ],
+                "Services": [],
+                "Volumes": []
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    }
+  }
+}

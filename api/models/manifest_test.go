@@ -15,12 +15,18 @@ type Cases []struct {
 	got, want interface{}
 }
 
-func assertFixture(t *testing.T, name string) {
+func assertFixture(t *testing.T, name string, primary string) {
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
 	require.Nil(t, err)
 
 	manifest, err := LoadManifest(string(data))
 	require.Nil(t, err)
+
+	for i, _ := range manifest {
+		if manifest[i].Name == primary {
+			manifest[i].primary = true
+		}
+	}
 
 	formation, err := manifest.Formation()
 	require.Nil(t, err)
@@ -69,10 +75,11 @@ func TestManifestInvalid(t *testing.T) {
 
 func TestManifestFixtures(t *testing.T) {
 	ManifestRandomPorts = false
-	assertFixture(t, "web_external_internal")
-	assertFixture(t, "web_postgis")
-	assertFixture(t, "web_postgis_internal")
-	assertFixture(t, "worker")
+	assertFixture(t, "multi_balancer", "web")
+	assertFixture(t, "web_external_internal", "")
+	assertFixture(t, "web_postgis", "")
+	assertFixture(t, "web_postgis_internal", "")
+	assertFixture(t, "worker", "")
 	ManifestRandomPorts = true
 }
 
