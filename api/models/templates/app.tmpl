@@ -246,15 +246,17 @@
 {{ end }}
 
 {{ define "balancer-params" }}
-  {{ range .Balancers }}
-    {{ $balancer := . }}
+  {{ range $e := . }}
     {{ range .InternalPorts }}
-      "{{ upper $balancer.ProcessName }}Port{{ . }}Host": {
+      "{{ upper $e.Name }}Port{{ . }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms . }}",
+        "Default" : "{{ index $e.Randoms . }}",
         "Description" : ""
       },
     {{ end }}
+  {{ end }}
+  {{ range .Balancers }}
+    {{ $balancer := . }}
     {{ range .ExternalPorts }}
       "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer": {
         "Type" : "String",
@@ -281,7 +283,7 @@
     "Balancer{{ upper .ProcessName }}Host": {
       "Value": { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] }
     },
-    {{ range .Ports }}
+    {{ range .ExternalPorts }}
       "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer": {
         "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" }
       },

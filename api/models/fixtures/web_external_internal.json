@@ -27,10 +27,10 @@
     }
   },
   "Outputs": {
-    "BalancerHost": {
+    "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "Balancer",
+          "BalancerWeb",
           "DNSName"
         ]
       }
@@ -144,7 +144,7 @@
     }
   },
   "Resources": {
-    "Balancer": {
+    "BalancerWeb": {
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -204,14 +204,25 @@
                 }
               }
             ]
+          },
+          {
+            "Ref": "AWS::NoValue"
           }
         ],
         "LoadBalancerName": {
-          "Ref": "AWS::StackName"
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
         },
         "SecurityGroups": [
           {
-            "Ref": "BalancerSecurityGroup"
+            "Ref": "BalancerWebSecurityGroup"
           }
         ],
         "Subnets": {
@@ -220,7 +231,7 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerSecurityGroup": {
+    "BalancerWebSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -243,6 +254,9 @@
             "ToPort": {
               "Ref": "WebPort80Balancer"
             }
+          },
+          {
+            "Ref": "AWS::NoValue"
           }
         ],
         "VpcId": {
@@ -443,7 +457,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WebECSService": {
+    "WebECService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -458,12 +472,15 @@
               ":",
               [
                 {
-                  "Ref": "Balancer"
+                  "Ref": "BalancerWeb"
                 },
                 "web",
                 "3000"
               ]
             ]
+          },
+          {
+            "Ref": "AWS::NoValue"
           }
         ],
         "Name": {
@@ -487,13 +504,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
+          "Ref": "WebECTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "WebECSTaskDefinition": {
+    "WebECTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
