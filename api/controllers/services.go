@@ -49,10 +49,13 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	var err error
 
-	if t == "papertrail" {
+	switch t {
+	case "papertrail":
 		err = service.CreatePapertrail()
-	} else {
-		err = service.Create()
+	case "webhook":
+		err = service.CreateWebhook()
+	default:
+		err = service.CreateDatastore()
 	}
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {

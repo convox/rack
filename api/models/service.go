@@ -54,7 +54,7 @@ func GetService(name string) (*Service, error) {
 	return serviceFromStack(res.Stacks[0]), nil
 }
 
-func (s *Service) Create() error {
+func (s *Service) CreateDatastore() error {
 	formation, err := s.Formation()
 
 	if err != nil {
