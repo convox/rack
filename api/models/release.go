@@ -1,8 +1,10 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -235,7 +237,62 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
+	primary, err := primaryProcess(r.App)
+
+	if err != nil {
+		return "", err
+	}
+
+	if primary == "" && manifest.Entry("web") != nil {
+		primary = "web"
+	}
+
+	if primary == "" && manifest.HasExternalPorts() {
+		for _, entry := range manifest {
+			if len(entry.ExternalPorts()) > 0 {
+				primary = entry.Name
+				break
+			}
+		}
+	}
+
+	for i, entry := range manifest {
+		if entry.Name == primary {
+			manifest[i].primary = true
+		}
+	}
+
 	return manifest.Formation()
+}
+
+var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)
+
+func primaryProcess(app string) (string, error) {
+	res, err := CloudFormation().GetTemplate(&cloudformation.GetTemplateInput{
+		StackName: aws.String(app),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	var body interface{}
+
+	err = json.Unmarshal([]byte(*res.TemplateBody), &body)
+
+	if err != nil {
+		return "", err
+	}
+
+	data, err := json.Marshal(body)
+
+	process := regexpPrimaryProcess.FindStringSubmatch(string(data))
+
+	if len(process) > 1 {
+		return DashName(process[1]), nil
+	}
+
+	return "", nil
 }
 
 func releasesTable(app string) string {

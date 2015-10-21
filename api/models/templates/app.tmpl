@@ -197,9 +197,10 @@
 {{ end }}
 
 {{ define "process-services" }}
+  {{ $manifest := . }}
   {{ if .HasProcesses }}
     {{ range $e := . }}
-      "{{ upper $e.Name }}ECSTaskDefinition": {
+      "{{ upper $e.Name }}ECTaskDefinition": {
         "DependsOn": ["CustomTopic", "ServiceRole"],
         "Type": "Custom::ECSTaskDefinition",
         "Version": "1.0",
@@ -212,7 +213,7 @@
           "Tasks": [ {{ entry_task . $e.Name }} ]
         }
       },
-      "{{ upper $e.Name }}ECSService": {
+      "{{ upper $e.Name }}ECService": {
         "DependsOn": "CustomTopic",
         "Type": "Custom::ECSService",
         "Version": "1.0",
@@ -221,9 +222,14 @@
           "Cluster": { "Ref": "Cluster" },
           "DesiredCount": { "Ref": "{{ upper $e.Name }}DesiredCount" },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
-          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
+          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECTaskDefinition" },
           "Role": { "Ref": "ServiceRole" },
-          "LoadBalancers": [ {{ entry_loadbalancers . $e.Name }} ]
+          "LoadBalancers": [
+            {{ range $e.ContainerPorts }}
+              { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ . }}" ] ] },
+            {{ end }}
+            { "Ref": "AWS::NoValue" }
+          ]
         }
       },
     {{ end }}
@@ -231,38 +237,38 @@
 {{ end }}
 
 {{ define "balancer-conditions" }}
-  {{ range $entry := . }}
-    {{ range $i, $port := $entry.ExternalPorts }}
-      {{ $parts := (split $port ":") }}
-      "Blank{{ upper $entry.Name }}Port{{ index $parts 0 }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $entry.Name }}Port{{ index $parts 0 }}Certificate" }, "" ] },
+  {{ range .Balancers }}
+    {{ $balancer := . }}
+    {{ range .ExternalPorts }}
+      "Blank{{ upper $balancer.ProcessName }}Port{{ . }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }, "" ] },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-params" }}
-  {{ range $entry := . }}
-    {{ range $i, $port := $entry.InternalPorts }}
-      "{{ upper $entry.Name }}Port{{ $port }}Host": {
+  {{ range .Balancers }}
+    {{ $balancer := . }}
+    {{ range .InternalPorts }}
+      "{{ upper $balancer.ProcessName }}Port{{ . }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $entry.Randoms $port }}",
+        "Default" : "{{ index $balancer.Randoms . }}",
         "Description" : ""
       },
     {{ end }}
-    {{ range $i, $port := $entry.ExternalPorts }}
-      {{ $parts := (split $port ":") }}
-      "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer": {
+    {{ range .ExternalPorts }}
+      "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer": {
         "Type" : "String",
-        "Default" : "{{ index $parts 0 }}",
+        "Default" : "{{ . }}",
         "Description" : ""
       },
-      "{{ upper $entry.Name }}Port{{ index $parts 0 }}Certificate": {
+      "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate": {
         "Type" : "String",
         "Default" : "",
         "Description" : ""
       },
-      "{{ upper $entry.Name }}Port{{ index $parts 0 }}Host": {
+      "{{ upper $balancer.ProcessName }}Port{{ . }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $entry.Randoms $port }}",
+        "Default" : "{{ index $balancer.Randoms . }}",
         "Description" : ""
       },
     {{ end }}
@@ -270,32 +276,41 @@
 {{ end }}
 
 {{ define "balancer-outputs" }}
-  {{ if .HasExternalPorts }}
-    "BalancerHost": {
-      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
+  {{ range .Balancers }}
+    {{ $balancer := . }}
+    "Balancer{{ upper .ProcessName }}Host": {
+      "Value": { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] }
     },
-    {{ range $entry := . }}
-      {{ range $entry.ExternalPorts }}
-        {{ $parts := (split . ":") }}
-        "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer": {
-          "Value": { "Ref": "{{ upper $entry.Name }}Port{{ index $parts 0 }}Balancer" }
-        },
-      {{ end }}
+    {{ range .Ports }}
+      "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer": {
+        "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" }
+      },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ if .HasExternalPorts }}
-    "BalancerSecurityGroup": {
+  {{ range .Balancers }}
+    {{ $balancer := . }}
+    "{{ .ResourceName }}SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-        "SecurityGroupIngress": [ {{ ingress . }} ],
+        "SecurityGroupIngress": [
+          {{ range .ExternalPorts }}
+            {
+              "CidrIp": "0.0.0.0/0",
+              "IpProtocol": "tcp",
+              "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+              "ToPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" }
+            },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ],
         "VpcId": { "Ref": "VPC" }
       }
     },
-    "Balancer": {
+    "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
         "Subnets": { "Ref": "Subnets" },
@@ -305,14 +320,33 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": {{ firstcheck . }},
+          "Target": { "Fn::Join": [ ":", [ "TCP", { "Ref": "{{ upper .ProcessName }}Port{{ .FirstPort }}Host" } ] ] },
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
-        "Listeners": [ {{ listeners . }} ],
+        "Listeners": [
+          {{ range .ExternalPorts }}
+            { "Fn::If": [ "Blank{{ upper $balancer.ProcessName }}Port{{ . }}Certificate",
+              {
+                "Protocol": "TCP",
+                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                "InstanceProtocol": "TCP",
+                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" }
+              },
+              {
+                "Protocol": "SSL",
+                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                "InstanceProtocol": "TCP",
+                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" },
+                "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }
+              }
+            ] },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": { "Ref": "AWS::StackName" },
-        "SecurityGroups": [ { "Ref": "BalancerSecurityGroup" } ]
+        "LoadBalancerName": {{ .LoadBalancerName }},
+        "SecurityGroups": [ { "Ref": "{{ .ResourceName }}SecurityGroup" } ]
       }
     },
   {{ end }}
