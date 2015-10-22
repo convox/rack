@@ -16,7 +16,7 @@ func (s *Service) CreateWebhook() error {
 	}
 
 	var input interface{}
-	formation, err := buildTemplate("service/webhook.tmpl", "service", input)
+	formation, err := buildTemplate("service/webhook", "service", input)
 
 	if err != nil {
 		return err
@@ -25,6 +25,7 @@ func (s *Service) CreateWebhook() error {
 	params := map[string]string{
 		"Url":               s.URL,
 		"NotificationTopic": NotificationTopic,
+		"CustomTopic":       CustomTopic,
 	}
 
 	tags := map[string]string{

@@ -5,6 +5,7 @@
 // models/templates/service/papertrail.tmpl
 // models/templates/service/postgres.tmpl
 // models/templates/service/redis.tmpl
+// models/templates/service/webhook.tmpl
 // DO NOT EDIT!
 
 package models
@@ -87,7 +88,7 @@ func templatesAppTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/app.tmpl", size: 12288, mode: os.FileMode(420), modTime: time.Unix(1445469570, 0)}
+	info := bindataFileInfo{name: "templates/app.tmpl", size: 12288, mode: os.FileMode(420), modTime: time.Unix(1445552612, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -107,7 +108,7 @@ func templatesServiceMysqlTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/mysql.tmpl", size: 2611, mode: os.FileMode(420), modTime: time.Unix(1445357137, 0)}
+	info := bindataFileInfo{name: "templates/service/mysql.tmpl", size: 2611, mode: os.FileMode(420), modTime: time.Unix(1444684514, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -127,7 +128,7 @@ func templatesServicePapertrailTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/papertrail.tmpl", size: 3091, mode: os.FileMode(420), modTime: time.Unix(1445357137, 0)}
+	info := bindataFileInfo{name: "templates/service/papertrail.tmpl", size: 3091, mode: os.FileMode(420), modTime: time.Unix(1444684514, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -147,7 +148,7 @@ func templatesServicePostgresTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/postgres.tmpl", size: 2634, mode: os.FileMode(420), modTime: time.Unix(1445357137, 0)}
+	info := bindataFileInfo{name: "templates/service/postgres.tmpl", size: 2634, mode: os.FileMode(420), modTime: time.Unix(1444684514, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -167,7 +168,27 @@ func templatesServiceRedisTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/redis.tmpl", size: 2125, mode: os.FileMode(420), modTime: time.Unix(1443001930, 0)}
+	info := bindataFileInfo{name: "templates/service/redis.tmpl", size: 2125, mode: os.FileMode(420), modTime: time.Unix(1442329647, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _templatesServiceWebhookTmpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xa4\x52\x4f\x8f\xaa\x30\x10\xbf\xf3\x29\x9a\x5e\xbc\x28\xa0\xef\x5d\x1e\x37\xdf\xfe\x39\x6d\x5c\x23\xa8\x67\x2c\xa3\x36\x02\xd3\x94\xc1\xec\x86\xf8\xdd\xb7\x2d\x8b\x42\x76\xbd\xec\x26\x24\xa4\xd3\xdf\x9f\xe9\x6f\xa6\x69\x58\x06\x7b\x59\x02\xe3\x15\xe8\xb3\x14\xc0\xd9\xe5\xe2\x35\x1e\x63\x7c\xbe\x8d\x13\x28\x54\x9e\x12\x3c\xa3\x2e\x52\xda\x80\xae\x24\x96\x9c\x45\x8c\xcf\xc2\x69\x38\x09\xff\x99\x8f\x8f\x2d\x78\x99\xea\xb4\x00\x32\x08\x1e\x31\x4b\x37\xb5\xb5\xce\xaf\x07\x73\x4c\xde\x15\x38\x6e\x4c\x5a\x96\x07\xc7\x73\x17\x8f\x50\x09\x2d\x15\x75\xda\x5b\xd8\x1d\x11\x4f\x6c\xbd\x7a\x19\x33\xf0\x0f\x3e\x1b\x1d\x89\x54\x15\x05\xc1\x41\xcb\xcc\x17\x58\x9e\xf1\xcd\xfc\x8a\x40\xa7\xe2\x34\xb1\xe0\x60\x3a\xfb\xf3\x77\xc4\x9d\xe4\xa5\x55\xe6\x0f\x75\x45\x58\x24\xa8\xa4\xf8\x51\x1f\x43\xb5\x05\x92\xdc\x4b\x91\xda\xeb\x5f\x6b\x7a\x9f\xba\x7c\x05\x15\xd6\x5a\x40\x2f\xb6\xff\xb5\xcc\xb3\xb8\xde\xdd\x88\xdf\x19\xb5\x8f\x8b\xa2\x78\x11\x0f\xb0\x57\xe7\x6e\x5a\x06\x3b\xf5\xc3\x5b\x7d\xa9\x51\x81\x26\xd9\xb3\x74\xf5\xb8\x9d\x7f\x82\x27\x70\x8e\xb6\xb7\x3d\x8f\x86\x31\x76\x69\xb4\xbd\xd8\xd2\x7c\xb5\xb0\xfd\xdc\xe0\x5f\x73\x1a\x90\x8c\x3d\xa1\xc0\xdc\x3d\xc2\x8e\x95\xf7\x2e\x9f\xca\x4c\xa1\x2c\x69\xa8\x68\xf7\xc8\x45\xd6\x45\xd7\x0f\xf0\xb5\x26\x55\xd3\xfd\xad\xdb\xa4\x79\x0d\xfc\x8e\x9c\x93\xf1\xcc\xbe\x37\x0c\xca\xcc\x6e\xfe\x47\x00\x00\x00\xff\xff\x09\x4f\x0e\x6f\x11\x03\x00\x00")
+
+func templatesServiceWebhookTmplBytes() ([]byte, error) {
+	return bindataRead(
+		_templatesServiceWebhookTmpl,
+		"templates/service/webhook.tmpl",
+	)
+}
+
+func templatesServiceWebhookTmpl() (*asset, error) {
+	bytes, err := templatesServiceWebhookTmplBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "templates/service/webhook.tmpl", size: 785, mode: os.FileMode(420), modTime: time.Unix(1445552613, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -229,6 +250,7 @@ var _bindata = map[string]func() (*asset, error){
 	"templates/service/papertrail.tmpl": templatesServicePapertrailTmpl,
 	"templates/service/postgres.tmpl": templatesServicePostgresTmpl,
 	"templates/service/redis.tmpl": templatesServiceRedisTmpl,
+	"templates/service/webhook.tmpl": templatesServiceWebhookTmpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -282,6 +304,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"postgres.tmpl": &bintree{templatesServicePostgresTmpl, map[string]*bintree{
 			}},
 			"redis.tmpl": &bintree{templatesServiceRedisTmpl, map[string]*bintree{
+			}},
+			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{
 			}},
 		}},
 	}},

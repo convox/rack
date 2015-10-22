@@ -69,6 +69,7 @@
       "Value": { "Ref": "Kinesis" }
     },
     "NotificationTopic": {
+      "Condition": "Development",
       "Value" : { "Ref": "NotificationTopic" }
 		},
     "Password": {
@@ -852,7 +853,6 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "CLUSTER": { "Ref": "Cluster" },
               "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
                 { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
@@ -865,6 +865,7 @@
                 ""
               ] },
               "KINESIS": { "Ref": "Kinesis" },
+              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "web",
               "RACK": { "Ref": "AWS::StackName" },
