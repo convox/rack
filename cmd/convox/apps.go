@@ -129,26 +129,21 @@ func cmdAppInfo(c *cli.Context) {
 	}
 
 	ps := make([]string, len(formation))
-	ports := []string{}
+	endpoints := []string{}
 
 	for i, f := range formation {
 		ps[i] = f.Name
 
-		for _, p := range f.Ports {
-			ports = append(ports, fmt.Sprintf("%s:%d", f.Name, p))
+		for _, port := range f.Ports {
+			endpoints = append(endpoints, fmt.Sprintf("%s:%d (%s)", f.Balancer, port, f.Name))
 		}
 	}
 
 	sort.Strings(ps)
-	sort.Strings(ports)
 
 	fmt.Printf("Name       %s\n", a.Name)
 	fmt.Printf("Status     %s\n", a.Status)
 	fmt.Printf("Release    %s\n", stdcli.Default(a.Release, "(none)"))
 	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(ps, " "), "(none)"))
-
-	if a.Balancer != "" {
-		fmt.Printf("Hostname   %s\n", a.Balancer)
-		fmt.Printf("Ports      %s\n", stdcli.Default(strings.Join(ports, " "), "(none)"))
-	}
+	fmt.Printf("Endpoints  %s\n", strings.Join(endpoints, "\n           "))
 }

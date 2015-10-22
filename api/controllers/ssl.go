@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"net/http"
-	"regexp"
+	"strconv"
 
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
@@ -27,17 +27,22 @@ func SSLList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	a := mux.Vars(r)["app"]
+	process := GetForm(r, "process")
 	port := GetForm(r, "port")
 	body := GetForm(r, "body")
 	key := GetForm(r, "key")
 
-	var validPorts = regexp.MustCompile(`[0-9]+`)
-
-	if !validPorts.MatchString(port) {
-		return httperr.Errorf(403, "balancer port must be a number")
+	if process == "" {
+		return httperr.Errorf(403, "must specify a process")
 	}
 
-	ssl, err := models.CreateSSL(a, port, body, key)
+	portn, err := strconv.Atoi(port)
+
+	if err != nil {
+		return httperr.Errorf(403, "port must be numeric")
+	}
+
+	ssl, err := models.CreateSSL(a, process, portn, body, key)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "%s", err)
@@ -51,13 +56,25 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SSLDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	a := mux.Vars(r)["app"]
-	port := mux.Vars(r)["port"]
+	vars := mux.Vars(r)
+	app := vars["app"]
+	process := vars["process"]
+	port := vars["port"]
 
-	ssl, err := models.DeleteSSL(a, port)
+	if process == "" {
+		return httperr.Errorf(403, "must specify a process")
+	}
+
+	portn, err := strconv.Atoi(port)
+
+	if err != nil {
+		return httperr.Errorf(403, "port must be numeric")
+	}
+
+	ssl, err := models.DeleteSSL(app, process, portn)
 
 	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", a)
+		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	if err != nil {

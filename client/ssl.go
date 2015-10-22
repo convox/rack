@@ -10,16 +10,18 @@ type SSL struct {
 	Arn        string    `json:"arn"`
 	Expiration time.Time `json:"expiration"`
 	Name       string    `json:"name"`
-	Port       string    `json:"port"`
+	Port       int       `json:"port"`
+	Process    string    `json:"process"`
 }
 
 type SSLs []SSL
 
-func (c *Client) CreateSSL(app, port, body, key string) (*SSL, error) {
+func (c *Client) CreateSSL(app, process, port, body, key string) (*SSL, error) {
 	params := Params{
-		"body": body,
-		"key":  key,
-		"port": port,
+		"body":    body,
+		"key":     key,
+		"port":    port,
+		"process": process,
 	}
 
 	var ssl SSL
@@ -33,10 +35,10 @@ func (c *Client) CreateSSL(app, port, body, key string) (*SSL, error) {
 	return &ssl, nil
 }
 
-func (c *Client) DeleteSSL(app, port string) (*SSL, error) {
+func (c *Client) DeleteSSL(app, process, port string) (*SSL, error) {
 	var ssl SSL
 
-	err := c.Delete(fmt.Sprintf("/apps/%s/ssl/%s", app, port), &ssl)
+	err := c.Delete(fmt.Sprintf("/apps/%s/ssl/%s/%s", app, process, port), &ssl)
 
 	if err != nil {
 		return nil, err
