@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,25 +19,26 @@ type SSL struct {
 	Arn        string    `json:"arn"`
 	Expiration time.Time `json:"expiration"`
 	Name       string    `json:"name"`
-	Port       string    `json:"port"`
+	Process    string    `json:"process"`
+	Port       int       `json:"port"`
 }
 
 type SSLs []SSL
 
-func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
-	app, err := GetApp(a)
+func CreateSSL(app, process string, port int, body, key string) (*SSL, error) {
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// validate app is not currently updating
-	if app.Status != "running" {
-		return nil, fmt.Errorf("can not update app with status: %s", app.Status)
+	if a.Status != "running" {
+		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
 	}
 
 	// validate app has hostPort
-	release, err := app.LatestRelease()
+	release, err := a.LatestRelease()
 
 	if err != nil {
 		return nil, err
@@ -48,17 +50,31 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 		return nil, err
 	}
 
-	me := manifest.EntryByBalancerPort(balancerPort)
+	me := manifest.Entry(process)
 
 	if me == nil {
-		return nil, fmt.Errorf("Manifest does not specify balancer port %s", balancerPort)
+		return nil, fmt.Errorf("no such process: %s", process)
+	}
+
+	found := false
+
+	fmt.Printf("me: %+v\n", me)
+
+	for _, p := range me.ExternalPorts() {
+		if strings.HasPrefix(p, fmt.Sprintf("%d:", port)) {
+			found = true
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
 	// upload certificate
 	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
 		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(certName(a, balancerPort)),
+		ServerCertificateName: aws.String(certName(app, process, port)),
 	})
 
 	if err != nil {
@@ -75,15 +91,14 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 	}
 
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(app.Name),
+		StackName:    aws.String(a.Name),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		TemplateBody: aws.String(tmpl),
 	}
 
-	params := app.Parameters
+	params := a.Parameters
 
-	params[fmt.Sprintf("%sPort%sBalancer", UpperName(me.Name), balancerPort)] = balancerPort // e.g.WebPort443Balancer = 443
-	params[fmt.Sprintf("%sPort%sCertificate", UpperName(me.Name), balancerPort)] = *arn      // e.g.WebPort443Certificate = arn:...
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = *arn // e.g.WebPort443Certificate = arn:...
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
@@ -99,53 +114,45 @@ func CreateSSL(a, balancerPort, body, key string) (*SSL, error) {
 	}
 
 	ssl := SSL{
-		Id:   *name,
-		Port: balancerPort,
-		Arn:  *arn,
+		Arn:     *arn,
+		Id:      *name,
+		Port:    port,
+		Process: process,
 	}
 
 	return &ssl, nil
 }
 
-func DeleteSSL(a, balancerPort string) (*SSL, error) {
-	app, err := GetApp(a)
+func DeleteSSL(app, process string, port int) (*SSL, error) {
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// validate app is not currently updating
-	if app.Status != "running" {
-		return nil, fmt.Errorf("can not update app with status: %s", app.Status)
+	if a.Status != "running" {
+		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
 	}
 
-	// validate app stack has certificate
-	param := ""
-	arn := ""
+	param := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
 
-	for k, v := range app.Parameters {
-		if strings.HasSuffix(k, fmt.Sprintf("%sCertificate", balancerPort)) {
-			if v != "" {
-				arn = v
-				param = k
-			}
-		}
-	}
+	arn := a.Parameters[param]
 
-	if param == "" {
-		return nil, fmt.Errorf("app does not have a certificate on balancer port %s", balancerPort)
+	if arn == "" {
+		return nil, fmt.Errorf("could not find target")
 	}
 
 	changes := map[string]string{}
 	changes[param] = ""
 
-	app.UpdateParams(changes)
+	a.UpdateParams(changes)
 
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
 
-			a, err := GetApp(app.Name)
+			a, err := GetApp(a.Name)
 			fmt.Printf("%+v\n%+v\n", a, err)
 
 			if err != nil {
@@ -154,7 +161,7 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 
 			if a.Status == "running" {
 				params := &iam.DeleteServerCertificateInput{
-					ServerCertificateName: aws.String(certName(app.Name, balancerPort)),
+					ServerCertificateName: aws.String(certName(a.Name, process, port)),
 				}
 
 				resp, err := IAM().DeleteServerCertificate(params)
@@ -166,8 +173,9 @@ func DeleteSSL(a, balancerPort string) (*SSL, error) {
 	}()
 
 	ssl := SSL{
-		Port: balancerPort,
-		Arn:  arn,
+		Arn:     arn,
+		Port:    port,
+		Process: process,
 	}
 
 	return &ssl, nil
@@ -192,8 +200,14 @@ func ListSSLs(a string) (SSLs, error) {
 		}
 
 		if matches := re.FindStringSubmatch(k); len(matches) > 0 {
+			port, err := strconv.Atoi(matches[2])
+
+			if err != nil {
+				return nil, err
+			}
+
 			resp, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
-				ServerCertificateName: aws.String(certName(a, matches[2])),
+				ServerCertificateName: aws.String(certName(a, matches[1], port)),
 			})
 
 			if err != nil {
@@ -207,7 +221,8 @@ func ListSSLs(a string) (SSLs, error) {
 				Arn:        v,
 				Name:       c.Subject.CommonName,
 				Expiration: *resp.ServerCertificate.ServerCertificateMetadata.Expiration,
-				Port:       matches[2],
+				Port:       port,
+				Process:    DashName(matches[1]),
 			})
 		}
 	}
@@ -215,6 +230,6 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
-func certName(app, port string) string {
-	return UpperName(app) + port
+func certName(app, process string, port int) string {
+	return fmt.Sprintf("%s%s%d", UpperName(app), UpperName(process), port)
 }

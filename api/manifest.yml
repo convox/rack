@@ -583,8 +583,6 @@ paths:
 definitions:
   app:
     properties:
-      balancer:
-        type: string
       name:
         type: string
       status:
@@ -618,6 +616,8 @@ definitions:
       type: string
   formation:
     properties:
+      balancer:
+        type: string
       name:
         type: string
       count:

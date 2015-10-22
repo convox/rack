@@ -271,7 +271,7 @@
       },
       "Type": "AWS::IAM::User"
     },
-    "PostgresECSService": {
+    "PostgresECService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -280,7 +280,11 @@
         "DesiredCount": {
           "Ref": "PostgresDesiredCount"
         },
-        "LoadBalancers": [],
+        "LoadBalancers": [
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "Name": {
           "Fn::Join": [
             "-",
@@ -302,13 +306,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "PostgresECSTaskDefinition"
+          "Ref": "PostgresECTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "PostgresECSTaskDefinition": {
+    "PostgresECTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -441,7 +445,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WebECSService": {
+    "WebECService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -450,7 +454,11 @@
         "DesiredCount": {
           "Ref": "WebDesiredCount"
         },
-        "LoadBalancers": [],
+        "LoadBalancers": [
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "Name": {
           "Fn::Join": [
             "-",
@@ -472,13 +480,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
+          "Ref": "WebECTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "WebECSTaskDefinition": {
+    "WebECTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"

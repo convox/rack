@@ -21,10 +21,9 @@ import (
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
 
 type App struct {
-	Balancer string `json:"balancer"`
-	Name     string `json:"name"`
-	Release  string `json:"release"`
-	Status   string `json:"status"`
+	Name    string `json:"name"`
+	Release string `json:"release"`
+	Status  string `json:"status"`
 
 	Outputs    map[string]string `json:"-"`
 	Parameters map[string]string `json:"-"`
@@ -680,7 +679,6 @@ func (a *App) Resources() Resources {
 
 func appFromStack(stack *cloudformation.Stack) *App {
 	return &App{
-		Balancer:   stackOutputs(stack)["BalancerHost"],
 		Name:       *stack.StackName,
 		Release:    stackParameters(stack)["Release"],
 		Status:     humanStatus(*stack.StackStatus),

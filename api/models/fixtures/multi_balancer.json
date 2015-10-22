@@ -9,22 +9,6 @@
         ""
       ]
     },
-    "BlankPostgresService": {
-      "Fn::Equals": [
-        {
-          "Ref": "PostgresService"
-        },
-        ""
-      ]
-    },
-    "BlankWebPort443Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort443Certificate"
-        },
-        ""
-      ]
-    },
     "BlankWebPort80Certificate": {
       "Fn::Equals": [
         {
@@ -40,13 +24,37 @@
         },
         ""
       ]
+    },
+    "BlankWorkerPort80Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerPort80Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankWorkerService": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerService"
+        },
+        ""
+      ]
     }
   },
   "Outputs": {
     "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWeb",
+          "Balancer",
+          "DNSName"
+        ]
+      }
+    },
+    "BalancerWorkerHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerWorker",
           "DNSName"
         ]
       }
@@ -61,14 +69,14 @@
         "Ref": "Settings"
       }
     },
-    "WebPort443Balancer": {
-      "Value": {
-        "Ref": "WebPort443Balancer"
-      }
-    },
     "WebPort80Balancer": {
       "Value": {
         "Ref": "WebPort80Balancer"
+      }
+    },
+    "WorkerPort80Balancer": {
+      "Value": {
+        "Ref": "WorkerPort80Balancer"
       }
     }
   },
@@ -89,31 +97,6 @@
       "Type": "String"
     },
     "Key": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresCommand": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "Type": "Number"
-    },
-    "PostgresImage": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
-    },
-    "PostgresService": {
       "Default": "",
       "Description": "",
       "Type": "String"
@@ -163,21 +146,6 @@
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
-    "WebPort443Balancer": {
-      "Default": "443",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
     "WebPort80Balancer": {
       "Default": "80",
       "Description": "",
@@ -197,10 +165,50 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "WorkerCommand": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
+    "WorkerImage": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
+    },
+    "WorkerPort80Balancer": {
+      "Default": "80",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerPort80Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerPort80Host": {
+      "Default": "5001",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerService": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
     }
   },
   "Resources": {
-    "BalancerWeb": {
+    "Balancer": {
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -262,51 +270,15 @@
             ]
           },
           {
-            "Fn::If": [
-              "BlankWebPort443Certificate",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort443Host"
-                },
-                "InstanceProtocol": "TCP",
-                "LoadBalancerPort": {
-                  "Ref": "WebPort443Balancer"
-                },
-                "Protocol": "TCP"
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort443Host"
-                },
-                "InstanceProtocol": "TCP",
-                "LoadBalancerPort": {
-                  "Ref": "WebPort443Balancer"
-                },
-                "Protocol": "SSL",
-                "SSLCertificateId": {
-                  "Ref": "WebPort443Certificate"
-                }
-              }
-            ]
-          },
-          {
             "Ref": "AWS::NoValue"
           }
         ],
         "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
+          "Ref": "AWS::StackName"
         },
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebSecurityGroup"
+            "Ref": "BalancerSecurityGroup"
           }
         ],
         "Subnets": {
@@ -315,7 +287,7 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebSecurityGroup": {
+    "BalancerSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -340,13 +312,124 @@
             }
           },
           {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerWorker": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 60
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WorkerPort80Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BlankWorkerPort80Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WorkerPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WorkerPort80Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "InstancePort": {
+                  "Ref": "WorkerPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WorkerPort80Balancer"
+                },
+                "Protocol": "SSL",
+                "SSLCertificateId": {
+                  "Ref": "WorkerPort80Certificate"
+                }
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "worker"
+            ]
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerWorkerSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerWorkerSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
             "CidrIp": "0.0.0.0/0",
             "FromPort": {
-              "Ref": "WebPort443Balancer"
+              "Ref": "WorkerPort80Balancer"
             },
             "IpProtocol": "tcp",
             "ToPort": {
-              "Ref": "WebPort443Balancer"
+              "Ref": "WorkerPort80Balancer"
             }
           },
           {
@@ -488,117 +571,6 @@
       },
       "Type": "AWS::IAM::User"
     },
-    "PostgresECService": {
-      "DependsOn": "CustomTopic",
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DesiredCount": {
-          "Ref": "PostgresDesiredCount"
-        },
-        "LoadBalancers": [
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "postgres"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "PostgresECTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
-    },
-    "PostgresECTaskDefinition": {
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Environment": {
-          "Ref": "Environment"
-        },
-        "Key": {
-          "Ref": "Key"
-        },
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "postgres"
-            ]
-          ]
-        },
-        "Release": {
-          "Ref": "Release"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "Tasks": [
-          {
-            "Fn::If": [
-              "BlankPostgresService",
-              {
-                "Command": {
-                  "Ref": "PostgresCommand"
-                },
-                "Environment": {
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
-                  "POSTGRES_PASSWORD": "password",
-                  "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
-                },
-                "Image": {
-                  "Ref": "PostgresImage"
-                },
-                "Links": [],
-                "Memory": {
-                  "Ref": "PostgresMemory"
-                },
-                "Name": "postgres",
-                "PortMappings": [],
-                "Services": [],
-                "Volumes": []
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
-    },
     "ServiceRole": {
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -677,22 +649,10 @@
               ":",
               [
                 {
-                  "Ref": "BalancerWeb"
+                  "Ref": "Balancer"
                 },
                 "web",
                 "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3001"
               ]
             ]
           },
@@ -776,19 +736,7 @@
                 "Image": {
                   "Ref": "WebImage"
                 },
-                "Links": [
-                  {
-                    "Fn::If": [
-                      "BlankPostgresService",
-                      {
-                        "Ref": "AWS::NoValue"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  }
-                ],
+                "Links": [],
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -804,40 +752,142 @@
                         "3000"
                       ]
                     ]
+                  }
+                ],
+                "Services": [],
+                "Volumes": []
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "WorkerECService": {
+      "DependsOn": "CustomTopic",
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "WorkerDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerWorker"
+                },
+                "worker",
+                "3000"
+              ]
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "worker"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WorkerECTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "WorkerECTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "worker"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankWorkerService",
+              {
+                "Command": {
+                  "Ref": "WorkerCommand"
+                },
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
                   },
+                  "PROCESS": "worker"
+                },
+                "Image": {
+                  "Ref": "WorkerImage"
+                },
+                "Links": [],
+                "Memory": {
+                  "Ref": "WorkerMemory"
+                },
+                "Name": "worker",
+                "PortMappings": [
                   {
                     "Fn::Join": [
                       ":",
                       [
                         {
-                          "Ref": "WebPort443Host"
+                          "Ref": "WorkerPort80Host"
                         },
-                        "3001"
+                        "3000"
                       ]
                     ]
                   }
                 ],
-                "Services": [
-                  {
-                    "Fn::If": [
-                      "BlankPostgresService",
-                      {
-                        "Ref": "AWS::NoValue"
-                      },
-                      {
-                        "Fn::Join": [
-                          ":",
-                          [
-                            {
-                              "Ref": "PostgresService"
-                            },
-                            "postgres"
-                          ]
-                        ]
-                      }
-                    ]
-                  }
-                ],
+                "Services": [],
                 "Volumes": []
               },
               {

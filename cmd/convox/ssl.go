@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -13,11 +14,14 @@ func init() {
 		Name:        "ssl",
 		Action:      cmdSSLList,
 		Description: "manage SSL certificates",
+		Flags: []cli.Flag{
+			appFlag,
+		},
 		Subcommands: []cli.Command{
 			{
 				Name:        "create",
 				Description: "create a new SSL listener",
-				Usage:       "<port> <foo.crt> <foo.key>",
+				Usage:       "<process:port> <foo.crt> <foo.key>",
 				Action:      cmdSSLCreate,
 				Flags: []cli.Flag{
 					appFlag,
@@ -26,7 +30,7 @@ func init() {
 			{
 				Name:        "delete",
 				Description: "delete an SSL listener",
-				Usage:       "<port>",
+				Usage:       "<process:port>",
 				Action:      cmdSSLDelete,
 				Flags: []cli.Flag{
 					appFlag,
@@ -45,11 +49,18 @@ func cmdSSLCreate(c *cli.Context) {
 	}
 
 	if len(c.Args()) != 3 {
-		stdcli.Usage(c, "add")
+		stdcli.Usage(c, "create")
 		return
 	}
 
-	port := c.Args()[0]
+	target := c.Args()[0]
+
+	parts := strings.Split(target, ":")
+
+	if len(parts) != 2 {
+		stdcli.Error(fmt.Errorf("target must be process:port"))
+		return
+	}
 
 	body, err := ioutil.ReadFile(c.Args()[1])
 
@@ -65,9 +76,9 @@ func cmdSSLCreate(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Creating SSL listener on port %s... ", port)
+	fmt.Printf("Creating SSL listener %s... ", target)
 
-	_, err = rackClient(c).CreateSSL(app, port, string(body), string(key))
+	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], string(body), string(key))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -90,11 +101,18 @@ func cmdSSLDelete(c *cli.Context) {
 		return
 	}
 
-	port := c.Args()[0]
+	target := c.Args()[0]
 
-	fmt.Printf("Deleting SSL listener on port %s... ", port)
+	parts := strings.Split(target, ":")
 
-	_, err = rackClient(c).DeleteSSL(app, port)
+	if len(parts) != 2 {
+		stdcli.Error(fmt.Errorf("target must be process:port"))
+		return
+	}
+
+	fmt.Printf("Deleting SSL listener %s... ", target)
+
+	_, err = rackClient(c).DeleteSSL(app, parts[0], parts[1])
 
 	if err != nil {
 		stdcli.Error(err)
@@ -119,10 +137,10 @@ func cmdSSLList(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("PORT", "EXPIRES", "DOMAINS")
+	t := stdcli.NewTable("TARGET", "EXPIRES", "DOMAINS")
 
 	for _, ssl := range *ssls {
-		t.AddRow(ssl.Port, humanizeTime(ssl.Expiration), ssl.Name)
+		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), humanizeTime(ssl.Expiration), ssl.Name)
 	}
 
 	t.Print()

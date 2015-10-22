@@ -86,9 +86,11 @@ func cmdDeploy(c *cli.Context) {
 		return
 	}
 
-	for _, processType := range formation {
-		for _, port := range processType.Ports {
-			fmt.Printf("%s will be available at %s:%d\n", processType.Name, a.Balancer, port)
+	fmt.Println("Available endpoints:")
+
+	for _, ps := range formation {
+		for _, port := range ps.Ports {
+			fmt.Printf("%s:%d (%s)\n", ps.Balancer, port, ps.Name)
 		}
 	}
 }

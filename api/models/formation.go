@@ -8,10 +8,11 @@ import (
 )
 
 type FormationEntry struct {
-	Name   string `json:"name"`
-	Count  int    `json:"count"`
-	Memory int    `json:"memory"`
-	Ports  []int  `json:"ports"`
+	Balancer string `json:"balancer"`
+	Name     string `json:"name"`
+	Count    int    `json:"count"`
+	Memory   int    `json:"memory"`
+	Ports    []int  `json:"ports"`
 }
 
 type Formation []FormationEntry
@@ -59,10 +60,11 @@ func ListFormation(app string) (Formation, error) {
 		}
 
 		formation = append(formation, FormationEntry{
-			Name:   me.Name,
-			Count:  count,
-			Memory: memory,
-			Ports:  ports,
+			Balancer: a.Outputs[fmt.Sprintf("Balancer%sHost", UpperName(me.Name))],
+			Name:     me.Name,
+			Count:    count,
+			Memory:   memory,
+			Ports:    ports,
 		})
 	}
 
