@@ -70,7 +70,7 @@
     },
     "NotificationHost": {
       "Condition": "Development",
-      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
+      "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "NotificationTopic": {
       "Condition": "Development",
