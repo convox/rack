@@ -104,22 +104,22 @@ func SetFormation(app, process, count, memory string) error {
 		return err
 	}
 
-	c, err := strconv.Atoi(count)
-
-	if err != nil {
-		return err
-	}
-
-	// if the app has external ports we can only have n-1 instances of it
-	// because elbs expect the process to be available at the same port on
-	// every instance and we need room for the rolling updates
-	if len(me.ExternalPorts()) > 0 && c >= system.Count {
-		return fmt.Errorf("rack has %d instances, can't scale processes beyond %d", system.Count, system.Count-1)
-	}
-
 	params := map[string]string{}
 
 	if count != "" {
+		c, err := strconv.Atoi(count)
+
+		if err != nil {
+			return err
+		}
+
+		// if the app has external ports we can only have n-1 instances of it
+		// because elbs expect the process to be available at the same port on
+		// every instance and we need room for the rolling updates
+		if len(me.ExternalPorts()) > 0 && c >= system.Count {
+			return fmt.Errorf("rack has %d instances, can't scale processes beyond %d", system.Count, system.Count-1)
+		}
+
 		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = count
 	}
 
