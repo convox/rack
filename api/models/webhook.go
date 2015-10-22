@@ -17,6 +17,12 @@ func (s *Service) CreateWebhook() error {
 		return fmt.Errorf("Webhook URL is required")
 	}
 
+	//ensure valid URL
+	_, err := url.Parse(s.URL)
+	if err != nil {
+		return err
+	}
+
 	var input interface{}
 	formation, err := buildTemplate("service/webhook", "service", input)
 
@@ -24,11 +30,6 @@ func (s *Service) CreateWebhook() error {
 		return err
 	}
 
-	//ensure valid URL
-	_, err = url.Parse(s.URL)
-	if err != nil {
-		return err
-	}
 	encEndpoint := url.QueryEscape(s.URL)
 	//NOTE always assumes https instead of u.Scheme
 	proxyEndpoint := "https://" + NotificationHost + "/sns?endpoint=" + encEndpoint
