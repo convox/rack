@@ -6,7 +6,6 @@
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
-    "BlankNotificationHost": { "Fn::Equals": [ { "Ref": "NotificationHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] }
   },
@@ -69,9 +68,10 @@
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
-    "NotificationHost": { "Fn::If": [ "BlankNotificationHost",
-      { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
-    ] },
+    "NotificationHost": {
+      "Condition": "Development",
+      "Value": { "Fn::GetAtt": [ "Balancer": "DNSName" ] },
+    },
     "NotificationTopic": {
       "Condition": "Development",
       "Value" : { "Ref": "NotificationTopic" }
@@ -869,9 +869,7 @@
                 ""
               ] },
               "KINESIS": { "Ref": "Kinesis" },
-              "NOTIFICATION_HOST": { "Fn::If": [ "BlankNotificationHost",
-                { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
-              ] },
+              "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "web",
