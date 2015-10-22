@@ -57,6 +57,16 @@ func coalesce(s *dynamodb.AttributeValue, def string) string {
 	}
 }
 
+func first(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
+}
+
 func flattenTags(tags []cloudformation.Tag) map[string]string {
 	f := make(map[string]string)
 

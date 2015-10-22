@@ -60,7 +60,7 @@ func ListFormation(app string) (Formation, error) {
 		}
 
 		formation = append(formation, FormationEntry{
-			Balancer: a.Outputs[fmt.Sprintf("Balancer%sHost", UpperName(me.Name))],
+			Balancer: first(a.Outputs[fmt.Sprintf("Balancer%sHost", UpperName(me.Name))], a.Outputs["BalancerHost"]),
 			Name:     me.Name,
 			Count:    count,
 			Memory:   memory,
