@@ -237,16 +237,19 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
+	// try to figure out which process to map to the main load balancer
 	primary, err := primaryProcess(r.App)
 
 	if err != nil {
 		return "", err
 	}
 
+	// if we dont have a primary default to a process named web
 	if primary == "" && manifest.Entry("web") != nil {
 		primary = "web"
 	}
 
+	// if we still dont have a primary try the first process with external ports
 	if primary == "" && manifest.HasExternalPorts() {
 		for _, entry := range manifest {
 			if len(entry.ExternalPorts()) > 0 {
@@ -267,6 +270,7 @@ func (r *Release) Formation() (string, error) {
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)
 
+// try to determine which process to map to the main load balancer
 func primaryProcess(app string) (string, error) {
 	res, err := CloudFormation().GetTemplate(&cloudformation.GetTemplateInput{
 		StackName: aws.String(app),
@@ -275,6 +279,8 @@ func primaryProcess(app string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	/* bounce through json marshaling to make whitespace predictable */
 
 	var body interface{}
 
