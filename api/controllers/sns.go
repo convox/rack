@@ -2,25 +2,25 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/api/models"
 )
 
-func SNSHandler(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("type: ", req.Header.Get("X-Amz-Sns-Message-Type"))
-	fmt.Println("arn: ", req.Header.Get("X-Amz-Sns-Topic-Arn"))
+func SNSConfirm(w http.ResponseWriter, r *http.Request) {
+	log := logger.New("ns=kernel").At("SNSConfirm")
 
-	defer req.Body.Close()
-	body, err := ioutil.ReadAll(req.Body)
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		fmt.Println("err1", err)
-		http.Error(w, "Fuck", 500)
+		log.Error(err)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
@@ -28,14 +28,8 @@ func SNSHandler(w http.ResponseWriter, req *http.Request) {
 	err = json.Unmarshal(body, &payload)
 
 	if err != nil {
-		fmt.Println("err2", err)
-		http.Error(w, "Fuck", 500)
-		return
-	}
-
-	if payload["Type"] == "Notification" {
-		fmt.Println(payload["Message"])
-		w.Write([]byte(""))
+		log.Error(err)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
@@ -43,16 +37,47 @@ func SNSHandler(w http.ResponseWriter, req *http.Request) {
 		Token:    aws.String(payload["Token"]),
 		TopicArn: aws.String(payload["TopicArn"]),
 	}
-	fmt.Println("params", params)
 	resp, err := models.SNS().ConfirmSubscription(params)
 
 	if err != nil {
-		fmt.Println("err3", err)
-		http.Error(w, "Fuck", 500)
+		log.Error(err)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	fmt.Printf("%+v\n", resp)
+	log.Log("confirmed=true subscriptionArn=%q", resp.SubscriptionArn)
+	w.Write([]byte("ok"))
+}
 
-	w.Write([]byte(""))
+func SNSProxy(w http.ResponseWriter, r *http.Request) {
+	log := logger.New("ns=kernel").At("SNSProxy")
+
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		log.Error(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	var payload map[string]string
+	err = json.Unmarshal(body, &payload)
+
+	if err != nil {
+		log.Error(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	url := r.FormValue("endpoint")
+	resp, err := http.Post(url, "application/json", strings.NewReader(payload["Message"]))
+	if err != nil {
+		log.Error(err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	log.Log("proxied=true status=%s", resp.Status)
+	w.Write([]byte("ok"))
 }

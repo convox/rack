@@ -24,12 +24,14 @@ func (s *Service) CreateWebhook() error {
 		return err
 	}
 
-	u, err := url.Parse(s.URL)
+	//ensure valid URL
+	_, err = url.Parse(s.URL)
 	if err != nil {
 		return err
 	}
 	encEndpoint := url.QueryEscape(s.URL)
-	proxyEndpoint := u.Scheme + "://" + NotificationHost + "/sns?endpoint=" + encEndpoint
+	//NOTE always assumes https instead of u.Scheme
+	proxyEndpoint := "https://" + NotificationHost + "/sns?endpoint=" + encEndpoint
 
 	params := map[string]string{
 		"Url":               proxyEndpoint,

@@ -72,6 +72,9 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	models.NotifySuccess("app:create", map[string]string{
+		"name": app.Name,
+	})
 	return RenderJson(rw, app)
 }
 
@@ -94,6 +97,9 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	models.NotifySuccess("app:delete", map[string]string{
+		"name": app.Name,
+	})
 	return RenderSuccess(rw)
 }
 

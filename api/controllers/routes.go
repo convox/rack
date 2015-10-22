@@ -14,7 +14,6 @@ func HandlerFunc(w http.ResponseWriter, req *http.Request) {
 func NewRouter() (router *mux.Router) {
 	router = mux.NewRouter()
 
-	router.HandleFunc("/sns", SNSHandler)
 	router.HandleFunc("/apps", api("app.list", AppList)).Methods("GET")
 	router.HandleFunc("/apps", api("app.create", AppCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}", api("app.get", AppShow)).Methods("GET")
@@ -43,6 +42,8 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/services/{service}", api("service.delete", ServiceDelete)).Methods("DELETE")
 	router.HandleFunc("/services/{service}/links", api("link.create", LinkCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}/links/{app}", api("link.delete", LinkDelete)).Methods("DELETE")
+	router.HandleFunc("/sns", SNSProxy).Methods("POST").Headers("X-Amz-Sns-Message-Type", "Notification")
+	router.HandleFunc("/sns", SNSConfirm).Methods("POST").Headers("X-Amz-Sns-Message-Type", "SubscriptionConfirmation")
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
