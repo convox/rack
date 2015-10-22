@@ -45,7 +45,7 @@ func SNSConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Log("confirmed=true subscriptionArn=%q", resp.SubscriptionArn)
+	log.Log("confirmed=true subscriptionArn=%q", *resp.SubscriptionArn)
 	w.Write([]byte("ok"))
 }
 
