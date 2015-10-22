@@ -14,6 +14,7 @@ func HandlerFunc(w http.ResponseWriter, req *http.Request) {
 func NewRouter() (router *mux.Router) {
 	router = mux.NewRouter()
 
+	router.HandleFunc("/sns", SNSHandler)
 	router.HandleFunc("/apps", api("app.list", AppList)).Methods("GET")
 	router.HandleFunc("/apps", api("app.create", AppCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}", api("app.get", AppShow)).Methods("GET")

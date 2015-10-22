@@ -29,37 +29,65 @@ func HandleSNSSubcription(req Request) (string, map[string]string, error) {
 }
 
 func SNSSubscriptionCreate(req Request) (string, map[string]string, error) {
-	endpoint := req.ResourceProperties["Url"].(string)
+	endpoint := req.ResourceProperties["Endpoint"].(string)
+	topicArn := req.ResourceProperties["TopicArn"].(string)
 
-	res, err := SNS(req).Subscribe(&sns.SubscribeInput{
-		TopicArn: aws.String(endpoint),
-		Endpoint: aws.String(req.ResourceProperties["Endpoint"].(string)),
+	input := sns.SubscribeInput{
+		Endpoint: aws.String(endpoint),
 		Protocol: aws.String(req.ResourceProperties["Protocol"].(string)),
-	})
+		TopicArn: aws.String(topicArn),
+	}
+
+	_, err := SNS(req).Subscribe(&input)
 
 	if err != nil {
-		return "", nil, err
+		return "failed", nil, err
 	}
 
 	outputs := make(map[string]string)
 	outputs["Endpoint"] = endpoint
 
-	return res.SubscriptionArn, outputs, nil
+	return endpoint, outputs, nil
 }
 
 func SNSSubscriptionUpdate(req Request) (string, map[string]string, error) {
 	_, _, err := SNSSubscriptionDelete(req)
 	if err != nil {
-		return "", nil, err
+		return req.PhysicalResourceId, nil, err
 	}
 
 	return SNSSubscriptionCreate(req)
 }
 
 func SNSSubscriptionDelete(req Request) (string, map[string]string, error) {
-	res, err := SNS(req).Unsubscribe(&sns.UnsubscribeInput{
-		SubscriptionArn: aws.String(req.PhysicalResourceId),
-	})
+	if req.PhysicalResourceId == "failed" {
+		return req.PhysicalResourceId, nil, nil
+	}
 
-	return req.PhysicalResourceId, nil, err
+	topicArn := req.ResourceProperties["TopicArn"].(string)
+	params := &sns.ListSubscriptionsByTopicInput{
+		TopicArn: aws.String(topicArn),
+	}
+
+	resp, err := SNS(req).ListSubscriptionsByTopic(params)
+
+	if err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	for _, s := range resp.Subscriptions {
+		if *s.Endpoint == req.PhysicalResourceId {
+			_, err := SNS(req).Unsubscribe(&sns.UnsubscribeInput{
+				SubscriptionArn: aws.String(*s.SubscriptionArn),
+			})
+
+			if err != nil {
+				return req.PhysicalResourceId, nil, err
+			}
+
+			return *s.Endpoint, nil, nil
+		}
+	}
+
+	return req.PhysicalResourceId, nil, nil
 }

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -9,6 +10,7 @@ import (
 )
 
 var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")
+var NotificationHost = os.Getenv("NOTIFICATION_HOST")
 
 func (s *Service) CreateWebhook() error {
 	if s.URL == "" {
@@ -22,8 +24,15 @@ func (s *Service) CreateWebhook() error {
 		return err
 	}
 
+	u, err := url.Parse(s.URL)
+	if err != nil {
+		return err
+	}
+	encEndpoint := url.QueryEscape(s.URL)
+	proxyEndpoint := u.Scheme + "://" + NotificationHost + "/sns?endpoint=" + encEndpoint
+
 	params := map[string]string{
-		"Url":               s.URL,
+		"Url":               proxyEndpoint,
 		"NotificationTopic": NotificationTopic,
 		"CustomTopic":       CustomTopic,
 	}
