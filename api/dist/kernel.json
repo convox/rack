@@ -69,6 +69,9 @@
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
+    "NotificationHost": { "Fn::If": [ "BlankNotificationHost",
+      { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+    ] },
     "NotificationTopic": {
       "Condition": "Development",
       "Value" : { "Ref": "NotificationTopic" }

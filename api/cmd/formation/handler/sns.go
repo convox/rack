@@ -51,11 +51,6 @@ func SNSSubscriptionCreate(req Request) (string, map[string]string, error) {
 }
 
 func SNSSubscriptionUpdate(req Request) (string, map[string]string, error) {
-	_, _, err := SNSSubscriptionDelete(req)
-	if err != nil {
-		return req.PhysicalResourceId, nil, err
-	}
-
 	return SNSSubscriptionCreate(req)
 }
 
