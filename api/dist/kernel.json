@@ -6,6 +6,7 @@
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
+    "BlankNotificationHost": { "Fn::Equals": [ { "Ref": "NotificationHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] }
   },
@@ -68,6 +69,13 @@
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
+    "NotificationHost": { "Fn::If": [ "BlankNotificationHost",
+      { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+    ] },
+    "NotificationTopic": {
+      "Condition": "Development",
+      "Value" : { "Ref": "NotificationTopic" }
+		},
     "Password": {
       "Condition": "Development",
       "Value": { "Ref": "Password" }
@@ -274,6 +282,12 @@
         ]
       }
     },
+    "NotificationTopic": {
+      "Type": "AWS::SNS::Topic",
+			"Properties": {
+				"TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
+			}
+		},
     "CustomTopic": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -855,6 +869,10 @@
                 ""
               ] },
               "KINESIS": { "Ref": "Kinesis" },
+              "NOTIFICATION_HOST": { "Fn::If": [ "BlankNotificationHost",
+                { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }
+              ] },
+              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "web",
               "RACK": { "Ref": "AWS::StackName" },

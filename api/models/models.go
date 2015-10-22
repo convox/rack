@@ -18,6 +18,7 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -87,6 +88,10 @@ func S3() *s3.S3 {
 
 func SQS() *sqs.SQS {
 	return sqs.New(awsConfig())
+}
+
+func SNS() *sns.SNS {
+	return sns.New(awsConfig())
 }
 
 func buildTemplate(name, section string, input interface{}) (string, error) {

@@ -49,10 +49,13 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	var err error
 
-	if t == "papertrail" {
+	switch t {
+	case "papertrail":
 		err = service.CreatePapertrail()
-	} else {
-		err = service.Create()
+	case "webhook":
+		err = service.CreateWebhook()
+	default:
+		err = service.CreateDatastore()
 	}
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {
@@ -73,6 +76,10 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	models.NotifySuccess("service:create", map[string]string{
+		"name": name,
+		"type": t,
+	})
 	return RenderJson(rw, service)
 }
 
@@ -101,6 +108,10 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	models.NotifySuccess("service:delete", map[string]string{
+		"name": s.Name,
+		"type": s.Type,
+	})
 	return RenderJson(rw, s)
 }
 

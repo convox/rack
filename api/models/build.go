@@ -165,10 +165,12 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, ch chan error) {
 	err := b.execute(args, r, ch)
 
 	if err != nil {
+		NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
 		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
 		b.Fail(err)
 		ch <- err
 	} else {
+		NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	}
 }
@@ -202,10 +204,12 @@ func (b *Build) ExecuteRemote(repo string, cache bool, ch chan error) {
 	err := b.execute(args, nil, ch)
 
 	if err != nil {
+		NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
 		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
 		b.Fail(err)
 		ch <- err
 	} else {
+		NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	}
 }

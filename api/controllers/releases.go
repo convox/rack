@@ -83,13 +83,22 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	err = rr.Promote()
 
+	notifyData := map[string]string{
+		"app": app,
+		"id":  release,
+	}
+
 	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(403, err.(awserr.Error).Message())
+		message := err.(awserr.Error).Message()
+		models.NotifyError("release:promote", err, notifyData)
+		return httperr.Errorf(403, message)
 	}
 
 	if err != nil {
+		models.NotifyError("release:promote", err, notifyData)
 		return httperr.Server(err)
 	}
 
+	models.NotifySuccess("release:promote", notifyData)
 	return RenderJson(rw, rr)
 }

@@ -1,0 +1,36 @@
+{{ define "service" }}
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "Url": {
+      "Type" : "String",
+      "Description" : "Webhook URL, e.g. 'https://grid.convox.com/rack-hook/1234'"
+    },
+    "CustomTopic": {
+      "Type" : "String",
+      "Description" : ""
+    },
+    "NotificationTopic": {
+      "Type" : "String",
+      "Description" : ""
+    }
+  },
+  "Resources": {
+    "Notifications": {
+      "Type" : "Custom::SNSSubscription",
+      "Version": "1.0",
+      "Properties": {
+        "ServiceToken": { "Ref": "CustomTopic" },
+        "TopicArn" : { "Ref": "NotificationTopic" },
+        "Protocol" : "https",
+        "Endpoint" : { "Ref": "Url" }
+      }
+    }
+  },
+  "Outputs": {
+    "Url": {
+      "Value": { "Ref": "Url" }
+    }
+  }
+}
+{{ end }}
