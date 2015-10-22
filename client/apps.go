@@ -6,10 +6,9 @@ import (
 )
 
 type App struct {
-	Balancer string `json:"balancer"`
-	Name     string `json:"name"`
-	Release  string `json:"release"`
-	Status   string `json:"status"`
+	Name    string `json:"name"`
+	Release string `json:"release"`
+	Status  string `json:"status"`
 }
 
 type Apps []App
