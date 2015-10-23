@@ -7,7 +7,12 @@ import (
 
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/convox/rack/test"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/convox/rack/api/models"
 )
+
+func init() {
+	models.PauseNotifications = true
+}
 
 func TestAppList(t *testing.T) {
 	aws := stubAws(test.DescribeStackCycleWithoutQuery("bar"))

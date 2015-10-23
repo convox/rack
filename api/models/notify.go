@@ -10,6 +10,8 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
 )
 
+var PauseNotifications = false
+
 type NotifyEvent struct {
 	Action    string            `json:"action"`
 	Status    string            `json:"status"`
@@ -28,6 +30,10 @@ func NotifySuccess(action string, data map[string]string) error {
 }
 
 func Notify(name, status string, data map[string]string) error {
+	if PauseNotifications {
+		return nil
+	}
+
 	log := logger.New("ns=kernel")
 	data["rack"] = os.Getenv("RACK")
 
