@@ -32,7 +32,7 @@ func (s *Service) CreateWebhook() error {
 
 	encEndpoint := url.QueryEscape(s.URL)
 	//NOTE always assumes https instead of u.Scheme
-	proxyEndpoint := "https://" + NotificationHost + "/sns?endpoint=" + encEndpoint
+	proxyEndpoint := "http://" + NotificationHost + "/sns?endpoint=" + encEndpoint
 
 	params := map[string]string{
 		"Url":               proxyEndpoint,
