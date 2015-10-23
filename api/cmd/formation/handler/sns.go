@@ -77,7 +77,8 @@ func SNSSubscriptionDelete(req Request) (string, map[string]string, error) {
 			})
 
 			if err != nil {
-				return req.PhysicalResourceId, nil, err
+				fmt.Printf("error: %s\n", err)
+				return req.PhysicalResourceId, nil, nil
 			}
 
 			return *s.Endpoint, nil, nil
