@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-var MinimumServerVersion = "20150914214647"
+var MinimumServerVersion = "20151023042141"
 
 type Client struct {
 	Host     string
