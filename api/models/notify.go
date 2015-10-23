@@ -11,10 +11,10 @@ import (
 )
 
 type NotifyEvent struct {
-	Action    string
-	Status    string
-	Data      map[string]string
-	Timestamp time.Time
+	Action    string            `json:"action"`
+	Status    string            `json:"status"`
+	Data      map[string]string `json:"data"`
+	Timestamp time.Time         `json:"timestamp"`
 }
 
 // uniform error handling
