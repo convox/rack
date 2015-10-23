@@ -77,7 +77,6 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rack, err = models.GetSystem()
 
 	if err != nil {
-		models.NotifyError("system:update", err, notifyData)
 		return httperr.Server(err)
 	}
 

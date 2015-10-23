@@ -109,7 +109,6 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		return "", err
 	}
 
-	NotifySuccess("release:create", map[string]string{"id": release.Id})
 	return release.Id, nil
 }
 

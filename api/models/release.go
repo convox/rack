@@ -157,6 +157,8 @@ func (r *Release) Save() error {
 		}
 	}
 
+	NotifySuccess("release:create", map[string]string{"id": r.Id, "app": r.App})
+
 	return S3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
@@ -215,6 +217,11 @@ func (r *Release) Promote() error {
 	}
 
 	_, err = CloudFormation().UpdateStack(req)
+
+	NotifySuccess("release:promote", map[string]string{
+		"app": r.App,
+		"id":  r.Id,
+	})
 
 	return err
 }

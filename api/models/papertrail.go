@@ -52,6 +52,11 @@ func (s *Service) CreatePapertrail() error {
 
 	_, err = CloudFormation().CreateStack(req)
 
+	NotifySuccess("service:create", map[string]string{
+		"name": s.Name,
+		"type": s.Type,
+	})
+
 	return err
 }
 
