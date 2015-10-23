@@ -76,10 +76,6 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	models.NotifySuccess("service:create", map[string]string{
-		"name": name,
-		"type": t,
-	})
 	return RenderJson(rw, service)
 }
 
@@ -108,10 +104,6 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	models.NotifySuccess("service:delete", map[string]string{
-		"name": s.Name,
-		"type": s.Type,
-	})
 	return RenderJson(rw, s)
 }
 

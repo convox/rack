@@ -89,6 +89,11 @@ func (s *Service) CreateDatastore() error {
 
 	_, err = CloudFormation().CreateStack(req)
 
+	NotifySuccess("service:create", map[string]string{
+		"name": s.Name,
+		"type": s.Type,
+	})
+
 	return err
 }
 
@@ -100,6 +105,11 @@ func (s *Service) Delete() error {
 	if err != nil {
 		return err
 	}
+
+	NotifySuccess("service:delete", map[string]string{
+		"name": s.Name,
+		"type": s.Type,
+	})
 
 	return nil
 }
