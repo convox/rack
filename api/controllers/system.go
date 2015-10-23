@@ -33,6 +33,8 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	notifyData := map[string]string{}
+
 	if count := GetForm(r, "count"); count != "" {
 		count, err := strconv.Atoi(count)
 
@@ -41,14 +43,20 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 
 		rack.Count = count
+
+		notifyData["count"] = strconv.Itoa(count)
 	}
 
 	if t := GetForm(r, "type"); t != "" {
 		rack.Type = t
+
+		notifyData["type"] = t
 	}
 
 	if version := GetForm(r, "version"); version != "" {
 		rack.Version = version
+
+		notifyData["version"] = version
 	}
 
 	err = rack.Save()
@@ -69,8 +77,11 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rack, err = models.GetSystem()
 
 	if err != nil {
+		models.NotifyError("system:update", err, notifyData)
 		return httperr.Server(err)
 	}
+
+	models.NotifySuccess("system:update", notifyData)
 
 	return RenderJson(rw, rack)
 }
