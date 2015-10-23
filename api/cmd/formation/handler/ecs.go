@@ -34,7 +34,7 @@ func HandleECSCluster(req Request) (string, map[string]string, error) {
 		return ECSClusterDelete(req)
 	}
 
-	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
 func HandleECSService(req Request) (string, map[string]string, error) {
@@ -53,7 +53,7 @@ func HandleECSService(req Request) (string, map[string]string, error) {
 		return ECSServiceDelete(req)
 	}
 
-	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
 func HandleECSTaskDefinition(req Request) (string, map[string]string, error) {
@@ -72,7 +72,7 @@ func HandleECSTaskDefinition(req Request) (string, map[string]string, error) {
 		return ECSTaskDefinitionDelete(req)
 	}
 
-	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
 func ECSClusterCreate(req Request) (string, map[string]string, error) {
@@ -81,7 +81,7 @@ func ECSClusterCreate(req Request) (string, map[string]string, error) {
 	})
 
 	if err != nil {
-		return "", nil, err
+		return "invalid", nil, err
 	}
 
 	return *res.Cluster.ClusterArn, nil, nil
@@ -110,7 +110,7 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
 
 	if err != nil {
-		return "", nil, err
+		return "invalid", nil, err
 	}
 
 	r := &ecs.CreateServiceInput{
@@ -130,7 +130,7 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 		parts := strings.SplitN(balancer.(string), ":", 3)
 
 		if len(parts) != 3 {
-			return "", nil, fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
+			return "invalid", nil, fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
 		}
 
 		name := parts[0]
@@ -149,7 +149,7 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	res, err := ECS(req).CreateService(r)
 
 	if err != nil {
-		return "", nil, err
+		return "invalid", nil, err
 	}
 
 	return *res.Service.ServiceArn, nil, nil
@@ -170,7 +170,7 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	})
 
 	if err != nil {
-		return "", nil, err
+		return req.PhysicalResourceId, nil, err
 	}
 
 	return *res.Service.ServiceArn, nil, nil
@@ -236,7 +236,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		res, err := http.Get(envUrl)
 
 		if err != nil {
-			return "", nil, err
+			return "invalid", nil, err
 		}
 
 		defer res.Body.Close()
@@ -250,7 +250,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			dec, err := cr.Decrypt(key, data)
 
 			if err != nil {
-				return "", nil, err
+				return "invalid", nil, err
 			}
 
 			data = dec
@@ -356,7 +356,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	res, err := ECS(req).RegisterTaskDefinition(r)
 
 	if err != nil {
-		return "", nil, err
+		return "invalid", nil, err
 	}
 
 	return *res.TaskDefinition.TaskDefinitionArn, nil, nil
