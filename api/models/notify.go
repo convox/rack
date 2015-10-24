@@ -8,16 +8,10 @@ import (
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/convox/rack/client"
 )
 
 var PauseNotifications = false
-
-type NotifyEvent struct {
-	Action    string            `json:"action"`
-	Status    string            `json:"status"`
-	Data      map[string]string `json:"data"`
-	Timestamp time.Time         `json:"timestamp"`
-}
 
 // uniform error handling
 func NotifyError(action string, err error, data map[string]string) error {
@@ -37,7 +31,7 @@ func Notify(name, status string, data map[string]string) error {
 	log := logger.New("ns=kernel")
 	data["rack"] = os.Getenv("RACK")
 
-	event := &NotifyEvent{
+	event := &client.NotifyEvent{
 		Action:    name,
 		Status:    status,
 		Data:      data,
