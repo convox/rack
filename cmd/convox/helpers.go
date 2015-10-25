@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/dustin/go-humanize"
 )
 
 func exists(filename string) bool {

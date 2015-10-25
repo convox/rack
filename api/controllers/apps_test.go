@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/convox/rack/test"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/test"
 )
 
 func init() {

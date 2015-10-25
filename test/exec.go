@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 type ExecRun struct {

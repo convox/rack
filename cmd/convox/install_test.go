@@ -4,10 +4,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/convox/release/version"
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
-	"github.com/convox/release/version"
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {

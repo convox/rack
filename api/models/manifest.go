@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 // set to false when testing for deterministic ports

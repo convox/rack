@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/convox/rack/test"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/controllers"
+	"github.com/convox/rack/test"
 )
 
 // Note: these tests don't use the api helpers to ensure a naked

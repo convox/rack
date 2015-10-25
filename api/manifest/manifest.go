@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/fatih/color"
-	yaml "github.com/convox/rack/api/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/fatih/color"
+	yaml "github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
 var (

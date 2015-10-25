@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
-	docker "github.com/convox/rack/api/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/rack/api/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
+	docker "github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 )

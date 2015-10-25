@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 func KernelUpdate() error {

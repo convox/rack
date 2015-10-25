@@ -3,8 +3,8 @@ package client
 import (
 	"testing"
 
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/test"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetApps(t *testing.T) {

@@ -3,7 +3,7 @@ package controllers_test
 import (
 	"net/http/httptest"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/convox/rack/api/awsutil"
 )
 
