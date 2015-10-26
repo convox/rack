@@ -12,9 +12,8 @@ publish:
 release:
 	docker build -t convox/api:$(VERSION) .
 	docker push convox/api:$(VERSION)
-	rm -rf /tmp/release.$$PPID
-	mkdir -p /tmp/release.$$PPID
-	cd /tmp/release.$$PPID
+	mkdir -p /tmp/release/$(VERSION)
+	cd /tmp/release/$(VERSION)
 	jq '.Parameters.Version.Default |= "$(VERSION)"' api/dist/kernel.json > kernel.json
 	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 	docker run -i convox/api:$(VERSION) cat api/cmd/formation/lambda.js > lambda.js
