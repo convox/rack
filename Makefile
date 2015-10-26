@@ -2,11 +2,6 @@
 
 all: test
 
-publish:
-	docker tag -f convox/api:$(VERSION) convox/api:latest
-	docker push convox/api:latest
-	cd api/cmd/formation && make publish VERSION=$(VERSION)
-
 release:
 	cd api/cmd/formation && make release VERSION=$(VERSION)
 	docker build -t convox/api:$(VERSION) .
