@@ -634,7 +634,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WebECService": {
+    "WebECSService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -681,13 +681,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WebECTaskDefinition"
+          "Ref": "WebECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "WebECTaskDefinition": {
+    "WebECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -767,7 +767,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "WorkerECService": {
+    "WorkerECSService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -814,13 +814,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WorkerECTaskDefinition"
+          "Ref": "WorkerECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "WorkerECTaskDefinition": {
+    "WorkerECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
