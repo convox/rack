@@ -9,6 +9,7 @@ publish:
 release:
 	docker build -t convox/api:$(VERSION) .
 	docker push convox/api:$(VERSION)
+	cd api && make
 
 test-deps:
 	go get -t -u ./...
