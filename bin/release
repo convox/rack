@@ -4,10 +4,6 @@
 export GOPATH=$tmp/go
 
 # login to docker
-docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-
-# 
-clone_mtime https://github.com/convox/registry $tmp/registry
 
 cd $tmp/rack/api
 docker build -t convox/api:$tag .
