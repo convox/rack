@@ -11,7 +11,7 @@ publish:
 
 release:
 	docker build -t convox/api:$(VERSION) .
-	# docker push convox/api:$(VERSION)
+	docker push convox/api:$(VERSION)
 	rm -rf /tmp/release.$$PPID
 	mkdir -p /tmp/release.$$PPID
 	cd /tmp/release.$$PPID
