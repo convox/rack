@@ -8,8 +8,8 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service/serviceinfo"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/query"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/signer/v4"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/query"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // AWS Identity and Access Management (IAM) is a web service that you can use

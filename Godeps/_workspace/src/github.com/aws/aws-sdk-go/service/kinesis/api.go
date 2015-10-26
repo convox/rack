@@ -103,6 +103,39 @@ func (c *Kinesis) CreateStream(input *CreateStreamInput) (*CreateStreamOutput, e
 	return out, err
 }
 
+const opDecreaseStreamRetentionPeriod = "DecreaseStreamRetentionPeriod"
+
+// DecreaseStreamRetentionPeriodRequest generates a request for the DecreaseStreamRetentionPeriod operation.
+func (c *Kinesis) DecreaseStreamRetentionPeriodRequest(input *DecreaseStreamRetentionPeriodInput) (req *request.Request, output *DecreaseStreamRetentionPeriodOutput) {
+	op := &request.Operation{
+		Name:       opDecreaseStreamRetentionPeriod,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DecreaseStreamRetentionPeriodInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DecreaseStreamRetentionPeriodOutput{}
+	req.Data = output
+	return
+}
+
+// Decreases the stream's retention period, which is the length of time data
+// records are accessible after they are added to the stream. The minimum value
+// of a stream’s retention period is 24 hours.
+//
+// This operation may result in lost data. For example, if the stream's retention
+// period is 48 hours and is decreased to 24 hours, any data already in the
+// stream that is older than 24 hours is inaccessible.
+func (c *Kinesis) DecreaseStreamRetentionPeriod(input *DecreaseStreamRetentionPeriodInput) (*DecreaseStreamRetentionPeriodOutput, error) {
+	req, out := c.DecreaseStreamRetentionPeriodRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDeleteStream = "DeleteStream"
 
 // DeleteStreamRequest generates a request for the DeleteStream operation.
@@ -348,6 +381,43 @@ func (c *Kinesis) GetShardIterator(input *GetShardIteratorInput) (*GetShardItera
 	return out, err
 }
 
+const opIncreaseStreamRetentionPeriod = "IncreaseStreamRetentionPeriod"
+
+// IncreaseStreamRetentionPeriodRequest generates a request for the IncreaseStreamRetentionPeriod operation.
+func (c *Kinesis) IncreaseStreamRetentionPeriodRequest(input *IncreaseStreamRetentionPeriodInput) (req *request.Request, output *IncreaseStreamRetentionPeriodOutput) {
+	op := &request.Operation{
+		Name:       opIncreaseStreamRetentionPeriod,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &IncreaseStreamRetentionPeriodInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &IncreaseStreamRetentionPeriodOutput{}
+	req.Data = output
+	return
+}
+
+// Increases the stream's retention period, which is the length of time data
+// records are accessible after they are added to the stream. The maximum value
+// of a stream’s retention period is 168 hours (7 days).
+//
+// Upon choosing a longer stream retention period, this operation will increase
+// the time period records are accessible that have not yet expired. However,
+// it will not make previous data that has expired (older than the stream’s
+// previous retention period) accessible after the operation has been called.
+// For example, if a stream’s retention period is set to 24 hours and is increased
+// to 168 hours, any data that is older than 24 hours will remain inaccessible
+// to consumer applications.
+func (c *Kinesis) IncreaseStreamRetentionPeriod(input *IncreaseStreamRetentionPeriodInput) (*IncreaseStreamRetentionPeriodOutput, error) {
+	req, out := c.IncreaseStreamRetentionPeriodRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListStreams = "ListStreams"
 
 // ListStreamsRequest generates a request for the ListStreams operation.
@@ -547,8 +617,10 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request,
 // If a PutRecord request cannot be processed because of insufficient provisioned
 // throughput on the shard involved in the request, PutRecord throws ProvisionedThroughputExceededException.
 //
-// Data records are accessible for only 24 hours from the time that they are
-// added to an Amazon Kinesis stream.
+// By default, data records are accessible for only 24 hours from the time
+// that they are added to an Amazon Kinesis stream. This retention period can
+// be modified using the DecreaseStreamRetentionPeriod and IncreaseStreamRetentionPeriod
+// operations.
 func (c *Kinesis) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 	req, out := c.PutRecordRequest(input)
 	err := req.Send()
@@ -632,8 +704,10 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Reques
 // see Adding Multiple Records with PutRecords (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-add-data-to-stream.html#kinesis-using-sdk-java-putrecords)
 // in the Amazon Kinesis Developer Guide.
 //
-// Data records are accessible for only 24 hours from the time that they are
-// added to an Amazon Kinesis stream.
+// By default, data records are accessible for only 24 hours from the time
+// that they are added to an Amazon Kinesis stream. This retention period can
+// be modified using the DecreaseStreamRetentionPeriod and IncreaseStreamRetentionPeriod
+// operations.
 func (c *Kinesis) PutRecords(input *PutRecordsInput) (*PutRecordsOutput, error) {
 	req, out := c.PutRecordsRequest(input)
 	err := req.Send()
@@ -744,10 +818,10 @@ func (c *Kinesis) SplitShard(input *SplitShardInput) (*SplitShardOutput, error) 
 // Represents the input for AddTagsToStream.
 type AddTagsToStreamInput struct {
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	// The set of key-value pairs to use to create the tags.
-	Tags map[string]*string `type:"map" required:"true"`
+	Tags map[string]*string `min:"1" type:"map" required:"true"`
 
 	metadataAddTagsToStreamInput `json:"-" xml:"-"`
 }
@@ -791,14 +865,14 @@ type CreateStreamInput struct {
 	// provisioned throughput.
 	//
 	// DefaultShardLimit;
-	ShardCount *int64 `type:"integer" required:"true"`
+	ShardCount *int64 `min:"1" type:"integer" required:"true"`
 
 	// A name to identify the stream. The stream name is scoped to the AWS account
 	// used by the application that creates the stream. It is also scoped by region.
 	// That is, two streams in two different AWS accounts can have the same name,
 	// and two streams in the same AWS account, but in two different regions, can
 	// have the same name.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataCreateStreamInput `json:"-" xml:"-"`
 }
@@ -835,10 +909,54 @@ func (s CreateStreamOutput) GoString() string {
 	return s.String()
 }
 
+// Represents the input for DecreaseStreamRetentionPeriod.
+type DecreaseStreamRetentionPeriodInput struct {
+	// The new retention period of the stream, in hours. Must be less than the current
+	// retention period.
+	RetentionPeriodHours *int64 `min:"24" type:"integer" required:"true"`
+
+	// The name of the stream to modify.
+	StreamName *string `min:"1" type:"string" required:"true"`
+
+	metadataDecreaseStreamRetentionPeriodInput `json:"-" xml:"-"`
+}
+
+type metadataDecreaseStreamRetentionPeriodInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s DecreaseStreamRetentionPeriodInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DecreaseStreamRetentionPeriodInput) GoString() string {
+	return s.String()
+}
+
+type DecreaseStreamRetentionPeriodOutput struct {
+	metadataDecreaseStreamRetentionPeriodOutput `json:"-" xml:"-"`
+}
+
+type metadataDecreaseStreamRetentionPeriodOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s DecreaseStreamRetentionPeriodOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DecreaseStreamRetentionPeriodOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for DeleteStream.
 type DeleteStreamInput struct {
 	// The name of the stream to delete.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataDeleteStreamInput `json:"-" xml:"-"`
 }
@@ -878,13 +996,13 @@ func (s DeleteStreamOutput) GoString() string {
 // Represents the input for DescribeStream.
 type DescribeStreamInput struct {
 	// The shard ID of the shard to start with.
-	ExclusiveStartShardId *string `type:"string"`
+	ExclusiveStartShardId *string `min:"1" type:"string"`
 
 	// The maximum number of shards to return.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	// The name of the stream to describe.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataDescribeStreamInput `json:"-" xml:"-"`
 }
@@ -930,12 +1048,12 @@ func (s DescribeStreamOutput) GoString() string {
 type GetRecordsInput struct {
 	// The maximum number of records to return. Specify a value of up to 10,000.
 	// If you specify a value that is greater than 10,000, GetRecords throws InvalidArgumentException.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	// The position in the shard from which you want to start sequentially reading
 	// data records. A shard iterator specifies this position using the sequence
 	// number of a data record in the shard.
-	ShardIterator *string `type:"string" required:"true"`
+	ShardIterator *string `min:"1" type:"string" required:"true"`
 
 	metadataGetRecordsInput `json:"-" xml:"-"`
 }
@@ -965,7 +1083,7 @@ type GetRecordsOutput struct {
 	// The next position in the shard from which to start sequentially reading data
 	// records. If set to null, the shard has been closed and the requested iterator
 	// will not return any more data.
-	NextShardIterator *string `type:"string"`
+	NextShardIterator *string `min:"1" type:"string"`
 
 	// The data records retrieved from the shard.
 	Records []*Record `type:"list" required:"true"`
@@ -990,7 +1108,7 @@ func (s GetRecordsOutput) GoString() string {
 // Represents the input for GetShardIterator.
 type GetShardIteratorInput struct {
 	// The shard ID of the shard to get the iterator for.
-	ShardId *string `type:"string" required:"true"`
+	ShardId *string `min:"1" type:"string" required:"true"`
 
 	// Determines how the shard iterator is used to start reading data records from
 	// the shard.
@@ -1011,7 +1129,7 @@ type GetShardIteratorInput struct {
 	StartingSequenceNumber *string `type:"string"`
 
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataGetShardIteratorInput `json:"-" xml:"-"`
 }
@@ -1035,7 +1153,7 @@ type GetShardIteratorOutput struct {
 	// The position in the shard from which to start reading data records sequentially.
 	// A shard iterator specifies this position using the sequence number of a data
 	// record in a shard.
-	ShardIterator *string `type:"string"`
+	ShardIterator *string `min:"1" type:"string"`
 
 	metadataGetShardIteratorOutput `json:"-" xml:"-"`
 }
@@ -1080,13 +1198,57 @@ func (s HashKeyRange) GoString() string {
 	return s.String()
 }
 
+// Represents the input for IncreaseStreamRetentionPeriod.
+type IncreaseStreamRetentionPeriodInput struct {
+	// The new retention period of the stream, in hours. Must be more than the current
+	// retention period.
+	RetentionPeriodHours *int64 `min:"24" type:"integer" required:"true"`
+
+	// The name of the stream to modify.
+	StreamName *string `min:"1" type:"string" required:"true"`
+
+	metadataIncreaseStreamRetentionPeriodInput `json:"-" xml:"-"`
+}
+
+type metadataIncreaseStreamRetentionPeriodInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s IncreaseStreamRetentionPeriodInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IncreaseStreamRetentionPeriodInput) GoString() string {
+	return s.String()
+}
+
+type IncreaseStreamRetentionPeriodOutput struct {
+	metadataIncreaseStreamRetentionPeriodOutput `json:"-" xml:"-"`
+}
+
+type metadataIncreaseStreamRetentionPeriodOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s IncreaseStreamRetentionPeriodOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IncreaseStreamRetentionPeriodOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for ListStreams.
 type ListStreamsInput struct {
 	// The name of the stream to start the list with.
-	ExclusiveStartStreamName *string `type:"string"`
+	ExclusiveStartStreamName *string `min:"1" type:"string"`
 
 	// The maximum number of streams to list.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	metadataListStreamsInput `json:"-" xml:"-"`
 }
@@ -1135,15 +1297,15 @@ func (s ListStreamsOutput) GoString() string {
 type ListTagsForStreamInput struct {
 	// The key to use as the starting point for the list of tags. If this parameter
 	// is set, ListTagsForStream gets all tags that occur after ExclusiveStartTagKey.
-	ExclusiveStartTagKey *string `type:"string"`
+	ExclusiveStartTagKey *string `min:"1" type:"string"`
 
 	// The number of tags to return. If this number is less than the total number
 	// of tags associated with the stream, HasMoreTags is set to true. To list additional
 	// tags, set ExclusiveStartTagKey to the last key in the response.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataListTagsForStreamInput `json:"-" xml:"-"`
 }
@@ -1192,13 +1354,13 @@ func (s ListTagsForStreamOutput) GoString() string {
 // Represents the input for MergeShards.
 type MergeShardsInput struct {
 	// The shard ID of the adjacent shard for the merge.
-	AdjacentShardToMerge *string `type:"string" required:"true"`
+	AdjacentShardToMerge *string `min:"1" type:"string" required:"true"`
 
 	// The shard ID of the shard to combine with the adjacent shard for the merge.
-	ShardToMerge *string `type:"string" required:"true"`
+	ShardToMerge *string `min:"1" type:"string" required:"true"`
 
 	// The name of the stream for the merge.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataMergeShardsInput `json:"-" xml:"-"`
 }
@@ -1255,7 +1417,7 @@ type PutRecordInput struct {
 	// and to map associated data records to shards. As a result of this hashing
 	// mechanism, all data records with the same partition key will map to the same
 	// shard within the stream.
-	PartitionKey *string `type:"string" required:"true"`
+	PartitionKey *string `min:"1" type:"string" required:"true"`
 
 	// Guarantees strictly increasing sequence numbers, for puts from the same client
 	// and to the same partition key. Usage: set the SequenceNumberForOrdering of
@@ -1265,7 +1427,7 @@ type PutRecordInput struct {
 	SequenceNumberForOrdering *string `type:"string"`
 
 	// The name of the stream to put the data record into.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordInput `json:"-" xml:"-"`
 }
@@ -1293,7 +1455,7 @@ type PutRecordOutput struct {
 	SequenceNumber *string `type:"string" required:"true"`
 
 	// The shard ID of the shard where the data record was placed.
-	ShardId *string `type:"string" required:"true"`
+	ShardId *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordOutput `json:"-" xml:"-"`
 }
@@ -1315,10 +1477,10 @@ func (s PutRecordOutput) GoString() string {
 // A PutRecords request.
 type PutRecordsInput struct {
 	// The records associated with the request.
-	Records []*PutRecordsRequestEntry `type:"list" required:"true"`
+	Records []*PutRecordsRequestEntry `min:"1" type:"list" required:"true"`
 
 	// The stream name associated with the request.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordsInput `json:"-" xml:"-"`
 }
@@ -1340,14 +1502,14 @@ func (s PutRecordsInput) GoString() string {
 // PutRecords results.
 type PutRecordsOutput struct {
 	// The number of unsuccessfully processed records in a PutRecords request.
-	FailedRecordCount *int64 `type:"integer"`
+	FailedRecordCount *int64 `min:"1" type:"integer"`
 
 	// An array of successfully and unsuccessfully processed record results, correlated
 	// with the request by natural ordering. A record that is successfully added
 	// to your Amazon Kinesis stream includes SequenceNumber and ShardId in the
 	// result. A record that fails to be added to your Amazon Kinesis stream includes
 	// ErrorCode and ErrorMessage in the result.
-	Records []*PutRecordsResultEntry `type:"list" required:"true"`
+	Records []*PutRecordsResultEntry `min:"1" type:"list" required:"true"`
 
 	metadataPutRecordsOutput `json:"-" xml:"-"`
 }
@@ -1386,7 +1548,7 @@ type PutRecordsRequestEntry struct {
 	// and to map associated data records to shards. As a result of this hashing
 	// mechanism, all data records with the same partition key map to the same shard
 	// within the stream.
-	PartitionKey *string `type:"string" required:"true"`
+	PartitionKey *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordsRequestEntry `json:"-" xml:"-"`
 }
@@ -1425,7 +1587,7 @@ type PutRecordsResultEntry struct {
 	SequenceNumber *string `type:"string"`
 
 	// The shard ID for an individual record result.
-	ShardId *string `type:"string"`
+	ShardId *string `min:"1" type:"string"`
 
 	metadataPutRecordsResultEntry `json:"-" xml:"-"`
 }
@@ -1458,7 +1620,7 @@ type Record struct {
 	Data []byte `type:"blob" required:"true"`
 
 	// Identifies which shard in the stream the data record is assigned to.
-	PartitionKey *string `type:"string" required:"true"`
+	PartitionKey *string `min:"1" type:"string" required:"true"`
 
 	// The unique identifier of the record in the stream.
 	SequenceNumber *string `type:"string" required:"true"`
@@ -1483,10 +1645,10 @@ func (s Record) GoString() string {
 // Represents the input for RemoveTagsFromStream.
 type RemoveTagsFromStreamInput struct {
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	// A list of tag keys. Each corresponding tag is removed from the stream.
-	TagKeys []*string `type:"list" required:"true"`
+	TagKeys []*string `min:"1" type:"list" required:"true"`
 
 	metadataRemoveTagsFromStreamInput `json:"-" xml:"-"`
 }
@@ -1552,20 +1714,20 @@ func (s SequenceNumberRange) GoString() string {
 // A uniquely identified group of data records in an Amazon Kinesis stream.
 type Shard struct {
 	// The shard Id of the shard adjacent to the shard's parent.
-	AdjacentParentShardId *string `type:"string"`
+	AdjacentParentShardId *string `min:"1" type:"string"`
 
 	// The range of possible hash key values for the shard, which is a set of ordered
 	// contiguous positive integers.
 	HashKeyRange *HashKeyRange `type:"structure" required:"true"`
 
 	// The shard Id of the shard's parent.
-	ParentShardId *string `type:"string"`
+	ParentShardId *string `min:"1" type:"string"`
 
 	// The range of possible sequence numbers for the shard.
 	SequenceNumberRange *SequenceNumberRange `type:"structure" required:"true"`
 
 	// The unique identifier of the shard within the Amazon Kinesis stream.
-	ShardId *string `type:"string" required:"true"`
+	ShardId *string `min:"1" type:"string" required:"true"`
 
 	metadataShard `json:"-" xml:"-"`
 }
@@ -1596,10 +1758,10 @@ type SplitShardInput struct {
 	NewStartingHashKey *string `type:"string" required:"true"`
 
 	// The shard ID of the shard to split.
-	ShardToSplit *string `type:"string" required:"true"`
+	ShardToSplit *string `min:"1" type:"string" required:"true"`
 
 	// The name of the stream for the shard split.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataSplitShardInput `json:"-" xml:"-"`
 }
@@ -1641,6 +1803,9 @@ type StreamDescription struct {
 	// If set to true, more shards in the stream are available to describe.
 	HasMoreShards *bool `type:"boolean" required:"true"`
 
+	// The current retention period, in hours.
+	RetentionPeriodHours *int64 `min:"24" type:"integer" required:"true"`
+
 	// The shards that comprise the stream.
 	Shards []*Shard `type:"list" required:"true"`
 
@@ -1648,7 +1813,7 @@ type StreamDescription struct {
 	StreamARN *string `type:"string" required:"true"`
 
 	// The name of the stream being described.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	// The current status of the stream being described.
 	//
@@ -1685,7 +1850,7 @@ func (s StreamDescription) GoString() string {
 type Tag struct {
 	// A unique identifier for the tag. Maximum length: 128 characters. Valid characters:
 	// Unicode letters, digits, white space, _ . / = + - % @
-	Key *string `type:"string" required:"true"`
+	Key *string `min:"1" type:"string" required:"true"`
 
 	// An optional string, typically used to describe or define the tag. Maximum
 	// length: 256 characters. Valid characters: Unicode letters, digits, white

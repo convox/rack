@@ -6,9 +6,9 @@ package query
 import (
 	"net/url"
 
+	"github.com/aws/aws-sdk-go/internal/protocol/query/queryutil"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/query/queryutil"
 )
 
 // Build builds a request for an AWS Query service.

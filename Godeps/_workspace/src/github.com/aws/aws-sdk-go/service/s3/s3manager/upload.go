@@ -11,21 +11,27 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
 
-// The maximum allowed number of parts in a multi-part upload on Amazon S3.
+// MaxUploadParts is the maximum allowed number of parts in a multi-part upload
+// on Amazon S3.
 var MaxUploadParts = 10000
 
-// The minimum allowed part size when uploading a part to Amazon S3.
+// MinUploadPartSize is the minimum allowed part size when uploading a part to
+// Amazon S3.
 var MinUploadPartSize int64 = 1024 * 1024 * 5
 
-// The default part size to buffer chunks of a payload into.
+// DefaultUploadPartSize is the default part size to buffer chunks of a
+// payload into.
 var DefaultUploadPartSize = MinUploadPartSize
 
-// The default number of goroutines to spin up when using Upload().
+// DefaultUploadConcurrency is the default number of goroutines to spin up when
+// using Upload().
 var DefaultUploadConcurrency = 5
 
-// The default set of options used when opts is nil in Upload().
+// DefaultUploadOptions is the default set of options used when opts is nil in
+// Upload().
 var DefaultUploadOptions = &UploadOptions{
 	PartSize:          DefaultUploadPartSize,
 	Concurrency:       DefaultUploadConcurrency,
@@ -189,6 +195,11 @@ type UploadOutput struct {
 	// The URL where the object was uploaded to.
 	Location string
 
+	// The version of the object that was uploaded. Will only be populated if
+	// the S3 Bucket is versioned. If the bucket is not versioned this field
+	// will not be set.
+	VersionID *string
+
 	// The ID for a multipart upload to S3. In the case of an error the error
 	// can be cast to the MultiUploadFailure interface to extract the upload ID.
 	UploadID string
@@ -215,7 +226,7 @@ type UploadOptions struct {
 
 	// The client to use when uploading to S3. Leave this as nil to use the
 	// default S3 client.
-	S3 *s3.S3
+	S3 s3iface.S3API
 }
 
 // NewUploader creates a new Uploader object to upload data to S3. Pass in
@@ -360,13 +371,16 @@ func (u *uploader) singlePart(buf io.ReadSeeker) (*UploadOutput, error) {
 	awsutil.Copy(params, u.in)
 	params.Body = buf
 
-	req, _ := u.opts.S3.PutObjectRequest(params)
+	req, out := u.opts.S3.PutObjectRequest(params)
 	if err := req.Send(); err != nil {
 		return nil, err
 	}
 
 	url := req.HTTPRequest.URL.String()
-	return &UploadOutput{Location: url}, nil
+	return &UploadOutput{
+		Location:  url,
+		VersionID: out.VersionId,
+	}, nil
 }
 
 // internal structure to manage a specific multipart upload to S3.
@@ -460,8 +474,9 @@ func (u *multiuploader) upload(firstBuf io.ReadSeeker) (*UploadOutput, error) {
 		}
 	}
 	return &UploadOutput{
-		Location: *complete.Location,
-		UploadID: u.uploadID,
+		Location:  *complete.Location,
+		VersionID: complete.VersionId,
+		UploadID:  u.uploadID,
 	}, nil
 }
 

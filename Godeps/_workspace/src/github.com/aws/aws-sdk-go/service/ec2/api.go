@@ -696,6 +696,13 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 }
 
 // Cancels the specified Spot fleet requests.
+//
+// After you cancel a Spot fleet request, the Spot fleet launches no new Spot
+// instances. You must specify whether the Spot fleet should also terminate
+// its Spot instances. If you terminate the instances, the Spot fleet request
+// enters the cancelled_terminating state. Otherwise, the Spot fleet request
+// enters the cancelled_running state and the instances continue to run until
+// they are interrupted or you terminate them manually.
 func (c *EC2) CancelSpotFleetRequests(input *CancelSpotFleetRequestsInput) (*CancelSpotFleetRequestsOutput, error) {
 	req, out := c.CancelSpotFleetRequestsRequest(input)
 	err := req.Send()
@@ -722,14 +729,14 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 	return
 }
 
-// Cancels one or more Spot Instance requests. Spot Instances are instances
+// Cancels one or more Spot instance requests. Spot instances are instances
 // that Amazon EC2 starts on your behalf when the bid price that you specify
-// exceeds the current Spot Price. Amazon EC2 periodically sets the Spot Price
-// based on available Spot Instance capacity and current Spot Instance requests.
+// exceeds the current Spot price. Amazon EC2 periodically sets the Spot price
+// based on available Spot instance capacity and current Spot instance requests.
 // For more information, see Spot Instance Requests (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-requests.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-//  Canceling a Spot Instance request does not terminate running Spot Instances
+//  Canceling a Spot instance request does not terminate running Spot instances
 // associated with the request.
 func (c *EC2) CancelSpotInstanceRequests(input *CancelSpotInstanceRequestsInput) (*CancelSpotInstanceRequestsOutput, error) {
 	req, out := c.CancelSpotInstanceRequestsRequest(input)
@@ -1505,7 +1512,7 @@ func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSub
 	return
 }
 
-// Creates a data feed for Spot Instances, enabling you to view Spot Instance
+// Creates a data feed for Spot instances, enabling you to view Spot instance
 // usage logs. You can create one data feed per AWS account. For more information,
 // see Spot Instance Data Feed (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-data-feeds.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -2259,9 +2266,7 @@ func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSub
 	return
 }
 
-// Deletes the data feed for Spot Instances. For more information, see Spot
-// Instance Data Feed (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-data-feeds.html)
-// in the Amazon Elastic Compute Cloud User Guide.
+// Deletes the data feed for Spot instances.
 func (c *EC2) DeleteSpotDatafeedSubscription(input *DeleteSpotDatafeedSubscriptionInput) (*DeleteSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.DeleteSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -3780,7 +3785,7 @@ func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafee
 	return
 }
 
-// Describes the data feed for Spot Instances. For more information, see Spot
+// Describes the data feed for Spot instances. For more information, see Spot
 // Instance Data Feed (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-data-feeds.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) DescribeSpotDatafeedSubscription(input *DescribeSpotDatafeedSubscriptionInput) (*DescribeSpotDatafeedSubscriptionOutput, error) {
@@ -3895,15 +3900,15 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 	return
 }
 
-// Describes the Spot Instance requests that belong to your account. Spot Instances
+// Describes the Spot instance requests that belong to your account. Spot instances
 // are instances that Amazon EC2 launches when the bid price that you specify
-// exceeds the current Spot Price. Amazon EC2 periodically sets the Spot Price
-// based on available Spot Instance capacity and current Spot Instance requests.
+// exceeds the current Spot price. Amazon EC2 periodically sets the Spot price
+// based on available Spot instance capacity and current Spot instance requests.
 // For more information, see Spot Instance Requests (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-requests.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-// You can use DescribeSpotInstanceRequests to find a running Spot Instance
-// by examining the response. If the status of the Spot Instance is fulfilled,
+// You can use DescribeSpotInstanceRequests to find a running Spot instance
+// by examining the response. If the status of the Spot instance is fulfilled,
 // the instance ID appears in the response and contains the identifier of the
 // instance. Alternatively, you can use DescribeInstances with a filter to look
 // for instances where the instance lifecycle is spot.
@@ -3939,7 +3944,7 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 	return
 }
 
-// Describes the Spot Price history. The prices returned are listed in chronological
+// Describes the Spot price history. The prices returned are listed in chronological
 // order, from the oldest to the most recent, for up to the past 90 days. For
 // more information, see Spot Instance Pricing History (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -5171,6 +5176,52 @@ func (c *EC2) ModifySnapshotAttribute(input *ModifySnapshotAttributeInput) (*Mod
 	return out, err
 }
 
+const opModifySpotFleetRequest = "ModifySpotFleetRequest"
+
+// ModifySpotFleetRequestRequest generates a request for the ModifySpotFleetRequest operation.
+func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) (req *request.Request, output *ModifySpotFleetRequestOutput) {
+	op := &request.Operation{
+		Name:       opModifySpotFleetRequest,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifySpotFleetRequestInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ModifySpotFleetRequestOutput{}
+	req.Data = output
+	return
+}
+
+// Modifies the specified Spot fleet request.
+//
+// While the Spot fleet request is being modified, it is in the modifying state.
+//
+// To scale up your Spot fleet, increase its target capacity. The Spot fleet
+// launches the additional Spot instances according to the allocation strategy
+// for the Spot fleet request. If the allocation strategy is lowestPrice, the
+// Spot fleet launches instances using the Spot pool with the lowest price.
+// If the allocation strategy is diversified, the Spot fleet distributes the
+// instances across the Spot pools.
+//
+// To scale down your Spot fleet, decrease its target capacity. First, the
+// Spot fleet cancels any open bids that exceed the new target capacity. You
+// can request that the Spot fleet terminate Spot instances until the size of
+// the fleet no longer exceeds the new target capacity. If the allocation strategy
+// is lowestPrice, the Spot fleet terminates the instances with the highest
+// price per unit. If the allocation strategy is diversified, the Spot fleet
+// terminates instances across the Spot pools. Alternatively, you can request
+// that the Spot fleet keep the fleet at its current size, but not replace any
+// Spot instances that are interrupted or that you terminate manually.
+func (c *EC2) ModifySpotFleetRequest(input *ModifySpotFleetRequestInput) (*ModifySpotFleetRequestOutput, error) {
+	req, out := c.ModifySpotFleetRequestRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifySubnetAttribute = "ModifySubnetAttribute"
 
 // ModifySubnetAttributeRequest generates a request for the ModifySubnetAttribute operation.
@@ -5739,11 +5790,20 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 
 // Creates a Spot fleet request.
 //
-// You can submit a single request that specifies multiple instance types,
-// each with its own instance weighting that reflects its value to your application
-// workload. Amazon EC2 computes the bid price for each launch specification
-// and requests Spot Instances in the Spot pool where the price per unit is
-// the lowest. For more information, see Spot Fleets (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet.html)
+// You can submit a single request that includes multiple launch specifications
+// that vary by instance type, AMI, Availability Zone, or subnet.
+//
+// By default, the Spot fleet requests Spot instances in the Spot pool where
+// the price per unit is the lowest. Each launch specification can include its
+// own instance weighting that reflects the value of the instance type to your
+// application workload.
+//
+// Alternatively, you can specify that the Spot fleet distribute the target
+// capacity across the Spot pools included in its launch specifications. By
+// ensuring that the Spot instances in your Spot fleet are in different Spot
+// pools, you can improve the availability of your fleet.
+//
+// For more information, see Spot Fleet Requests (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-requests.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) RequestSpotFleet(input *RequestSpotFleetInput) (*RequestSpotFleetOutput, error) {
 	req, out := c.RequestSpotFleetRequest(input)
@@ -5771,10 +5831,10 @@ func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req
 	return
 }
 
-// Creates a Spot Instance request. Spot Instances are instances that Amazon
+// Creates a Spot instance request. Spot instances are instances that Amazon
 // EC2 launches when the bid price that you specify exceeds the current Spot
-// Price. Amazon EC2 periodically sets the Spot Price based on available Spot
-// Instance capacity and current Spot Instance requests. For more information,
+// price. Amazon EC2 periodically sets the Spot price based on available Spot
+// Instance capacity and current Spot instance requests. For more information,
 // see Spot Instance Requests (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-requests.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 func (c *EC2) RequestSpotInstances(input *RequestSpotInstancesInput) (*RequestSpotInstancesOutput, error) {
@@ -6384,7 +6444,7 @@ type ActiveInstance struct {
 	// The instance type.
 	InstanceType *string `locationName:"instanceType" type:"string"`
 
-	// The ID of the Spot Instance request.
+	// The ID of the Spot instance request.
 	SpotInstanceRequestId *string `locationName:"spotInstanceRequestId" type:"string"`
 
 	metadataActiveInstance `json:"-" xml:"-"`
@@ -7189,7 +7249,7 @@ type AvailabilityZone struct {
 	// The name of the region.
 	RegionName *string `locationName:"regionName" type:"string"`
 
-	// The state of the Availability Zone (available | impaired | unavailable).
+	// The state of the Availability Zone.
 	State *string `locationName:"zoneState" type:"string" enum:"AvailabilityZoneState"`
 
 	// The name of the Availability Zone.
@@ -7800,7 +7860,7 @@ type CancelSpotInstanceRequestsInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
-	// One or more Spot Instance request IDs.
+	// One or more Spot instance request IDs.
 	SpotInstanceRequestIds []*string `locationName:"SpotInstanceRequestId" locationNameList:"SpotInstanceRequestId" type:"list" required:"true"`
 
 	metadataCancelSpotInstanceRequestsInput `json:"-" xml:"-"`
@@ -7822,7 +7882,7 @@ func (s CancelSpotInstanceRequestsInput) GoString() string {
 
 // Contains the output of CancelSpotInstanceRequests.
 type CancelSpotInstanceRequestsOutput struct {
-	// One or more Spot Instance requests.
+	// One or more Spot instance requests.
 	CancelledSpotInstanceRequests []*CancelledSpotInstanceRequest `locationName:"spotInstanceRequestSet" locationNameList:"item" type:"list"`
 
 	metadataCancelSpotInstanceRequestsOutput `json:"-" xml:"-"`
@@ -7842,12 +7902,12 @@ func (s CancelSpotInstanceRequestsOutput) GoString() string {
 	return s.String()
 }
 
-// Describes a request to cancel a Spot Instance.
+// Describes a request to cancel a Spot instance.
 type CancelledSpotInstanceRequest struct {
-	// The ID of the Spot Instance request.
+	// The ID of the Spot instance request.
 	SpotInstanceRequestId *string `locationName:"spotInstanceRequestId" type:"string"`
 
-	// The state of the Spot Instance request.
+	// The state of the Spot instance request.
 	State *string `locationName:"state" type:"string" enum:"CancelSpotInstanceRequestState"`
 
 	metadataCancelledSpotInstanceRequest `json:"-" xml:"-"`
@@ -9092,7 +9152,7 @@ func (s CreateSnapshotInput) GoString() string {
 
 // Contains the parameters for CreateSpotDatafeedSubscription.
 type CreateSpotDatafeedSubscriptionInput struct {
-	// The Amazon S3 bucket in which to store the Spot Instance data feed.
+	// The Amazon S3 bucket in which to store the Spot instance data feed.
 	Bucket *string `locationName:"bucket" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -9123,7 +9183,7 @@ func (s CreateSpotDatafeedSubscriptionInput) GoString() string {
 
 // Contains the output of CreateSpotDatafeedSubscription.
 type CreateSpotDatafeedSubscriptionOutput struct {
-	// The Spot Instance data feed subscription.
+	// The Spot instance data feed subscription.
 	SpotDatafeedSubscription *SpotDatafeedSubscription `locationName:"spotDatafeedSubscription" type:"structure"`
 
 	metadataCreateSpotDatafeedSubscriptionOutput `json:"-" xml:"-"`
@@ -10988,7 +11048,8 @@ type DescribeAvailabilityZonesInput struct {
 	//   region-name - The name of the region for the Availability Zone (for example,
 	// us-east-1).
 	//
-	//   state - The state of the Availability Zone (available | impaired | unavailable).
+	//   state - The state of the Availability Zone (available | information |
+	// impaired | unavailable).
 	//
 	//   zone-name - The name of the Availability Zone (for example, us-east-1a).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
@@ -13529,7 +13590,9 @@ type DescribeSecurityGroupsInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
-	// One or more filters.
+	// One or more filters. If using multiple filters for rules, the results include
+	// security groups for which any combination of rules - not necessarily a single
+	// rule - match all filters.
 	//
 	//   description - The description of the security group.
 	//
@@ -13821,7 +13884,7 @@ func (s DescribeSpotDatafeedSubscriptionInput) GoString() string {
 
 // Contains the output of DescribeSpotDatafeedSubscription.
 type DescribeSpotDatafeedSubscriptionOutput struct {
-	// The Spot Instance data feed subscription.
+	// The Spot instance data feed subscription.
 	SpotDatafeedSubscription *SpotDatafeedSubscription `locationName:"spotDatafeedSubscription" type:"structure"`
 
 	metadataDescribeSpotDatafeedSubscriptionOutput `json:"-" xml:"-"`
@@ -14061,7 +14124,7 @@ type DescribeSpotInstanceRequestsInput struct {
 	//
 	//   availability-zone-group - The Availability Zone group.
 	//
-	//   create-time - The time stamp when the Spot Instance request was created.
+	//   create-time - The time stamp when the Spot instance request was created.
 	//
 	//   fault-code - The fault code related to the request.
 	//
@@ -14069,7 +14132,7 @@ type DescribeSpotInstanceRequestsInput struct {
 	//
 	//   instance-id - The ID of the instance that fulfilled the request.
 	//
-	//   launch-group - The Spot Instance launch group.
+	//   launch-group - The Spot instance launch group.
 	//
 	//   launch.block-device-mapping.delete-on-termination - Indicates whether
 	// the Amazon EBS volume is deleted on instance termination.
@@ -14097,7 +14160,7 @@ type DescribeSpotInstanceRequestsInput struct {
 	//   launch.key-name - The name of the key pair the instance launched with.
 	//
 	//   launch.monitoring-enabled - Whether monitoring is enabled for the Spot
-	// Instance.
+	// instance.
 	//
 	//   launch.ramdisk-id - The RAM disk ID.
 	//
@@ -14128,21 +14191,21 @@ type DescribeSpotInstanceRequestsInput struct {
 	//   product-description - The product description associated with the instance
 	// (Linux/UNIX | Windows).
 	//
-	//   spot-instance-request-id - The Spot Instance request ID.
+	//   spot-instance-request-id - The Spot instance request ID.
 	//
-	//   spot-price - The maximum hourly price for any Spot Instance launched to
+	//   spot-price - The maximum hourly price for any Spot instance launched to
 	// fulfill the request.
 	//
-	//   state - The state of the Spot Instance request (open | active | closed
+	//   state - The state of the Spot instance request (open | active | closed
 	// | cancelled | failed). Spot bid status information can help you track your
-	// Amazon EC2 Spot Instance requests. For more information, see Spot Bid Status
+	// Amazon EC2 Spot instance requests. For more information, see Spot Bid Status
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	//
 	//   status-code - The short code describing the most recent evaluation of
-	// your Spot Instance request.
+	// your Spot instance request.
 	//
-	//   status-message - The message explaining the status of the Spot Instance
+	//   status-message - The message explaining the status of the Spot instance
 	// request.
 	//
 	//   tag:key=value - The key/value combination of a tag assigned to the resource.
@@ -14157,7 +14220,7 @@ type DescribeSpotInstanceRequestsInput struct {
 	//   tag-value - The value of a tag assigned to the resource. This filter is
 	// independent of the tag-key filter.
 	//
-	//   type - The type of Spot Instance request (one-time | persistent).
+	//   type - The type of Spot instance request (one-time | persistent).
 	//
 	//   launched-availability-zone - The Availability Zone in which the bid is
 	// launched.
@@ -14167,7 +14230,7 @@ type DescribeSpotInstanceRequestsInput struct {
 	//   valid-until - The end date of the request.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
-	// One or more Spot Instance request IDs.
+	// One or more Spot instance request IDs.
 	SpotInstanceRequestIds []*string `locationName:"SpotInstanceRequestId" locationNameList:"SpotInstanceRequestId" type:"list"`
 
 	metadataDescribeSpotInstanceRequestsInput `json:"-" xml:"-"`
@@ -14189,7 +14252,7 @@ func (s DescribeSpotInstanceRequestsInput) GoString() string {
 
 // Contains the output of DescribeSpotInstanceRequests.
 type DescribeSpotInstanceRequestsOutput struct {
-	// One or more Spot Instance requests.
+	// One or more Spot instance requests.
 	SpotInstanceRequests []*SpotInstanceRequest `locationName:"spotInstanceRequestSet" locationNameList:"item" type:"list"`
 
 	metadataDescribeSpotInstanceRequestsOutput `json:"-" xml:"-"`
@@ -14230,14 +14293,14 @@ type DescribeSpotPriceHistoryInput struct {
 	//
 	//   instance-type - The type of instance (for example, m1.small).
 	//
-	//   product-description - The product description for the Spot Price (Linux/UNIX
+	//   product-description - The product description for the Spot price (Linux/UNIX
 	// | SUSE Linux | Windows | Linux/UNIX (Amazon VPC) | SUSE Linux (Amazon VPC)
 	// | Windows (Amazon VPC)).
 	//
-	//   spot-price - The Spot Price. The value must match exactly (or use wildcards;
+	//   spot-price - The Spot price. The value must match exactly (or use wildcards;
 	// greater than or less than comparison is not supported).
 	//
-	//   timestamp - The timestamp of the Spot Price history, in UTC format (for
+	//   timestamp - The timestamp of the Spot price history, in UTC format (for
 	// example, YYYY-MM-DDTHH:MM:SSZ). You can use wildcards (* and ?). Greater
 	// than or less than comparison is not supported.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
@@ -14283,7 +14346,7 @@ type DescribeSpotPriceHistoryOutput struct {
 	// when there are no more results to return.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
-	// The historical Spot Prices.
+	// The historical Spot prices.
 	SpotPriceHistory []*SpotPrice `locationName:"spotPriceHistorySet" locationNameList:"item" type:"list"`
 
 	metadataDescribeSpotPriceHistoryOutput `json:"-" xml:"-"`
@@ -16192,39 +16255,48 @@ type EventInformation struct {
 	//
 	// The following are the error events.
 	//
-	//   iamFleetRoleInvalid - Spot fleet did not have the required permissions
+	//   iamFleetRoleInvalid - The Spot fleet did not have the required permissions
 	// either to launch or terminate an instance.
 	//
+	//   launchSpecTemporarilyBlacklisted - The configuration is not valid and
+	// several attempts to launch instances have failed. For more information, see
+	// the description of the event.
+	//
 	//   spotFleetRequestConfigurationInvalid - The configuration is not valid.
-	// For more information, see the description.
+	// For more information, see the description of the event.
 	//
 	//   spotInstanceCountLimitExceeded - You've reached the limit on the number
-	// of Spot Instances that you can launch.
+	// of Spot instances that you can launch.
 	//
 	//   The following are the fleetRequestChange events.
 	//
 	//   active - The Spot fleet has been validated and Amazon EC2 is attempting
-	// to maintain the target number of running Spot Instances.
+	// to maintain the target number of running Spot instances.
 	//
-	//   cancelled - The Spot fleet is canceled and has no running Spot Instances.
+	//   cancelled - The Spot fleet is canceled and has no running Spot instances.
 	// The Spot fleet will be deleted two days after its instances were terminated.
 	//
 	//   cancelled_running - The Spot fleet is canceled and will not launch additional
-	// Spot Instances, but its existing Spot Instances will continue to run until
-	// they are interrupted or terminated.
+	// Spot instances, but its existing Spot instances continue to run until they
+	// are interrupted or terminated.
 	//
-	//   cancelled_terminating - The Spot fleet is canceled and its Spot Instances
+	//   cancelled_terminating - The Spot fleet is canceled and its Spot instances
 	// are terminating.
 	//
 	//   expired - The Spot fleet request has expired. A subsequent event indicates
 	// that the instances were terminated, if the request was created with TerminateInstancesWithExpiration
 	// set.
 	//
+	//   modify_in_progress - A request to modify the Spot fleet request was accepted
+	// and is in progress.
+	//
+	//   modify_successful - The Spot fleet request was modified.
+	//
 	//   price_update - The bid price for a launch configuration was adjusted because
 	// it was too high. This change is permanent.
 	//
 	//   submitted - The Spot fleet request is being evaluated and Amazon EC2 is
-	// preparing to launch the target number of Spot Instances.
+	// preparing to launch the target number of Spot instances.
 	//
 	//   The following are the instanceChange events.
 	//
@@ -18349,10 +18421,9 @@ type LaunchSpecification struct {
 	// The ID of the RAM disk.
 	RamdiskId *string `locationName:"ramdiskId" type:"string"`
 
-	// One or more security groups. To request an instance in a nondefault VPC,
-	// you must specify the ID of the security group. To request an instance in
-	// EC2-Classic or a default VPC, you can specify the name or the ID of the security
-	// group.
+	// One or more security groups. When requesting instances in a VPC, you must
+	// specify the IDs of the security groups. When requesting instances in EC2-Classic,
+	// you can specify the names or the IDs of the security groups.
 	SecurityGroups []*GroupIdentifier `locationName:"groupSet" locationNameList:"item" type:"list"`
 
 	// The ID of the subnet in which to launch the instance.
@@ -18739,6 +18810,58 @@ func (s ModifySnapshotAttributeOutput) String() string {
 
 // GoString returns the string representation
 func (s ModifySnapshotAttributeOutput) GoString() string {
+	return s.String()
+}
+
+// Contains the parameters for ModifySpotFleetRequest.
+type ModifySpotFleetRequestInput struct {
+	// Indicates whether running Spot instances should be terminated if the target
+	// capacity of the Spot fleet request is decreased below the current size of
+	// the Spot fleet.
+	ExcessCapacityTerminationPolicy *string `locationName:"excessCapacityTerminationPolicy" type:"string" enum:"ExcessCapacityTerminationPolicy"`
+
+	// The ID of the Spot fleet request.
+	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
+
+	// The size of the fleet.
+	TargetCapacity *int64 `locationName:"targetCapacity" type:"integer"`
+
+	metadataModifySpotFleetRequestInput `json:"-" xml:"-"`
+}
+
+type metadataModifySpotFleetRequestInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifySpotFleetRequestInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifySpotFleetRequestInput) GoString() string {
+	return s.String()
+}
+
+// Contains the output of ModifySpotFleetRequest.
+type ModifySpotFleetRequestOutput struct {
+	// Is true if the request succeeds, and an error otherwise.
+	Return *bool `locationName:"return" type:"boolean"`
+
+	metadataModifySpotFleetRequestOutput `json:"-" xml:"-"`
+}
+
+type metadataModifySpotFleetRequestOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifySpotFleetRequestOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifySpotFleetRequestOutput) GoString() string {
 	return s.String()
 }
 
@@ -20439,23 +20562,35 @@ type RequestSpotInstancesInput struct {
 	// The user-specified name for a logical grouping of bids.
 	//
 	// When you specify an Availability Zone group in a Spot Instance request,
-	// all Spot Instances in the request are launched in the same Availability Zone.
+	// all Spot instances in the request are launched in the same Availability Zone.
 	// Instance proximity is maintained with this parameter, but the choice of Availability
 	// Zone is not. The group applies only to bids for Spot Instances of the same
-	// instance type. Any additional Spot Instance requests that are specified with
+	// instance type. Any additional Spot instance requests that are specified with
 	// the same Availability Zone group name are launched in that same Availability
 	// Zone, as long as at least one instance from the group is still active.
 	//
 	// If there is no active instance running in the Availability Zone group that
-	// you specify for a new Spot Instance request (all instances are terminated,
+	// you specify for a new Spot instance request (all instances are terminated,
 	// the bid is expired, or the bid falls below current market), then Amazon EC2
 	// launches the instance in any Availability Zone where the constraint can be
-	// met. Consequently, the subsequent set of Spot Instances could be placed in
+	// met. Consequently, the subsequent set of Spot instances could be placed in
 	// a different zone from the original request, even if you specified the same
 	// Availability Zone group.
 	//
 	// Default: Instances are launched in any available Availability Zone.
 	AvailabilityZoneGroup *string `locationName:"availabilityZoneGroup" type:"string"`
+
+	// The required duration for the Spot instances, in minutes. This value must
+	// be a multiple of 60 (60, 120, 180, 240, 300, or 360).
+	//
+	// The duration period starts as soon as your Spot instance receives its instance
+	// ID. At the end of the duration period, Amazon EC2 marks the Spot instance
+	// for termination and provides a Spot instance termination notice, which gives
+	// the instance a two-minute warning before it terminates.
+	//
+	// Note that you can't specify an Availability Zone group or a launch group
+	// if you specify a required duration.
+	BlockDurationMinutes *int64 `locationName:"blockDurationMinutes" type:"integer"`
 
 	// Unique, case-sensitive identifier that you provide to ensure the idempotency
 	// of the request. For more information, see How to Ensure Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Run_Instance_Idempotency.html)
@@ -20468,12 +20603,12 @@ type RequestSpotInstancesInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
-	// The maximum number of Spot Instances to launch.
+	// The maximum number of Spot instances to launch.
 	//
 	// Default: 1
 	InstanceCount *int64 `locationName:"instanceCount" type:"integer"`
 
-	// The instance launch group. Launch groups are Spot Instances that launch together
+	// The instance launch group. Launch groups are Spot instances that launch together
 	// and terminate together.
 	//
 	// Default: Instances are launched and terminated individually
@@ -20482,11 +20617,11 @@ type RequestSpotInstancesInput struct {
 	// Describes the launch specification for an instance.
 	LaunchSpecification *RequestSpotLaunchSpecification `type:"structure"`
 
-	// The maximum hourly price (bid) for any Spot Instance launched to fulfill
+	// The maximum hourly price (bid) for any Spot instance launched to fulfill
 	// the request.
 	SpotPrice *string `locationName:"spotPrice" type:"string" required:"true"`
 
-	// The Spot Instance request type.
+	// The Spot instance request type.
 	//
 	// Default: one-time
 	Type *string `locationName:"type" type:"string" enum:"SpotInstanceType"`
@@ -20527,7 +20662,7 @@ func (s RequestSpotInstancesInput) GoString() string {
 
 // Contains the output of RequestSpotInstances.
 type RequestSpotInstancesOutput struct {
-	// One or more Spot Instance requests.
+	// One or more Spot instance requests.
 	SpotInstanceRequests []*SpotInstanceRequest `locationName:"spotInstanceRequestSet" locationNameList:"item" type:"list"`
 
 	metadataRequestSpotInstancesOutput `json:"-" xml:"-"`
@@ -21772,6 +21907,14 @@ func (s SecurityGroup) GoString() string {
 
 // Describes a snapshot.
 type Snapshot struct {
+	// The data encryption key identifier for the snapshot. This value is a unique
+	// identifier that corresponds to the data encryption key that was used to encrypt
+	// the original volume or snapshot copy. Because data encryption keys are inherited
+	// by volumes created from snapshots, and vice versa, if snapshots share the
+	// same data encryption key identifier, then they belong to the same volume/snapshot
+	// lineage. This parameter is only returned by the DescribeSnapshots API operation.
+	DataEncryptionKeyId *string `locationName:"dataEncryptionKeyId" type:"string"`
+
 	// The description for the snapshot.
 	Description *string `locationName:"description" type:"string"`
 
@@ -21793,7 +21936,8 @@ type Snapshot struct {
 	// The progress of the snapshot, as a percentage.
 	Progress *string `locationName:"progress" type:"string"`
 
-	// The ID of the snapshot.
+	// The ID of the snapshot. Each snapshot receives a unique identifier when it
+	// is created.
 	SnapshotId *string `locationName:"snapshotId" type:"string"`
 
 	// The time stamp when the snapshot was initiated.
@@ -21802,10 +21946,17 @@ type Snapshot struct {
 	// The snapshot state.
 	State *string `locationName:"status" type:"string" enum:"SnapshotState"`
 
+	// Encrypted Amazon EBS snapshots are copied asynchronously. If a snapshot copy
+	// operation fails (for example, if the proper AWS Key Management Service (AWS
+	// KMS) permissions are not obtained) this field displays error state details
+	// to help you diagnose why the error occurred. This parameter is only returned
+	// by the DescribeSnapshots API operation.
+	StateMessage *string `locationName:"statusMessage" type:"string"`
+
 	// Any tags assigned to the snapshot.
 	Tags []*Tag `locationName:"tagSet" locationNameList:"item" type:"list"`
 
-	// The ID of the volume.
+	// The ID of the volume that was used to create the snapshot.
 	VolumeId *string `locationName:"volumeId" type:"string"`
 
 	// The size of the volume, in GiB.
@@ -21957,12 +22108,12 @@ func (s SnapshotTaskDetail) GoString() string {
 	return s.String()
 }
 
-// Describes the data feed for a Spot Instance.
+// Describes the data feed for a Spot instance.
 type SpotDatafeedSubscription struct {
-	// The Amazon S3 bucket where the Spot Instance data feed is located.
+	// The Amazon S3 bucket where the Spot instance data feed is located.
 	Bucket *string `locationName:"bucket" type:"string"`
 
-	// The fault codes for the Spot Instance request, if any.
+	// The fault codes for the Spot instance request, if any.
 	Fault *SpotInstanceStateFault `locationName:"fault" type:"structure"`
 
 	// The AWS account ID of the account.
@@ -21971,7 +22122,7 @@ type SpotDatafeedSubscription struct {
 	// The prefix that is prepended to data feed files.
 	Prefix *string `locationName:"prefix" type:"string"`
 
-	// The state of the Spot Instance data feed subscription.
+	// The state of the Spot instance data feed subscription.
 	State *string `locationName:"state" type:"string" enum:"DatafeedSubscriptionState"`
 
 	metadataSpotDatafeedSubscription `json:"-" xml:"-"`
@@ -21991,7 +22142,7 @@ func (s SpotDatafeedSubscription) GoString() string {
 	return s.String()
 }
 
-// Describes the launch specification for one or more Spot Instances.
+// Describes the launch specification for one or more Spot instances.
 type SpotFleetLaunchSpecification struct {
 	// Deprecated.
 	AddressingType *string `locationName:"addressingType" type:"string"`
@@ -22035,10 +22186,9 @@ type SpotFleetLaunchSpecification struct {
 	// The ID of the RAM disk.
 	RamdiskId *string `locationName:"ramdiskId" type:"string"`
 
-	// One or more security groups. To request an instance in a nondefault VPC,
-	// you must specify the ID of the security group. To request an instance in
-	// EC2-Classic or a default VPC, you can specify the name or the ID of the security
-	// group.
+	// One or more security groups. When requesting instances in a VPC, you must
+	// specify the IDs of the security groups. When requesting instances in EC2-Classic,
+	// you can specify the names or the IDs of the security groups.
 	SecurityGroups []*GroupIdentifier `locationName:"groupSet" locationNameList:"item" type:"list"`
 
 	// The bid price per unit hour for the specified instance type. If this value
@@ -22105,6 +22255,9 @@ func (s SpotFleetMonitoring) GoString() string {
 
 // Describes a Spot fleet request.
 type SpotFleetRequestConfig struct {
+	// The creation date and time of the request.
+	CreateTime *time.Time `locationName:"createTime" type:"timestamp" timestampFormat:"iso8601" required:"true"`
+
 	// Information about the configuration of the Spot fleet request.
 	SpotFleetRequestConfig *SpotFleetRequestConfigData `locationName:"spotFleetRequestConfig" type:"structure" required:"true"`
 
@@ -22133,18 +22286,27 @@ func (s SpotFleetRequestConfig) GoString() string {
 
 // Describes the configuration of a Spot fleet request.
 type SpotFleetRequestConfigData struct {
+	// Indicates how to allocate the target capacity across the Spot pools specified
+	// by the Spot fleet request. The default is lowestPrice.
+	AllocationStrategy *string `locationName:"allocationStrategy" type:"string" enum:"AllocationStrategy"`
+
 	// A unique, case-sensitive identifier you provide to ensure idempotency of
 	// your listings. This helps avoid duplicate listings. For more information,
 	// see Ensuring Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html).
 	ClientToken *string `locationName:"clientToken" type:"string"`
 
-	// Grants the Spot fleet service permission to terminate instances on your behalf
-	// when you cancel a Spot fleet request using CancelSpotFleetRequests or when
+	// Indicates whether running Spot instances should be terminated if the target
+	// capacity of the Spot fleet request is decreased below the current size of
+	// the Spot fleet.
+	ExcessCapacityTerminationPolicy *string `locationName:"excessCapacityTerminationPolicy" type:"string" enum:"ExcessCapacityTerminationPolicy"`
+
+	// Grants the Spot fleet permission to terminate Spot instances on your behalf
+	// when you cancel its Spot fleet request using CancelSpotFleetRequests or when
 	// the Spot fleet request expires, if you set terminateInstancesWithExpiration.
 	IamFleetRole *string `locationName:"iamFleetRole" type:"string" required:"true"`
 
-	// Information about the launch specifications for the instances.
-	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" type:"list" required:"true"`
+	// Information about the launch specifications for the Spot fleet request.
+	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" min:"1" type:"list" required:"true"`
 
 	// The bid price per unit hour.
 	SpotPrice *string `locationName:"spotPrice" type:"string" required:"true"`
@@ -22154,8 +22316,8 @@ type SpotFleetRequestConfigData struct {
 	// your application workload, such as vCPUs, memory, or I/O.
 	TargetCapacity *int64 `locationName:"targetCapacity" type:"integer" required:"true"`
 
-	// Indicates whether running instances should be terminated when the Spot fleet
-	// request expires.
+	// Indicates whether running Spot instances should be terminated when the Spot
+	// fleet request expires.
 	TerminateInstancesWithExpiration *bool `locationName:"terminateInstancesWithExpiration" type:"boolean"`
 
 	// The start date and time of the request, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
@@ -22163,7 +22325,7 @@ type SpotFleetRequestConfigData struct {
 	ValidFrom *time.Time `locationName:"validFrom" type:"timestamp" timestampFormat:"iso8601"`
 
 	// The end date and time of the request, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
-	// At this point, no new Spot Instance requests are placed or enabled to fulfill
+	// At this point, no new Spot instance requests are placed or enabled to fulfill
 	// the request.
 	ValidUntil *time.Time `locationName:"validUntil" type:"timestamp" timestampFormat:"iso8601"`
 
@@ -22184,25 +22346,32 @@ func (s SpotFleetRequestConfigData) GoString() string {
 	return s.String()
 }
 
-// Describe a Spot Instance request.
+// Describes a Spot instance request.
 type SpotInstanceRequest struct {
+	// If you specified a required duration and your request was fulfilled, this
+	// is the fixed hourly price in effect for the Spot instance while it runs.
+	ActualBlockHourlyPrice *string `locationName:"actualBlockHourlyPrice" type:"string"`
+
 	// The Availability Zone group. If you specify the same Availability Zone group
-	// for all Spot Instance requests, all Spot Instances are launched in the same
+	// for all Spot instance requests, all Spot instances are launched in the same
 	// Availability Zone.
 	AvailabilityZoneGroup *string `locationName:"availabilityZoneGroup" type:"string"`
 
-	// The date and time when the Spot Instance request was created, in UTC format
+	// The required duration for the Spot instance, in minutes.
+	BlockDurationMinutes *int64 `locationName:"blockDurationMinutes" type:"integer"`
+
+	// The date and time when the Spot instance request was created, in UTC format
 	// (for example, YYYY-MM-DDTHH:MM:SSZ).
 	CreateTime *time.Time `locationName:"createTime" type:"timestamp" timestampFormat:"iso8601"`
 
-	// The fault codes for the Spot Instance request, if any.
+	// The fault codes for the Spot instance request, if any.
 	Fault *SpotInstanceStateFault `locationName:"fault" type:"structure"`
 
-	// The instance ID, if an instance has been launched to fulfill the Spot Instance
+	// The instance ID, if an instance has been launched to fulfill the Spot instance
 	// request.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
-	// The instance launch group. Launch groups are Spot Instances that launch together
+	// The instance launch group. Launch groups are Spot instances that launch together
 	// and terminate together.
 	LaunchGroup *string `locationName:"launchGroup" type:"string"`
 
@@ -22212,42 +22381,39 @@ type SpotInstanceRequest struct {
 	// The Availability Zone in which the bid is launched.
 	LaunchedAvailabilityZone *string `locationName:"launchedAvailabilityZone" type:"string"`
 
-	// The product description associated with the Spot Instance.
+	// The product description associated with the Spot instance.
 	ProductDescription *string `locationName:"productDescription" type:"string" enum:"RIProductDescription"`
 
-	// The ID of the Spot Instance request.
+	// The ID of the Spot instance request.
 	SpotInstanceRequestId *string `locationName:"spotInstanceRequestId" type:"string"`
 
-	// The maximum hourly price (bid) for any Spot Instance launched to fulfill
+	// The maximum hourly price (bid) for the Spot instance launched to fulfill
 	// the request.
 	SpotPrice *string `locationName:"spotPrice" type:"string"`
 
-	// The state of the Spot Instance request. Spot bid status information can help
-	// you track your Spot Instance requests. For more information, see Spot Bid
+	// The state of the Spot instance request. Spot bid status information can help
+	// you track your Spot instance requests. For more information, see Spot Bid
 	// Status (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html)
 	// in the Amazon Elastic Compute Cloud User Guide.
 	State *string `locationName:"state" type:"string" enum:"SpotInstanceState"`
 
-	// The status code and status message describing the Spot Instance request.
+	// The status code and status message describing the Spot instance request.
 	Status *SpotInstanceStatus `locationName:"status" type:"structure"`
 
 	// Any tags assigned to the resource.
 	Tags []*Tag `locationName:"tagSet" locationNameList:"item" type:"list"`
 
-	// The Spot Instance request type.
+	// The Spot instance request type.
 	Type *string `locationName:"type" type:"string" enum:"SpotInstanceType"`
 
 	// The start date of the request, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
-	// If this is a one-time request, the request becomes active at this date and
-	// time and remains active until all instances launch, the request expires,
-	// or the request is canceled. If the request is persistent, the request becomes
-	// active at this date and time and remains active until it expires or is canceled.
+	// The request becomes active at this date and time.
 	ValidFrom *time.Time `locationName:"validFrom" type:"timestamp" timestampFormat:"iso8601"`
 
 	// The end date of the request, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
-	// If this is a one-time request, the request remains active until all instances
-	// launch, the request is canceled, or this date is reached. If the request
-	// is persistent, it remains active until it is canceled or this date is reached.
+	// If this is a one-time request, it remains active until all instances launch,
+	// the request is canceled, or this date is reached. If the request is persistent,
+	// it remains active until it is canceled or this date is reached.
 	ValidUntil *time.Time `locationName:"validUntil" type:"timestamp" timestampFormat:"iso8601"`
 
 	metadataSpotInstanceRequest `json:"-" xml:"-"`
@@ -22267,12 +22433,12 @@ func (s SpotInstanceRequest) GoString() string {
 	return s.String()
 }
 
-// Describes a Spot Instance state change.
+// Describes a Spot instance state change.
 type SpotInstanceStateFault struct {
-	// The reason code for the Spot Instance state change.
+	// The reason code for the Spot instance state change.
 	Code *string `locationName:"code" type:"string"`
 
-	// The message for the Spot Instance state change.
+	// The message for the Spot instance state change.
 	Message *string `locationName:"message" type:"string"`
 
 	metadataSpotInstanceStateFault `json:"-" xml:"-"`
@@ -22292,7 +22458,7 @@ func (s SpotInstanceStateFault) GoString() string {
 	return s.String()
 }
 
-// Describes the status of a Spot Instance request.
+// Describes the status of a Spot instance request.
 type SpotInstanceStatus struct {
 	// The status code.
 	Code *string `locationName:"code" type:"string"`
@@ -22321,7 +22487,7 @@ func (s SpotInstanceStatus) GoString() string {
 	return s.String()
 }
 
-// Describes Spot Instance placement.
+// Describes Spot instance placement.
 type SpotPlacement struct {
 	// The Availability Zone.
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
@@ -22346,7 +22512,7 @@ func (s SpotPlacement) GoString() string {
 	return s.String()
 }
 
-// Describes the maximum hourly price (bid) for any Spot Instance launched to
+// Describes the maximum hourly price (bid) for any Spot instance launched to
 // fulfill the request.
 type SpotPrice struct {
 	// The Availability Zone.
@@ -22358,7 +22524,7 @@ type SpotPrice struct {
 	// A general description of the AMI.
 	ProductDescription *string `locationName:"productDescription" type:"string" enum:"RIProductDescription"`
 
-	// The maximum price (bid) that you are willing to pay for a Spot Instance.
+	// The maximum price (bid) that you are willing to pay for a Spot instance.
 	SpotPrice *string `locationName:"spotPrice" type:"string"`
 
 	// The date and time the request was created, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
@@ -23665,6 +23831,13 @@ const (
 )
 
 const (
+	// @enum AllocationStrategy
+	AllocationStrategyLowestPrice = "lowestPrice"
+	// @enum AllocationStrategy
+	AllocationStrategyDiversified = "diversified"
+)
+
+const (
 	// @enum ArchitectureValues
 	ArchitectureValuesI386 = "i386"
 	// @enum ArchitectureValues
@@ -23685,6 +23858,12 @@ const (
 const (
 	// @enum AvailabilityZoneState
 	AvailabilityZoneStateAvailable = "available"
+	// @enum AvailabilityZoneState
+	AvailabilityZoneStateInformation = "information"
+	// @enum AvailabilityZoneState
+	AvailabilityZoneStateImpaired = "impaired"
+	// @enum AvailabilityZoneState
+	AvailabilityZoneStateUnavailable = "unavailable"
 )
 
 const (
@@ -23700,6 +23879,8 @@ const (
 	BatchStateCancelledRunning = "cancelled_running"
 	// @enum BatchState
 	BatchStateCancelledTerminating = "cancelled_terminating"
+	// @enum BatchState
+	BatchStateModifying = "modifying"
 )
 
 const (
@@ -23814,6 +23995,13 @@ const (
 	EventTypeFleetRequestChange = "fleetRequestChange"
 	// @enum EventType
 	EventTypeError = "error"
+)
+
+const (
+	// @enum ExcessCapacityTerminationPolicy
+	ExcessCapacityTerminationPolicyNoTermination = "noTermination"
+	// @enum ExcessCapacityTerminationPolicy
+	ExcessCapacityTerminationPolicyDefault = "default"
 )
 
 const (
