@@ -8,8 +8,8 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service/serviceinfo"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/restxml"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/signer/v4"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/restxml"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // S3 is a client for Amazon S3.

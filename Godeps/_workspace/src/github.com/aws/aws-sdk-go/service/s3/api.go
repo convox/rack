@@ -476,9 +476,36 @@ func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *req
 	return
 }
 
-// Returns the lifecycle configuration information set on the bucket.
+// Deprecated, see the GetBucketLifecycleConfiguration operation.
 func (c *S3) GetBucketLifecycle(input *GetBucketLifecycleInput) (*GetBucketLifecycleOutput, error) {
 	req, out := c.GetBucketLifecycleRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetBucketLifecycleConfiguration = "GetBucketLifecycleConfiguration"
+
+// GetBucketLifecycleConfigurationRequest generates a request for the GetBucketLifecycleConfiguration operation.
+func (c *S3) GetBucketLifecycleConfigurationRequest(input *GetBucketLifecycleConfigurationInput) (req *request.Request, output *GetBucketLifecycleConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opGetBucketLifecycleConfiguration,
+		HTTPMethod: "GET",
+		HTTPPath:   "/{Bucket}?lifecycle",
+	}
+
+	if input == nil {
+		input = &GetBucketLifecycleConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetBucketLifecycleConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// Returns the lifecycle configuration information set on the bucket.
+func (c *S3) GetBucketLifecycleConfiguration(input *GetBucketLifecycleConfigurationInput) (*GetBucketLifecycleConfigurationOutput, error) {
+	req, out := c.GetBucketLifecycleConfigurationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1154,10 +1181,37 @@ func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *req
 	return
 }
 
-// Sets lifecycle configuration for your bucket. If a lifecycle configuration
-// exists, it replaces it.
+// Deprecated, see the PutBucketLifecycleConfiguration operation.
 func (c *S3) PutBucketLifecycle(input *PutBucketLifecycleInput) (*PutBucketLifecycleOutput, error) {
 	req, out := c.PutBucketLifecycleRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opPutBucketLifecycleConfiguration = "PutBucketLifecycleConfiguration"
+
+// PutBucketLifecycleConfigurationRequest generates a request for the PutBucketLifecycleConfiguration operation.
+func (c *S3) PutBucketLifecycleConfigurationRequest(input *PutBucketLifecycleConfigurationInput) (req *request.Request, output *PutBucketLifecycleConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opPutBucketLifecycleConfiguration,
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?lifecycle",
+	}
+
+	if input == nil {
+		input = &PutBucketLifecycleConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &PutBucketLifecycleConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// Sets lifecycle configuration for your bucket. If a lifecycle configuration
+// exists, it replaces it.
+func (c *S3) PutBucketLifecycleConfiguration(input *PutBucketLifecycleConfigurationInput) (*PutBucketLifecycleConfigurationOutput, error) {
+	req, out := c.PutBucketLifecycleConfigurationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1559,7 +1613,7 @@ func (c *S3) UploadPartCopy(input *UploadPartCopyInput) (*UploadPartCopyOutput, 
 type AbortMultipartUploadInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
@@ -1655,6 +1709,26 @@ func (s Bucket) GoString() string {
 	return s.String()
 }
 
+type BucketLifecycleConfiguration struct {
+	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true" required:"true"`
+
+	metadataBucketLifecycleConfiguration `json:"-" xml:"-"`
+}
+
+type metadataBucketLifecycleConfiguration struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s BucketLifecycleConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BucketLifecycleConfiguration) GoString() string {
+	return s.String()
+}
+
 type BucketLoggingStatus struct {
 	LoggingEnabled *LoggingEnabled `type:"structure"`
 
@@ -1676,7 +1750,7 @@ func (s BucketLoggingStatus) GoString() string {
 }
 
 type CORSConfiguration struct {
-	CORSRules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true"`
+	CORSRules []*CORSRule `locationName:"CORSRule" type:"list" flattened:"true" required:"true"`
 
 	metadataCORSConfiguration `json:"-" xml:"-"`
 }
@@ -1701,10 +1775,10 @@ type CORSRule struct {
 
 	// Identifies HTTP methods that the domain/origin specified in the rule is allowed
 	// to execute.
-	AllowedMethods []*string `locationName:"AllowedMethod" type:"list" flattened:"true"`
+	AllowedMethods []*string `locationName:"AllowedMethod" type:"list" flattened:"true" required:"true"`
 
 	// One or more origins you want customers to be able to access the bucket from.
-	AllowedOrigins []*string `locationName:"AllowedOrigin" type:"list" flattened:"true"`
+	AllowedOrigins []*string `locationName:"AllowedOrigin" type:"list" flattened:"true" required:"true"`
 
 	// One or more headers in the response that you want customers to be able to
 	// access from their applications (for example, from a JavaScript XMLHttpRequest
@@ -1786,7 +1860,7 @@ func (s CommonPrefix) GoString() string {
 type CompleteMultipartUploadInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	MultipartUpload *CompletedMultipartUpload `locationName:"CompleteMultipartUpload" type:"structure"`
 
@@ -1825,7 +1899,7 @@ type CompleteMultipartUploadOutput struct {
 	// date (expiry-date) and rule ID (rule-id). The value of rule-id is URL encoded.
 	Expiration *string `location:"header" locationName:"x-amz-expiration" type:"string"`
 
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	Location *string `type:"string"`
 
@@ -2008,7 +2082,7 @@ type CopyObjectInput struct {
 	// Allows grantee to write the ACL for the applicable object.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
@@ -2102,6 +2176,9 @@ type CopyObjectOutput struct {
 	// The Server-side encryption algorithm used when storing this object in S3
 	// (e.g., AES256, aws:kms).
 	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string" enum:"ServerSideEncryption"`
+
+	// Version ID of the newly created copy.
+	VersionId *string `location:"header" locationName:"x-amz-version-id" type:"string"`
 
 	metadataCopyObjectOutput `json:"-" xml:"-"`
 }
@@ -2287,7 +2364,7 @@ type CreateMultipartUploadInput struct {
 	// Allows grantee to write the ACL for the applicable object.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
@@ -2353,7 +2430,7 @@ type CreateMultipartUploadOutput struct {
 	Bucket *string `locationName:"Bucket" type:"string"`
 
 	// Object key for which the multipart upload was initiated.
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	// If present, indicates that the requester was successfully charged for the
 	// request.
@@ -2693,7 +2770,7 @@ type DeleteMarkerEntry struct {
 	IsLatest *bool `type:"boolean"`
 
 	// The object key.
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	// Date and time the object was last modified.
 	LastModified *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -2723,7 +2800,7 @@ func (s DeleteMarkerEntry) GoString() string {
 type DeleteObjectInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// The concatenation of the authentication device's serial number, a space,
 	// and the value that is displayed on your authentication device.
@@ -2848,7 +2925,7 @@ type DeletedObject struct {
 
 	DeleteMarkerVersionId *string `type:"string"`
 
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	VersionId *string `type:"string"`
 
@@ -2874,6 +2951,9 @@ type Destination struct {
 	// replicas of the object identified by the rule.
 	Bucket *string `type:"string" required:"true"`
 
+	// The class of storage used to store the object.
+	StorageClass *string `type:"string" enum:"StorageClass"`
+
 	metadataDestination `json:"-" xml:"-"`
 }
 
@@ -2894,7 +2974,7 @@ func (s Destination) GoString() string {
 type Error struct {
 	Code *string `type:"string"`
 
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	Message *string `type:"string"`
 
@@ -2919,7 +2999,7 @@ func (s Error) GoString() string {
 
 type ErrorDocument struct {
 	// The object key name to use when a 4XX class error occurs.
-	Key *string `type:"string" required:"true"`
+	Key *string `min:"1" type:"string" required:"true"`
 
 	metadataErrorDocument `json:"-" xml:"-"`
 }
@@ -3049,6 +3129,46 @@ func (s GetBucketCorsOutput) GoString() string {
 	return s.String()
 }
 
+type GetBucketLifecycleConfigurationInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	metadataGetBucketLifecycleConfigurationInput `json:"-" xml:"-"`
+}
+
+type metadataGetBucketLifecycleConfigurationInput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetBucketLifecycleConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetBucketLifecycleConfigurationInput) GoString() string {
+	return s.String()
+}
+
+type GetBucketLifecycleConfigurationOutput struct {
+	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true"`
+
+	metadataGetBucketLifecycleConfigurationOutput `json:"-" xml:"-"`
+}
+
+type metadataGetBucketLifecycleConfigurationOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetBucketLifecycleConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetBucketLifecycleConfigurationOutput) GoString() string {
+	return s.String()
+}
+
 type GetBucketLifecycleInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
@@ -3070,7 +3190,7 @@ func (s GetBucketLifecycleInput) GoString() string {
 }
 
 type GetBucketLifecycleOutput struct {
-	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true"`
+	Rules []*Rule `locationName:"Rule" type:"list" flattened:"true"`
 
 	metadataGetBucketLifecycleOutput `json:"-" xml:"-"`
 }
@@ -3449,7 +3569,7 @@ func (s GetBucketWebsiteOutput) GoString() string {
 type GetObjectAclInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
@@ -3523,7 +3643,7 @@ type GetObjectInput struct {
 	// otherwise return a 412 (precondition failed).
 	IfUnmodifiedSince *time.Time `location:"header" locationName:"If-Unmodified-Since" type:"timestamp" timestampFormat:"rfc822"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Downloads the specified range bytes of an object. For more information about
 	// the HTTP Range header, go to http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35.
@@ -3704,7 +3824,7 @@ func (s GetObjectOutput) GoString() string {
 type GetObjectTorrentInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
@@ -3866,7 +3986,7 @@ type HeadObjectInput struct {
 	// otherwise return a 412 (precondition failed).
 	IfUnmodifiedSince *time.Time `location:"header" locationName:"If-Unmodified-Since" type:"timestamp" timestampFormat:"rfc822"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Downloads the specified range bytes of an object. For more information about
 	// the HTTP Range header, go to http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35.
@@ -4127,7 +4247,7 @@ func (s LambdaFunctionConfiguration) GoString() string {
 }
 
 type LifecycleConfiguration struct {
-	Rules []*LifecycleRule `locationName:"Rule" type:"list" flattened:"true" required:"true"`
+	Rules []*Rule `locationName:"Rule" type:"list" flattened:"true" required:"true"`
 
 	metadataLifecycleConfiguration `json:"-" xml:"-"`
 }
@@ -4185,12 +4305,7 @@ type LifecycleRule struct {
 	// period in the object's lifetime.
 	NoncurrentVersionExpiration *NoncurrentVersionExpiration `type:"structure"`
 
-	// Container for the transition rule that describes when noncurrent objects
-	// transition to the GLACIER storage class. If your bucket is versioning-enabled
-	// (or versioning is suspended), you can set this action to request that Amazon
-	// S3 transition noncurrent object versions to the GLACIER storage class at
-	// a specific period in the object's lifetime.
-	NoncurrentVersionTransition *NoncurrentVersionTransition `type:"structure"`
+	NoncurrentVersionTransitions []*NoncurrentVersionTransition `locationName:"NoncurrentVersionTransition" type:"list" flattened:"true"`
 
 	// Prefix identifying one or more objects to which the rule applies.
 	Prefix *string `type:"string" required:"true"`
@@ -4199,7 +4314,7 @@ type LifecycleRule struct {
 	// is not currently being applied.
 	Status *string `type:"string" required:"true" enum:"ExpirationStatus"`
 
-	Transition *Transition `type:"structure"`
+	Transitions []*Transition `locationName:"Transition" type:"list" flattened:"true"`
 
 	metadataLifecycleRule `json:"-" xml:"-"`
 }
@@ -4554,7 +4669,7 @@ func (s ListObjectsOutput) GoString() string {
 type ListPartsInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Sets the maximum number of parts to return.
 	MaxParts *int64 `location:"querystring" locationName:"max-parts" type:"integer"`
@@ -4600,7 +4715,7 @@ type ListPartsOutput struct {
 	IsTruncated *bool `type:"boolean"`
 
 	// Object key for which the multipart upload was initiated.
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	// Maximum number of parts that were allowed in the response.
 	MaxParts *int64 `type:"integer"`
@@ -4684,7 +4799,7 @@ type MultipartUpload struct {
 	Initiator *Initiator `type:"structure"`
 
 	// Key of the object for which the multipart upload was initiated.
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	Owner *Owner `type:"structure"`
 
@@ -4742,10 +4857,10 @@ func (s NoncurrentVersionExpiration) GoString() string {
 }
 
 // Container for the transition rule that describes when noncurrent objects
-// transition to the GLACIER storage class. If your bucket is versioning-enabled
-// (or versioning is suspended), you can set this action to request that Amazon
-// S3 transition noncurrent object versions to the GLACIER storage class at
-// a specific period in the object's lifetime.
+// transition to the STANDARD_IA or GLACIER storage class. If your bucket is
+// versioning-enabled (or versioning is suspended), you can set this action
+// to request that Amazon S3 transition noncurrent object versions to the STANDARD_IA
+// or GLACIER storage class at a specific period in the object's lifetime.
 type NoncurrentVersionTransition struct {
 	// Specifies the number of days an object is noncurrent before Amazon S3 can
 	// perform the associated action. For information about the noncurrent days
@@ -4851,7 +4966,7 @@ func (s NotificationConfigurationFilter) GoString() string {
 type Object struct {
 	ETag *string `type:"string"`
 
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	LastModified *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
@@ -4881,7 +4996,7 @@ func (s Object) GoString() string {
 
 type ObjectIdentifier struct {
 	// Key name of the object to delete.
-	Key *string `type:"string" required:"true"`
+	Key *string `min:"1" type:"string" required:"true"`
 
 	// VersionId for the specific version of the object to delete.
 	VersionId *string `type:"string"`
@@ -4911,7 +5026,7 @@ type ObjectVersion struct {
 	IsLatest *bool `type:"boolean"`
 
 	// The object key.
-	Key *string `type:"string"`
+	Key *string `min:"1" type:"string"`
 
 	// Date and time the object was last modified.
 	LastModified *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -5059,7 +5174,7 @@ func (s PutBucketAclOutput) GoString() string {
 type PutBucketCorsInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	CORSConfiguration *CORSConfiguration `locationName:"CORSConfiguration" type:"structure"`
+	CORSConfiguration *CORSConfiguration `locationName:"CORSConfiguration" type:"structure" required:"true"`
 
 	metadataPutBucketCorsInput `json:"-" xml:"-"`
 }
@@ -5093,6 +5208,46 @@ func (s PutBucketCorsOutput) String() string {
 
 // GoString returns the string representation
 func (s PutBucketCorsOutput) GoString() string {
+	return s.String()
+}
+
+type PutBucketLifecycleConfigurationInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+
+	LifecycleConfiguration *BucketLifecycleConfiguration `locationName:"LifecycleConfiguration" type:"structure"`
+
+	metadataPutBucketLifecycleConfigurationInput `json:"-" xml:"-"`
+}
+
+type metadataPutBucketLifecycleConfigurationInput struct {
+	SDKShapeTraits bool `type:"structure" payload:"LifecycleConfiguration"`
+}
+
+// String returns the string representation
+func (s PutBucketLifecycleConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutBucketLifecycleConfigurationInput) GoString() string {
+	return s.String()
+}
+
+type PutBucketLifecycleConfigurationOutput struct {
+	metadataPutBucketLifecycleConfigurationOutput `json:"-" xml:"-"`
+}
+
+type metadataPutBucketLifecycleConfigurationOutput struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutBucketLifecycleConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutBucketLifecycleConfigurationOutput) GoString() string {
 	return s.String()
 }
 
@@ -5529,7 +5684,7 @@ type PutObjectAclInput struct {
 	// Allows grantee to write the ACL for the applicable bucket.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
@@ -5621,7 +5776,7 @@ type PutObjectInput struct {
 	// Allows grantee to write the ACL for the applicable object.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
 	Metadata map[string]*string `location:"headers" locationName:"x-amz-meta-" type:"map"`
@@ -5946,7 +6101,7 @@ func (s RequestPaymentConfiguration) GoString() string {
 type RestoreObjectInput struct {
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Confirms that the requester knows that she or he will be charged for the
 	// request. Bucket owners need not specify this parameter in their requests.
@@ -6047,9 +6202,55 @@ func (s RoutingRule) GoString() string {
 	return s.String()
 }
 
+type Rule struct {
+	Expiration *LifecycleExpiration `type:"structure"`
+
+	// Unique identifier for the rule. The value cannot be longer than 255 characters.
+	ID *string `type:"string"`
+
+	// Specifies when noncurrent object versions expire. Upon expiration, Amazon
+	// S3 permanently deletes the noncurrent object versions. You set this lifecycle
+	// configuration action on a bucket that has versioning enabled (or suspended)
+	// to request that Amazon S3 delete noncurrent object versions at a specific
+	// period in the object's lifetime.
+	NoncurrentVersionExpiration *NoncurrentVersionExpiration `type:"structure"`
+
+	// Container for the transition rule that describes when noncurrent objects
+	// transition to the STANDARD_IA or GLACIER storage class. If your bucket is
+	// versioning-enabled (or versioning is suspended), you can set this action
+	// to request that Amazon S3 transition noncurrent object versions to the STANDARD_IA
+	// or GLACIER storage class at a specific period in the object's lifetime.
+	NoncurrentVersionTransition *NoncurrentVersionTransition `type:"structure"`
+
+	// Prefix identifying one or more objects to which the rule applies.
+	Prefix *string `type:"string" required:"true"`
+
+	// If 'Enabled', the rule is currently being applied. If 'Disabled', the rule
+	// is not currently being applied.
+	Status *string `type:"string" required:"true" enum:"ExpirationStatus"`
+
+	Transition *Transition `type:"structure"`
+
+	metadataRule `json:"-" xml:"-"`
+}
+
+type metadataRule struct {
+	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s Rule) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Rule) GoString() string {
+	return s.String()
+}
+
 type Tag struct {
 	// Name of the tag.
-	Key *string `type:"string" required:"true"`
+	Key *string `min:"1" type:"string" required:"true"`
 
 	// Value of the tag.
 	Value *string `type:"string" required:"true"`
@@ -6249,7 +6450,7 @@ type UploadPartCopyInput struct {
 	// key was transmitted without error.
 	CopySourceSSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-copy-source-server-side-encryption-customer-key-MD5" type:"string"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Part number of part being copied. This is a positive integer between 1 and
 	// 10,000.
@@ -6352,7 +6553,7 @@ type UploadPartInput struct {
 	// body cannot be determined automatically.
 	ContentLength *int64 `location:"header" locationName:"Content-Length" type:"integer"`
 
-	Key *string `location:"uri" locationName:"Key" type:"string" required:"true"`
+	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Part number of part being uploaded. This is a positive integer between 1
 	// and 10,000.
@@ -6379,6 +6580,10 @@ type UploadPartInput struct {
 	// Amazon S3 uses this header for a message integrity check to ensure the encryption
 	// key was transmitted without error.
 	SSECustomerKeyMD5 *string `location:"header" locationName:"x-amz-server-side-encryption-customer-key-MD5" type:"string"`
+
+	// The Server-side encryption algorithm used when storing this object in S3
+	// (e.g., AES256).
+	ServerSideEncryption *string `location:"header" locationName:"x-amz-server-side-encryption" type:"string" enum:"UploadPartRequestServerSideEncryption"`
 
 	// Upload ID identifying the multipart upload whose part is being uploaded.
 	UploadId *string `location:"querystring" locationName:"uploadId" type:"string" required:"true"`
@@ -6715,11 +6920,15 @@ const (
 	StorageClassStandard = "STANDARD"
 	// @enum StorageClass
 	StorageClassReducedRedundancy = "REDUCED_REDUNDANCY"
+	// @enum StorageClass
+	StorageClassStandardIa = "STANDARD_IA"
 )
 
 const (
 	// @enum TransitionStorageClass
 	TransitionStorageClassGlacier = "GLACIER"
+	// @enum TransitionStorageClass
+	TransitionStorageClassStandardIa = "STANDARD_IA"
 )
 
 const (
@@ -6729,4 +6938,11 @@ const (
 	TypeAmazonCustomerByEmail = "AmazonCustomerByEmail"
 	// @enum Type
 	TypeGroup = "Group"
+)
+
+// The Server-side encryption algorithm used when storing this object in S3
+// (e.g., AES256).
+const (
+	// @enum UploadPartRequestServerSideEncryption
+	UploadPartRequestServerSideEncryptionAes256 = "AES256"
 )
