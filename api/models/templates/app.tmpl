@@ -200,7 +200,7 @@
   {{ $manifest := . }}
   {{ if .HasProcesses }}
     {{ range $e := . }}
-      "{{ upper $e.Name }}ECTaskDefinition": {
+      "{{ upper $e.Name }}ECSTaskDefinition": {
         "DependsOn": ["CustomTopic", "ServiceRole"],
         "Type": "Custom::ECSTaskDefinition",
         "Version": "1.0",
@@ -213,7 +213,7 @@
           "Tasks": [ {{ entry_task . $e.Name }} ]
         }
       },
-      "{{ upper $e.Name }}ECService": {
+      "{{ upper $e.Name }}ECSService": {
         "DependsOn": "CustomTopic",
         "Type": "Custom::ECSService",
         "Version": "1.0",
@@ -222,7 +222,7 @@
           "Cluster": { "Ref": "Cluster" },
           "DesiredCount": { "Ref": "{{ upper $e.Name }}DesiredCount" },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
-          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECTaskDefinition" },
+          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
           "Role": { "Ref": "ServiceRole" },
           "LoadBalancers": [
             {{ range $e.ContainerPorts }}

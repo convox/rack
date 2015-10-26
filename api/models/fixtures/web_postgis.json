@@ -488,7 +488,7 @@
       },
       "Type": "AWS::IAM::User"
     },
-    "PostgresECService": {
+    "PostgresECSService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -523,13 +523,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "PostgresECTaskDefinition"
+          "Ref": "PostgresECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "PostgresECTaskDefinition": {
+    "PostgresECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -662,7 +662,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WebECService": {
+    "WebECSService": {
       "DependsOn": "CustomTopic",
       "Properties": {
         "Cluster": {
@@ -721,13 +721,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WebECTaskDefinition"
+          "Ref": "WebECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "WebECTaskDefinition": {
+    "WebECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
