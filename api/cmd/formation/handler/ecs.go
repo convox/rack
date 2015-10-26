@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -162,6 +163,16 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	parts := strings.Split(req.PhysicalResourceId, "/")
 	name := parts[1]
 
+	replace, err := ECSServiceReplacementRequired(req)
+
+	if err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	if replace {
+		return ECSServiceCreate(req)
+	}
+
 	res, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
 		Service:        aws.String(name),
@@ -174,6 +185,43 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	}
 
 	return *res.Service.ServiceArn, nil, nil
+}
+
+func ECSServiceReplacementRequired(req Request) (bool, error) {
+	res, err := ECS(req).DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(req.ResourceProperties["Cluster"].(string)),
+		Services: []*string{aws.String(req.PhysicalResourceId)},
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	incoming := []string{}
+	existing := []string{}
+
+	for _, ilb := range req.ResourceProperties["LoadBalancers"].([]interface{}) {
+		incoming = append(incoming, ilb.(string))
+	}
+
+	for _, lb := range res.Services[0].LoadBalancers {
+		existing = append(existing, fmt.Sprintf("%s:%s:%d", *lb.LoadBalancerName, *lb.ContainerName, *lb.ContainerPort))
+	}
+
+	sort.Strings(incoming)
+	sort.Strings(existing)
+
+	if len(incoming) != len(existing) {
+		return true, nil
+	}
+
+	for i, lb := range incoming {
+		if lb != existing[i] {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func ECSServiceDelete(req Request) (string, map[string]string, error) {
