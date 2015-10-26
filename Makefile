@@ -8,13 +8,13 @@ publish:
 	cd api/cmd/formation && make publish VERSION=$(VERSION)
 
 release:
+	cd api/cmd/formation && make release VERSION=$(VERSION)
 	docker build -t convox/api:$(VERSION) .
 	docker push convox/api:$(VERSION)
 	mkdir -p /tmp/release/$(VERSION)
 	cd /tmp/release/$(VERSION)
 	jq '.Parameters.Version.Default |= "$(VERSION)"' api/dist/kernel.json > kernel.json
 	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
-	cd api/cmd/formation && make release VERSION=$(VERSION)
 
 test-deps:
 	go get -t -u ./...
