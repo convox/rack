@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/codegangsta/cli"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/inconshreveable/go-update.v0"
+	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/inconshreveable/go-update.v0/check"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/inconshreveable/go-update.v0"
-	"gopkg.in/inconshreveable/go-update.v0/check"
 )
 
 func init() {

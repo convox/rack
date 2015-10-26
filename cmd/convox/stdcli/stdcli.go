@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/briandowns/spinner"
-	"github.com/codegangsta/cli"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/briandowns/spinner"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 )
 
 var (

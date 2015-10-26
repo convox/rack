@@ -4,9 +4,9 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/ddollar/logger"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/segmentio/analytics-go"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/stvp/rollbar"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/segmentio/analytics-go"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/stvp/rollbar"
 )
 
 var regexpEmail = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)

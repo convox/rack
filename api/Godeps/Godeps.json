@@ -140,8 +140,14 @@
 			"Rev": "1dd3ab0ff59e13f5b73dcbf70703710aebe50d2f"
 		},
 		{
+			"ImportPath": "github.com/convox/rack/client",
+			"Comment": "2015062904-1778-gfe118f9",
+			"Rev": "fe118f94f888902dcd9d64d6c5e2b23b49fc5c01"
+		},
+		{
 			"ImportPath": "github.com/convox/rack/test",
-			"Rev": "34c7205e396ac16107fe851909e39b998f0ca667"
+			"Comment": "2015062904-1778-gfe118f9",
+			"Rev": "fe118f94f888902dcd9d64d6c5e2b23b49fc5c01"
 		},
 		{
 			"ImportPath": "github.com/ddollar/logger",
@@ -219,6 +225,10 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
 			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
 		},
 		{

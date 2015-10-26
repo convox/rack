@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 )

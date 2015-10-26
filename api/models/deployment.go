@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/api/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 )
 
 type Deployment struct {

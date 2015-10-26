@@ -850,6 +850,7 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
+            "Command": "api/bin/web",
             "CPU": "128",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
