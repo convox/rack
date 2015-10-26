@@ -5,9 +5,7 @@ all: test
 publish:
 	docker tag -f convox/api:$(VERSION) convox/api:latest
 	docker push convox/api:latest
-	for region in us-east-1 us-west-2 eu-west-1 ap-northeast-1; do \
-		aws s3 cp s3://convox/-$$region/release/$(VERSION)/formation.zip s3://convox-$$region/release/latest/formation.zip --acl public-read; \
-	done
+	cd api/cmd/formation && make publish VERSION=$(VERSION)
 
 release:
 	docker build -t convox/api:$(VERSION) .
@@ -16,13 +14,7 @@ release:
 	cd /tmp/release/$(VERSION)
 	jq '.Parameters.Version.Default |= "$(VERSION)"' api/dist/kernel.json > kernel.json
 	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
-	docker run -i convox/api:$(VERSION) cat api/cmd/formation/lambda.js > lambda.js
-	docker run -i -e GOOS=linux -e GOARCH=amd64 convox/api:$(VERSION) sh -c 'go build github.com/convox/rack/api/cmd/formation && gzip -c formation' | gzip -d > formation
-	chmod +x formation
-	zip formation.zip lambda.js formation
-	for region in us-east-1 us-west-2 eu-west-1 ap-northeast-1; do \
-		aws s3 cp formation.zip s3://convox-$$region/release/$(VERSION)/formation.zip --acl public-read; \
-	done
+	cd api/cmd/formation && make release VERSION=$(VERSION)
 
 test-deps:
 	go get -t -u ./...
