@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# setup go
+export GOPATH=$tmp/go
+
+# login to docker
+docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+
+# 
+clone_mtime https://github.com/convox/registry $tmp/registry
+
+cd $tmp/rack/api
+docker build -t convox/api:$tag .
+
+docker push convox/api:$tag
+docker push convox/registry:$tag
+
+go get github.com/convox/rack/api
+cd $GOPATH/src/github.com/convox/rack/api
+[ -n "$BRANCH" ] && git checkout $BRANCH || true
+make release VERSION=$tag LATEST=$LATEST
+
+V=$(version create $tag | tee)
+
+if [ "${LATEST}" == "yes" ]; then
+  docker tag -f convox/api:$tag convox/api:latest
+  docker tag -f convox/registry:$tag convox/registry:latest
+
+  docker push convox/api:latest
+  docker push convox/registry:latest
+
+  V=$(version -publish update $tag | tee)
+fi

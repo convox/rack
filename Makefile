@@ -2,6 +2,14 @@
 
 all: test
 
+publish:
+	docker tag -f convox/api:$(VERSION) convox/api:latest
+	docker push convox/api:latest
+
+release:
+	docker build -t convox/api:$(VERSION) .
+	docker push convox/api:$(VERSION)
+
 test-deps:
 	go get -t -u ./...
 
