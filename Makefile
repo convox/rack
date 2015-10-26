@@ -18,6 +18,7 @@ release:
 	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 	docker run -i convox/api:$(VERSION) cat api/cmd/formation/lambda.js > lambda.js
 	docker run -i convox/api:$(VERSION) cat /go/bin/formation > formation
+	chmod +x formation
 	zip formation.zip lambda.js formation
 	for region in us-east-1 us-west-2 eu-west-1 ap-northeast-1; do \
 		aws s3 cp formation.zip s3://convox-$$region/release/$(VERSION)/formation.zip --acl public-read; \
