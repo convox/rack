@@ -24,6 +24,14 @@
         },
         ""
       ]
+    },
+    "SecureWebPort80": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Secure"
+        },
+        "Yes"
+      ]
     }
   },
   "Outputs": {
@@ -137,6 +145,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort80Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
     "WebService": {
       "Default": "",
       "Description": "",
@@ -191,17 +208,35 @@
                 "Protocol": "TCP"
               },
               {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": "TCP",
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": "SSL",
-                "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
+                "Fn::If": [
+                  "SecureWebPort80",
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort80Host"
+                    },
+                    "InstanceProtocol": "SSL",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort80Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort80Certificate"
+                    }
+                  },
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort80Host"
+                    },
+                    "InstanceProtocol": "TCP",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort80Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort80Certificate"
+                    }
+                  }
+                ]
               }
             ]
           },
