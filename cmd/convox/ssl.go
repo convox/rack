@@ -193,10 +193,10 @@ func cmdSSLList(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("TARGET", "EXPIRES", "SECURE", "DOMAIN")
+	t := stdcli.NewTable("TARGET", "EXPIRES", "DOMAIN")
 
 	for _, ssl := range *ssls {
-		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), humanizeTime(ssl.Expiration), fmt.Sprintf("%t", ssl.Secure), ssl.Domain)
+		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), humanizeTime(ssl.Expiration), ssl.Domain)
 	}
 
 	t.Print()
