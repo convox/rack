@@ -165,6 +165,12 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 	changes := map[string]string{}
 	changes[param] = ""
 
+	secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(process), port)
+
+	if a.Parameters[secureParam] == "Yes" {
+		a.Parameters[secureParam] = "No"
+	}
+
 	a.UpdateParams(changes)
 
 	go func() {
