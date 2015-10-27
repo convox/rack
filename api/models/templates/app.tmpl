@@ -241,6 +241,7 @@
     {{ $balancer := . }}
     {{ range .ExternalPorts }}
       "Blank{{ upper $balancer.ProcessName }}Port{{ . }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }, "" ] },
+      "Secure{{ upper $balancer.ProcessName }}Port{{ . }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Secure" }, "Yes" ] },
     {{ end }}
   {{ end }}
 {{ end }}
@@ -272,6 +273,12 @@
         "Type" : "String",
         "Default" : "{{ index $balancer.Randoms . }}",
         "Description" : ""
+      },
+      "{{ upper $balancer.ProcessName }}Port{{ . }}Secure": {
+        "Type" : "String",
+        "Default" : "No",
+        "Description" : "",
+        "AllowedValues": [ "Yes", "No" ]
       },
     {{ end }}
   {{ end }}
@@ -335,13 +342,22 @@
                 "InstanceProtocol": "TCP",
                 "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" }
               },
-              {
-                "Protocol": "SSL",
-                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
-                "InstanceProtocol": "TCP",
-                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" },
-                "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }
-              }
+              { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ . }}",
+                {
+                  "Protocol": "SSL",
+                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                  "InstanceProtocol": "SSL",
+                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" },
+                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }
+                },
+                {
+                  "Protocol": "SSL",
+                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                  "InstanceProtocol": "TCP",
+                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" },
+                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }
+                }
+              ] }
             ] },
           {{ end }}
           { "Ref": "AWS::NoValue" }

@@ -33,6 +33,10 @@ func init() {
 				Flags: []cli.Flag{
 					appFlag,
 					cli.BoolFlag{
+						Name:  "secure",
+						Usage: "Use a TLS-encrypted listener.",
+					},
+					cli.BoolFlag{
 						Name:  "self-signed",
 						Usage: "Generate a self-signed cert.",
 					},
@@ -130,7 +134,7 @@ func cmdSSLCreate(c *cli.Context) {
 
 	fmt.Printf("Creating SSL listener %s... ", target)
 
-	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], string(pub), string(key))
+	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], string(pub), string(key), c.Bool("secure"))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -189,10 +193,10 @@ func cmdSSLList(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("TARGET", "EXPIRES", "DOMAINS")
+	t := stdcli.NewTable("TARGET", "EXPIRES", "SECURE", "DOMAIN")
 
 	for _, ssl := range *ssls {
-		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), humanizeTime(ssl.Expiration), ssl.Name)
+		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), humanizeTime(ssl.Expiration), fmt.Sprintf("%t", ssl.Secure), ssl.Domain)
 	}
 
 	t.Print()
