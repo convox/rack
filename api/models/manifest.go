@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"math/rand"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
@@ -45,11 +46,20 @@ func LoadManifest(data string) (Manifest, error) {
 		return nil, fmt.Errorf("invalid manifest: %s", err)
 	}
 
+	names := []string{}
+
+	for name, _ := range entries {
+		names = append(names, name)
+	}
+
+	sort.Strings(names)
+
 	manifest := make(Manifest, 0)
 
 	currentPort := 5000
 
-	for name, entry := range entries {
+	for _, name := range names {
+		entry := entries[name]
 		entry.Name = name
 		entry.randoms = make(map[string]int)
 

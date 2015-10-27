@@ -15,17 +15,16 @@ import (
 )
 
 type SSL struct {
-	Id         string    `json:"id"`
-	Arn        string    `json:"arn"`
 	Expiration time.Time `json:"expiration"`
-	Name       string    `json:"name"`
+	Domain     string    `json:"domain"`
 	Process    string    `json:"process"`
 	Port       int       `json:"port"`
+	Secure     bool      `json:"secure"`
 }
 
 type SSLs []SSL
 
-func CreateSSL(app, process string, port int, body, key string) (*SSL, error) {
+func CreateSSL(app, process string, port int, body, key string, secure bool) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -70,19 +69,37 @@ func CreateSSL(app, process string, port int, body, key string) (*SSL, error) {
 		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
+	name := certName(a.Name, process, port)
+
 	// upload certificate
 	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
 		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(certName(app, process, port)),
+		ServerCertificateName: aws.String(name),
 	})
+
+	// cleanup old certificate, will fail if dependencies
+	if err != nil && strings.Contains(err.Error(), "already exists") {
+		_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+			ServerCertificateName: aws.String(name),
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("could not create certificate: %s", name)
+		}
+
+		resp, err = IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
+			CertificateBody:       aws.String(body),
+			PrivateKey:            aws.String(key),
+			ServerCertificateName: aws.String(name),
+		})
+	}
 
 	if err != nil {
 		return nil, err
 	}
 
 	arn := resp.ServerCertificateMetadata.Arn
-	name := resp.ServerCertificateMetadata.ServerCertificateName
 
 	tmpl, err := release.Formation()
 
@@ -100,6 +117,10 @@ func CreateSSL(app, process string, port int, body, key string) (*SSL, error) {
 
 	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = *arn // e.g.WebPort443Certificate = arn:...
 
+	if secure {
+		params[fmt.Sprintf("%sPort%dSecure", UpperName(me.Name), port)] = "Yes"
+	}
+
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
@@ -114,8 +135,6 @@ func CreateSSL(app, process string, port int, body, key string) (*SSL, error) {
 	}
 
 	ssl := SSL{
-		Arn:     *arn,
-		Id:      *name,
 		Port:    port,
 		Process: process,
 	}
@@ -146,6 +165,12 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 	changes := map[string]string{}
 	changes[param] = ""
 
+	secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(process), port)
+
+	if a.Parameters[secureParam] == "Yes" {
+		a.Parameters[secureParam] = "No"
+	}
+
 	a.UpdateParams(changes)
 
 	go func() {
@@ -173,7 +198,6 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 	}()
 
 	ssl := SSL{
-		Arn:     arn,
 		Port:    port,
 		Process: process,
 	}
@@ -217,12 +241,14 @@ func ListSSLs(a string) (SSLs, error) {
 			pemBlock, _ := pem.Decode([]byte(*resp.ServerCertificate.CertificateBody))
 			c, err := x509.ParseCertificate(pemBlock.Bytes)
 
+			secure := app.Parameters[fmt.Sprintf("%sPort%sSecure", matches[1], matches[2])] == "Yes"
+
 			ssls = append(ssls, SSL{
-				Arn:        v,
-				Name:       c.Subject.CommonName,
+				Domain:     c.Subject.CommonName,
 				Expiration: *resp.ServerCertificate.ServerCertificateMetadata.Expiration,
 				Port:       port,
 				Process:    DashName(matches[1]),
+				Secure:     secure,
 			})
 		}
 	}

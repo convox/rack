@@ -6,22 +6,22 @@ import (
 )
 
 type SSL struct {
-	Id         string    `json:"id"`
-	Arn        string    `json:"arn"`
+	Domain     string    `json:"domain"`
 	Expiration time.Time `json:"expiration"`
-	Name       string    `json:"name"`
 	Port       int       `json:"port"`
 	Process    string    `json:"process"`
+	Secure     bool      `json:"secure"`
 }
 
 type SSLs []SSL
 
-func (c *Client) CreateSSL(app, process, port, body, key string) (*SSL, error) {
+func (c *Client) CreateSSL(app, process, port, body, key string, secure bool) (*SSL, error) {
 	params := Params{
 		"body":    body,
 		"key":     key,
 		"port":    port,
 		"process": process,
+		"secure":  fmt.Sprintf("%t", secure),
 	}
 
 	var ssl SSL
