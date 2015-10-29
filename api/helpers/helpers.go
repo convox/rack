@@ -54,7 +54,8 @@ func TrackEvent(event, message string) {
 		Event:  event,
 		UserId: os.Getenv("CLIENT_ID"),
 		Properties: map[string]interface{}{
-			"message": message,
+			"client_id": os.Getenv("CLIENT_ID"),
+			"message":   message,
 		},
 	})
 }
