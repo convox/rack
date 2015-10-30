@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 
@@ -158,16 +159,20 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 	outputs := stackOutputs(stack)
 	parameters := stackParameters(stack)
 	tags := stackTags(stack)
-	url := ""
+	urlString := ""
 
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
 		case "papertrail":
-			url = parameters["Url"]
+			urlString = parameters["Url"]
 		case "postgres":
-			url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
+			urlString = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 		case "redis":
-			url = fmt.Sprintf("redis://u@%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+			urlString = fmt.Sprintf("redis://u@%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+		case "webhook":
+			if parsedUrl, err := url.Parse(parameters["Url"]); err == nil {
+				urlString = parsedUrl.Query().Get("endpoint")
+			}
 		}
 	}
 
@@ -178,6 +183,6 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		Outputs:    outputs,
 		Parameters: parameters,
 		Tags:       tags,
-		URL:        url,
+		URL:        urlString,
 	}
 }
