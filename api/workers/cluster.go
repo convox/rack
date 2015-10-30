@@ -38,7 +38,7 @@ func StartCluster() {
 		helpers.Error(log, err)
 	})
 
-	for _ = range time.Tick(30 * time.Second) {
+	for _ = range time.Tick(5 * time.Minute) {
 		log.Log("tick")
 
 		instances := Instances{}
