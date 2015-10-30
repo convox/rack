@@ -67,7 +67,8 @@ func SNSSubscriptionDelete(req Request) (string, map[string]string, error) {
 	resp, err := SNS(req).ListSubscriptionsByTopic(params)
 
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		fmt.Printf("error: %s\n", err)
+		return req.PhysicalResourceId, nil, nil
 	}
 
 	for _, s := range resp.Subscriptions {
