@@ -188,6 +188,10 @@ func (c *Client) PostMultipart(path string, files map[string][]byte, params Para
 
 	defer res.Body.Close()
 
+	if err := responseError(res); err != nil {
+		return err
+	}
+
 	data, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
