@@ -38,6 +38,15 @@ func StartCluster() {
 		helpers.Error(log, err)
 	})
 
+	// Report cluster size one time on start
+	system, err := models.GetSystem()
+
+	if err != nil {
+		log.Error(err)
+	} else {
+		helpers.TrackEvent("kernel-cluster-monitor", fmt.Sprintf("count=%d type=%s", system.Count, system.Type))
+	}
+
 	for _ = range time.Tick(5 * time.Minute) {
 		log.Log("tick")
 
