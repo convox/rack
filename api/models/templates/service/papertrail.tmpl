@@ -80,7 +80,7 @@
           "Handler": "index.handler",
           "Role": { "Fn::GetAtt" : ["LambdaExecutionRole", "Arn"] },
           "Code": {
-            "S3Bucket": "convox",
+            "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
             "S3Key": "lambda/papertrail.zip"
           },
           "Runtime": "nodejs",
