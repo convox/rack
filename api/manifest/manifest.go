@@ -139,7 +139,10 @@ func Read(dir string) (*Manifest, error) {
 func buildSync(source, tag string, cache bool) error {
 	args := []string{"build", "-t", tag}
 
+	// if called with `convox build --no-cache`, assume intent to build from scratch.
+	// So both pull latest images from DockerHub and build without cache
 	if !cache {
+		args = append(args, "--pull")
 		args = append(args, "--no-cache")
 	}
 
