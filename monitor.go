@@ -123,25 +123,30 @@ func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
 	return env, nil
 }
 
+// Modify the container cgroup to enable swap if SWAP=1 is set
+// Currently this only works on the Amazon ECS AMI, not Docker Machine and boot2docker
+// until a better strategy for knowing where the cgroup mount is implemented
 func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	if env["SWAP"] == "1" {
+		shortId := id[0:12]
+
 		bytes := "18446744073709551615"
 
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", id, bytes)
+		fmt.Printf("monitor cgroups id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", shortId, bytes)
 		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.soft_limit_in_bytes value=%s\n", id, bytes)
+		fmt.Printf("monitor cgroups id=%s cgroup=memory.soft_limit_in_bytes value=%s\n", shortId, bytes)
 		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.limit_in_bytes value=%s\n", id, bytes)
+		fmt.Printf("monitor cgroups id=%s cgroup=memory.limit_in_bytes value=%s\n", shortId, bytes)
 		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {

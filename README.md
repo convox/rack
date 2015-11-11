@@ -23,6 +23,24 @@ agent | monitor event id=a5018a56adc3 status=die
 agent | monitor upload to=kinesis stream="convox-Kinesis-2NQ3Q5ASHY1N" lines=21
 ```
 
+Run a Docker container to see cgroup fun:
+
+```bash
+$ docker run -e SWAP=1 redis
+```
+
+```
+agent | monitor event id=6176a834e31a status=create
+agent | monitor event id=6176a834e31a status=attach
+agent | monitor event id=6176a834e31a status=start
+agent | monitor cgroups id=6176a834e31a cgroup=memory.memsw.limit_in_bytes value=18446744073709551615
+agent | error: open /cgroup/memory/docker/6176a834e31ac355bcc18dc83a113c64bd00ada284dd9e61153ed18715438365/memory.memsw.limit_in_bytes: no such file or directory
+agent | monitor cgroups id=6176a834e31a cgroup=memory.soft_limit_in_bytes value=18446744073709551615
+agent | error: open /cgroup/memory/docker/6176a834e31ac355bcc18dc83a113c64bd00ada284dd9e61153ed18715438365/memory.soft_limit_in_bytes: no such file or directory
+agent | monitor cgroups id=6176a834e31a cgroup=memory.limit_in_bytes value=18446744073709551615
+agent | error: open /cgroup/memory/docker/6176a834e31ac355bcc18dc83a113c64bd00ada284dd9e61153ed18715438365/memory.limit_in_bytes: no such file or directory
+```
+
 ## Release
 
 convox/agent is released as a public Docker image on Docker Hub, and public
