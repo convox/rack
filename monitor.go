@@ -29,6 +29,8 @@ func NewMonitor() *Monitor {
 		log.Fatal(err)
 	}
 
+	fmt.Printf("agent region=%s cluster=%s\n", os.Getenv("AWS_REGION"), os.Getenv("CLUSTER"))
+
 	return &Monitor{
 		client: client,
 		lines:  make(map[string][][]byte),
