@@ -2,9 +2,9 @@ agent:
   build: .
   environment:
     - AWS_REGION
-    - CLUSTER
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
+    - ECS_CLUSTER
   volumes:
     - /cgroup:/cgroup
     - /var/run/docker.sock:/var/run/docker.sock

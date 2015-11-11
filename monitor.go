@@ -29,7 +29,7 @@ func NewMonitor() *Monitor {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("monitor new region=%s cluster=%s\n", os.Getenv("AWS_REGION"), os.Getenv("CLUSTER"))
+	fmt.Printf("monitor new region=%s cluster=%s\n", os.Getenv("AWS_REGION"), os.Getenv("ECS_CLUSTER"))
 
 	return &Monitor{
 		client: client,
