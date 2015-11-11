@@ -1,0 +1,10 @@
+agent:
+  build: .
+  environment:
+    - AWS_REGION
+    - AWS_ACCESS
+    - AWS_SECRET
+    - CLUSTER
+  volumes:
+    - /cgroup:/cgroup
+    - /var/run/docker.sock:/var/run/docker.sock
