@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -122,12 +122,20 @@ func ServiceLogs(ws *websocket.Conn) *httperr.Error {
 
 	s.SubscribeLogs(logs, done)
 
+	go func() {
+		buf := make([]byte, 0)
+		for {
+			_, err := ws.Read(buf)
+			if err == io.EOF {
+				done <- true
+				return
+			}
+		}
+	}()
+
 	for data := range logs {
-		fmt.Println("data", data)
 		ws.Write(data)
 	}
-
-	fmt.Println("got here")
 
 	return nil
 }

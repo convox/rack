@@ -7,6 +7,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 )
 
 func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
@@ -33,6 +34,8 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 }
 
 func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan bool) {
+	log := logger.New("at=subscribe-kinesis").Start()
+
 	ireq := &kinesis.GetShardIteratorInput{
 		ShardId:           aws.String(shard),
 		ShardIteratorType: aws.String("LATEST"),
@@ -42,8 +45,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 	ires, err := Kinesis().GetShardIterator(ireq)
 
 	if err != nil {
-		fmt.Printf("err2 %+v\n", err)
-		// panic(err)
+		log.Error(err)
 		return
 	}
 
@@ -52,7 +54,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 	for {
 		select {
 		case <-quit:
-			fmt.Println("quitting")
+			log.Log("qutting")
 			return
 		default:
 			greq := &kinesis.GetRecordsInput{
@@ -72,7 +74,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 				output <- []byte(fmt.Sprintf("%s\n", string(record.Data)))
 			}
 
-			fmt.Println("sleeping")
+			log.Log("sleeping")
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
@@ -82,6 +84,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	// Get latest log file details via pagination tokens
 	details := rds.DescribeDBLogFilesDetails{}
 	marker := ""
+	log := logger.New("at=subscribe-kinesis").Start()
 
 	for {
 		params := &rds.DescribeDBLogFilesInput{
@@ -129,7 +132,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	for {
 		select {
 		case <-quit:
-			fmt.Println("quitting")
+			log.Log("qutting")
 			return
 		default:
 			res, err := RDS().DownloadDBLogFilePortion(params)
@@ -144,6 +147,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 				output <- []byte(fmt.Sprintf("%s: %s\n", prefix, *res.LogFileData))
 			}
 
+			log.Log("sleeping")
 			time.Sleep(1000 * time.Millisecond)
 		}
 	}

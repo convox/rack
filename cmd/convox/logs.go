@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -31,11 +30,7 @@ func cmdLogsStream(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("sup dog 1")
-
 	err = rackClient(c).StreamAppLogs(app, os.Stdout)
-
-	fmt.Println("sup dog 2")
 
 	if err != nil {
 		stdcli.Error(err)
