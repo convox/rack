@@ -29,7 +29,7 @@ func NewMonitor() *Monitor {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("agent region=%s cluster=%s\n", os.Getenv("AWS_REGION"), os.Getenv("CLUSTER"))
+	fmt.Printf("monitor new region=%s cluster=%s\n", os.Getenv("AWS_REGION"), os.Getenv("CLUSTER"))
 
 	return &Monitor{
 		client: client,
@@ -62,6 +62,10 @@ func (m *Monitor) Listen() {
 
 func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 	for event := range ch {
+
+		shortId := event.ID[0:12]
+		fmt.Printf("monitor event id=%s status=%s\n", shortId, event.Status)
+
 		switch event.Status {
 		case "create":
 			m.handleCreate(event.ID)
@@ -222,7 +226,7 @@ func (m *Monitor) streamLogs() {
 				}
 			}
 
-			fmt.Printf("upload to=kinesis stream=%q lines=%d\n", stream, len(res.Records))
+			fmt.Printf("monitor upload to=kinesis stream=%q lines=%d\n", stream, len(res.Records))
 		}
 	}
 }

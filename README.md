@@ -6,7 +6,21 @@ Instance agent for collecting logs and metrics.
 
 ```bash
 $ convox start
-agent | agent region=us-west-2 cluster=convox-Cluster-1NCWX9EC0JOV4
+agent | monitor region=us-west-2 cluster=convox-Cluster-1NCWX9EC0JOV4
+```
+
+Run a Docker container to see Docker event Kinesis upload activity:
+
+```bash
+$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N PROCESS=hello-world hello-world
+```
+
+```
+agent | monitor event id=a5018a56adc3 status=create
+agent | monitor event id=a5018a56adc3 status=attach
+agent | monitor event id=a5018a56adc3 status=start
+agent | monitor event id=a5018a56adc3 status=die
+agent | monitor upload to=kinesis stream="convox-Kinesis-2NQ3Q5ASHY1N" lines=21
 ```
 
 ## Release
