@@ -27,11 +27,8 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 		shards[i] = *s.ShardId
 	}
 
-	done := make([](chan bool), len(shards))
-
-	for i, shard := range shards {
-		done[i] = make(chan bool)
-		go subscribeKinesisShard(stream, shard, output, done[i])
+	for _, shard := range shards {
+		go subscribeKinesisShard(stream, shard, output, quit)
 	}
 }
 
@@ -75,6 +72,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 				output <- []byte(fmt.Sprintf("%s\n", string(record.Data)))
 			}
 
+			fmt.Println("sleeping")
 			time.Sleep(500 * time.Millisecond)
 		}
 	}

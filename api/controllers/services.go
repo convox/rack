@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -122,8 +123,11 @@ func ServiceLogs(ws *websocket.Conn) *httperr.Error {
 	s.SubscribeLogs(logs, done)
 
 	for data := range logs {
+		fmt.Println("data", data)
 		ws.Write(data)
 	}
+
+	fmt.Println("got here")
 
 	return nil
 }

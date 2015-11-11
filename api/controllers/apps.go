@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -115,9 +117,22 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 
 	a.SubscribeLogs(logs, done)
 
+	go func() {
+		buf := make([]byte, 0)
+		for {
+			_, err := ws.Read(buf)
+			if err == io.EOF {
+				done <- true
+				return
+			}
+		}
+	}()
+
 	for data := range logs {
 		ws.Write(data)
 	}
+
+	fmt.Println("done ranging")
 
 	return nil
 }
