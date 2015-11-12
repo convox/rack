@@ -65,7 +65,7 @@ func MonitorDisk() {
 		var avail, used, util float64
 		avail = (float64)(free) / 1024 / 1024 / 1024
 		used = (float64)(total-free) / 1024 / 1024 / 1024
-		util = used / avail * 100
+		util = used / (used + avail) * 100
 
 		log := fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail)
 
