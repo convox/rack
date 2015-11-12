@@ -472,7 +472,8 @@
                     "kinesis:PutRecord",
                     "kinesis:PutRecords",
                     "ec2:DescribeInstances",
-                    "autoscaling:DescribeAutoScalingInstances"
+                    "autoscaling:DescribeAutoScalingInstances",
+                    "autoscaling:SetInstanceHealth"
                   ],
                   "Resource": [
                     "*"
