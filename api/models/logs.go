@@ -74,7 +74,6 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 				output <- []byte(fmt.Sprintf("%s\n", string(record.Data)))
 			}
 
-			log.Log("sleeping")
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
@@ -147,7 +146,6 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 				output <- []byte(fmt.Sprintf("%s: %s\n", prefix, *res.LogFileData))
 			}
 
-			log.Log("sleeping")
 			time.Sleep(1000 * time.Millisecond)
 		}
 	}
