@@ -11,7 +11,7 @@ $ cat .env
 AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=XXX
 AWS_SECRET_ACCESS_KEY=YYY
-ECS_CLUSTER=convox-Cluster-1NCWX9EC0JOV4
+KINESIS=convox-Kinesis-2NQ3Q5ASHY1N
 ```
 
 This approximates the IAM role and env the agent has on a cluster instance.

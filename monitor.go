@@ -29,7 +29,7 @@ func NewMonitor() *Monitor {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("monitor new region=%s cluster=%s\n", os.Getenv("AWS_REGION"), os.Getenv("ECS_CLUSTER"))
+	fmt.Printf("monitor new region=%s kinesis=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"))
 
 	return &Monitor{
 		client: client,
@@ -45,6 +45,15 @@ func (m *Monitor) Listen() {
 	}
 
 	for _, container := range containers {
+		shortId := container.ID[0:12]
+
+		// Don't subscribe and stream logs from the agent container itself
+		if container.Image == "convox/agent" || container.Image == "agent/agent" {
+			fmt.Printf("monitor event id=%s status=skipped\n", shortId)
+			continue
+		}
+
+		fmt.Printf("monitor event id=%s status=created\n", shortId)
 		m.handleCreate(container.ID)
 	}
 

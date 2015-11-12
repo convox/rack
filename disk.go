@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
@@ -35,11 +33,11 @@ func MonitorDisk() {
 	hostname, _ := os.Hostname()
 	fmt.Printf("disk monitor hostname=%s\n", hostname)
 
-	stream, err := GetStreamName()
+	stream := os.Getenv("KINESIS")
 
 	// If no Kinesis stream to report to, no reason to calculate metrics
-	if err != nil {
-		log.Printf("error: %s\n", err)
+	if stream == "" {
+		log.Printf("error: no rack KINESIS stream name is set\n")
 		return
 	}
 
@@ -76,37 +74,6 @@ func MonitorDisk() {
 			continue
 		}
 	}
-}
-
-func GetStreamName() (string, error) {
-	cluster := os.Getenv("ECS_CLUSTER")
-	parts := strings.Split(cluster, "-Cluster-")
-
-	if len(parts) != 2 {
-		return "", fmt.Errorf("Could not guess Rack name from ECS_CLUSTER=%s", cluster)
-	}
-
-	rack := parts[0]
-
-	CloudFormation := cloudformation.New(&aws.Config{})
-
-	res, err := CloudFormation.ListStackResources(&cloudformation.ListStackResourcesInput{
-		StackName: aws.String(rack),
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	for _, r := range res.StackResourceSummaries {
-		if *r.LogicalResourceID == "Kinesis" {
-			return *r.PhysicalResourceID, nil
-		}
-	}
-
-	err = fmt.Errorf("Could not find Kinesis resource on Rack %q", rack)
-
-	return "", err
 }
 
 func PutRecord(stream, s string) error {

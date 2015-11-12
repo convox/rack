@@ -4,7 +4,7 @@ agent:
     - AWS_REGION
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
-    - ECS_CLUSTER
+    - KINESIS
   volumes:
     - /cgroup:/cgroup
     - /var/run/docker.sock:/var/run/docker.sock
