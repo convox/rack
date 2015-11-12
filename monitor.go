@@ -38,6 +38,23 @@ func NewMonitor() *Monitor {
 }
 
 func (m *Monitor) Listen() {
+	m.handleRunning()
+	m.handleExited()
+
+	ch := make(chan *docker.APIEvents)
+
+	go m.handleEvents(ch)
+	go m.streamLogs()
+
+	m.client.AddEventListener(ch)
+
+	for {
+		time.Sleep(60 * time.Second)
+	}
+}
+
+// List already running containers and subscribe and stream logs
+func (m *Monitor) handleRunning() {
 	containers, err := m.client.ListContainers(docker.ListContainersOptions{})
 
 	if err != nil {
@@ -58,16 +75,25 @@ func (m *Monitor) Listen() {
 		fmt.Printf("monitor event id=%s status=created\n", shortId)
 		m.handleCreate(container.ID)
 	}
+}
 
-	ch := make(chan *docker.APIEvents)
+// List already exiteded containers and remove
+func (m *Monitor) handleExited() {
+	containers, err := m.client.ListContainers(docker.ListContainersOptions{
+		Filters: map[string][]string{
+			"status": []string{"exited"},
+		},
+	})
 
-	go m.handleEvents(ch)
-	go m.streamLogs()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	m.client.AddEventListener(ch)
+	for _, container := range containers {
+		shortId := container.ID[0:12]
 
-	for {
-		time.Sleep(60 * time.Second)
+		fmt.Printf("monitor event id=%s status=died\n", shortId)
+		m.handleDie(container.ID)
 	}
 }
 
@@ -100,6 +126,17 @@ func (m *Monitor) handleCreate(id string) {
 }
 
 func (m *Monitor) handleDie(id string) {
+	shortId := id[0:12]
+	fmt.Printf("monitor remove id=%s\n", shortId)
+
+	err := m.client.RemoveContainer(docker.RemoveContainerOptions{
+		ID: id,
+	})
+
+	if err != nil {
+		log.Printf("error: %s\n", err)
+		return
+	}
 }
 
 func (m *Monitor) handleStart(id string) {
