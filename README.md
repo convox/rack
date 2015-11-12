@@ -4,15 +4,32 @@ Instance agent for collecting logs and metrics.
 
 ## Development
 
+Copy select outputs from a dev rack into .env:
+
+```bash
+$ cat .env
+AWS_REGION=us-west-2
+AWS_ACCESS_KEY_ID=XXX
+AWS_SECRET_ACCESS_KEY=YYY
+ECS_CLUSTER=convox-Cluster-1NCWX9EC0JOV4
+```
+
+This approximates the IAM role and env the agent has on a cluster instance.
+
+Start a dev agent:
+
 ```bash
 $ convox start
-agent | monitor region=us-west-2 cluster=convox-Cluster-1NCWX9EC0JOV4
+agent | monitor new region=us-west-2 cluster=convox-Cluster-1NCWX9EC0JOV4
+agent | disk monitor hostname=4f7ca7a9232a
+agent | disk monitor hostname=4f7ca7a9232a utilization=16.02% used=0.1209G available=0.7547G
+agent | disk monitor upload to=kinesis stream="convox-Kinesis-2NQ3Q5ASHY1N" lines=1
 ```
 
 Run a Docker container to see Docker event Kinesis upload activity:
 
 ```bash
-$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N PROCESS=hello-world hello-world
+$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N -e PROCESS=hello-world hello-world
 ```
 
 ```
