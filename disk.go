@@ -6,6 +6,9 @@ import (
 	"os"
 	"syscall"
 	"time"
+
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
 // Monitor Disk Metrics for Instance
@@ -54,6 +57,32 @@ func MonitorDisk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / avail * 100
 
-		fmt.Printf("disk monitor utilization=%.2f%% used=%.4fG available=%.4fG\n", util, used, avail)
+		log := fmt.Sprintf("disk monitor hostname=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", hostname, util, used, avail)
+
+		fmt.Print(log)
+		PutRecord(log)
 	}
+}
+
+func PutRecord(s string) error {
+	stream := "convox-Kinesis-2NQ3Q5ASHY1N"
+
+	Kinesis := kinesis.New(&aws.Config{})
+
+	record := &kinesis.PutRecordInput{
+		Data:         []byte(s),
+		StreamName:   aws.String(stream),
+		PartitionKey: aws.String(string(time.Now().UnixNano())),
+	}
+
+	_, err := Kinesis.PutRecord(record)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		return err
+	}
+
+	fmt.Printf("disk monitor upload to=kinesis stream=%q lines=1\n", stream)
+
+	return nil
 }
