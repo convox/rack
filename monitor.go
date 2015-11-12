@@ -126,17 +126,9 @@ func (m *Monitor) handleCreate(id string) {
 }
 
 func (m *Monitor) handleDie(id string) {
-	shortId := id[0:12]
-	fmt.Printf("monitor remove id=%s\n", shortId)
-
-	err := m.client.RemoveContainer(docker.RemoveContainerOptions{
-		ID: id,
-	})
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return
-	}
+	// While we could remove a container and volumes on this event
+	// It seems like explicitly doing a `docker run --rm` is the best way
+	// to state this intent.
 }
 
 func (m *Monitor) handleStart(id string) {
