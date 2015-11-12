@@ -48,7 +48,9 @@ func (m *Monitor) Listen() {
 		shortId := container.ID[0:12]
 
 		// Don't subscribe and stream logs from the agent container itself
-		if container.Image == "convox/agent" || container.Image == "agent/agent" {
+		img := container.Image
+
+		if strings.HasPrefix(img, "convox/agent") || strings.HasPrefix(img, "agent/agent") {
 			fmt.Printf("monitor event id=%s status=skipped\n", shortId)
 			continue
 		}
