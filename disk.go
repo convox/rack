@@ -70,7 +70,7 @@ func MonitorDisk() {
 		log := fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail)
 
 		fmt.Print(log)
-		err = PutRecord(stream, log)
+		err = PutRecord(stream, fmt.Sprintf("agent: %s", log))
 
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
