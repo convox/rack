@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"syscall"
 	"time"
@@ -30,8 +32,9 @@ import (
 //
 // Currently this only accurrately reports root disk usage on the Amazon ECS AMI, not Docker Machine and boot2docker
 func MonitorDisk() {
-	hostname, _ := os.Hostname()
-	fmt.Printf("disk monitor hostname=%s\n", hostname)
+	instance := GetInstanceId()
+
+	fmt.Printf("disk monitor instance=%s\n", instance)
 
 	stream := os.Getenv("KINESIS")
 
@@ -64,7 +67,7 @@ func MonitorDisk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / avail * 100
 
-		log := fmt.Sprintf("disk monitor hostname=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", hostname, util, used, avail)
+		log := fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail)
 
 		fmt.Print(log)
 		err = PutRecord(stream, log)
@@ -74,6 +77,35 @@ func MonitorDisk() {
 			continue
 		}
 	}
+}
+
+// Get an instance identifier
+// On EC2 use the meta-data API to get an instance id
+// Fall back to system hostname if unavailable
+func GetInstanceId() string {
+	hostname, err := os.Hostname()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		hostname = "unknown-host"
+	}
+
+	resp, err := http.Get("http://169.254.169.254/latest/meta-data/instance-id")
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return hostname
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return hostname
+	}
+
+	return string(body)
 }
 
 func PutRecord(stream, s string) error {
