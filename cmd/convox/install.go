@@ -324,7 +324,8 @@ func cmdInstall(c *cli.Context) {
 	addLogin(host, password)
 	switchHost(host)
 
-	fmt.Println("Success, try `convox apps`")
+	fmt.Printf("Success, Convox created: https://console.aws.amazon.com/console/home?region=%s\n", region)
+	fmt.Println("Try `convox apps`")
 
 	sendMixpanelEvent("convox-install-success", "")
 }
