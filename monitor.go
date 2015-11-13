@@ -100,7 +100,12 @@ func (m *Monitor) handleExited() {
 func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 	for event := range ch {
 
-		shortId := event.ID[0:12]
+		shortId := event.ID
+
+		if len(shortId) > 12 {
+			shortId = shortId[0:12]
+		}
+
 		fmt.Printf("monitor event id=%s status=%s\n", shortId, event.Status)
 
 		switch event.Status {
