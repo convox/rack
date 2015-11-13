@@ -6,10 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"syscall"
 	"time"
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
@@ -75,6 +77,49 @@ func MonitorDisk() {
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
 			continue
+		}
+	}
+}
+
+// grep dmesg for file system error strings
+// if grep exits 0 it was a match so we mark the instance unhealthy
+// if grep exits 1 there was no match so we carry on
+func MonitorDmesg() {
+	instance := GetInstanceId()
+
+	fmt.Printf("dmesg monitor instance=%s\n", instance)
+
+	for _ = range time.Tick(5 * time.Minute) {
+		cmd := exec.Command("sh", "-c", `dmesg | grep "Remounting filesystem read-only"`)
+		out, err := cmd.CombinedOutput()
+
+		// grep returned 0
+		if err == nil {
+			log := fmt.Sprintf("dmesg monitor instance=%s unhealthy=true msg=%q\n", instance, out)
+			fmt.Print(log)
+
+			stream := os.Getenv("KINESIS")
+
+			if stream != "" {
+				err = PutRecord(stream, fmt.Sprintf("agent: %s", log))
+
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+					continue
+				}
+			}
+
+			AutoScaling := autoscaling.New(&aws.Config{})
+
+			_, err := AutoScaling.SetInstanceHealth(&autoscaling.SetInstanceHealthInput{
+				HealthStatus:             aws.String("Unhealthy"),
+				InstanceID:               aws.String(instance),
+				ShouldRespectGracePeriod: aws.Boolean(true),
+			})
+
+			if err != nil {
+				fmt.Printf("%+v\n", err)
+			}
 		}
 	}
 }
