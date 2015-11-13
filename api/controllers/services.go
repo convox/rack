@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"io"
 	"net/http"
 	"strings"
 
@@ -122,16 +121,7 @@ func ServiceLogs(ws *websocket.Conn) *httperr.Error {
 
 	s.SubscribeLogs(logs, done)
 
-	go func() {
-		buf := make([]byte, 0)
-		for {
-			_, err := ws.Read(buf)
-			if err == io.EOF {
-				done <- true
-				return
-			}
-		}
-	}()
+	go signalWsClose(ws, done)
 
 	for data := range logs {
 		ws.Write(data)
