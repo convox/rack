@@ -165,6 +165,10 @@
 			"Rev": "c128122e0b9b93799aef8181a537e5d8fd7081d6"
 		},
 		{
+			"ImportPath": "github.com/equinox-io/equinox",
+			"Rev": "dcc1baafd84cb81576acaab339be6211dc12211d"
+		},
+		{
 			"ImportPath": "github.com/fatih/color",
 			"Comment": "v0.1-8-g76d4231",
 			"Rev": "76d423163af754ff6423d2d9be0057fbf03c57c2"
@@ -185,14 +189,6 @@
 		{
 			"ImportPath": "github.com/jehiah/go-strftime",
 			"Rev": "834e15c05a45371503440cc195bbd05c9a0968d9"
-		},
-		{
-			"ImportPath": "github.com/kardianos/osext",
-			"Rev": "6e7f843663477789fac7c02def0d0909e969b4e5"
-		},
-		{
-			"ImportPath": "github.com/kr/binarydist",
-			"Rev": "9955b0ab8708602d411341e55fffd7e0700f86bd"
 		},
 		{
 			"ImportPath": "github.com/mattn/go-isatty",
@@ -253,10 +249,6 @@
 		{
 			"ImportPath": "golang.org/x/net/websocket",
 			"Rev": "d9558e5c97f85372afee28cf2b6059d7d3818919"
-		},
-		{
-			"ImportPath": "gopkg.in/inconshreveable/go-update.v0",
-			"Rev": "d8b0b1d421aa1cbf392c05869f8abbc669bb7066"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

@@ -267,6 +267,8 @@ func (me ManifestEntry) ContainerPorts() []string {
 		ext = append(ext, k)
 	}
 
+	sort.Strings(ext)
+
 	return ext
 }
 

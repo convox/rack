@@ -7,8 +7,7 @@ import (
 	"net/http"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/inconshreveable/go-update.v0"
-	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/inconshreveable/go-update.v0/check"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/equinox-io/equinox"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -21,45 +20,53 @@ func init() {
 	})
 }
 
+var publicKey = []byte(`
+-----BEGIN ECDSA PUBLIC KEY-----
+MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEFtnvjr4tRncwDB+SiCVORcprHlcBLPy9
+tYsnnPefR196tYvG62trcNZXF3qw2UCDkc9eWMnloiTVsKfEuUy3TTU3KxwOzD38
+77z5PI4u680jtKAm0zUIefrsnwrYWqUW
+-----END ECDSA PUBLIC KEY-----
+`)
+
 func cmdUpdate(c *cli.Context) {
 	client, err := updateClient()
-
 	if err != nil {
 		stdcli.Error(err)
 	}
 
-	params := check.Params{
-		AppVersion: Version,
-		AppId:      "ap_TKxvw_eIPVyOzl6rKEonCU5DUY",
-		Channel:    "stable",
-	}
-
-	updater := update.New()
-	updater.HTTPClient = client
-
 	stdcli.Spinner.Prefix = "Updating: "
 	stdcli.Spinner.Start()
 
-	r, err := params.CheckForUpdate("https://api.equinox.io/1/Updates", updater)
-
-	if err != nil {
-		if err != check.NoUpdateAvailable {
-			stdcli.Error(err)
-		}
-
-		fmt.Println("\x08\x08Already up to date")
+	opts := equinox.Options{
+		CurrentVersion: Version,
+		Channel:        "stable",
+		HTTPClient:     client,
+	}
+	if err := opts.SetPublicKeyPEM(publicKey); err != nil {
+		stdcli.Error(err)
 		return
 	}
 
-	err, _ = r.Update()
+	// check for update
+	r, err := equinox.Check("app_i8m2L26DxKL", opts)
+	switch {
+	case err == equinox.NotAvailableErr:
+		fmt.Println("\x08\x08Already up to date")
+		return
+	case err != nil:
+		stdcli.Error(err)
+		return
+	}
 
+	// apply update
+	err = r.Apply()
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
 	stdcli.Spinner.Stop()
-	fmt.Printf("\x08\x08OK, %s\n", r.Version)
+	fmt.Printf("\x08\x08OK, %s\n", r.ReleaseVersion)
 }
 
 func updateClient() (*http.Client, error) {
