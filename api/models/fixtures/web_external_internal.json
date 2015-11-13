@@ -168,7 +168,7 @@
           "Timeout": 60
         },
         "ConnectionSettings": {
-          "IdleTimeout": 60
+          "IdleTimeout": 3600
         },
         "CrossZone": true,
         "HealthCheck": {

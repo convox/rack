@@ -239,10 +239,7 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
-	done := make(chan bool)
-
-	go subscribeKinesis(a.Outputs["Kinesis"], output, done)
-
+	go subscribeKinesis(a.Outputs["Kinesis"], output, quit)
 	return nil
 }
 
