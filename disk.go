@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -76,7 +77,12 @@ func MonitorDisk() {
 
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
-			continue
+		}
+
+		// If disk is over 80.0 full, delete docker containers and images
+		// in attempt to reclaim space
+		if util > 80.0 {
+			RemoveDockerArtifacts()
 		}
 	}
 }
@@ -171,4 +177,34 @@ func PutRecord(stream, s string) error {
 	fmt.Printf("disk monitor upload to=kinesis stream=%q lines=1\n", stream)
 
 	return nil
+}
+
+// Force remove docker containers, volumes and images
+// This is a quick and dirty way to remove everything but running containers their images
+// This will blow away build or run cache but hopefully preserve
+// disk space.
+func RemoveDockerArtifacts() {
+	instance := GetInstanceId()
+
+	prefix := fmt.Sprintf("remove_docker monitor instance=%s", instance)
+
+	run(prefix, `docker rm -v $(docker ps -a -q)`)
+	run(prefix, `docker rmi -f $(docker images -a -q)`)
+}
+
+// Blindly run a shell command and log its output and error
+func run(log_prefix, cmd string) {
+	fmt.Printf("%s cmd=%q\n", log_prefix, cmd)
+
+	out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
+
+	lines := strings.Split(string(out), "\n")
+
+	for _, l := range lines {
+		fmt.Printf("%s out=%q\n", log_prefix, l)
+	}
+
+	if err != nil {
+		fmt.Printf("%s error=%q\n", log_prefix, err)
+	}
 }
