@@ -39,14 +39,6 @@ func MonitorDisk() {
 
 	fmt.Printf("disk monitor instance=%s\n", instance)
 
-	stream := os.Getenv("KINESIS")
-
-	// If no Kinesis stream to report to, no reason to calculate metrics
-	if stream == "" {
-		log.Printf("error: no rack KINESIS stream name is set\n")
-		return
-	}
-
 	// On the ECS AMI /cgroup is on the root partition (/dev/xvda1)
 	// However on boot2docker /cgroup is is a tmpfs
 	// There is almost certainly a better way to introspect the root partition on all environments
