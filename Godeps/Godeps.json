@@ -31,12 +31,27 @@
 			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/query",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/rest",
 			"Comment": "v0.6.1-14-g7e9078c",
 			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/xml/xmlutil",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
+			"Comment": "v0.6.1-14-g7e9078c",
+			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/autoscaling",
 			"Comment": "v0.6.1-14-g7e9078c",
 			"Rev": "7e9078c250876f26da48aaf36b8dce6a462ecd8a"
 		},

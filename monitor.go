@@ -29,6 +29,8 @@ func NewMonitor() *Monitor {
 		log.Fatal(err)
 	}
 
+	fmt.Printf("monitor new region=%s kinesis=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"))
+
 	return &Monitor{
 		client: client,
 		lines:  make(map[string][][]byte),
@@ -36,15 +38,8 @@ func NewMonitor() *Monitor {
 }
 
 func (m *Monitor) Listen() {
-	containers, err := m.client.ListContainers(docker.ListContainersOptions{})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, container := range containers {
-		m.handleCreate(container.ID)
-	}
+	m.handleRunning()
+	m.handleExited()
 
 	ch := make(chan *docker.APIEvents)
 
@@ -58,8 +53,61 @@ func (m *Monitor) Listen() {
 	}
 }
 
+// List already running containers and subscribe and stream logs
+func (m *Monitor) handleRunning() {
+	containers, err := m.client.ListContainers(docker.ListContainersOptions{})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, container := range containers {
+		shortId := container.ID[0:12]
+
+		// Don't subscribe and stream logs from the agent container itself
+		img := container.Image
+
+		if strings.HasPrefix(img, "convox/agent") || strings.HasPrefix(img, "agent/agent") {
+			fmt.Printf("monitor event id=%s status=skipped\n", shortId)
+			continue
+		}
+
+		fmt.Printf("monitor event id=%s status=created\n", shortId)
+		m.handleCreate(container.ID)
+	}
+}
+
+// List already exiteded containers and remove
+func (m *Monitor) handleExited() {
+	containers, err := m.client.ListContainers(docker.ListContainersOptions{
+		Filters: map[string][]string{
+			"status": []string{"exited"},
+		},
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, container := range containers {
+		shortId := container.ID[0:12]
+
+		fmt.Printf("monitor event id=%s status=died\n", shortId)
+		m.handleDie(container.ID)
+	}
+}
+
 func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 	for event := range ch {
+
+		shortId := event.ID
+
+		if len(shortId) > 12 {
+			shortId = shortId[0:12]
+		}
+
+		fmt.Printf("monitor event id=%s status=%s\n", shortId, event.Status)
+
 		switch event.Status {
 		case "create":
 			m.handleCreate(event.ID)
@@ -83,6 +131,9 @@ func (m *Monitor) handleCreate(id string) {
 }
 
 func (m *Monitor) handleDie(id string) {
+	// While we could remove a container and volumes on this event
+	// It seems like explicitly doing a `docker run --rm` is the best way
+	// to state this intent.
 }
 
 func (m *Monitor) handleStart(id string) {
@@ -117,25 +168,30 @@ func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
 	return env, nil
 }
 
+// Modify the container cgroup to enable swap if SWAP=1 is set
+// Currently this only works on the Amazon ECS AMI, not Docker Machine and boot2docker
+// until a better strategy for knowing where the cgroup mount is implemented
 func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	if env["SWAP"] == "1" {
+		shortId := id[0:12]
+
 		bytes := "18446744073709551615"
 
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", id, bytes)
+		fmt.Printf("monitor cgroups id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", shortId, bytes)
 		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.soft_limit_in_bytes value=%s\n", id, bytes)
+		fmt.Printf("monitor cgroups id=%s cgroup=memory.soft_limit_in_bytes value=%s\n", shortId, bytes)
 		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
 
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.limit_in_bytes value=%s\n", id, bytes)
+		fmt.Printf("monitor cgroups id=%s cgroup=memory.limit_in_bytes value=%s\n", shortId, bytes)
 		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(bytes), 0644)
 
 		if err != nil {
@@ -220,7 +276,7 @@ func (m *Monitor) streamLogs() {
 				}
 			}
 
-			fmt.Printf("upload to=kinesis stream=%q lines=%d\n", stream, len(res.Records))
+			fmt.Printf("monitor upload to=kinesis stream=%q lines=%d\n", stream, len(res.Records))
 		}
 	}
 }
