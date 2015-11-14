@@ -7,6 +7,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 )
 
 func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
@@ -27,15 +28,14 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 		shards[i] = *s.ShardId
 	}
 
-	done := make([](chan bool), len(shards))
-
-	for i, shard := range shards {
-		done[i] = make(chan bool)
-		go subscribeKinesisShard(stream, shard, output, done[i])
+	for _, shard := range shards {
+		go subscribeKinesisShard(stream, shard, output, quit)
 	}
 }
 
 func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan bool) {
+	log := logger.New("at=subscribe-kinesis").Start()
+
 	ireq := &kinesis.GetShardIteratorInput{
 		ShardId:           aws.String(shard),
 		ShardIteratorType: aws.String("LATEST"),
@@ -45,8 +45,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 	ires, err := Kinesis().GetShardIterator(ireq)
 
 	if err != nil {
-		fmt.Printf("err2 %+v\n", err)
-		// panic(err)
+		log.Error(err)
 		return
 	}
 
@@ -55,7 +54,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 	for {
 		select {
 		case <-quit:
-			fmt.Println("quitting")
+			log.Log("qutting")
 			return
 		default:
 			greq := &kinesis.GetRecordsInput{
@@ -84,6 +83,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	// Get latest log file details via pagination tokens
 	details := rds.DescribeDBLogFilesDetails{}
 	marker := ""
+	log := logger.New("at=subscribe-kinesis").Start()
 
 	for {
 		params := &rds.DescribeDBLogFilesInput{
@@ -131,7 +131,7 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	for {
 		select {
 		case <-quit:
-			fmt.Println("quitting")
+			log.Log("qutting")
 			return
 		default:
 			res, err := RDS().DownloadDBLogFilePortion(params)

@@ -126,11 +126,9 @@ func (s *Service) Formation() (string, error) {
 }
 
 func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
-	done := make(chan bool)
-
 	switch s.Tags["Service"] {
 	case "postgres":
-		go subscribeRDS(s.Name, s.Name, output, done)
+		go subscribeRDS(s.Name, s.Name, output, quit)
 	case "redis":
 		resources, err := ListResources(s.Name)
 
@@ -138,7 +136,7 @@ func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
 			return err
 		}
 
-		go subscribeKinesis(resources["Kinesis"].Id, output, done)
+		go subscribeKinesis(resources["Kinesis"].Id, output, quit)
 	}
 	return nil
 }

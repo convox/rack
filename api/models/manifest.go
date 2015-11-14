@@ -254,13 +254,20 @@ func (me ManifestEntry) InternalPorts() []string {
 }
 
 func (me ManifestEntry) ContainerPorts() []string {
+	extmap := map[string]bool{}
 	ext := []string{}
 
 	for _, port := range me.Ports {
 		if parts := strings.Split(port, ":"); len(parts) == 2 {
-			ext = append(ext, parts[1])
+			extmap[parts[1]] = true
 		}
 	}
+
+	for k, _ := range extmap {
+		ext = append(ext, k)
+	}
+
+	sort.Strings(ext)
 
 	return ext
 }

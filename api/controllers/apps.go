@@ -115,6 +115,8 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 
 	a.SubscribeLogs(logs, done)
 
+	go signalWsClose(ws, done)
+
 	for data := range logs {
 		ws.Write(data)
 	}

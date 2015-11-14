@@ -3,15 +3,19 @@ package controllers
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 )
+
+var RequestTimeout time.Duration = 3600 * time.Second
 
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) *httperr.Error
 type ApiWebsocketFunc func(*websocket.Conn) *httperr.Error
@@ -140,4 +144,19 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		log.Log("state=success")
 	})
+}
+
+// Sends "true" to the done channel when either
+// the websocket is closed or after a timeout
+func signalWsClose(ws *websocket.Conn, done chan bool) {
+	buf := make([]byte, 0)
+	expires := time.Now().Add(RequestTimeout)
+	for {
+		_, err := ws.Read(buf)
+		expired := time.Now().After(expires)
+		if err == io.EOF || expired {
+			done <- true
+			return
+		}
+	}
 }
