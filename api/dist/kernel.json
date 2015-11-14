@@ -469,9 +469,11 @@
                     "ecs:RegisterContainerInstance",
                     "ecs:StartTelemetrySession",
                     "ecs:Submit*",
+                    "kinesis:PutRecord",
                     "kinesis:PutRecords",
                     "ec2:DescribeInstances",
-                    "autoscaling:DescribeAutoScalingInstances"
+                    "autoscaling:DescribeAutoScalingInstances",
+                    "autoscaling:SetInstanceHealth"
                   ],
                   "Resource": [
                     "*"
@@ -492,7 +494,7 @@
       }
     },
     "LaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup" ],
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
@@ -522,7 +524,8 @@
             "service docker restart",
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
-            "curl -s http://convox.s3.amazonaws.com/agent/0.3/convox.conf > /etc/init/convox.conf",
+            { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
+            "curl -s http://convox.s3.amazonaws.com/agent/0.4/convox.conf > /etc/init/convox.conf",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"
