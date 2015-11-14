@@ -87,18 +87,20 @@ func cmdLogin(c *cli.Context) {
 		password = c.String("password")
 	}
 
+	var message string
+
 	if password != "" {
 		// password flag
-		err = testLogin(host, password, c.App.Version)
+		message, err = testLogin(host, password, c.App.Version)
 	} else {
 		// first try current login
 		password, err = getLogin(host)
-		err = testLogin(host, password, c.App.Version)
+		message, err = testLogin(host, password, c.App.Version)
 
 		// then prompt for password
 		if err != nil {
 			password = promptForPassword()
-			err = testLogin(host, password, c.App.Version)
+			message, err = testLogin(host, password, c.App.Version)
 		}
 	}
 
@@ -108,6 +110,19 @@ func cmdLogin(c *cli.Context) {
 		} else {
 			stdcli.Error(err)
 		}
+		return
+	}
+
+	// Display login success message to user
+	fmt.Println(message)
+
+	// Check version separately so messages
+	// are always displayed
+	cl := client.New(host, password, c.App.Version)
+	_, err = cl.GetSystem()
+
+	if err != nil {
+		stdcli.Error(err)
 		return
 	}
 
@@ -125,7 +140,7 @@ func cmdLogin(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("Logged in successfully.")
+	fmt.Println("Login saved.")
 }
 
 func upgradeConfig() error {
@@ -361,20 +376,20 @@ func updateId(id string) error {
 	return ioutil.WriteFile(config, []byte(id), 0600)
 }
 
-func testLogin(host, password, version string) (err error) {
+func testLogin(host, password, version string) (message string, err error) {
 	cl := client.New(host, password, version)
 
 	if cl == nil {
 		return
 	}
 
-	_, err = cl.GetApps()
+	message, err = cl.Auth()
 
 	if err != nil {
 		return
 	}
 
-	return nil
+	return
 }
 
 func promptForPassword() string {
