@@ -70,14 +70,7 @@ func MonitorDisk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / (used + avail) * 100
 
-		log := fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail)
-
-		fmt.Print(log)
-		err = PutRecord(stream, fmt.Sprintf("agent: %s", log))
-
-		if err != nil {
-			fmt.Printf("error: %s\n", err)
-		}
+		LogPutRecord(fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail))
 
 		// If disk is over 80.0 full, delete docker containers and images
 		// in attempt to reclaim space
@@ -101,19 +94,7 @@ func MonitorDmesg() {
 
 		// grep returned 0
 		if err == nil {
-			log := fmt.Sprintf("dmesg monitor instance=%s unhealthy=true msg=%q\n", instance, out)
-			fmt.Print(log)
-
-			stream := os.Getenv("KINESIS")
-
-			if stream != "" {
-				err = PutRecord(stream, fmt.Sprintf("agent: %s", log))
-
-				if err != nil {
-					fmt.Printf("error: %s\n", err)
-					continue
-				}
-			}
+			LogPutRecord(fmt.Sprintf("dmesg monitor instance=%s unhealthy=true msg=%q\n", instance, out))
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 
@@ -159,11 +140,23 @@ func GetInstanceId() string {
 	return string(body)
 }
 
-func PutRecord(stream, s string) error {
+// Log string to stdout and try to put it to kinesis
+// Kinesis errors are logged but don't need to be handled
+func LogPutRecord(s string) {
+	fmt.Print(s)
+
+	// If no KINESIS, return gracefully
+
+	stream := os.Getenv("KINESIS")
+
+	if stream == "" {
+		return
+	}
+
 	Kinesis := kinesis.New(&aws.Config{})
 
 	record := &kinesis.PutRecordInput{
-		Data:         []byte(s),
+		Data:         []byte(fmt.Sprintf("agent: %s", s)),
 		StreamName:   aws.String(stream),
 		PartitionKey: aws.String(string(time.Now().UnixNano())),
 	}
@@ -171,12 +164,10 @@ func PutRecord(stream, s string) error {
 	_, err := Kinesis.PutRecord(record)
 
 	if err != nil {
-		return err
+		fmt.Printf("error: %s\n", err)
+	} else {
+		fmt.Printf("disk monitor upload to=kinesis stream=%q lines=1\n", stream)
 	}
-
-	fmt.Printf("disk monitor upload to=kinesis stream=%q lines=1\n", stream)
-
-	return nil
 }
 
 // Force remove docker containers, volumes and images
@@ -201,10 +192,10 @@ func run(log_prefix, cmd string) {
 	lines := strings.Split(string(out), "\n")
 
 	for _, l := range lines {
-		fmt.Printf("%s out=%q\n", log_prefix, l)
+		LogPutRecord(fmt.Sprintf("%s out=%q\n", log_prefix, l))
 	}
 
 	if err != nil {
-		fmt.Printf("%s error=%q\n", log_prefix, err)
+		LogPutRecord(fmt.Sprintf("%s error=%q\n", log_prefix, err))
 	}
 }
