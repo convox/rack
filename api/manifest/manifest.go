@@ -365,13 +365,6 @@ func (m *Manifest) Raw() ([]byte, error) {
 
 func (m *Manifest) Run(app string) []error {
 	ch := make(chan error)
-
-	missing := m.MissingEnvironment()
-
-	if len(missing) > 0 {
-		return []error{fmt.Errorf("env expected: %s", strings.Join(missing, ", "))}
-	}
-
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
 
