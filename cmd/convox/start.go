@@ -26,6 +26,7 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "file",
+				Value: "docker-compose.yml",
 				Usage: "a file to use in place of docker-compose.yml",
 			},
 		},
@@ -53,10 +54,6 @@ func cmdStart(c *cli.Context) {
 	}
 
 	file := c.String("file")
-
-	if file == "" {
-		file = "docker-compose.yml"
-	}
 
 	m, err := manifest.Read(dir, file)
 
