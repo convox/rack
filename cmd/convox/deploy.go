@@ -19,6 +19,11 @@ func init() {
 				Name:  "no-cache",
 				Usage: "Do not use Docker cache during build.",
 			},
+			cli.StringFlag{
+				Name:  "file",
+				Value: "docker-compose.yml",
+				Usage: "a file to use in place of docker-compose.yml",
+			},
 		},
 	})
 }
@@ -57,7 +62,7 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	// build
-	release, err := executeBuild(c, dir, app)
+	release, err := executeBuild(c, dir, app, c.String("file"))
 
 	if err != nil {
 		stdcli.Error(err)

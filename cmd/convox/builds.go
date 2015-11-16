@@ -27,6 +27,11 @@ func init() {
 				Name:  "no-cache",
 				Usage: "Do not use Docker cache during build.",
 			},
+			cli.StringFlag{
+				Name:  "file",
+				Value: "docker-compose.yml",
+				Usage: "a file to use in place of docker-compose.yml",
+			},
 		},
 	})
 	stdcli.RegisterCommand(cli.Command{
@@ -41,7 +46,14 @@ func init() {
 				Description: "create a new build",
 				Usage:       "",
 				Action:      cmdBuildsCreate,
-				Flags:       []cli.Flag{appFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					cli.StringFlag{
+						Name:  "file",
+						Value: "docker-compose.yml",
+						Usage: "a file to use in place of docker-compose.yml",
+					},
+				},
 			},
 			{
 				Name:        "info",
@@ -120,7 +132,7 @@ func cmdBuildsCreate(c *cli.Context) {
 		dir = c.Args()[0]
 	}
 
-	release, err := executeBuild(c, dir, app)
+	release, err := executeBuild(c, dir, app, c.String("file"))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -155,20 +167,20 @@ func cmdBuildsInfo(c *cli.Context) {
 	fmt.Println(b.Logs)
 }
 
-func executeBuild(c *cli.Context, source string, app string) (string, error) {
+func executeBuild(c *cli.Context, source string, app string, config string) (string, error) {
 	u, _ := url.Parse(source)
 
 	switch u.Scheme {
 	case "http", "https":
-		return executeBuildUrl(c, source, app)
+		return executeBuildUrl(c, source, app, config)
 	default:
-		return executeBuildDir(c, source, app)
+		return executeBuildDir(c, source, app, config)
 	}
 
 	return "", fmt.Errorf("unreachable")
 }
 
-func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
+func executeBuildDir(c *cli.Context, dir string, app string, config string) (string, error) {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
@@ -189,7 +201,7 @@ func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 
 	fmt.Print("Uploading... ")
 
-	build, err := rackClient(c).CreateBuildSource(app, tar, cache)
+	build, err := rackClient(c).CreateBuildSource(app, tar, cache, config)
 
 	if err != nil {
 		return "", err
@@ -200,10 +212,10 @@ func executeBuildDir(c *cli.Context, dir string, app string) (string, error) {
 	return finishBuild(c, app, build)
 }
 
-func executeBuildUrl(c *cli.Context, url string, app string) (string, error) {
+func executeBuildUrl(c *cli.Context, url string, app string, config string) (string, error) {
 	cache := !c.Bool("no-cache")
 
-	build, err := rackClient(c).CreateBuildUrl(app, url, cache)
+	build, err := rackClient(c).CreateBuildUrl(app, url, cache, config)
 
 	if err != nil {
 		return "", err
