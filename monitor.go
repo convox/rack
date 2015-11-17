@@ -17,9 +17,10 @@ import (
 )
 
 type Monitor struct {
-	client *docker.Client
-	lock   sync.Mutex
-	lines  map[string][][]byte
+	client     *docker.Client
+	instanceId string
+	lock       sync.Mutex
+	lines      map[string][][]byte
 }
 
 func NewMonitor() *Monitor {
@@ -32,8 +33,9 @@ func NewMonitor() *Monitor {
 	fmt.Printf("monitor new region=%s kinesis=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"))
 
 	return &Monitor{
-		client: client,
-		lines:  make(map[string][][]byte),
+		client:     client,
+		lines:      make(map[string][][]byte),
+		instanceId: GetInstanceId(),
 	}
 }
 
@@ -127,7 +129,7 @@ func (m *Monitor) handleCreate(id string) {
 		return
 	}
 
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
+	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"], env["RELEASE"])
 }
 
 func (m *Monitor) handleDie(id string) {
@@ -200,7 +202,7 @@ func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	}
 }
 
-func (m *Monitor) subscribeLogs(id, stream, process string) {
+func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 	if stream == "" {
 		return
 	}
@@ -215,7 +217,7 @@ func (m *Monitor) subscribeLogs(id, stream, process string) {
 		scanner := bufio.NewScanner(r)
 
 		for scanner.Scan() {
-			m.addLine(stream, []byte(fmt.Sprintf("%s: %s", process, scanner.Text())))
+			m.addLine(stream, []byte(fmt.Sprintf("%s [%s/%s/%s]: %s", process, m.instanceId, id[0:12], release, scanner.Text())))
 		}
 
 		if scanner.Err() != nil {
