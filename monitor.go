@@ -18,6 +18,7 @@ import (
 
 type Monitor struct {
 	client     *docker.Client
+	envs       map[string]map[string]string
 	instanceId string
 	lock       sync.Mutex
 	lines      map[string][][]byte
@@ -34,6 +35,7 @@ func NewMonitor() *Monitor {
 
 	return &Monitor{
 		client:     client,
+		envs:       make(map[string]map[string]string),
 		lines:      make(map[string][][]byte),
 		instanceId: GetInstanceId(),
 	}
@@ -108,15 +110,19 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 			shortId = shortId[0:12]
 		}
 
-		fmt.Printf("monitor event id=%s status=%s\n", shortId, event.Status)
+		fmt.Printf("monitor event id=%s status=%s time=%d\n", shortId, event.Status, event.Time)
 
 		switch event.Status {
 		case "create":
 			m.handleCreate(event.ID)
 		case "die":
 			m.handleDie(event.ID)
+		case "kill":
+			m.handleKill(event.ID)
 		case "start":
 			m.handleStart(event.ID)
+		case "stop":
+			m.handleStop(event.ID)
 		}
 	}
 }
@@ -129,6 +135,8 @@ func (m *Monitor) handleCreate(id string) {
 		return
 	}
 
+	m.envs[id] = env
+
 	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"], env["RELEASE"])
 }
 
@@ -138,15 +146,16 @@ func (m *Monitor) handleDie(id string) {
 	// to state this intent.
 }
 
+func (m *Monitor) handleKill(id string) {
+	m.logEvent(id, "Stopping container with SIGKILL")
+}
+
 func (m *Monitor) handleStart(id string) {
-	env, err := m.inspectContainerEnv(id)
+	m.updateCgroups(id, m.envs[id])
+}
 
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return
-	}
-
-	m.updateCgroups(id, env)
+func (m *Monitor) handleStop(id string) {
+	m.logEvent(id, "Stopping container with SIGTERM")
 }
 
 func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
@@ -168,6 +177,15 @@ func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
 	}
 
 	return env, nil
+}
+
+func (m *Monitor) logEvent(id, message string) {
+	env := m.envs[id]
+	stream := env["KINESIS"]
+
+	if stream != "" {
+		m.addLine(stream, []byte(fmt.Sprintf("%s [%s/%s/%s]: %s", "convox/agent", m.instanceId, id[0:12], env["RELEASE"], message)))
+	}
 }
 
 // Modify the container cgroup to enable swap if SWAP=1 is set
