@@ -247,6 +247,19 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	return []error{}
 }
 
+func (me *ManifestEntry) ResolvedEnvironment() []string {
+	r := []string{}
+
+	for _, env := range me.EnvironmentArray() {
+		if strings.Index(env, "=") == -1 {
+			env = fmt.Sprintf("%s=%s", env, os.Getenv(env))
+		}
+		r = append(r, env)
+	}
+
+	return r
+}
+
 func (me *ManifestEntry) EnvironmentArray() []string {
 	var arr []string
 	switch t := me.Environment.(type) {
@@ -256,11 +269,7 @@ func (me *ManifestEntry) EnvironmentArray() []string {
 		}
 	case []interface{}:
 		for _, s := range t {
-			env := s.(string)
-			if strings.Index(env, "=") == -1 {
-				env = fmt.Sprintf("%s=%s", env, os.Getenv(env))
-			}
-			arr = append(arr, env)
+			arr = append(arr, s.(string))
 		}
 	default:
 		// Unknown type. No action.
@@ -356,13 +365,6 @@ func (m *Manifest) Raw() ([]byte, error) {
 
 func (m *Manifest) Run(app string) []error {
 	ch := make(chan error)
-
-	missing := m.MissingEnvironment()
-
-	if len(missing) > 0 {
-		return []error{fmt.Errorf("env expected: %s", strings.Join(missing, ", "))}
-	}
-
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
 
@@ -495,7 +497,7 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	args := []string{"run", "-i", "--name", name}
 
-	for _, env := range me.EnvironmentArray() {
+	for _, env := range me.ResolvedEnvironment() {
 		args = append(args, "-e", env)
 	}
 
