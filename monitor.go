@@ -20,6 +20,7 @@ type Monitor struct {
 	client     *docker.Client
 	envs       map[string]map[string]string
 	instanceId string
+	image      string
 	lock       sync.Mutex
 	lines      map[string][][]byte
 }
@@ -38,6 +39,7 @@ func NewMonitor() *Monitor {
 		envs:       make(map[string]map[string]string),
 		lines:      make(map[string][][]byte),
 		instanceId: GetInstanceId(),
+		image:      "convox/agent", // also set during handleRunning
 	}
 }
 
@@ -72,6 +74,7 @@ func (m *Monitor) handleRunning() {
 		img := container.Image
 
 		if strings.HasPrefix(img, "convox/agent") || strings.HasPrefix(img, "agent/agent") {
+			m.image = img
 			fmt.Printf("monitor event id=%s status=skipped\n", shortId)
 			continue
 		}
@@ -137,6 +140,8 @@ func (m *Monitor) handleCreate(id string) {
 
 	m.envs[id] = env
 
+	m.logEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
+
 	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"], env["RELEASE"])
 }
 
@@ -144,10 +149,11 @@ func (m *Monitor) handleDie(id string) {
 	// While we could remove a container and volumes on this event
 	// It seems like explicitly doing a `docker run --rm` is the best way
 	// to state this intent.
+	m.logEvent(id, fmt.Sprintf("Stopped process %s", id[0:12]))
 }
 
 func (m *Monitor) handleKill(id string) {
-	m.logEvent(id, "Stopping container with SIGKILL")
+	m.logEvent(id, fmt.Sprintf("Stopping process %s via SIGKILL", id[0:12]))
 }
 
 func (m *Monitor) handleStart(id string) {
@@ -155,7 +161,7 @@ func (m *Monitor) handleStart(id string) {
 }
 
 func (m *Monitor) handleStop(id string) {
-	m.logEvent(id, "Stopping container with SIGTERM")
+	m.logEvent(id, fmt.Sprintf("Stopping process %s via SIGTERM", id[0:12]))
 }
 
 func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
@@ -184,7 +190,7 @@ func (m *Monitor) logEvent(id, message string) {
 	stream := env["KINESIS"]
 
 	if stream != "" {
-		m.addLine(stream, []byte(fmt.Sprintf("%s [%s/%s/%s]: %s", "convox/agent", m.instanceId, id[0:12], env["RELEASE"], message)))
+		m.addLine(stream, []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.image, message)))
 	}
 }
 
