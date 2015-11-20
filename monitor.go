@@ -131,7 +131,7 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 }
 
 func (m *Monitor) handleCreate(id string) {
-	env, err := m.inspectContainerEnv(id)
+	image, env, err := m.inspectContainer(id)
 
 	if err != nil {
 		log.Printf("error: %s\n", err)
@@ -142,7 +142,7 @@ func (m *Monitor) handleCreate(id string) {
 
 	m.logEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
 
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"], env["RELEASE"])
+	go m.subscribeLogs(id, env["KINESIS"], image, env["PROCESS"], env["RELEASE"])
 }
 
 func (m *Monitor) handleDie(id string) {
@@ -164,14 +164,16 @@ func (m *Monitor) handleStop(id string) {
 	m.logEvent(id, fmt.Sprintf("Stopping process %s via SIGTERM", id[0:12]))
 }
 
-func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
+func (m *Monitor) inspectContainer(id string) (string, map[string]string, error) {
 	env := map[string]string{}
 
 	container, err := m.client.InspectContainer(id)
 
+	image := container.Config.Image
+
 	if err != nil {
 		log.Printf("error: %s\n", err)
-		return env, err
+		return image, env, err
 	}
 
 	for _, e := range container.Config.Env {
@@ -182,7 +184,7 @@ func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
 		}
 	}
 
-	return env, nil
+	return image, env, nil
 }
 
 func (m *Monitor) logEvent(id, message string) {
@@ -226,7 +228,7 @@ func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	}
 }
 
-func (m *Monitor) subscribeLogs(id, stream, process, release string) {
+func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 	if stream == "" {
 		return
 	}
@@ -241,7 +243,7 @@ func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 		scanner := bufio.NewScanner(r)
 
 		for scanner.Scan() {
-			m.addLine(stream, []byte(fmt.Sprintf("%s [%s/%s/%s]: %s", process, m.instanceId, id[0:12], release, scanner.Text())))
+			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, image, release, scanner.Text())))
 		}
 
 		if scanner.Err() != nil {
