@@ -28,7 +28,7 @@ func init() {
 		Action:      cmdLogin,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "password",
+				Name:  "password, p",
 				Usage: "Password to use for authentication. If not specified, prompt for password.",
 			},
 		},

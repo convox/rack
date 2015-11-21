@@ -29,36 +29,21 @@ func init() {
 		Description: "list an app's releases",
 		Usage:       "",
 		Action:      cmdReleases,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "App name. Inferred from current directory if not specified.",
-			},
-		},
+		Flags:       []cli.Flag{appFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "info",
 				Description: "see info about a release",
 				Usage:       "<release id>",
 				Action:      cmdReleaseInfo,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "app",
-						Usage: "app name. Inferred from current directory if not specified.",
-					},
-				},
+				Flags:       []cli.Flag{appFlag},
 			},
 			{
 				Name:        "promote",
 				Description: "promote a release",
 				Usage:       "<release id>",
 				Action:      cmdReleasePromote,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "app",
-						Usage: "app name. Inferred from current directory if not specified.",
-					},
-				},
+				Flags:       []cli.Flag{appFlag},
 			},
 		},
 	})
