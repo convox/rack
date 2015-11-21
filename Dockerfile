@@ -11,3 +11,5 @@ COPY . /go/src/github.com/convox/agent
 RUN go get .
 
 ENV DOCKER_HOST unix:///var/run/docker.sock
+
+ENTRYPOINT ["agent"]
