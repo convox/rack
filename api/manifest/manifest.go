@@ -35,6 +35,7 @@ type ManifestEntry struct {
 	Build       string      `yaml:"build,omitempty"`
 	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
+	Entrypoint  string      `yaml:"entrypoint,omitempty"`
 	Environment interface{} `yaml:"environment,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
@@ -540,6 +541,10 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	for _, volume := range me.Volumes {
 		args = append(args, "-v", volume)
+	}
+
+	if me.Entrypoint != "" {
+		args = append(args, "--entrypoint", me.Entrypoint)
 	}
 
 	args = append(args, tag)
