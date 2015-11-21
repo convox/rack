@@ -29,7 +29,7 @@ agent | disk monitor upload to=kinesis stream="convox-Kinesis-2NQ3Q5ASHY1N" line
 Run a Docker container to see Docker event Kinesis upload activity:
 
 ```bash
-$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N -e PROCESS=hello-world hello-world
+$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N -e PROCESS=hello-world -e RELEASE=RXBKPDQEGDU hello-world
 ```
 
 ```
