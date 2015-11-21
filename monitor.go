@@ -149,11 +149,11 @@ func (m *Monitor) handleDie(id string) {
 	// While we could remove a container and volumes on this event
 	// It seems like explicitly doing a `docker run --rm` is the best way
 	// to state this intent.
-	m.logEvent(id, fmt.Sprintf("Stopped process %s", id[0:12]))
+	m.logEvent(id, fmt.Sprintf("Dead process %s", id[0:12]))
 }
 
 func (m *Monitor) handleKill(id string) {
-	m.logEvent(id, fmt.Sprintf("Stopping process %s via SIGKILL", id[0:12]))
+	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGKILL", id[0:12]))
 }
 
 func (m *Monitor) handleStart(id string) {
@@ -161,7 +161,7 @@ func (m *Monitor) handleStart(id string) {
 }
 
 func (m *Monitor) handleStop(id string) {
-	m.logEvent(id, fmt.Sprintf("Stopping process %s via SIGTERM", id[0:12]))
+	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGTERM", id[0:12]))
 }
 
 func (m *Monitor) inspectContainer(id string) (string, map[string]string, error) {
