@@ -22,6 +22,13 @@ var manifestExplicitEqual string = `www:
   command: sh
 `
 
+var manifestMapEnv string = `www:
+  environment:
+    FOO: bar
+  image: httpd
+  command: sh
+`
+
 func TestStartWithMissingEnv(t *testing.T) {
 	temp, _ := ioutil.TempDir("", "convox-test")
 	appDir := temp + "/app"
@@ -49,6 +56,26 @@ func TestStartWithNoEnvOk(t *testing.T) {
 	defer os.RemoveAll(appDir)
 
 	d1 := []byte(manifestExplicitEqual)
+	ioutil.WriteFile(appDir+"/docker-compose.yml", d1, 0777)
+
+	test.Runs(t,
+		test.ExecRun{
+			Command:  fmt.Sprintf("convox start"),
+			Dir:      appDir,
+			Env:      map[string]string{"CONVOX_CONFIG": temp},
+			OutMatch: "docker run",
+			Exit:     0,
+		},
+	)
+}
+
+func TestStartWithMapEnv(t *testing.T) {
+	temp, _ := ioutil.TempDir("", "convox-test")
+	appDir := temp + "/app"
+	os.Mkdir(appDir, 0777)
+	defer os.RemoveAll(appDir)
+
+	d1 := []byte(manifestMapEnv)
 	ioutil.WriteFile(appDir+"/docker-compose.yml", d1, 0777)
 
 	test.Runs(t,
