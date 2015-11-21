@@ -13,12 +13,14 @@ import (
 )
 
 type ExecRun struct {
-	Command string
-	Env     map[string]string
-	Exit    int
-	Stdin   string
-	Stdout  string
-	Stderr  string
+	Command  string
+	Env      map[string]string
+	Exit     int
+	Dir      string
+	Stdin    string
+	Stdout   string
+	OutMatch string
+	Stderr   string
 }
 
 func (er ExecRun) Test(t *testing.T) {
@@ -26,9 +28,17 @@ func (er ExecRun) Test(t *testing.T) {
 
 	assert.Nil(t, err, "should be nil")
 	assert.Equal(t, er.Exit, code, "exit code should be equal")
-	assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
-	assert.Contains(t, stderr, er.Stderr,
-		fmt.Sprintf("stderr should contain %q", stderr))
+	if er.Stdout != "" {
+		assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
+	}
+	if er.OutMatch != "" {
+		assert.Contains(t, stdout, er.OutMatch,
+			fmt.Sprintf("stdout %q should contain %q", stdout, er.OutMatch))
+	}
+	if er.Stderr != "" {
+		assert.Contains(t, stderr, er.Stderr,
+			fmt.Sprintf("stderr %q should contain %q", stderr, er.Stderr))
+	}
 }
 
 func (er ExecRun) exec() (string, string, int, error) {
@@ -39,7 +49,7 @@ func (er ExecRun) exec() (string, string, int, error) {
 
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-
+	cmd.Dir = er.Dir
 	cmd.Env = os.Environ()
 
 	for k, v := range er.Env {
