@@ -233,6 +233,15 @@ func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 		return
 	}
 
+	// extract app name from stream
+	// myapp-staging-Kinesis-L6MUKT1VH451 -> myapp-staging
+	app := ""
+
+	parts := strings.Split(stream, "-")
+	if len(parts) > 2 {
+		app = strings.Join(parts[0:len(parts)-2], "-") // drop -Kinesis-YXXX
+	}
+
 	time.Sleep(500 * time.Millisecond)
 
 	r, w := io.Pipe()
@@ -243,7 +252,7 @@ func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 		scanner := bufio.NewScanner(r)
 
 		for scanner.Scan() {
-			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, image, release, scanner.Text())))
+			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s/%s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, app, process, release, scanner.Text())))
 		}
 
 		if scanner.Err() != nil {
