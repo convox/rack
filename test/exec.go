@@ -13,13 +13,14 @@ import (
 )
 
 type ExecRun struct {
-	Command string
-	Env     map[string]string
-	Exit    int
-	Dir     string
-	Stdin   string
-	Stdout  string
-	Stderr  string
+	Command  string
+	Env      map[string]string
+	Exit     int
+	Dir      string
+	Stdin    string
+	Stdout   string
+	OutMatch string
+	Stderr   string
 }
 
 func (er ExecRun) Test(t *testing.T) {
@@ -30,9 +31,13 @@ func (er ExecRun) Test(t *testing.T) {
 	if er.Stdout != "" {
 		assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
 	}
+	if er.OutMatch != "" {
+		assert.Contains(t, stdout, er.OutMatch,
+			fmt.Sprintf("stdout %q should contain %q", stdout, er.OutMatch))
+	}
 	if er.Stderr != "" {
 		assert.Contains(t, stderr, er.Stderr,
-			fmt.Sprintf("stderr should contain %q", stderr))
+			fmt.Sprintf("stderr %q should contain %q", stderr, er.Stderr))
 	}
 }
 
