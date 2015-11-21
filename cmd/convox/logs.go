@@ -13,12 +13,7 @@ func init() {
 		Description: "stream the logs for an application",
 		Usage:       "",
 		Action:      cmdLogsStream,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "App name. Inferred from current directory if not specified.",
-			},
-		},
+		Flags:       []cli.Flag{appFlag},
 	})
 }
 

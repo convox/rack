@@ -13,7 +13,7 @@ import (
 )
 
 var appFlag = cli.StringFlag{
-	Name:  "app",
+	Name:  "app, a",
 	Usage: "App name. Inferred from current directory if not specified.",
 }
 

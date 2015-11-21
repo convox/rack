@@ -13,11 +13,7 @@ func init() {
 		Description: "scale an app's processes",
 		Usage:       "PROCESS [--count 2] [--memory 512]",
 		Action:      cmdScale,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "app",
-				Usage: "App name. Inferred from current directory if not specified.",
-			},
+		Flags: []cli.Flag{appFlag,
 			cli.StringFlag{
 				Name:  "count",
 				Value: "",
