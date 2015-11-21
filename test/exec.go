@@ -27,9 +27,13 @@ func (er ExecRun) Test(t *testing.T) {
 
 	assert.Nil(t, err, "should be nil")
 	assert.Equal(t, er.Exit, code, "exit code should be equal")
-	assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
-	assert.Contains(t, stderr, er.Stderr,
-		fmt.Sprintf("stderr should contain %q", stderr))
+	if er.Stdout != "" {
+		assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
+	}
+	if er.Stderr != "" {
+		assert.Contains(t, stderr, er.Stderr,
+			fmt.Sprintf("stderr should contain %q", stderr))
+	}
 }
 
 func (er ExecRun) exec() (string, string, int, error) {
