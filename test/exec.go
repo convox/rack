@@ -16,6 +16,7 @@ type ExecRun struct {
 	Command string
 	Env     map[string]string
 	Exit    int
+	Dir     string
 	Stdin   string
 	Stdout  string
 	Stderr  string
@@ -39,7 +40,7 @@ func (er ExecRun) exec() (string, string, int, error) {
 
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-
+	cmd.Dir = er.Dir
 	cmd.Env = os.Environ()
 
 	for k, v := range er.Env {
