@@ -200,7 +200,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	}
 }
 
-func (b *Build) ExecuteRemote(repo string, cache bool, ch chan error) {
+func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -210,6 +210,10 @@ func (b *Build) ExecuteRemote(repo string, cache bool, ch chan error) {
 
 	if pw := os.Getenv("PASSWORD"); pw != "" {
 		args = append(args, "-auth", pw)
+	}
+
+	if config != "" {
+		args = append(args, "-config", config)
 	}
 
 	if !cache {

@@ -118,7 +118,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if repo := r.FormValue("repo"); repo != "" {
-		go build.ExecuteRemote(repo, cache, ch)
+		go build.ExecuteRemote(repo, cache, config, ch)
 
 		err = <-ch
 
