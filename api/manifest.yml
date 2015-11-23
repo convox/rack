@@ -111,6 +111,11 @@ paths:
         type: boolean
         in: formData
         required: false
+      - name: config
+        description: docker compose yaml file
+        type: string
+        in: formData
+        required: false
       - name: repo
         description: repository
         type: string
