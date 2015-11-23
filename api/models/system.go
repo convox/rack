@@ -7,16 +7,12 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/client"
 )
 
-type System struct {
-	Count   int    `json:"count"`
-	Name    string `json:"name"`
-	Status  string `json:"status"`
-	Type    string `json:"type"`
-	Version string `json:"version"`
-}
+type System client.System
 
 func GetSystem() (*System, error) {
 	rack := os.Getenv("RACK")
@@ -49,6 +45,74 @@ func GetSystem() (*System, error) {
 	}
 
 	return r, nil
+}
+
+func (s *System) GetInstances() ([]*client.Instance, error) {
+	res, err := ECS().ListContainerInstances(
+		&ecs.ListContainerInstancesInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	dres, err := ECS().DescribeContainerInstances(
+		&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: res.ContainerInstanceArns,
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var instances []*client.Instance
+
+	for _, i := range dres.ContainerInstances {
+		instance := &client.Instance{
+			Agent:   *i.AgentConnected,
+			Running: int(*i.RunningTasksCount),
+			Pending: int(*i.PendingTasksCount),
+			Status:  *i.Status,
+			Id:      *i.Ec2InstanceId,
+		}
+
+		for _, r := range i.RegisteredResources {
+			switch *r.Name {
+			case "CPU":
+				instance.Cpu.Total = int(*r.IntegerValue)
+			case "MEMORY":
+				instance.Memory.Total = int(*r.IntegerValue)
+			}
+		}
+
+		for _, r := range i.RegisteredResources {
+			switch *r.Name {
+			case "CPU":
+				instance.Cpu.Total = int(*r.IntegerValue)
+			case "MEMORY":
+				instance.Memory.Total = int(*r.IntegerValue)
+			}
+		}
+
+		for _, r := range i.RemainingResources {
+			switch *r.Name {
+			case "CPU":
+				instance.Cpu.Free = int(*r.IntegerValue)
+				instance.Cpu.Used = instance.Cpu.Total - instance.Cpu.Free
+			case "MEMORY":
+				instance.Memory.Free = int(*r.IntegerValue)
+				instance.Memory.Used = instance.Memory.Total - instance.Memory.Free
+			}
+		}
+
+		instances = append(instances, instance)
+	}
+
+	return instances, nil
 }
 
 func (r *System) Save() error {
