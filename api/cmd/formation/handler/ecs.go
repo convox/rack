@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -144,6 +143,10 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 			ContainerPort:    aws.Int64(int64(port)),
 		})
 
+		// Despite the ECS Create Service API docs, you can only specify a single load balancer name and port. Specifying more than one results in
+		// Failed to update resource. InvalidParameterException: load balancers can have at most 1 items. status code: 400, request id: 0839710e-9227-11e5-8a2f-015e938a7aea
+		// https://github.com/aws/aws-cli/issues/1362
+		// Therefore break after adding the first load balancer mapping to the CreateServiceInput
 		break
 	}
 
@@ -187,7 +190,16 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	return *res.Service.ServiceArn, nil, nil
 }
 
+// According to the ECS Docs (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html):
+// To change the load balancer name, the container name, or the container port associated with a service load balancer configuration, you must create a new service.
 func ECSServiceReplacementRequired(req Request) (bool, error) {
+	incoming := []string{}
+	existing := make(map[string]bool)
+
+	for _, ilb := range req.ResourceProperties["LoadBalancers"].([]interface{}) {
+		incoming = append(incoming, ilb.(string))
+	}
+
 	res, err := ECS(req).DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(req.ResourceProperties["Cluster"].(string)),
 		Services: []*string{aws.String(req.PhysicalResourceId)},
@@ -197,31 +209,25 @@ func ECSServiceReplacementRequired(req Request) (bool, error) {
 		return false, err
 	}
 
-	incoming := []string{}
-	existing := []string{}
-
-	for _, ilb := range req.ResourceProperties["LoadBalancers"].([]interface{}) {
-		incoming = append(incoming, ilb.(string))
-	}
-
+	// NOTE: Despite the Service APIs taking and returning a list, at most one balancer:container:port mapping will be set
 	for _, lb := range res.Services[0].LoadBalancers {
-		existing = append(existing, fmt.Sprintf("%s:%s:%d", *lb.LoadBalancerName, *lb.ContainerName, *lb.ContainerPort))
+		existing[fmt.Sprintf("%s:%s:%d", *lb.LoadBalancerName, *lb.ContainerName, *lb.ContainerPort)] = true
 	}
 
-	sort.Strings(incoming)
-	sort.Strings(existing)
-
-	if len(incoming) != len(existing) {
-		return true, nil
+	// update retains no load balancers
+	if len(incoming) == 0 && len(existing) == 0 {
+		return false, nil
 	}
 
-	for i, lb := range incoming {
-		if lb != existing[i] {
-			return true, nil
+	// update retains one existing service port mapping
+	for _, lb := range incoming {
+		if existing[lb] {
+			return false, nil
 		}
 	}
 
-	return false, nil
+	// update creates or removes existing service port mapping
+	return true, nil
 }
 
 func ECSServiceDelete(req Request) (string, map[string]string, error) {
