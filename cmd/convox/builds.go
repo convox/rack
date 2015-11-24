@@ -225,7 +225,16 @@ func createTarball(base string) ([]byte, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command("tar", "cz", ".")
+	args := []string{"cz"}
+
+	// If .dockerignore exists, use it to exclude files from the tarball
+	if _, err = os.Stat(".dockerignore"); err == nil {
+		args = append(args, "--exclude-from", ".dockerignore")
+	}
+
+	args = append(args, ".")
+
+	cmd := exec.Command("tar", args...)
 
 	out, err := cmd.StdoutPipe()
 
