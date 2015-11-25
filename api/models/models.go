@@ -119,7 +119,8 @@ func buildTemplate(name, section string, input interface{}) (string, error) {
 	return formation.String(), nil
 }
 
-// trunca
+// truncat a float to a given precision
+// ex:  truncate(3.1459, 2) -> 3.14
 func truncate(f float64, precision int) float64 {
 	p := math.Pow10(precision)
 	return float64(int(f*p)) / p
