@@ -277,6 +277,8 @@ type CfsslCertificateBundle struct {
 	Bundle string `json:"bundle"`
 }
 
+// use cfssl bundle to generate the certificate chain
+// return the whole list minus the first one
 func resolveCertificateChain(body string) (string, error) {
 	cmd := exec.Command("cfssl", "bundle", "-cert", "-")
 
