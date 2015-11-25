@@ -184,6 +184,11 @@
       "Description": "Convox release version",
       "Type": "String"
     },
+    "VolumeSize": {
+      "Type": "Number",
+      "Description": "Default disk size in GB",
+      "Default": "30",
+    },
     "Tenancy": {
       "Type": "String",
       "Description": "Dedicated Hardware",
@@ -501,7 +506,7 @@
         "BlockDeviceMappings": [{
           "DeviceName": "/dev/xvda",
           "Ebs": {
-            "VolumeSize": 200,
+            "VolumeSize": { "Ref": "VolumeSize" },
             "VolumeType":"gp2"
           }
         }],
