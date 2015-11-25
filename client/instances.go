@@ -2,24 +2,14 @@ package client
 
 import "fmt"
 
-type InstanceResource struct {
-	Total int `json:"total"`
-	Free  int `json:"free"`
-	Used  int `json:"used"`
-}
-
-func (ir InstanceResource) PercentUsed() float64 {
-	return float64(ir.Used) / float64(ir.Total)
-}
-
 type Instance struct {
-	Agent   bool   `json:"agent"`
-	Id      string `json:"id"`
-	Running int    `json:"running"`
-	Pending int    `json:"pending"`
-	Status  string `json:"status"`
-	Cpu     InstanceResource
-	Memory  InstanceResource
+	Agent   bool    `json:"agent"`
+	Id      string  `json:"id"`
+	Running int     `json:"running"`
+	Pending int     `json:"pending"`
+	Status  string  `json:"status"`
+	Cpu     float64 `json:"cpu"`
+	Memory  float64 `json:"memory"`
 }
 
 func (c *Client) GetInstances() ([]*Instance, error) {

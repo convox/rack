@@ -33,12 +33,12 @@ func cmdInstancesList(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("EC2 ID", "STATUS", "RUNNING", "PENDING", "CPU", "MEM")
+	t := stdcli.NewTable("ID", "STATUS", "PROCESSES", "CPU", "MEM")
 
 	for _, i := range instances {
-		t.AddRow(i.Id, i.Status, strconv.Itoa(i.Running), strconv.Itoa(i.Pending),
-			fmt.Sprintf("%0.2f%%", i.Cpu.PercentUsed()*100),
-			fmt.Sprintf("%0.2f%%", i.Memory.PercentUsed()*100))
+		t.AddRow(i.Id, i.Status, strconv.Itoa(i.Running),
+			fmt.Sprintf("%0.2f%%", i.Cpu*100),
+			fmt.Sprintf("%0.2f%%", i.Memory*100))
 	}
 	t.Print()
 }
