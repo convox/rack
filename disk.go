@@ -105,14 +105,20 @@ func MonitorDmesg() {
 
 // Get an instance identifier
 // On EC2 use the meta-data API to get an instance id
-// Fall back to system hostname if unavailable
+// Fall back to system hostname written in 'i-12345678' style if unavailable
 func GetInstanceId() string {
 	hostname, err := os.Hostname()
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
-		hostname = "unknown-host"
+		hostname = "hosterr"
 	}
+
+	if len(hostname) > 8 {
+		hostname = hostname[0:8]
+	}
+
+	hostname = fmt.Sprintf("i-%s", hostname)
 
 	resp, err := http.Get("http://169.254.169.254/latest/meta-data/instance-id")
 

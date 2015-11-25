@@ -17,9 +17,12 @@ import (
 )
 
 type Monitor struct {
-	client *docker.Client
-	lock   sync.Mutex
-	lines  map[string][][]byte
+	client     *docker.Client
+	envs       map[string]map[string]string
+	instanceId string
+	image      string
+	lock       sync.Mutex
+	lines      map[string][][]byte
 }
 
 func NewMonitor() *Monitor {
@@ -32,8 +35,11 @@ func NewMonitor() *Monitor {
 	fmt.Printf("monitor new region=%s kinesis=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"))
 
 	return &Monitor{
-		client: client,
-		lines:  make(map[string][][]byte),
+		client:     client,
+		envs:       make(map[string]map[string]string),
+		lines:      make(map[string][][]byte),
+		instanceId: GetInstanceId(),
+		image:      "convox/agent", // also set during handleRunning
 	}
 }
 
@@ -68,6 +74,7 @@ func (m *Monitor) handleRunning() {
 		img := container.Image
 
 		if strings.HasPrefix(img, "convox/agent") || strings.HasPrefix(img, "agent/agent") {
+			m.image = img
 			fmt.Printf("monitor event id=%s status=skipped\n", shortId)
 			continue
 		}
@@ -106,55 +113,67 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 			shortId = shortId[0:12]
 		}
 
-		fmt.Printf("monitor event id=%s status=%s\n", shortId, event.Status)
+		fmt.Printf("monitor event id=%s status=%s time=%d\n", shortId, event.Status, event.Time)
 
 		switch event.Status {
 		case "create":
 			m.handleCreate(event.ID)
 		case "die":
 			m.handleDie(event.ID)
+		case "kill":
+			m.handleKill(event.ID)
 		case "start":
 			m.handleStart(event.ID)
+		case "stop":
+			m.handleStop(event.ID)
 		}
 	}
 }
 
 func (m *Monitor) handleCreate(id string) {
-	env, err := m.inspectContainerEnv(id)
+	image, env, err := m.inspectContainer(id)
 
 	if err != nil {
 		log.Printf("error: %s\n", err)
 		return
 	}
 
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
+	m.envs[id] = env
+
+	m.logEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
+
+	go m.subscribeLogs(id, env["KINESIS"], image, env["PROCESS"], env["RELEASE"])
 }
 
 func (m *Monitor) handleDie(id string) {
 	// While we could remove a container and volumes on this event
 	// It seems like explicitly doing a `docker run --rm` is the best way
 	// to state this intent.
+	m.logEvent(id, fmt.Sprintf("Dead process %s", id[0:12]))
+}
+
+func (m *Monitor) handleKill(id string) {
+	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGKILL", id[0:12]))
 }
 
 func (m *Monitor) handleStart(id string) {
-	env, err := m.inspectContainerEnv(id)
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return
-	}
-
-	m.updateCgroups(id, env)
+	m.updateCgroups(id, m.envs[id])
 }
 
-func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
+func (m *Monitor) handleStop(id string) {
+	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGTERM", id[0:12]))
+}
+
+func (m *Monitor) inspectContainer(id string) (string, map[string]string, error) {
 	env := map[string]string{}
 
 	container, err := m.client.InspectContainer(id)
 
+	image := container.Config.Image
+
 	if err != nil {
 		log.Printf("error: %s\n", err)
-		return env, err
+		return image, env, err
 	}
 
 	for _, e := range container.Config.Env {
@@ -165,7 +184,16 @@ func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
 		}
 	}
 
-	return env, nil
+	return image, env, nil
+}
+
+func (m *Monitor) logEvent(id, message string) {
+	env := m.envs[id]
+	stream := env["KINESIS"]
+
+	if stream != "" {
+		m.addLine(stream, []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.image, message)))
+	}
 }
 
 // Modify the container cgroup to enable swap if SWAP=1 is set
@@ -200,9 +228,18 @@ func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	}
 }
 
-func (m *Monitor) subscribeLogs(id, stream, process string) {
+func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 	if stream == "" {
 		return
+	}
+
+	// extract app name from stream
+	// myapp-staging-Kinesis-L6MUKT1VH451 -> myapp-staging
+	app := ""
+
+	parts := strings.Split(stream, "-")
+	if len(parts) > 2 {
+		app = strings.Join(parts[0:len(parts)-2], "-") // drop -Kinesis-YXXX
 	}
 
 	time.Sleep(500 * time.Millisecond)
@@ -215,7 +252,7 @@ func (m *Monitor) subscribeLogs(id, stream, process string) {
 		scanner := bufio.NewScanner(r)
 
 		for scanner.Scan() {
-			m.addLine(stream, []byte(fmt.Sprintf("%s: %s", process, scanner.Text())))
+			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s/%s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, app, process, release, scanner.Text())))
 		}
 
 		if scanner.Err() != nil {

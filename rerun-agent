@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/go/bin/rerun -build github.com/convox/agent

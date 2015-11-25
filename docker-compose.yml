@@ -1,5 +1,7 @@
+# This is development only. See convox.conf for production upstart config
 agent:
   build: .
+  entrypoint: /go/src/github.com/convox/agent/rerun-agent
   environment:
     - AWS_REGION
     - AWS_ACCESS_KEY_ID
@@ -8,3 +10,4 @@ agent:
   volumes:
     - /cgroup:/cgroup
     - /var/run/docker.sock:/var/run/docker.sock
+    - .:/go/src/github.com/convox/agent
