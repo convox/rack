@@ -187,7 +187,7 @@
     "VolumeSize": {
       "Type": "Number",
       "Description": "Default disk size in GB",
-      "Default": "30",
+      "Default": "30"
     },
     "Tenancy": {
       "Type": "String",
