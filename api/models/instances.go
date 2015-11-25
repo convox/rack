@@ -2,6 +2,7 @@ package models
 
 import (
 	"os"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
@@ -58,8 +59,14 @@ func (s *System) GetInstances() ([]*Instance, error) {
 		return nil, err
 	}
 
-	var instances []*Instance
+	ec2Instances := make(map[string]*ec2.Instance)
+	for _, r := range ec2Res.Reservations {
+		for _, i := range r.Instances {
+			ec2Instances[*i.InstanceId] = i
+		}
+	}
 
+	var instances []*Instance
 	for _, i := range ecsRes.ContainerInstances {
 		// figure out the CPU and memory metrics
 		var cpu, memory InstanceResource
@@ -85,17 +92,7 @@ func (s *System) GetInstances() ([]*Instance, error) {
 		}
 
 		// find the matching Instance from the EC2 response
-		var ec2Instance *ec2.Instance
-		for _, r := range ec2Res.Reservations {
-			for _, ec2Instance = range r.Instances {
-				if *ec2Instance.InstanceId == *i.Ec2InstanceId {
-					break
-				}
-			}
-			if ec2Instance != nil {
-				break
-			}
-		}
+		ec2Instance := ec2Instances[*i.Ec2InstanceId]
 
 		// build up the struct
 		instance := &Instance{
@@ -106,7 +103,7 @@ func (s *System) GetInstances() ([]*Instance, error) {
 			Ip:      *ec2Instance.PublicIpAddress,
 			Pending: int(*i.PendingTasksCount),
 			Running: int(*i.RunningTasksCount),
-			Status:  *i.Status,
+			Status:  strings.ToLower(*i.Status),
 		}
 
 		instances = append(instances, instance)
