@@ -44,6 +44,8 @@ func MonitorDisk() {
 	// There is almost certainly a better way to introspect the root partition on all environments
 	path := "/cgroup"
 
+	counter := 0
+
 	for _ = range time.Tick(5 * time.Minute) {
 		// https://github.com/StalkR/goircbot/blob/master/lib/disk/space_unix.go
 		s := syscall.Statfs_t{}
@@ -64,9 +66,10 @@ func MonitorDisk() {
 
 		LogPutRecord(fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail))
 
-		// If disk is over 80.0 full, delete docker containers and images
-		// in attempt to reclaim space
-		if util > 80.0 {
+		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
+		// Only do this every 12th tick (60 minutes)
+		counter += 1
+		if util > 80.0 && counter%12 == 0 {
 			RemoveDockerArtifacts()
 		}
 	}
