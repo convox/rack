@@ -5,6 +5,7 @@ import "fmt"
 type Instance struct {
 	Agent   bool    `json:"agent"`
 	Id      string  `json:"id"`
+	Ip      string  `json:"ip"`
 	Running int     `json:"running"`
 	Pending int     `json:"pending"`
 	Status  string  `json:"status"`

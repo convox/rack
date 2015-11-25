@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/client"
 )
@@ -31,7 +32,7 @@ func (s *System) GetInstances() ([]*Instance, error) {
 		return nil, err
 	}
 
-	dres, err := ECS().DescribeContainerInstances(
+	ecsRes, err := ECS().DescribeContainerInstances(
 		&ecs.DescribeContainerInstancesInput{
 			Cluster:            aws.String(os.Getenv("CLUSTER")),
 			ContainerInstances: res.ContainerInstanceArns,
@@ -42,9 +43,25 @@ func (s *System) GetInstances() ([]*Instance, error) {
 		return nil, err
 	}
 
+	var instanceIds []*string
+	for _, i := range ecsRes.ContainerInstances {
+		instanceIds = append(instanceIds, i.Ec2InstanceId)
+	}
+
+	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	var instances []*Instance
 
-	for _, i := range dres.ContainerInstances {
+	for _, i := range ecsRes.ContainerInstances {
+		// figure out the CPU and memory metrics
 		var cpu, memory InstanceResource
 
 		for _, r := range i.RegisteredResources {
@@ -67,11 +84,26 @@ func (s *System) GetInstances() ([]*Instance, error) {
 			}
 		}
 
+		// find the matching Instance from the EC2 response
+		var ec2Instance *ec2.Instance
+		for _, r := range ec2Res.Reservations {
+			for _, ec2Instance = range r.Instances {
+				if *ec2Instance.InstanceId == *i.Ec2InstanceId {
+					break
+				}
+			}
+			if ec2Instance != nil {
+				break
+			}
+		}
+
+		// build up the struct
 		instance := &Instance{
 			Agent:   *i.AgentConnected,
 			Cpu:     truncate(cpu.PercentUsed(), 4),
 			Memory:  truncate(memory.PercentUsed(), 4),
 			Id:      *i.Ec2InstanceId,
+			Ip:      *ec2Instance.PublicIpAddress,
 			Pending: int(*i.PendingTasksCount),
 			Running: int(*i.RunningTasksCount),
 			Status:  *i.Status,
