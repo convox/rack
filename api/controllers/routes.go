@@ -36,6 +36,8 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.list", SSLList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.create", SSLCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}/ssl/{process}/{port}", api("ssl.delete", SSLDelete)).Methods("DELETE")
+	router.HandleFunc("/instances", api("instances.get", InstancesList)).Methods("GET")
+	router.HandleFunc("/instance/{id}", api("instance.delete", InstanceTerminate)).Methods("DELETE")
 	router.HandleFunc("/services", api("service.list", ServiceList)).Methods("GET")
 	router.HandleFunc("/services", api("service.create", ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", ServiceShow)).Methods("GET")
@@ -46,8 +48,6 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/sns", SNSConfirm).Methods("POST").Headers("X-Amz-Sns-Message-Type", "SubscriptionConfirmation")
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
-	router.HandleFunc("/system/instances", api("system.instances.get", InstancesList)).Methods("GET")
-	router.HandleFunc("/system/instance/{id}", api("system.instance.delete", InstanceTerminate)).Methods("DELETE")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
 
 	// websockets

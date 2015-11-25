@@ -16,7 +16,7 @@ type Instance struct {
 func (c *Client) GetInstances() ([]*Instance, error) {
 	var instances []*Instance
 
-	err := c.Get("/system/instances", &instances)
+	err := c.Get("/instances", &instances)
 
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (c *Client) GetInstances() ([]*Instance, error) {
 
 func (c *Client) TerminateInstance(id string) error {
 
-	err := c.Delete(fmt.Sprintf("/system/instance/%s", id), nil)
+	err := c.Delete(fmt.Sprintf("/instance/%s", id), nil)
 
 	if err != nil {
 		return err

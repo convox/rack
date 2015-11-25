@@ -11,7 +11,7 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "instances",
-		Description: "manage your Convox rack's instances",
+		Description: "list your Convox rack's instances",
 		Usage:       "",
 		Action:      cmdInstancesList,
 	})
