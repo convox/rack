@@ -436,6 +436,16 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /instances:
+    get:
+      description: List instances.
+      responses:
+        200:
+          description: instance list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/instance'
   /services:
     get:
       description: List services
@@ -626,6 +636,22 @@ definitions:
         type: array
         items:
           type: integer
+  instance:
+    properties:
+      agent:
+        type: boolean
+      id:
+        type: string
+      ip:
+        type: string
+      processes:
+        type: number
+      status:
+        type: string
+      cpu:
+        type: number
+      memory:
+        type: number
   process:
     properties:
       id:

@@ -96,14 +96,13 @@ func (s *System) GetInstances() ([]*Instance, error) {
 
 		// build up the struct
 		instance := &Instance{
-			Agent:   *i.AgentConnected,
-			Cpu:     truncate(cpu.PercentUsed(), 4),
-			Memory:  truncate(memory.PercentUsed(), 4),
-			Id:      *i.Ec2InstanceId,
-			Ip:      *ec2Instance.PublicIpAddress,
-			Pending: int(*i.PendingTasksCount),
-			Running: int(*i.RunningTasksCount),
-			Status:  strings.ToLower(*i.Status),
+			Agent:     *i.AgentConnected,
+			Cpu:       truncate(cpu.PercentUsed(), 4),
+			Memory:    truncate(memory.PercentUsed(), 4),
+			Id:        *i.Ec2InstanceId,
+			Ip:        *ec2Instance.PublicIpAddress,
+			Processes: int(*i.RunningTasksCount),
+			Status:    strings.ToLower(*i.Status),
 		}
 
 		instances = append(instances, instance)

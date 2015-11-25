@@ -3,14 +3,13 @@ package client
 import "fmt"
 
 type Instance struct {
-	Agent   bool    `json:"agent"`
-	Id      string  `json:"id"`
-	Ip      string  `json:"ip"`
-	Running int     `json:"running"`
-	Pending int     `json:"pending"`
-	Status  string  `json:"status"`
-	Cpu     float64 `json:"cpu"`
-	Memory  float64 `json:"memory"`
+	Agent     bool    `json:"agent"`
+	Id        string  `json:"id"`
+	Ip        string  `json:"ip"`
+	Processes int     `json:"processes"`
+	Status    string  `json:"status"`
+	Cpu       float64 `json:"cpu"`
+	Memory    float64 `json:"memory"`
 }
 
 func (c *Client) GetInstances() ([]*Instance, error) {
