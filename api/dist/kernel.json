@@ -501,7 +501,8 @@
         "BlockDeviceMappings": [{
           "DeviceName": "/dev/xvda",
           "Ebs": {
-            "VolumeSize": 200
+            "VolumeSize": 200,
+            "VolumeType":"gp2"
           }
         }],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
