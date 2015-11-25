@@ -1,9 +1,14 @@
 package models
 
 import (
+	"bytes"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,7 +29,7 @@ type SSL struct {
 
 type SSLs []SSL
 
-func CreateSSL(app, process string, port int, body, key string, secure bool) (*SSL, error) {
+func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -57,8 +62,6 @@ func CreateSSL(app, process string, port int, body, key string, secure bool) (*S
 
 	found := false
 
-	fmt.Printf("me: %+v\n", me)
-
 	for _, p := range me.ExternalPorts() {
 		if strings.HasPrefix(p, fmt.Sprintf("%d:", port)) {
 			found = true
@@ -69,11 +72,22 @@ func CreateSSL(app, process string, port int, body, key string, secure bool) (*S
 		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
+	if chain == "" {
+		chain, err = resolveCertificateChain(body)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not generate chain: %s", err)
+		}
+	}
+
 	name := certName(a.Name, process, port)
+
+	// return nil, fmt.Errorf("foo")
 
 	// upload certificate
 	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
+		CertificateChain:      aws.String(chain),
 		PrivateKey:            aws.String(key),
 		ServerCertificateName: aws.String(name),
 	})
@@ -178,7 +192,6 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 			time.Sleep(5 * time.Second)
 
 			a, err := GetApp(a.Name)
-			fmt.Printf("%+v\n%+v\n", a, err)
 
 			if err != nil {
 				return
@@ -258,4 +271,89 @@ func ListSSLs(a string) (SSLs, error) {
 
 func certName(app, process string, port int) string {
 	return fmt.Sprintf("%s%s%d", UpperName(app), UpperName(process), port)
+}
+
+type CfsslCertificateBundle struct {
+	Bundle string `json:"bundle"`
+}
+
+func resolveCertificateChain(body string) (string, error) {
+	cmd := exec.Command("cfssl", "bundle", "-cert", "-")
+
+	cmd.Stderr = os.Stderr
+
+	stdin, err := cmd.StdinPipe()
+
+	if err != nil {
+		return "", err
+	}
+
+	stdout, err := cmd.StdoutPipe()
+
+	if err != nil {
+		return "", err
+	}
+
+	err = cmd.Start()
+
+	if err != nil {
+		return "", err
+	}
+
+	stdin.Write([]byte(body))
+	stdin.Close()
+
+	data, err := ioutil.ReadAll(stdout)
+
+	if err != nil {
+		return "", err
+	}
+
+	var bundle CfsslCertificateBundle
+
+	err = json.Unmarshal(data, &bundle)
+
+	if err != nil {
+		return "", err
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		return "", err
+	}
+
+	certs := []*x509.Certificate{}
+
+	raw := []byte(bundle.Bundle)
+
+	for {
+		block, rest := pem.Decode(raw)
+
+		if block == nil {
+			break
+		}
+
+		raw = rest
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+
+		if err != nil {
+			return "", nil
+		}
+
+		certs = append(certs, cert)
+	}
+
+	var buf bytes.Buffer
+
+	for i := 1; i < len(certs); i++ {
+		err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: certs[i].Raw})
+
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return buf.String(), nil
 }
