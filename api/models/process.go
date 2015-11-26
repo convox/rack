@@ -287,10 +287,10 @@ func (p *Process) FetchStats() error {
 	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
 	psys := stat.PreCPUStats.SystemCPUUsage
 
-	p.Cpu = float64(int(calculateCPUPercent(pcpu, psys, stat)*10000)) / 10000
+	p.Cpu = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
 
 	if stat.MemoryStats.Limit > 0 {
-		p.Memory = float64(int(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit)*10000)) / 10000
+		p.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
 	}
 
 	return nil
