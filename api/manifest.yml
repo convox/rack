@@ -640,18 +640,18 @@ definitions:
     properties:
       agent:
         type: boolean
+      cpu:
+        type: number
       id:
         type: string
       ip:
         type: string
+      memory:
+        type: number
       processes:
         type: number
       status:
         type: string
-      cpu:
-        type: number
-      memory:
-        type: number
   process:
     properties:
       id:

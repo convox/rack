@@ -4,12 +4,12 @@ import "fmt"
 
 type Instance struct {
 	Agent     bool    `json:"agent"`
+	Cpu       float64 `json:"cpu"`
 	Id        string  `json:"id"`
 	Ip        string  `json:"ip"`
+	Memory    float64 `json:"memory"`
 	Processes int     `json:"processes"`
 	Status    string  `json:"status"`
-	Cpu       float64 `json:"cpu"`
-	Memory    float64 `json:"memory"`
 }
 
 func (c *Client) GetInstances() ([]*Instance, error) {
