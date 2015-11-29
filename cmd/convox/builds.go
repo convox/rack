@@ -28,7 +28,7 @@ func init() {
 				Usage: "Do not use Docker cache during build.",
 			},
 			cli.StringFlag{
-				Name:  "file",
+				Name:  "file, f",
 				Value: "docker-compose.yml",
 				Usage: "a file to use in place of docker-compose.yml",
 			},
@@ -49,7 +49,7 @@ func init() {
 				Flags: []cli.Flag{
 					appFlag,
 					cli.StringFlag{
-						Name:  "file",
+						Name:  "file, f",
 						Value: "docker-compose.yml",
 						Usage: "a file to use in place of docker-compose.yml",
 					},
