@@ -140,6 +140,27 @@ func (b *Build) Save() error {
 	return err
 }
 
+// Test if another build container is running.
+// This is a temporary workaround since the current Docker Registry does not
+// handle pushing multiple images at the same time.
+// Course grained locking will prevent subtle build errors until a better
+// registry and/or Docker image subsystem is integrated
+func (b *Build) IsRunning() bool {
+	out, err := exec.Command("docker", "ps", "-q", "--filter", "name=build-B*").CombinedOutput()
+
+	// log exec errors but optimistically consider builds unlocked
+	if err != nil {
+		fmt.Printf("ns=kernel cn=build at=IsRunning state=error step=exec.Command app=%q build=%q error=%q\n", b.App, b.Id, err)
+		return true
+	}
+
+	// There are active build-* containers if `docker ps -q` returns a container id, e.g. "930b96f8f3dc\n"
+	running := string(out) != ""
+
+	fmt.Printf("ns=kernel cn=build at=IsRunning running=%s step=exec.Command app=%q build=%q\n", running, b.App, b.Id)
+	return running
+}
+
 func (b *Build) Cleanup() error {
 	return nil
 }
