@@ -184,6 +184,11 @@
       "Description": "Convox release version",
       "Type": "String"
     },
+    "VolumeSize": {
+      "Type": "Number",
+      "Description": "Default disk size in GB",
+      "Default": "30"
+    },
     "Tenancy": {
       "Type": "String",
       "Description": "Dedicated Hardware",
@@ -498,6 +503,13 @@
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
+        "BlockDeviceMappings": [{
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "VolumeSize": { "Ref": "VolumeSize" },
+            "VolumeType":"gp2"
+          }
+        }],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
@@ -518,14 +530,14 @@
               { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Ref": "RegistryHost" }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
             ] },
             { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'OPTIONS=\"--insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
-              "echo 'OPTIONS=\"--host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
+              { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
+              "echo 'OPTIONS=\"${OPTIONS} --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
             ] },
             "service docker restart",
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
-            "curl -s http://convox.s3.amazonaws.com/agent/0.4/convox.conf > /etc/init/convox.conf",
+            "curl -s http://convox.s3.amazonaws.com/agent/0.5/convox.conf > /etc/init/convox.conf",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"

@@ -8,15 +8,10 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/client"
 )
 
-type System struct {
-	Count   int    `json:"count"`
-	Name    string `json:"name"`
-	Status  string `json:"status"`
-	Type    string `json:"type"`
-	Version string `json:"version"`
-}
+type System client.System
 
 func GetSystem() (*System, error) {
 	rack := os.Getenv("RACK")
