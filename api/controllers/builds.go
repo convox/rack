@@ -66,7 +66,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
 
-	if build.IsLocked() {
+	if build.IsRunning() {
 		return httperr.Errorf(403, "another build is currently running. Please try again later.")
 	}
 
