@@ -66,6 +66,10 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
 
+	if build.IsLocked() {
+		return httperr.Errorf(403, "another build is currently running. Please try again later.")
+	}
+
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
 	if err != nil && err != http.ErrNotMultipart {
