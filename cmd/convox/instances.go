@@ -16,6 +16,12 @@ func init() {
 		Action:      cmdInstancesList,
 		Subcommands: []cli.Command{
 			{
+				Name:        "ssh",
+				Description: "establish secure shell with EC2 instance",
+				Usage:       "<id>",
+				Action:      cmdInstancesSSH,
+			},
+			{
 				Name:        "terminate",
 				Description: "terminate an EC2 instance",
 				Usage:       "<id>",
@@ -58,4 +64,15 @@ func cmdInstancesTerminate(c *cli.Context) {
 	}
 
 	fmt.Printf("Successfully sent terminate to instance %q\n", id)
+}
+
+func cmdInstancesSSH(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "ssh")
+		return
+	}
+
+	id := c.Args()[0]
+
+	fmt.Println("ssh", id)
 }
