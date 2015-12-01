@@ -18,7 +18,7 @@ func init() {
 			{
 				Name:        "terminate",
 				Description: "terminate an instance",
-				Usage:       "",
+				Usage:       "<id>",
 				Action:      cmdInstancesTerminate,
 			},
 		},
