@@ -21,6 +21,12 @@ func init() {
 				Usage:       "<endpoint>",
 				Action:      cmdApiGet,
 			},
+			{
+				Name:        "delete",
+				Description: "delete an api endpoint",
+				Usage:       "<endpoint>",
+				Action:      cmdApiDelete,
+			},
 		},
 	})
 }
@@ -39,6 +45,31 @@ func cmdApiGet(c *cli.Context) {
 	var object interface{}
 
 	err := rackClient(c).Get(path, &object)
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
+	data, err := json.MarshalIndent(object, "", "  ")
+
+	if err != nil {
+		stdcli.Error(err)
+	}
+
+	fmt.Println(string(data))
+}
+
+func cmdApiDelete(c *cli.Context) {
+	if len(c.Args()) < 1 {
+		stdcli.Usage(c, "get")
+		return
+	}
+
+	path := c.Args()[0]
+
+	var object interface{}
+
+	err := rackClient(c).Delete(path, &object)
 
 	if err != nil {
 		stdcli.Error(err)
