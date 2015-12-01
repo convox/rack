@@ -17,7 +17,7 @@ func init() {
 		Subcommands: []cli.Command{
 			{
 				Name:        "terminate",
-				Description: "terminate an instance",
+				Description: "terminate an EC2 instance",
 				Usage:       "<id>",
 				Action:      cmdInstancesTerminate,
 			},
@@ -44,6 +44,11 @@ func cmdInstancesList(c *cli.Context) {
 }
 
 func cmdInstancesTerminate(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "terminate")
+		return
+	}
+
 	id := c.Args()[0]
 	err := rackClient(c).TerminateInstance(id)
 
