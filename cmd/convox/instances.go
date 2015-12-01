@@ -44,5 +44,13 @@ func cmdInstancesList(c *cli.Context) {
 }
 
 func cmdInstancesTerminate(c *cli.Context) {
+	id := c.String("id")
+	err := rackClient(c).TerminateInstance(id)
 
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Successfully sent terminate to instance %q\n", id)
 }
