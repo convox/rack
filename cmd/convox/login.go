@@ -391,3 +391,17 @@ func promptForPassword() string {
 
 	return string(in)
 }
+
+func promptForUsername() string {
+	fmt.Print("Username: ")
+
+	var in string
+	_, err := fmt.Scanln(&in)
+
+	if err != nil {
+		stdcli.Error(err)
+		return ""
+	}
+
+	return in
+}
