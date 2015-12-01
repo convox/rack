@@ -124,6 +124,26 @@ func init() {
 				Value:  "latest",
 				Usage:  "release version in the format of '20150810161818', or 'latest' by default",
 			},
+			cli.StringFlag{
+				Name:  "vpc-cidr",
+				Value: "10.0.0.0/16",
+				Usage: "The VPC CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet0-cidr",
+				Value: "10.0.1.0/24",
+				Usage: "Subnet 0 CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet1-cidr",
+				Value: "10.0.2.0/24",
+				Usage: "Subnet 1 CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet2-cidr",
+				Value: "10.0.3.0/24",
+				Usage: "Subnet 2 CIDR block",
+			},
 		},
 	})
 
@@ -224,6 +244,14 @@ func cmdInstall(c *cli.Context) {
 
 	stackName := c.String("stack-name")
 
+	vpcCIDR := c.String("vpc-cidr")
+
+	subnet0CIDR := c.String("subnet0-cidr")
+
+	subnet1CIDR := c.String("subnet1-cidr")
+
+	subnet2CIDR := c.String("subnet2-cidr")
+
 	versions, err := version.All()
 
 	if err != nil {
@@ -269,6 +297,10 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Subnet1CIDR"), ParameterValue: aws.String(subnet1CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Subnet2CIDR"), ParameterValue: aws.String(subnet2CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
 		},
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(formationUrl),
