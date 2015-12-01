@@ -44,7 +44,7 @@ func cmdInstancesList(c *cli.Context) {
 }
 
 func cmdInstancesTerminate(c *cli.Context) {
-	id := c.String("id")
+	id := c.Args()[0]
 	err := rackClient(c).TerminateInstance(id)
 
 	if err != nil {
