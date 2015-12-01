@@ -18,6 +18,8 @@ type Cases []struct {
 	got, want interface{}
 }
 
+const defaultManifestFile = "docker-compose.yml"
+
 func TestBuild(t *testing.T) {
 	t.Skip("skipping until i can figure out regex")
 	return
@@ -26,7 +28,7 @@ func TestBuild(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	_, _ = Init(destDir)
-	m, _ := Read(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
 
 	stdout, stderr := testBuild(m, "compose")
 
@@ -47,7 +49,7 @@ func TestPortsWanted(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	_, _ = Init(destDir)
-	m, _ := Read(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
 	ps, _ := m.PortsWanted()
 
 	cases := Cases{
@@ -91,7 +93,7 @@ func TestRun(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	_, _ = Init(destDir)
-	m, _ := Read(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
 
 	stdout, stderr := testRun(m, "compose")
 
@@ -108,7 +110,7 @@ func TestGenerateDockerCompose(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	_, _ = Init(destDir)
-	m, _ := Read(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
@@ -133,7 +135,7 @@ func TestGenerateDockerfile(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	_, _ = Init(destDir)
-	m, _ := Read(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `main:
@@ -152,7 +154,7 @@ func TestGenerateProcfile(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	_, _ = Init(destDir)
-	m, _ := Read(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
