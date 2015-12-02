@@ -11,7 +11,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "registries",
 		Action:      cmdRegistryList,
-		Description: "manage image registries",
+		Description: "manage private registries",
 		Flags: []cli.Flag{
 			appFlag,
 		},
@@ -19,24 +19,28 @@ func init() {
 			{
 				Name:        "add",
 				Description: "add a new registry",
-				Usage:       "[hostname]",
+				Usage:       "[server]",
 				Action:      cmdRegistryAdd,
 				Flags: []cli.Flag{
 					cli.StringFlag{
+						Name:  "email, e",
+						Usage: "Email for registry auth.",
+					},
+					cli.StringFlag{
 						Name:  "username, u",
-						Usage: "Username for authentication. If not specified, prompt for username and password.",
+						Usage: "Username for auth. If not specified, prompt for username.",
 					},
 					cli.StringFlag{
 						EnvVar: "PASSWORD",
 						Name:   "password, p",
-						Usage:  "Password for authentication. If not specified, prompt for username and password.",
+						Usage:  "Password for auth. If not specified, prompt for password.",
 					},
 				},
 			},
 			{
 				Name:        "remove",
 				Description: "remove a registry",
-				Usage:       "[hostname]",
+				Usage:       "[server]",
 				Action:      cmdRegistryRemove,
 			},
 		},
@@ -49,9 +53,10 @@ func cmdRegistryAdd(c *cli.Context) {
 		return
 	}
 
-	host := c.Args()[0]
+	server := c.Args()[0]
 	username := c.String("username")
 	password := c.String("password")
+	email := c.String("email")
 
 	if username == "" {
 		username = promptForUsername()
@@ -61,7 +66,7 @@ func cmdRegistryAdd(c *cli.Context) {
 		password = promptForPassword()
 	}
 
-	_, err := rackClient(c).AddRegistry(host, username, password)
+	_, err := rackClient(c).AddRegistry(server, username, password, email)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -79,10 +84,10 @@ func cmdRegistryList(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("HOST", "USER")
+	t := stdcli.NewTable("SERVER")
 
 	for _, reg := range *registries {
-		t.AddRow(reg.ServerAddress, reg.Username)
+		t.AddRow(reg.ServerAddress)
 	}
 
 	t.Print()
@@ -94,9 +99,9 @@ func cmdRegistryRemove(c *cli.Context) {
 		return
 	}
 
-	host := c.Args()[0]
+	server := c.Args()[0]
 
-	_, err := rackClient(c).RemoveRegistry(host)
+	_, err := rackClient(c).RemoveRegistry(server)
 
 	if err != nil {
 		stdcli.Error(err)

@@ -15,11 +15,12 @@ type Registry struct {
 //https://godoc.org/github.com/fsouza/go-dockerclient#AuthConfigurations119
 type Registries map[string]Registry
 
-func (c *Client) AddRegistry(address, username, password string) (*Registry, error) {
+func (c *Client) AddRegistry(server, username, password, email string) (*Registry, error) {
 	params := Params{
-		"serveraddress": address,
 		"username":      username,
 		"password":      password,
+		"email":         email,
+		"serveraddress": server,
 	}
 
 	var registry Registry
@@ -33,10 +34,10 @@ func (c *Client) AddRegistry(address, username, password string) (*Registry, err
 	return &registry, nil
 }
 
-func (c *Client) RemoveRegistry(address string) (*Registry, error) {
+func (c *Client) RemoveRegistry(server string) (*Registry, error) {
 	var registry Registry
 
-	err := c.Delete(fmt.Sprintf("/registries/%s", address), &registry)
+	err := c.Delete(fmt.Sprintf("/registries/%s", server), &registry)
 
 	if err != nil {
 		return nil, err
