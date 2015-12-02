@@ -49,6 +49,12 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		ServerAddress: GetForm(r, "serveraddress"),
 	}
 
+	err := models.DockerLogin(ac)
+
+	if err != nil {
+		return httperr.Errorf(400, "Could not login to server with provided credentials")
+	}
+
 	env, err := models.GetRackEnvironment()
 
 	if err != nil {
@@ -101,6 +107,7 @@ func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(404, "no such registry: %s", registry)
 	}
 
+	models.DockerLogout(ac)
 	delete(acs, registry)
 
 	dat, err := json.Marshal(acs)
