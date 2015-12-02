@@ -151,14 +151,9 @@ func GetRackSettings() (Environment, error) {
 	}
 
 	var env Environment
-
-	if strings.HasPrefix(string(data), "{") {
-		err = json.Unmarshal(data, &env)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		env = LoadEnvironment(data)
+	err = json.Unmarshal(data, &env)
+	if err != nil {
+		return nil, err
 	}
 
 	return env, nil

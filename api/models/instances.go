@@ -74,10 +74,8 @@ func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error 
 		return err
 	}
 
-
 	signer, err := ssh.ParsePrivateKey([]byte(env["InstancePEM"]))
 	if err != nil {
-		fmt.Println("error parsing private key")
 		return err
 	}
 	config := &ssh.ClientConfig{
@@ -98,8 +96,6 @@ func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error 
 	session.Stdout = rw
 	session.Stdin = rw
 	session.Stderr = rw
-
-	fmt.Println("running", command)
 
 	if command != "" {
 		err = session.Run(command)
