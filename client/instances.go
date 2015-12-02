@@ -28,8 +28,25 @@ func (c *Client) GetInstances() ([]*Instance, error) {
 	return instances, nil
 }
 
-func (c *Client) SSHInstance(id string, in io.Reader, out io.WriteCloser) error {
-	return c.Stream(fmt.Sprintf("/instances/%s/ssh", id), nil, in, out)
+func (c *Client) SSHInstance(id, cmd string, in io.Reader, out io.WriteCloser) (int, error) {
+	r, w := io.Pipe()
+
+	defer r.Close()
+	defer w.Close()
+
+	ch := make(chan int)
+
+	go copyWithExit(out, r, ch)
+
+	err := c.Stream(fmt.Sprintf("/instances/%s/ssh", id), map[string]string{"Command": cmd}, in, w)
+
+	if err != nil {
+		return 0, err
+	}
+
+	code := <-ch
+
+	return code, nil
 }
 
 func (c *Client) TerminateInstance(id string) error {

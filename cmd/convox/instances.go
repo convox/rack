@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
@@ -21,6 +23,12 @@ func init() {
 				Description: "establish secure shell with EC2 instance",
 				Usage:       "<id>",
 				Action:      cmdInstancesSSH,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "command, c",
+						Usage: "Command to execute (instead of creating a shell)",
+					},
+				},
 			},
 			{
 				Name:        "terminate",
@@ -74,10 +82,30 @@ func cmdInstancesSSH(c *cli.Context) {
 	}
 
 	id := c.Args()[0]
-	err := rackClient(c).SSHInstance(id, os.Stdin, os.Stdout)
+	cmd := c.String("command")
+
+	code, err := sshWithRestore(c, id, cmd)
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
+
+	os.Exit(code)
+}
+
+func sshWithRestore(c *cli.Context, id, cmd string) (int, error) {
+	fd := os.Stdin.Fd()
+
+	if terminal.IsTerminal(int(fd)) {
+		stdinState, err := terminal.GetState(int(fd))
+
+		if err != nil {
+			return -1, err
+		}
+
+		defer terminal.Restore(int(fd), stdinState)
+	}
+
+	return rackClient(c).SSHInstance(id, cmd, os.Stdin, os.Stdout)
 }

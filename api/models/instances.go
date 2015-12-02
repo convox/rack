@@ -6,11 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
-
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
 	"github.com/convox/rack/client"
 )
 
@@ -51,7 +50,6 @@ func (ir InstanceResource) PercentUsed() float64 {
 }
 
 func InstanceSSH(id, command string, rw io.ReadWriter) error {
-
 	instanceIds := []*string{&id}
 	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -63,9 +61,7 @@ func InstanceSSH(id, command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	ec2Instance := ec2Res.Reservations[0].Instances[0]
-
-	fmt.Println(ec2Instance)
+	instance := ec2Res.Reservations[0].Instances[0]
 
 	signer, err := ssh.ParsePrivateKey([]byte(PrivateKey))
 	if err != nil {
@@ -75,7 +71,7 @@ func InstanceSSH(id, command string, rw io.ReadWriter) error {
 		User: "ec2-user",
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
 	}
-	conn, err := ssh.Dial("tcp", "", config)
+	conn, err := ssh.Dial("tcp", *instance.PublicIpAddress+":22", config)
 	if err != nil {
 		return err
 	}
@@ -85,12 +81,34 @@ func InstanceSSH(id, command string, rw io.ReadWriter) error {
 		return err
 	}
 	defer session.Close()
+
 	session.Stdout = rw
 	session.Stdin = rw
+	session.Stderr = rw
 
-	err = session.Run("sh")
-	if err != nil {
-		return err
+	fmt.Println("running", command)
+
+	if command != "" {
+		err = session.Run(command)
+		if err != nil {
+			return err
+		}
+	} else {
+		modes := ssh.TerminalModes{
+			ssh.ECHOCTL:       0,
+			ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+		}
+		// Request pseudo terminal
+		if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+			return err
+		}
+		// Start remote shell
+		if err := session.Shell(); err != nil {
+			return err
+		}
+
+		session.Wait()
 	}
 
 	return nil

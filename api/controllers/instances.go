@@ -36,9 +36,9 @@ func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func InstanceSSH(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	id := vars["id"]
-	//command := ws.Request().Header.Get("Command")
+	cmd := ws.Request().Header.Get("Command")
 
-	return httperr.Server(models.InstanceSSH(id, "", ws))
+	return httperr.Server(models.InstanceSSH(id, cmd, ws))
 }
 
 func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
