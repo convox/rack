@@ -12,9 +12,6 @@ func init() {
 		Name:        "registries",
 		Action:      cmdRegistryList,
 		Description: "manage private registries",
-		Flags: []cli.Flag{
-			appFlag,
-		},
 		Subcommands: []cli.Command{
 			{
 				Name:        "add",
