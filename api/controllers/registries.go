@@ -3,7 +3,6 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 
@@ -27,13 +26,7 @@ func getEnvAuthConfigurations(env models.Environment) (docker.AuthConfigurations
 }
 
 func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack := os.Getenv("RACK")
-
-	env, err := models.GetEnvironment(rack)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
+	env, err := models.GetRackEnvironment()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -56,13 +49,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		ServerAddress: GetForm(r, "serveraddress"),
 	}
 
-	rack := os.Getenv("RACK")
-
-	env, err := models.GetEnvironment(rack)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
+	env, err := models.GetRackEnvironment()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -96,13 +83,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	registry := mux.Vars(r)["registry"]
 
-	rack := os.Getenv("RACK")
-
-	env, err := models.GetEnvironment(rack)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
+	env, err := models.GetRackEnvironment()
 
 	if err != nil {
 		return httperr.Server(err)
