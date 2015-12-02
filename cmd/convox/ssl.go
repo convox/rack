@@ -32,6 +32,10 @@ func init() {
 				Action:      cmdSSLCreate,
 				Flags: []cli.Flag{
 					appFlag,
+					cli.StringFlag{
+						Name:  "chain",
+						Usage: "Intermediate certificate chain.",
+					},
 					cli.BoolFlag{
 						Name:  "secure",
 						Usage: "Use a TLS-encrypted listener.",
@@ -132,9 +136,22 @@ func cmdSSLCreate(c *cli.Context) {
 		return
 	}
 
+	chain := ""
+
+	if chainFile := c.String("chain"); chainFile != "" {
+		data, err := ioutil.ReadFile(chainFile)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		chain = string(data)
+	}
+
 	fmt.Printf("Creating SSL listener %s... ", target)
 
-	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], string(pub), string(key), c.Bool("secure"))
+	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], string(pub), string(key), chain, c.Bool("secure"))
 
 	if err != nil {
 		stdcli.Error(err)
