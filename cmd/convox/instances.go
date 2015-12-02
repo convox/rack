@@ -14,6 +14,14 @@ func init() {
 		Description: "list your Convox rack's instances",
 		Usage:       "",
 		Action:      cmdInstancesList,
+		Subcommands: []cli.Command{
+			{
+				Name:        "terminate",
+				Description: "terminate an EC2 instance",
+				Usage:       "<id>",
+				Action:      cmdInstancesTerminate,
+			},
+		},
 	})
 }
 
@@ -33,4 +41,21 @@ func cmdInstancesList(c *cli.Context) {
 			fmt.Sprintf("%0.2f%%", i.Memory*100))
 	}
 	t.Print()
+}
+
+func cmdInstancesTerminate(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "terminate")
+		return
+	}
+
+	id := c.Args()[0]
+	err := rackClient(c).TerminateInstance(id)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Successfully sent terminate to instance %q\n", id)
 }

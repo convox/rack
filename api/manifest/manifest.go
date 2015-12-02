@@ -78,11 +78,11 @@ func Init(dir string) (changed []string, err error) {
 	return changed, nil
 }
 
-func Read(dir string) (*Manifest, error) {
-	data, err := ioutil.ReadFile(filepath.Join(dir, "docker-compose.yml"))
+func Read(dir, filename string) (*Manifest, error) {
+	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
 
 	if err != nil {
-		return nil, fmt.Errorf("file not found: docker-compose.yml")
+		return nil, fmt.Errorf("file not found: %s", filename)
 	}
 
 	var m Manifest

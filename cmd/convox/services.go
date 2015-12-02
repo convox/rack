@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -35,12 +36,16 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new service",
-				Usage:       "<type> <name> [--url=value]",
+				Usage:       "<type> [--name=value] [--url=value]",
 				Action:      cmdServiceCreate,
 				Flags: []cli.Flag{
 					cli.StringFlag{
 						Name:  "url",
 						Usage: "URL to 3rd party service, e.g. logs1.papertrailapp.com:11235",
+					},
+					cli.StringFlag{
+						Name:  "name",
+						Usage: "Optional unique name for the service",
 					},
 				},
 			},
@@ -92,13 +97,18 @@ func cmdServices(c *cli.Context) {
 }
 
 func cmdServiceCreate(c *cli.Context) {
-	if len(c.Args()) != 2 {
+	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "create")
 		return
 	}
 
 	t := c.Args()[0]
-	name := c.Args()[1]
+	name := c.String("name")
+
+	if name == "" {
+		name = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
+	}
+
 	url := c.String("url")
 
 	fmt.Printf("Creating %s (%s)... ", name, t)

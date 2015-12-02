@@ -1,6 +1,9 @@
 package client
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Instance struct {
 	Agent     bool    `json:"agent"`
@@ -25,11 +28,15 @@ func (c *Client) GetInstances() ([]*Instance, error) {
 }
 
 func (c *Client) TerminateInstance(id string) error {
-
-	err := c.Delete(fmt.Sprintf("/instance/%s", id), nil)
+	var response map[string]interface{}
+	err := c.Delete(fmt.Sprintf("/instances/%s", id), &response)
 
 	if err != nil {
 		return err
+	}
+
+	if response["success"] == nil {
+		return errors.New(response["error"].(string))
 	}
 
 	return nil

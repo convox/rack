@@ -179,6 +179,21 @@
       "Description": "Registry port",
       "Default": ""
     },
+    "Subnet0CIDR": {
+      "Default": "10.0.1.0/24",
+      "Description": "Subnet 0 CIDR Block",
+      "Type": "String"
+    },
+    "Subnet1CIDR": {
+      "Default": "10.0.2.0/24",
+      "Description": "Subnet 0 CIDR Block",
+      "Type": "String"
+    },
+    "Subnet2CIDR": {
+      "Default": "10.0.3.0/24",
+      "Description": "Subnet 0 CIDR Block",
+      "Type": "String"
+    },
     "Version": {
       "Default": "latest",
       "Description": "Convox release version",
@@ -188,6 +203,11 @@
       "Type": "Number",
       "Description": "Default disk size in GB",
       "Default": "30"
+    },
+    "VPCCIDR": {
+      "Default": "10.0.0.0/16",
+      "Description": "VPC CIDR Block",
+      "Type": "String"
     },
     "Tenancy": {
       "Type": "String",
@@ -344,7 +364,7 @@
     "Vpc": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
-        "CidrBlock": "10.0.0.0/16",
+        "CidrBlock": { "Ref": "VPCCIDR" },
         "InstanceTenancy": "default",
         "Tags": [
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
@@ -369,7 +389,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-        "CidrBlock": "10.0.1.0/24",
+        "CidrBlock": { "Ref": "Subnet0CIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
@@ -378,7 +398,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-        "CidrBlock": "10.0.2.0/24",
+        "CidrBlock": { "Ref": "Subnet1CIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
@@ -387,7 +407,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
-        "CidrBlock": "10.0.3.0/24",
+        "CidrBlock": { "Ref": "Subnet2CIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },

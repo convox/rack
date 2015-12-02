@@ -29,6 +29,7 @@ func main() {
 	push := flag.String("push", "", "push build to this prefix when done")
 	auth := flag.String("auth", "", "auth token for push")
 	noCache := flag.Bool("no-cache", false, "skip the docker cache")
+	config := flag.String("config", "docker-compose.yml", "docker compose filename")
 
 	flag.Parse()
 
@@ -50,7 +51,7 @@ func main() {
 		die(err)
 	}
 
-	m, err := manifest.Read(dir)
+	m, err := manifest.Read(dir, *config)
 
 	if err != nil {
 		die(err)
