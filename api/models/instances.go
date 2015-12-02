@@ -44,9 +44,20 @@ func InstanceKeyroll() error {
 
 	//TODO: have to update the CF template params
 	env["InstancePEM"] = *keypair.KeyMaterial
-
 	err = PutRackSettings(env)
 
+	if err != nil {
+		return err
+	}
+
+	app, err := GetApp(os.Getenv("RACK"))
+	if err != nil {
+		return err
+	}
+
+	err = app.UpdateParams(map[string]string{
+		"Key": keyname,
+	})
 	if err != nil {
 		return err
 	}
