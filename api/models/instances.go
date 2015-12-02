@@ -49,7 +49,7 @@ func (ir InstanceResource) PercentUsed() float64 {
 	return float64(ir.Used) / float64(ir.Total)
 }
 
-func InstanceSSH(id, command string, rw io.ReadWriter) error {
+func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error {
 	instanceIds := []*string{&id}
 	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -100,7 +100,7 @@ func InstanceSSH(id, command string, rw io.ReadWriter) error {
 			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 		}
 		// Request pseudo terminal
-		if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+		if err := session.RequestPty("xterm", width, height, modes); err != nil {
 			return err
 		}
 		// Start remote shell

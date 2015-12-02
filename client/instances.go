@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 )
 
 type Instance struct {
@@ -28,7 +29,7 @@ func (c *Client) GetInstances() ([]*Instance, error) {
 	return instances, nil
 }
 
-func (c *Client) SSHInstance(id, cmd string, in io.Reader, out io.WriteCloser) (int, error) {
+func (c *Client) SSHInstance(id, cmd string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -38,10 +39,15 @@ func (c *Client) SSHInstance(id, cmd string, in io.Reader, out io.WriteCloser) (
 
 	go copyWithExit(out, r, ch)
 
-	err := c.Stream(fmt.Sprintf("/instances/%s/ssh", id), map[string]string{"Command": cmd}, in, w)
+	headers := map[string]string{
+		"Command": cmd,
+		"Height":  strconv.Itoa(height),
+		"Width":   strconv.Itoa(width),
+	}
+	err := c.Stream(fmt.Sprintf("/instances/%s/ssh", id), headers, in, w)
 
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	code := <-ch

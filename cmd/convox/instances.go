@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -107,5 +107,10 @@ func sshWithRestore(c *cli.Context, id, cmd string) (int, error) {
 		defer terminal.Restore(int(fd), stdinState)
 	}
 
-	return rackClient(c).SSHInstance(id, cmd, os.Stdin, os.Stdout)
+	h, w, err := terminal.GetSize(int(fd))
+	if err != nil {
+		return -1, err
+	}
+
+	return rackClient(c).SSHInstance(id, cmd, h, w, os.Stdin, os.Stdout)
 }

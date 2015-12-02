@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
@@ -37,8 +38,16 @@ func InstanceSSH(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	id := vars["id"]
 	cmd := ws.Request().Header.Get("Command")
+	height, err := strconv.Atoi(ws.Request().Header.Get("Height"))
+	if err != nil {
+		return httperr.Server(err)
+	}
+	width, err := strconv.Atoi(ws.Request().Header.Get("Width"))
+	if err != nil {
+		return httperr.Server(err)
+	}
 
-	return httperr.Server(models.InstanceSSH(id, cmd, ws))
+	return httperr.Server(models.InstanceSSH(id, cmd, height, width, ws))
 }
 
 func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
