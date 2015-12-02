@@ -106,6 +106,8 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 		app = path.Base(abs)
 	}
 
+	app = strings.ToLower(app)
+
 	return abs, app, nil
 }
 
