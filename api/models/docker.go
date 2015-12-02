@@ -76,7 +76,7 @@ func DockerHost() (string, error) {
 
 func DockerLogin(ac docker.AuthConfiguration) error {
 	if ac.Email == "" {
-		ac.Email = "rack@convox.com"
+		ac.Email = "user@convox.com"
 	}
 
 	args := []string{"login", "-e", ac.Email, "-u", ac.Username, "-p", ac.Password, ac.ServerAddress}
