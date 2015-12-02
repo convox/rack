@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
@@ -70,4 +72,42 @@ func DockerHost() (string, error) {
 	}
 
 	return fmt.Sprintf("http://%s:2376", ip), nil
+}
+
+func DockerLogin(ac docker.AuthConfiguration) error {
+	if ac.Email == "" {
+		ac.Email = "rack@convox.com"
+	}
+
+	args := []string{"login", "-e", ac.Email, "-u", ac.Username, "-p", ac.Password, ac.ServerAddress}
+
+	out, err := exec.Command("docker", args...).CombinedOutput()
+
+	// log args with password masked
+	args[6] = "*****"
+	cmd := fmt.Sprintf("docker %s", strings.Trim(fmt.Sprint(args), "[]"))
+
+	if err != nil {
+		fmt.Printf("ns=kernel cn=docker at=DockerLogin state=error step=exec.Command cmd=%q out=%q err=%q\n", cmd, out, err)
+	} else {
+		fmt.Printf("ns=kernel cn=docker at=DockerLogin state=success step=exec.Command cmd=%q\n", cmd)
+	}
+
+	return err
+}
+
+func DockerLogout(ac docker.AuthConfiguration) error {
+	args := []string{"logout", ac.ServerAddress}
+
+	out, err := exec.Command("docker", args...).CombinedOutput()
+
+	cmd := fmt.Sprintf("docker %s", strings.Trim(fmt.Sprint(args), "[]"))
+
+	if err != nil {
+		fmt.Printf("ns=kernel cn=docker at=DockerLogout state=error step=exec.Command cmd=%q out=%q err=%q\n", cmd, out, err)
+	} else {
+		fmt.Printf("ns=kernel cn=docker at=DockerLogout state=success step=exec.Command cmd=%q\n", cmd)
+	}
+
+	return err
 }
