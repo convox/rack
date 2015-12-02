@@ -14,6 +14,16 @@ import (
 func init() {
 }
 
+func InstancesKeyroll(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	err := models.InstanceKeyroll()
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderSuccess(rw)
+}
+
 func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rack, err := models.GetSystem()
 

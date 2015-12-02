@@ -19,6 +19,12 @@ func init() {
 		Action:      cmdInstancesList,
 		Subcommands: []cli.Command{
 			{
+				Name:        "keyroll",
+				Description: "generate and replace the ec2 keypair used for SSH",
+				Usage:       "",
+				Action:      cmdInstancesKeyroll,
+			},
+			{
 				Name:        "ssh",
 				Description: "establish secure shell with EC2 instance",
 				Usage:       "<id>",
@@ -56,6 +62,17 @@ func cmdInstancesList(c *cli.Context) {
 			fmt.Sprintf("%0.2f%%", i.Memory*100))
 	}
 	t.Print()
+}
+
+func cmdInstancesKeyroll(c *cli.Context) {
+	err := rackClient(c).InstanceKeyroll()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("Rebooting instances")
 }
 
 func cmdInstancesTerminate(c *cli.Context) {

@@ -29,6 +29,21 @@ func (c *Client) GetInstances() ([]*Instance, error) {
 	return instances, nil
 }
 
+func (c *Client) InstanceKeyroll() error {
+	var response map[string]interface{}
+	err := c.Post("/instances/keyroll", nil, &response)
+
+	if err != nil {
+		return err
+	}
+
+	if response["success"] == nil {
+		return errors.New(response["error"].(string))
+	}
+
+	return nil
+}
+
 func (c *Client) SSHInstance(id, cmd string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 

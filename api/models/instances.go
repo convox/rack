@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -12,30 +13,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
 	"github.com/convox/rack/client"
 )
-
-var PrivateKey = `-----BEGIN RSA PRIVATE KEY-----
-MIIEogIBAAKCAQEApv6WKDAIV9wacu32P8I/Y9xSbo3kLpQ5x1nuWlifoQnPc08zJ7K2Qppjl6Xa
-xSqPEoP/SmcasRiALphiUcu2W9fEtG9G77awiYeaEgQa7UUuaqG+SnacKazLVyyh0Hp4cDiD9btm
-b7PJ4d2Nu0l9GnjK/cvFvboLCOf1n0BEu4hhG29qogKetA0PDjyr8DyR4D2VfVoGjI/CybbDa8QU
-Iesm5Q7ZLgjWgpSgeyS74JlwycC74YvBYOiT2b5kzYTntTYCd/gonhc17/YCAqv5B3DRBIsv+GRd
-wuvdgqhLRvLjv4+EeNqsKGGTnSzu2dsDZyzPWbTj6OY1pMAFH4hjKQIDAQABAoIBAH/drhIFfU3w
-7ZuU05nMXYdUGxYltVNpEbiwBo7NDyVagqrTOOMrttzWpG1ohFO2G6jcwywwOELj9Lo42gexiOdY
-FnjmP5Wq+A/GcdVbqVaGQ11IjZEssrRCZ8xPE3OzYubij0AoBu5+5pT4dN60DYOofB3K2pVEj9B4
-9BzFNBu2u1y8Pmz6PVqd+kGMtEGPIpuliCar7AMJx+ixMQr2JAuVKk84YzZu5Saza5o52vd8pBib
-1vTZqSNU7kfUygaiCbVNopzVpMWhYYmIQhLAQwwXqV5A8sZuEHrlFQ/J9bv70CwxTbRcv8Cp+g3h
-ty1cBvlQeferND9ahOmYsUyi5YECgYEA1/K4/aJXOP0g/p9XLBPmQ4uce5TTFOyH0Ceob7539piz
-YTepo7jTwcU1V6sy1ABwKepk9dhc7iN1qq4XdqxAWbHxnuMqY7Ci+f2LVxBHuC+ze+/l3aEy/8nI
-/BSnJofg3lI7jFx8qg28Mv4OkoVYJr5NDirDCdpXmo6hZxLMm9kCgYEAxfeH3k14N5EaT2tLhVk9
-texk4j1F/iT8/W45UFBy0Mjsuqvdzoz28kvW/Dg9A7+oAZJuzKYnZwlco7bgrNfu1Pp7BZAO3Jjm
-hJFUmG7vAXwoiehOh3Sw0wCnLcj1pvfnXdI/ywuq5y0UR/TUo1u+fffnmW52ibheK6XfYmlA/9EC
-gYBY5o/Jut91kp/WsvpMJxUQkZUmOyp63rU6uFjbR+pTFqIiT6wCvsBOcUV4hf4y0MtcNibCHwSC
-9Q4n6eu260rCokL6SkLVL46oo/yNJyKfbOPTDfvvtcEtFIEtZcM6VY35eJkTO7AGwgjMZVLSdxrH
-OGi4gFoy4DRYaIeBy3d4YQKBgA4H9kxOR1gA49F/NFIWOiZ7w8a5Ow3BR2Ea/9ruaMTdiNHOPqFW
-ImaX83va7JAodFrwKwQ8PoyyACvmWVRG1bmoqzGAvVzrRWNd/ZX0PuJnD2R+35oALkw2PqMjHC4i
-YfanYTgd8pYB/u7+rleJuB2rhXG9f49RTvNfBU8vUJkRAoGAHkJmSZ0v1hV54eTQz3oVCEq7XRE4
-Uy8Ltxh2MaN9W4uX5mQT/Yzm7IR8s4GEUheawEniKUznANlLLsyI5ur1/DAgN8dAVwzNGixWtjhY
-LimQaEcEOKSBA6hgbEZQeDwnLFLXZgZL0ajlzfVy4oypLpafOaHW5KbNurSXlMxYL58=
------END RSA PRIVATE KEY-----`
 
 type Instance client.Instance
 
@@ -49,7 +26,36 @@ func (ir InstanceResource) PercentUsed() float64 {
 	return float64(ir.Used) / float64(ir.Total)
 }
 
+func InstanceKeyroll() error {
+	keyname := fmt.Sprintf("%s-keypair-%d", os.Getenv("RACK"), (rand.Intn(8999) + 1000))
+	keypair, err := EC2().CreateKeyPair(&ec2.CreateKeyPairInput{
+		KeyName: &keyname,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	env, err := GetRackSettings()
+
+	if err != nil {
+		return err
+	}
+
+	//TODO: have to update the CF template params
+	env["InstancePEM"] = *keypair.KeyMaterial
+
+	err = PutRackSettings(env)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error {
+
 	instanceIds := []*string{&id}
 	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -63,8 +69,15 @@ func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error 
 
 	instance := ec2Res.Reservations[0].Instances[0]
 
-	signer, err := ssh.ParsePrivateKey([]byte(PrivateKey))
+	env, err := GetRackSettings()
 	if err != nil {
+		return err
+	}
+
+
+	signer, err := ssh.ParsePrivateKey([]byte(env["InstancePEM"]))
+	if err != nil {
+		fmt.Println("error parsing private key")
 		return err
 	}
 	config := &ssh.ClientConfig{

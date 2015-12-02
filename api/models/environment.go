@@ -3,6 +3,7 @@ package models
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -149,7 +150,18 @@ func GetRackSettings() (Environment, error) {
 		}
 	}
 
-	return LoadEnvironment(data), nil
+	var env Environment
+
+	if strings.HasPrefix(string(data), "{") {
+		err = json.Unmarshal(data, &env)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		env = LoadEnvironment(data)
+	}
+
+	return env, nil
 }
 
 func PutRackSettings(env Environment) error {
@@ -168,7 +180,10 @@ func PutRackSettings(env Environment) error {
 	key := resources["EncryptionKey"].Id
 	settings := resources["Settings"].Id
 
-	e := []byte(env.Raw())
+	e, err := json.Marshal(env)
+	if err != nil {
+		return err
+	}
 
 	if key != "" {
 		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
@@ -205,7 +220,11 @@ func (e Environment) Raw() string {
 	lines := make([]string, len(e))
 
 	for i, name := range e.SortedNames() {
-		lines[i] = fmt.Sprintf("%s=%s", name, e[name])
+		if strings.ContainsAny(e[name], "\n=") {
+			lines[i] = fmt.Sprintf("%s=%q", name, e[name])
+		} else {
+			lines[i] = fmt.Sprintf("%s=%s", name, e[name])
+		}
 	}
 
 	return strings.Join(lines, "\n")
