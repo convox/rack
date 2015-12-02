@@ -26,7 +26,7 @@ func getEnvAuthConfigurations(env models.Environment) (docker.AuthConfigurations
 }
 
 func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	env, err := models.GetRackEnvironment()
+	env, err := models.GetRackSettings()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -55,7 +55,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(400, "Could not login to server with provided credentials")
 	}
 
-	env, err := models.GetRackEnvironment()
+	env, err := models.GetRackSettings()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -77,7 +77,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	env["DOCKER_AUTH_DATA"] = string(dat)
 
-	err = models.PutRackEnvironment(env)
+	err = models.PutRackSettings(env)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -89,7 +89,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	registry := mux.Vars(r)["registry"]
 
-	env, err := models.GetRackEnvironment()
+	env, err := models.GetRackSettings()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -118,7 +118,7 @@ func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	env["DOCKER_AUTH_DATA"] = string(dat)
 
-	err = models.PutRackEnvironment(env)
+	err = models.PutRackSettings(env)
 
 	if err != nil {
 		return httperr.Server(err)
