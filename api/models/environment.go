@@ -112,6 +112,83 @@ func PutEnvironment(app string, env Environment) (string, error) {
 	return release.Id, nil
 }
 
+// Use the Rack Settings bucket and EncryptionKey KMS key to store and retrieve
+// sensitive credentials, just like app env
+func GetRackSettings() (Environment, error) {
+	a, err := GetApp(os.Getenv("RACK"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	resources, err := ListResources(a.Name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	key := resources["EncryptionKey"].Id
+	settings := resources["Settings"].Id
+
+	data, err := s3Get(settings, "env")
+
+	if err != nil {
+		// if we get a 404 from aws just return an empty environment
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == 404 {
+			return Environment{}, nil
+		}
+
+		return nil, err
+	}
+
+	if key != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		if d, err := cr.Decrypt(key, data); err == nil {
+			data = d
+		}
+	}
+
+	return LoadEnvironment(data), nil
+}
+
+func PutRackSettings(env Environment) error {
+	a, err := GetApp(os.Getenv("RACK"))
+
+	if err != nil {
+		return err
+	}
+
+	resources, err := ListResources(a.Name)
+
+	if err != nil {
+		return err
+	}
+
+	key := resources["EncryptionKey"].Id
+	settings := resources["Settings"].Id
+
+	e := []byte(env.Raw())
+
+	if key != "" {
+		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+
+		e, err = cr.Encrypt(key, e)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	err = S3Put(settings, "env", []byte(e), true)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e Environment) SortedNames() []string {
 	names := []string{}
 
