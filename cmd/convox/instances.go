@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -73,6 +74,10 @@ func cmdInstancesSSH(c *cli.Context) {
 	}
 
 	id := c.Args()[0]
+	err := rackClient(c).SSHInstance(id, os.Stdin, os.Stdout)
 
-	fmt.Println("ssh", id)
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 }

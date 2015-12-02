@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"io"
 )
 
 type Instance struct {
@@ -25,6 +26,10 @@ func (c *Client) GetInstances() ([]*Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func (c *Client) SSHInstance(id string, in io.Reader, out io.WriteCloser) error {
+	return c.Stream(fmt.Sprintf("/instances/%s/ssh", id), nil, in, out)
 }
 
 func (c *Client) TerminateInstance(id string) error {

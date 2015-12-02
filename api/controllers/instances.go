@@ -5,6 +5,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 )
@@ -30,6 +31,14 @@ func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, instances)
+}
+
+func InstanceSSH(ws *websocket.Conn) *httperr.Error {
+	vars := mux.Vars(ws.Request())
+	id := vars["id"]
+	//command := ws.Request().Header.Get("Command")
+
+	return httperr.Server(models.InstanceSSH(id, "", ws))
 }
 
 func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
