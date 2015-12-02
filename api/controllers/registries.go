@@ -11,28 +11,8 @@ import (
 	"github.com/convox/rack/api/models"
 )
 
-func getEnvAuthConfigurations(env models.Environment) (docker.AuthConfigurations119, error) {
-	ac := docker.AuthConfigurations119{}
-
-	data := []byte(env["DOCKER_AUTH_DATA"])
-
-	if len(data) > 0 {
-		if err := json.Unmarshal(data, &ac); err != nil {
-			return ac, err
-		}
-	}
-
-	return ac, nil
-}
-
 func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	env, err := models.GetRackSettings()
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	acs, err := getEnvAuthConfigurations(env)
+	_, acs, err := models.GetRegistriesAuth()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -55,13 +35,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(400, "Could not login to server with provided credentials")
 	}
 
-	env, err := models.GetRackSettings()
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	acs, err := getEnvAuthConfigurations(env)
+	env, acs, err := models.GetRegistriesAuth()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -89,13 +63,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	registry := mux.Vars(r)["registry"]
 
-	env, err := models.GetRackSettings()
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	acs, err := getEnvAuthConfigurations(env)
+	env, acs, err := models.GetRegistriesAuth()
 
 	if err != nil {
 		return httperr.Server(err)
