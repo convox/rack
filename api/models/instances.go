@@ -42,7 +42,6 @@ func InstanceKeyroll() error {
 		return err
 	}
 
-	//TODO: have to update the CF template params
 	env["InstancePEM"] = *keypair.KeyMaterial
 	err = PutRackSettings(env)
 
@@ -66,7 +65,6 @@ func InstanceKeyroll() error {
 }
 
 func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error {
-
 	instanceIds := []*string{&id}
 	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -208,13 +206,25 @@ func (s *System) GetInstances() ([]*Instance, error) {
 
 		// build up the struct
 		instance := &Instance{
-			Agent:     *i.AgentConnected,
-			Cpu:       truncate(cpu.PercentUsed(), 4),
-			Memory:    truncate(memory.PercentUsed(), 4),
-			Id:        *i.Ec2InstanceId,
-			Ip:        *ec2Instance.PublicIpAddress,
-			Processes: int(*i.RunningTasksCount),
-			Status:    strings.ToLower(*i.Status),
+			Cpu:    truncate(cpu.PercentUsed(), 4),
+			Memory: truncate(memory.PercentUsed(), 4),
+			Id:     *i.Ec2InstanceId,
+		}
+
+		if i.AgentConnected != nil {
+			instance.Agent = *i.AgentConnected
+		}
+
+		if ec2Instance.PublicIpAddress != nil {
+			instance.Ip = *ec2Instance.PublicIpAddress
+		}
+
+		if i.RunningTasksCount != nil {
+			instance.Processes = int(*i.RunningTasksCount)
+		}
+
+		if i.Status != nil {
+			instance.Status = strings.ToLower(*i.Status)
 		}
 
 		instances = append(instances, instance)
