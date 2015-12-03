@@ -214,12 +214,9 @@ func (e Environment) SortedNames() []string {
 func (e Environment) Raw() string {
 	lines := make([]string, len(e))
 
+	//TODO: might make sense to quote here
 	for i, name := range e.SortedNames() {
-		if strings.ContainsAny(e[name], "\n=") {
-			lines[i] = fmt.Sprintf("%s=%q", name, e[name])
-		} else {
-			lines[i] = fmt.Sprintf("%s=%s", name, e[name])
-		}
+		lines[i] = fmt.Sprintf("%s=%s", name, e[name])
 	}
 
 	return strings.Join(lines, "\n")
