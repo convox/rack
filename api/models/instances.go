@@ -123,17 +123,16 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 
 	// Start remote shell
 	if command != "" {
-		if err := session.Run(command); err != nil {
+		if err := session.Start(command); err != nil {
 			return err
 		}
 	} else {
 		if err := session.Shell(); err != nil {
 			return err
 		}
-
-		session.Wait()
 	}
 
+	session.Wait()
 	return nil
 }
 

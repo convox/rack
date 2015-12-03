@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
 
@@ -25,16 +26,11 @@ func init() {
 				Action:      cmdInstancesKeyroll,
 			},
 			{
-				Name:        "ssh",
-				Description: "establish secure shell with EC2 instance",
-				Usage:       "<id>",
-				Action:      cmdInstancesSSH,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "command, c",
-						Usage: "Command to execute (instead of creating a shell)",
-					},
-				},
+				Name:            "ssh",
+				Description:     "establish secure shell with EC2 instance",
+				Usage:           "<id> [command]",
+				Action:          cmdInstancesSSH,
+				SkipFlagParsing: true,
 			},
 			{
 				Name:        "terminate",
@@ -93,13 +89,13 @@ func cmdInstancesTerminate(c *cli.Context) {
 }
 
 func cmdInstancesSSH(c *cli.Context) {
-	if len(c.Args()) != 1 {
+	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "ssh")
 		return
 	}
 
 	id := c.Args()[0]
-	cmd := c.String("command")
+	cmd := strings.Join(c.Args()[1:], " ")
 
 	code, err := sshWithRestore(c, id, cmd)
 
