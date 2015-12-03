@@ -105,23 +105,22 @@ func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error 
 	session.Stdout = rw
 	session.Stdin = rw
 	session.Stderr = rw
+	modes := ssh.TerminalModes{
+		ssh.ECHOCTL:       0,
+		ssh.TTY_OP_ISPEED: 56000, // input speed = 56kbaud
+		ssh.TTY_OP_OSPEED: 56000, // output speed = 56kbaud
+	}
+	// Request pseudo terminal
+	if err := session.RequestPty("xterm", width, height, modes); err != nil {
+		return err
+	}
 
+	// Start remote shell
 	if command != "" {
-		err = session.Run(command)
-		if err != nil {
+		if err := session.Run(command); err != nil {
 			return err
 		}
 	} else {
-		modes := ssh.TerminalModes{
-			ssh.ECHOCTL:       0,
-			ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-		}
-		// Request pseudo terminal
-		if err := session.RequestPty("xterm", width, height, modes); err != nil {
-			return err
-		}
-		// Start remote shell
 		if err := session.Shell(); err != nil {
 			return err
 		}
@@ -215,7 +214,7 @@ func (s *System) GetInstances() ([]*Instance, error) {
 			instance.Agent = *i.AgentConnected
 		}
 
-		if ec2Instance.PublicIpAddress != nil {
+		if ec2Instance != nil && ec2Instance.PublicIpAddress != nil {
 			instance.Ip = *ec2Instance.PublicIpAddress
 		}
 
