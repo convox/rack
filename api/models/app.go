@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/client"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
@@ -19,6 +20,8 @@ import (
 )
 
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
+
+var StatusCodePrefix = client.StatusCodePrefix
 
 type App struct {
 	Name    string `json:"name"`
@@ -340,7 +343,7 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	_, err = rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d\n", ires.ExitCode)))
+	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode)))
 
 	if err != nil {
 		return err
@@ -475,7 +478,7 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return err
 	}
 
-	_, err = rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d\n", code)))
+	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code)))
 
 	if err != nil {
 		return err

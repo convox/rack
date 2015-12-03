@@ -3,6 +3,7 @@ package models
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -149,7 +150,13 @@ func GetRackSettings() (Environment, error) {
 		}
 	}
 
-	return LoadEnvironment(data), nil
+	var env Environment
+	err = json.Unmarshal(data, &env)
+	if err != nil {
+		return nil, err
+	}
+
+	return env, nil
 }
 
 func PutRackSettings(env Environment) error {
@@ -168,7 +175,10 @@ func PutRackSettings(env Environment) error {
 	key := resources["EncryptionKey"].Id
 	settings := resources["Settings"].Id
 
-	e := []byte(env.Raw())
+	e, err := json.Marshal(env)
+	if err != nil {
+		return err
+	}
 
 	if key != "" {
 		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
@@ -204,6 +214,7 @@ func (e Environment) SortedNames() []string {
 func (e Environment) Raw() string {
 	lines := make([]string, len(e))
 
+	//TODO: might make sense to quote here
 	for i, name := range e.SortedNames() {
 		lines[i] = fmt.Sprintf("%s=%s", name, e[name])
 	}

@@ -451,6 +451,18 @@ paths:
             type: array
             items:
               $ref: '#/definitions/instance'
+  /instances/keyroll:
+    post:
+      description: Regenerate and store EC2 KeyPair.
+      responses:
+        200:
+         description: Success
+  /instances/{id}:
+    delete:
+      description: Terminate an instance.
+      responses:
+        200:
+         description: Success
   /services:
     get:
       description: List services
