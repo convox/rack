@@ -37,7 +37,7 @@ func (c *Client) AddRegistry(server, username, password, email string) (*Registr
 func (c *Client) RemoveRegistry(server string) (*Registry, error) {
 	var registry Registry
 
-	err := c.Delete(fmt.Sprintf("/registries/%s", server), &registry)
+	err := c.Delete(fmt.Sprintf("/registries?server=%s", server), &registry)
 
 	if err != nil {
 		return nil, err

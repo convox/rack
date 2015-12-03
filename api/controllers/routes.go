@@ -40,7 +40,8 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/instances/{id}", api("instance.delete", InstanceTerminate)).Methods("DELETE")
 	router.HandleFunc("/registries", api("registry.list", RegistryList)).Methods("GET")
 	router.HandleFunc("/registries", api("registry.create", RegistryCreate)).Methods("POST")
-	router.HandleFunc("/registries/{registry}", api("registry.delete", RegistryDelete)).Methods("DELETE")
+	// this should be DELETE /registries/{server} except for https://github.com/gorilla/mux/issues/132
+	router.HandleFunc("/registries", api("registry.delete", RegistryDelete)).Methods("DELETE")
 	router.HandleFunc("/services", api("service.list", ServiceList)).Methods("GET")
 	router.HandleFunc("/services", api("service.create", ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", ServiceShow)).Methods("GET")

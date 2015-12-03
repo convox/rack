@@ -6,7 +6,6 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 )
@@ -61,7 +60,8 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	registry := mux.Vars(r)["registry"]
+	// server := mux.Vars(r)["server"]
+	server := r.FormValue("server")
 
 	env, acs, err := models.GetRegistriesAuth()
 
@@ -69,14 +69,14 @@ func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	ac, ok := acs[registry]
+	ac, ok := acs[server]
 
 	if !ok {
-		return httperr.Errorf(404, "no such registry: %s", registry)
+		return httperr.Errorf(404, "no such registry: %s", server)
 	}
 
 	models.DockerLogout(ac)
-	delete(acs, registry)
+	delete(acs, server)
 
 	dat, err := json.Marshal(acs)
 
