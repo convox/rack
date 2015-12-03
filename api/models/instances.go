@@ -121,6 +121,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		}
 	}
 
+	code := 0
 	// Start remote shell
 	if command != "" {
 		if err := session.Start(command); err != nil {
@@ -132,7 +133,18 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		}
 	}
 
-	session.Wait()
+	err = session.Wait()
+
+	if err != nil {
+		code = exitCode(err)
+	}
+
+	_, err = rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d\n", code)))
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -235,4 +247,16 @@ func (s *System) GetInstances() ([]*Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func exitCode(err error) int {
+	if ee, ok := err.(*ssh.ExitError); ok {
+		return ee.Waitmsg.ExitStatus()
+	}
+
+	if err != nil {
+		return -1
+	}
+
+	return 0
 }
