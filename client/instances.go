@@ -44,7 +44,7 @@ func (c *Client) InstanceKeyroll() error {
 	return nil
 }
 
-func (c *Client) SSHInstance(id, cmd string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
+func (c *Client) SSHInstance(id, cmd string, height, width int, isTerm bool, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -56,8 +56,12 @@ func (c *Client) SSHInstance(id, cmd string, height, width int, in io.Reader, ou
 
 	headers := map[string]string{
 		"Command": cmd,
-		"Height":  strconv.Itoa(height),
-		"Width":   strconv.Itoa(width),
+	}
+
+	if isTerm {
+		headers["Height"] = strconv.Itoa(height)
+		headers["Width"] = strconv.Itoa(width)
+		headers["Terminal"] = "xterm"
 	}
 	err := c.Stream(fmt.Sprintf("/instances/%s/ssh", id), headers, in, w)
 

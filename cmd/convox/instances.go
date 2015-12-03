@@ -113,10 +113,16 @@ func cmdInstancesSSH(c *cli.Context) {
 
 func sshWithRestore(c *cli.Context, id, cmd string) (int, error) {
 	fd := os.Stdin.Fd()
+	isTerm := terminal.IsTerminal(int(fd))
+	var h, w int
 
-	if terminal.IsTerminal(int(fd)) {
+	if isTerm {
 		stdinState, err := terminal.GetState(int(fd))
+		if err != nil {
+			return -1, err
+		}
 
+		h, w, err = terminal.GetSize(int(fd))
 		if err != nil {
 			return -1, err
 		}
@@ -124,10 +130,5 @@ func sshWithRestore(c *cli.Context, id, cmd string) (int, error) {
 		defer terminal.Restore(int(fd), stdinState)
 	}
 
-	h, w, err := terminal.GetSize(int(fd))
-	if err != nil {
-		return -1, err
-	}
-
-	return rackClient(c).SSHInstance(id, cmd, h, w, os.Stdin, os.Stdout)
+	return rackClient(c).SSHInstance(id, cmd, h, w, isTerm, os.Stdin, os.Stdout)
 }

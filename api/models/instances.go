@@ -64,7 +64,7 @@ func InstanceKeyroll() error {
 	return nil
 }
 
-func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error {
+func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) error {
 	instanceIds := []*string{&id}
 	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -83,6 +83,7 @@ func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error 
 		return err
 	}
 
+	// configure SSH client
 	signer, err := ssh.ParsePrivateKey([]byte(env["InstancePEM"]))
 	if err != nil {
 		return err
@@ -102,17 +103,22 @@ func InstanceSSH(id, command string, height, width int, rw io.ReadWriter) error 
 	}
 	defer session.Close()
 
+	// Setup I/O
 	session.Stdout = rw
 	session.Stdin = rw
 	session.Stderr = rw
-	modes := ssh.TerminalModes{
-		ssh.ECHOCTL:       0,
-		ssh.TTY_OP_ISPEED: 56000, // input speed = 56kbaud
-		ssh.TTY_OP_OSPEED: 56000, // output speed = 56kbaud
-	}
-	// Request pseudo terminal
-	if err := session.RequestPty("xterm", width, height, modes); err != nil {
-		return err
+
+	// Setup terminal if requested
+	if term != "" {
+		modes := ssh.TerminalModes{
+			ssh.ECHOCTL:       0,
+			ssh.TTY_OP_ISPEED: 56000, // input speed = 56kbaud
+			ssh.TTY_OP_OSPEED: 56000, // output speed = 56kbaud
+		}
+		// Request pseudo terminal
+		if err := session.RequestPty(term, width, height, modes); err != nil {
+			return err
+		}
 	}
 
 	// Start remote shell
