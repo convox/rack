@@ -129,7 +129,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 			isTerminalRaw = true
 		}
 
-		if s := string(buf[0:n]); strings.HasPrefix(s, "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:") {
+		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
 			code, _ := strconv.Atoi(strings.TrimSpace(s[37:]))
 			ch <- code
 			return

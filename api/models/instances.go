@@ -139,7 +139,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		code = exitCode(err)
 	}
 
-	_, err = rw.Write([]byte(fmt.Sprintf("F1E49A85-0AD7-4AEF-A618-C249C6E6568D:%d\n", code)))
+	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code)))
 
 	if err != nil {
 		return err
