@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -185,6 +186,10 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 		args = append(args, "-no-cache")
 	}
 
+	if dockercfg, err := ioutil.ReadFile("/root/.dockercfg"); err == nil {
+		args = append(args, "-dockercfg", string(dockercfg))
+	}
+
 	args = append(args, name, "-")
 
 	err := b.execute(args, r, ch)
@@ -218,6 +223,10 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 
 	if !cache {
 		args = append(args, "-no-cache")
+	}
+
+	if dockercfg, err := ioutil.ReadFile("/root/.dockercfg"); err == nil {
+		args = append(args, "-dockercfg", string(dockercfg))
 	}
 
 	args = append(args, name)
