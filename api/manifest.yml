@@ -451,6 +451,12 @@ paths:
             type: array
             items:
               $ref: '#/definitions/instance'
+  /instances/{id}:
+    delete:
+      description: Terminate an instance.
+      responses:
+        200:
+         description: Success
   /services:
     get:
       description: List services
