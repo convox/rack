@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type Instance struct {
-	Agent     bool    `json:"agent"`
-	Cpu       float64 `json:"cpu"`
-	Id        string  `json:"id"`
-	Ip        string  `json:"ip"`
-	Memory    float64 `json:"memory"`
-	Processes int     `json:"processes"`
-	Status    string  `json:"status"`
+	Agent     bool      `json:"agent"`
+	Cpu       float64   `json:"cpu"`
+	Id        string    `json:"id"`
+	Ip        string    `json:"ip"`
+	Memory    float64   `json:"memory"`
+	Processes int       `json:"processes"`
+	Status    string    `json:"status"`
+	Started   time.Time `json:"started"`
 }
 
 func (c *Client) GetInstances() ([]*Instance, error) {
