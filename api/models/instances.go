@@ -231,8 +231,14 @@ func (s *System) GetInstances() ([]*Instance, error) {
 			instance.Agent = *i.AgentConnected
 		}
 
-		if ec2Instance != nil && ec2Instance.PublicIpAddress != nil {
-			instance.Ip = *ec2Instance.PublicIpAddress
+		if ec2Instance != nil {
+			if ec2Instance.PublicIpAddress != nil {
+				instance.Ip = *ec2Instance.PublicIpAddress
+			}
+
+			if ec2Instance.LaunchTime != nil {
+				instance.Started = *ec2Instance.LaunchTime
+			}
 		}
 
 		if i.RunningTasksCount != nil {
