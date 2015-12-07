@@ -57,8 +57,6 @@ func ListProcesses(app string) (Processes, error) {
 
 	tres, err := ECS().DescribeTasks(treq)
 
-	pss := Processes{}
-
 	psch := make(chan Process)
 	errch := make(chan error)
 	num := 0
@@ -105,6 +103,8 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
+	pss, _ := ListPendingProcesses(app)
+
 	for i := 0; i < num; i++ {
 		select {
 		case ps := <-psch:
@@ -115,6 +115,72 @@ func ListProcesses(app string) (Processes, error) {
 	}
 
 	sort.Sort(pss)
+
+	return pss, nil
+}
+
+func ListPendingProcesses(app string) (Processes, error) {
+	pss := Processes{}
+
+	// Describe all services
+	lsres, err := ECS().ListServices(&ecs.ListServicesInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	dsres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Services: lsres.ServiceArns,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, service := range dsres.Services {
+		if !strings.HasPrefix(*service.ServiceName, fmt.Sprintf("%s-", app)) {
+			continue
+		}
+
+		// Test every service deployment for running != pending, to put in a placeholder
+		for _, d := range service.Deployments {
+			if *d.DesiredCount == *d.RunningCount {
+				continue
+			}
+
+			tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+				TaskDefinition: d.TaskDefinition,
+			})
+
+			if err != nil {
+				return nil, err
+			}
+
+			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
+				continue
+			}
+
+			cd := *tres.TaskDefinition.ContainerDefinitions[0]
+
+			ps := Process{
+				Id:   "pending",
+				Name: *cd.Name,
+			}
+
+			for _, env := range cd.Environment {
+				if *env.Name == "RELEASE" {
+					ps.Release = *env.Value
+				}
+			}
+
+			for i := int64(0); i < *d.DesiredCount; i++ {
+				pss = append(pss, ps)
+			}
+		}
+	}
 
 	return pss, nil
 }
@@ -259,6 +325,10 @@ func (ps Processes) Swap(i, j int) {
 }
 
 func (p *Process) Docker() (*docker.Client, error) {
+	if p.Id == "pending" {
+		return nil, fmt.Errorf("pending")
+	}
+
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
 }
 
@@ -266,6 +336,10 @@ func (p *Process) FetchStats() error {
 	d, err := p.Docker()
 
 	if err != nil {
+		if err.Error() == "pending" {
+			return nil
+		}
+
 		return fmt.Errorf("could not communicate with docker")
 	}
 
