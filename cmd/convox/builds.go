@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -237,7 +237,7 @@ func createTarball(base string) ([]byte, error) {
 		return nil, err
 	}
 
-	args := []string{"cz"}
+	args := []string{"c"}
 
 	// If .dockerignore exists, use it to exclude files from the tarball
 	if _, err = os.Stat(".dockerignore"); err == nil {
@@ -246,27 +246,21 @@ func createTarball(base string) ([]byte, error) {
 
 	args = append(args, ".")
 
-	cmd := exec.Command("tar", args...)
+	tar := exec.Command("tar", args...)
+	gzip := exec.Command("gzip", "-f")
 
-	out, err := cmd.StdoutPipe()
+	r, w := io.Pipe()
+	tar.Stdout = w
+	gzip.Stdin = r
 
-	if err != nil {
-		return nil, err
-	}
+	var b bytes.Buffer
+	gzip.Stdout = &b
 
-	cmd.Start()
-
-	bytes, err := ioutil.ReadAll(out)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = cmd.Wait()
-
-	if err != nil {
-		return nil, err
-	}
+	tar.Start()
+	gzip.Start()
+	tar.Wait()
+	w.Close()
+	gzip.Wait()
 
 	err = os.Chdir(cwd)
 
@@ -274,7 +268,7 @@ func createTarball(base string) ([]byte, error) {
 		return nil, err
 	}
 
-	return bytes, nil
+	return b.Bytes(), nil
 }
 
 func finishBuild(c *cli.Context, app string, build *client.Build) (string, error) {
