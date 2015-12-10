@@ -30,12 +30,16 @@ func TestProcessesList(t *testing.T) {
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesCycle2("convox-test-cluster"),
 		test.DescribeInstancesCycle2(),
-		test.ListContainersCycle(),
 		test.ListServicesCycle("convox-test-cluster"),
 		test.DescribeServicesCycle("convox-test-cluster"),
-		test.StatsCycle(),
 	)
 	defer aws.Close()
+
+	docker := test.StubDocker(
+		test.ListContainersCycle(),
+		test.StatsCycle(),
+	)
+	defer docker.Close()
 
 	body := test.HTTPBody("GET", "http://convox/apps/myapp-staging/processes", nil)
 

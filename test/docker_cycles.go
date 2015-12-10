@@ -1,6 +1,32 @@
 package test
 
-import "github.com/convox/rack/api/awsutil"
+import (
+	"net/http/httptest"
+
+	"github.com/convox/rack/api/awsutil"
+)
+
+var TestConfig struct {
+	DockerHost string
+}
+
+/*
+Create a test server that mocks an Docker request/response cycle,
+suitable for a single test
+
+Example:
+		s := StubDocker(ListContainersCycle())
+		defer s.Close()
+
+		d, _ := Docker(test.TestConfig.DockerHost)
+		d.ListContainers(...)
+*/
+func StubDocker(cycles ...awsutil.Cycle) (s *httptest.Server) {
+	handler := awsutil.NewHandler(cycles)
+	s = httptest.NewServer(handler)
+	TestConfig.DockerHost = s.URL
+	return s
+}
 
 func ListContainersCycle() awsutil.Cycle {
 	return awsutil.Cycle{
