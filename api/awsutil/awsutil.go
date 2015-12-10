@@ -84,9 +84,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, cycle.Response.Body)
 	} else {
 		fmt.Println("Request does not match next cycle.")
-		fmt.Println("REQUEST:")
+		fmt.Println("CYCLE REQUEST:")
 		fmt.Println(cycle.Request.String())
-		fmt.Println("CYCLE EXPECTED REQUEST:")
+		fmt.Println("ACTUAL REQUEST:")
 		fmt.Println(match.String())
 		w.WriteHeader(404)
 	}
