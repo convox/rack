@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
@@ -103,7 +104,7 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
-	pss, _ := ListPendingProcesses(app)
+	pss := Processes{}
 
 	for i := 0; i < num; i++ {
 		select {
@@ -113,6 +114,9 @@ func ListProcesses(app string) (Processes, error) {
 			return nil, err
 		}
 	}
+
+	pending, _ := ListPendingProcesses(app)
+	pss = append(pss, pending...)
 
 	sort.Sort(pss)
 
@@ -226,7 +230,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	}
 
 	if len(cres.ContainerInstances) != 1 {
-		errch <- fmt.Errorf("could not find instance")
+		errch <- fmt.Errorf("could not find ECS instance")
 		return
 	}
 
@@ -244,11 +248,16 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	}
 
 	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
-		errch <- fmt.Errorf("could not find instance")
+		errch <- fmt.Errorf("could not find EC2 instance")
 		return
 	}
 
 	instance := ires.Reservations[0].Instances[0]
+
+	// Connect to a Docker client
+	// In testing use the stub AWS server.
+	// In development, modify the security group for port 2376 and use the Public IP
+	// In production, use the private IP
 
 	ip := *instance.PrivateIpAddress
 
@@ -327,6 +336,10 @@ func (ps Processes) Swap(i, j int) {
 func (p *Process) Docker() (*docker.Client, error) {
 	if p.Id == "pending" {
 		return nil, fmt.Errorf("pending")
+	}
+
+	if os.Getenv("TEST") == "true" {
+		return Docker(fmt.Sprintf(*defaults.DefaultConfig.Endpoint))
 	}
 
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
