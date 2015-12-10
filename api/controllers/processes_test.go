@@ -47,18 +47,18 @@ func TestProcessesList(t *testing.T) {
 	}
 }
 
-func TestProcessShow(t *testing.T) {}
+// func TestProcessShow(t *testing.T) {}
 
-func TestProcessStop(t *testing.T) {}
+// func TestProcessStop(t *testing.T) {}
 
-func TestProcessRun(t *testing.T) {}
+// func TestProcessRun(t *testing.T) {}
 
-func TestGetProcessesEmpty(t *testing.T) {}
+// func TestGetProcessesEmpty(t *testing.T) {}
 
-func TestGetProcessesFailure(t *testing.T) {}
+// func TestGetProcessesFailure(t *testing.T) {}
 
-func TestGetProcessesWithDeployments(t *testing.T) {}
+// func TestGetProcessesWithDeployments(t *testing.T) {}
 
-func TestGetProcessesWithDockerStats(t *testing.T) {}
+// func TestGetProcessesWithDockerStats(t *testing.T) {}
 
-func TestGetProessesWithDockerStatsInDevelopment(t *testing.T) {}
+// func TestGetProessesWithDockerStatsInDevelopment(t *testing.T) {}
