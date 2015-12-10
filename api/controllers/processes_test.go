@@ -20,29 +20,30 @@ func init() {
 func TestProcessesList(t *testing.T) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
+	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.ListTasksCycle("convox-test-cluster"),
 		test.DescribeTasksCycle("convox-test-cluster"),
+		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
+		test.DescribeContainerInstancesCycle2("convox-test-cluster"),
+		test.DescribeInstancesCycle2(),
+		test.ListContainersCycle(),
 		test.ListServicesCycle("convox-test-cluster"),
 		test.DescribeServicesCycle("convox-test-cluster"),
-		// test.DescribeTaskDefinitionCycle("convox-test-cluster"),
-		// test.DescribeContainerInstancesCycle2("convox-test-cluster"),
-		// test.DescribeServicesCycle("convox-test-cluster"),
-		// test.ListServicesCycle("convox-test-cluster"),
-		// test.DescribeContainerInstancesCycle2("convox-test-cluster"),
+		test.StatsCycle(),
 	)
 	defer aws.Close()
 
 	body := test.HTTPBody("GET", "http://convox/apps/myapp-staging/processes", nil)
 
-	var resp []client.Processes
+	var resp client.Processes
 	err := json.Unmarshal([]byte(body), &resp)
 
 	if assert.Nil(t, err) {
-		assert.Equal(t, 0, len(resp))
+		assert.Equal(t, 1, len(resp))
 	}
 }
 
