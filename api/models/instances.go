@@ -92,7 +92,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		User: "ec2-user",
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
 	}
-	conn, err := ssh.Dial("tcp", *instance.PublicIpAddress+":22", config)
+	conn, err := ssh.Dial("tcp", *instance.PrivateIpAddress+":22", config)
 	if err != nil {
 		return err
 	}
