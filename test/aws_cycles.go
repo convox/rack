@@ -150,6 +150,145 @@ func ListContainerInstancesCycle(clusterName string) awsutil.Cycle {
 	}
 }
 
+func ListTasksCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+			Body:       `{"cluster":"` + clusterName + `"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"taskArns":["arn:aws:ecs:us-east-1:901416387788:task/320a8b6a-c243-47d3-a1d1-6db5dfcb3f58"]}`,
+		},
+	}
+}
+
+func DescribeTasksCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+			Body:       `{"cluster":"` + clusterName + `","tasks":["arn:aws:ecs:us-east-1:901416387788:task/320a8b6a-c243-47d3-a1d1-6db5dfcb3f58"]}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"tasks":[{"containerInstanceArn":"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e"","containers":[{"containerArn":"arn:aws:ecs:us-east-1:901416387788:container/821cc6e1-b120-422c-9092-4932cce0897b","name":"worker1"}], "taskArn":"arn:aws:ecs:us-east-1:901416387788:task/320a8b6a-c243-47d3-a1d1-6db5dfcb3f58","taskDefinitionArn":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker1:3","lastStatus":"RUNNING"}]}`,
+		},
+	}
+}
+
+func DescribeTaskDefinitionCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker1:3"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"worker-0-0"}],"containerDefinitions":[{"name":"worker1","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker1"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"myapp-staging-worker1"}}`,
+		},
+	}
+}
+
+func ListServicesCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.ListServices",
+			Body:       `{"cluster":"` + clusterName + `"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"serviceArns":["arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF"]}`,
+		},
+	}
+}
+
+func DescribeServicesCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
+			Body:       `{"cluster":"` + clusterName + `", "services":["arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF"]}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body: `
+{
+    "services": [
+        {
+            "status": "ACTIVE", 
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/httpd-web:36", 
+            "pendingCount": 0, 
+            "loadBalancers": [
+                {
+                    "containerName": "web", 
+                    "containerPort": 80, 
+                    "loadBalancerName": "httpd"
+                }
+            ], 
+            "roleArn": "arn:aws:iam::901416387788:role/httpd-ServiceRole-1HNRHXNKGNLT9", 
+            "desiredCount": 2, 
+            "serviceName": "httpd-web-SCELGCIYSKF", 
+            "clusterArn": "arn:aws:ecs:us-west-2:901416387788:cluster/convox-Cluster-1NCWX9EC0JOV4", 
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/httpd-web-SCELGCIYSKF", 
+            "deployments": [
+                {
+                    "status": "PRIMARY", 
+                    "pendingCount": 0, 
+                    "createdAt": 1449559137.768, 
+                    "desiredCount": 2, 
+                    "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/httpd-web:36", 
+                    "updatedAt": 1449559137.768, 
+                    "id": "ecs-svc/9223370587295638039", 
+                    "runningCount": 1
+                }, 
+                {
+                    "status": "ACTIVE", 
+                    "pendingCount": 0, 
+                    "createdAt": 1449511658.683, 
+                    "desiredCount": 2, 
+                    "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/httpd-web:33", 
+                    "updatedAt": 1449511869.412, 
+                    "id": "ecs-svc/9223370587343117124", 
+                    "runningCount": 1
+                }
+            ], 
+            "events": [
+                {
+                    "message": "(service httpd-web-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.", 
+                    "id": "3890020b-7e55-4d25-9694-ba823cc34822", 
+                    "createdAt": 1449760390.037
+                },
+                {
+                    "message": "(service httpd-web-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).", 
+                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a", 
+                    "createdAt": 1449003339.092
+                }
+            ], 
+            "runningCount": 2
+        }
+    ], 
+    "failures": []
+}`,
+		},
+	}
+}
+
+func DescribeContainerInstancesCycle2(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
+			`{"cluster":"` + clusterName + `",
+        "containerInstances": [
+          "arn:aws:ecs:us-east-1:938166070011:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e"
+        ]
+    }`},
+		awsutil.Response{200, describeContainerInstancesResponse()},
+	}
+}
+
 func convoxStackXML(stackName string) string {
 	return `
       <member>
