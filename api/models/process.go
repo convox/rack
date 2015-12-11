@@ -11,7 +11,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	"github.com/convox/rack/test"
+	"github.com/convox/rack/api/config"
 )
 
 type Process struct {
@@ -339,7 +339,7 @@ func (p *Process) Docker() (*docker.Client, error) {
 	}
 
 	if os.Getenv("TEST") == "true" {
-		return Docker(test.TestConfig.DockerHost)
+		return Docker(config.TestConfig.DockerHost)
 	}
 
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
