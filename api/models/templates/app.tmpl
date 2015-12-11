@@ -210,7 +210,7 @@
           "Release": { "Ref": "Release" },
           "Environment": { "Ref": "Environment" },
           "Key": { "Ref": "Key" },
-          "Tasks": [ {{ template "entry_task2" . }} ]
+          "Tasks": [ {{ template "entry_task" . }} ]
         }
       },
       "{{ upper $e.Name }}ECSService": {
@@ -225,8 +225,8 @@
           "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
           "Role": { "Ref": "ServiceRole" },
           "LoadBalancers": [
-            {{ range $e.ContainerPorts }}
-              { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ . }}" ] ] },
+            {{ range $e.PortMappings }}
+              { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
             {{ end }}
             { "Ref": "AWS::NoValue" }
           ]
@@ -239,42 +239,33 @@
 {{ define "balancer-conditions" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
-    {{ range .ExternalPorts }}
-      "Blank{{ upper $balancer.ProcessName }}Port{{ . }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }, "" ] },
-      "Secure{{ upper $balancer.ProcessName }}Port{{ . }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Secure" }, "Yes" ] },
+    {{ range .PortMappings }}
+      "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }, "" ] },
+      "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure" }, "Yes" ] },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-params" }}
-  {{ range $e := . }}
-    {{ range .InternalPorts }}
-      "{{ upper $e.Name }}Port{{ . }}Host": {
-        "Type" : "String",
-        "Default" : "{{ index $e.Randoms . }}",
-        "Description" : ""
-      },
-    {{ end }}
-  {{ end }}
   {{ range .Balancers }}
     {{ $balancer := . }}
-    {{ range .ExternalPorts }}
-      "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer": {
+    {{ range .PortMappings }}
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Type" : "String",
-        "Default" : "{{ . }}",
+        "Default" : "{{ .Balancer }}",
         "Description" : ""
       },
-      "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate": {
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": {
         "Type" : "String",
         "Default" : "",
         "Description" : ""
       },
-      "{{ upper $balancer.ProcessName }}Port{{ . }}Host": {
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms . }}",
+        "Default" : "{{ index $balancer.Randoms .Balancer }}",
         "Description" : ""
       },
-      "{{ upper $balancer.ProcessName }}Port{{ . }}Secure": {
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",
@@ -290,9 +281,9 @@
     "Balancer{{ upper .ProcessName }}Host": {
       "Value": { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] }
     },
-    {{ range .ExternalPorts }}
-      "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer": {
-        "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" }
+    {{ range .PortMappings }}
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
+        "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
       },
     {{ end }}
   {{ end }}
@@ -306,12 +297,12 @@
       "Properties": {
         "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
         "SecurityGroupIngress": [
-          {{ range .ExternalPorts }}
+          {{ range .PortMappings }}
             {
               "CidrIp": "0.0.0.0/0",
               "IpProtocol": "tcp",
-              "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
-              "ToPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" }
+              "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
+              "ToPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
             },
           {{ end }}
           { "Ref": "AWS::NoValue" }
@@ -323,6 +314,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
         "Subnets": { "Ref": "Subnets" },
+        "Scheme": "{{ .Scheme }}",
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
@@ -334,28 +326,28 @@
           "UnhealthyThreshold": "2"
         },
         "Listeners": [
-          {{ range .ExternalPorts }}
-            { "Fn::If": [ "Blank{{ upper $balancer.ProcessName }}Port{{ . }}Certificate",
+          {{ range .PortMappings }}
+            { "Fn::If": [ "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
               {
                 "Protocol": "TCP",
-                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
                 "InstanceProtocol": "TCP",
-                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" }
+                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }
               },
-              { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ . }}",
+              { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",
                 {
                   "Protocol": "SSL",
-                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
                   "InstanceProtocol": "SSL",
-                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" },
-                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }
+                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
                 },
                 {
                   "Protocol": "SSL",
-                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Balancer" },
+                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
                   "InstanceProtocol": "TCP",
-                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Host" },
-                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ . }}Certificate" }
+                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
                 }
               ] }
             ] },
@@ -417,7 +409,7 @@
   },
 {{ end }}
 
-{{ define "entry_task2" }}
+{{ define "entry_task" }}
 { "Fn::If": [ "Blank{{ upper .Name }}Service",
   {
     "Name": "{{ .Name }}",

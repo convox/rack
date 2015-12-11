@@ -165,6 +165,8 @@ func (r *Release) Save() error {
 func (r *Release) Promote() error {
 	formation, err := r.Formation()
 
+	fmt.Println(formation)
+
 	if err != nil {
 		return err
 	}

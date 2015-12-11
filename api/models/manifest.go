@@ -34,13 +34,14 @@ type ManifestEntry struct {
 type ManifestPort struct {
 	Balancer  string
 	Container string
-	Internal  bool
+	Public    bool
 }
 
 type ManifestEntries map[string]ManifestEntry
 
 type ManifestBalancer struct {
-	Entry ManifestEntry
+	Entry  ManifestEntry
+	Public bool
 }
 
 func LoadManifest(data string) (Manifest, error) {
@@ -120,9 +121,10 @@ func (m Manifest) Balancers() []ManifestBalancer {
 	balancers := []ManifestBalancer{}
 
 	for _, entry := range m {
-		if len(entry.ExternalPorts()) > 0 {
+		if len(entry.PortMappings()) > 0 {
 			balancers = append(balancers, ManifestBalancer{
-				Entry: entry,
+				Entry:  entry,
+				Public: len(entry.InternalPorts()) == 0,
 			})
 		}
 	}
@@ -176,8 +178,8 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 }
 
 func (mb ManifestBalancer) FirstPort() string {
-	if ports := mb.ExternalPorts(); len(ports) > 0 {
-		return ports[0]
+	if ports := mb.PortMappings(); len(ports) > 0 {
+		return ports[0].Balancer
 	}
 
 	return ""
@@ -188,7 +190,11 @@ func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 		return template.HTML(`{ "Ref": "AWS::StackName" }`)
 	}
 
-	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s" ] ] }`, mb.ProcessName()))
+	if mb.Public {
+		return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s" ] ] }`, mb.ProcessName()))
+	}
+
+	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "internal" ] ] }`, mb.ProcessName()))
 }
 
 func (mb ManifestBalancer) InternalPorts() []string {
@@ -220,7 +226,24 @@ func (mb ManifestBalancer) ResourceName() string {
 		return "Balancer"
 	}
 
-	return "Balancer" + UpperName(mb.Entry.Name)
+	var suffix string
+	if !mb.Public {
+		suffix = "Internal"
+	}
+
+	return "Balancer" + UpperName(mb.Entry.Name) + suffix
+}
+
+func (mb ManifestBalancer) PortMappings() []ManifestPort {
+	return mb.Entry.PortMappings()
+}
+
+func (mb ManifestBalancer) Scheme() string {
+	if mb.Public {
+		return "internet-facing"
+	}
+
+	return "internal"
 }
 
 func (me *ManifestEntry) BalancerResourceName() string {
@@ -314,12 +337,13 @@ func (me ManifestEntry) PortMappings() []ManifestPort {
 			mappings = append(mappings, ManifestPort{
 				Balancer:  parts[0],
 				Container: parts[0],
-				Internal:  true,
+				Public:    false,
 			})
 		case 2:
 			mappings = append(mappings, ManifestPort{
 				Balancer:  parts[0],
 				Container: parts[1],
+				Public:    true,
 			})
 		}
 	}
