@@ -180,7 +180,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 				}
 			}
 
-			for i := int64(0); i < *d.DesiredCount; i++ {
+			for i := int64(0); i < *d.PendingCount; i++ {
 				pss = append(pss, ps)
 			}
 		}
