@@ -219,59 +219,143 @@ func DescribeServicesCycle(clusterName string) awsutil.Cycle {
     "services": [
         {
             "status": "ACTIVE", 
-            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/httpd-web:36", 
-            "pendingCount": 0, 
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:1",
+            "pendingCount": 0,
             "loadBalancers": [
                 {
-                    "containerName": "web", 
-                    "containerPort": 80, 
-                    "loadBalancerName": "httpd"
+                    "containerName": "worker",
+                    "containerPort": 80,
+                    "loadBalancerName": "myapp-staging"
                 }
-            ], 
-            "roleArn": "arn:aws:iam::901416387788:role/httpd-ServiceRole-1HNRHXNKGNLT9", 
-            "desiredCount": 2, 
-            "serviceName": "httpd-web-SCELGCIYSKF", 
-            "clusterArn": "arn:aws:ecs:us-west-2:901416387788:cluster/convox-Cluster-1NCWX9EC0JOV4", 
-            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/httpd-web-SCELGCIYSKF", 
+            ],
+            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
+            "desiredCount": 1,
+            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
+            "clusterArn": "` + clusterName + `",
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
             "deployments": [
                 {
-                    "status": "PRIMARY", 
-                    "pendingCount": 0, 
-                    "createdAt": 1449559137.768, 
-                    "desiredCount": 2, 
-                    "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/httpd-web:36", 
-                    "updatedAt": 1449559137.768, 
-                    "id": "ecs-svc/9223370587295638039", 
-                    "runningCount": 1
-                }, 
-                {
-                    "status": "ACTIVE", 
-                    "pendingCount": 0, 
-                    "createdAt": 1449511658.683, 
-                    "desiredCount": 2, 
-                    "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/httpd-web:33", 
-                    "updatedAt": 1449511869.412, 
-                    "id": "ecs-svc/9223370587343117124", 
+                    "status": "ACTIVE",
+                    "pendingCount": 0,
+                    "createdAt": 1449511658.683,
+                    "desiredCount": 1,
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
+                    "updatedAt": 1449511869.412,
+                    "id": "ecs-svc/9223370587343117124",
                     "runningCount": 1
                 }
-            ], 
+            ],
             "events": [
                 {
-                    "message": "(service httpd-web-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.", 
-                    "id": "3890020b-7e55-4d25-9694-ba823cc34822", 
+                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
+                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
+                    "createdAt": 1449003339.092
+                }
+            ],
+            "runningCount": 1
+        }
+    ],
+    "failures": []
+}`,
+		},
+	}
+}
+
+func DescribeServicesWithDeploymentsCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
+			Body:       `{"cluster":"` + clusterName + `", "services":["arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF"]}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body: `
+{
+    "services": [
+        {
+            "status": "ACTIVE",
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:3",
+            "pendingCount": 0,
+            "loadBalancers": [
+                {
+                    "containerName": "worker",
+                    "containerPort": 80,
+                    "loadBalancerName": "myapp-staging"
+                }
+            ],
+            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
+            "desiredCount": 1,
+            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
+            "clusterArn": "` + clusterName + `",
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
+            "deployments": [
+                {
+                    "status": "PRIMARY",
+                    "pendingCount": 0,
+                    "createdAt": 1449559137.768,
+                    "desiredCount": 1,
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3",
+                    "updatedAt": 1449559137.768,
+                    "id": "ecs-svc/9223370587295638039",
+                    "runningCount": 0
+                },
+                {
+                    "status": "ACTIVE",
+                    "pendingCount": 0,
+                    "createdAt": 1449511658.683,
+                    "desiredCount": 1,
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
+                    "updatedAt": 1449511869.412,
+                    "id": "ecs-svc/9223370587343117124",
+                    "runningCount": 1
+                }
+            ],
+            "events": [
+                {
+                    "message": "(service myapp-staging-worker-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.",
+                    "id": "3890020b-7e55-4d25-9694-ba823cc34822",
                     "createdAt": 1449760390.037
                 },
                 {
-                    "message": "(service httpd-web-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).", 
-                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a", 
+                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
+                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
                     "createdAt": 1449003339.092
                 }
-            ], 
-            "runningCount": 2
+            ],
+            "runningCount": 1
         }
-    ], 
+    ],
     "failures": []
 }`,
+		},
+	}
+}
+
+func DescribeTaskDefinition3Cycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"myapp-staging-worker"}}`,
+		},
+	}
+}
+
+func DescribeTaskDefinition1Cycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"myapp-staging-worker"}}`,
 		},
 	}
 }
