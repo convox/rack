@@ -23,6 +23,7 @@ type Process struct {
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`
 	Release string    `json:"release"`
+	Size    int64     `json:"size"`
 	Cpu     float64   `json:"cpu"`
 	Memory  float64   `json:"memory"`
 	Started time.Time `json:"started"`
@@ -172,6 +173,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 			ps := Process{
 				Id:   "pending",
 				Name: *cd.Name,
+				Size: *cd.Memory,
 			}
 
 			for _, env := range cd.Environment {
@@ -199,6 +201,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		Image: *cd.Image,
 		Name:  *cd.Name,
 		Ports: []string{},
+		Size:  *cd.Memory,
 	}
 
 	for _, env := range cd.Environment {
