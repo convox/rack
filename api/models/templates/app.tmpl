@@ -210,7 +210,7 @@
           "Release": { "Ref": "Release" },
           "Environment": { "Ref": "Environment" },
           "Key": { "Ref": "Key" },
-          "Tasks": [ {{ entry_task . $e.Name }} ]
+          "Tasks": [ {{ template "entry_task2" . }} ]
         }
       },
       "{{ upper $e.Name }}ECSService": {
@@ -415,6 +415,50 @@
       ]
     }
   },
+{{ end }}
+
+{{ define "entry_task2" }}
+{ "Fn::If": [ "Blank{{ upper .Name }}Service",
+  {
+    "Name": "{{ .Name }}",
+    "Image": { "Ref": "{{ upper .Name }}Image" },
+    "Command": { "Ref": "{{ upper .Name }}Command" },
+    "Memory": { "Ref": "{{ upper .Name }}Memory" },
+    "Environment": {
+      {{ range $key, $value := .EnvMap }}
+        "{{ $key }}": "{{ $value }}",
+      {{ end }}
+      "KINESIS": { "Ref": "Kinesis" },
+      "PROCESS": "{{ .Name }}"
+    },
+    "Volumes": [
+      {{ range .MountableVolumes }}
+        "{{ . }}",
+      {{ end }}
+      { "Ref" : "AWS::NoValue" }
+    ],
+    "Services": [
+      {{ range .Links }}
+        { "Fn::If": [ "Blank{{ upper . }}Service",
+          { "Ref" : "AWS::NoValue" },
+          { "Fn::Join": [ ":", [ { "Ref" : "{{ upper . }}Service" }, "{{ . }}" ] ] }
+        ]},
+      {{ end }}
+      { "Ref" : "AWS::NoValue" }
+    ],
+    "PortMappings": [
+      {{ $e := . }}
+      {{ range .PortMappings }}
+        { "Fn::Join": [ ":", [
+          { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+          "{{ .Container }}"
+        ] ] },
+      {{ end }}
+      { "Ref" : "AWS::NoValue" }
+    ]
+  },
+  { "Ref" : "AWS::NoValue" } ]
+}
 {{ end }}
 
 {{ define "state" }}

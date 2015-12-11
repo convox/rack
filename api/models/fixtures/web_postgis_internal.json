@@ -363,14 +363,25 @@
                 "Image": {
                   "Ref": "PostgresImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "PostgresMemory"
                 },
                 "Name": "postgres",
-                "PortMappings": [],
-                "Services": [],
-                "Volumes": []
+                "PortMappings": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
@@ -535,19 +546,6 @@
                 "Image": {
                   "Ref": "WebImage"
                 },
-                "Links": [
-                  {
-                    "Fn::If": [
-                      "BlankPostgresService",
-                      {
-                        "Ref": "AWS::NoValue"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  }
-                ],
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -563,6 +561,9 @@
                         "3000"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
                 "Services": [
@@ -584,9 +585,16 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Volumes": []
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"

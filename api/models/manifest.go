@@ -31,6 +31,12 @@ type ManifestEntry struct {
 	randoms map[string]int
 }
 
+type ManifestPort struct {
+	Balancer  string
+	Container string
+	Internal  bool
+}
+
 type ManifestEntries map[string]ManifestEntry
 
 type ManifestBalancer struct {
@@ -270,6 +276,55 @@ func (me ManifestEntry) ContainerPorts() []string {
 	sort.Strings(ext)
 
 	return ext
+}
+
+func (me ManifestEntry) EnvMap() map[string]string {
+	envs := map[string]string{}
+
+	for _, env := range me.Env {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) == 2 {
+			envs[parts[0]] = parts[1]
+		}
+	}
+
+	return envs
+}
+
+func (me ManifestEntry) MountableVolumes() []string {
+	volumes := []string{}
+
+	for _, volume := range me.Volumes {
+		if strings.HasPrefix(volume, "/var/run/docker.sock") {
+			volumes = append(volumes, volume)
+		}
+	}
+
+	return volumes
+}
+
+func (me ManifestEntry) PortMappings() []ManifestPort {
+	mappings := []ManifestPort{}
+
+	for _, port := range me.Ports {
+		parts := strings.SplitN(port, ":", 2)
+
+		switch len(parts) {
+		case 1:
+			mappings = append(mappings, ManifestPort{
+				Balancer:  parts[0],
+				Container: parts[0],
+				Internal:  true,
+			})
+		case 2:
+			mappings = append(mappings, ManifestPort{
+				Balancer:  parts[0],
+				Container: parts[1],
+			})
+		}
+	}
+
+	return mappings
 }
 
 func (me ManifestEntry) ExternalPorts() []string {

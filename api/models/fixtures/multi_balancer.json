@@ -806,7 +806,6 @@
                 "Image": {
                   "Ref": "WebImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -822,10 +821,21 @@
                         "3000"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Services": [],
-                "Volumes": []
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
@@ -939,7 +949,6 @@
                 "Image": {
                   "Ref": "WorkerImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "WorkerMemory"
                 },
@@ -955,10 +964,21 @@
                         "3000"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Services": [],
-                "Volumes": []
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
