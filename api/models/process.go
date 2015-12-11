@@ -325,8 +325,13 @@ func (ps Processes) Len() int {
 	return len(ps)
 }
 
+// Sort processes by name and id
+// Processes with a 'pending' id will naturally come last by design
 func (ps Processes) Less(i, j int) bool {
-	return ps[i].Name < ps[j].Name
+	psi := fmt.Sprintf("%s-%s", ps[i].Name, ps[i].Id)
+	psj := fmt.Sprintf("%s-%s", ps[j].Name, ps[j].Id)
+
+	return psi < psj
 }
 
 func (ps Processes) Swap(i, j int) {
