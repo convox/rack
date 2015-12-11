@@ -277,7 +277,7 @@ func DescribeServicesCycle(clusterName string) awsutil.Cycle {
 	}
 }
 
-func DescribeContainerInstancesCycle2(clusterName string) awsutil.Cycle {
+func DescribeContainerInstancesFilteredCycle(clusterName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
 			`{"cluster":"` + clusterName + `",
@@ -291,7 +291,7 @@ func DescribeContainerInstancesCycle2(clusterName string) awsutil.Cycle {
 	}
 }
 
-func DescribeInstancesCycle2() awsutil.Cycle {
+func DescribeInstancesFilteredCycle() awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "", `Action=DescribeInstances&Filter.1.Name=instance-id&Filter.1.Value.1=i-4a5513f4&Version=2015-10-01`},
 		awsutil.Response{200, `<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2015-10-01/">

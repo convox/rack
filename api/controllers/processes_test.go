@@ -28,8 +28,8 @@ func TestProcessesList(t *testing.T) {
 		test.ListTasksCycle("convox-test-cluster"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
-		test.DescribeContainerInstancesCycle2("convox-test-cluster"),
-		test.DescribeInstancesCycle2(),
+		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
+		test.DescribeInstancesFilteredCycle(),
 		test.ListServicesCycle("convox-test-cluster"),
 		test.DescribeServicesCycle("convox-test-cluster"),
 	)
