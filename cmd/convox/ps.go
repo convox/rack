@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -51,7 +52,7 @@ func cmdPs(c *cli.Context) {
 		t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU", "MEM", "STARTED", "COMMAND")
 
 		for _, p := range ps {
-			t.AddRow(p.Id, p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
 		}
 
 		t.Print()
@@ -59,7 +60,7 @@ func cmdPs(c *cli.Context) {
 		t := stdcli.NewTable("ID", "NAME", "RELEASE", "STARTED", "COMMAND")
 
 		for _, p := range ps {
-			t.AddRow(p.Id, p.Name, p.Release, humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, humanizeTime(p.Started), p.Command)
 		}
 
 		t.Print()
@@ -91,4 +92,12 @@ func cmdPsStop(c *cli.Context) {
 	}
 
 	fmt.Println("OK")
+}
+
+func prettyId(p client.Process) string {
+	if p.Id == "pending" {
+		return "[PENDING]"
+	}
+
+	return p.Id
 }
