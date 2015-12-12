@@ -258,8 +258,8 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	instance := ires.Reservations[0].Instances[0]
 
 	// Connect to a Docker client
-	// In testing use the stub AWS server.
-	// In development, modify the security group for port 2376 and use the Public IP
+	// In testing use the stub Docker server.
+	// In development, modify the security group for port 2376 and use the public IP
 	// In production, use the private IP
 
 	ip := *instance.PrivateIpAddress
