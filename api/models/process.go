@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -341,9 +342,11 @@ func (ps Processes) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
+var ErrPending = errors.New("can not get docker client for non-running container")
+
 func (p *Process) Docker() (*docker.Client, error) {
 	if p.Id == "pending" {
-		return nil, fmt.Errorf("pending")
+		return nil, ErrPending
 	}
 
 	if os.Getenv("TEST") == "true" {
@@ -357,7 +360,7 @@ func (p *Process) FetchStats() error {
 	d, err := p.Docker()
 
 	if err != nil {
-		if err.Error() == "pending" {
+		if err == ErrPending {
 			return nil
 		}
 
