@@ -214,49 +214,7 @@ func DescribeServicesCycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body: `
-{
-    "services": [
-        {
-            "status": "ACTIVE", 
-            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:1",
-            "pendingCount": 0,
-            "loadBalancers": [
-                {
-                    "containerName": "worker",
-                    "containerPort": 80,
-                    "loadBalancerName": "myapp-staging"
-                }
-            ],
-            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
-            "desiredCount": 1,
-            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
-            "clusterArn": "` + clusterName + `",
-            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
-            "deployments": [
-                {
-                    "status": "ACTIVE",
-                    "pendingCount": 0,
-                    "createdAt": 1449511658.683,
-                    "desiredCount": 1,
-                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
-                    "updatedAt": 1449511869.412,
-                    "id": "ecs-svc/9223370587343117124",
-                    "runningCount": 1
-                }
-            ],
-            "events": [
-                {
-                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
-                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
-                    "createdAt": 1449003339.092
-                }
-            ],
-            "runningCount": 1
-        }
-    ],
-    "failures": []
-}`,
+			Body:       describeServicesResponse(clusterName),
 		},
 	}
 }
@@ -270,64 +228,7 @@ func DescribeServicesWithDeploymentsCycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body: `
-{
-    "services": [
-        {
-            "status": "ACTIVE",
-            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:3",
-            "pendingCount": 0,
-            "loadBalancers": [
-                {
-                    "containerName": "worker",
-                    "containerPort": 80,
-                    "loadBalancerName": "myapp-staging"
-                }
-            ],
-            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
-            "desiredCount": 1,
-            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
-            "clusterArn": "` + clusterName + `",
-            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
-            "deployments": [
-                {
-                    "status": "PRIMARY",
-                    "pendingCount": 0,
-                    "createdAt": 1449559137.768,
-                    "desiredCount": 1,
-                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3",
-                    "updatedAt": 1449559137.768,
-                    "id": "ecs-svc/9223370587295638039",
-                    "runningCount": 0
-                },
-                {
-                    "status": "ACTIVE",
-                    "pendingCount": 0,
-                    "createdAt": 1449511658.683,
-                    "desiredCount": 1,
-                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
-                    "updatedAt": 1449511869.412,
-                    "id": "ecs-svc/9223370587343117124",
-                    "runningCount": 1
-                }
-            ],
-            "events": [
-                {
-                    "message": "(service myapp-staging-worker-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.",
-                    "id": "3890020b-7e55-4d25-9694-ba823cc34822",
-                    "createdAt": 1449760390.037
-                },
-                {
-                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
-                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
-                    "createdAt": 1449003339.092
-                }
-            ],
-            "runningCount": 1
-        }
-    ],
-    "failures": []
-}`,
+			Body:       describeServicesWithDeploymentsResponse(clusterName),
 		},
 	}
 }
@@ -377,143 +278,7 @@ func DescribeContainerInstancesFilteredCycle(clusterName string) awsutil.Cycle {
 func DescribeInstancesFilteredCycle() awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "", `Action=DescribeInstances&Filter.1.Name=instance-id&Filter.1.Value.1=i-4a5513f4&Version=2015-10-01`},
-		awsutil.Response{200, `<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2015-10-01/">
-    <requestId>f215b40f-5a0c-4fe6-9624-657cd1f4ef6b</requestId>
-    <reservationSet>
-        <item>
-            <reservationId>r-8d7e2072</reservationId>
-            <ownerId>938166070011</ownerId>
-            <groupSet/>
-            <instancesSet>
-                <item>
-                    <instanceId>i-c6a72b76</instanceId>
-                    <imageId>ami-c5fa5aae</imageId>
-                    <instanceState>
-                        <code>16</code>
-                        <name>running</name>
-                    </instanceState>
-                    <privateDnsName>ip-10-0-3-248.ec2.internal</privateDnsName>
-                    <dnsName/>
-                    <reason/>
-                    <amiLaunchIndex>0</amiLaunchIndex>
-                    <productCodes/>
-                    <instanceType>t2.small</instanceType>
-                    <launchTime>2015-11-19T02:59:53.000Z</launchTime>
-                    <placement>
-                        <availabilityZone>us-east-1c</availabilityZone>
-                        <groupName/>
-                        <tenancy>default</tenancy>
-                    </placement>
-                    <monitoring>
-                        <state>enabled</state>
-                    </monitoring>
-                    <subnetId>subnet-21bab178</subnetId>
-                    <vpcId>vpc-e948f08d</vpcId>
-                    <privateIpAddress>10.0.3.248</privateIpAddress>
-                    <ipAddress>52.71.252.224</ipAddress>
-                    <sourceDestCheck>true</sourceDestCheck>
-                    <groupSet>
-                        <item>
-                            <groupId>sg-31188d57</groupId>
-                            <groupName>convox-dev-SecurityGroup-VZKZ1CGI51J4</groupName>
-                        </item>
-                    </groupSet>
-                    <architecture>x86_64</architecture>
-                    <rootDeviceType>ebs</rootDeviceType>
-                    <rootDeviceName>/dev/xvda</rootDeviceName>
-                    <blockDeviceMapping>
-                        <item>
-                            <deviceName>/dev/xvda</deviceName>
-                            <ebs>
-                                <volumeId>vol-dfb94422</volumeId>
-                                <status>attached</status>
-                                <attachTime>2015-11-19T02:59:56.000Z</attachTime>
-                                <deleteOnTermination>true</deleteOnTermination>
-                            </ebs>
-                        </item>
-                    </blockDeviceMapping>
-                    <virtualizationType>hvm</virtualizationType>
-                    <clientToken>2a49b8e3-6ed5-49f0-a62e-904c43347933_subnet-21bab178_1</clientToken>
-                    <tagSet>
-                        <item>
-                            <key>Name</key>
-                            <value>convox-dev</value>
-                        </item>
-                        <item>
-                            <key>aws:cloudformation:stack-id</key>
-                            <value>arn:aws:cloudformation:us-east-1:938166070011:stack/convox-dev/538ae350-8815-11e5-8a2d-5001b34fc89a</value>
-                        </item>
-                        <item>
-                            <key>Rack</key>
-                            <value>convox-dev</value>
-                        </item>
-                        <item>
-                            <key>aws:autoscaling:groupName</key>
-                            <value>convox-dev-Instances-1QUKKS9PIP4BS</value>
-                        </item>
-                        <item>
-                            <key>aws:cloudformation:logical-id</key>
-                            <value>Instances</value>
-                        </item>
-                        <item>
-                            <key>aws:cloudformation:stack-name</key>
-                            <value>convox-dev</value>
-                        </item>
-                    </tagSet>
-                    <hypervisor>xen</hypervisor>
-                    <networkInterfaceSet>
-                        <item>
-                            <networkInterfaceId>eni-6b4b7637</networkInterfaceId>
-                            <subnetId>subnet-21bab178</subnetId>
-                            <vpcId>vpc-e948f08d</vpcId>
-                            <description/>
-                            <ownerId>938166070011</ownerId>
-                            <status>in-use</status>
-                            <macAddress>0e:d6:3e:c3:21:15</macAddress>
-                            <privateIpAddress>10.0.3.248</privateIpAddress>
-                            <sourceDestCheck>true</sourceDestCheck>
-                            <groupSet>
-                                <item>
-                                    <groupId>sg-31188d57</groupId>
-                                    <groupName>convox-dev-SecurityGroup-VZKZ1CGI51J4</groupName>
-                                </item>
-                            </groupSet>
-                            <attachment>
-                                <attachmentId>eni-attach-d99f0c34</attachmentId>
-                                <deviceIndex>0</deviceIndex>
-                                <status>attached</status>
-                                <attachTime>2015-11-19T02:59:53.000Z</attachTime>
-                                <deleteOnTermination>true</deleteOnTermination>
-                            </attachment>
-                            <association>
-                                <publicIp>52.71.252.224</publicIp>
-                                <publicDnsName/>
-                                <ipOwnerId>amazon</ipOwnerId>
-                            </association>
-                            <privateIpAddressesSet>
-                                <item>
-                                    <privateIpAddress>10.0.3.248</privateIpAddress>
-                                    <primary>true</primary>
-                                    <association>
-                                    <publicIp>52.71.252.224</publicIp>
-                                    <publicDnsName/>
-                                    <ipOwnerId>amazon</ipOwnerId>
-                                    </association>
-                                </item>
-                            </privateIpAddressesSet>
-                        </item>
-                    </networkInterfaceSet>
-                    <iamInstanceProfile>
-                        <arn>arn:aws:iam::938166070011:instance-profile/convox-dev-InstanceProfile-HJBF2SIK0R6W</arn>
-                        <id>AIPAIR7O43WTX246KVAIM</id>
-                    </iamInstanceProfile>
-                    <ebsOptimized>false</ebsOptimized>
-                </item>
-            </instancesSet>
-            <requesterId>226008221399</requesterId>
-        </item>
-    </reservationSet>
-</DescribeInstancesResponse>`},
+		awsutil.Response{200, describeInstancesFilteredResponse()},
 	}
 }
 
@@ -1117,8 +882,255 @@ func describeInstancesResponse() string {
 </DescribeInstancesResponse>`
 }
 
+func describeInstancesFilteredResponse() string {
+	return `<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2015-10-01/">
+    <requestId>f215b40f-5a0c-4fe6-9624-657cd1f4ef6b</requestId>
+    <reservationSet>
+        <item>
+            <reservationId>r-8d7e2072</reservationId>
+            <ownerId>938166070011</ownerId>
+            <groupSet/>
+            <instancesSet>
+                <item>
+                    <instanceId>i-c6a72b76</instanceId>
+                    <imageId>ami-c5fa5aae</imageId>
+                    <instanceState>
+                        <code>16</code>
+                        <name>running</name>
+                    </instanceState>
+                    <privateDnsName>ip-10-0-3-248.ec2.internal</privateDnsName>
+                    <dnsName/>
+                    <reason/>
+                    <amiLaunchIndex>0</amiLaunchIndex>
+                    <productCodes/>
+                    <instanceType>t2.small</instanceType>
+                    <launchTime>2015-11-19T02:59:53.000Z</launchTime>
+                    <placement>
+                        <availabilityZone>us-east-1c</availabilityZone>
+                        <groupName/>
+                        <tenancy>default</tenancy>
+                    </placement>
+                    <monitoring>
+                        <state>enabled</state>
+                    </monitoring>
+                    <subnetId>subnet-21bab178</subnetId>
+                    <vpcId>vpc-e948f08d</vpcId>
+                    <privateIpAddress>10.0.3.248</privateIpAddress>
+                    <ipAddress>52.71.252.224</ipAddress>
+                    <sourceDestCheck>true</sourceDestCheck>
+                    <groupSet>
+                        <item>
+                            <groupId>sg-31188d57</groupId>
+                            <groupName>convox-dev-SecurityGroup-VZKZ1CGI51J4</groupName>
+                        </item>
+                    </groupSet>
+                    <architecture>x86_64</architecture>
+                    <rootDeviceType>ebs</rootDeviceType>
+                    <rootDeviceName>/dev/xvda</rootDeviceName>
+                    <blockDeviceMapping>
+                        <item>
+                            <deviceName>/dev/xvda</deviceName>
+                            <ebs>
+                                <volumeId>vol-dfb94422</volumeId>
+                                <status>attached</status>
+                                <attachTime>2015-11-19T02:59:56.000Z</attachTime>
+                                <deleteOnTermination>true</deleteOnTermination>
+                            </ebs>
+                        </item>
+                    </blockDeviceMapping>
+                    <virtualizationType>hvm</virtualizationType>
+                    <clientToken>2a49b8e3-6ed5-49f0-a62e-904c43347933_subnet-21bab178_1</clientToken>
+                    <tagSet>
+                        <item>
+                            <key>Name</key>
+                            <value>convox-dev</value>
+                        </item>
+                        <item>
+                            <key>aws:cloudformation:stack-id</key>
+                            <value>arn:aws:cloudformation:us-east-1:938166070011:stack/convox-dev/538ae350-8815-11e5-8a2d-5001b34fc89a</value>
+                        </item>
+                        <item>
+                            <key>Rack</key>
+                            <value>convox-dev</value>
+                        </item>
+                        <item>
+                            <key>aws:autoscaling:groupName</key>
+                            <value>convox-dev-Instances-1QUKKS9PIP4BS</value>
+                        </item>
+                        <item>
+                            <key>aws:cloudformation:logical-id</key>
+                            <value>Instances</value>
+                        </item>
+                        <item>
+                            <key>aws:cloudformation:stack-name</key>
+                            <value>convox-dev</value>
+                        </item>
+                    </tagSet>
+                    <hypervisor>xen</hypervisor>
+                    <networkInterfaceSet>
+                        <item>
+                            <networkInterfaceId>eni-6b4b7637</networkInterfaceId>
+                            <subnetId>subnet-21bab178</subnetId>
+                            <vpcId>vpc-e948f08d</vpcId>
+                            <description/>
+                            <ownerId>938166070011</ownerId>
+                            <status>in-use</status>
+                            <macAddress>0e:d6:3e:c3:21:15</macAddress>
+                            <privateIpAddress>10.0.3.248</privateIpAddress>
+                            <sourceDestCheck>true</sourceDestCheck>
+                            <groupSet>
+                                <item>
+                                    <groupId>sg-31188d57</groupId>
+                                    <groupName>convox-dev-SecurityGroup-VZKZ1CGI51J4</groupName>
+                                </item>
+                            </groupSet>
+                            <attachment>
+                                <attachmentId>eni-attach-d99f0c34</attachmentId>
+                                <deviceIndex>0</deviceIndex>
+                                <status>attached</status>
+                                <attachTime>2015-11-19T02:59:53.000Z</attachTime>
+                                <deleteOnTermination>true</deleteOnTermination>
+                            </attachment>
+                            <association>
+                                <publicIp>52.71.252.224</publicIp>
+                                <publicDnsName/>
+                                <ipOwnerId>amazon</ipOwnerId>
+                            </association>
+                            <privateIpAddressesSet>
+                                <item>
+                                    <privateIpAddress>10.0.3.248</privateIpAddress>
+                                    <primary>true</primary>
+                                    <association>
+                                    <publicIp>52.71.252.224</publicIp>
+                                    <publicDnsName/>
+                                    <ipOwnerId>amazon</ipOwnerId>
+                                    </association>
+                                </item>
+                            </privateIpAddressesSet>
+                        </item>
+                    </networkInterfaceSet>
+                    <iamInstanceProfile>
+                        <arn>arn:aws:iam::938166070011:instance-profile/convox-dev-InstanceProfile-HJBF2SIK0R6W</arn>
+                        <id>AIPAIR7O43WTX246KVAIM</id>
+                    </iamInstanceProfile>
+                    <ebsOptimized>false</ebsOptimized>
+                </item>
+            </instancesSet>
+            <requesterId>226008221399</requesterId>
+        </item>
+    </reservationSet>
+</DescribeInstancesResponse>`
+}
+
 func describeContainerInstancesResponse() string {
 	return `{"containerInstances":[{"agentConnected":true,"containerInstanceArn":"arn:aws:ecs:us-east-1:938166070011:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","ec2InstanceId":"i-4a5513f4","pendingTasksCount":0,"registeredResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":2004,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"remainingResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":2004,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"runningTasksCount":0,"status":"ACTIVE","versionInfo":{"agentHash":"4ab1051","agentVersion":"1.4.0","dockerVersion":"DockerVersion: 1.7.1"}},
 {"agentConnected":true,"containerInstanceArn":"arn:aws:ecs:us-east-1:938166070011:container-instance/38a59629-6f5d-4d02-8733-fdb49500ae45","ec2InstanceId":"i-3963798e","pendingTasksCount":0,"registeredResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":2004,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"remainingResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":2004,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"runningTasksCount":0,"status":"ACTIVE","versionInfo":{"agentHash":"4ab1051","agentVersion":"1.4.0","dockerVersion":"DockerVersion: 1.7.1"}},
 {"agentConnected":true,"containerInstanceArn":"arn:aws:ecs:us-east-1:938166070011:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c","ec2InstanceId":"i-c6a72b76","pendingTasksCount":0,"registeredResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":2004,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"remainingResources":[{"doubleValue":0.0,"integerValue":1024,"longValue":0,"name":"CPU","type":"INTEGER"},{"doubleValue":0.0,"integerValue":1620,"longValue":0,"name":"MEMORY","type":"INTEGER"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","3101","3001","3100","51678","3000"],"type":"STRINGSET"},{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}],"runningTasksCount":1,"status":"ACTIVE","versionInfo":{"agentHash":"4ab1051","agentVersion":"1.4.0","dockerVersion":"DockerVersion: 1.7.1"}}],"failures":[]}`
+}
+
+func describeServicesResponse(clusterName string) string {
+	return `
+{
+    "services": [
+        {
+            "status": "ACTIVE",
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:1",
+            "pendingCount": 0,
+            "loadBalancers": [
+                {
+                    "containerName": "worker",
+                    "containerPort": 80,
+                    "loadBalancerName": "myapp-staging"
+                }
+            ],
+            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
+            "desiredCount": 1,
+            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
+            "clusterArn": "` + clusterName + `",
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
+            "deployments": [
+                {
+                    "status": "ACTIVE",
+                    "pendingCount": 0,
+                    "createdAt": 1449511658.683,
+                    "desiredCount": 1,
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
+                    "updatedAt": 1449511869.412,
+                    "id": "ecs-svc/9223370587343117124",
+                    "runningCount": 1
+                }
+            ],
+            "events": [
+                {
+                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
+                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
+                    "createdAt": 1449003339.092
+                }
+            ],
+            "runningCount": 1
+        }
+    ],
+    "failures": []
+}`
+}
+
+func describeServicesWithDeploymentsResponse(clusterName string) string {
+	return `
+{
+    "services": [
+        {
+            "status": "ACTIVE",
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:3",
+            "pendingCount": 0,
+            "loadBalancers": [
+                {
+                    "containerName": "worker",
+                    "containerPort": 80,
+                    "loadBalancerName": "myapp-staging"
+                }
+            ],
+            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
+            "desiredCount": 1,
+            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
+            "clusterArn": "` + clusterName + `",
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
+            "deployments": [
+                {
+                    "status": "PRIMARY",
+                    "pendingCount": 0,
+                    "createdAt": 1449559137.768,
+                    "desiredCount": 1,
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3",
+                    "updatedAt": 1449559137.768,
+                    "id": "ecs-svc/9223370587295638039",
+                    "runningCount": 0
+                },
+                {
+                    "status": "ACTIVE",
+                    "pendingCount": 0,
+                    "createdAt": 1449511658.683,
+                    "desiredCount": 1,
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
+                    "updatedAt": 1449511869.412,
+                    "id": "ecs-svc/9223370587343117124",
+                    "runningCount": 1
+                }
+            ],
+            "events": [
+                {
+                    "message": "(service myapp-staging-worker-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.",
+                    "id": "3890020b-7e55-4d25-9694-ba823cc34822",
+                    "createdAt": 1449760390.037
+                },
+                {
+                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
+                    "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
+                    "createdAt": 1449003339.092
+                }
+            ],
+            "runningCount": 1
+        }
+    ],
+    "failures": []
+}`
 }
