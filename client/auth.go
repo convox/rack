@@ -20,6 +20,10 @@ func (c *Client) Auth() error {
 		return err
 	}
 
+	if resp.Status != "200" {
+		return fmt.Errorf("ERROR: invalid login\n")
+	}
+
 	resp.Body.Close()
 	return nil
 }

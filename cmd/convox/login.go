@@ -374,7 +374,6 @@ func testLogin(host, password, version string) (err error) {
 		err = cl.Auth()
 
 		if err != nil {
-			fmt.Println(err.Error())
 			return
 		}
 	}
