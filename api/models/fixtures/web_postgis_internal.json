@@ -25,6 +25,14 @@
         },
         ""
       ]
+    },
+    "PrivateResources": {
+      "Fn::Equals": [
+        {
+          "Ref": "PrivateResources"
+        },
+        "Yes"
+      ]
     }
   },
   "Outputs": {
@@ -83,6 +91,11 @@
     "PostgresService": {
       "Default": "",
       "Description": "",
+      "Type": "String"
+    },
+    "PrivateResources": {
+      "Default": "",
+      "Description": "Create private resources",
       "Type": "String"
     },
     "Release": {
