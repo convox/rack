@@ -124,7 +124,7 @@
   {{ range $e := . }}
     "{{ upper $e.Name }}Command": {
       "Type" : "String",
-      "Default" : "{{ command $e.Command }}",
+      "Default" : "{{ $e.CommandString }}",
       "Description" : ""
     },
     "{{ upper $e.Name }}DesiredCount": {
