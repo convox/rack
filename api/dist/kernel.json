@@ -5,6 +5,7 @@
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "BlankNatAmi": { "Fn::Equals": [ { "Ref": "NatAmi" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] },
@@ -12,12 +13,12 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-c5fa5aae" },
-      "us-west-1": { "Ami": "ami-4b44b80f" },
-      "us-west-2": { "Ami": "ami-b7f0f987" },
-      "eu-west-1": { "Ami": "ami-c8abfdbf" },
-      "ap-northeast-1": { "Ami": "ami-7c78c47c" },
-      "ap-southeast-2": { "Ami": "ami-f17939cb" }
+      "us-east-1": { "Ami": "ami-c5fa5aae", "NatAmi": "ami-b0210ed8" },
+      "us-west-1": { "Ami": "ami-4b44b80f", "NatAmi": "ami-ada746e9" },
+      "us-west-2": { "Ami": "ami-b7f0f987", "NatAmi": "ami-75ae8245" },
+      "eu-west-1": { "Ami": "ami-c8abfdbf", "NatAmi": "ami-ef76e898" },
+      "ap-northeast-1": { "Ami": "ami-7c78c47c", "NatAmi": "ami-11dc2a11" },
+      "ap-southeast-2": { "Ami": "ami-f17939cb", "NatAmi": "ami-1a9dac48" }
     }
   },
   "Outputs": {
@@ -174,7 +175,7 @@
     "NatAmi": {
       "Type": "String",
       "Description": "Amazon Machine Image for nat instances",
-      "Default": "ami-b0210ed8"
+      "Default": ""
     },
     "NatInstanceType": {
       "Default": "t2.small",
@@ -429,7 +430,7 @@
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
         "DisableApiTermination": "FALSE",
-        "ImageId": {"Ref": "NatAmi"},
+        "ImageId": { "Fn::If": [ "BlankNatAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "NatAmi" ] }, { "Ref": "NatAmi" } ] },
         "InstanceType": {"Ref": "NatInstanceType"},
         "KeyName": { "Ref": "Key" },
         "NetworkInterfaces": [ {
@@ -463,7 +464,7 @@
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
         "DisableApiTermination": "FALSE",
-        "ImageId": {"Ref": "NatAmi"},
+        "ImageId": { "Fn::If": [ "BlankNatAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "NatAmi" ] }, { "Ref": "NatAmi" } ] },
         "InstanceType": {"Ref": "NatInstanceType"},
         "KeyName": { "Ref": "Key" },
         "NetworkInterfaces": [ {
@@ -497,7 +498,7 @@
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
         "DisableApiTermination": "FALSE",
-        "ImageId": {"Ref": "NatAmi"},
+        "ImageId": { "Fn::If": [ "BlankNatAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "NatAmi" ] }, { "Ref": "NatAmi" } ] },
         "InstanceType": {"Ref": "NatInstanceType"},
         "KeyName": { "Ref": "Key" },
         "NetworkInterfaces": [ {
