@@ -215,7 +215,7 @@
       },
       "{{ upper $e.Name }}ECSService": {
         "DependsOn": [
-          {{ if gt (len $e.PortMappings) 0 }}
+          {{ if $e.HasBalancer }}
             "{{ $manifest.BalancerResourceName $e.Name }}",
           {{ end }}
           "CustomTopic"

@@ -326,6 +326,10 @@ func (me ManifestEntry) MountableVolumes() []string {
 	return volumes
 }
 
+func (me ManifestEntry) HasBalancer() bool {
+	return len(me.PortMappings()) > 0
+}
+
 func (me ManifestEntry) PortMappings() []ManifestPort {
 	mappings := []ManifestPort{}
 
