@@ -593,7 +593,6 @@
     "WebECSService": {
       "DependsOn": [
         "BalancerWebInternal",
-        "BalancerWebInternal",
         "CustomTopic"
       ],
       "Properties": {
