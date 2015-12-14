@@ -441,6 +441,18 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /auth:
+    get:
+      description: authenticate password
+      responses:
+        200:
+          description: valid password
+          schema:
+            type: string
+        401:
+          description: invalid password
+          schema:
+            type: string
   /instances:
     get:
       description: List instances.
