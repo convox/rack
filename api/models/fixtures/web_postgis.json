@@ -374,6 +374,7 @@
             ]
           ]
         },
+        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerWebSecurityGroup"
@@ -559,7 +560,9 @@
       "Type": "AWS::IAM::User"
     },
     "PostgresECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -744,7 +747,11 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "BalancerWeb",
+        "BalancerWeb",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"

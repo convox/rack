@@ -1,4 +1,3 @@
-
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
@@ -18,6 +17,14 @@
         ""
       ]
     },
+    "BlankWebPort3000Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000Certificate"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         {
@@ -25,9 +32,25 @@
         },
         ""
       ]
+    },
+    "SecureWebPort3000": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000Secure"
+        },
+        "Yes"
+      ]
     }
   },
   "Outputs": {
+    "BalancerWebHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerWebInternal",
+          "DNSName"
+        ]
+      }
+    },
     "Kinesis": {
       "Value": {
         "Ref": "Kinesis"
@@ -36,6 +59,11 @@
     "Settings": {
       "Value": {
         "Ref": "Settings"
+      }
+    },
+    "WebPort3000Balancer": {
+      "Value": {
+        "Ref": "WebPort3000Balancer"
       }
     }
   },
@@ -130,8 +158,27 @@
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
+    "WebPort3000Balancer": {
+      "Default": "3000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3000Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort3000Host": {
       "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3000Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
       "Description": "",
       "Type": "String"
     },
@@ -142,6 +189,147 @@
     }
   },
   "Resources": {
+    "BalancerWebInternal": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 3600
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WebPort3000Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BlankWebPort3000Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort3000Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort3000Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "Fn::If": [
+                  "SecureWebPort3000",
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort3000Host"
+                    },
+                    "InstanceProtocol": "SSL",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort3000Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort3000Certificate"
+                    }
+                  },
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort3000Host"
+                    },
+                    "InstanceProtocol": "TCP",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort3000Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort3000Certificate"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web",
+              "internal"
+            ]
+          ]
+        },
+        "Scheme": "internal",
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerWebInternalSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerWebInternalSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "WebPort3000Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "WebPort3000Balancer"
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -272,7 +460,9 @@
       "Type": "AWS::IAM::User"
     },
     "PostgresECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -457,7 +647,10 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "BalancerWebInternal",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -466,6 +659,18 @@
           "Ref": "WebDesiredCount"
         },
         "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerWebInternal"
+                },
+                "web",
+                "3000"
+              ]
+            ]
+          },
           {
             "Ref": "AWS::NoValue"
           }

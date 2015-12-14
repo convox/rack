@@ -266,7 +266,9 @@
       "Type": "AWS::IAM::User"
     },
     "PostgresECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -451,7 +453,9 @@
       "Type": "AWS::S3::Bucket"
     },
     "WorkerECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"

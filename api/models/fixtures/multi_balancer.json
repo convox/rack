@@ -328,6 +328,7 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
+        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
@@ -467,6 +468,7 @@
             ]
           ]
         },
+        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"
@@ -705,7 +707,10 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "Balancer",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -848,7 +853,10 @@
       "Version": "1.0"
     },
     "WorkerECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "BalancerWorker",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
