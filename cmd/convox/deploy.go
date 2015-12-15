@@ -83,19 +83,8 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	fmt.Println("UPDATING")
+	fmt.Println()
 
-	formation, err := rackClient(c).ListFormation(app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Println("Available endpoints:")
-
-	for _, ps := range formation {
-		for _, port := range ps.Ports {
-			fmt.Printf("%s:%d (%s)\n", ps.Balancer, port, ps.Name)
-		}
-	}
+	fmt.Printf("Use `convox apps info -a %s` for available endpoints.\n", app)
+	fmt.Printf("Use `convox ps -a %s` for rolling deploy status.\n", app)
 }
