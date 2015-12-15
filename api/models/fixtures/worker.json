@@ -105,8 +105,9 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "Version": {
-      "Default": "latest",
-      "Description": "Convox release version",
+      "Default": "",
+      "Description": "Lambda CustomTopic Handler Release Version",
+      "MinLength": 1,
       "Type": "String"
     },
     "WorkerCommand": {
