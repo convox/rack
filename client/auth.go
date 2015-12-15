@@ -20,7 +20,7 @@ func (c *Client) Auth() error {
 		return err
 	}
 
-	if resp.Status != "200" {
+	if resp.StatusCode != 200 {
 		return fmt.Errorf("invalid login")
 	}
 
