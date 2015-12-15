@@ -319,7 +319,9 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
         "Subnets": { "Ref": "Subnets" },
-        "Scheme": "{{ .Scheme }}",
+        {{ if eq .Scheme "internal" }}
+          "Scheme": "{{ .Scheme }}",
+        {{ end }}
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,

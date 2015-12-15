@@ -328,7 +328,6 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
-        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
@@ -468,7 +467,6 @@
             ]
           ]
         },
-        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"
