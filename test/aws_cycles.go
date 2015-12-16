@@ -59,6 +59,13 @@ func DescribeAppStackCycle(stackName string) awsutil.Cycle {
 	}
 }
 
+func DescribeAppStackResourcesCycle(stackName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=DescribeStackResources&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{200, describeAppStackResourcesResponse(stackName)},
+	}
+}
+
 // returns the stack you asked for with a status
 func DescribeAppStatusStackCycle(stackName string, status string) awsutil.Cycle {
 	return awsutil.Cycle{
@@ -361,7 +368,6 @@ func convoxStackXML(stackName string) string {
 }
 
 func appStackXML(appName string, status string) string {
-
 	return `
       <member>
 				<Tags>
@@ -476,6 +482,112 @@ func appStackXML(appName string, status string) string {
 //       correctly for comparison.
 func createAppUrlBody() string {
 	return `/^Action=CreateStack/`
+}
+
+func describeAppStackResourcesResponse(stackName string) string {
+	return `<DescribeStackResourcesResult>
+    <StackResources>
+      <member>
+        <Timestamp>2015-12-14T19:10:00.038Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>Balancer</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `</PhysicalResourceId>
+        <ResourceType>AWS::ElasticLoadBalancing::LoadBalancer</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:09:55.792Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>BalancerSecurityGroup</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>sg-d5fdc1b1</PhysicalResourceId>
+        <ResourceType>AWS::EC2::SecurityGroup</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:04:00.683Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>CustomTopic</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `-CustomTopic-1XKD0E3PM22G6</PhysicalResourceId>
+        <ResourceType>AWS::Lambda::Function</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:03:56.985Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>CustomTopicRole</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `-CustomTopicRole-EOP193O880F7</PhysicalResourceId>
+        <ResourceType>AWS::IAM::Role</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:04:07.586Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>Kinesis</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `-Kinesis-1MM7WF087XN4A</PhysicalResourceId>
+        <ResourceType>AWS::Kinesis::Stream</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:09:43.075Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>LogsAccess</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>AKIAJKMHFYRRAA6FNNNQ</PhysicalResourceId>
+        <ResourceType>AWS::IAM::AccessKey</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:09:40.392Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>LogsUser</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `-LogsUser-LMMTUSLEH0J3</PhysicalResourceId>
+        <ResourceType>AWS::IAM::User</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:03:57.144Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>ServiceRole</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `-ServiceRole-1K9DGK9MPLXZO</PhysicalResourceId>
+        <ResourceType>AWS::IAM::Role</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:04:17.594Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>Settings</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>` + stackName + `-settings-gclooujvfwww</PhysicalResourceId>
+        <ResourceType>AWS::S3::Bucket</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:10:05.312Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>WebECSService</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>arn:aws:ecs:us-west-2:901416387788:service/` + stackName + `-worker-SCELGCIYSKF</PhysicalResourceId>
+        <ResourceType>Custom::ECSService</ResourceType>
+      </member>
+      <member>
+        <Timestamp>2015-12-14T19:09:44.343Z</Timestamp>
+        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
+        <StackId>arn:aws:cloudformation:us-west-2:901416387788:stack/` + stackName + `/58c3c540-a295-11e5-bb58-50d50031c6e0</StackId>
+        <LogicalResourceId>WebECSTaskDefinition</LogicalResourceId>
+        <StackName>` + stackName + `</StackName>
+        <PhysicalResourceId>arn:aws:ecs:us-west-2:901416387788:task-definition/` + stackName + `-worker:1</PhysicalResourceId>
+        <ResourceType>Custom::ECSTaskDefinition</ResourceType>
+      </member>
+    </StackResources>
+  </DescribeStackResourcesResult>`
 }
 
 func describeInstancesResponse() string {

@@ -36,6 +36,35 @@ type Process struct {
 
 type Processes []Process
 
+func GetServices(app string) ([]*ecs.Service, error) {
+	services := []*ecs.Service{}
+
+	resources, err := ListResources(app)
+
+	if err != nil {
+		return services, err
+	}
+
+	arns := []*string{}
+
+	for _, r := range resources {
+		if r.Type == "Custom::ECSService" {
+			arns = append(arns, aws.String(r.Id))
+		}
+	}
+
+	dres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Services: arns,
+	})
+
+	if err != nil {
+		return services, err
+	}
+
+	return dres.Services, nil
+}
+
 func ListProcesses(app string) (Processes, error) {
 	_, err := GetApp(app)
 
@@ -128,29 +157,13 @@ func ListProcesses(app string) (Processes, error) {
 func ListPendingProcesses(app string) (Processes, error) {
 	pss := Processes{}
 
-	// Describe all services
-	lsres, err := ECS().ListServices(&ecs.ListServicesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
+	services, err := GetServices(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	dsres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: lsres.ServiceArns,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, service := range dsres.Services {
-		if !strings.HasPrefix(*service.ServiceName, fmt.Sprintf("%s-", app)) {
-			continue
-		}
-
+	for _, service := range services {
 		// Test every service deployment for running != pending, to put in a placeholder
 		for _, d := range service.Deployments {
 			if *d.DesiredCount == *d.RunningCount {
