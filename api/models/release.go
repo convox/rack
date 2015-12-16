@@ -162,6 +162,48 @@ func (r *Release) Save() error {
 	return S3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
+// Monitor the ECS services and events every 30s and and send notifications.
+// If there is a scheduling error, warn once.
+// Stop monitoring and report a final state when everything finished or after a 10m timeout.
+func (r *Release) Monitor() {
+	fmt.Printf("release monitor app=%s id=%s\n", r.App, r.Id)
+
+	data := map[string]string{"id": r.Id, "app": r.App}
+	warned := false
+
+	for i := 0; i < 20; i++ {
+		services, err := GetServices(r.App)
+
+		if err != nil {
+			fmt.Printf("error: %+v\n", err)
+			time.Sleep(30 * time.Second)
+			continue
+		}
+
+		state := AppDeploymentState(ServicesDeploymentStates(services))
+
+		fmt.Printf("release monitor app=%s id=%s i=%d state=%s\n", r.App, r.Id, i, state)
+
+		switch state {
+		case "finished":
+			NotifySuccess("release:finish", data)
+			return
+
+		case "timeout":
+			NotifyError("release:timeout", fmt.Errorf("Error: Deploy did not complete in 10m."), data)
+			return
+
+		case "failed":
+			if !warned {
+				NotifyError("release:warn", fmt.Errorf("Warning: deploy failed to place resources."), data)
+			}
+			warned = true
+		}
+
+		time.Sleep(30 * time.Second)
+	}
+}
+
 func (r *Release) Promote() error {
 	formation, err := r.Formation()
 
@@ -222,6 +264,8 @@ func (r *Release) Promote() error {
 		"app": r.App,
 		"id":  r.Id,
 	})
+
+	go r.Monitor()
 
 	return err
 }
