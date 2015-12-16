@@ -36,6 +36,8 @@ type Process struct {
 
 type Processes []Process
 
+var DEPLOYMENT_TIMEOUT = 10 * time.Minute
+
 func GetServices(app string) ([]*ecs.Service, error) {
 	services := []*ecs.Service{}
 
@@ -245,7 +247,7 @@ func ServiceDeploymentState(s *ecs.Service, at ...time.Time) string {
 
 	fmt.Printf("ServiceDeploymentState message=%q event.CreatedAt=%q deploy.CreatedAt=%q now=%q\n", message, event.CreatedAt, deployment.CreatedAt, now)
 
-	window := now.Add(-10 * time.Minute)
+	window := now.Add(-DEPLOYMENT_TIMEOUT)
 
 	if deployment.CreatedAt.Before(window) {
 		return "timeout"

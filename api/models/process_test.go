@@ -39,39 +39,41 @@ func TestServiceDeploymentState(t *testing.T) {
 	assert.Nil(t, err)
 
 	s := out.Services[0]
-	at := *(s.Events[len(s.Events)-1].CreatedAt)
+	eventAt := *s.Events[0].CreatedAt
 
 	// final event is "(service httpd-web-SRZPVERKQOL) has reached a steady state."
 	assert.Equal(t, 4, len(s.Events))
-	assert.Equal(t, "finished", models.ServiceDeploymentState(s, at))
+	assert.Equal(t, "finished", models.ServiceDeploymentState(s, eventAt))
 
 	// shift current event back to "(service httpd-web-SRZPVERKQOL) registered 1 instances in (elb httpd)"
 	s.Events = s.Events[1:]
 	assert.Equal(t, 3, len(s.Events))
-	assert.Equal(t, "pending", models.ServiceDeploymentState(s, at))
+	assert.Equal(t, "pending", models.ServiceDeploymentState(s, eventAt))
 
 	// unshift a scheduler warning
 	s.Events = append([]*ecs.ServiceEvent{
 		&ecs.ServiceEvent{
-			CreatedAt: aws.Time(at),
+			CreatedAt: aws.Time(eventAt),
 			Message:   aws.String("service httpd-web-SRZPVERKQOL was unable to place a task because no container instance met all of its requirements. The closest matching container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0 has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide."),
 		},
 	}, s.Events...)
 	assert.Equal(t, 4, len(s.Events))
-	assert.Equal(t, "warning", models.ServiceDeploymentState(s, at))
+	assert.Equal(t, "warning", models.ServiceDeploymentState(s, eventAt))
 
 	// unshift a Deployment that started after the last event
+	newDeployAt := eventAt.Add(10 * time.Second)
 	s.Deployments = append([]*ecs.Deployment{
 		&ecs.Deployment{
 			Status:    aws.String("PRIMARY"),
-			CreatedAt: aws.Time(at.Add(10 * time.Second)),
+			CreatedAt: aws.Time(newDeployAt),
 		},
 	}, s.Deployments...)
 
-	assert.Equal(t, "pending", models.ServiceDeploymentState(s, at))
+	assert.Equal(t, "pending", models.ServiceDeploymentState(s, newDeployAt))
 
-	// compare deployment start to time.Now() which is >> 10m after latest event
-	assert.Equal(t, "timeout", models.ServiceDeploymentState(s))
+	// compare deployment start to now which is > 10m after latest event
+	assert.Equal(t, "pending", models.ServiceDeploymentState(s, newDeployAt.Add(models.DEPLOYMENT_TIMEOUT)))
+	assert.Equal(t, "timeout", models.ServiceDeploymentState(s, newDeployAt.Add(models.DEPLOYMENT_TIMEOUT+1*time.Second)))
 }
 
 func TestAppDeploymentState(t *testing.T) {
