@@ -127,6 +127,13 @@ func SetFormation(app, process, count, memory string) error {
 		params[fmt.Sprintf("%sMemory", UpperName(process))] = memory
 	}
 
+	NotifySuccess("release:scale", map[string]string{
+		"app": rel.App,
+		"id":  rel.Id,
+	})
+
+	go rel.Monitor()
+
 	return a.UpdateParams(params)
 }
 
