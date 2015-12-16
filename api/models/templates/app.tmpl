@@ -4,7 +4,8 @@
     "Conditions": {
       {{ template "balancer-conditions" . }}
       {{ template "process-conditions" . }}
-      "BlankCluster": { "Fn::Equals": [ { "Ref": "Cluster" }, "" ] }
+      "BlankCluster": { "Fn::Equals": [ { "Ref": "Cluster" }, "" ] },
+      "PrivateResources": { "Fn::Equals": [ { "Ref": "PrivateResources" }, "Yes" ] }
     },
     "Parameters" : {
       {{ template "balancer-params" . }}
@@ -34,6 +35,11 @@
         "Type" : "String",
         "Default" : "",
         "Description" : ""
+      },
+      "PrivateResources": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "Create private resources"
       },
       "Repository": {
         "Type" : "String",
@@ -364,7 +370,8 @@
         ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName }},
-        "SecurityGroups": [ { "Ref": "{{ .ResourceName }}SecurityGroup" } ]
+        "SecurityGroups": [ { "Ref": "{{ .ResourceName }}SecurityGroup" } ],
+        "Scheme" : { "Fn::If": [ "PrivateResources", "internal", "internet-facing" ] }
       }
     },
   {{ end }}

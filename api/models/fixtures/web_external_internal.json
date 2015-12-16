@@ -25,6 +25,14 @@
         ""
       ]
     },
+    "PrivateResources": {
+      "Fn::Equals": [
+        {
+          "Ref": "PrivateResources"
+        },
+        "Yes"
+      ]
+    },
     "SecureWebPort80": {
       "Fn::Equals": [
         {
@@ -78,6 +86,11 @@
     "Key": {
       "Default": "",
       "Description": "",
+      "Type": "String"
+    },
+    "PrivateResources": {
+      "Default": "",
+      "Description": "Create private resources",
       "Type": "String"
     },
     "Release": {
@@ -253,6 +266,13 @@
               },
               "web"
             ]
+          ]
+        },
+        "Scheme": {
+          "Fn::If": [
+            "PrivateResources",
+            "internal",
+            "internet-facing"
           ]
         },
         "SecurityGroups": [

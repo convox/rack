@@ -5,18 +5,20 @@
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "BlankNatAmi": { "Fn::Equals": [ { "Ref": "NatAmi" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
-    "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] }
+    "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] },
+    "PrivateResources": { "Fn::Equals": [ { "Ref": "PrivateResources" }, "Yes" ] }
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-c5fa5aae" },
-      "us-west-1": { "Ami": "ami-4b44b80f" },
-      "us-west-2": { "Ami": "ami-b7f0f987" },
-      "eu-west-1": { "Ami": "ami-c8abfdbf" },
-      "ap-northeast-1": { "Ami": "ami-7c78c47c" },
-      "ap-southeast-2": { "Ami": "ami-f17939cb" }
+      "us-east-1": { "Ami": "ami-c5fa5aae", "NatAmi": "ami-b0210ed8" },
+      "us-west-1": { "Ami": "ami-4b44b80f", "NatAmi": "ami-ada746e9" },
+      "us-west-2": { "Ami": "ami-b7f0f987", "NatAmi": "ami-75ae8245" },
+      "eu-west-1": { "Ami": "ami-c8abfdbf", "NatAmi": "ami-ef76e898" },
+      "ap-northeast-1": { "Ami": "ami-7c78c47c", "NatAmi": "ami-11dc2a11" },
+      "ap-southeast-2": { "Ami": "ami-f17939cb", "NatAmi": "ami-1a9dac48" }
     }
   },
   "Outputs": {
@@ -80,6 +82,10 @@
       "Condition": "Development",
       "Value": { "Ref": "Password" }
     },
+    "PrivateResources": {
+      "Condition": "Development",
+      "Value": { "Ref": "PrivateResources" }
+    },
     "Rack": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::StackName" }
@@ -93,7 +99,10 @@
     },
     "Subnets": {
       "Condition": "Development",
-      "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
+      "Value": { "Fn::If" : [ "PrivateResources",
+          {"Fn::Join": [ ",", [ { "Ref": "Subnet0Private" }, { "Ref": "Subnet1Private" }, { "Ref": "Subnet2Private" } ] ]}, 
+          {"Fn::Join": [ ",", [ { "Ref": "Subnet0Public" }, { "Ref": "Subnet1Public" }, { "Ref": "Subnet2Public" } ] ]}
+      ] }
     },
     "Vpc": {
       "Condition": "Development",
@@ -163,11 +172,27 @@
       "Description": "SSH key name for access to cluster instances",
       "Type": "String"
     },
+    "NatAmi": {
+      "Type": "String",
+      "Description": "Amazon Machine Image for nat instances",
+      "Default": ""
+    },
+    "NatInstanceType": {
+      "Default": "t2.small",
+      "Description": "The type of the nat instances for use with private resources",
+      "Type": "String"
+    },
     "Password": {
       "Description": "(REQUIRED) Kernel HTTP password",
       "Type": "String",
       "MinLength": "1",
       "MaxLength": "50"
+    },
+    "PrivateResources": {
+      "Type": "String",
+      "Description": "Create non publicly routable resources",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "RegistryHost": {
       "Type": "String",
@@ -179,19 +204,34 @@
       "Description": "Registry port",
       "Default": ""
     },
-    "Subnet0CIDR": {
+    "Subnet0PublicCIDR": {
       "Default": "10.0.1.0/24",
-      "Description": "Subnet 0 CIDR Block",
+      "Description": "Subnet 0 Public CIDR Block",
       "Type": "String"
     },
-    "Subnet1CIDR": {
+    "Subnet0PrivateCIDR": {
+      "Default": "10.0.4.0/24",
+      "Description": "Subnet 0 Private CIDR Block",
+      "Type": "String"
+    },
+    "Subnet1PublicCIDR": {
       "Default": "10.0.2.0/24",
-      "Description": "Subnet 0 CIDR Block",
+      "Description": "Subnet 0 Public CIDR Block",
       "Type": "String"
     },
-    "Subnet2CIDR": {
+    "Subnet1PrivateCIDR": {
+      "Default": "10.0.5.0/24",
+      "Description": "Subnet 0 Private CIDR Block",
+      "Type": "String"
+    },
+    "Subnet2PublicCIDR": {
       "Default": "10.0.3.0/24",
-      "Description": "Subnet 0 CIDR Block",
+      "Description": "Subnet 0 Public CIDR Block",
+      "Type": "String"
+    },
+    "Subnet2PrivateCIDR": {
+      "Default": "10.0.6.0/24",
+      "Description": "Subnet 0 Private CIDR Block",
       "Type": "String"
     },
     "Version": {
@@ -384,34 +424,190 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "Subnet0": {
+    "Subnet0Nat":{
+      "Condition": "PrivateResources",
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+        "DisableApiTermination": "FALSE",
+        "ImageId": { "Fn::If": [ "BlankNatAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "NatAmi" ] }, { "Ref": "NatAmi" } ] },
+        "InstanceType": {"Ref": "NatInstanceType"},
+        "KeyName": { "Ref": "Key" },
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref" : "NatSecurityGroup" }],
+          "SubnetId": { "Ref" : "Subnet0Public" }
+        } ],
+        "SourceDestCheck": "false",
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": [
+              "",
+              [
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "-nat"
+              ]
+            ]
+            }
+          }
+        ]
+      }
+    },
+    "Subnet1Nat":{
+      "Condition": "PrivateResources",
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+        "DisableApiTermination": "FALSE",
+        "ImageId": { "Fn::If": [ "BlankNatAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "NatAmi" ] }, { "Ref": "NatAmi" } ] },
+        "InstanceType": {"Ref": "NatInstanceType"},
+        "KeyName": { "Ref": "Key" },
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref" : "NatSecurityGroup" }],
+          "SubnetId": { "Ref" : "Subnet1Public" }
+        } ],
+        "SourceDestCheck": "false",
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": [
+              "",
+              [
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "-nat"
+              ]
+            ]
+            }
+          }
+        ]
+      }
+    },
+    "Subnet2Nat":{
+      "Condition": "PrivateResources",
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
+        "DisableApiTermination": "FALSE",
+        "ImageId": { "Fn::If": [ "BlankNatAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "NatAmi" ] }, { "Ref": "NatAmi" } ] },
+        "InstanceType": {"Ref": "NatInstanceType"},
+        "KeyName": { "Ref": "Key" },
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref" : "NatSecurityGroup" }],
+          "SubnetId": { "Ref" : "Subnet2Public" }
+        } ],
+        "SourceDestCheck": "false",
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": [
+              "",
+              [
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "-nat"
+              ]
+            ]
+            }
+          }
+        ]
+      }
+    },
+    "Subnet0Public": {
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-        "CidrBlock": { "Ref": "Subnet0CIDR" },
+        "CidrBlock": { "Ref": "Subnet0PublicCIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "Subnet1": {
+    "Subnet0Private": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "AvailabilityZones", "Vpc" ],
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+        "CidrBlock": { "Ref": "Subnet0PrivateCIDR" },
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet1Public": {
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-        "CidrBlock": { "Ref": "Subnet1CIDR" },
+        "CidrBlock": { "Ref": "Subnet1PublicCIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "Subnet2": {
+    "Subnet1Private": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "AvailabilityZones", "Vpc" ],
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+        "CidrBlock": { "Ref": "Subnet1PrivateCIDR" },
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet2Public": {
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
-        "CidrBlock": { "Ref": "Subnet2CIDR" },
+        "CidrBlock": { "Ref": "Subnet2PublicCIDR" },
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet2Private": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "AvailabilityZones", "Vpc" ],
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
+        "CidrBlock": { "Ref": "Subnet2PrivateCIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
     "Routes": {
+      "DependsOn": "Vpc",
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet0PrivateRouteTable": {
+      "Condition": "PrivateResources",
+      "DependsOn": "Vpc",
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet1PrivateRouteTable": {
+      "Condition": "PrivateResources",
+      "DependsOn": "Vpc",
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "Subnet2PrivateRouteTable": {
+      "Condition": "PrivateResources",
       "DependsOn": "Vpc",
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -427,28 +623,85 @@
         "RouteTableId": { "Ref": "Routes" }
       }
     },
-    "Subnet0Routes": {
-      "DependsOn": [ "Subnet0", "Routes" ],
+    "Route0Private": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "Gateway", "GatewayAttachment", "Subnet0PrivateRouteTable" ],
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "InstanceId": { "Ref": "Subnet0Nat" },
+        "RouteTableId": { "Ref": "Subnet0PrivateRouteTable" }
+      }
+    },
+    "Route1Private": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "Gateway", "GatewayAttachment", "Subnet1PrivateRouteTable" ],
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "InstanceId": { "Ref": "Subnet1Nat" },
+        "RouteTableId": { "Ref": "Subnet1PrivateRouteTable" }
+      }
+    },
+    "Route2Private": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "Gateway", "GatewayAttachment", "Subnet2PrivateRouteTable" ],
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "InstanceId": { "Ref": "Subnet2Nat" },
+        "RouteTableId": { "Ref": "Subnet2PrivateRouteTable" }
+      }
+    },
+    "Subnet0PublicRoutes": {
+      "DependsOn": [ "Subnet0Public", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
-        "SubnetId": { "Ref": "Subnet0" },
+        "SubnetId": { "Ref": "Subnet0Public" },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
-    "Subnet1Routes": {
-      "DependsOn": [ "Subnet1", "Routes" ],
+    "Subnet0PrivateRoutes": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "Subnet0Private", "Subnet0PrivateRouteTable" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
-        "SubnetId": { "Ref": "Subnet1" },
+        "SubnetId": { "Ref": "Subnet0Private" },
+        "RouteTableId": { "Ref": "Subnet0PrivateRouteTable" }
+      }
+    },
+    "Subnet1PublicRoutes": {
+      "DependsOn": [ "Subnet1Public", "Routes" ],
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet1Public" },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
-    "Subnet2Routes": {
-      "DependsOn": [ "Subnet2", "Routes" ],
+    "Subnet1PrivateRoutes": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "Subnet1Private", "Subnet1PrivateRouteTable" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
-        "SubnetId": { "Ref": "Subnet2" },
+        "SubnetId": { "Ref": "Subnet1Private" },
+        "RouteTableId": { "Ref": "Subnet1PrivateRouteTable" }
+      }
+    },
+    "Subnet2PublicRoutes": {
+      "DependsOn": [ "Subnet2Public", "Routes" ],
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet2Public" },
         "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "Subnet2PrivateRoutes": {
+      "Condition": "PrivateResources",
+      "DependsOn": [ "Subnet2Private", "Subnet2PrivateRouteTable" ],
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "Subnet2Private" },
+        "RouteTableId": { "Ref": "Subnet2PrivateRouteTable" }
       }
     },
     "SecurityGroup": {
@@ -460,6 +713,21 @@
           { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "0.0.0.0/0" },
           { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": "10.0.0.0/8" },
           { "IpProtocol": "udp", "FromPort": "0", "ToPort": "65535", "CidrIp": "10.0.0.0/8" }
+        ],
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "NatSecurityGroup": {
+      "Condition": "PrivateResources",
+      "DependsOn": "Vpc",
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Nats",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": "0.0.0.0/0" }
         ],
         "VpcId": { "Ref": "Vpc" }
       }
@@ -522,7 +790,7 @@
       "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": true,
+        "AssociatePublicIpAddress":{ "Fn::If": [ "PrivateResources", false, true] } ,
         "BlockDeviceMappings": [{
           "DeviceName": "/dev/xvda",
           "Ebs": {
@@ -566,7 +834,6 @@
       }
     },
     "Instances": {
-      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1", "Subnet2" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
@@ -575,11 +842,20 @@
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
         ],
-        "VPCZoneIdentifier": [
-          { "Ref": "Subnet0" },
-          { "Ref": "Subnet1" },
-          { "Ref": "Subnet2" }
-        ],
+        "VPCZoneIdentifier": 
+        { "Fn::If": [ "PrivateResources",
+          [
+            { "Ref": "Subnet0Private" },
+            { "Ref": "Subnet1Private" },
+            { "Ref": "Subnet2Private" }
+          ],
+          [
+            { "Ref": "Subnet0Public" },
+            { "Ref": "Subnet1Public" },
+            { "Ref": "Subnet2Public" }
+          ]]
+        }
+        ,
         "Cooldown": 5,
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
@@ -641,7 +917,6 @@
       }
     },
     "Balancer": {
-      "DependsOn": [ "BalancerSecurityGroup", "Subnet0", "Subnet1", "Subnet2" ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -704,16 +979,26 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
+        "Scheme": { "Fn::If": [ "PrivateResources",
+              "internal","internet-facing"]
+        },
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
           }
         ],
-        "Subnets": [
-          { "Ref": "Subnet0" },
-          { "Ref": "Subnet1" },
-          { "Ref": "Subnet2" }
-        ]
+        "Subnets": 
+        { "Fn::If": [ "PrivateResources",
+          [
+            { "Ref": "Subnet0Private" },
+            { "Ref": "Subnet1Private" },
+            { "Ref": "Subnet2Private" }
+          ], [
+            { "Ref": "Subnet0Public" },
+            { "Ref": "Subnet1Public" },
+            { "Ref": "Subnet2Public" }
+          ]]
+        }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
@@ -877,7 +1162,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "KernelTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "RegistryAccess", "RegistryBucket", "Subnet0Public", "Subnet1Public", "Subnet2Public", "Vpc" ],
       "Properties": {
         "Name": {
           "Ref": "AWS::StackName"
@@ -908,6 +1193,7 @@
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
+              "PRIVATE_RESOURCES": { "Ref": "PrivateResources" },
               "PROCESS": "web",
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
@@ -917,7 +1203,10 @@
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
-              "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
+              "SUBNETS": { "Fn::If": [ "PrivateResources",
+                { "Fn::Join": [ ",", [ { "Ref": "Subnet0Private" }, { "Ref": "Subnet1Private" }, { "Ref": "Subnet2Private" } ] ] },
+                { "Fn::Join": [ ",", [ { "Ref": "Subnet0Public" }, { "Ref": "Subnet1Public" }, { "Ref": "Subnet2Public" } ] ] }]
+              },
               "VPC": { "Ref": "Vpc" }
             },
             "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
