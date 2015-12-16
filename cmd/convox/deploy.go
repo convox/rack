@@ -83,8 +83,4 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	fmt.Println("UPDATING")
-	fmt.Println()
-
-	fmt.Printf("Use `convox apps info -a %s` for available endpoints.\n", app)
-	fmt.Printf("Use `convox ps -a %s` for rolling deploy status.\n", app)
 }
