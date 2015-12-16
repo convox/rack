@@ -83,19 +83,4 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	fmt.Println("UPDATING")
-
-	formation, err := rackClient(c).ListFormation(app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Println("Available endpoints:")
-
-	for _, ps := range formation {
-		for _, port := range ps.Ports {
-			fmt.Printf("%s:%d (%s)\n", ps.Balancer, port, ps.Name)
-		}
-	}
 }

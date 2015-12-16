@@ -371,7 +371,11 @@ func testLogin(host, password, version string) (err error) {
 	_, err = cl.GetApps()
 
 	if err != nil {
-		return
+		err = cl.Auth()
+
+		if err != nil {
+			return
+		}
 	}
 
 	return nil

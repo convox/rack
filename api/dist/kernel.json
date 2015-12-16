@@ -91,6 +91,10 @@
         { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }
       ] }
     },
+    "Release": {
+      "Condition": "Development",
+      "Value": { "Ref": "Version" }
+    },
     "Subnets": {
       "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }

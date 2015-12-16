@@ -266,7 +266,9 @@
       "Type": "AWS::IAM::User"
     },
     "PostgresECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -357,14 +359,25 @@
                 "Image": {
                   "Ref": "PostgresImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "PostgresMemory"
                 },
                 "Name": "postgres",
-                "PortMappings": [],
-                "Services": [],
-                "Volumes": []
+                "PortMappings": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
@@ -440,7 +453,9 @@
       "Type": "AWS::S3::Bucket"
     },
     "WorkerECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -529,24 +544,15 @@
                 "Image": {
                   "Ref": "WorkerImage"
                 },
-                "Links": [
-                  {
-                    "Fn::If": [
-                      "BlankPostgresService",
-                      {
-                        "Ref": "AWS::NoValue"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  }
-                ],
                 "Memory": {
                   "Ref": "WorkerMemory"
                 },
                 "Name": "worker",
-                "PortMappings": [],
+                "PortMappings": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
                 "Services": [
                   {
                     "Fn::If": [
@@ -566,9 +572,16 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Volumes": []
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"

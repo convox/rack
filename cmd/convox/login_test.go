@@ -14,6 +14,7 @@ func TestInvalidLogin(t *testing.T) {
 
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps", Code: 401, Response: "unauthorized"},
+		test.Http{Method: "GET", Path: "/auth", Code: 404, Response: "not found"},
 	)
 
 	defer ts.Close()

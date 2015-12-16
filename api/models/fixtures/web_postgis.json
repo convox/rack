@@ -559,7 +559,9 @@
       "Type": "AWS::IAM::User"
     },
     "PostgresECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -650,14 +652,25 @@
                 "Image": {
                   "Ref": "PostgresImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "PostgresMemory"
                 },
                 "Name": "postgres",
-                "PortMappings": [],
-                "Services": [],
-                "Volumes": []
+                "PortMappings": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
@@ -733,7 +746,10 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "BalancerWeb",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -846,19 +862,6 @@
                 "Image": {
                   "Ref": "WebImage"
                 },
-                "Links": [
-                  {
-                    "Fn::If": [
-                      "BlankPostgresService",
-                      {
-                        "Ref": "AWS::NoValue"
-                      },
-                      {
-                        "Ref": "AWS::NoValue"
-                      }
-                    ]
-                  }
-                ],
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -885,6 +888,9 @@
                         "3001"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
                 "Services": [
@@ -906,9 +912,16 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Volumes": []
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
