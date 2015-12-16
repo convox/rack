@@ -4,16 +4,18 @@
 
 ### Prerequisites
 
-The Convox API coordinates AWS so we develop against AWS. Passing the `--development` flag
-to the `convox install` command tells the installer to create the resources the API
-needs but doesn't run the API itself.
+The Convox API coordinates AWS so we develop against an AWS environment created
+by the `convox install` command.
 
-After a successful install, `convox install` prints out a set of ENV vars the API needs to
-talk to the AWS resources it just provisioned.
+Using the TEMPLATE_FILE variable tells the installer to use the CloudFormation
+template in the local checkout instead of a published template in S3.
+
+Passing the `--development` flag tells the installer to print out a set of ENV
+vars the API needs to talk to the AWS resources it just provisioned.
 
 Copy and paste these values to a `.env` file so that `convox start` can read them.
 
-    $ convox install --stack-name=convox-dev --development ~/credentials.csv
+    $ TEMPLATE_FILE=api/dist/kernel.json install --stack-name=convox-dev --development ~/credentials.csv
 
     # add env vars to .env
 
