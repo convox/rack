@@ -199,9 +199,8 @@
       "Type": "String"
     },
     "Version": {
-      "Default": "",
-      "Description": "Convox release version",
-      "MinLength" : 1,
+      "Description": "(REQUIRED) Convox release version",
+      "MinLength" : "1",
       "Type": "String"
     },
     "VolumeSize": {
