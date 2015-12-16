@@ -107,7 +107,7 @@
   "Parameters": {
     "Ami": {
       "Type": "String",
-      "Description": "Amazon Machine Image",
+      "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
       "Default": ""
     },
     "ClientId": {
