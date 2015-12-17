@@ -180,3 +180,26 @@ func queryExecCommand(bin string, args ...string) ([]byte, error) {
 func tagTimeUnix() string {
 	return fmt.Sprintf("%v", time.Now().Unix())
 }
+
+func ParseOpts(args []string) map[string]string {
+	options := make(map[string]string)
+	var key string
+
+	for _, token := range args {
+		isFlag := strings.HasPrefix(token, "--")
+		if isFlag {
+			key = token[2:]
+			value := ""
+			if strings.Contains(key, "=") {
+				pivot := strings.Index(key, "=")
+				value = key[pivot+1:]
+				key = key[0:pivot]
+			}
+			options[key] = value
+		} else {
+			options[key] = strings.TrimSpace(options[key] + " " + token)
+		}
+	}
+
+	return options
+}
