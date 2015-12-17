@@ -7,6 +7,7 @@ type Service struct {
 	Status string `json:"status"`
 	Type   string `json:"type"`
 	URL    string `json:"url"`
+	Size   string `json:"size"`
 }
 
 type Services []Service
@@ -23,13 +24,18 @@ func (c *Client) GetServices() (Services, error) {
 	return services, nil
 }
 
-func (c *Client) CreateService(typ, name, url string) (*Service, error) {
-	params := Params{
-		"name": name,
-		"type": typ,
-		"url":  url,
+func (c *Client) CreateService(kind, name string, options map[string]string) (*Service, error) {
+
+	params := Params(options)
+	//NOTE: might move this to ParseOpts
+	for key, value := range params {
+		if value == "" {
+			params[key] = "true"
+		}
 	}
 
+	params["name"] = name
+	params["type"] = kind
 	var service Service
 
 	err := c.Post("/services", params, &service)

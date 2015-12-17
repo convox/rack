@@ -34,20 +34,11 @@ func init() {
 		Action:      cmdServices,
 		Subcommands: []cli.Command{
 			{
-				Name:        "create",
-				Description: "create a new service",
-				Usage:       "<type> [--name=value] [--url=value]",
-				Action:      cmdServiceCreate,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "url",
-						Usage: "URL to 3rd party service, e.g. logs1.papertrailapp.com:11235",
-					},
-					cli.StringFlag{
-						Name:  "name",
-						Usage: "Optional unique name for the service",
-					},
-				},
+				Name:            "create",
+				Description:     "create a new service",
+				Usage:           "<type> [--name=value] [--Key=Value]",
+				Action:          cmdServiceCreate,
+				SkipFlagParsing: true,
 			},
 			{
 				Name:        "delete",
@@ -79,6 +70,8 @@ func init() {
 	})
 }
 
+var EncryptedInstances = "db.m4.large, db.m4.xlarge, db.m4.2xlarge, db.m4.4xlarge, db.m4.10xlarge, db.r3.large, db.r3.xlarge, db.r3.2xlarge, db.r3.4xlarge, db.r3.8xlarge, db.t2.large, db.cr1.8xlarge, db.m3.medium, db.m3.large, db.m3.xlarge, db.m3.2xlarge"
+
 func cmdServices(c *cli.Context) {
 	services, err := rackClient(c).GetServices()
 
@@ -97,23 +90,25 @@ func cmdServices(c *cli.Context) {
 }
 
 func cmdServiceCreate(c *cli.Context) {
-	if len(c.Args()) != 1 {
+	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "create")
 		return
 	}
 
 	t := c.Args()[0]
-	name := c.String("name")
+
+	options := stdcli.ParseOpts(c.Args()[1:])
+	fmt.Println("config:", options)
+
+	name := options["name"]
 
 	if name == "" {
 		name = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
 	}
 
-	url := c.String("url")
-
 	fmt.Printf("Creating %s (%s)... ", name, t)
 
-	_, err := rackClient(c).CreateService(t, name, url)
+	_, err := rackClient(c).CreateService(t, name, options)
 
 	if err != nil {
 		stdcli.Error(err)
