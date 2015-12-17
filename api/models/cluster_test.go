@@ -96,7 +96,7 @@ func TestEventsHasCapacityWarning(t *testing.T) {
 	assert.True(t, events.HasCapacityWarning())
 }
 
-func TestGetServices(t *testing.T) {
+func TestGetAppServices(t *testing.T) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test")
 
@@ -112,37 +112,4 @@ func TestGetServices(t *testing.T) {
 
 	s := services[0]
 	assert.Equal(t, "arn:aws:ecs:us-west-2:901416387788:service/httpd-web-SRZPVERKQOL", *s.ServiceArn)
-}
-
-func TestClusterCapacityEvents(t *testing.T) {
-	os.Setenv("RACK", "convox-test")
-	os.Setenv("CLUSTER", "convox-test")
-
-	stubAws := test.StubAws(
-		test.HttpdListServicesCycle(),
-		test.HttpdDescribeServicesCycle(),
-
-		test.HttpdListServicesCycle(),
-		test.HttpdDescribeServicesCycle(),
-	)
-	defer stubAws.Close()
-
-	events, err := models.GetClusterServiceEvents(time.Unix(0, 0))
-	assert.Nil(t, err)
-	assert.Equal(t, 4, len(events))
-
-	events, err = models.GetClusterServiceEvents(time.Unix(1450120333, 0)) // just before last event "createdAt": 1450120334.038
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(events))
-
-	assert.False(t, models.ClusterHasCapacityWarning(events))
-
-	// unshift a scheduler warning
-	events = append([]*ecs.ServiceEvent{
-		&ecs.ServiceEvent{
-			Message: aws.String("service httpd-web-SRZPVERKQOL was unable to place a task because no container instance met all of its requirements. The closest matching container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0 has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide."),
-		},
-	}, events...)
-
-	assert.True(t, models.ClusterHasCapacityWarning(events))
 }
