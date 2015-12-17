@@ -15,6 +15,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestClusterIsConverged(t *testing.T) {
+	os.Setenv("RACK", "convox-test")
+	os.Setenv("CLUSTER", "convox-test")
+
+	stubAws := test.StubAws(
+		test.HttpdListServicesCycle(),
+		test.HttpdDescribeServicesCycle(),
+	)
+	defer stubAws.Close()
+
+	converged, err := models.ClusterIsConverged()
+	assert.Nil(t, err)
+	assert.True(t, converged)
+}
+
 func TestGetServices(t *testing.T) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test")
