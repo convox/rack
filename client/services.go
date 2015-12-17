@@ -3,11 +3,16 @@ package client
 import "fmt"
 
 type Service struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Type   string `json:"type"`
-	URL    string `json:"url"`
-	Size   string `json:"size"`
+	Name         string            `json:"name"`
+	Status       string            `json:"status"`
+	StatusReason string            `json:"status-reason"`
+	Type         string            `json:"type"`
+	Exports      map[string]string `json:"exports"`
+
+	Options    map[string]string `json:"-"`
+	Outputs    map[string]string `json:"-"`
+	Parameters map[string]string `json:"-"`
+	Tags       map[string]string `json:"-"`
 }
 
 type Services []Service
@@ -24,17 +29,8 @@ func (c *Client) GetServices() (Services, error) {
 	return services, nil
 }
 
-func (c *Client) CreateService(kind, name string, options map[string]string) (*Service, error) {
-
+func (c *Client) CreateService(kind string, options map[string]string) (*Service, error) {
 	params := Params(options)
-	//NOTE: might move this to ParseOpts
-	for key, value := range params {
-		if value == "" {
-			params[key] = "true"
-		}
-	}
-
-	params["name"] = name
 	params["type"] = kind
 	var service Service
 

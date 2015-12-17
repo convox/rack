@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Service) CreatePapertrail() error {
-	if s.URL == "" {
+	if s.Options["url"] == "" {
 		return fmt.Errorf("Papertrail URL is required")
 	}
 
@@ -27,7 +27,7 @@ func (s *Service) CreatePapertrail() error {
 	}
 
 	params := map[string]string{
-		"Url": s.URL,
+		"Url": s.Options["url"],
 	}
 
 	tags := map[string]string{

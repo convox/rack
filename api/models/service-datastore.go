@@ -1,53 +1,45 @@
 package models
 
 import (
-	"fmt"
-	"net/url"
 	"os"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
-var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")
-var NotificationHost = os.Getenv("NOTIFICATION_HOST")
-
-func (s *Service) CreateWebhook() error {
-	if s.URL == "" {
-		return fmt.Errorf("Webhook URL is required")
-	}
-
-	//ensure valid URL
-	_, err := url.Parse(s.URL)
-	if err != nil {
-		return err
-	}
-
-	var input interface{}
-	formation, err := buildTemplate("service/webhook", "service", input)
+func (s *Service) CreateDatastore() error {
+	formation, err := s.Formation()
 
 	if err != nil {
 		return err
 	}
-
-	encEndpoint := url.QueryEscape(s.URL)
-	//NOTE always assumes https instead of u.Scheme
-	proxyEndpoint := "http://" + NotificationHost + "/sns?endpoint=" + encEndpoint
 
 	params := map[string]string{
-		"Url":               proxyEndpoint,
-		"NotificationTopic": NotificationTopic,
-		"CustomTopic":       CustomTopic,
+		"Password": generateId("", 30),
+		"Subnets":  os.Getenv("SUBNETS"),
+		"Vpc":      os.Getenv("VPC"),
+	}
+
+	for key, value := range s.Options {
+		var val string
+		switch value {
+		case "":
+			val = "No"
+		case "true":
+			val = "Yes"
+		default:
+			val = value
+		}
+		params[AwsCamelize(key)] = val
 	}
 
 	tags := map[string]string{
-		"System":  "convox",
+		"System":  os.Getenv("RACK"),
 		"Type":    "service",
-		"Service": "webhook",
+		"Service": s.Type,
 	}
 
 	req := &cloudformation.CreateStackInput{
-		//TODO: do i need this?
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.Name),
 		TemplateBody: aws.String(formation),
@@ -62,11 +54,6 @@ func (s *Service) CreateWebhook() error {
 	}
 
 	_, err = CloudFormation().CreateStack(req)
-
-	NotifySuccess("service:create", map[string]string{
-		"name": s.Name,
-		"type": s.Type,
-	})
 
 	return err
 }

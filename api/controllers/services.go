@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
@@ -37,33 +38,38 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	name := GetForm(r, "name")
-	t := GetForm(r, "type")
-	url := GetForm(r, "url")
+	err := r.ParseForm()
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	// get the last set value for all form values
+	// ie:  foo=1&foo=2  sets foo to "2"
+	options := make(map[string]string)
+	for key, values := range r.Form {
+		val := values[len(values)-1]
+		options[key] = val
+	}
+	name := options["name"]
+	delete(options, "name")
+	kind := options["type"]
+	delete(options, "type")
 
 	service := &models.Service{
-		Name: name,
-		Type: t,
-		URL:  url,
+		Name:    name,
+		Type:    kind,
+		Options: options,
 	}
 
-	var err error
-
-	switch t {
-	case "papertrail":
-		err = service.CreatePapertrail()
-	case "webhook":
-		err = service.CreateWebhook()
-	default:
-		err = service.CreateDatastore()
-	}
+	err = service.Create()
 
 	if err != nil && strings.HasSuffix(err.Error(), "not found") {
-		return httperr.Errorf(403, "invalid service type: %s", t)
+		return httperr.Errorf(403, "invalid service type: %s", kind)
 	}
 
 	if err != nil && awsError(err) == "ValidationError" {
-		return httperr.Errorf(403, "invalid service name: %s", name)
+		e := err.(awserr.Error)
+		return httperr.Errorf(403, e.Message())
 	}
 
 	if err != nil {
