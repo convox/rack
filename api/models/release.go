@@ -265,8 +265,6 @@ func (r *Release) Promote() error {
 		"id":  r.Id,
 	})
 
-	go r.Monitor()
-
 	return err
 }
 
