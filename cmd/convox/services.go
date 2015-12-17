@@ -3,28 +3,11 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
-
-type Service struct {
-	Name     string
-	Password string
-	Type     string
-	Status   string
-	URL      string
-
-	App string
-
-	Stack string
-
-	Outputs    map[string]string
-	Parameters map[string]string
-	Tags       map[string]string
-}
-
-type Services []Service
 
 func init() {
 	stdcli.RegisterCommand(cli.Command{
@@ -70,8 +53,6 @@ func init() {
 	})
 }
 
-var EncryptedInstances = "db.m4.large, db.m4.xlarge, db.m4.2xlarge, db.m4.4xlarge, db.m4.10xlarge, db.r3.large, db.r3.xlarge, db.r3.2xlarge, db.r3.4xlarge, db.r3.8xlarge, db.t2.large, db.cr1.8xlarge, db.m3.medium, db.m3.large, db.m3.xlarge, db.m3.2xlarge"
-
 func cmdServices(c *cli.Context) {
 	services, err := rackClient(c).GetServices()
 
@@ -98,17 +79,28 @@ func cmdServiceCreate(c *cli.Context) {
 	t := c.Args()[0]
 
 	options := stdcli.ParseOpts(c.Args()[1:])
-	fmt.Println("config:", options)
-
-	name := options["name"]
-
-	if name == "" {
-		name = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
+	for key, value := range options {
+		if value == "" {
+			options[key] = "true"
+		}
 	}
 
-	fmt.Printf("Creating %s (%s)... ", name, t)
+	var optionsList []string
+	for key, val := range options {
+		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
+	}
 
-	_, err := rackClient(c).CreateService(t, name, options)
+	if options["name"] == "" {
+		options["name"] = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
+	}
+
+	fmt.Printf("Creating %s (%s", options["name"], t)
+	if len(optionsList) > 0 {
+		fmt.Printf(": %s", strings.Join(optionsList, " "))
+	}
+	fmt.Printf(")... ")
+
+	_, err := rackClient(c).CreateService(t, options)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -155,7 +147,18 @@ func cmdServiceInfo(c *cli.Context) {
 
 	fmt.Printf("Name    %s\n", service.Name)
 	fmt.Printf("Status  %s\n", service.Status)
-	fmt.Printf("URL     %s\n", service.URL)
+
+	if service.Status == "failed" {
+		fmt.Printf("Reason  %s\n", service.StatusReason)
+	}
+
+	if len(service.Exports) > 0 {
+		fmt.Printf("Exports\n")
+	}
+
+	for key, value := range service.Exports {
+		fmt.Printf("  %s: %s\n", key, value)
+	}
 }
 
 func cmdLinkCreate(c *cli.Context) {
