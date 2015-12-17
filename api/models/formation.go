@@ -132,8 +132,6 @@ func SetFormation(app, process, count, memory string) error {
 		"id":  rel.Id,
 	})
 
-	go rel.Monitor()
-
 	return a.UpdateParams(params)
 }
 
