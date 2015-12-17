@@ -172,7 +172,7 @@ func (r *Release) Monitor() {
 	warned := false
 
 	for i := 0; i < 20; i++ {
-		services, err := GetServices(r.App)
+		services, err := GetAppServices(r.App)
 
 		if err != nil {
 			fmt.Printf("error: %+v\n", err)

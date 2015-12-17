@@ -11,6 +11,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/api/config"
 )
@@ -38,7 +39,7 @@ type Processes []Process
 
 var DEPLOYMENT_TIMEOUT = 10 * time.Minute
 
-func GetServices(app string) ([]*ecs.Service, error) {
+func GetAppServices(app string) ([]*ecs.Service, error) {
 	services := []*ecs.Service{}
 
 	resources, err := ListResources(app)
@@ -65,6 +66,54 @@ func GetServices(app string) ([]*ecs.Service, error) {
 	}
 
 	return dres.Services, nil
+}
+
+func GetClusterServiceEvents(since time.Time) ([]*ecs.ServiceEvent, error) {
+	var log = logger.New("ns=GetClusterServices")
+
+	events := []*ecs.ServiceEvent{}
+
+	lsres, err := ECS().ListServices(&ecs.ListServicesInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	})
+
+	if err != nil {
+		log.Log("at=ListServices err=%q", err)
+		return events, err
+	}
+
+	dsres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Services: lsres.ServiceArns,
+	})
+
+	if err != nil {
+		log.Log("at=DescribeServices err=%q", err)
+		return events, err
+	}
+
+	for i := 0; i < len(dsres.Services); i++ {
+		s := dsres.Services[i]
+		for j := 0; j < len(s.Events); j++ {
+			event := s.Events[j]
+
+			if event.CreatedAt.After(since) {
+				events = append(events, event)
+			}
+		}
+	}
+
+	return events, nil
+}
+
+func ClusterHasCapacityWarning(events []*ecs.ServiceEvent) bool {
+	for i := 0; i < len(events); i++ {
+		if strings.HasSuffix(*events[i].Message, "see the Troubleshooting section of the Amazon ECS Developer Guide.") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func ListProcesses(app string) (Processes, error) {
@@ -159,7 +208,7 @@ func ListProcesses(app string) (Processes, error) {
 func ListPendingProcesses(app string) (Processes, error) {
 	pss := Processes{}
 
-	services, err := GetServices(app)
+	services, err := GetAppServices(app)
 
 	if err != nil {
 		return nil, err
