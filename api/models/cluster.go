@@ -50,7 +50,7 @@ func (services ECSServices) IsConverged() bool {
 	for i := 0; i < len(services); i++ {
 		s := services[i]
 
-		// ideally case for a Service
+		// ideal case for a Service
 		if len(s.Deployments) == 1 &&
 			*s.PendingCount == 0 &&
 			*s.RunningCount == *s.DesiredCount &&
