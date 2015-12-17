@@ -16,23 +16,43 @@ import (
 // When re-converged, try to correlate back to a recent service deployment.
 
 func StartServicesCapacity() {
-	converged := true
-
-	converged, lastEvent := checkConvergence(converged, time.Now())
-	// lastEvent := checkCapacity(time.Now())
+	converged, lastEvent := checkConverged()
 
 	for _ = range time.Tick(1 * time.Minute) {
-		converged, lastEvent = checkConvergence(converged, *lastEvent.CreatedAt)
+		converged, lastEvent = monitorConverged(converged, *lastEvent.CreatedAt)
 	}
 }
 
-func checkConvergence(lastConverged bool, lastEventAt time.Time) (bool, ecs.ServiceEvent) {
+// get initial convergence state
+func checkConverged() (bool, ecs.ServiceEvent) {
 	log := logger.New("ns=services_monitor")
 
 	services, err := models.ClusterServices()
 
 	if err != nil {
-		log.Log("fn=ClusterServices err=%q", lastEventAt, err)
+		log.Log("fn=checkConverged err=%q", err)
+
+		return true, ecs.ServiceEvent{
+			CreatedAt: aws.Time(time.Now()),
+		}
+	}
+
+	converged := services.IsConverged()
+	lastEvent := services.LastEvent()
+
+	log.Log("fn=checkConverged converged=%t lastEventAt=%q", converged, lastEvent.CreatedAt)
+
+	return converged, lastEvent
+}
+
+// get latest convergence state, notify on changes
+func monitorConverged(lastConverged bool, lastEventAt time.Time) (bool, ecs.ServiceEvent) {
+	log := logger.New("ns=services_monitor")
+
+	services, err := models.ClusterServices()
+
+	if err != nil {
+		log.Log("fn=monitorConverged err=%q", err)
 
 		return lastConverged, ecs.ServiceEvent{
 			CreatedAt: aws.Time(lastEventAt),
@@ -40,20 +60,21 @@ func checkConvergence(lastConverged bool, lastEventAt time.Time) (bool, ecs.Serv
 	}
 
 	converged := services.IsConverged()
+	events := services.EventsSince(lastEventAt)
+
+	log.Log("fn=monitorConverged converged=%t events=%d lastEventAt=%q", converged, len(events), lastEventAt)
+
+	if events.HasCapacityWarning() {
+		models.NotifyError("rack:capacity", fmt.Errorf("ECS reports a recent capacity issue"), map[string]string{
+			"rack": os.Getenv("RACK"),
+		})
+	}
 
 	if converged != lastConverged {
 		models.NotifySuccess("rack:converge", map[string]string{
 			"rack":      os.Getenv("RACK"),
 			"converged": fmt.Sprintf("%t", converged),
 		})
-	}
-
-	events := services.EventsSince(lastEventAt)
-
-	log.Log("fn=EventsSince lastEventAt=%q events=%d", lastEventAt, len(events))
-
-	if events.HasCapacityWarning() {
-		models.NotifyError("rack:capacity", fmt.Errorf("ECS reports a recent capacity issue"), map[string]string{"rack": os.Getenv("RACK")})
 	}
 
 	return converged, services.LastEvent()
