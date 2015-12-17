@@ -11,10 +11,8 @@ import (
 	"github.com/convox/rack/api/models"
 )
 
-// Monitor ECS Cluster for convergence.
-// When not converged, notify on capacity issues.
-// When re-converged, try to correlate back to a recent service deployment.
-
+// Monitor ECS Cluster.
+// Notify on capacity-related and re-convergence events
 func StartServicesCapacity() {
 	converged, lastEvent := checkConverged()
 
@@ -23,7 +21,7 @@ func StartServicesCapacity() {
 	}
 }
 
-// get initial convergence state
+// Get initial convergence state
 func checkConverged() (bool, ecs.ServiceEvent) {
 	log := logger.New("ns=services_monitor")
 
@@ -45,7 +43,7 @@ func checkConverged() (bool, ecs.ServiceEvent) {
 	return converged, lastEvent
 }
 
-// get latest convergence state, notify on changes
+// Get latest convergence state and send notifications
 func monitorConverged(lastConverged bool, lastEventAt time.Time) (bool, ecs.ServiceEvent) {
 	log := logger.New("ns=services_monitor")
 
@@ -70,7 +68,7 @@ func monitorConverged(lastConverged bool, lastEventAt time.Time) (bool, ecs.Serv
 		})
 	}
 
-	if converged != lastConverged {
+	if converged == true && lastConverged == false {
 		models.NotifySuccess("rack:converge", map[string]string{
 			"rack":      os.Getenv("RACK"),
 			"converged": fmt.Sprintf("%t", converged),
