@@ -25,6 +25,21 @@ func HttpdDescribeServicesCycle() awsutil.Cycle {
 	}
 }
 
+// $ aws ecs list-services --cluster convox-Cluster-1NCWX9EC0JOV4
+func HttpdListServicesCycle() awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.ListServices",
+			Body:       `{"cluster":"convox-test"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"serviceArns": ["arn:aws:ecs:us-west-2:901416387788:service/httpd-web-SRZPVERKQOL"]}`,
+		},
+	}
+}
+
 func HttpdDescribeServicesResponse() string {
 	return `{
     "services": [
