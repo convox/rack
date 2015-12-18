@@ -10,6 +10,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/xtgo/uuid"
 	"github.com/convox/rack/api/crypt"
 )
 
@@ -209,10 +210,20 @@ func (r *Release) Promote() error {
 		}
 	}
 
+	id := uuid.NewRandom().String()
+
+	err = S3Put(app.Outputs["Settings"], fmt.Sprintf("templates/%s", id), []byte(formation), false)
+
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], id)
+
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(r.App),
-		TemplateBody: aws.String(formation),
+		TemplateURL:  &url,
 		Parameters:   params,
 	}
 
