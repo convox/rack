@@ -10,10 +10,6 @@ import (
 )
 
 func (s *Service) CreatePapertrail() (*cloudformation.CreateStackInput, error) {
-	if s.Options["url"] == "" {
-		return nil, fmt.Errorf("Syslog URL is required")
-	}
-
 	input := struct {
 		ARNs []string
 	}{

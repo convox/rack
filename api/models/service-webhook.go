@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 
@@ -13,16 +12,6 @@ var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")
 var NotificationHost = os.Getenv("NOTIFICATION_HOST")
 
 func (s *Service) CreateWebhook() (*cloudformation.CreateStackInput, error) {
-	if s.Options["url"] == "" {
-		return nil, fmt.Errorf("Webhook URL is required")
-	}
-
-	//ensure valid URL
-	_, err := url.Parse(s.Options["url"])
-	if err != nil {
-		return nil, err
-	}
-
 	var input interface{}
 	formation, err := buildTemplate("service/webhook", "service", input)
 
@@ -30,25 +19,27 @@ func (s *Service) CreateWebhook() (*cloudformation.CreateStackInput, error) {
 		return nil, err
 	}
 
-	encEndpoint := url.QueryEscape(s.Options["url"])
-	//NOTE always assumes https instead of u.Scheme
-	proxyEndpoint := "http://" + NotificationHost + "/sns?endpoint=" + encEndpoint
+	if s.Parameters["Url"] != "" {
+		//ensure valid URL
+		_, err = url.Parse(s.Parameters["Url"])
+		if err != nil {
+			return nil, err
+		}
 
-	params := map[string]string{
-		"Url":               proxyEndpoint,
-		"NotificationTopic": NotificationTopic,
-		"CustomTopic":       CustomTopic,
+		encEndpoint := url.QueryEscape(s.Parameters["Url"])
+		//NOTE always assumes https instead of u.Scheme
+		proxyEndpoint := "http://" + NotificationHost + "/sns?endpoint=" + encEndpoint
+		s.Parameters["Url"] = proxyEndpoint
 	}
+
+	s.Parameters["NotificationTopic"] = NotificationTopic
+	s.Parameters["CustomTopic"] = CustomTopic
 
 	req := &cloudformation.CreateStackInput{
 		//TODO: do i need this?
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.Name),
 		TemplateBody: aws.String(formation),
-	}
-
-	for key, value := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
 	return req, nil

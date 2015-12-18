@@ -19,7 +19,7 @@ func init() {
 			{
 				Name:            "create",
 				Description:     "create a new service",
-				Usage:           "<type> [--name=value] [--Key=Value]",
+				Usage:           "<type> [--name=value] [--key-name=value]",
 				Action:          cmdServiceCreate,
 				SkipFlagParsing: true,
 			},
@@ -71,13 +71,19 @@ func cmdServices(c *cli.Context) {
 }
 
 func cmdServiceCreate(c *cli.Context) {
+	// ensure type included
 	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "create")
 		return
 	}
 
-	t := c.Args()[0]
+	// ensure everything after type is a flag
+	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
+		stdcli.Usage(c, "create")
+		return
+	}
 
+	t := c.Args()[0]
 	options := stdcli.ParseOpts(c.Args()[1:])
 	for key, value := range options {
 		if value == "" {
