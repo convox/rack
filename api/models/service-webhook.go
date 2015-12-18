@@ -12,22 +12,22 @@ import (
 var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")
 var NotificationHost = os.Getenv("NOTIFICATION_HOST")
 
-func (s *Service) CreateWebhook() error {
+func (s *Service) CreateWebhook() (*cloudformation.CreateStackInput, error) {
 	if s.Options["url"] == "" {
-		return fmt.Errorf("Webhook URL is required")
+		return nil, fmt.Errorf("Webhook URL is required")
 	}
 
 	//ensure valid URL
 	_, err := url.Parse(s.Options["url"])
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var input interface{}
 	formation, err := buildTemplate("service/webhook", "service", input)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	encEndpoint := url.QueryEscape(s.Options["url"])
@@ -38,12 +38,6 @@ func (s *Service) CreateWebhook() error {
 		"Url":               proxyEndpoint,
 		"NotificationTopic": NotificationTopic,
 		"CustomTopic":       CustomTopic,
-	}
-
-	tags := map[string]string{
-		"System":  "convox",
-		"Type":    "service",
-		"Service": "webhook",
 	}
 
 	req := &cloudformation.CreateStackInput{
@@ -57,16 +51,5 @@ func (s *Service) CreateWebhook() error {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
-	for key, value := range tags {
-		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
-	}
-
-	_, err = CloudFormation().CreateStack(req)
-
-	NotifySuccess("service:create", map[string]string{
-		"name": s.Name,
-		"type": s.Type,
-	})
-
-	return err
+	return req, nil
 }
