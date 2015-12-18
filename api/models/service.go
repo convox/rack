@@ -27,7 +27,11 @@ func ListServices() (Services, error) {
 	for _, stack := range res.Stacks {
 		tags := stackTags(stack)
 
-		if tags["System"] == os.Getenv("RACK") && tags["Type"] == "service" {
+		//NOTE: services used to not have a tag so the empty "Rack"
+		//      is for untagged services
+		if tags["System"] == "convox" &&
+			tags["Type"] == "service" &&
+			(tags["Rack"] == os.Getenv("RACK") || tags["Rack"] == "") {
 			services = append(services, *serviceFromStack(stack))
 		}
 	}
@@ -93,9 +97,10 @@ func (s *Service) Create() error {
 
 	// tag the service
 	tags := map[string]string{
-		"System":  os.Getenv("RACK"),
-		"Type":    "service",
+		"Rack":    os.Getenv("RACK"),
+		"System":  "convox",
 		"Service": s.Type,
+		"Type":    "service",
 	}
 
 	for key, value := range tags {
