@@ -223,7 +223,7 @@ func (r *Release) Promote() error {
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(r.App),
-		TemplateURL:  &url,
+		TemplateURL:  aws.String(url),
 		Parameters:   params,
 	}
 
