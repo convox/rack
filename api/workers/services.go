@@ -68,7 +68,7 @@ func monitorConverged(lastConverged bool, lastEventAt time.Time) (bool, ecs.Serv
 		})
 	}
 
-	if converged == true && lastConverged == false {
+	if converged != lastConverged {
 		models.NotifySuccess("rack:converge", map[string]string{
 			"rack":      os.Getenv("RACK"),
 			"converged": fmt.Sprintf("%t", converged),
