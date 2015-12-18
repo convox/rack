@@ -551,7 +551,7 @@
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::If": [ "BlankCertificate",
               { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Ref": "RegistryHost" }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
+              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
             ] },
             { "Fn::If": [ "BlankCertificate",
               { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
