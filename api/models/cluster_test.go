@@ -80,7 +80,7 @@ func TestEventsSince(t *testing.T) {
 	assert.Equal(t, 1, len(events))
 }
 
-func TestEventsHasCapacityWarning(t *testing.T) {
+func TestEventsCapacityWarning(t *testing.T) {
 	services, _ := getClusterServices()
 
 	events := services.EventsSince(time.Unix(0, 0))
@@ -94,6 +94,9 @@ func TestEventsHasCapacityWarning(t *testing.T) {
 	}, events...)
 
 	assert.True(t, events.HasCapacityWarning())
+
+	assert.Equal(t, "service httpd-web-SRZPVERKQOL was unable to place a task because no container instance met all of its requirements. The closest matching container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0 has insufficient memory available.", events.CapacityWarning())
+
 }
 
 func TestGetAppServices(t *testing.T) {

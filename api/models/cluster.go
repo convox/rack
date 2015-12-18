@@ -104,11 +104,18 @@ func (services ECSServices) EventsSince(since time.Time) ECSEvents {
 }
 
 func (events ECSEvents) HasCapacityWarning() bool {
+	return events.CapacityWarning() != ""
+}
+
+var warningSuffix string = "For more information, see the Troubleshooting section of the Amazon ECS Developer Guide."
+
+func (events ECSEvents) CapacityWarning() string {
 	for i := 0; i < len(events); i++ {
-		if strings.HasSuffix(*events[i].Message, "see the Troubleshooting section of the Amazon ECS Developer Guide.") {
-			return true
+		message := *events[i].Message
+		if strings.HasSuffix(message, warningSuffix) {
+			return strings.TrimSpace(strings.TrimSuffix(message, warningSuffix))
 		}
 	}
 
-	return false
+	return ""
 }
