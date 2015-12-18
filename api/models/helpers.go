@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
@@ -21,6 +22,14 @@ import (
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func awserrCode(err error) string {
+	if ae, ok := err.(awserr.Error); ok {
+		return ae.Code()
+	}
+
+	return ""
 }
 
 func buildEnvironment() string {

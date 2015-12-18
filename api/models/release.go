@@ -178,11 +178,15 @@ func (r *Release) Promote() error {
 	// If release formation was saved in S3, get that instead
 	f, err := s3Get(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id))
 
-	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
+	if err != nil && awserrCode(err) != "NoSuchKey" {
+		return err
+	}
 
 	if err == nil {
 		formation = string(f)
 	}
+
+	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
 
 	existing, err := formationParameters(formation)
 
