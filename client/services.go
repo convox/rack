@@ -3,10 +3,15 @@ package client
 import "fmt"
 
 type Service struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Type   string `json:"type"`
-	URL    string `json:"url"`
+	Name         string            `json:"name"`
+	Status       string            `json:"status"`
+	StatusReason string            `json:"status-reason"`
+	Type         string            `json:"type"`
+	Exports      map[string]string `json:"exports"`
+
+	Outputs    map[string]string `json:"-"`
+	Parameters map[string]string `json:"-"`
+	Tags       map[string]string `json:"-"`
 }
 
 type Services []Service
@@ -23,13 +28,9 @@ func (c *Client) GetServices() (Services, error) {
 	return services, nil
 }
 
-func (c *Client) CreateService(typ, name, url string) (*Service, error) {
-	params := Params{
-		"name": name,
-		"type": typ,
-		"url":  url,
-	}
-
+func (c *Client) CreateService(kind string, options map[string]string) (*Service, error) {
+	params := Params(options)
+	params["type"] = kind
 	var service Service
 
 	err := c.Post("/services", params, &service)
