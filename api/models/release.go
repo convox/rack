@@ -10,7 +10,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/xtgo/uuid"
 	"github.com/convox/rack/api/crypt"
 )
 
@@ -164,19 +163,28 @@ func (r *Release) Save() error {
 }
 
 func (r *Release) Promote() error {
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return err
+	}
+
 	formation, err := r.Formation()
 
 	if err != nil {
 		return err
 	}
 
-	existing, err := formationParameters(formation)
+	// If release formation was saved in S3, get that instead
+	f, err := s3Get(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id))
 
-	if err != nil {
-		return err
+	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
+
+	if err == nil {
+		formation = string(f)
 	}
 
-	app, err := GetApp(r.App)
+	existing, err := formationParameters(formation)
 
 	if err != nil {
 		return err
@@ -210,15 +218,13 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	id := uuid.NewRandom().String()
-
-	err = S3Put(app.Outputs["Settings"], fmt.Sprintf("templates/%s", id), []byte(formation), false)
+	err = S3Put(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id), []byte(formation), false)
 
 	if err != nil {
 		return err
 	}
 
-	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], id)
+	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
