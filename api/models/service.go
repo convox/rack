@@ -67,16 +67,51 @@ func GetService(name string) (*Service, error) {
 }
 
 func (s *Service) Create() error {
+	var req *cloudformation.CreateStackInput
 	var err error
 
 	switch s.Type {
 	case "papertrail":
-		err = s.CreatePapertrail()
+		req, err = s.CreatePapertrail()
 	case "webhook":
-		err = s.CreateWebhook()
+		req, err = s.CreateWebhook()
 	default:
-		err = s.CreateDatastore()
+		req, err = s.CreateDatastore()
 	}
+
+	if err != nil {
+		return err
+	}
+
+	params := make(map[string]string)
+	for key, value := range s.Options {
+		var val string
+		switch value {
+		case "":
+			val = "No"
+		case "true":
+			val = "Yes"
+		default:
+			val = value
+		}
+		params[AwsCamelize(key)] = val
+	}
+
+	for key, value := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+	}
+
+	tags := map[string]string{
+		"System":  os.Getenv("RACK"),
+		"Type":    "service",
+		"Service": s.Type,
+	}
+
+	for key, value := range tags {
+		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
+	}
+
+	_, err = CloudFormation().CreateStack(req)
 
 	if err != nil {
 		NotifySuccess("service:create", map[string]string{
