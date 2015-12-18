@@ -63,7 +63,7 @@ func monitorConverged(lastConverged bool, lastEventAt time.Time) (bool, ecs.Serv
 	log.Log("fn=monitorConverged converged=%t events=%d lastEventAt=%q", converged, len(events), lastEventAt)
 
 	if events.HasCapacityWarning() {
-		models.NotifyError("rack:capacity", fmt.Errorf("ECS reports a recent capacity issue"), map[string]string{
+		models.NotifyError("rack:capacity", fmt.Errorf(events.CapacityWarning()), map[string]string{
 			"rack": os.Getenv("RACK"),
 		})
 	}
