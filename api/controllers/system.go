@@ -80,7 +80,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	models.NotifySuccess("system:update", notifyData)
+	models.NotifySuccess("rack:update", notifyData)
 
 	return RenderJson(rw, rack)
 }
