@@ -14,20 +14,14 @@ func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 		return nil, err
 	}
 
-	params := map[string]string{
-		"Password": generateId("", 30),
-		"Subnets":  os.Getenv("SUBNETS"),
-		"Vpc":      os.Getenv("VPC"),
-	}
+	s.Parameters["Password"] = generateId("", 30)
+	s.Parameters["Subnets"] = os.Getenv("SUBNETS")
+	s.Parameters["Vpc"] = os.Getenv("VPC")
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.Name),
 		TemplateBody: aws.String(formation),
-	}
-
-	for key, value := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
 	}
 
 	return req, err

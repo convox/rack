@@ -83,24 +83,15 @@ func (s *Service) Create() error {
 		return err
 	}
 
-	params := make(map[string]string)
-	for key, value := range s.Options {
-		var val string
-		switch value {
-		case "":
-			val = "No"
-		case "true":
-			val = "Yes"
-		default:
-			val = value
-		}
-		params[AwsCamelize(key)] = val
+	// pass through service parameters as Cloudformation Parameters
+	for key, value := range s.Parameters {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
 	}
 
-	for key, value := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
-	}
-
+	// tag the service
 	tags := map[string]string{
 		"System":  os.Getenv("RACK"),
 		"Type":    "service",
@@ -178,13 +169,12 @@ func (ss Services) Swap(i, j int) {
 	ss[i], ss[j] = ss[j], ss[i]
 }
 
+//NOTE: let's figure out how to assemble the exports from the outputs
 func serviceFromStack(stack *cloudformation.Stack) *Service {
 	outputs := stackOutputs(stack)
 	parameters := stackParameters(stack)
 	tags := stackTags(stack)
 	exports := make(map[string]string)
-
-	fmt.Printf("stack: %+v\n", stack)
 
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
@@ -210,6 +200,27 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		Tags:       tags,
 		Exports:    exports,
 	}
+}
+
+// turns a dasherized map of key/value CLI params to
+// parameters that CloudFormation expects
+func CFParams(source map[string]string) map[string]string {
+	params := make(map[string]string)
+
+	for key, value := range source {
+		var val string
+		switch value {
+		case "":
+			val = "No"
+		case "true":
+			val = "Yes"
+		default:
+			val = value
+		}
+		params[AwsCamelize(key)] = val
+	}
+
+	return params
 }
 
 func AwsCamelize(dasherized string) string {

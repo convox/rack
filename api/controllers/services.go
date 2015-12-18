@@ -45,20 +45,20 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	// get the last set value for all form values
 	// ie:  foo=1&foo=2  sets foo to "2"
-	options := make(map[string]string)
+	params := make(map[string]string)
 	for key, values := range r.Form {
 		val := values[len(values)-1]
-		options[key] = val
+		params[key] = val
 	}
-	name := options["name"]
-	delete(options, "name")
-	kind := options["type"]
-	delete(options, "type")
+	name := params["name"]
+	delete(params, "name")
+	kind := params["type"]
+	delete(params, "type")
 
 	service := &models.Service{
-		Name:    name,
-		Type:    kind,
-		Options: options,
+		Name:       name,
+		Type:       kind,
+		Parameters: models.CFParams(params),
 	}
 
 	err = service.Create()
@@ -69,7 +69,7 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	if err != nil && awsError(err) == "ValidationError" {
 		e := err.(awserr.Error)
-		return httperr.Errorf(403, e.Message())
+		return httperr.Errorf(403, convoxifyCloudformationError(e.Message()))
 	}
 
 	if err != nil {
@@ -134,4 +134,10 @@ func ServiceLogs(ws *websocket.Conn) *httperr.Error {
 	}
 
 	return nil
+}
+
+func convoxifyCloudformationError(msg string) string {
+	newMsg := strings.Replace(msg, "do not exist in the template", "are not supported by this service", 1)
+	newMsg = strings.Replace(newMsg, "Parameters:", "Options:", 1)
+	return newMsg
 }

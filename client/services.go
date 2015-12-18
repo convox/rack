@@ -9,7 +9,6 @@ type Service struct {
 	Type         string            `json:"type"`
 	Exports      map[string]string `json:"exports"`
 
-	Options    map[string]string `json:"-"`
 	Outputs    map[string]string `json:"-"`
 	Parameters map[string]string `json:"-"`
 	Tags       map[string]string `json:"-"`
