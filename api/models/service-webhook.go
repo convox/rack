@@ -27,7 +27,8 @@ func (s *Service) CreateWebhook() (*cloudformation.CreateStackInput, error) {
 		}
 
 		encEndpoint := url.QueryEscape(s.Parameters["Url"])
-		//NOTE always assumes https instead of u.Scheme
+		//NOTE: using http SNS notifier because https
+		//      doesn't work with rack's self-signed cert
 		proxyEndpoint := "http://" + NotificationHost + "/sns?endpoint=" + encEndpoint
 		s.Parameters["Url"] = proxyEndpoint
 	}
