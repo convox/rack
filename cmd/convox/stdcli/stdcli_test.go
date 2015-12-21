@@ -19,4 +19,9 @@ func TestParseOptions(t *testing.T) {
 
 	opts = stdcli.ParseOpts([]string{"--foo=this", "is", "a bad idea"})
 	assert.Equal(t, "this is a bad idea", opts["foo"])
+
+	opts = stdcli.ParseOpts([]string{"--this", "--is=even", "worse"})
+	assert.Equal(t, "even worse", opts["is"])
+	_, ok := opts["this"]
+	assert.Equal(t, true, ok)
 }

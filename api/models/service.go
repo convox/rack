@@ -204,7 +204,8 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		Parameters: parameters,
 		Tags:       tags,
 		Exports:    exports,
-		URL:        exports["URL"],
+		// NOTE: this field is deprecated, use Exports instead
+		URL: exports["URL"],
 	}
 }
 
