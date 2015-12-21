@@ -204,6 +204,7 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		Parameters: parameters,
 		Tags:       tags,
 		Exports:    exports,
+		URL:        exports["URL"],
 	}
 }
 

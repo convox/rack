@@ -8,6 +8,9 @@ type Service struct {
 	StatusReason string            `json:"status-reason"`
 	Type         string            `json:"type"`
 	Exports      map[string]string `json:"exports"`
+	// DEPRECATED: should inject any data in Exports
+	// we only set this on the outgoing response for old clients
+	URL string `json:"url"`
 
 	Outputs    map[string]string `json:"-"`
 	Parameters map[string]string `json:"-"`
