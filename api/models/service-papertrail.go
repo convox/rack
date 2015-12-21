@@ -9,11 +9,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
-func (s *Service) CreatePapertrail() error {
-	if s.URL == "" {
-		return fmt.Errorf("Papertrail URL is required")
-	}
-
+func (s *Service) CreatePapertrail() (*cloudformation.CreateStackInput, error) {
 	input := struct {
 		ARNs []string
 	}{
@@ -23,17 +19,7 @@ func (s *Service) CreatePapertrail() error {
 	formation, err := buildTemplate(fmt.Sprintf("service/%s", s.Type), "service", input)
 
 	if err != nil {
-		return err
-	}
-
-	params := map[string]string{
-		"Url": s.URL,
-	}
-
-	tags := map[string]string{
-		"System":  "convox",
-		"Type":    "service",
-		"Service": s.Type,
+		return nil, err
 	}
 
 	req := &cloudformation.CreateStackInput{
@@ -42,22 +28,7 @@ func (s *Service) CreatePapertrail() error {
 		TemplateBody: aws.String(formation),
 	}
 
-	for key, value := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
-	}
-
-	for key, value := range tags {
-		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
-	}
-
-	_, err = CloudFormation().CreateStack(req)
-
-	NotifySuccess("service:create", map[string]string{
-		"name": s.Name,
-		"type": s.Type,
-	})
-
-	return err
+	return req, nil
 }
 
 func (s *Service) LinkPapertrail(app App) error {

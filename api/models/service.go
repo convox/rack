@@ -5,22 +5,14 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/client"
 )
 
-type Service struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Type   string `json:"type"`
-	URL    string `json:"url"`
-
-	Outputs    map[string]string `json:"-"`
-	Parameters map[string]string `json:"-"`
-	Tags       map[string]string `json:"-"`
-}
-
+type Service client.Service
 type Services []Service
 
 func ListServices() (Services, error) {
@@ -35,7 +27,11 @@ func ListServices() (Services, error) {
 	for _, stack := range res.Stacks {
 		tags := stackTags(stack)
 
-		if tags["System"] == "convox" && tags["Type"] == "service" {
+		//NOTE: services used to not have a tag so the empty "Rack"
+		//      is for untagged services
+		if tags["System"] == "convox" &&
+			tags["Type"] == "service" &&
+			(tags["Rack"] == os.Getenv("RACK") || tags["Rack"] == "") {
 			services = append(services, *serviceFromStack(stack))
 		}
 	}
@@ -52,36 +48,59 @@ func GetService(name string) (*Service, error) {
 		return nil, err
 	}
 
-	return serviceFromStack(res.Stacks[0]), nil
+	service := serviceFromStack(res.Stacks[0])
+
+	if service.Status == "failed" {
+		eres, err := CloudFormation().DescribeStackEvents(
+			&cloudformation.DescribeStackEventsInput{StackName: aws.String(name)},
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, event := range eres.StackEvents {
+			if *event.ResourceStatus == cloudformation.ResourceStatusCreateFailed {
+				service.StatusReason = *event.ResourceStatusReason
+				break
+			}
+		}
+	}
+
+	return service, nil
 }
 
-func (s *Service) CreateDatastore() error {
-	formation, err := s.Formation()
+func (s *Service) Create() error {
+	var req *cloudformation.CreateStackInput
+	var err error
+
+	switch s.Type {
+	case "papertrail":
+		req, err = s.CreatePapertrail()
+	case "webhook":
+		req, err = s.CreateWebhook()
+	default:
+		req, err = s.CreateDatastore()
+	}
 
 	if err != nil {
 		return err
 	}
 
-	params := map[string]string{
-		"Password": generateId("", 30),
-		"Subnets":  os.Getenv("SUBNETS"),
-		"Vpc":      os.Getenv("VPC"),
+	// pass through service parameters as Cloudformation Parameters
+	for key, value := range s.Parameters {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
 	}
 
+	// tag the service
 	tags := map[string]string{
+		"Rack":    os.Getenv("RACK"),
 		"System":  "convox",
-		"Type":    "service",
 		"Service": s.Type,
-	}
-
-	req := &cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(s.Name),
-		TemplateBody: aws.String(formation),
-	}
-
-	for key, value := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		"Type":    "service",
 	}
 
 	for key, value := range tags {
@@ -90,10 +109,12 @@ func (s *Service) CreateDatastore() error {
 
 	_, err = CloudFormation().CreateStack(req)
 
-	NotifySuccess("service:create", map[string]string{
-		"name": s.Name,
-		"type": s.Type,
-	})
+	if err != nil {
+		NotifySuccess("service:create", map[string]string{
+			"name": s.Name,
+			"type": s.Type,
+		})
+	}
 
 	return err
 }
@@ -153,23 +174,24 @@ func (ss Services) Swap(i, j int) {
 	ss[i], ss[j] = ss[j], ss[i]
 }
 
+//NOTE: let's figure out how to assemble the exports from the outputs
 func serviceFromStack(stack *cloudformation.Stack) *Service {
 	outputs := stackOutputs(stack)
 	parameters := stackParameters(stack)
 	tags := stackTags(stack)
-	urlString := ""
+	exports := make(map[string]string)
 
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
 		case "papertrail":
-			urlString = parameters["Url"]
+			exports["URL"] = parameters["Url"]
 		case "postgres":
-			urlString = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
+			exports["URL"] = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 		case "redis":
-			urlString = fmt.Sprintf("redis://u@%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+			exports["URL"] = fmt.Sprintf("redis://u@%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 		case "webhook":
 			if parsedUrl, err := url.Parse(parameters["Url"]); err == nil {
-				urlString = parsedUrl.Query().Get("endpoint")
+				exports["URL"] = parsedUrl.Query().Get("endpoint")
 			}
 		}
 	}
@@ -181,6 +203,44 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		Outputs:    outputs,
 		Parameters: parameters,
 		Tags:       tags,
-		URL:        urlString,
+		Exports:    exports,
+		// NOTE: this field is deprecated, use Exports instead
+		URL: exports["URL"],
 	}
+}
+
+// turns a dasherized map of key/value CLI params to
+// parameters that CloudFormation expects
+func CFParams(source map[string]string) map[string]string {
+	params := make(map[string]string)
+
+	for key, value := range source {
+		var val string
+		switch value {
+		case "":
+			val = "No"
+		case "true":
+			val = "Yes"
+		default:
+			val = value
+		}
+		params[AwsCamelize(key)] = val
+	}
+
+	return params
+}
+
+func AwsCamelize(dasherized string) string {
+	tokens := strings.Split(dasherized, "-")
+
+	for i, token := range tokens {
+		switch token {
+		case "az":
+			tokens[i] = "AZ"
+		default:
+			tokens[i] = strings.Title(token)
+		}
+	}
+
+	return strings.Join(tokens, "")
 }
