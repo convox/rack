@@ -160,10 +160,13 @@ func cmdServiceInfo(c *cli.Context) {
 
 	if len(service.Exports) > 0 {
 		fmt.Printf("Exports\n")
-	}
 
-	for key, value := range service.Exports {
-		fmt.Printf("  %s: %s\n", key, value)
+		for key, value := range service.Exports {
+			fmt.Printf("  %s: %s\n", key, value)
+		}
+	} else if service.URL != "" {
+		// NOTE: this branch is deprecated
+		fmt.Printf("URL     %s\n", service.URL)
 	}
 }
 
