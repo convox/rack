@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"regexp"
 	"strings"
@@ -109,7 +110,7 @@ var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 func generateId(prefix string, size int) string {
 	b := make([]rune, size)
 	for i := range b {
-		idx, err := rand.Int(rand.Reader, big.NewInt(len(idAlphabet)))
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(idAlphabet))))
 		if err != nil {
 			panic(err)
 		}
