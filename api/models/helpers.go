@@ -2,12 +2,12 @@ package models
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -19,10 +19,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 )
-
-func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
 
 func awserrCode(err error) string {
 	if ae, ok := err.(awserr.Error); ok {
@@ -113,7 +109,11 @@ var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 func generateId(prefix string, size int) string {
 	b := make([]rune, size)
 	for i := range b {
-		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+		idx, err := rand.Int(rand.Reader, big.NewInt(len(idAlphabet)))
+		if err != nil {
+			panic(err)
+		}
+		b[i] = idAlphabet[idx.Int64()]
 	}
 	return prefix + string(b)
 }
