@@ -10,6 +10,8 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
+const KERNEL_URL = "https://convox.s3.amazonaws.com/kernel.json";
+
 func KernelUpdate() error {
 	stackName := os.Getenv("STACK_NAME")
 
@@ -53,7 +55,7 @@ func KernelUpdate() error {
 			})
 		}
 
-		gr, err := http.Get("http://convox.s3.amazonaws.com/kernel.json")
+		gr, err := http.Get(KERNEL_URL)
 
 		if err != nil {
 			return err
@@ -84,7 +86,7 @@ func KernelUpdate() error {
 
 		req := &cloudformation.UpdateStackInput{
 			StackName:    aws.String(stackName),
-			TemplateURL:  aws.String("http://convox.s3.amazonaws.com/kernel.json"),
+			TemplateURL:  aws.String(KERNEL_URL),
 			Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 			Parameters:   finalParams,
 		}
