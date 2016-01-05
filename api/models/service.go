@@ -183,6 +183,8 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
+		case "mysql":
+			exports["URL"] = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", outputs["EnvMysqlUsername"], outputs["EnvMysqlPassword"], outputs["Port3306TcpAddr"], outputs["Port3306TcpPort"], outputs["EnvMysqlDatabase"])
 		case "papertrail":
 			exports["URL"] = parameters["Url"]
 		case "postgres":
