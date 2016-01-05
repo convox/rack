@@ -65,6 +65,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
+	config := r.FormValue("config")
 
 	if build.IsRunning() {
 		return httperr.Errorf(403, "another build is currently running. Please try again later.")
@@ -105,7 +106,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
-		go build.ExecuteLocal(source, cache, ch)
+		go build.ExecuteLocal(source, cache, config, ch)
 
 		err = <-ch
 
@@ -117,7 +118,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if repo := r.FormValue("repo"); repo != "" {
-		go build.ExecuteRemote(repo, cache, ch)
+		go build.ExecuteRemote(repo, cache, config, ch)
 
 		err = <-ch
 

@@ -73,7 +73,9 @@ func displayFormation(c *cli.Context, app string) {
 	running := map[string]int{}
 
 	for _, ps := range pss {
-		running[ps.Name] = running[ps.Name] + 1
+		if ps.Id != "pending" {
+			running[ps.Name] += 1
+		}
 	}
 
 	t := stdcli.NewTable("NAME", "DESIRED", "RUNNING", "MEMORY")

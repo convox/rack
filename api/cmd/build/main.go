@@ -28,7 +28,9 @@ func main() {
 	id := flag.String("id", "", "tag the build with this id")
 	push := flag.String("push", "", "push build to this prefix when done")
 	auth := flag.String("auth", "", "auth token for push")
+	dockercfg := flag.String("dockercfg", "", "dockercfg auth json for pull")
 	noCache := flag.Bool("no-cache", false, "skip the docker cache")
+	config := flag.String("config", "docker-compose.yml", "docker compose filename")
 
 	flag.Parse()
 
@@ -50,7 +52,7 @@ func main() {
 		die(err)
 	}
 
-	m, err := manifest.Read(dir)
+	m, err := manifest.Read(dir, *config)
 
 	if err != nil {
 		die(err)
@@ -77,6 +79,16 @@ func main() {
 
 	if err != nil {
 		die(err)
+	}
+
+	cfg := []byte(*dockercfg)
+
+	if len(cfg) > 0 {
+		err = ioutil.WriteFile("/root/.dockercfg", cfg, 0400)
+
+		if err != nil {
+			die(err)
+		}
 	}
 
 	cache := !*noCache

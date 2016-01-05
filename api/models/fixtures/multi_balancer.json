@@ -138,8 +138,8 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "Version": {
-      "Default": "latest",
-      "Description": "Convox release version",
+      "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
+      "MinLength": "1",
       "Type": "String"
     },
     "WebCommand": {
@@ -705,7 +705,10 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "Balancer",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -806,7 +809,6 @@
                 "Image": {
                   "Ref": "WebImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -822,10 +824,21 @@
                         "3000"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Services": [],
-                "Volumes": []
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
@@ -838,7 +851,10 @@
       "Version": "1.0"
     },
     "WorkerECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "BalancerWorker",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -939,7 +955,6 @@
                 "Image": {
                   "Ref": "WorkerImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "WorkerMemory"
                 },
@@ -955,10 +970,21 @@
                         "3000"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Services": [],
-                "Volumes": []
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"

@@ -36,8 +36,14 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.list", SSLList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.create", SSLCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}/ssl/{process}/{port}", api("ssl.delete", SSLDelete)).Methods("DELETE")
+	router.HandleFunc("/auth", api("auth", Auth)).Methods("GET")
 	router.HandleFunc("/instances", api("instances.get", InstancesList)).Methods("GET")
 	router.HandleFunc("/instances/{id}", api("instance.delete", InstanceTerminate)).Methods("DELETE")
+	router.HandleFunc("/instances/keyroll", api("instances.keyroll", InstancesKeyroll)).Methods("POST")
+	router.HandleFunc("/registries", api("registry.list", RegistryList)).Methods("GET")
+	router.HandleFunc("/registries", api("registry.create", RegistryCreate)).Methods("POST")
+	// this should be DELETE /registries/{server} except for https://github.com/gorilla/mux/issues/132
+	router.HandleFunc("/registries", api("registry.delete", RegistryDelete)).Methods("DELETE")
 	router.HandleFunc("/services", api("service.list", ServiceList)).Methods("GET")
 	router.HandleFunc("/services", api("service.create", ServiceCreate)).Methods("POST")
 	router.HandleFunc("/services/{service}", api("service.show", ServiceShow)).Methods("GET")
@@ -55,6 +61,7 @@ func NewRouter() (router *mux.Router) {
 	router.Handle("/apps/{app}/builds/{build}/logs", ws("build.logs", BuildLogs)).Methods("GET")
 	router.Handle("/apps/{app}/processes/{pid}/exec", ws("process.exec.attach", ProcessExecAttached)).Methods("GET")
 	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run.attach", ProcessRunAttached)).Methods("GET")
+	router.Handle("/instances/{id}/ssh", ws("instance.ssh", InstanceSSH)).Methods("GET")
 	router.Handle("/services/{service}/logs", ws("service.logs", ServiceLogs)).Methods("GET")
 
 	// utility

@@ -19,6 +19,11 @@ func init() {
 				Name:  "no-cache",
 				Usage: "Do not use Docker cache during build.",
 			},
+			cli.StringFlag{
+				Name:  "file, f",
+				Value: "docker-compose.yml",
+				Usage: "a file to use in place of docker-compose.yml",
+			},
 		},
 	})
 }
@@ -57,7 +62,7 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	// build
-	release, err := executeBuild(c, dir, app)
+	release, err := executeBuild(c, dir, app, c.String("file"))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -78,19 +83,4 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	fmt.Println("UPDATING")
-
-	formation, err := rackClient(c).ListFormation(app)
-
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	fmt.Println("Available endpoints:")
-
-	for _, ps := range formation {
-		for _, port := range ps.Ports {
-			fmt.Printf("%s:%d (%s)\n", ps.Balancer, port, ps.Name)
-		}
-	}
 }

@@ -20,6 +20,7 @@ type Process struct {
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`
 	Release string    `json:"release"`
+	Size    int64     `json:"size"`
 	Cpu     float64   `json:"cpu"`
 	Memory  float64   `json:"memory"`
 	Started time.Time `json:"started"`
@@ -129,7 +130,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 			isTerminalRaw = true
 		}
 
-		if s := string(buf[0:n]); strings.HasPrefix(s, "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:") {
+		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
 			code, _ := strconv.Atoi(strings.TrimSpace(s[37:]))
 			ch <- code
 			return

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -165,7 +166,7 @@ func (b *Build) Cleanup() error {
 	return nil
 }
 
-func (b *Build) ExecuteLocal(r io.Reader, cache bool, ch chan error) {
+func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -177,8 +178,16 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, ch chan error) {
 		args = append(args, "-auth", pw)
 	}
 
+	if config != "" {
+		args = append(args, "-config", config)
+	}
+
 	if !cache {
 		args = append(args, "-no-cache")
+	}
+
+	if dockercfg, err := ioutil.ReadFile("/root/.dockercfg"); err == nil {
+		args = append(args, "-dockercfg", string(dockercfg))
 	}
 
 	args = append(args, name, "-")
@@ -196,7 +205,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, ch chan error) {
 	}
 }
 
-func (b *Build) ExecuteRemote(repo string, cache bool, ch chan error) {
+func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
@@ -208,8 +217,16 @@ func (b *Build) ExecuteRemote(repo string, cache bool, ch chan error) {
 		args = append(args, "-auth", pw)
 	}
 
+	if config != "" {
+		args = append(args, "-config", config)
+	}
+
 	if !cache {
 		args = append(args, "-no-cache")
+	}
+
+	if dockercfg, err := ioutil.ReadFile("/root/.dockercfg"); err == nil {
+		args = append(args, "-dockercfg", string(dockercfg))
 	}
 
 	args = append(args, name)

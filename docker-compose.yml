@@ -18,7 +18,7 @@ web:
     - PASSWORD
     - RACK
     - REGISTRY_HOST
-    - RELEASE=latest
+    - RELEASE
     - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
     - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
     - SUBNETS

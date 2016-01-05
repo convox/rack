@@ -32,7 +32,7 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	return builds, nil
 }
 
-func (c *Client) CreateBuildSource(app string, source []byte, cache bool) (*Build, error) {
+func (c *Client) CreateBuildSource(app string, source []byte, cache bool, config string) (*Build, error) {
 	var build Build
 
 	files := map[string][]byte{
@@ -40,7 +40,8 @@ func (c *Client) CreateBuildSource(app string, source []byte, cache bool) (*Buil
 	}
 
 	params := map[string]string{
-		"cache": fmt.Sprintf("%t", cache),
+		"cache":  fmt.Sprintf("%t", cache),
+		"config": config,
 	}
 
 	err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), files, params, &build)
@@ -52,11 +53,12 @@ func (c *Client) CreateBuildSource(app string, source []byte, cache bool) (*Buil
 	return &build, nil
 }
 
-func (c *Client) CreateBuildUrl(app string, url string, cache bool) (*Build, error) {
+func (c *Client) CreateBuildUrl(app string, url string, cache bool, config string) (*Build, error) {
 	var build Build
 
 	params := map[string]string{
-		"repo": url,
+		"repo":   url,
+		"config": config,
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)

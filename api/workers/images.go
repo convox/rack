@@ -10,8 +10,12 @@ import (
 	"github.com/convox/rack/api/models"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
+// Set up rack instance Docker environment for builds
+// Log into all configured private registries
+// Pull down latest images for all apps
 func StartImages() {
 	var log = logger.New("ns=app_images")
 
@@ -19,11 +23,19 @@ func StartImages() {
 		return
 	}
 
+	// doing this in development updates a ~/.docker file and causes a rerun loop
+	models.LoginRegistries()
+
 	maxRetries := 5
 	var err error
 
 	for i := 0; i < maxRetries; i++ {
-		err := dockerLogin()
+		err = models.DockerLogin(docker.AuthConfiguration{
+			Email:         "user@convox.com",
+			Username:      "convox",
+			Password:      os.Getenv("PASSWORD"),
+			ServerAddress: os.Getenv("REGISTRY_HOST"),
+		})
 
 		if err == nil {
 			break
@@ -65,18 +77,4 @@ func StartImages() {
 			}
 		}
 	}
-}
-
-func dockerLogin() error {
-	var log = logger.New("ns=app_images")
-
-	log.Log("cmd=%q", fmt.Sprintf("docker login -e user@convox.com -u convox -p ***** %s", os.Getenv("REGISTRY_HOST")))
-	data, err := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST")).CombinedOutput()
-
-	if err != nil {
-		fmt.Printf("%+v\n", string(data))
-		log.Error(err)
-	}
-
-	return err
 }

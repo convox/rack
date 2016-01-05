@@ -11,12 +11,12 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-c5fa5aae" },
-      "us-west-1": { "Ami": "ami-4b44b80f" },
-      "us-west-2": { "Ami": "ami-b7f0f987" },
-      "eu-west-1": { "Ami": "ami-c8abfdbf" },
-      "ap-northeast-1": { "Ami": "ami-7c78c47c" },
-      "ap-southeast-2": { "Ami": "ami-f17939cb" }
+      "us-east-1": { "Ami": "ami-6ff4bd05" },
+      "us-west-1": { "Ami": "ami-46cda526" },
+      "us-west-2": { "Ami": "ami-313d2150" },
+      "eu-west-1": { "Ami": "ami-8073d3f3" },
+      "ap-northeast-1": { "Ami": "ami-6ca38b02" },
+      "ap-southeast-2": { "Ami": "ami-00e7bf63" }
     }
   },
   "Outputs": {
@@ -91,6 +91,10 @@
         { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }
       ] }
     },
+    "Release": {
+      "Condition": "Development",
+      "Value": { "Ref": "Version" }
+    },
     "Subnets": {
       "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
@@ -103,7 +107,7 @@
   "Parameters": {
     "Ami": {
       "Type": "String",
-      "Description": "Amazon Machine Image",
+      "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
       "Default": ""
     },
     "ClientId": {
@@ -179,15 +183,35 @@
       "Description": "Registry port",
       "Default": ""
     },
+    "Subnet0CIDR": {
+      "Default": "10.0.1.0/24",
+      "Description": "Subnet 0 CIDR Block",
+      "Type": "String"
+    },
+    "Subnet1CIDR": {
+      "Default": "10.0.2.0/24",
+      "Description": "Subnet 0 CIDR Block",
+      "Type": "String"
+    },
+    "Subnet2CIDR": {
+      "Default": "10.0.3.0/24",
+      "Description": "Subnet 0 CIDR Block",
+      "Type": "String"
+    },
     "Version": {
-      "Default": "latest",
-      "Description": "Convox release version",
+      "Description": "(REQUIRED) Convox release version",
+      "MinLength" : "1",
       "Type": "String"
     },
     "VolumeSize": {
       "Type": "Number",
       "Description": "Default disk size in GB",
       "Default": "30"
+    },
+    "VPCCIDR": {
+      "Default": "10.0.0.0/16",
+      "Description": "VPC CIDR Block",
+      "Type": "String"
     },
     "Tenancy": {
       "Type": "String",
@@ -344,7 +368,7 @@
     "Vpc": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
-        "CidrBlock": "10.0.0.0/16",
+        "CidrBlock": { "Ref": "VPCCIDR" },
         "InstanceTenancy": "default",
         "Tags": [
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
@@ -369,7 +393,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
-        "CidrBlock": "10.0.1.0/24",
+        "CidrBlock": { "Ref": "Subnet0CIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
@@ -378,7 +402,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-        "CidrBlock": "10.0.2.0/24",
+        "CidrBlock": { "Ref": "Subnet1CIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
@@ -387,7 +411,7 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
-        "CidrBlock": "10.0.3.0/24",
+        "CidrBlock": { "Ref": "Subnet2CIDR" },
         "VpcId": { "Ref": "Vpc" }
       }
     },
@@ -526,8 +550,8 @@
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Ref": "RegistryHost" }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
+              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
+              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
             ] },
             { "Fn::If": [ "BlankCertificate",
               { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
@@ -537,7 +561,7 @@
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
-            "curl -s http://convox.s3.amazonaws.com/agent/0.5/convox.conf > /etc/init/convox.conf",
+            "curl -s https://convox.s3.amazonaws.com/agent/0.5/convox.conf > /etc/init/convox.conf",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"

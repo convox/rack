@@ -371,7 +371,11 @@ func testLogin(host, password, version string) (err error) {
 	_, err = cl.GetApps()
 
 	if err != nil {
-		return
+		err = cl.Auth()
+
+		if err != nil {
+			return
+		}
 	}
 
 	return nil
@@ -390,4 +394,18 @@ func promptForPassword() string {
 	}
 
 	return string(in)
+}
+
+func promptForUsername() string {
+	fmt.Print("Username: ")
+
+	var in string
+	_, err := fmt.Scanln(&in)
+
+	if err != nil {
+		stdcli.Error(err)
+		return ""
+	}
+
+	return in
 }

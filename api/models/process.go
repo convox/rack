@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -11,6 +12,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/api/config"
 )
 
 type Process struct {
@@ -22,6 +24,7 @@ type Process struct {
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`
 	Release string    `json:"release"`
+	Size    int64     `json:"size"`
 	Cpu     float64   `json:"cpu"`
 	Memory  float64   `json:"memory"`
 	Started time.Time `json:"started"`
@@ -32,6 +35,35 @@ type Process struct {
 }
 
 type Processes []Process
+
+func GetAppServices(app string) ([]*ecs.Service, error) {
+	services := []*ecs.Service{}
+
+	resources, err := ListResources(app)
+
+	if err != nil {
+		return services, err
+	}
+
+	arns := []*string{}
+
+	for _, r := range resources {
+		if r.Type == "Custom::ECSService" {
+			arns = append(arns, aws.String(r.Id))
+		}
+	}
+
+	dres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Services: arns,
+	})
+
+	if err != nil {
+		return services, err
+	}
+
+	return dres.Services, nil
+}
 
 func ListProcesses(app string) (Processes, error) {
 	_, err := GetApp(app)
@@ -56,8 +88,6 @@ func ListProcesses(app string) (Processes, error) {
 	}
 
 	tres, err := ECS().DescribeTasks(treq)
-
-	pss := Processes{}
 
 	psch := make(chan Process)
 	errch := make(chan error)
@@ -105,6 +135,8 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
+	pss := Processes{}
+
 	for i := 0; i < num; i++ {
 		select {
 		case ps := <-psch:
@@ -114,7 +146,61 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
+	pending, _ := ListPendingProcesses(app)
+	pss = append(pss, pending...)
+
 	sort.Sort(pss)
+
+	return pss, nil
+}
+
+func ListPendingProcesses(app string) (Processes, error) {
+	pss := Processes{}
+
+	services, err := GetAppServices(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, service := range services {
+		// Test every service deployment for running != pending, to put in a placeholder
+		for _, d := range service.Deployments {
+			if *d.DesiredCount == *d.RunningCount {
+				continue
+			}
+
+			tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+				TaskDefinition: d.TaskDefinition,
+			})
+
+			if err != nil {
+				return nil, err
+			}
+
+			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
+				continue
+			}
+
+			cd := *tres.TaskDefinition.ContainerDefinitions[0]
+
+			ps := Process{
+				Id:   "pending",
+				Name: *cd.Name,
+				Size: *cd.Memory,
+			}
+
+			for _, env := range cd.Environment {
+				if *env.Name == "RELEASE" {
+					ps.Release = *env.Value
+				}
+			}
+
+			for i := *d.RunningCount; i < *d.DesiredCount; i++ {
+				pss = append(pss, ps)
+			}
+		}
+	}
 
 	return pss, nil
 }
@@ -129,6 +215,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		Image: *cd.Image,
 		Name:  *cd.Name,
 		Ports: []string{},
+		Size:  *cd.Memory,
 	}
 
 	for _, env := range cd.Environment {
@@ -160,7 +247,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	}
 
 	if len(cres.ContainerInstances) != 1 {
-		errch <- fmt.Errorf("could not find instance")
+		errch <- fmt.Errorf("could not find ECS instance")
 		return
 	}
 
@@ -178,11 +265,16 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	}
 
 	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
-		errch <- fmt.Errorf("could not find instance")
+		errch <- fmt.Errorf("could not find EC2 instance")
 		return
 	}
 
 	instance := ires.Reservations[0].Instances[0]
+
+	// Connect to a Docker client
+	// In testing use the stub Docker server.
+	// In development, modify the security group for port 2376 and use the public IP
+	// In production, use the private IP
 
 	ip := *instance.PrivateIpAddress
 
@@ -250,15 +342,30 @@ func (ps Processes) Len() int {
 	return len(ps)
 }
 
+// Sort processes by name and id
+// Processes with a 'pending' id will naturally come last by design
 func (ps Processes) Less(i, j int) bool {
-	return ps[i].Name < ps[j].Name
+	psi := fmt.Sprintf("%s-%s", ps[i].Name, ps[i].Id)
+	psj := fmt.Sprintf("%s-%s", ps[j].Name, ps[j].Id)
+
+	return psi < psj
 }
 
 func (ps Processes) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
+var ErrPending = errors.New("can not get docker client for non-running container")
+
 func (p *Process) Docker() (*docker.Client, error) {
+	if p.Id == "pending" {
+		return nil, ErrPending
+	}
+
+	if os.Getenv("TEST") == "true" {
+		return Docker(config.TestConfig.DockerHost)
+	}
+
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
 }
 
@@ -266,6 +373,10 @@ func (p *Process) FetchStats() error {
 	d, err := p.Docker()
 
 	if err != nil {
+		if err == ErrPending {
+			return nil
+		}
+
 		return fmt.Errorf("could not communicate with docker")
 	}
 

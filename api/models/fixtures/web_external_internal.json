@@ -9,6 +9,14 @@
         ""
       ]
     },
+    "BlankWebPort3001Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3001Certificate"
+        },
+        ""
+      ]
+    },
     "BlankWebPort80Certificate": {
       "Fn::Equals": [
         {
@@ -25,6 +33,14 @@
         ""
       ]
     },
+    "SecureWebPort3001": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3001Secure"
+        },
+        "Yes"
+      ]
+    },
     "SecureWebPort80": {
       "Fn::Equals": [
         {
@@ -38,7 +54,7 @@
     "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWeb",
+          "BalancerWebInternal",
           "DNSName"
         ]
       }
@@ -51,6 +67,11 @@
     "Settings": {
       "Value": {
         "Ref": "Settings"
+      }
+    },
+    "WebPort3001Balancer": {
+      "Value": {
+        "Ref": "WebPort3001Balancer"
       }
     },
     "WebPort80Balancer": {
@@ -101,8 +122,8 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "Version": {
-      "Default": "latest",
-      "Description": "Convox release version",
+      "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
+      "MinLength": "1",
       "Type": "String"
     },
     "WebCommand": {
@@ -125,8 +146,27 @@
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
+    "WebPort3001Balancer": {
+      "Default": "3001",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3001Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort3001Host": {
       "Default": "5001",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3001Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
       "Description": "",
       "Type": "String"
     },
@@ -161,7 +201,7 @@
     }
   },
   "Resources": {
-    "BalancerWeb": {
+    "BalancerWebInternal": {
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -241,6 +281,52 @@
             ]
           },
           {
+            "Fn::If": [
+              "BlankWebPort3001Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort3001Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort3001Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "Fn::If": [
+                  "SecureWebPort3001",
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort3001Host"
+                    },
+                    "InstanceProtocol": "SSL",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort3001Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort3001Certificate"
+                    }
+                  },
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort3001Host"
+                    },
+                    "InstanceProtocol": "TCP",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort3001Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort3001Certificate"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "Ref": "AWS::NoValue"
           }
         ],
@@ -251,13 +337,15 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "web"
+              "web",
+              "internal"
             ]
           ]
         },
+        "Scheme": "internal",
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebSecurityGroup"
+            "Ref": "BalancerWebInternalSecurityGroup"
           }
         ],
         "Subnets": {
@@ -266,7 +354,7 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebSecurityGroup": {
+    "BalancerWebInternalSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -288,6 +376,16 @@
             "IpProtocol": "tcp",
             "ToPort": {
               "Ref": "WebPort80Balancer"
+            }
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "WebPort3001Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "WebPort3001Balancer"
             }
           },
           {
@@ -493,7 +591,10 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "DependsOn": "CustomTopic",
+      "DependsOn": [
+        "BalancerWebInternal",
+        "CustomTopic"
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
@@ -507,10 +608,22 @@
               ":",
               [
                 {
-                  "Ref": "BalancerWeb"
+                  "Ref": "BalancerWebInternal"
                 },
                 "web",
                 "3000"
+              ]
+            ]
+          },
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerWebInternal"
+                },
+                "web",
+                "3001"
               ]
             ]
           },
@@ -594,7 +707,6 @@
                 "Image": {
                   "Ref": "WebImage"
                 },
-                "Links": [],
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -621,10 +733,21 @@
                         "3001"
                       ]
                     ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
                   }
                 ],
-                "Services": [],
-                "Volumes": []
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
               },
               {
                 "Ref": "AWS::NoValue"
