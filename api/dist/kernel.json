@@ -68,6 +68,9 @@
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
+    "LogGroup": {
+      "Value": { "Ref": "LogGroup" }
+    },
     "NotificationHost": {
       "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
@@ -236,6 +239,9 @@
         "ShardCount": 1
       },
       "Type": "AWS::Kinesis::Stream"
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
     },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
@@ -479,7 +485,7 @@
       }
     },
     "LaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis" ],
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
@@ -517,6 +523,7 @@
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
+            { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
             "curl -s https://convox.s3.amazonaws.com/agent/0.5/convox.conf > /etc/init/convox.conf",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
@@ -837,7 +844,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "KernelTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": {
           "Ref": "AWS::StackName"
@@ -900,6 +907,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
               "BUCKET": { "Ref": "RegistryBucket" },
               "KINESIS": { "Ref": "Kinesis" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "registry",
               "RELEASE": { "Ref": "Version" },
