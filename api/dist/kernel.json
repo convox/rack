@@ -445,6 +445,9 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "autoscaling:DescribeAutoScalingInstances",
+                    "autoscaling:SetInstanceHealth",
+                    "ec2:DescribeInstances",
                     "ecs:CreateCluster",
                     "ecs:DeregisterContainerInstance",
                     "ecs:DiscoverPollEndpoint",
@@ -454,9 +457,8 @@
                     "ecs:Submit*",
                     "kinesis:PutRecord",
                     "kinesis:PutRecords",
-                    "ec2:DescribeInstances",
-                    "autoscaling:DescribeAutoScalingInstances",
-                    "autoscaling:SetInstanceHealth"
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
                   ],
                   "Resource": [
                     "*"
