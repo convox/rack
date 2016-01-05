@@ -139,6 +139,9 @@
   "Kinesis": {
     "Value": { "Ref": "Kinesis" }
   },
+  "LogGroup": {
+    "Value": { "Ref": "LogGroup" }
+  },
 {{ end }}
 
 {{ define "process-resources" }}
@@ -147,6 +150,9 @@
     "Properties": {
       "ShardCount": 1
     }
+  },
+  "LogGroup": {
+    "Type": "AWS::Logs::LogGroup"
   },
 {{ end }}
 
@@ -382,6 +388,7 @@
         "{{ $key }}": "{{ $value }}",
       {{ end }}
       "KINESIS": { "Ref": "Kinesis" },
+      "LOG_GROUP": { "Ref": "LogGroup" },
       "PROCESS": "{{ .Name }}"
     },
     "Volumes": [
