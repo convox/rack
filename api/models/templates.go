@@ -245,12 +245,12 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"templates/app.tmpl": templatesAppTmpl,
-	"templates/service/mysql.tmpl": templatesServiceMysqlTmpl,
+	"templates/app.tmpl":                templatesAppTmpl,
+	"templates/service/mysql.tmpl":      templatesServiceMysqlTmpl,
 	"templates/service/papertrail.tmpl": templatesServicePapertrailTmpl,
-	"templates/service/postgres.tmpl": templatesServicePostgresTmpl,
-	"templates/service/redis.tmpl": templatesServiceRedisTmpl,
-	"templates/service/webhook.tmpl": templatesServiceWebhookTmpl,
+	"templates/service/postgres.tmpl":   templatesServicePostgresTmpl,
+	"templates/service/redis.tmpl":      templatesServiceRedisTmpl,
+	"templates/service/webhook.tmpl":    templatesServiceWebhookTmpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -292,15 +292,16 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"templates": &bintree{nil, map[string]*bintree{
 		"app.tmpl": &bintree{templatesAppTmpl, map[string]*bintree{}},
 		"service": &bintree{nil, map[string]*bintree{
-			"mysql.tmpl": &bintree{templatesServiceMysqlTmpl, map[string]*bintree{}},
+			"mysql.tmpl":      &bintree{templatesServiceMysqlTmpl, map[string]*bintree{}},
 			"papertrail.tmpl": &bintree{templatesServicePapertrailTmpl, map[string]*bintree{}},
-			"postgres.tmpl": &bintree{templatesServicePostgresTmpl, map[string]*bintree{}},
-			"redis.tmpl": &bintree{templatesServiceRedisTmpl, map[string]*bintree{}},
-			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
+			"postgres.tmpl":   &bintree{templatesServicePostgresTmpl, map[string]*bintree{}},
+			"redis.tmpl":      &bintree{templatesServiceRedisTmpl, map[string]*bintree{}},
+			"webhook.tmpl":    &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
 		}},
 	}},
 }}
@@ -351,4 +352,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
