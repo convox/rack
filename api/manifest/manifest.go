@@ -3,10 +3,13 @@ package manifest
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -40,6 +43,7 @@ type ManifestEntry struct {
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
+	*Manifest   `yaml:"-"`
 }
 
 func init() {
@@ -130,8 +134,11 @@ func Read(dir, filename string) (*Manifest, error) {
 				}
 			}
 
-			m[name].Volumes[i] = strings.Join(parts, ":")
+			entry.Volumes[i] = strings.Join(parts, ":")
 		}
+
+		entry.Manifest = &m
+		m[name] = entry
 	}
 
 	return &m, nil
@@ -248,7 +255,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	return []error{}
 }
 
-func (me *ManifestEntry) ResolvedEnvironment() []string {
+func (me *ManifestEntry) ResolvedEnvironment() ([]string, error) {
 	r := []string{}
 
 	for _, env := range me.EnvironmentArray() {
@@ -258,7 +265,14 @@ func (me *ManifestEntry) ResolvedEnvironment() []string {
 		r = append(r, env)
 	}
 
-	return r
+	linkedVars, err := me.ResolvedLinkVars()
+	if err != nil {
+		return r, err
+	}
+
+	r = append(r, linkedVars...)
+
+	return r, nil
 }
 
 func (me *ManifestEntry) EnvironmentArray() []string {
@@ -278,9 +292,101 @@ func (me *ManifestEntry) EnvironmentArray() []string {
 	return arr
 }
 
-func (m *Manifest) MissingEnvironment() []string {
+// NOTE: this is the simpler approach:
+//       build up the ENV from the declared links
+//       assuming local dev is done on DOCKER_HOST
+func (me *ManifestEntry) ResolvedLinkVars() ([]string, error) {
+	linkVars := make([]string, 0)
+
+	if me.Manifest == nil {
+		return linkVars, nil
+	}
+
+	for _, link := range me.Links {
+		other := (*me.Manifest)[link]
+		var port string
+
+		switch t := other.Ports.(type) {
+		case []string:
+			if len(t) < 1 {
+				return linkVars, fmt.Errorf("No ports exposed for image %q", link)
+			}
+
+			port = t[0]
+		case []interface{}:
+			if len(t) < 1 {
+				return linkVars, fmt.Errorf("No ports exposed for image %q", link)
+			}
+
+			port = fmt.Sprintf("%v", t[0])
+		}
+
+		cmd := Execer("docker", "inspect", other.Image)
+		output, err := cmd.Output()
+
+		if err != nil {
+			return linkVars, err
+		}
+
+		var inspect []struct {
+			Config struct {
+				Env []string
+			}
+		}
+
+		err = json.Unmarshal(output, &inspect)
+		if err != nil {
+			return linkVars, err
+		}
+
+		if len(inspect) < 1 {
+			return linkVars, fmt.Errorf("could not inspect container %q", other.Image)
+		}
+
+		otherEnv := make(map[string]string)
+		for _, val := range inspect[0].Config.Env {
+			parts := strings.SplitN(val, "=", 2)
+			otherEnv[parts[0]] = parts[1]
+		}
+
+		varName := strings.ToUpper(link) + "_URL"
+		cmd = Execer("docker", "run", "convox/docker-gateway")
+		output, err = cmd.Output()
+		if err != nil {
+			return linkVars, err
+		}
+
+		host := strings.TrimSpace(string(output))
+		if port != "" {
+			port = strings.Split(port, ":")[0]
+			host = host + ":" + port
+		}
+
+		scheme := otherEnv["LINK_SCHEME"]
+		if scheme == "" {
+			scheme = "tcp"
+		}
+
+		linkUrl := url.URL{
+			Scheme: scheme,
+			Host:   host,
+			Path:   otherEnv["LINK_PATH"],
+		}
+
+		if otherEnv["LINK_USERNAME"] != "" || otherEnv["LINK_PASSWORD"] != "" {
+			linkUrl.User = url.UserPassword(otherEnv["LINK_USERNAME"], otherEnv["LINK_PASSWORD"])
+		}
+
+		linkVars = append(linkVars, varName+"="+linkUrl.String())
+	}
+
+	return linkVars, nil
+}
+
+func (m *Manifest) MissingEnvironment() ([]string, error) {
 	existing := map[string]bool{}
 	missingh := map[string]bool{}
+	missing := []string{}
 
 	for _, env := range os.Environ() {
 		parts := strings.SplitN(env, "=", 2)
@@ -291,7 +397,12 @@ func (m *Manifest) MissingEnvironment() []string {
 	}
 
 	for _, entry := range *m {
-		for _, env := range entry.EnvironmentArray() {
+		resolved, err := entry.ResolvedEnvironment()
+		if err != nil {
+			return missing, err
+		}
+
+		for _, env := range resolved {
 			if strings.Index(env, "=") == -1 {
 				if !existing[env] {
 					missingh[env] = true
@@ -300,18 +411,35 @@ func (m *Manifest) MissingEnvironment() []string {
 		}
 	}
 
-	missing := []string{}
-
 	for mm, _ := range missingh {
 		missing = append(missing, mm)
 	}
 
 	sort.Strings(missing)
 
-	return missing
+	return missing, nil
 }
 
-func (m *Manifest) PortsWanted() ([]string, error) {
+func (m *Manifest) PortConflicts() ([]string, error) {
+	wanted := m.PortsWanted()
+
+	conflicts := make([]string, 0)
+
+	host := dockerHost()
+
+	for _, p := range wanted {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, p), 200*time.Millisecond)
+
+		if err == nil {
+			conflicts = append(conflicts, p)
+			defer conn.Close()
+		}
+	}
+
+	return conflicts, nil
+}
+
+func (m *Manifest) PortsWanted() []string {
 	ports := make([]string, 0)
 
 	for _, entry := range *m {
@@ -328,7 +456,7 @@ func (m *Manifest) PortsWanted() ([]string, error) {
 		}
 	}
 
-	return ports, nil
+	return ports
 }
 
 func (m *Manifest) Push(app, registry, auth, tag string, flatten string) []error {
@@ -502,10 +630,18 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	args := []string{"run", "-i", "--name", name}
 
-	for _, env := range me.ResolvedEnvironment() {
+	resolved, err := me.ResolvedEnvironment()
+
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	for _, env := range resolved {
 		args = append(args, "-e", env)
 	}
 
+	/* NO MORE LINKS
 	for _, link := range me.Links {
 		parts := strings.Split(link, ":")
 
@@ -517,6 +653,7 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 		default:
 		}
 	}
+	*/
 
 	ports := []string{}
 
@@ -781,4 +918,21 @@ func initDefault(dir string) ([]string, error) {
 	}
 
 	return []string{"Dockerfile", "docker-compose.yml"}, nil
+}
+
+func dockerHost() (host string) {
+	host = "127.0.0.1"
+
+	if h := os.Getenv("DOCKER_HOST"); h != "" {
+		u, err := url.Parse(h)
+
+		if err != nil {
+			return
+		}
+
+		parts := strings.Split(u.Host, ":")
+		host = parts[0]
+	}
+
+	return
 }

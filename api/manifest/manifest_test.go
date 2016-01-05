@@ -50,7 +50,7 @@ func TestPortsWanted(t *testing.T) {
 
 	_, _ = Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
-	ps, _ := m.PortsWanted()
+	ps := m.PortsWanted()
 
 	cases := Cases{
 		{ps, []string{"5000"}},
