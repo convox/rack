@@ -116,36 +116,21 @@
 
 {{ define "process-conditions" }}
   {{ range $k := .EntryNames }}
-    "Blank{{ upper $k }}Service": { "Fn::Equals": [ { "Ref": "{{ upper $k }}Service" }, "" ] },
+    "Blank{{ upper $k }}Service": { "Fn::Equals": [ "", "" ] },
   {{ end }}
 {{ end }}
 
 {{ define "process-params" }}
   {{ range $e := . }}
-    "{{ upper $e.Name }}Command": {
-      "Type" : "String",
-      "Default" : "{{ $e.CommandString }}",
-      "Description" : ""
-    },
-    "{{ upper $e.Name }}DesiredCount": {
-      "Type" : "Number",
-      "Default" : "1",
-      "Description" : "The number of instantiations of the process to place and keep running on your cluster"
-    },
-    "{{ upper $e.Name }}Image": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
-    },
     "{{ upper $e.Name }}Memory": {
       "Type": "Number",
       "Default": "256",
       "Description": "MB of RAM to reserve"
     },
-    "{{ upper $e.Name }}Service": {
-      "Type" : "String",
-      "Default" : "",
-      "Description" : ""
+    "{{ upper $e.Name }}DesiredCount": {
+      "Type" : "Number",
+      "Default" : "1",
+      "Description" : "The number of instantiations of the process to place and keep running on your cluster"
     },
   {{ end }}
 {{ end }}
@@ -420,8 +405,8 @@
 { "Fn::If": [ "Blank{{ upper .Name }}Service",
   {
     "Name": "{{ .Name }}",
-    "Image": { "Ref": "{{ upper .Name }}Image" },
-    "Command": { "Ref": "{{ upper .Name }}Command" },
+    "Image": "{{ .Image }}",
+    "Command": "{{ .CommandString }}",
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}

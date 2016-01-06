@@ -19,9 +19,7 @@
     },
     "BlankWebService": {
       "Fn::Equals": [
-        {
-          "Ref": "WebService"
-        },
+        "",
         ""
       ]
     },
@@ -35,9 +33,7 @@
     },
     "BlankWorkerService": {
       "Fn::Equals": [
-        {
-          "Ref": "WorkerService"
-        },
+        "",
         ""
       ]
     },
@@ -142,20 +138,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebCommand": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
-    },
-    "WebImage": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
     },
     "WebMemory": {
       "Default": "256",
@@ -186,25 +172,10 @@
       "Description": "",
       "Type": "String"
     },
-    "WebService": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerCommand": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "WorkerDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
-    },
-    "WorkerImage": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
     },
     "WorkerMemory": {
       "Default": "256",
@@ -232,11 +203,6 @@
         "No"
       ],
       "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerService": {
-      "Default": "",
       "Description": "",
       "Type": "String"
     }
@@ -797,18 +763,14 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "Command": {
-                  "Ref": "WebCommand"
-                },
+                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
                   "PROCESS": "web"
                 },
-                "Image": {
-                  "Ref": "WebImage"
-                },
+                "Image": "",
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -943,18 +905,14 @@
             "Fn::If": [
               "BlankWorkerService",
               {
-                "Command": {
-                  "Ref": "WorkerCommand"
-                },
+                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
                   "PROCESS": "worker"
                 },
-                "Image": {
-                  "Ref": "WorkerImage"
-                },
+                "Image": "",
                 "Memory": {
                   "Ref": "WorkerMemory"
                 },

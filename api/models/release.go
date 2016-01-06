@@ -194,17 +194,6 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	manifest, err := LoadManifest(r.Manifest)
-
-	if err != nil {
-		return err
-	}
-
-	for _, me := range manifest {
-		app.Parameters[fmt.Sprintf("%sCommand", UpperName(me.Name))] = me.CommandString()
-		app.Parameters[fmt.Sprintf("%sImage", UpperName(me.Name))] = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, me.Name, r.Build)
-	}
-
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = CustomTopic
 	app.Parameters["Release"] = r.Id
@@ -291,6 +280,8 @@ func (r *Release) Formation() (string, error) {
 		if entry.Name == primary {
 			manifest[i].primary = true
 		}
+
+		manifest[i].Image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
 	}
 
 	return manifest.Formation()
