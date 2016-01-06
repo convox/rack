@@ -11,17 +11,13 @@
     },
     "BlankPostgresService": {
       "Fn::Equals": [
-        {
-          "Ref": "PostgresService"
-        },
+        "",
         ""
       ]
     },
     "BlankWorkerService": {
       "Fn::Equals": [
-        {
-          "Ref": "WorkerService"
-        },
+        "",
         ""
       ]
     }
@@ -59,30 +55,15 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresCommand": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "PostgresDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
     },
-    "PostgresImage": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "PostgresMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
-    },
-    "PostgresService": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
     },
     "Release": {
       "Default": "",
@@ -109,30 +90,15 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WorkerCommand": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "WorkerDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
     },
-    "WorkerImage": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "WorkerMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
-    },
-    "WorkerService": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
@@ -345,9 +311,7 @@
             "Fn::If": [
               "BlankPostgresService",
               {
-                "Command": {
-                  "Ref": "PostgresCommand"
-                },
+                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
@@ -356,9 +320,7 @@
                   "POSTGRES_USERNAME": "postgres",
                   "PROCESS": "postgres"
                 },
-                "Image": {
-                  "Ref": "PostgresImage"
-                },
+                "Image": "mdillon/postgis",
                 "Memory": {
                   "Ref": "PostgresMemory"
                 },
@@ -532,18 +494,14 @@
             "Fn::If": [
               "BlankWorkerService",
               {
-                "Command": {
-                  "Ref": "WorkerCommand"
-                },
+                "Command": "bin/work",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
                   "PROCESS": "worker"
                 },
-                "Image": {
-                  "Ref": "WorkerImage"
-                },
+                "Image": "",
                 "Memory": {
                   "Ref": "WorkerMemory"
                 },
