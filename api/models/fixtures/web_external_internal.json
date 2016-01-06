@@ -27,9 +27,7 @@
     },
     "BlankWebService": {
       "Fn::Equals": [
-        {
-          "Ref": "WebService"
-        },
+        "",
         ""
       ]
     },
@@ -126,20 +124,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebCommand": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
-    },
-    "WebImage": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
     },
     "WebMemory": {
       "Default": "256",
@@ -191,11 +179,6 @@
         "No"
       ],
       "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebService": {
-      "Default": "",
       "Description": "",
       "Type": "String"
     }
@@ -695,18 +678,14 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "Command": {
-                  "Ref": "WebCommand"
-                },
+                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
                   "PROCESS": "web"
                 },
-                "Image": {
-                  "Ref": "WebImage"
-                },
+                "Image": "",
                 "Memory": {
                   "Ref": "WebMemory"
                 },
