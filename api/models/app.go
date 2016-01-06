@@ -242,7 +242,7 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
-	go subscribeKinesis(a.Outputs["Kinesis"], output, quit)
+	go subscribeCloudWatchLogs(a.Outputs["LogGroup"], output, quit)
 	return nil
 }
 
