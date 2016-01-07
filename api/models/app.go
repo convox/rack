@@ -241,8 +241,15 @@ func (a *App) Formation() (string, error) {
 	return string(data), nil
 }
 
+// During the transition from Kinesis to CloudWatch Logs, apps might not have been
+// re-deployed and provisioned a LogGroup.
+// Conditionally fall back to reading from Kinesis in this case.
 func (a *App) SubscribeLogs(output chan []byte, quit chan bool) error {
-	go subscribeCloudWatchLogs(a.Outputs["LogGroup"], output, quit)
+	if a.Outputs["LogGroup"] != "" {
+		go subscribeCloudWatchLogs(a.Outputs["LogGroup"], output, quit)
+	} else {
+		go subscribeKinesis(a.Outputs["Kinesis"], output, quit)
+	}
 	return nil
 }
 
