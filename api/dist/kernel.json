@@ -464,6 +464,7 @@
                     "kinesis:PutRecord",
                     "kinesis:PutRecords",
                     "logs:CreateLogStream",
+                    "logs:DescribeLogStreams",
                     "logs:PutLogEvents"
                   ],
                   "Resource": [
