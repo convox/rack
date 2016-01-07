@@ -873,6 +873,7 @@
                 ""
               ] },
               "KINESIS": { "Ref": "Kinesis" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
