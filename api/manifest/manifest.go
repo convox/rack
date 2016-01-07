@@ -23,6 +23,7 @@ import (
 	yaml "github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
+//NOTE: these vars allow us to control other shell-outs during testing
 var (
 	Stdout       = io.Writer(os.Stdout)
 	Stderr       = io.Writer(os.Stderr)
@@ -306,23 +307,28 @@ func (me *ManifestEntry) ResolvedLinkVars() ([]string, error) {
 		other := (*me.Manifest)[link]
 		var port string
 
+		noPortsErr := fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
 		switch t := other.Ports.(type) {
 		case []string:
 			if len(t) < 1 {
-				return linkVars, fmt.Errorf("No ports exposed for image %q", link)
+				return linkVars, noPortsErr
 			}
 
 			port = t[0]
 		case []interface{}:
 			if len(t) < 1 {
-				return linkVars, fmt.Errorf("No ports exposed for image %q", link)
+				return linkVars, noPortsErr
 			}
 
 			port = fmt.Sprintf("%v", t[0])
 		}
 
+		if port == "" {
+			return linkVars, noPortsErr
+		}
+
 		cmd := Execer("docker", "inspect", other.Image)
-		output, err := cmd.Output()
+		output, err := cmd.CombinedOutput()
 
 		if err != nil {
 			return linkVars, err

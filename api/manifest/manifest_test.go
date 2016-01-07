@@ -88,6 +88,12 @@ postgres:
 	_assert(t, cases)
 }
 
+type TestCommand struct {
+	Command string
+	Args    []string
+	Output  string
+}
+
 func TestRun(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
@@ -95,10 +101,37 @@ func TestRun(t *testing.T) {
 	_, _ = Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
 
+	commands := []TestCommand{
+		TestCommand{Command: "docker", Args: []string{"inspect"},
+			Output: `[{"Config":{"Env":["POSTGRES_USERNAME=foo"]}}]`},
+		TestCommand{Command: "docker", Args: []string{"run", "convox/docker-gateway"},
+			Output: `1.1.1.1`},
+	}
+
+	//NOTE: this is a compromise on top of another compromise
+	Execer = func(bin string, args ...string) *exec.Cmd {
+		found := false
+
+		for _, c := range commands {
+			if c.Command == bin {
+				found = true
+				for i, arg := range c.Args {
+					found = found && args[i] == arg
+				}
+			}
+
+			if found {
+				return exec.Command("echo", c.Output)
+			}
+		}
+
+		return exec.Command("true")
+	}
+
 	stdout, stderr := testRun(m, "compose")
 
 	cases := Cases{
-		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name compose-postgres compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name compose-web --link compose-postgres:postgres -p 5000:3000 -v %s:/app compose/web\n", destDir)},
+		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m running: docker run -i --name compose-postgres -p 5432:5432 compose/postgres\n\x1b[33mweb      |\x1b[0m running: docker run -i --name compose-web -e POSTGRES_URL=tcp://1.1.1.1:5432 -p 5000:3000 -v %s:/app compose/web\n", destDir)},
 		{stderr, ""},
 	}
 
@@ -112,6 +145,10 @@ func TestGenerateDockerCompose(t *testing.T) {
 	_, _ = Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
 
+	Execer = func(bin string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
+
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
   build: .
@@ -123,6 +160,8 @@ func TestGenerateDockerCompose(t *testing.T) {
     - .:/app
 postgres:
   image: convox/postgres
+  ports:
+    - 5432
 `},
 		{[]string{"postgres", "web"}, m.runOrder()},
 	}
@@ -136,6 +175,10 @@ func TestGenerateDockerfile(t *testing.T) {
 
 	_, _ = Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
+
+	Execer = func(bin string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `main:
@@ -155,6 +198,10 @@ func TestGenerateProcfile(t *testing.T) {
 
 	_, _ = Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
+
+	Execer = func(bin string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
 
 	cases := Cases{
 		{readFile(t, destDir, "docker-compose.yml"), `web:
@@ -247,10 +294,6 @@ func testRunner(m *Manifest, app string, fn runnerFn) (string, string) {
 
 	Stderr = ew
 	Stdout = ow
-
-	Execer = func(bin string, args ...string) *exec.Cmd {
-		return exec.Command("true")
-	}
 
 	SignalWaiter = func(c chan os.Signal) error {
 		return nil
