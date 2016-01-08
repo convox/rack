@@ -731,25 +731,6 @@
                 ],
                 "Services": [
                   {
-                    "Fn::If": [
-                      "BlankPostgresService",
-                      {
-                        "Ref": "AWS::NoValue"
-                      },
-                      {
-                        "Fn::Join": [
-                          ":",
-                          [
-                            {
-                              "Ref": "PostgresService"
-                            },
-                            "postgres"
-                          ]
-                        ]
-                      }
-                    ]
-                  },
-                  {
                     "Ref": "AWS::NoValue"
                   }
                 ],
