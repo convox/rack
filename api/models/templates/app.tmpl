@@ -398,12 +398,6 @@
       { "Ref" : "AWS::NoValue" }
     ],
     "Services": [
-      {{ range .Links }}
-        { "Fn::If": [ "Blank{{ upper . }}Service",
-          { "Ref" : "AWS::NoValue" },
-          { "Fn::Join": [ ":", [ { "Ref" : "{{ upper . }}Service" }, "{{ . }}" ] ] }
-        ]},
-      {{ end }}
       { "Ref" : "AWS::NoValue" }
     ],
     "PortMappings": [
