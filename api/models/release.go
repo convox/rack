@@ -3,8 +3,11 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"os"
+	"os/exec"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -287,10 +290,96 @@ func (r *Release) Formation() (string, error) {
 			manifest[i].primary = true
 		}
 
-		manifest[i].Image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
-
+		var imageName string
 		if registryId := app.Outputs["RegistryId"]; registryId != "" {
-			manifest[i].Image = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], entry.Name, r.Build)
+			imageName = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], entry.Name, r.Build)
+		} else {
+			imageName = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
+		}
+		manifest[i].Image = imageName
+
+		// BEGIN RESOLVING LINKS
+		cmd := exec.Command("docker", "pull", imageName)
+		err := cmd.Run()
+
+		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
+		if err != nil {
+			return "", err
+		}
+
+		cmd = exec.Command("docker", "inspect", imageName)
+		output, err := cmd.CombinedOutput()
+		fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q err=%t\n", imageName, err == nil)
+		if err != nil {
+			return "", err
+		}
+
+		var inspect []struct {
+			Config struct {
+				Env []string
+			}
+		}
+		err = json.Unmarshal(output, &inspect)
+		if err != nil {
+			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=true output=%q\n", string(output))
+			return "", fmt.Errorf("could not inspect image %q", imageName)
+		}
+
+		entry.Exports = make(map[string]string)
+		for _, val := range inspect[0].Config.Env {
+			if strings.HasPrefix(val, "LINK_") {
+				parts := strings.SplitN(val, "=", 2)
+				entry.Exports[parts[0]] = parts[1]
+				manifest[i] = entry
+			}
+		}
+	}
+
+	for i, entry := range manifest {
+		entry.LinkVars = make(map[string]template.HTML)
+		for _, link := range entry.Links {
+			other := entry.Manifest.Entry(link)
+
+			if other == nil {
+				return "", fmt.Errorf("Cannot find link %q", link)
+			}
+
+			if len(other.Ports) == 0 {
+				return "", fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
+			}
+
+			if len(other.Ports) > 1 {
+				continue
+			}
+
+			port := other.Ports[0]
+			port = strings.Split(port, ":")[0]
+
+			scheme := other.Exports["LINK_SCHEME"]
+			if scheme == "" {
+				scheme = "tcp"
+			}
+
+			path := other.Exports["LINK_PATH"]
+
+			var userInfo string
+			if other.Exports["LINK_USERNAME"] != "" || other.Exports["LINK_PASSWORD"] != "" {
+				userInfo = fmt.Sprintf("%s:%s@", other.Exports["LINK_USERNAME"], other.Exports["LINK_PASSWORD"])
+			}
+
+			mb := entry.Manifest.GetBalancer(link)
+			if mb == nil {
+				return "", fmt.Errorf("Cannot discover balancer for link %q", link)
+			}
+
+			host := fmt.Sprintf(`{ "Fn::GetAtt" : [ "%s", "DNSName" ] }`, mb.ResourceName())
+			html := fmt.Sprintf(`{ "Fn::Join": [ "", [ "%s", "://", "%s", %s, ":", "%s", "%s" ] ] }`,
+				scheme, userInfo, host, port, path)
+
+			varName := strings.ToUpper(link) + "_URL"
+
+			entry.LinkVars[varName] = template.HTML(html)
+			manifest[i] = entry
 		}
 	}
 
