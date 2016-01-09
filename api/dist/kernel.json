@@ -553,7 +553,7 @@
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": 0,
         "MinSize" : "1",
-        "MaxSize" : "10",
+        "MaxSize" : "100",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
