@@ -139,6 +139,9 @@
   "Kinesis": {
     "Value": { "Ref": "Kinesis" }
   },
+  "LogGroup": {
+    "Value": { "Ref": "LogGroup" }
+  },
 {{ end }}
 
 {{ define "process-resources" }}
@@ -148,37 +151,9 @@
       "ShardCount": 1
     }
   },
-  {{ if .HasProcesses }}
-    "LogsUser": {
-      "Type": "AWS::IAM::User",
-      "Properties": {
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "LogsRole",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [ "kinesis:PutRecords" ],
-                  "Resource": [ { "Fn::Join": [ "", [ "arn:aws:kinesis:*:*:stream/", { "Ref": "AWS::StackName" }, "-*" ] ] } ]
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "LogsAccess": {
-      "Type": "AWS::IAM::AccessKey",
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": { "Ref": "LogsUser" }
-      }
-    },
-  {{ end }}
+  "LogGroup": {
+    "Type": "AWS::Logs::LogGroup"
+  },
 {{ end }}
 
 {{ define "process-services" }}
@@ -413,6 +388,7 @@
         "{{ $key }}": "{{ $value }}",
       {{ end }}
       "KINESIS": { "Ref": "Kinesis" },
+      "LOG_GROUP": { "Ref": "LogGroup" },
       "PROCESS": "{{ .Name }}"
     },
     "Volumes": [

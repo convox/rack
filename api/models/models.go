@@ -12,6 +12,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
@@ -57,6 +58,10 @@ func CloudFormation() *cloudformation.CloudFormation {
 
 func CloudWatch() *cloudwatch.CloudWatch {
 	return cloudwatch.New(awsConfig())
+}
+
+func CloudWatchLogs() *cloudwatchlogs.CloudWatchLogs {
+	return cloudwatchlogs.New(awsConfig())
 }
 
 func DynamoDB() *dynamodb.DynamoDB {

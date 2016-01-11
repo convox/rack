@@ -68,6 +68,9 @@
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
     },
+    "LogGroup": {
+      "Value": { "Ref": "LogGroup" }
+    },
     "NotificationHost": {
       "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
@@ -237,51 +240,8 @@
       },
       "Type": "AWS::Kinesis::Stream"
     },
-    "LogsAccess": {
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": {
-          "Ref": "LogsUser"
-        }
-      },
-      "Type": "AWS::IAM::AccessKey"
-    },
-    "LogsUser": {
-      "Properties": {
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Action": [
-                    "kinesis:PutRecords"
-                  ],
-                  "Effect": "Allow",
-                  "Resource": [
-                    {
-                      "Fn::Join": [
-                        "",
-                        [
-                          "arn:aws:kinesis:*:*:stream/",
-                          {
-                            "Ref": "AWS::StackName"
-                          },
-                          "-*"
-                        ]
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "Version": "2012-10-17"
-            },
-            "PolicyName": "LogsRole"
-          }
-        ]
-      },
-      "Type": "AWS::IAM::User"
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
     },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
@@ -491,6 +451,9 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "autoscaling:DescribeAutoScalingInstances",
+                    "autoscaling:SetInstanceHealth",
+                    "ec2:DescribeInstances",
                     "ecs:CreateCluster",
                     "ecs:DeregisterContainerInstance",
                     "ecs:DiscoverPollEndpoint",
@@ -500,9 +463,9 @@
                     "ecs:Submit*",
                     "kinesis:PutRecord",
                     "kinesis:PutRecords",
-                    "ec2:DescribeInstances",
-                    "autoscaling:DescribeAutoScalingInstances",
-                    "autoscaling:SetInstanceHealth"
+                    "logs:CreateLogStream",
+                    "logs:DescribeLogStreams",
+                    "logs:PutLogEvents"
                   ],
                   "Resource": [
                     "*"
@@ -523,7 +486,7 @@
       }
     },
     "LaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis" ],
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
@@ -561,7 +524,8 @@
             "mkdir -p /etc/convox",
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
-            "curl -s https://convox.s3.amazonaws.com/agent/0.5/convox.conf > /etc/init/convox.conf",
+            { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
+            "curl -s https://convox.s3.amazonaws.com/agent/0.6/convox.conf > /etc/init/convox.conf",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"
@@ -589,7 +553,7 @@
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": 0,
         "MinSize" : "1",
-        "MaxSize" : "10",
+        "MaxSize" : "100",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
@@ -881,7 +845,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "KernelTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": {
           "Ref": "AWS::StackName"
@@ -909,6 +873,7 @@
                 ""
               ] },
               "KINESIS": { "Ref": "Kinesis" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
@@ -944,6 +909,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
               "BUCKET": { "Ref": "RegistryBucket" },
               "KINESIS": { "Ref": "Kinesis" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "registry",
               "RELEASE": { "Ref": "Version" },

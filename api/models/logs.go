@@ -5,10 +5,95 @@ import (
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/rds"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 )
+
+/*
+App logs are written to many streams, one per container
+Periodically describe the streams for a group
+For new or updating streams launch a goroutine to get and output the events
+*/
+func subscribeCloudWatchLogs(group string, output chan []byte, quit chan bool) {
+	fmt.Printf("subscribeCloudWatchLogs group=%s\n", group)
+
+	horizonTime := time.Now().Add(-2 * time.Minute)
+	activeStreams := map[string]bool{}
+
+	for {
+		res, err := CloudWatchLogs().DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+			LogGroupName: aws.String(group),
+			OrderBy:      aws.String(cloudwatchlogs.OrderByLastEventTime),
+			Descending:   aws.Bool(true),
+		})
+
+		if err != nil {
+			fmt.Printf("ERROR: %+v\n", err)
+			return
+		}
+
+		for _, s := range res.LogStreams {
+			if activeStreams[*s.LogStreamName] {
+				continue
+			}
+
+			if s.LastEventTimestamp == nil {
+				continue
+			}
+
+			sec := *s.LastEventTimestamp / 1000                   // convert ms since epoch to sec
+			nsec := (*s.LastEventTimestamp - (sec * 1000)) * 1000 // convert remainder to nsec
+			lastEventTime := time.Unix(sec, nsec)
+
+			// fmt.Printf("subscribeCloudWatchLogs horizonTime=%+v lastEventTime=%+v lastEventTimestamp=%d sec=%+v nsec=%+v\n", horizonTime, lastEventTime, *s.LastEventTimestamp, sec, nsec)
+
+			if lastEventTime.After(horizonTime) {
+				activeStreams[*s.LogStreamName] = true
+				go subscribeCloudWatchLogsStream(group, *s.LogStreamName, horizonTime, output, quit)
+			}
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+	}
+}
+
+func subscribeCloudWatchLogsStream(group, stream string, startTime time.Time, output chan []byte, quit chan bool) {
+	log := logger.New("at=subscribe-cloudwatch").Start()
+	fmt.Printf("subscribeCloudWatchLogsStream group=%s stream=%s startTime=%s\n", group, stream, startTime)
+
+	startTimeMs := startTime.Unix() * 1000 // ms since epoch
+
+	req := cloudwatchlogs.GetLogEventsInput{
+		LogGroupName:  aws.String(group),
+		LogStreamName: aws.String(stream),
+	}
+
+	for {
+		select {
+		case <-quit:
+			log.Log("qutting")
+			return
+		default:
+			req.StartTime = &startTimeMs
+
+			res, err := CloudWatchLogs().GetLogEvents(&req)
+
+			if err != nil {
+				fmt.Printf("err3 %+v\n", err)
+				return
+			}
+
+			for _, event := range res.Events {
+				output <- []byte(fmt.Sprintf("%s\n", string(*event.Message)))
+				startTimeMs = *event.Timestamp + 1
+			}
+
+			time.Sleep(1000 * time.Millisecond)
+		}
+	}
+}
 
 func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 	sreq := &kinesis.DescribeStreamInput{
