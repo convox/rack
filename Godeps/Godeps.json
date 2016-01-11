@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/convox/rack",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."
 	],
@@ -76,6 +76,11 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudwatch",
+			"Comment": "v0.9.17",
+			"Rev": "1481c919816453abc15fbe2cd6e071dfc2f188a0"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
 			"Comment": "v0.9.17",
 			"Rev": "1481c919816453abc15fbe2cd6e071dfc2f188a0"
 		},

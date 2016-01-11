@@ -62,6 +62,11 @@
         "Ref": "Kinesis"
       }
     },
+    "LogGroup": {
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
     "Settings": {
       "Value": {
         "Ref": "Settings"
@@ -464,51 +469,8 @@
       },
       "Type": "AWS::Kinesis::Stream"
     },
-    "LogsAccess": {
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": {
-          "Ref": "LogsUser"
-        }
-      },
-      "Type": "AWS::IAM::AccessKey"
-    },
-    "LogsUser": {
-      "Properties": {
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Action": [
-                    "kinesis:PutRecords"
-                  ],
-                  "Effect": "Allow",
-                  "Resource": [
-                    {
-                      "Fn::Join": [
-                        "",
-                        [
-                          "arn:aws:kinesis:*:*:stream/",
-                          {
-                            "Ref": "AWS::StackName"
-                          },
-                          "-*"
-                        ]
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "Version": "2012-10-17"
-            },
-            "PolicyName": "LogsRole"
-          }
-        ]
-      },
-      "Type": "AWS::IAM::User"
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
     },
     "ServiceRole": {
       "Properties": {
@@ -682,6 +644,9 @@
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
+                  },
+                  "LOG_GROUP": {
+                    "Ref": "LogGroup"
                   },
                   "PROCESS": "web"
                 },
