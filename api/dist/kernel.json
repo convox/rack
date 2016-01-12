@@ -453,6 +453,10 @@
                   "Action": [
                     "autoscaling:DescribeAutoScalingInstances",
                     "autoscaling:SetInstanceHealth",
+                    "ecr:GetAuthorizationToken",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage",
+                    "ecr:BatchCheckLayerAvailability",
                     "ec2:DescribeInstances",
                     "ecs:CreateCluster",
                     "ecs:DeregisterContainerInstance",
