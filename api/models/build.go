@@ -248,8 +248,6 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 		args = append(args, "-dockercfg", string(dockercfg))
 	}
 
-	fmt.Printf("args %+v\n", args)
-
 	return args, nil
 }
 
