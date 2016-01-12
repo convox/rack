@@ -144,11 +144,6 @@
   "LogGroup": {
     "Value": { "Ref": "LogGroup" }
   },
-  {{ range . }}
-    "{{ upper .Name }}Repository": {
-      "Value": { "Fn::GetAtt": [ "{{ upper .Name }}Repository", "RepositoryName" ] }
-    },
-  {{ end }}
 {{ end }}
 
 {{ define "process-resources" }}
@@ -161,16 +156,6 @@
   "LogGroup": {
     "Type": "AWS::Logs::LogGroup"
   },
-  {{ range . }}
-    "{{ upper .Name }}Repository": {
-      "Type": "Custom::ECRRepository",
-      "Version": "1.0",
-      "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ .Name }}" ] ] }
-      }
-    },
-  {{ end }}
 {{ end }}
 
 {{ define "process-services" }}
