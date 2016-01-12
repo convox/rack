@@ -163,6 +163,10 @@
 			"Rev": "8e18b83d7a4f3e5fd3c0a0ed5d640a4586f0439e"
 		},
 		{
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+		},
+		{
 			"ImportPath": "github.com/ddollar/logger",
 			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
 		},
@@ -203,6 +207,10 @@
 		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
+		},
+		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
 		},
 		{
 			"ImportPath": "github.com/segmentio/analytics-go",
