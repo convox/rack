@@ -16,6 +16,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
@@ -66,6 +67,10 @@ func DynamoDB() *dynamodb.DynamoDB {
 
 func EC2() *ec2.EC2 {
 	return ec2.New(session.New(), awsConfig())
+}
+
+func ECR() *ecr.ECR {
+	return ecr.New(session.New(), awsConfig())
 }
 
 func ECS() *ecs.ECS {

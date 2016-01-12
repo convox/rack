@@ -276,12 +276,22 @@ func (r *Release) Formation() (string, error) {
 		}
 	}
 
+	app, err := GetApp(r.App)
+
+	if err != nil {
+		return "", err
+	}
+
 	for i, entry := range manifest {
 		if entry.Name == primary {
 			manifest[i].primary = true
 		}
 
 		manifest[i].Image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
+
+		if registryId := app.Outputs["RegistryId"]; registryId != "" {
+			manifest[i].Image = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], entry.Name, r.Build)
+		}
 	}
 
 	return manifest.Formation()
