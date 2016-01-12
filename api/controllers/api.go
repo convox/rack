@@ -44,7 +44,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		if err != nil {
 			rw.WriteHeader(err.Code())
 			RenderError(rw, err)
-			logError(log, err)
+			logError(log, at, err)
 			return
 		}
 
@@ -57,9 +57,15 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	}
 }
 
-func logError(log *logger.Logger, err *httperr.Error) {
+func logError(log *logger.Logger, at string, err *httperr.Error) {
+	l := logrus.WithFields(logrus.Fields{
+		"ns":    "kernel",
+		"at":    at,
+		"state": "error",
+	})
+
 	if err.User() {
-		log.Log("state=error type=user message=%q", err.Error())
+		l.WithField("count#error.user", 1).Warn(err.Error())
 		return
 	}
 
@@ -67,10 +73,16 @@ func logError(log *logger.Logger, err *httperr.Error) {
 
 	id := rand.Int31()
 
-	log.Log("state=error id=%d message=%q", id, err.Error())
+	l.WithFields(logrus.Fields{
+		"id":          id,
+		"count#error": 1,
+	}).Warn(err.Error())
 
-	for i, line := range err.Trace() {
-		log.Log("state=error id=%d line=%d trace=%q", id, i, line)
+	for i, t := range err.Trace() {
+		l.WithFields(logrus.Fields{
+			"id":   id,
+			"line": i,
+		}).Warn(t)
 	}
 }
 
@@ -145,7 +157,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		if err != nil {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-			logError(log, err)
+			logError(log, at, err)
 			return
 		}
 
