@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 )
@@ -188,7 +189,7 @@ func (vs Versions) Next(curr string) (string, error) {
 
 // Walk a bucket to create initial versions.json file
 func importVersions() (Versions, error) {
-	S3 := s3.New(&aws.Config{
+	S3 := s3.New(session.New(), &aws.Config{
 		Region: aws.String(os.Getenv("AWS_DEFAULT_REGION")),
 	})
 
@@ -231,7 +232,7 @@ func putVersions(vs Versions) error {
 		return err
 	}
 
-	S3 := s3.New(&aws.Config{
+	S3 := s3.New(session.New(), &aws.Config{
 		Region: aws.String(os.Getenv("AWS_DEFAULT_REGION")),
 	})
 
