@@ -167,10 +167,6 @@
 			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
 		},
 		{
-			"ImportPath": "github.com/ddollar/nlogger",
-			"Rev": "1a2c3a205e082ae17f32bd9f9113c07cfa7f31e2"
-		},
-		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "c128122e0b9b93799aef8181a537e5d8fd7081d6"
 		},
