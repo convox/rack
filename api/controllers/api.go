@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	logrus "github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
@@ -22,6 +23,7 @@ type ApiWebsocketFunc func(*websocket.Conn) *httperr.Error
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		log := logger.New("ns=kernel").At(at).Start()
 
 		if !passwordCheck(r) {
@@ -46,7 +48,12 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		log.Log("state=success")
+		logrus.WithFields(logrus.Fields{
+			"ns":                      "kernel",
+			"at":                      at,
+			"state":                   "success",
+			"measure#handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Now().Sub(start).Nanoseconds())/1000000),
+		}).Info()
 	}
 }
 

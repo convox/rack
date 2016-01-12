@@ -10,6 +10,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/nlogger"
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/helpers"
+	negronilogrus "github.com/convox/rack/api/negroni-logrus"
 )
 
 func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -43,6 +44,7 @@ func startWeb() {
 
 	n.Use(negroni.HandlerFunc(recovery))
 	n.Use(negroni.HandlerFunc(development))
+	n.Use(negronilogrus.NewMiddleware())
 	n.Use(nlogger.New("ns=kernel", nil))
 
 	n.UseHandler(controllers.NewRouter())

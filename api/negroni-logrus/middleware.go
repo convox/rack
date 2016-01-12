@@ -89,9 +89,9 @@ func (l *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 	latency := l.clock.Since(start)
 	res := rw.(negroni.ResponseWriter)
 	entry.WithFields(logrus.Fields{
-		"status":      res.Status(),
-		"text_status": http.StatusText(res.Status()),
-		"took":        latency,
-		fmt.Sprintf("measure#%s.latency", l.Name): latency.Nanoseconds(),
+		"status":                                          res.Status(),
+		"text_status":                                     http.StatusText(res.Status()),
+		fmt.Sprintf("measure#%s.elapsed", l.Name):         fmt.Sprintf("%0.3fms", float64(latency.Nanoseconds())/1000000),
+		fmt.Sprintf("count#status%dXX", res.Status()/100): 1,
 	}).Info("completed handling request")
 }
