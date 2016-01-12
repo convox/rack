@@ -243,6 +243,87 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
+    "LogSubscriptionFilter": {
+      "DependsOn": [ "LogSubscriptionFilterPermission" ],
+      "Type" : "AWS::Logs::SubscriptionFilter",
+      "Properties" : {
+        "DestinationArn" : { "Fn::GetAtt": [ "LogSubscriptionFilterFunction", "Arn" ] },
+        "FilterPattern" : "",
+        "LogGroupName" : { "Ref": "LogGroup" }
+      }
+    },
+    "LogSubscriptionFilterFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile":  { "Fn::Join": ["\n", [
+            "var zlib = require('zlib');",
+            "exports.handler = function(input, context) {",
+            "  var payload = new Buffer(input.awslogs.data, 'base64');",
+            "  zlib.gunzip(payload, function(e, result) {",
+            "    if (e) {",
+            "      context.fail(e);",
+            "    } else {",
+            "      result = JSON.parse(result.toString('ascii'));",
+            "      console.log('Event Data:', JSON.stringify(result, null, 2));",
+            "      context.succeed();",
+            "    }",
+            "  });",
+            "};"
+          ]]}
+        },
+        "Handler": "index.handler",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
+        "Runtime": "nodejs",
+        "Timeout": "30"
+      }
+    },
+    "LogSubscriptionFilterPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties" : {
+        "Action" : "lambda:InvokeFunction",
+        "FunctionName" : { "Ref": "LogSubscriptionFilterFunction" },
+        "Principal" : { "Fn::Join": [".", ["logs", { "Ref": "AWS::Region" }, "amazonaws.com"]] },
+        "SourceAccount" : { "Ref": "AWS::AccountId" },
+        "SourceArn" : { "Fn::GetAtt": [ "LogGroup", "Arn" ] }
+      }
+    },
+    "LogSubscriptionFilterRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "LogSubscriptionFilterRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudwatch:PutMetricData"
+                  ],
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
