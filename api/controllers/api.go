@@ -11,7 +11,6 @@ import (
 	"time"
 
 	logrus "github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 )
@@ -24,7 +23,6 @@ type ApiWebsocketFunc func(*websocket.Conn) *httperr.Error
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		log := logger.New("ns=kernel").At(at).Start()
 
 		if !passwordCheck(r) {
 			rw.Header().Set("WWW-Authenticate", `Basic realm="Convox System"`)
@@ -44,7 +42,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		if err != nil {
 			rw.WriteHeader(err.Code())
 			RenderError(rw, err)
-			logError(log, at, err)
+			logError(at, err)
 			return
 		}
 
@@ -57,7 +55,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	}
 }
 
-func logError(log *logger.Logger, at string, err *httperr.Error) {
+func logError(at string, err *httperr.Error) {
 	l := logrus.WithFields(logrus.Fields{
 		"ns":    "kernel",
 		"at":    at,
@@ -141,7 +139,7 @@ func versionCheck(r *http.Request) bool {
 
 func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
-		log := logger.New("ns=kernel").At(at).Start()
+		start := time.Now()
 
 		if !passwordCheck(ws.Request()) {
 			ws.Write([]byte("ERROR: invalid authorization\n"))
@@ -157,11 +155,16 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 
 		if err != nil {
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-			logError(log, at, err)
+			logError(at, err)
 			return
 		}
 
-		log.Log("state=success")
+		logrus.WithFields(logrus.Fields{
+			"ns":    "kernel",
+			"at":    at,
+			"state": "success",
+			"measure#websocket.handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Now().Sub(start).Nanoseconds())/1000000),
+		}).Info()
 	})
 }
 
