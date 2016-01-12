@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.6.4-12-g467d9d5",
+			"Rev": "467d9d55c2d2c17248441a8fc661561161f40d5e"
+		},
+		{
 			"ImportPath": "github.com/aryann/difflib",
 			"Rev": "035af7c09b120b0909dd998c92745b82f61e0b1c"
 		},
