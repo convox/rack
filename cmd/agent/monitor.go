@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	docker "github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
@@ -186,7 +187,7 @@ func (m *Monitor) subscribeLogs(id, stream, process string) {
 }
 
 func (m *Monitor) streamLogs() {
-	Kinesis := kinesis.New(&aws.Config{})
+	Kinesis := kinesis.New(session.New(), &aws.Config{})
 
 	for _ = range time.Tick(100 * time.Millisecond) {
 		for _, stream := range m.streams() {

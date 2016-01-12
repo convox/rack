@@ -17,11 +17,12 @@ func getClusterServices() (models.ECSServices, error) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test")
 
-	stubAws := test.StubAws(
+	s := test.StubAws(
 		test.HttpdListServicesCycle(),
 		test.HttpdDescribeServicesCycle(),
 	)
-	defer stubAws.Close()
+
+	defer s.Close()
 
 	return models.ClusterServices()
 }

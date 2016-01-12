@@ -2,8 +2,8 @@ package test
 
 import (
 	"net/http/httptest"
+	"os"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/convox/rack/api/awsutil"
 )
 
@@ -12,16 +12,18 @@ Create a test server that mocks an AWS request/response cycle,
 suitable for a single test
 
 Example:
-		s := stubAws(DescribeStackCycleWithoutQuery("bar"))
+		s := test.StubAws(DescribeStackCycleWithoutQuery("bar"))
 		defer s.Close()
 */
+
 func StubAws(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	handler := awsutil.NewHandler(cycles)
 	s = httptest.NewServer(handler)
 
-	defaults.DefaultConfig.Endpoint = &s.URL
-	region := "test"
-	defaults.DefaultConfig.Region = &region
+	os.Setenv("AWS_ACCESS", "test")
+	os.Setenv("AWS_SECRET", "test")
+	os.Setenv("AWS_ENDPOINT", s.URL)
+	os.Setenv("AWS_REGION", "test")
 
 	return s
 }

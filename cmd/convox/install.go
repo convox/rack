@@ -19,7 +19,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/convox/release/version"
@@ -279,10 +279,7 @@ func cmdInstall(c *cli.Context) {
 
 	password := randomString(30)
 
-	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
-	})
+	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
@@ -397,10 +394,7 @@ func cmdUninstall(c *cli.Context) {
 
 	distinctId := randomString(10)
 
-	CloudFormation := cloudformation.New(&aws.Config{
-		Region:      aws.String(region),
-		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
-	})
+	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
 
 	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -454,6 +448,23 @@ func cmdUninstall(c *cli.Context) {
 	fmt.Println("Successfully uninstalled.")
 
 	sendMixpanelEvent("convox-uninstall-success", "")
+}
+
+func awsConfig(region string, creds *AwsCredentials) *aws.Config {
+	config := &aws.Config{
+		Region:      aws.String(region),
+		Credentials: credentials.NewStaticCredentials(creds.Access, creds.Secret, creds.Session),
+	}
+
+	if e := os.Getenv("AWS_ENDPOINT"); e != "" {
+		config.Endpoint = aws.String(e)
+	}
+
+	if r := os.Getenv("AWS_REGION"); r != "" {
+		config.Region = aws.String(r)
+	}
+
+	return config
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
@@ -684,11 +695,6 @@ func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 		Access:  os.Getenv("AWS_ACCESS_KEY_ID"),
 		Secret:  os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Session: os.Getenv("AWS_SESSION_TOKEN"),
-	}
-
-	if os.Getenv("AWS_ENDPOINT_URL") != "" {
-		url := os.Getenv("AWS_ENDPOINT_URL")
-		defaults.DefaultConfig.Endpoint = &url
 	}
 
 	var inputCreds *AwsCredentials
