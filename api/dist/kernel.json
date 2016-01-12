@@ -312,11 +312,18 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "cloudwatch:PutMetricData"
                   ],
-                  "Resource": [
-                    "*"
-                  ]
+                  "Resource": "*"
                 }
               ]
             }
