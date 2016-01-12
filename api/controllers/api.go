@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	logrus "github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	log "github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 )
@@ -46,7 +46,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		logrus.WithFields(logrus.Fields{
+		log.WithFields(log.Fields{
 			"ns":                      "kernel",
 			"at":                      at,
 			"state":                   "success",
@@ -56,7 +56,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 }
 
 func logError(at string, err *httperr.Error) {
-	l := logrus.WithFields(logrus.Fields{
+	l := log.WithFields(log.Fields{
 		"ns":    "kernel",
 		"at":    at,
 		"state": "error",
@@ -71,13 +71,13 @@ func logError(at string, err *httperr.Error) {
 
 	id := rand.Int31()
 
-	l.WithFields(logrus.Fields{
+	l.WithFields(log.Fields{
 		"id":          id,
 		"count#error": 1,
 	}).Warn(err.Error())
 
 	for i, t := range err.Trace() {
-		l.WithFields(logrus.Fields{
+		l.WithFields(log.Fields{
 			"id":   id,
 			"line": i,
 		}).Warn(t)
@@ -159,7 +159,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 			return
 		}
 
-		logrus.WithFields(logrus.Fields{
+		log.WithFields(log.Fields{
 			"ns":    "kernel",
 			"at":    at,
 			"state": "success",
