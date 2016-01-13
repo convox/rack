@@ -114,7 +114,7 @@ func KernelUpdate() error {
 }
 
 func latestAmi() (string, error) {
-	res, err := http.Get("http://convox.s3.amazonaws.com/ami.latest")
+	res, err := http.Get("https://convox.s3.amazonaws.com/ami.latest")
 
 	if err != nil {
 		return "", err

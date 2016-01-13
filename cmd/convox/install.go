@@ -54,7 +54,7 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user
 `
 
-var FormationUrl = "http://convox.s3.amazonaws.com/release/%s/formation.json"
+var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
