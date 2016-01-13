@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.8.7-53-g446d1c1",
+			"Rev": "446d1c146faa8ed3f4218f056fcd165f6bcfda81"
+		},
+		{
 			"ImportPath": "github.com/aryann/difflib",
 			"Rev": "035af7c09b120b0909dd998c92745b82f61e0b1c"
 		},
@@ -158,12 +163,12 @@
 			"Rev": "8e18b83d7a4f3e5fd3c0a0ed5d640a4586f0439e"
 		},
 		{
-			"ImportPath": "github.com/ddollar/logger",
-			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
 		{
-			"ImportPath": "github.com/ddollar/nlogger",
-			"Rev": "1a2c3a205e082ae17f32bd9f9113c07cfa7f31e2"
+			"ImportPath": "github.com/ddollar/logger",
+			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",
@@ -204,6 +209,10 @@
 			"Rev": "1f6da4a72e57d4e7edd4a7295a585e0a3999a2d4"
 		},
 		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
+		},
+		{
 			"ImportPath": "github.com/segmentio/analytics-go",
 			"Comment": "v2.0.0-19-g2f4e6bf",
 			"Rev": "2f4e6bf54f7fe167d29eb9b6010ea8ea0551bc63"
@@ -214,13 +223,13 @@
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
-			"Comment": "v1.0-40-g7c2b1e5",
-			"Rev": "7c2b1e5640dcf2631213ca962d892bffa1e08860"
+			"Comment": "v1.1.3",
+			"Rev": "f390dcf405f7b83c997eac1b06768bb9f44dec18"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/require",
-			"Comment": "v1.0-40-g7c2b1e5",
-			"Rev": "7c2b1e5640dcf2631213ca962d892bffa1e08860"
+			"Comment": "v1.1.3",
+			"Rev": "f390dcf405f7b83c997eac1b06768bb9f44dec18"
 		},
 		{
 			"ImportPath": "github.com/stvp/rollbar",

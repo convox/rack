@@ -243,6 +243,124 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
+    "LogSubscriptionFilter": {
+      "DependsOn": [ "LogSubscriptionFilterPermission" ],
+      "Type" : "AWS::Logs::SubscriptionFilter",
+      "Properties" : {
+        "DestinationArn" : { "Fn::GetAtt": [ "LogSubscriptionFilterFunction", "Arn" ] },
+        "FilterPattern" : "",
+        "LogGroupName" : { "Ref": "LogGroup" }
+      }
+    },
+    "LogSubscriptionFilterFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile":  { "Fn::Join": ["\n", [
+            "var AWS = require('aws-sdk');",
+            "var zlib = require('zlib');",
+            "exports.handler = function(input, context) {",
+            "  var fn = process.env.AWS_LAMBDA_FUNCTION_NAME;",
+            "  var stack = fn.split('-').slice(0,-2).join('-');",
+            "  var cloudwatch = new AWS.CloudWatch();",
+            "  var payload = new Buffer(input.awslogs.data, 'base64');",
+            "  var r = /(count#|measure#|sample#)([\\w.]+)=(\\\")?([\\d.]+)([\\w]+)?(\\\")?/g;",
+            "  var units = {'sec':'Seconds','s':'Seconds','us':'Microseconds','ms':'Milliseconds',",
+            "    'B':'Bytes','kB':'Kilobytes','mB':'Megabytes','gB':'Gigabytes','tB':'Terabytes',",
+            "    'b':'Bits','kb':'Kilobits','mb':'Megabits','gb':'Gigabits','tb':'Terabits',",
+            "    'B/s':'Bytes/Second','kB/s':'Kilobytes/Second','mB/s':'Megabytes/Second','gB/s':'Gigabytes/Second','tB/s':'Terabytes/Second',",
+            "    'b/s':'Bits/Second','kb/s':'Kilobits/Second','mb/s':'Megabits/Second','gb/s':'Gigabits/Second','tb/s':'Terabits/Second',",
+            "    '%':'Percent','count':'Count','count/s':'Count/Second'};",
+            "  zlib.gunzip(payload, function(e, result) {",
+            "    if (e) {",
+            "      context.fail(e);",
+            "    } else {",
+            "      params = {MetricData: [], Namespace: stack};",
+            "      result = JSON.parse(result.toString('ascii'));",
+            "      result.logEvents.forEach(function(e) {",
+            "        e.message.replace(r, function(match, p1, p2, p3, p4, p5, p6, offset, string) {",
+            "            console.log('EXTRACTED:', p1, p2, p3, p4);",
+            "            datum = {MetricName: p2, Value: parseFloat(p4), Unit: units[p5] || 'None'};",
+            "            if (p1 == 'count#')",
+            "              datum.Unit = 'Count';",
+            "            params.MetricData.push(datum);",
+            "        });",
+            "      });",
+            "      if (params.MetricData.length > 0) {",
+            "        console.log('PARAMS:', params);",
+            "        cloudwatch.putMetricData(params, function(err, data) {",
+            "          if (err) {",
+            "              console.log(err, err.stack);",
+            "              context.fail(err);",
+            "          }",
+            "          else console.log(data);",
+            "        });",
+            "      }",
+            "      context.succeed();",
+            "    }",
+            "  });",
+            "};"
+          ]]}
+        },
+        "Handler": "index.handler",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
+        "Runtime": "nodejs",
+        "Timeout": "30"
+      }
+    },
+    "LogSubscriptionFilterPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties" : {
+        "Action" : "lambda:InvokeFunction",
+        "FunctionName" : { "Ref": "LogSubscriptionFilterFunction" },
+        "Principal" : { "Fn::Join": [".", ["logs", { "Ref": "AWS::Region" }, "amazonaws.com"]] },
+        "SourceAccount" : { "Ref": "AWS::AccountId" },
+        "SourceArn" : { "Fn::GetAtt": [ "LogGroup", "Arn" ] }
+      }
+    },
+    "LogSubscriptionFilterRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "LogSubscriptionFilterRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudwatch:PutMetricData"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "CustomTopicRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
