@@ -381,7 +381,7 @@
   {
     "Name": "{{ .Name }}",
     "Image": "{{ .Image }}",
-    "Command": "{{ .CommandString }}",
+    "Command": {{ value .CommandString }},
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}

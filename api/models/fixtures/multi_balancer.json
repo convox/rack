@@ -725,7 +725,7 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "Command": "",
+                "Command": "bash -c 'bundle exec puma -C config/puma.rb'",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
@@ -870,7 +870,7 @@
             "Fn::If": [
               "BlankWorkerService",
               {
-                "Command": "",
+                "Command": "bash -c \"bundle exec worker\"",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
