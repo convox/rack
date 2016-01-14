@@ -30,6 +30,7 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+	// strip off any intermediate certs from the body
 	endEntityCert, _ := pem.Decode([]byte(body))
 	body = string(pem.EncodeToMemory(endEntityCert))
 
