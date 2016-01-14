@@ -331,6 +331,9 @@ func templateHelpers() template.FuncMap {
 		"upper": func(s string) string {
 			return UpperName(s)
 		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
 	}
 }
 

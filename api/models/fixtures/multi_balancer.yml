@@ -1,8 +1,10 @@
 web:
   build: .
+  command: 'bash -c ''bundle exec puma -C config/puma.rb'''
   ports:
     - 80:3000
 worker:
+  command: 'bash -c "bundle exec worker"'
   build: .
   ports:
     - 80:3000
