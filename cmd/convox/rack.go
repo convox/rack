@@ -163,7 +163,7 @@ func cmdRackReleases(c *cli.Context) {
 }
 
 func latestVersion() (string, error) {
-	resp, err := http.Get("http://convox.s3.amazonaws.com/release/latest/version")
+	resp, err := http.Get("https://convox.s3.amazonaws.com/release/latest/version")
 
 	if err != nil {
 		return "", err
