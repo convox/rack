@@ -30,6 +30,9 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+	endEntityCert, _ := pem.Decode([]byte(body))
+	body = string(pem.EncodeToMemory(endEntityCert))
+
 	a, err := GetApp(app)
 
 	if err != nil {
