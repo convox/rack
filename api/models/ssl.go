@@ -233,7 +233,7 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
-func UpdateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+func UpdateSSL(app, process string, port int, body, key string, chain string) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -245,7 +245,6 @@ func UpdateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
 	}
 
-	// get old cert name
 	release, err := a.LatestRelease()
 
 	if err != nil {
@@ -260,10 +259,12 @@ func UpdateSSL(app, process string, port int, body, key string, chain string, se
 
 	me := manifest.Entry(process)
 
+	// validate process exists
 	if me == nil {
 		return nil, fmt.Errorf("no such process: %s", process)
 	}
 
+	// get old cert name
 	parameters := a.Parameters
 
 	oldCert := parameters[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)]
@@ -276,7 +277,10 @@ func UpdateSSL(app, process string, port int, body, key string, chain string, se
 	}
 
 	// change cert on listener
-	balancer := parameters[fmt.Sprintf("%sPort%dBalancerName", UpperName(me.Name), port)]
+	outputs := a.Outputs
+
+	balancer := outputs[fmt.Sprintf("%sPort%dBalancerName", UpperName(me.Name), port)]
+
 	input := &elb.SetLoadBalancerListenerSSLCertificateInput{
 		LoadBalancerName: aws.String(balancer),
 		LoadBalancerPort: aws.Int64(int64(port)),
@@ -309,11 +313,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string, se
 
 	params := a.Parameters
 
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = arn // e.g.WebPort443Certificate = arn:...
-
-	if secure {
-		params[fmt.Sprintf("%sPort%dSecure", UpperName(me.Name), port)] = "Yes"
-	}
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = arn
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
