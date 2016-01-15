@@ -233,6 +233,8 @@ func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 		return
 	}
 
+	fmt.Printf("agent _fn=subscribeLogs at=start id=%s stream=%s process=%s instanceId=%s\n", id, stream, process, m.instanceId)
+
 	// extract app name from stream
 	// myapp-staging-Kinesis-L6MUKT1VH451 -> myapp-staging
 	app := ""
@@ -249,33 +251,66 @@ func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 	go func(prefix string, r io.ReadCloser) {
 		defer r.Close()
 
+		fmt.Printf("agent _fn=subscribeLogs.Scan at=start prefix=%s\n", prefix)
+
 		scanner := bufio.NewScanner(r)
 
 		for scanner.Scan() {
-			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s/%s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, app, process, release, scanner.Text())))
+			text := scanner.Text()
+			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s/%s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, app, process, release, text)))
 		}
 
 		if scanner.Err() != nil {
-			log.Printf("error: %s\n", scanner.Err())
+			fmt.Printf("agent _fn=subscribeLogs.Scan dim#process=agent dim#instanceId=%s count#scanner.error=1 msg=%q\n", m.instanceId, scanner.Err().Error())
 		}
+
+		fmt.Printf("agent _fn=subscribeLogs.Scan at=return prefix=%s\n", prefix)
 	}(process, r)
 
-	err := m.client.Logs(docker.LogsOptions{
-		Container:    id,
-		Follow:       true,
-		Stdout:       true,
-		Stderr:       true,
-		Tail:         "all",
-		RawTerminal:  false,
-		OutputStream: w,
-		ErrorStream:  w,
-	})
+	since := time.Unix(0, 0).Unix()
 
-	if err != nil {
-		log.Printf("error: %s\n", err)
+	for {
+		fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s since=%d dim#process=agent dim#instanceId=%s count#docker.Logs.start=1\n", id, stream, process, since, m.instanceId)
+
+		err := m.client.Logs(docker.LogsOptions{
+			Since:        since,
+			Container:    id,
+			Follow:       true,
+			Stdout:       true,
+			Stderr:       true,
+			Tail:         "all",
+			RawTerminal:  false,
+			OutputStream: w,
+			ErrorStream:  w,
+		})
+
+		since = time.Now().Unix() // update cursor to now in anticipation of retry
+
+		if err != nil {
+			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.error=1 msg=%q\n", id, stream, process, m.instanceId, err.Error())
+		} else {
+			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.return=1\n", id, stream, process, m.instanceId)
+		}
+
+		fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.start=1\n", id, stream, process, m.instanceId)
+
+		container, err := m.client.InspectContainer(id)
+
+		if err != nil {
+			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.error=1 msg=%q\n", id, stream, process, m.instanceId, err.Error())
+			break
+		} else {
+			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.return=1\n", id, stream, process, m.instanceId)
+		}
+
+		if container.State.Running == false {
+			break
+		}
 	}
 
 	w.Close()
+
+	fmt.Printf("agent _fn=subscribeLogs at=return id=%s stream=%s process=%s instanceId=%s\n", id, stream, process, m.instanceId)
 }
 
 func (m *Monitor) streamLogs() {
