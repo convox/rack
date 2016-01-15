@@ -31,10 +31,6 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
-	// strip off any intermediate certs from the body
-	endEntityCert, _ := pem.Decode([]byte(body))
-	body = string(pem.EncodeToMemory(endEntityCert))
-
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -77,48 +73,11 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
-	if chain == "" {
-		chain, err = resolveCertificateChain(body)
-
-		if err != nil {
-			return nil, fmt.Errorf("could not generate chain: %s", err)
-		}
-	}
-
-	name := certName(a.Name, process, port)
-
-	input := &iam.UploadServerCertificateInput{
-		CertificateBody:       aws.String(body),
-		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(name),
-	}
-
-	// Only include chain if it's not an empty string
-	if chain != "" {
-		input.CertificateChain = aws.String(chain)
-	}
-
-	// upload certificate
-	resp, err := IAM().UploadServerCertificate(input)
-
-	// cleanup old certificate, will fail if dependencies
-	if err != nil && strings.Contains(err.Error(), "already exists") {
-		_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
-			ServerCertificateName: aws.String(name),
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("could not create certificate: %s", name)
-		}
-
-		resp, err = IAM().UploadServerCertificate(input)
-	}
+	arn, err := uploadCert(a, process, port, body, key, chain)
 
 	if err != nil {
 		return nil, err
 	}
-
-	arn := resp.ServerCertificateMetadata.Arn
 
 	tmpl, err := release.Formation()
 
@@ -134,7 +93,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 
 	params := a.Parameters
 
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = *arn // e.g.WebPort443Certificate = arn:...
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = arn // e.g.WebPort443Certificate = arn:...
 
 	if secure {
 		params[fmt.Sprintf("%sPort%dSecure", UpperName(me.Name), port)] = "Yes"
@@ -274,6 +233,109 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
+func UpdateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// validate app is not currently updating
+	if a.Status != "running" {
+		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
+	}
+
+	// get old cert name
+	release, err := a.LatestRelease()
+
+	if err != nil {
+		return nil, err
+	}
+
+	manifest, err := LoadManifest(release.Manifest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	me := manifest.Entry(process)
+
+	if me == nil {
+		return nil, fmt.Errorf("no such process: %s", process)
+	}
+
+	parameters := a.Parameters
+
+	oldCert := parameters[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)]
+
+	// upload new cert
+	arn, err := uploadCert(a, process, port, body, key, chain)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// change cert on listener
+	balancer := parameters[fmt.Sprintf("%sPort%dBalancerName", UpperName(me.Name), port)]
+	input := &elb.SetLoadBalancerListenerSSLCertificateInput{
+		LoadBalancerName: aws.String(balancer),
+		LoadBalancerPort: aws.Int64(int64(port)),
+		SSLCertificateId: aws.String(arn),
+	}
+
+	_, err = ELB().SetLoadBalancerListenerSSLCertificate(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// delete old cert
+	_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+		ServerCertificateName: aws.String(oldCert),
+	})
+
+	// update cloudformation
+	tmpl, err := release.Formation()
+
+	if err != nil {
+		return nil, err
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		StackName:    aws.String(a.Name),
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		TemplateBody: aws.String(tmpl),
+	}
+
+	params := a.Parameters
+
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = arn // e.g.WebPort443Certificate = arn:...
+
+	if secure {
+		params[fmt.Sprintf("%sPort%dSecure", UpperName(me.Name), port)] = "Yes"
+	}
+
+	for key, val := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(val),
+		})
+	}
+
+	_, err = CloudFormation().UpdateStack(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	ssl := SSL{
+		Port:    port,
+		Process: process,
+	}
+
+	return &ssl, nil
+}
+
 func certName(app, process string, port int) string {
 	return fmt.Sprintf("%s%s%d", UpperName(app), UpperName(process), port)
 }
@@ -376,4 +438,57 @@ func resolveCertificateChain(body string) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func uploadCert(a *App, process string, port int, body, key string, chain string) (string, error) {
+	// strip off any intermediate certs from the body
+	endEntityCert, _ := pem.Decode([]byte(body))
+	body = string(pem.EncodeToMemory(endEntityCert))
+
+	if chain == "" {
+		var err error
+		chain, err = resolveCertificateChain(body)
+
+		if err != nil {
+			return "", fmt.Errorf("could not generate chain: %s", err)
+		}
+	}
+
+	name := certName(a.Name, process, port)
+
+	input := &iam.UploadServerCertificateInput{
+		CertificateBody:       aws.String(body),
+		PrivateKey:            aws.String(key),
+		ServerCertificateName: aws.String(name),
+	}
+
+	// Only include chain if it's not an empty string
+	if chain != "" {
+		input.CertificateChain = aws.String(chain)
+	}
+
+	// upload certificate
+	resp, err := IAM().UploadServerCertificate(input)
+
+	// cleanup old certificate, will fail if dependencies
+	if err != nil && strings.Contains(err.Error(), "already exists") {
+		_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+			ServerCertificateName: aws.String(name),
+		})
+
+		if err != nil {
+			fmt.Printf(err.Error())
+			return "", fmt.Errorf("could not create certificate: %s", name)
+		}
+
+		resp, err = IAM().UploadServerCertificate(input)
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	arn := resp.ServerCertificateMetadata.Arn
+
+	return *arn, err
 }
