@@ -220,11 +220,6 @@
         "Default" : "{{ .Balancer }}",
         "Description" : ""
       },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
-        "Type" : "String",
-        "Default" : "{{ .LoadBalancerName }}",
-        "Description" : ""
-      },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": {
         "Type" : "String",
         "Default" : "",
@@ -254,6 +249,9 @@
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
+      },
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
+        "Value": {{ $balancer.LoadBalancerName }}
       },
     {{ end }}
   {{ end }}
