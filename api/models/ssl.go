@@ -30,6 +30,10 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+	// strip off any intermediate certs from the body
+	endEntityCert, _ := pem.Decode([]byte(body))
+	body = string(pem.EncodeToMemory(endEntityCert))
+
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -82,15 +86,19 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 
 	name := certName(a.Name, process, port)
 
-	// return nil, fmt.Errorf("foo")
-
-	// upload certificate
-	resp, err := IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
+	input := &iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
-		CertificateChain:      aws.String(chain),
 		PrivateKey:            aws.String(key),
 		ServerCertificateName: aws.String(name),
-	})
+	}
+
+	// Only include chain if it's not an empty string
+	if chain != "" {
+		input.CertificateChain = aws.String(chain)
+	}
+
+	// upload certificate
+	resp, err := IAM().UploadServerCertificate(input)
 
 	// cleanup old certificate, will fail if dependencies
 	if err != nil && strings.Contains(err.Error(), "already exists") {
@@ -102,11 +110,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 			return nil, fmt.Errorf("could not create certificate: %s", name)
 		}
 
-		resp, err = IAM().UploadServerCertificate(&iam.UploadServerCertificateInput{
-			CertificateBody:       aws.String(body),
-			PrivateKey:            aws.String(key),
-			ServerCertificateName: aws.String(name),
-		})
+		resp, err = IAM().UploadServerCertificate(input)
 	}
 
 	if err != nil {
@@ -280,6 +284,19 @@ type CfsslCertificateBundle struct {
 // use cfssl bundle to generate the certificate chain
 // return the whole list minus the first one
 func resolveCertificateChain(body string) (string, error) {
+	bl, _ := pem.Decode([]byte(body))
+	crt, err := x509.ParseCertificate(bl.Bytes)
+
+	if err != nil {
+		return "", err
+	}
+
+	// return if this is a self-signed cert
+	// a cert is self-signed if the issuer and subject are the same
+	if string(crt.RawIssuer) == string(crt.RawSubject) {
+		return "", nil
+	}
+
 	cmd := exec.Command("cfssl", "bundle", "-cert", "-")
 
 	cmd.Stderr = os.Stderr
