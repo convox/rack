@@ -131,7 +131,7 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 }
 
 func (m *Monitor) handleCreate(id string) {
-	image, env, err := m.inspectContainer(id)
+	_, env, err := m.inspectContainer(id)
 
 	if err != nil {
 		log.Printf("error: %s\n", err)
@@ -141,8 +141,6 @@ func (m *Monitor) handleCreate(id string) {
 	m.envs[id] = env
 
 	m.logEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
-
-	go m.subscribeLogs(id, env["KINESIS"], image, env["PROCESS"], env["RELEASE"])
 }
 
 func (m *Monitor) handleDie(id string) {
@@ -157,7 +155,11 @@ func (m *Monitor) handleKill(id string) {
 }
 
 func (m *Monitor) handleStart(id string) {
-	m.updateCgroups(id, m.envs[id])
+	env := m.envs[id]
+
+	m.updateCgroups(id, env)
+
+	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"], env["RELEASE"])
 }
 
 func (m *Monitor) handleStop(id string) {
@@ -228,7 +230,7 @@ func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	}
 }
 
-func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
+func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 	if stream == "" {
 		return
 	}
@@ -243,8 +245,6 @@ func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 	if len(parts) > 2 {
 		app = strings.Join(parts[0:len(parts)-2], "-") // drop -Kinesis-YXXX
 	}
-
-	time.Sleep(500 * time.Millisecond)
 
 	r, w := io.Pipe()
 
