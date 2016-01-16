@@ -288,19 +288,13 @@ func (m *Monitor) subscribeLogs(id, stream, image, process, release string) {
 
 		if err != nil {
 			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.error=1 msg=%q\n", id, stream, process, m.instanceId, err.Error())
-		} else {
-			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.return=1\n", id, stream, process, m.instanceId)
 		}
-
-		fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.start=1\n", id, stream, process, m.instanceId)
 
 		container, err := m.client.InspectContainer(id)
 
 		if err != nil {
 			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.error=1 msg=%q\n", id, stream, process, m.instanceId, err.Error())
 			break
-		} else {
-			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.return=1\n", id, stream, process, m.instanceId)
 		}
 
 		if container.State.Running == false {
@@ -339,16 +333,20 @@ func (m *Monitor) streamLogs() {
 			res, err := Kinesis.PutRecords(records)
 
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %s\n", err)
+				fmt.Printf("agent _fn=streamLogs stream=%s dim#process=agent dim#instanceId=%s count#Kinesis.PutRecords.error=1 msg=%q\n", stream, m.instanceId, err.Error())
 			}
+
+			errorCount := 0
+			errorMsg := ""
 
 			for _, r := range res.Records {
 				if r.ErrorCode != nil {
-					fmt.Printf("error: %s\n", *r.ErrorCode)
+					errorCount += 1
+					errorMsg = fmt.Sprintf("%s - %s", *r.ErrorCode, *r.ErrorMessage)
 				}
 			}
 
-			fmt.Printf("monitor upload to=kinesis stream=%q lines=%d\n", stream, len(res.Records))
+			fmt.Printf("agent _fn=streamLogs stream=%s dim#process=agent dim#instanceId=%s count#Kinesis.PutRecords.records=%d count#Kinesis.PutRecords.records.errors=%d msg=%q\n", stream, m.instanceId, len(res.Records), errorCount, errorMsg)
 		}
 	}
 }
