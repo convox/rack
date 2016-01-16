@@ -694,7 +694,7 @@
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MaxBatchSize": 2,
+          "MaxBatchSize": 1,
           "MinInstancesInService": 1,
           "PauseTime" : "PT15M",
           "WaitOnResourceSignals": "true"
