@@ -23,6 +23,9 @@ web:
     - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
     - SUBNETS
     - VPC
+    - KINESIS
+    - LOG_GROUP
+    - PROCESS=web
   ports:
     - 80:3000
     - 443:4443
@@ -33,6 +36,9 @@ registry:
   environment:
     - SETTINGS_FLAVOR=local
     - PASSWORD
+    - KINESIS
+    - LOG_GROUP
+    - PROCESS=registry
   image: convox/registry
   ports:
     - 5000:443
