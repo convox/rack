@@ -79,8 +79,8 @@ func (m *Monitor) handleRunning() {
 			continue
 		}
 
-		fmt.Printf("monitor event id=%s status=created\n", shortId)
-		m.handleCreate(container.ID)
+		fmt.Printf("monitor event id=%s status=started\n", shortId)
+		m.handleStart(container.ID)
 	}
 }
 
@@ -131,15 +131,6 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 }
 
 func (m *Monitor) handleCreate(id string) {
-	_, env, err := m.inspectContainer(id)
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return
-	}
-
-	m.envs[id] = env
-
 	m.logEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
 }
 
@@ -155,7 +146,14 @@ func (m *Monitor) handleKill(id string) {
 }
 
 func (m *Monitor) handleStart(id string) {
-	env := m.envs[id]
+	_, env, err := m.inspectContainer(id)
+
+	if err != nil {
+		log.Printf("error: %s\n", err)
+		return
+	}
+
+	m.envs[id] = env
 
 	m.updateCgroups(id, env)
 
