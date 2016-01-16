@@ -123,7 +123,11 @@ func GetInstanceId() string {
 
 	hostname = fmt.Sprintf("i-%s", hostname)
 
-	resp, err := http.Get("http://169.254.169.254/latest/meta-data/instance-id")
+	client := http.Client{
+		Timeout: 500 * time.Millisecond,
+	}
+
+	resp, err := client.Get("http://169.254.169.254/latest/meta-data/instance-id")
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
