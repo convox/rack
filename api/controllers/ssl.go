@@ -85,3 +85,34 @@ func SSLDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	return RenderJson(rw, ssl)
 }
+
+func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	a := mux.Vars(r)["app"]
+	process := GetForm(r, "process")
+	port := GetForm(r, "port")
+	chain := GetForm(r, "chain")
+	body := GetForm(r, "body")
+	key := GetForm(r, "key")
+
+	if process == "" {
+		return httperr.Errorf(403, "must specify a process")
+	}
+
+	portn, err := strconv.Atoi(port)
+
+	if err != nil {
+		return httperr.Errorf(403, "port must be numeric")
+	}
+
+	ssl, err := models.UpdateSSL(a, process, portn, body, key, chain)
+
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "%s", err)
+	}
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, ssl)
+}
