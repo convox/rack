@@ -506,20 +506,6 @@ func uploadCert(a *App, process string, port int, body, key string, chain string
 	// upload certificate
 	resp, err := IAM().UploadServerCertificate(input)
 
-	// cleanup old certificate, will fail if dependencies
-	if err != nil && strings.Contains(err.Error(), "already exists") {
-		_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
-			ServerCertificateName: aws.String(name),
-		})
-
-		if err != nil {
-			fmt.Printf(err.Error())
-			return "", fmt.Errorf("could not create certificate: %s", name)
-		}
-
-		resp, err = IAM().UploadServerCertificate(input)
-	}
-
 	if err != nil {
 		return "", err
 	}
