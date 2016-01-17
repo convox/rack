@@ -341,7 +341,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 }
 
 func certName(app, process string, port int) string {
-	key := fmt.Sprintf("%s%s%d", UpperName(app), UpperName(process), port)
+	key := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
 
 	a, err := GetApp(app)
 
@@ -351,7 +351,11 @@ func certName(app, process string, port int) string {
 		// return nil, err
 	}
 
-	return a.Parameters[key]
+	arn := a.Parameters[key]
+
+	slice := strings.Split(arn, "/")
+
+	return slice[len(slice)-1]
 }
 
 type CfsslCertificateBundle struct {
@@ -486,7 +490,7 @@ func uploadCert(a *App, process string, port int, body, key string, chain string
 
 	timestamp := currentTime.Format("20060102150405")
 
-	name := fmt.Sprintf("%s%s%d-%s", a.Name, process, port, timestamp)
+	name := fmt.Sprintf("%s%s%d-%s", UpperName(a.Name), UpperName(process), port, timestamp)
 
 	input := &iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
