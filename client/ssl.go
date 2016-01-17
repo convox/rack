@@ -59,3 +59,23 @@ func (c *Client) ListSSL(app string) (*SSLs, error) {
 
 	return &ssls, nil
 }
+
+func (c *Client) UpdateSSL(app, process, port, body, key string, chain string) (*SSL, error) {
+	params := Params{
+		"body":    body,
+		"chain":   chain,
+		"key":     key,
+		"port":    port,
+		"process": process,
+	}
+
+	var ssl SSL
+
+	err := c.Put(fmt.Sprintf("/apps/%s/ssl", app), params, &ssl)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ssl, nil
+}
