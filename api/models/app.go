@@ -82,7 +82,7 @@ func GetApp(name string) (*App, error) {
 var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
 func (a *App) Create() error {
-	helpers.TrackEvent("kernel-app-create-start", "")
+	helpers.TrackEvent("kernel-app-create-start", nil)
 
 	if !regexValidAppName.MatchString(a.Name) {
 		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
@@ -91,7 +91,7 @@ func (a *App) Create() error {
 	formation, err := a.Formation()
 
 	if err != nil {
-		helpers.TrackEvent("kernel-app-create-error", "")
+		helpers.TrackEvent("kernel-app-create-error", nil)
 		return err
 	}
 
@@ -135,11 +135,11 @@ func (a *App) Create() error {
 	_, err = CloudFormation().CreateStack(req)
 
 	if err != nil {
-		helpers.TrackEvent("kernel-app-create-error", "")
+		helpers.TrackEvent("kernel-app-create-error", nil)
 		return err
 	}
 
-	helpers.TrackEvent("kernel-app-create-success", "")
+	helpers.TrackEvent("kernel-app-create-success", nil)
 
 	NotifySuccess("app:create", map[string]string{"name": a.Name})
 
@@ -177,20 +177,20 @@ func (a *App) Cleanup() error {
 }
 
 func (a *App) Delete() error {
-	helpers.TrackEvent("kernel-app-delete-start", "")
+	helpers.TrackEvent("kernel-app-delete-start", nil)
 
 	name := a.Name
 
 	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
 
 	if err != nil {
-		helpers.TrackEvent("kernel-app-delete-error", "")
+		helpers.TrackEvent("kernel-app-delete-error", nil)
 		return err
 	}
 
 	go a.Cleanup()
 
-	helpers.TrackEvent("kernel-app-delete-success", "")
+	helpers.TrackEvent("kernel-app-delete-success", nil)
 
 	NotifySuccess("app:delete", map[string]string{"name": a.Name})
 

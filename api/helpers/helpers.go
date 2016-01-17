@@ -4,6 +4,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/segmentio/analytics-go"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stvp/rollbar"
@@ -49,13 +50,23 @@ func Error(log *logger.Logger, err error) {
 	}
 }
 
-func TrackEvent(event, message string) {
+func TrackEvent(event string, params map[string]interface{}) {
+	log := logrus.WithFields(logrus.Fields{"ns": "api.helpers", "at": "TrackEvent"})
+
+	params["client_id"] = os.Getenv("CLIENT_ID")
+	params["stack_id"] = os.Getenv("STACK_ID")
+
+	userId := os.Getenv("CLIENT_ID")
+
+	if stackId := os.Getenv("STACK_ID"); stackId != "" {
+		userId = stackId
+	}
+
+	log.WithFields(logrus.Fields(params)).Info()
+
 	segment.Track(&analytics.Track{
-		Event:  event,
-		UserId: os.Getenv("CLIENT_ID"),
-		Properties: map[string]interface{}{
-			"client_id": os.Getenv("CLIENT_ID"),
-			"message":   message,
-		},
+		Event:      event,
+		UserId:     userId,
+		Properties: params,
 	})
 }

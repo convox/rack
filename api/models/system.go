@@ -7,7 +7,6 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/client"
 )
 
@@ -68,9 +67,6 @@ func (r *System) Save() error {
 		"InstanceType":  r.Type,
 		"Version":       r.Version,
 	}
-
-	// Report cluster size change
-	helpers.TrackEvent("kernel-cluster-monitor", fmt.Sprintf("count=%d type=%s", r.Count, r.Type))
 
 	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", r.Version)
 
