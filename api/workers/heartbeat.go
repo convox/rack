@@ -28,14 +28,14 @@ func heartbeat() {
 
 	if err != nil {
 		log.Error(err)
-		continue
+		return
 	}
 
 	apps, err := models.ListApps()
 
 	if err != nil {
 		log.Error(err)
-		continue
+		return
 	}
 
 	helpers.TrackEvent("kernel-heartbeat", map[string]interface{}{

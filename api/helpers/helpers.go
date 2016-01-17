@@ -3,6 +3,7 @@ package helpers
 import (
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
@@ -53,13 +54,15 @@ func Error(log *logger.Logger, err error) {
 func TrackEvent(event string, params map[string]interface{}) {
 	log := logrus.WithFields(logrus.Fields{"ns": "api.helpers", "at": "TrackEvent"})
 
-	params["client_id"] = os.Getenv("CLIENT_ID")
-	params["stack_id"] = os.Getenv("STACK_ID")
+	clientId := os.Getenv("CLIENT_ID")
+	userId := clientId
+	params["client_id"] = clientId
 
-	userId := os.Getenv("CLIENT_ID")
-
-	if stackId := os.Getenv("STACK_ID"); stackId != "" {
+	if os.Getenv("STACK_ID") != "" {
+		parts := strings.Split(os.Getenv("STACK_ID"), "/")
+		stackId := parts[len(parts)-1]
 		userId = stackId
+		params["stack_id"] = stackId
 	}
 
 	log.WithFields(logrus.Fields(params)).Info()
