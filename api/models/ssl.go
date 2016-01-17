@@ -18,6 +18,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/cenkalti/backoff"
 )
 
 type SSL struct {
@@ -264,10 +265,8 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, fmt.Errorf("no such process: %s", process)
 	}
 
-	// get old cert name
-	parameters := a.Parameters
-
-	oldCert := parameters[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)]
+	// store old cert name
+	oldCertName := certName(app, process, port)
 
 	// upload new cert
 	arn, err := uploadCert(a, process, port, body, key, chain)
@@ -296,9 +295,12 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 	}
 
 	// delete old cert
-	_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
-		ServerCertificateName: aws.String(oldCert),
-	})
+	operation := func() error { return deleteCert(oldCertName) }
+	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
+
+	if err != nil {
+		return nil, err
+	}
 
 	// update cloudformation
 	tmpl, err := release.Formation()
@@ -354,6 +356,19 @@ func certName(app, process string, port int) string {
 
 type CfsslCertificateBundle struct {
 	Bundle string `json:"bundle"`
+}
+
+func deleteCert(certName string) error {
+	_, err := IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+		ServerCertificateName: aws.String(certName),
+	})
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // use cfssl bundle to generate the certificate chain
