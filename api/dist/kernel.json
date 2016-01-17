@@ -104,6 +104,10 @@
       "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
     },
+    "StackId": {
+      "Condition": "Development",
+      "Value": { "Ref": "AWS::StackId" }
+    },
     "Vpc": {
       "Condition": "Development",
       "Value": { "Ref": "Vpc" }
