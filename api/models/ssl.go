@@ -276,6 +276,8 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, err
 	}
 
+	time.Sleep(10 * time.Second)
+
 	// change cert on listener
 	outputs := a.Outputs
 
