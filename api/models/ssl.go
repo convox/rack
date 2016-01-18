@@ -349,6 +349,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 	return &ssl, nil
 }
 
+// fetch certificate from CF params and parse name from arn
 func certName(app, process string, port int) string {
 	key := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
 
