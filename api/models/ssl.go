@@ -275,9 +275,6 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, err
 	}
 
-	time.Sleep(10 * time.Second)
-
-	// change cert on listener
 	outputs := a.Outputs
 
 	balancer := outputs[fmt.Sprintf("%sPort%dBalancerName", UpperName(me.Name), port)]
@@ -288,14 +285,26 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		SSLCertificateId: aws.String(arn),
 	}
 
-	_, err = ELB().SetLoadBalancerListenerSSLCertificate(input)
+	// change cert on listener
+	operation := func() error {
+		_, err = ELB().SetLoadBalancerListenerSSLCertificate(input)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
 
 	if err != nil {
 		return nil, err
 	}
 
 	// delete old cert
-	operation := func() error { return deleteCert(oldCertName) }
+	operation = func() error { return deleteCert(oldCertName) }
+
 	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
 
 	if err != nil {
