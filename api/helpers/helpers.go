@@ -69,7 +69,7 @@ func TrackEvent(event string, params map[string]interface{}) {
 		params["stack_id"] = stackId
 	}
 
-	log.WithFields(logrus.Fields(params)).Info()
+	log.WithFields(logrus.Fields{"event": event, "user_id": userId}).WithFields(logrus.Fields(params)).Info()
 
 	segment.Track(&analytics.Track{
 		Event:      event,
