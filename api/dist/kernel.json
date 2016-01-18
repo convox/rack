@@ -104,6 +104,10 @@
       "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
     },
+    "StackId": {
+      "Condition": "Development",
+      "Value": { "Ref": "AWS::StackId" }
+    },
     "Vpc": {
       "Condition": "Development",
       "Value": { "Ref": "Vpc" }
@@ -1010,6 +1014,7 @@
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
+              "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
               "VPC": { "Ref": "Vpc" }
             },
