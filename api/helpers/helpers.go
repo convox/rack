@@ -61,7 +61,6 @@ func TrackEvent(event string, params map[string]interface{}) {
 	}
 
 	params["client_id"] = os.Getenv("CLIENT_ID")
-	params["stack_id"] = os.Getenv("STACK_ID")
 
 	userId := RackId()
 
