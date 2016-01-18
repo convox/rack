@@ -52,6 +52,10 @@ func Error(log *logger.Logger, err error) {
 }
 
 func TrackEvent(event string, params map[string]interface{}) {
+	if params == nil {
+		params = map[string]interface{}{}
+	}
+
 	log := logrus.WithFields(logrus.Fields{"ns": "api.helpers", "at": "TrackEvent"})
 
 	clientId := os.Getenv("CLIENT_ID")
