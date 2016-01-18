@@ -77,9 +77,37 @@
         "Ref": "WebPort3001Balancer"
       }
     },
+    "WebPort3001BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "web",
+            "internal"
+          ]
+        ]
+      }
+    },
     "WebPort80Balancer": {
       "Value": {
         "Ref": "WebPort80Balancer"
+      }
+    },
+    "WebPort80BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "web",
+            "internal"
+          ]
+        ]
       }
     }
   },

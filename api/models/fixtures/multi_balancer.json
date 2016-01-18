@@ -91,9 +91,27 @@
         "Ref": "WebPort80Balancer"
       }
     },
+    "WebPort80BalancerName": {
+      "Value": {
+        "Ref": "AWS::StackName"
+      }
+    },
     "WorkerPort80Balancer": {
       "Value": {
         "Ref": "WorkerPort80Balancer"
+      }
+    },
+    "WorkerPort80BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "worker"
+          ]
+        ]
       }
     }
   },
