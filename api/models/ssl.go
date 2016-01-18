@@ -246,27 +246,21 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
 	}
 
-	release, err := a.LatestRelease()
-
-	if err != nil {
-		return nil, err
-	}
-
-	manifest, err := LoadManifest(release.Manifest)
-
-	if err != nil {
-		return nil, err
-	}
-
-	me := manifest.Entry(process)
-
-	// validate process exists
-	if me == nil {
-		return nil, fmt.Errorf("no such process: %s", process)
-	}
-
 	// store old cert name
 	oldCertName := certName(app, process, port)
+
+	// validate process exists
+	if oldCertName == "" {
+		return nil, fmt.Errorf("no certificate configured for %s port %d", process, port)
+	}
+
+	outputs := a.Outputs
+
+	balancer := outputs[fmt.Sprintf("%sPort%dBalancerName", UpperName(process), port)]
+
+	if balancer == "" {
+		return nil, fmt.Errorf("Balancer ouptut not found. Please redeploy your app and try again.")
+	}
 
 	// upload new cert
 	arn, err := uploadCert(a, process, port, body, key, chain)
@@ -274,10 +268,6 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 	if err != nil {
 		return nil, err
 	}
-
-	outputs := a.Outputs
-
-	balancer := outputs[fmt.Sprintf("%sPort%dBalancerName", UpperName(me.Name), port)]
 
 	input := &elb.SetLoadBalancerListenerSSLCertificateInput{
 		LoadBalancerName: aws.String(balancer),
@@ -308,21 +298,15 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 	go backoff.Retry(operation, backoff.NewExponentialBackOff())
 
 	// update cloudformation
-	tmpl, err := release.Formation()
-
-	if err != nil {
-		return nil, err
-	}
-
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(a.Name),
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		TemplateBody: aws.String(tmpl),
+		StackName:           aws.String(a.Name),
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		UsePreviousTemplate: aws.Bool(true),
 	}
 
 	params := a.Parameters
 
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = arn
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = arn
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
@@ -354,7 +338,6 @@ func certName(app, process string, port int) string {
 	if err != nil {
 		fmt.Printf(err.Error())
 		return ""
-		// return nil, err
 	}
 
 	arn := a.Parameters[key]
