@@ -24,11 +24,13 @@ func init() {
 		segment.Size = 1
 	}
 
-	if regexpEmail.MatchString(os.Getenv("CLIENT_ID")) {
+	clientId := os.Getenv("CLIENT_ID")
+
+	if regexpEmail.MatchString(clientId) {
 		segment.Identify(&analytics.Identify{
-			UserId: os.Getenv("CLIENT_ID"),
+			UserId: RackId(),
 			Traits: map[string]interface{}{
-				"email": os.Getenv("CLIENT_ID"),
+				"email": clientId,
 			},
 		})
 	}
@@ -52,22 +54,15 @@ func Error(log *logger.Logger, err error) {
 }
 
 func TrackEvent(event string, params map[string]interface{}) {
+	log := logrus.WithFields(logrus.Fields{"ns": "api.helpers", "at": "TrackEvent"})
+
 	if params == nil {
 		params = map[string]interface{}{}
 	}
 
-	log := logrus.WithFields(logrus.Fields{"ns": "api.helpers", "at": "TrackEvent"})
+	params["client_id"] = os.Getenv("CLIENT_ID")
 
-	clientId := os.Getenv("CLIENT_ID")
-	userId := clientId
-	params["client_id"] = clientId
-
-	if os.Getenv("STACK_ID") != "" {
-		parts := strings.Split(os.Getenv("STACK_ID"), "/")
-		stackId := parts[len(parts)-1]
-		userId = stackId
-		params["stack_id"] = stackId
-	}
+	userId := RackId()
 
 	log.WithFields(logrus.Fields{"event": event, "user_id": userId}).WithFields(logrus.Fields(params)).Info()
 
@@ -76,4 +71,13 @@ func TrackEvent(event string, params map[string]interface{}) {
 		UserId:     userId,
 		Properties: params,
 	})
+}
+
+func RackId() string {
+	if stackId := os.Getenv("STACK_ID"); stackId != "" {
+		parts := strings.Split(stackId, "/")
+		return parts[len(parts)-1]
+	}
+
+	return os.Getenv("CLIENT_ID")
 }

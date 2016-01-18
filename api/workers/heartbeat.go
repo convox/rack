@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
@@ -42,6 +43,7 @@ func heartbeat() {
 		"app_count":      len(apps),
 		"instance_count": system.Count,
 		"instance_type":  system.Type,
+		"region":         os.Getenv("AWS_REGION"),
 		"version":        system.Version,
 	})
 }
