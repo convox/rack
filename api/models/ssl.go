@@ -305,11 +305,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 	// delete old cert
 	operation = func() error { return deleteCert(oldCertName) }
 
-	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
-
-	if err != nil {
-		return nil, err
-	}
+	go backoff.Retry(operation, backoff.NewExponentialBackOff())
 
 	// update cloudformation
 	tmpl, err := release.Formation()
