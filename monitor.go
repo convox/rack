@@ -13,6 +13,8 @@ import (
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger/awslogs"
 	docker "github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
@@ -146,7 +148,7 @@ func (m *Monitor) handleKill(id string) {
 }
 
 func (m *Monitor) handleStart(id string) {
-	_, env, err := m.inspectContainer(id)
+	container, env, err := m.inspectContainer(id)
 
 	if err != nil {
 		log.Printf("error: %s\n", err)
@@ -157,23 +159,21 @@ func (m *Monitor) handleStart(id string) {
 
 	m.updateCgroups(id, env)
 
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"], env["RELEASE"])
+	go m.subscribeLogs(container, env)
 }
 
 func (m *Monitor) handleStop(id string) {
 	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGTERM", id[0:12]))
 }
 
-func (m *Monitor) inspectContainer(id string) (string, map[string]string, error) {
+func (m *Monitor) inspectContainer(id string) (*docker.Container, map[string]string, error) {
 	env := map[string]string{}
 
 	container, err := m.client.InspectContainer(id)
 
-	image := container.Config.Image
-
 	if err != nil {
 		log.Printf("error: %s\n", err)
-		return image, env, err
+		return container, env, err
 	}
 
 	for _, e := range container.Config.Env {
@@ -184,7 +184,7 @@ func (m *Monitor) inspectContainer(id string) (string, map[string]string, error)
 		}
 	}
 
-	return image, env, nil
+	return container, env, nil
 }
 
 func (m *Monitor) logEvent(id, message string) {
@@ -228,20 +228,41 @@ func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	}
 }
 
-func (m *Monitor) subscribeLogs(id, stream, process, release string) {
-	if stream == "" {
+func (m *Monitor) subscribeLogs(container *docker.Container, env map[string]string) {
+	id := container.ID
+
+	kinesis := env["KINESIS"]
+	logGroup := env["LOG_GROUP"]
+	process := env["PROCESS"]
+	release := env["RELEASE"]
+
+	logResource := kinesis
+	if logResource == "" {
+		logResource = logGroup
+	}
+
+	if logResource == "" {
+		fmt.Printf("agent _fn=subscribeLogs at=skip id=%s kinesis=%s logGroup=%s process=%s instanceId=%s\n", id, kinesis, logGroup, process, m.instanceId)
 		return
 	}
 
-	fmt.Printf("agent _fn=subscribeLogs at=start id=%s stream=%s process=%s instanceId=%s\n", id, stream, process, m.instanceId)
+	fmt.Printf("agent _fn=subscribeLogs at=start id=%s kinesis=%s process=%s logGroup=%s instanceId=%s\n", id, kinesis, logGroup, process, m.instanceId)
 
-	// extract app name from stream
+	// extract app name from kinesis or logGroup
 	// myapp-staging-Kinesis-L6MUKT1VH451 -> myapp-staging
 	app := ""
 
-	parts := strings.Split(stream, "-")
+	parts := strings.Split(logResource, "-")
 	if len(parts) > 2 {
 		app = strings.Join(parts[0:len(parts)-2], "-") // drop -Kinesis-YXXX
+	}
+
+	// create a an awslogger and associated CloudWatch Logs LogGroup
+	// if this doesn't error, write to the logger in the scanner loop
+	awslogger, aerr := m.StartAWSLogger(container, logGroup)
+
+	if aerr != nil {
+		fmt.Printf("ERROR: %+v\n", aerr)
 	}
 
 	r, w := io.Pipe()
@@ -255,7 +276,20 @@ func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 
 		for scanner.Scan() {
 			text := scanner.Text()
-			m.addLine(stream, []byte(fmt.Sprintf("%s %s %s/%s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, app, process, release, text)))
+
+			line := []byte(fmt.Sprintf("%s %s %s/%s:%s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, app, process, release, text))
+
+			if kinesis != "" {
+				m.addLine(kinesis, line)
+			}
+
+			if aerr == nil {
+				awslogger.Log(&logger.Message{
+					ContainerID: container.ID,
+					Line:        line,
+					Timestamp:   time.Now(),
+				})
+			}
 		}
 
 		if scanner.Err() != nil {
@@ -265,10 +299,11 @@ func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 		fmt.Printf("agent _fn=subscribeLogs.Scan at=return prefix=%s\n", prefix)
 	}(process, r)
 
+	// tail docker logs and write to pipe
 	since := time.Unix(0, 0).Unix()
 
 	for {
-		fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s since=%d dim#process=agent dim#instanceId=%s count#docker.Logs.start=1\n", id, stream, process, since, m.instanceId)
+		fmt.Printf("agent _fn=subscribeLogs id=%s kinesis=%s logGroup=%s process=%s since=%d dim#process=agent dim#instanceId=%s count#docker.Logs.start=1\n", id, kinesis, logGroup, process, since, m.instanceId)
 
 		err := m.client.Logs(docker.LogsOptions{
 			Since:        since,
@@ -285,13 +320,13 @@ func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 		since = time.Now().Unix() // update cursor to now in anticipation of retry
 
 		if err != nil {
-			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.error=1 msg=%q\n", id, stream, process, m.instanceId, err.Error())
+			fmt.Printf("agent _fn=subscribeLogs id=%s kinesis=%s logGroup=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.error=1 msg=%q\n", id, kinesis, logGroup, process, m.instanceId, err.Error())
 		}
 
 		container, err := m.client.InspectContainer(id)
 
 		if err != nil {
-			fmt.Printf("agent _fn=subscribeLogs id=%s stream=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.error=1 msg=%q\n", id, stream, process, m.instanceId, err.Error())
+			fmt.Printf("agent _fn=subscribeLogs id=%s kinesis=%s logGroup=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.error=1 msg=%q\n", id, kinesis, logGroup, process, m.instanceId, err.Error())
 			break
 		}
 
@@ -302,7 +337,26 @@ func (m *Monitor) subscribeLogs(id, stream, process, release string) {
 
 	w.Close()
 
-	fmt.Printf("agent _fn=subscribeLogs at=return id=%s stream=%s process=%s instanceId=%s\n", id, stream, process, m.instanceId)
+	fmt.Printf("agent _fn=subscribeLogs at=return id=%s kinesis=%s logGroup=%s process=%s instanceId=%s\n", id, kinesis, logGroup, process, m.instanceId)
+}
+
+func (m *Monitor) StartAWSLogger(container *docker.Container, logGroup string) (logger.Logger, error) {
+	ctx := logger.Context{
+		Config: map[string]string{
+			"awslogs-group": logGroup,
+		},
+		ContainerID:         container.ID,
+		ContainerName:       container.Name,
+		ContainerEntrypoint: container.Path,
+		ContainerArgs:       container.Args,
+		ContainerImageID:    container.Image,
+		ContainerImageName:  container.Config.Image,
+		ContainerCreated:    container.Created,
+		ContainerEnv:        container.Config.Env,
+		ContainerLabels:     container.Config.Labels,
+	}
+
+	return awslogs.New(ctx)
 }
 
 func (m *Monitor) streamLogs() {
