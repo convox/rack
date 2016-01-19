@@ -268,14 +268,11 @@ func (me *ManifestEntry) ResolvedEnvironment() ([]string, error) {
 		// value is of form: `- KEY` without an explicit value so the
 		// system looks it up
 		if strings.Index(env, "=") == -1 {
-			// try a linked service first
-			linked := linkedVars[env]
-			if linked != "" {
+			if val := linkedVars[env]; val != "" {
 				delete(linkedVars, env)
-				env = fmt.Sprintf("%s=%s", env, linked)
-			} else {
-				// default to env
-				env = fmt.Sprintf("%s=%s", env, os.Getenv(env))
+				env = fmt.Sprintf("%s=%s", env, val)
+			} else if val := os.Getenv(env); val != "" {
+				env = fmt.Sprintf("%s=%s", env, val)
 			}
 		}
 		r = append(r, env)
