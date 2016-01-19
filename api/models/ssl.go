@@ -286,7 +286,10 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil
 	}
 
-	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
+	algo := backoff.NewExponentialBackOff()
+	algo.MaxElapsedTime = 60 * time.Second
+
+	err = backoff.Retry(operation, algo)
 
 	if err != nil {
 		return nil, err
