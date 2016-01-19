@@ -349,7 +349,7 @@ func (r *Release) Formation() (string, error) {
 			}
 
 			if len(other.Ports) > 1 {
-				continue
+				return "", fmt.Errorf("Cannot link to %q because it exposes too many ports", link)
 			}
 
 			port := other.Ports[0]
