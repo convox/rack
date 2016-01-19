@@ -259,19 +259,34 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 func (me *ManifestEntry) ResolvedEnvironment() ([]string, error) {
 	r := []string{}
 
-	for _, env := range me.EnvironmentArray() {
-		if strings.Index(env, "=") == -1 {
-			env = fmt.Sprintf("%s=%s", env, os.Getenv(env))
-		}
-		r = append(r, env)
-	}
-
 	linkedVars, err := me.ResolvedLinkVars()
 	if err != nil {
 		return r, err
 	}
 
-	r = append(r, linkedVars...)
+	for _, env := range me.EnvironmentArray() {
+		// value is of form: `- KEY` without an explicit value so the
+		// system looks it up
+		if strings.Index(env, "=") == -1 {
+			// try a linked service first
+			linked := linkedVars[env]
+			if linked != "" {
+				delete(linkedVars, env)
+				env = fmt.Sprintf("%s=%s", env, linked)
+			} else {
+				// default to env
+				env = fmt.Sprintf("%s=%s", env, os.Getenv(env))
+			}
+		}
+		r = append(r, env)
+	}
+
+	// appends the unused service links to the front of the array
+	// so you still get them if you haven't declared them
+	for key, value := range linkedVars {
+		env := fmt.Sprintf("%s=%s", key, value)
+		r = append([]string{env}, r...)
+	}
 
 	return r, nil
 }
@@ -296,8 +311,8 @@ func (me *ManifestEntry) EnvironmentArray() []string {
 // NOTE: this is the simpler approach:
 //       build up the ENV from the declared links
 //       assuming local dev is done on DOCKER_HOST
-func (me *ManifestEntry) ResolvedLinkVars() ([]string, error) {
-	linkVars := make([]string, 0)
+func (me *ManifestEntry) ResolvedLinkVars() (map[string]string, error) {
+	linkVars := make(map[string]string)
 
 	if me.Manifest == nil {
 		return linkVars, nil
@@ -383,7 +398,7 @@ func (me *ManifestEntry) ResolvedLinkVars() ([]string, error) {
 			linkUrl.User = url.UserPassword(otherEnv["LINK_USERNAME"], otherEnv["LINK_PASSWORD"])
 		}
 
-		linkVars = append(linkVars, varName+"="+linkUrl.String())
+		linkVars[varName] = linkUrl.String()
 	}
 
 	return linkVars, nil
