@@ -6,15 +6,25 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
-	"github.com/convox/rack/client"
 )
 
-type Instance client.Instance
+type Instance struct {
+	Agent     bool      `json:"agent"`
+	Cpu       float64   `json:"cpu"`
+	Id        string    `json:"id"`
+	Ip        string    `json:"ip"`
+	Memory    float64   `json:"memory"`
+	Processes int       `json:"processes"`
+	Status    string    `json:"status"`
+	Started   time.Time `json:"started"`
+}
 
 type InstanceResource struct {
 	Total int `json:"total"`
@@ -154,7 +164,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 	return nil
 }
 
-func (s *System) GetInstances() ([]*Instance, error) {
+func ListInstances() ([]*Instance, error) {
 	res, err := ECS().ListContainerInstances(
 		&ecs.ListContainerInstancesInput{
 			Cluster: aws.String(os.Getenv("CLUSTER")),
@@ -271,4 +281,8 @@ func exitCode(err error) int {
 	}
 
 	return 0
+}
+
+func (i *Instance) Docker() (*docker.Client, error) {
+	return Docker(fmt.Sprintf("http://%s:2376", i.Ip))
 }

@@ -438,6 +438,11 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 			Tty:          true,
 			Cmd:          []string{"sh", "-c", command},
 			Image:        image,
+			Labels: map[string]string{
+				"com.convox.rack.type":    "oneoff",
+				"com.convox.rack.app":     a.Name,
+				"com.convox.rack.process": process,
+			},
 		},
 		HostConfig: &docker.HostConfig{
 			Binds: binds,
