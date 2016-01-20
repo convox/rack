@@ -95,8 +95,8 @@ func MonitorDmesg() {
 
 			_, err := AutoScaling.SetInstanceHealth(&autoscaling.SetInstanceHealthInput{
 				HealthStatus:             aws.String("Unhealthy"),
-				InstanceID:               aws.String(instance),
-				ShouldRespectGracePeriod: aws.Boolean(true),
+				InstanceId:               aws.String(instance),
+				ShouldRespectGracePeriod: aws.Bool(true),
 			})
 
 			if err != nil {

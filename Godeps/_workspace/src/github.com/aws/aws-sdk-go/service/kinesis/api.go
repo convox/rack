@@ -4,31 +4,27 @@
 package kinesis
 
 import (
-	"sync"
+	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
 )
 
-var oprw sync.Mutex
+const opAddTagsToStream = "AddTagsToStream"
 
 // AddTagsToStreamRequest generates a request for the AddTagsToStream operation.
-func (c *Kinesis) AddTagsToStreamRequest(input *AddTagsToStreamInput) (req *aws.Request, output *AddTagsToStreamOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opAddTagsToStream == nil {
-		opAddTagsToStream = &aws.Operation{
-			Name:       "AddTagsToStream",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) AddTagsToStreamRequest(input *AddTagsToStreamInput) (req *request.Request, output *AddTagsToStreamOutput) {
+	op := &request.Operation{
+		Name:       opAddTagsToStream,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &AddTagsToStreamInput{}
 	}
 
-	req = c.newRequest(opAddTagsToStream, input, output)
+	req = c.newRequest(op, input, output)
 	output = &AddTagsToStreamOutput{}
 	req.Data = output
 	return
@@ -45,26 +41,21 @@ func (c *Kinesis) AddTagsToStream(input *AddTagsToStreamInput) (*AddTagsToStream
 	return out, err
 }
 
-var opAddTagsToStream *aws.Operation
+const opCreateStream = "CreateStream"
 
 // CreateStreamRequest generates a request for the CreateStream operation.
-func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *aws.Request, output *CreateStreamOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opCreateStream == nil {
-		opCreateStream = &aws.Operation{
-			Name:       "CreateStream",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Request, output *CreateStreamOutput) {
+	op := &request.Operation{
+		Name:       opCreateStream,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &CreateStreamInput{}
 	}
 
-	req = c.newRequest(opCreateStream, input, output)
+	req = c.newRequest(op, input, output)
 	output = &CreateStreamOutput{}
 	req.Data = output
 	return
@@ -77,11 +68,11 @@ func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *aws.Reques
 // stream.
 //
 // You specify and control the number of shards that a stream is composed of.
-// Each open shard can support up to 5 read transactions per second, up to a
-// maximum total of 2 MB of data read per second. Each shard can support up
-// to 1000 records written per second, up to a maximum total of 1 MB data written
-// per second. You can add shards to a stream if the amount of data input increases
-// and you can remove shards if the amount of data input decreases.
+// Each shard can support reads up to 5 transactions per second, up to a maximum
+// data read total of 2 MB per second. Each shard can support writes up to 1,000
+// records per second, up to a maximum data write total of 1 MB per second.
+// You can add shards to a stream if the amount of data input increases and
+// you can remove shards if the amount of data input decreases.
 //
 // The stream name identifies the stream. The name is scoped to the AWS account
 // used by the application. It is also scoped by region. That is, two streams
@@ -100,7 +91,7 @@ func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *aws.Reques
 //  Have more than five streams in the CREATING state at any point in time.
 // Create more shards than are authorized for your account.  For the default
 // shard limit for an AWS account, see Amazon Kinesis Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html).
-// If you need to increase this limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
+// If you need to increase this limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
 //
 // You can use DescribeStream to check the stream status, which is returned
 // in StreamStatus.
@@ -112,26 +103,21 @@ func (c *Kinesis) CreateStream(input *CreateStreamInput) (*CreateStreamOutput, e
 	return out, err
 }
 
-var opCreateStream *aws.Operation
+const opDeleteStream = "DeleteStream"
 
 // DeleteStreamRequest generates a request for the DeleteStream operation.
-func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *aws.Request, output *DeleteStreamOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDeleteStream == nil {
-		opDeleteStream = &aws.Operation{
-			Name:       "DeleteStream",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *request.Request, output *DeleteStreamOutput) {
+	op := &request.Operation{
+		Name:       opDeleteStream,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &DeleteStreamInput{}
 	}
 
-	req = c.newRequest(opDeleteStream, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DeleteStreamOutput{}
 	req.Data = output
 	return
@@ -162,32 +148,27 @@ func (c *Kinesis) DeleteStream(input *DeleteStreamInput) (*DeleteStreamOutput, e
 	return out, err
 }
 
-var opDeleteStream *aws.Operation
+const opDescribeStream = "DescribeStream"
 
 // DescribeStreamRequest generates a request for the DescribeStream operation.
-func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *aws.Request, output *DescribeStreamOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opDescribeStream == nil {
-		opDescribeStream = &aws.Operation{
-			Name:       "DescribeStream",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-			Paginator: &aws.Paginator{
-				InputTokens:     []string{"ExclusiveStartShardId"},
-				OutputTokens:    []string{"StreamDescription.Shards[-1].ShardId"},
-				LimitToken:      "Limit",
-				TruncationToken: "StreamDescription.HasMoreShards",
-			},
-		}
+func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *request.Request, output *DescribeStreamOutput) {
+	op := &request.Operation{
+		Name:       opDescribeStream,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"ExclusiveStartShardId"},
+			OutputTokens:    []string{"StreamDescription.Shards[-1].ShardId"},
+			LimitToken:      "Limit",
+			TruncationToken: "StreamDescription.HasMoreShards",
+		},
 	}
 
 	if input == nil {
 		input = &DescribeStreamInput{}
 	}
 
-	req = c.newRequest(opDescribeStream, input, output)
+	req = c.newRequest(op, input, output)
 	output = &DescribeStreamOutput{}
 	req.Data = output
 	return
@@ -228,26 +209,21 @@ func (c *Kinesis) DescribeStreamPages(input *DescribeStreamInput, fn func(p *Des
 	})
 }
 
-var opDescribeStream *aws.Operation
+const opGetRecords = "GetRecords"
 
 // GetRecordsRequest generates a request for the GetRecords operation.
-func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *aws.Request, output *GetRecordsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetRecords == nil {
-		opGetRecords = &aws.Operation{
-			Name:       "GetRecords",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Request, output *GetRecordsOutput) {
+	op := &request.Operation{
+		Name:       opGetRecords,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &GetRecordsInput{}
 	}
 
-	req = c.newRequest(opGetRecords, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetRecordsOutput{}
 	req.Data = output
 	return
@@ -274,13 +250,11 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *aws.Request, o
 // the sequence number or other attribute that marks it as the last record to
 // process.
 //
-// Each data record can be up to 50 KB in size, and each shard can read up
-// to 2 MB per second. You can ensure that your calls don't exceed the maximum
+// Each data record can be up to 1 MB in size, and each shard can read up to
+// 2 MB per second. You can ensure that your calls don't exceed the maximum
 // supported size or throughput by using the Limit parameter to specify the
 // maximum number of records that GetRecords can return. Consider your average
-// record size when determining this limit. For example, if your average record
-// size is 40 KB, you can limit the data returned to about 1 MB per call by
-// specifying 25 as the limit.
+// record size when determining this limit.
 //
 // The size of the data returned by GetRecords will vary depending on the utilization
 // of the shard. The maximum size of data that GetRecords can return is 10 MB.
@@ -293,36 +267,39 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *aws.Request, o
 // that the application will get exceptions for longer than 1 second.
 //
 // To detect whether the application is falling behind in processing, you can
-// use the MillisBehindLatest response attribute. You can also monitor the amount
-// of data in a stream using the CloudWatch metrics. For more information, see
-// Monitoring Amazon Kinesis with Amazon CloudWatch (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring_with_cloudwatch.html)
-// in the Amazon Kinesis Developer Guide.
+// use the MillisBehindLatest response attribute. You can also monitor the stream
+// using CloudWatch metrics (see Monitoring Amazon Kinesis (http://docs.aws.amazon.com/kinesis/latest/dev/monitoring.html)
+// in the Amazon Kinesis Developer Guide).
+//
+// Each Amazon Kinesis record includes a value, ApproximateArrivalTimestamp,
+// that is set when an Amazon Kinesis stream successfully receives and stores
+// a record. This is commonly referred to as a server-side timestamp, which
+// is different than a client-side timestamp, where the timestamp is set when
+// a data producer creates or sends the record to a stream. The timestamp has
+// millisecond precision. There are no guarantees about the timestamp accuracy,
+// or that the timestamp is always increasing. For example, records in a shard
+// or across a stream might have timestamps that are out of order.
 func (c *Kinesis) GetRecords(input *GetRecordsInput) (*GetRecordsOutput, error) {
 	req, out := c.GetRecordsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-var opGetRecords *aws.Operation
+const opGetShardIterator = "GetShardIterator"
 
 // GetShardIteratorRequest generates a request for the GetShardIterator operation.
-func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *aws.Request, output *GetShardIteratorOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opGetShardIterator == nil {
-		opGetShardIterator = &aws.Operation{
-			Name:       "GetShardIterator",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *request.Request, output *GetShardIteratorOutput) {
+	op := &request.Operation{
+		Name:       opGetShardIterator,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &GetShardIteratorInput{}
 	}
 
-	req = c.newRequest(opGetShardIterator, input, output)
+	req = c.newRequest(op, input, output)
 	output = &GetShardIteratorOutput{}
 	req.Data = output
 	return
@@ -371,32 +348,27 @@ func (c *Kinesis) GetShardIterator(input *GetShardIteratorInput) (*GetShardItera
 	return out, err
 }
 
-var opGetShardIterator *aws.Operation
+const opListStreams = "ListStreams"
 
 // ListStreamsRequest generates a request for the ListStreams operation.
-func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *aws.Request, output *ListStreamsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListStreams == nil {
-		opListStreams = &aws.Operation{
-			Name:       "ListStreams",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-			Paginator: &aws.Paginator{
-				InputTokens:     []string{"ExclusiveStartStreamName"},
-				OutputTokens:    []string{"StreamNames[-1]"},
-				LimitToken:      "Limit",
-				TruncationToken: "HasMoreStreams",
-			},
-		}
+func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *request.Request, output *ListStreamsOutput) {
+	op := &request.Operation{
+		Name:       opListStreams,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"ExclusiveStartStreamName"},
+			OutputTokens:    []string{"StreamNames[-1]"},
+			LimitToken:      "Limit",
+			TruncationToken: "HasMoreStreams",
+		},
 	}
 
 	if input == nil {
 		input = &ListStreamsInput{}
 	}
 
-	req = c.newRequest(opListStreams, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListStreamsOutput{}
 	req.Data = output
 	return
@@ -431,26 +403,21 @@ func (c *Kinesis) ListStreamsPages(input *ListStreamsInput, fn func(p *ListStrea
 	})
 }
 
-var opListStreams *aws.Operation
+const opListTagsForStream = "ListTagsForStream"
 
 // ListTagsForStreamRequest generates a request for the ListTagsForStream operation.
-func (c *Kinesis) ListTagsForStreamRequest(input *ListTagsForStreamInput) (req *aws.Request, output *ListTagsForStreamOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opListTagsForStream == nil {
-		opListTagsForStream = &aws.Operation{
-			Name:       "ListTagsForStream",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) ListTagsForStreamRequest(input *ListTagsForStreamInput) (req *request.Request, output *ListTagsForStreamOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForStream,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &ListTagsForStreamInput{}
 	}
 
-	req = c.newRequest(opListTagsForStream, input, output)
+	req = c.newRequest(op, input, output)
 	output = &ListTagsForStreamOutput{}
 	req.Data = output
 	return
@@ -463,26 +430,21 @@ func (c *Kinesis) ListTagsForStream(input *ListTagsForStreamInput) (*ListTagsFor
 	return out, err
 }
 
-var opListTagsForStream *aws.Operation
+const opMergeShards = "MergeShards"
 
 // MergeShardsRequest generates a request for the MergeShards operation.
-func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *aws.Request, output *MergeShardsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opMergeShards == nil {
-		opMergeShards = &aws.Operation{
-			Name:       "MergeShards",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *request.Request, output *MergeShardsOutput) {
+	op := &request.Operation{
+		Name:       opMergeShards,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &MergeShardsInput{}
 	}
 
-	req = c.newRequest(opMergeShards, input, output)
+	req = c.newRequest(op, input, output)
 	output = &MergeShardsOutput{}
 	req.Data = output
 	return
@@ -529,36 +491,31 @@ func (c *Kinesis) MergeShards(input *MergeShardsInput) (*MergeShardsOutput, erro
 	return out, err
 }
 
-var opMergeShards *aws.Operation
+const opPutRecord = "PutRecord"
 
 // PutRecordRequest generates a request for the PutRecord operation.
-func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *aws.Request, output *PutRecordOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutRecord == nil {
-		opPutRecord = &aws.Operation{
-			Name:       "PutRecord",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request, output *PutRecordOutput) {
+	op := &request.Operation{
+		Name:       opPutRecord,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &PutRecordInput{}
 	}
 
-	req = c.newRequest(opPutRecord, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutRecordOutput{}
 	req.Data = output
 	return
 }
 
-// Puts (writes) a single data record from a producer into an Amazon Kinesis
-// stream. Call PutRecord to send data from the producer into the Amazon Kinesis
-// stream for real-time ingestion and subsequent processing, one record at a
-// time. Each shard can support up to 1000 records written per second, up to
-// a maximum total of 1 MB data written per second.
+// Writes a single data record from a producer into an Amazon Kinesis stream.
+// Call PutRecord to send data from the producer into the Amazon Kinesis stream
+// for real-time ingestion and subsequent processing, one record at a time.
+// Each shard can support writes up to 1,000 records per second, up to a maximum
+// data write total of 1 MB per second.
 //
 // You must specify the name of the stream that captures, stores, and transports
 // the data; a partition key; and the data blob itself.
@@ -576,7 +533,7 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *aws.Request, out
 // integer values and to map associated data records to shards using the hash
 // key ranges of the shards. You can override hashing the partition key to determine
 // the shard by explicitly specifying a hash value using the ExplicitHashKey
-// parameter. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-add-data-to-stream.html)
+// parameter. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
 // in the Amazon Kinesis Developer Guide.
 //
 // PutRecord returns the shard ID of where the data record was placed and the
@@ -584,7 +541,7 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *aws.Request, out
 //
 // Sequence numbers generally increase over time. To guarantee strictly increasing
 // ordering, use the SequenceNumberForOrdering parameter. For more information,
-// see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-add-data-to-stream.html)
+// see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
 // in the Amazon Kinesis Developer Guide.
 //
 // If a PutRecord request cannot be processed because of insufficient provisioned
@@ -598,41 +555,40 @@ func (c *Kinesis) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 	return out, err
 }
 
-var opPutRecord *aws.Operation
+const opPutRecords = "PutRecords"
 
 // PutRecordsRequest generates a request for the PutRecords operation.
-func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *aws.Request, output *PutRecordsOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opPutRecords == nil {
-		opPutRecords = &aws.Operation{
-			Name:       "PutRecords",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Request, output *PutRecordsOutput) {
+	op := &request.Operation{
+		Name:       opPutRecords,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &PutRecordsInput{}
 	}
 
-	req = c.newRequest(opPutRecords, input, output)
+	req = c.newRequest(op, input, output)
 	output = &PutRecordsOutput{}
 	req.Data = output
 	return
 }
 
-// Puts (writes) multiple data records from a producer into an Amazon Kinesis
-// stream in a single call (also referred to as a PutRecords request). Use this
-// operation to send data from a data producer into the Amazon Kinesis stream
-// for real-time ingestion and processing. Each shard can support up to 1000
-// records written per second, up to a maximum total of 1 MB data written per
-// second.
+// Writes multiple data records from a producer into an Amazon Kinesis stream
+// in a single call (also referred to as a PutRecords request). Use this operation
+// to send data from a data producer into the Amazon Kinesis stream for data
+// ingestion and processing.
+//
+// Each PutRecords request can support up to 500 records. Each record in the
+// request can be as large as 1 MB, up to a limit of 5 MB for the entire request,
+// including partition keys. Each shard can support writes up to 1,000 records
+// per second, up to a maximum data write total of 1 MB per second.
 //
 // You must specify the name of the stream that captures, stores, and transports
 // the data; and an array of request Records, with each record in the array
-// requiring a partition key and data blob.
+// requiring a partition key and data blob. The record size limit applies to
+// the total size of the partition key and data blob.
 //
 // The data blob can be any type of data; for example, a segment from a log
 // file, geographic/location data, website clickstream data, and so on.
@@ -642,13 +598,13 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *aws.Request, o
 // hash function is used to map partition keys to 128-bit integer values and
 // to map associated data records to shards. As a result of this hashing mechanism,
 // all data records with the same partition key map to the same shard within
-// the stream. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-add-data-to-stream.html)
+// the stream. For more information, see Adding Data to a Stream (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-add-data-to-stream)
 // in the Amazon Kinesis Developer Guide.
 //
 // Each record in the Records array may include an optional parameter, ExplicitHashKey,
 // which overrides the partition key to shard mapping. This parameter allows
 // a data producer to determine explicitly the shard where the record is stored.
-// For more information, see Adding Multiple Records with PutRecords (http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-add-data-to-stream.html#kinesis-using-sdk-java-putrecords)
+// For more information, see Adding Multiple Records with PutRecords (http://docs.aws.amazon.com/kinesis/latest/dev/developing-producers-with-sdk.html#kinesis-using-sdk-java-putrecords)
 // in the Amazon Kinesis Developer Guide.
 //
 // The PutRecords response includes an array of response Records. Each record
@@ -684,26 +640,21 @@ func (c *Kinesis) PutRecords(input *PutRecordsInput) (*PutRecordsOutput, error) 
 	return out, err
 }
 
-var opPutRecords *aws.Operation
+const opRemoveTagsFromStream = "RemoveTagsFromStream"
 
 // RemoveTagsFromStreamRequest generates a request for the RemoveTagsFromStream operation.
-func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) (req *aws.Request, output *RemoveTagsFromStreamOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opRemoveTagsFromStream == nil {
-		opRemoveTagsFromStream = &aws.Operation{
-			Name:       "RemoveTagsFromStream",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) (req *request.Request, output *RemoveTagsFromStreamOutput) {
+	op := &request.Operation{
+		Name:       opRemoveTagsFromStream,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &RemoveTagsFromStreamInput{}
 	}
 
-	req = c.newRequest(opRemoveTagsFromStream, input, output)
+	req = c.newRequest(op, input, output)
 	output = &RemoveTagsFromStreamOutput{}
 	req.Data = output
 	return
@@ -718,26 +669,21 @@ func (c *Kinesis) RemoveTagsFromStream(input *RemoveTagsFromStreamInput) (*Remov
 	return out, err
 }
 
-var opRemoveTagsFromStream *aws.Operation
+const opSplitShard = "SplitShard"
 
 // SplitShardRequest generates a request for the SplitShard operation.
-func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *aws.Request, output *SplitShardOutput) {
-	oprw.Lock()
-	defer oprw.Unlock()
-
-	if opSplitShard == nil {
-		opSplitShard = &aws.Operation{
-			Name:       "SplitShard",
-			HTTPMethod: "POST",
-			HTTPPath:   "/",
-		}
+func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Request, output *SplitShardOutput) {
+	op := &request.Operation{
+		Name:       opSplitShard,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
 	}
 
 	if input == nil {
 		input = &SplitShardInput{}
 	}
 
-	req = c.newRequest(opSplitShard, input, output)
+	req = c.newRequest(op, input, output)
 	output = &SplitShardOutput{}
 	req.Data = output
 	return
@@ -783,7 +729,7 @@ func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *aws.Request, o
 //
 // For the default shard limit for an AWS account, see Amazon Kinesis Limits
 // (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html).
-// If you need to increase this limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
+// If you need to increase this limit, contact AWS Support (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html).
 //
 // If you try to operate on too many streams in parallel using CreateStream,
 // DeleteStream, MergeShards or SplitShard, you receive a LimitExceededException.
@@ -795,21 +741,29 @@ func (c *Kinesis) SplitShard(input *SplitShardInput) (*SplitShardOutput, error) 
 	return out, err
 }
 
-var opSplitShard *aws.Operation
-
 // Represents the input for AddTagsToStream.
 type AddTagsToStreamInput struct {
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	// The set of key-value pairs to use to create the tags.
-	Tags map[string]*string `type:"map" required:"true"`
+	Tags map[string]*string `min:"1" type:"map" required:"true"`
 
 	metadataAddTagsToStreamInput `json:"-" xml:"-"`
 }
 
 type metadataAddTagsToStreamInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s AddTagsToStreamInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddTagsToStreamInput) GoString() string {
+	return s.String()
 }
 
 type AddTagsToStreamOutput struct {
@@ -820,6 +774,16 @@ type metadataAddTagsToStreamOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s AddTagsToStreamOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddTagsToStreamOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for CreateStream.
 type CreateStreamInput struct {
 	// The number of shards that the stream will use. The throughput of the stream
@@ -827,20 +791,30 @@ type CreateStreamInput struct {
 	// provisioned throughput.
 	//
 	// DefaultShardLimit;
-	ShardCount *int64 `type:"integer" required:"true"`
+	ShardCount *int64 `min:"1" type:"integer" required:"true"`
 
 	// A name to identify the stream. The stream name is scoped to the AWS account
 	// used by the application that creates the stream. It is also scoped by region.
 	// That is, two streams in two different AWS accounts can have the same name,
 	// and two streams in the same AWS account, but in two different regions, can
 	// have the same name.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataCreateStreamInput `json:"-" xml:"-"`
 }
 
 type metadataCreateStreamInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateStreamInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateStreamInput) GoString() string {
+	return s.String()
 }
 
 type CreateStreamOutput struct {
@@ -851,16 +825,36 @@ type metadataCreateStreamOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s CreateStreamOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateStreamOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for DeleteStream.
 type DeleteStreamInput struct {
 	// The name of the stream to delete.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataDeleteStreamInput `json:"-" xml:"-"`
 }
 
 type metadataDeleteStreamInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteStreamInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteStreamInput) GoString() string {
+	return s.String()
 }
 
 type DeleteStreamOutput struct {
@@ -871,22 +865,42 @@ type metadataDeleteStreamOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s DeleteStreamOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteStreamOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for DescribeStream.
 type DescribeStreamInput struct {
 	// The shard ID of the shard to start with.
-	ExclusiveStartShardID *string `locationName:"ExclusiveStartShardId" type:"string"`
+	ExclusiveStartShardId *string `min:"1" type:"string"`
 
 	// The maximum number of shards to return.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	// The name of the stream to describe.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataDescribeStreamInput `json:"-" xml:"-"`
 }
 
 type metadataDescribeStreamInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeStreamInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeStreamInput) GoString() string {
+	return s.String()
 }
 
 // Represents the output for DescribeStream.
@@ -902,22 +916,42 @@ type metadataDescribeStreamOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s DescribeStreamOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeStreamOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for GetRecords.
 type GetRecordsInput struct {
 	// The maximum number of records to return. Specify a value of up to 10,000.
 	// If you specify a value that is greater than 10,000, GetRecords throws InvalidArgumentException.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	// The position in the shard from which you want to start sequentially reading
 	// data records. A shard iterator specifies this position using the sequence
 	// number of a data record in the shard.
-	ShardIterator *string `type:"string" required:"true"`
+	ShardIterator *string `min:"1" type:"string" required:"true"`
 
 	metadataGetRecordsInput `json:"-" xml:"-"`
 }
 
 type metadataGetRecordsInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetRecordsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRecordsInput) GoString() string {
+	return s.String()
 }
 
 // Represents the output for GetRecords.
@@ -931,7 +965,7 @@ type GetRecordsOutput struct {
 	// The next position in the shard from which to start sequentially reading data
 	// records. If set to null, the shard has been closed and the requested iterator
 	// will not return any more data.
-	NextShardIterator *string `type:"string"`
+	NextShardIterator *string `min:"1" type:"string"`
 
 	// The data records retrieved from the shard.
 	Records []*Record `type:"list" required:"true"`
@@ -943,10 +977,20 @@ type metadataGetRecordsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s GetRecordsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRecordsOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for GetShardIterator.
 type GetShardIteratorInput struct {
 	// The shard ID of the shard to get the iterator for.
-	ShardID *string `locationName:"ShardId" type:"string" required:"true"`
+	ShardId *string `min:"1" type:"string" required:"true"`
 
 	// Determines how the shard iterator is used to start reading data records from
 	// the shard.
@@ -960,14 +1004,14 @@ type GetShardIteratorInput struct {
 	// the oldest data record in the shard. LATEST - Start reading just after the
 	// most recent record in the shard, so that you always read the most recent
 	// data in the shard.
-	ShardIteratorType *string `type:"string" required:"true"`
+	ShardIteratorType *string `type:"string" required:"true" enum:"ShardIteratorType"`
 
 	// The sequence number of the data record in the shard from which to start reading
 	// from.
 	StartingSequenceNumber *string `type:"string"`
 
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataGetShardIteratorInput `json:"-" xml:"-"`
 }
@@ -976,18 +1020,38 @@ type metadataGetShardIteratorInput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s GetShardIteratorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetShardIteratorInput) GoString() string {
+	return s.String()
+}
+
 // Represents the output for GetShardIterator.
 type GetShardIteratorOutput struct {
 	// The position in the shard from which to start reading data records sequentially.
 	// A shard iterator specifies this position using the sequence number of a data
 	// record in a shard.
-	ShardIterator *string `type:"string"`
+	ShardIterator *string `min:"1" type:"string"`
 
 	metadataGetShardIteratorOutput `json:"-" xml:"-"`
 }
 
 type metadataGetShardIteratorOutput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetShardIteratorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetShardIteratorOutput) GoString() string {
+	return s.String()
 }
 
 // The range of possible hash key values for the shard, which is a set of ordered
@@ -1006,19 +1070,39 @@ type metadataHashKeyRange struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s HashKeyRange) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HashKeyRange) GoString() string {
+	return s.String()
+}
+
 // Represents the input for ListStreams.
 type ListStreamsInput struct {
 	// The name of the stream to start the list with.
-	ExclusiveStartStreamName *string `type:"string"`
+	ExclusiveStartStreamName *string `min:"1" type:"string"`
 
 	// The maximum number of streams to list.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	metadataListStreamsInput `json:"-" xml:"-"`
 }
 
 type metadataListStreamsInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s ListStreamsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListStreamsInput) GoString() string {
+	return s.String()
 }
 
 // Represents the output for ListStreams.
@@ -1037,25 +1121,45 @@ type metadataListStreamsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s ListStreamsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListStreamsOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for ListTagsForStream.
 type ListTagsForStreamInput struct {
 	// The key to use as the starting point for the list of tags. If this parameter
 	// is set, ListTagsForStream gets all tags that occur after ExclusiveStartTagKey.
-	ExclusiveStartTagKey *string `type:"string"`
+	ExclusiveStartTagKey *string `min:"1" type:"string"`
 
 	// The number of tags to return. If this number is less than the total number
 	// of tags associated with the stream, HasMoreTags is set to true. To list additional
 	// tags, set ExclusiveStartTagKey to the last key in the response.
-	Limit *int64 `type:"integer"`
+	Limit *int64 `min:"1" type:"integer"`
 
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataListTagsForStreamInput `json:"-" xml:"-"`
 }
 
 type metadataListTagsForStreamInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s ListTagsForStreamInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForStreamInput) GoString() string {
+	return s.String()
 }
 
 // Represents the output for ListTagsForStream.
@@ -1075,22 +1179,42 @@ type metadataListTagsForStreamOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s ListTagsForStreamOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForStreamOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for MergeShards.
 type MergeShardsInput struct {
 	// The shard ID of the adjacent shard for the merge.
-	AdjacentShardToMerge *string `type:"string" required:"true"`
+	AdjacentShardToMerge *string `min:"1" type:"string" required:"true"`
 
 	// The shard ID of the shard to combine with the adjacent shard for the merge.
-	ShardToMerge *string `type:"string" required:"true"`
+	ShardToMerge *string `min:"1" type:"string" required:"true"`
 
 	// The name of the stream for the merge.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataMergeShardsInput `json:"-" xml:"-"`
 }
 
 type metadataMergeShardsInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s MergeShardsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MergeShardsInput) GoString() string {
+	return s.String()
 }
 
 type MergeShardsOutput struct {
@@ -1101,11 +1225,22 @@ type metadataMergeShardsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s MergeShardsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MergeShardsOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input for PutRecord.
 type PutRecordInput struct {
 	// The data blob to put into the record, which is base64-encoded when the blob
-	// is serialized. The maximum size of the data blob (the payload before base64-encoding)
-	// is 50 kilobytes (KB)
+	// is serialized. When the data blob (the payload before base64-encoding) is
+	// added to the partition key size, the total size must not exceed the maximum
+	// record size (1 MB).
 	Data []byte `type:"blob" required:"true"`
 
 	// The hash value used to explicitly determine the shard the data record is
@@ -1120,7 +1255,7 @@ type PutRecordInput struct {
 	// and to map associated data records to shards. As a result of this hashing
 	// mechanism, all data records with the same partition key will map to the same
 	// shard within the stream.
-	PartitionKey *string `type:"string" required:"true"`
+	PartitionKey *string `min:"1" type:"string" required:"true"`
 
 	// Guarantees strictly increasing sequence numbers, for puts from the same client
 	// and to the same partition key. Usage: set the SequenceNumberForOrdering of
@@ -1130,13 +1265,23 @@ type PutRecordInput struct {
 	SequenceNumberForOrdering *string `type:"string"`
 
 	// The name of the stream to put the data record into.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordInput `json:"-" xml:"-"`
 }
 
 type metadataPutRecordInput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutRecordInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRecordInput) GoString() string {
+	return s.String()
 }
 
 // Represents the output for PutRecord.
@@ -1148,7 +1293,7 @@ type PutRecordOutput struct {
 	SequenceNumber *string `type:"string" required:"true"`
 
 	// The shard ID of the shard where the data record was placed.
-	ShardID *string `locationName:"ShardId" type:"string" required:"true"`
+	ShardId *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordOutput `json:"-" xml:"-"`
 }
@@ -1157,13 +1302,23 @@ type metadataPutRecordOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s PutRecordOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRecordOutput) GoString() string {
+	return s.String()
+}
+
 // A PutRecords request.
 type PutRecordsInput struct {
 	// The records associated with the request.
-	Records []*PutRecordsRequestEntry `type:"list" required:"true"`
+	Records []*PutRecordsRequestEntry `min:"1" type:"list" required:"true"`
 
 	// The stream name associated with the request.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordsInput `json:"-" xml:"-"`
 }
@@ -1172,17 +1327,27 @@ type metadataPutRecordsInput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s PutRecordsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRecordsInput) GoString() string {
+	return s.String()
+}
+
 // PutRecords results.
 type PutRecordsOutput struct {
 	// The number of unsuccessfully processed records in a PutRecords request.
-	FailedRecordCount *int64 `type:"integer"`
+	FailedRecordCount *int64 `min:"1" type:"integer"`
 
 	// An array of successfully and unsuccessfully processed record results, correlated
 	// with the request by natural ordering. A record that is successfully added
 	// to your Amazon Kinesis stream includes SequenceNumber and ShardId in the
 	// result. A record that fails to be added to your Amazon Kinesis stream includes
 	// ErrorCode and ErrorMessage in the result.
-	Records []*PutRecordsResultEntry `type:"list" required:"true"`
+	Records []*PutRecordsResultEntry `min:"1" type:"list" required:"true"`
 
 	metadataPutRecordsOutput `json:"-" xml:"-"`
 }
@@ -1191,11 +1356,22 @@ type metadataPutRecordsOutput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s PutRecordsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRecordsOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the output for PutRecords.
 type PutRecordsRequestEntry struct {
 	// The data blob to put into the record, which is base64-encoded when the blob
-	// is serialized. The maximum size of the data blob (the payload before base64-encoding)
-	// is 50 kilobytes (KB)
+	// is serialized. When the data blob (the payload before base64-encoding) is
+	// added to the partition key size, the total size must not exceed the maximum
+	// record size (1 MB).
 	Data []byte `type:"blob" required:"true"`
 
 	// The hash value used to determine explicitly the shard that the data record
@@ -1210,13 +1386,23 @@ type PutRecordsRequestEntry struct {
 	// and to map associated data records to shards. As a result of this hashing
 	// mechanism, all data records with the same partition key map to the same shard
 	// within the stream.
-	PartitionKey *string `type:"string" required:"true"`
+	PartitionKey *string `min:"1" type:"string" required:"true"`
 
 	metadataPutRecordsRequestEntry `json:"-" xml:"-"`
 }
 
 type metadataPutRecordsRequestEntry struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s PutRecordsRequestEntry) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRecordsRequestEntry) GoString() string {
+	return s.String()
 }
 
 // Represents the result of an individual record from a PutRecords request.
@@ -1239,7 +1425,7 @@ type PutRecordsResultEntry struct {
 	SequenceNumber *string `type:"string"`
 
 	// The shard ID for an individual record result.
-	ShardID *string `locationName:"ShardId" type:"string"`
+	ShardId *string `min:"1" type:"string"`
 
 	metadataPutRecordsResultEntry `json:"-" xml:"-"`
 }
@@ -1248,19 +1434,33 @@ type metadataPutRecordsResultEntry struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s PutRecordsResultEntry) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRecordsResultEntry) GoString() string {
+	return s.String()
+}
+
 // The unit of data of the Amazon Kinesis stream, which is composed of a sequence
 // number, a partition key, and a data blob.
 type Record struct {
+	// The approximate time that the record was inserted into the stream.
+	ApproximateArrivalTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
+
 	// The data blob. The data in the blob is both opaque and immutable to the Amazon
 	// Kinesis service, which does not inspect, interpret, or change the data in
-	// the blob in any way. The maximum size of the data blob (the payload before
-	// base64-encoding) is 50 kilobytes (KB)
+	// the blob in any way. When the data blob (the payload before base64-encoding)
+	// is added to the partition key size, the total size must not exceed the maximum
+	// record size (1 MB).
 	Data []byte `type:"blob" required:"true"`
 
 	// Identifies which shard in the stream the data record is assigned to.
-	PartitionKey *string `type:"string" required:"true"`
+	PartitionKey *string `min:"1" type:"string" required:"true"`
 
-	// The unique identifier for the record in the Amazon Kinesis stream.
+	// The unique identifier of the record in the stream.
 	SequenceNumber *string `type:"string" required:"true"`
 
 	metadataRecord `json:"-" xml:"-"`
@@ -1270,13 +1470,23 @@ type metadataRecord struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s Record) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Record) GoString() string {
+	return s.String()
+}
+
 // Represents the input for RemoveTagsFromStream.
 type RemoveTagsFromStreamInput struct {
 	// The name of the stream.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	// A list of tag keys. Each corresponding tag is removed from the stream.
-	TagKeys []*string `type:"list" required:"true"`
+	TagKeys []*string `min:"1" type:"list" required:"true"`
 
 	metadataRemoveTagsFromStreamInput `json:"-" xml:"-"`
 }
@@ -1285,12 +1495,32 @@ type metadataRemoveTagsFromStreamInput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s RemoveTagsFromStreamInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveTagsFromStreamInput) GoString() string {
+	return s.String()
+}
+
 type RemoveTagsFromStreamOutput struct {
 	metadataRemoveTagsFromStreamOutput `json:"-" xml:"-"`
 }
 
 type metadataRemoveTagsFromStreamOutput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s RemoveTagsFromStreamOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RemoveTagsFromStreamOutput) GoString() string {
+	return s.String()
 }
 
 // The range of possible sequence numbers for the shard.
@@ -1309,29 +1539,49 @@ type metadataSequenceNumberRange struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s SequenceNumberRange) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SequenceNumberRange) GoString() string {
+	return s.String()
+}
+
 // A uniquely identified group of data records in an Amazon Kinesis stream.
 type Shard struct {
 	// The shard Id of the shard adjacent to the shard's parent.
-	AdjacentParentShardID *string `locationName:"AdjacentParentShardId" type:"string"`
+	AdjacentParentShardId *string `min:"1" type:"string"`
 
 	// The range of possible hash key values for the shard, which is a set of ordered
 	// contiguous positive integers.
 	HashKeyRange *HashKeyRange `type:"structure" required:"true"`
 
 	// The shard Id of the shard's parent.
-	ParentShardID *string `locationName:"ParentShardId" type:"string"`
+	ParentShardId *string `min:"1" type:"string"`
 
 	// The range of possible sequence numbers for the shard.
 	SequenceNumberRange *SequenceNumberRange `type:"structure" required:"true"`
 
 	// The unique identifier of the shard within the Amazon Kinesis stream.
-	ShardID *string `locationName:"ShardId" type:"string" required:"true"`
+	ShardId *string `min:"1" type:"string" required:"true"`
 
 	metadataShard `json:"-" xml:"-"`
 }
 
 type metadataShard struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s Shard) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Shard) GoString() string {
+	return s.String()
 }
 
 // Represents the input for SplitShard.
@@ -1346,10 +1596,10 @@ type SplitShardInput struct {
 	NewStartingHashKey *string `type:"string" required:"true"`
 
 	// The shard ID of the shard to split.
-	ShardToSplit *string `type:"string" required:"true"`
+	ShardToSplit *string `min:"1" type:"string" required:"true"`
 
 	// The name of the stream for the shard split.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	metadataSplitShardInput `json:"-" xml:"-"`
 }
@@ -1358,12 +1608,32 @@ type metadataSplitShardInput struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s SplitShardInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SplitShardInput) GoString() string {
+	return s.String()
+}
+
 type SplitShardOutput struct {
 	metadataSplitShardOutput `json:"-" xml:"-"`
 }
 
 type metadataSplitShardOutput struct {
 	SDKShapeTraits bool `type:"structure"`
+}
+
+// String returns the string representation
+func (s SplitShardOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SplitShardOutput) GoString() string {
+	return s.String()
 }
 
 // Represents the output for DescribeStream.
@@ -1378,7 +1648,7 @@ type StreamDescription struct {
 	StreamARN *string `type:"string" required:"true"`
 
 	// The name of the stream being described.
-	StreamName *string `type:"string" required:"true"`
+	StreamName *string `min:"1" type:"string" required:"true"`
 
 	// The current status of the stream being described.
 	//
@@ -1392,7 +1662,7 @@ type StreamDescription struct {
 	// on an ACTIVE stream.  UPDATING - Shards in the stream are being merged or
 	// split. Read and write operations continue to work while the stream is in
 	// the UPDATING state.
-	StreamStatus *string `type:"string" required:"true"`
+	StreamStatus *string `type:"string" required:"true" enum:"StreamStatus"`
 
 	metadataStreamDescription `json:"-" xml:"-"`
 }
@@ -1401,11 +1671,21 @@ type metadataStreamDescription struct {
 	SDKShapeTraits bool `type:"structure"`
 }
 
+// String returns the string representation
+func (s StreamDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StreamDescription) GoString() string {
+	return s.String()
+}
+
 // Metadata assigned to the stream, consisting of a key-value pair.
 type Tag struct {
 	// A unique identifier for the tag. Maximum length: 128 characters. Valid characters:
 	// Unicode letters, digits, white space, _ . / = + - % @
-	Key *string `type:"string" required:"true"`
+	Key *string `min:"1" type:"string" required:"true"`
 
 	// An optional string, typically used to describe or define the tag. Maximum
 	// length: 256 characters. Valid characters: Unicode letters, digits, white
@@ -1418,3 +1698,35 @@ type Tag struct {
 type metadataTag struct {
 	SDKShapeTraits bool `type:"structure"`
 }
+
+// String returns the string representation
+func (s Tag) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Tag) GoString() string {
+	return s.String()
+}
+
+const (
+	// @enum ShardIteratorType
+	ShardIteratorTypeAtSequenceNumber = "AT_SEQUENCE_NUMBER"
+	// @enum ShardIteratorType
+	ShardIteratorTypeAfterSequenceNumber = "AFTER_SEQUENCE_NUMBER"
+	// @enum ShardIteratorType
+	ShardIteratorTypeTrimHorizon = "TRIM_HORIZON"
+	// @enum ShardIteratorType
+	ShardIteratorTypeLatest = "LATEST"
+)
+
+const (
+	// @enum StreamStatus
+	StreamStatusCreating = "CREATING"
+	// @enum StreamStatus
+	StreamStatusDeleting = "DELETING"
+	// @enum StreamStatus
+	StreamStatusActive = "ACTIVE"
+	// @enum StreamStatus
+	StreamStatusUpdating = "UPDATING"
+)

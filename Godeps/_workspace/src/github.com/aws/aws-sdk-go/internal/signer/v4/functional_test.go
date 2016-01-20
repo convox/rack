@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/internal/test/unit"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 )
 

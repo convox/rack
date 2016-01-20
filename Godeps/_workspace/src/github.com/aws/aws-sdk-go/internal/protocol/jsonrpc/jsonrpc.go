@@ -10,21 +10,22 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/apierr"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/json/jsonutil"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/protocol/rest"
 )
 
 var emptyJSON = []byte("{}")
 
 // Build builds a JSON payload for a JSON RPC request.
-func Build(req *aws.Request) {
+func Build(req *request.Request) {
 	var buf []byte
 	var err error
 	if req.ParamsFilled() {
 		buf, err = jsonutil.BuildJSON(req.Params)
 		if err != nil {
-			req.Error = apierr.New("Marshal", "failed encoding JSON RPC request", err)
+			req.Error = awserr.New("SerializationError", "failed encoding JSON RPC request", err)
 			return
 		}
 	} else {
@@ -46,33 +47,33 @@ func Build(req *aws.Request) {
 }
 
 // Unmarshal unmarshals a response for a JSON RPC service.
-func Unmarshal(req *aws.Request) {
+func Unmarshal(req *request.Request) {
 	defer req.HTTPResponse.Body.Close()
 	if req.DataFilled() {
 		err := jsonutil.UnmarshalJSON(req.Data, req.HTTPResponse.Body)
 		if err != nil {
-			req.Error = apierr.New("Unmarshal", "failed decoding JSON RPC response", err)
+			req.Error = awserr.New("SerializationError", "failed decoding JSON RPC response", err)
 		}
 	}
 	return
 }
 
 // UnmarshalMeta unmarshals headers from a response for a JSON RPC service.
-func UnmarshalMeta(req *aws.Request) {
-	req.RequestID = req.HTTPResponse.Header.Get("x-amzn-requestid")
+func UnmarshalMeta(req *request.Request) {
+	rest.UnmarshalMeta(req)
 }
 
 // UnmarshalError unmarshals an error response for a JSON RPC service.
-func UnmarshalError(req *aws.Request) {
+func UnmarshalError(req *request.Request) {
 	defer req.HTTPResponse.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(req.HTTPResponse.Body)
 	if err != nil {
-		req.Error = apierr.New("Unmarshal", "failed reading JSON RPC error response", err)
+		req.Error = awserr.New("SerializationError", "failed reading JSON RPC error response", err)
 		return
 	}
 	if len(bodyBytes) == 0 {
-		req.Error = apierr.NewRequestError(
-			apierr.New("Unmarshal", req.HTTPResponse.Status, nil),
+		req.Error = awserr.NewRequestFailure(
+			awserr.New("SerializationError", req.HTTPResponse.Status, nil),
 			req.HTTPResponse.StatusCode,
 			"",
 		)
@@ -80,15 +81,15 @@ func UnmarshalError(req *aws.Request) {
 	}
 	var jsonErr jsonErrorResponse
 	if err := json.Unmarshal(bodyBytes, &jsonErr); err != nil {
-		req.Error = apierr.New("Unmarshal", "failed decoding JSON RPC error response", err)
+		req.Error = awserr.New("SerializationError", "failed decoding JSON RPC error response", err)
 		return
 	}
 
 	codes := strings.SplitN(jsonErr.Code, "#", 2)
-	req.Error = apierr.NewRequestError(
-		apierr.New(codes[len(codes)-1], jsonErr.Message, nil),
+	req.Error = awserr.NewRequestFailure(
+		awserr.New(codes[len(codes)-1], jsonErr.Message, nil),
 		req.HTTPResponse.StatusCode,
-		"",
+		req.RequestID,
 	)
 }
 
