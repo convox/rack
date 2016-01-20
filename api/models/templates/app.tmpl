@@ -250,6 +250,9 @@
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
       },
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
+        "Value": {{ $balancer.LoadBalancerName }}
+      },
     {{ end }}
   {{ end }}
 {{ end }}

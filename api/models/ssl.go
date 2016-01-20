@@ -16,7 +16,9 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/cenkalti/backoff"
 )
 
 type SSL struct {
@@ -30,10 +32,6 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
-	// strip off any intermediate certs from the body
-	endEntityCert, _ := pem.Decode([]byte(body))
-	body = string(pem.EncodeToMemory(endEntityCert))
-
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -76,48 +74,11 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
-	if chain == "" {
-		chain, err = resolveCertificateChain(body)
-
-		if err != nil {
-			return nil, fmt.Errorf("could not generate chain: %s", err)
-		}
-	}
-
-	name := certName(a.Name, process, port)
-
-	input := &iam.UploadServerCertificateInput{
-		CertificateBody:       aws.String(body),
-		PrivateKey:            aws.String(key),
-		ServerCertificateName: aws.String(name),
-	}
-
-	// Only include chain if it's not an empty string
-	if chain != "" {
-		input.CertificateChain = aws.String(chain)
-	}
-
-	// upload certificate
-	resp, err := IAM().UploadServerCertificate(input)
-
-	// cleanup old certificate, will fail if dependencies
-	if err != nil && strings.Contains(err.Error(), "already exists") {
-		_, err = IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
-			ServerCertificateName: aws.String(name),
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("could not create certificate: %s", name)
-		}
-
-		resp, err = IAM().UploadServerCertificate(input)
-	}
+	arn, err := uploadCert(a, process, port, body, key, chain)
 
 	if err != nil {
 		return nil, err
 	}
-
-	arn := resp.ServerCertificateMetadata.Arn
 
 	tmpl, err := release.Formation()
 
@@ -133,7 +94,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 
 	params := a.Parameters
 
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = *arn // e.g.WebPort443Certificate = arn:...
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(me.Name), port)] = arn // e.g.WebPort443Certificate = arn:...
 
 	if secure {
 		params[fmt.Sprintf("%sPort%dSecure", UpperName(me.Name), port)] = "Yes"
@@ -273,12 +234,137 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
+func UpdateSSL(app, process string, port int, body, key string, chain string) (*SSL, error) {
+	a, err := GetApp(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// validate app is not currently updating
+	if a.Status != "running" {
+		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
+	}
+
+	// store old cert name
+	oldCertName := certName(app, process, port)
+
+	// validate process exists
+	if oldCertName == "" {
+		return nil, fmt.Errorf("no certificate configured for %s port %d", process, port)
+	}
+
+	outputs := a.Outputs
+
+	balancer := outputs[fmt.Sprintf("%sPort%dBalancerName", UpperName(process), port)]
+
+	if balancer == "" {
+		return nil, fmt.Errorf("Balancer ouptut not found. Please redeploy your app and try again.")
+	}
+
+	// upload new cert
+	arn, err := uploadCert(a, process, port, body, key, chain)
+
+	if err != nil {
+		return nil, err
+	}
+
+	input := &elb.SetLoadBalancerListenerSSLCertificateInput{
+		LoadBalancerName: aws.String(balancer),
+		LoadBalancerPort: aws.Int64(int64(port)),
+		SSLCertificateId: aws.String(arn),
+	}
+
+	// change cert on listener
+	operation := func() error {
+		_, err = ELB().SetLoadBalancerListenerSSLCertificate(input)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	algo := backoff.NewExponentialBackOff()
+	algo.MaxElapsedTime = 60 * time.Second
+
+	err = backoff.Retry(operation, algo)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// delete old cert
+	operation = func() error { return deleteCert(oldCertName) }
+
+	go backoff.Retry(operation, backoff.NewExponentialBackOff())
+
+	// update cloudformation
+	req := &cloudformation.UpdateStackInput{
+		StackName:           aws.String(a.Name),
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		UsePreviousTemplate: aws.Bool(true),
+	}
+
+	params := a.Parameters
+
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = arn
+
+	for key, val := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(val),
+		})
+	}
+
+	_, err = CloudFormation().UpdateStack(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	ssl := SSL{
+		Port:    port,
+		Process: process,
+	}
+
+	return &ssl, nil
+}
+
+// fetch certificate from CF params and parse name from arn
 func certName(app, process string, port int) string {
-	return fmt.Sprintf("%s%s%d", UpperName(app), UpperName(process), port)
+	key := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
+
+	a, err := GetApp(app)
+
+	if err != nil {
+		fmt.Printf(err.Error())
+		return ""
+	}
+
+	arn := a.Parameters[key]
+
+	slice := strings.Split(arn, "/")
+
+	return slice[len(slice)-1]
 }
 
 type CfsslCertificateBundle struct {
 	Bundle string `json:"bundle"`
+}
+
+func deleteCert(certName string) error {
+	_, err := IAM().DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+		ServerCertificateName: aws.String(certName),
+	})
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // use cfssl bundle to generate the certificate chain
@@ -375,4 +461,48 @@ func resolveCertificateChain(body string) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func uploadCert(a *App, process string, port int, body, key string, chain string) (string, error) {
+	// strip off any intermediate certs from the body
+	endEntityCert, _ := pem.Decode([]byte(body))
+	body = string(pem.EncodeToMemory(endEntityCert))
+
+	if chain == "" {
+		var err error
+		chain, err = resolveCertificateChain(body)
+
+		if err != nil {
+			return "", fmt.Errorf("could not generate chain: %s", err)
+		}
+	}
+
+	// generate certificate name
+	currentTime := time.Now()
+
+	timestamp := currentTime.Format("20060102150405")
+
+	name := fmt.Sprintf("%s%s%d-%s", UpperName(a.Name), UpperName(process), port, timestamp)
+
+	input := &iam.UploadServerCertificateInput{
+		CertificateBody:       aws.String(body),
+		PrivateKey:            aws.String(key),
+		ServerCertificateName: aws.String(name),
+	}
+
+	// Only include chain if it's not an empty string
+	if chain != "" {
+		input.CertificateChain = aws.String(chain)
+	}
+
+	// upload certificate
+	resp, err := IAM().UploadServerCertificate(input)
+
+	if err != nil {
+		return "", err
+	}
+
+	arn := resp.ServerCertificateMetadata.Arn
+
+	return *arn, err
 }

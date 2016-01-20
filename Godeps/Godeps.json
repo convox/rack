@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/convox/rack",
-	"GoVersion": "go1.5.2",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
@@ -105,6 +105,11 @@
 			"Rev": "1481c919816453abc15fbe2cd6e071dfc2f188a0"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/elb",
+			"Comment": "v0.9.17",
+			"Rev": "1481c919816453abc15fbe2cd6e071dfc2f188a0"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/iam",
 			"Comment": "v0.9.17",
 			"Rev": "1481c919816453abc15fbe2cd6e071dfc2f188a0"
@@ -147,6 +152,10 @@
 		{
 			"ImportPath": "github.com/briandowns/spinner",
 			"Rev": "07369a2abb5b8564c50fd48dc842714fb02b71be"
+		},
+		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Rev": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",

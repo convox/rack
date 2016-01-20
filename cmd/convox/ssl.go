@@ -55,6 +55,19 @@ func init() {
 					appFlag,
 				},
 			},
+			{
+				Name:        "update",
+				Description: "upload a replacement ssl certificate",
+				Usage:       "<process:port> <foo.pub> <foo.key>",
+				Action:      cmdSSLUpdate,
+				Flags: []cli.Flag{
+					appFlag,
+					cli.StringFlag{
+						Name:  "chain",
+						Usage: "Intermediate certificate chain.",
+					},
+				},
+			},
 		},
 	})
 }
@@ -217,6 +230,70 @@ func cmdSSLList(c *cli.Context) {
 	}
 
 	t.Print()
+}
+
+func cmdSSLUpdate(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) < 1 {
+		stdcli.Usage(c, "create")
+		return
+	}
+
+	target := c.Args()[0]
+
+	parts := strings.Split(target, ":")
+
+	if len(parts) != 2 {
+		stdcli.Error(fmt.Errorf("target must be process:port"))
+		return
+	}
+
+	var pub []byte
+	var key []byte
+
+	pub, err = ioutil.ReadFile(c.Args()[1])
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	key, err = ioutil.ReadFile(c.Args()[2])
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	chain := ""
+
+	if chainFile := c.String("chain"); chainFile != "" {
+		data, err := ioutil.ReadFile(chainFile)
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		chain = string(data)
+	}
+
+	fmt.Printf("Updating SSL listener %s... ", target)
+
+	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], string(pub), string(key), chain)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("Done.")
 }
 
 func generateSelfSignedCertificate(app, host string) ([]byte, []byte, error) {

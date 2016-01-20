@@ -66,6 +66,20 @@
       "Value": {
         "Ref": "WebPort3000Balancer"
       }
+    },
+    "WebPort3000BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "web",
+            "internal"
+          ]
+        ]
+      }
     }
   },
   "Parameters": {
