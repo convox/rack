@@ -78,7 +78,7 @@ func ECS() *ecs.ECS {
 }
 
 func ELB() *elb.ELB {
-	return elb.New(awsConfig())
+	return elb.New(session.New(), awsConfig())
 }
 
 func IAM() *iam.IAM {

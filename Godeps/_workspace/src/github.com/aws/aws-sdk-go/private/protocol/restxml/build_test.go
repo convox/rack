@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/awstesting"
+	"github.com/aws/aws-sdk-go/private/util"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/client"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/awstesting"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/restxml"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/signer/v4"
-	"github.com/aws/aws-sdk-go/private/util"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 

@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudflare/cfssl/log"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/cloudflare/cfssl/log"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/models"

@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/convox/rack",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."
 	],
@@ -116,8 +116,8 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/elb",
-			"Comment": "v0.9.17",
-			"Rev": "1481c919816453abc15fbe2cd6e071dfc2f188a0"
+			"Comment": "v1.0.7-9-g4f9a300",
+			"Rev": "4f9a300f2af32035b3ae8bd0ce9b0fe8412df743"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/iam",
@@ -168,6 +168,11 @@
 			"Rev": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
+			"ImportPath": "github.com/cloudflare/cfssl/log",
+			"Comment": "1.1.0-323-g9bc07ed",
+			"Rev": "9bc07ed3545fbc5908d81beb6915cccdc56adb47"
+		},
+		{
 			"ImportPath": "github.com/codegangsta/cli",
 			"Comment": "1.2.0-137-gbca61c4",
 			"Rev": "bca61c476e3c752594983e4c9bcd5f62fb09f157"
@@ -179,7 +184,7 @@
 		},
 		{
 			"ImportPath": "github.com/convox/release/version",
-			"Rev": "064a7cfab0deaf6cedb9ca38b4a82fe858e890f9"
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
