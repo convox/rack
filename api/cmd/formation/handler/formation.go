@@ -166,6 +166,8 @@ func HandleRequest(freq Request) error {
 	switch freq.ResourceType {
 	case "Custom::EC2AvailabilityZones":
 		physical, outputs, err = HandleEC2AvailabilityZones(freq)
+	case "Custom::ECRRepository":
+		physical, outputs, err = HandleECRRepository(freq)
 	case "Custom::ECSCluster":
 		physical, outputs, err = HandleECSCluster(freq)
 	case "Custom::ECSService":

@@ -3,6 +3,7 @@ package crypt
 import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
 )
 
@@ -25,7 +26,7 @@ func (cc *Credentials) Retrieve() (credentials.Value, error) {
 }
 
 func KMS(c *Crypt) *kms.KMS {
-	return kms.New(&aws.Config{
+	return kms.New(session.New(), &aws.Config{
 		Credentials: credentials.NewCredentials(&Credentials{Crypt: c}),
 		Region:      aws.String(c.AwsRegion),
 	})

@@ -31,6 +31,7 @@ func main() {
 	dockercfg := flag.String("dockercfg", "", "dockercfg auth json for pull")
 	noCache := flag.Bool("no-cache", false, "skip the docker cache")
 	config := flag.String("config", "docker-compose.yml", "docker compose filename")
+	flatten := flag.String("flatten", "", "flatten images into a single namespace")
 
 	flag.Parse()
 
@@ -103,7 +104,7 @@ func main() {
 		manifest.Stdout = prefixWriter("push")
 		manifest.Stderr = manifest.Stdout
 
-		errors := m.Push(app, *push, *auth, *id)
+		errors := m.Push(app, *push, *auth, *id, *flatten)
 
 		if len(errors) > 0 {
 			die(errors[0])

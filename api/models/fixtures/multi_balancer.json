@@ -81,6 +81,19 @@
         "Ref": "LogGroup"
       }
     },
+    "RegistryId": {
+      "Value": {
+        "Ref": "AWS::AccountId"
+      }
+    },
+    "RegistryRepository": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RegistryRepository",
+          "RepositoryName"
+        ]
+      }
+    },
     "Settings": {
       "Value": {
         "Ref": "Settings"
@@ -586,6 +599,21 @@
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
+    },
+    "RegistryRepository": {
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "Custom::ECRRepository",
+      "Version": "1.0"
     },
     "ServiceRole": {
       "Properties": {

@@ -99,6 +99,7 @@
       {{ template "balancer-resources" . }}
       {{ template "process-resources" . }}
       {{ template "process-services" . }}
+      {{ template "registry-resources" . }}
 
       {{ template "security" }}
       {{ template "state" }}
@@ -106,6 +107,7 @@
     "Outputs": {
       {{ template "balancer-outputs" . }}
       {{ template "process-outputs" . }}
+      {{ template "registry-outputs" . }}
 
       "Settings": {
         "Value": { "Ref": "Settings" }
@@ -330,6 +332,26 @@
       }
     },
   {{ end }}
+{{ end }}
+
+{{ define "registry-resources" }}
+  "RegistryRepository": {
+    "Type": "Custom::ECRRepository",
+    "Version": "1.0",
+    "Properties": {
+      "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+      "Name": { "Ref": "AWS::StackName" }
+    }
+  },
+{{ end }}
+
+{{ define "registry-outputs" }}
+  "RegistryId": {
+    "Value": { "Ref": "AWS::AccountId" }
+  },
+  "RegistryRepository": {
+    "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
+  },
 {{ end }}
 
 {{ define "security" }}

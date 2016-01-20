@@ -9,12 +9,14 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
@@ -27,82 +29,80 @@ import (
 
 var SortableTime = "20060102.150405.000000000"
 
-type AwsCredentials struct {
-}
-
-func (ec *AwsCredentials) IsExpired() bool {
-	return false
-}
-
-func (ec *AwsCredentials) Retrieve() (credentials.Value, error) {
-	creds := credentials.Value{
-		AccessKeyID:     os.Getenv("AWS_ACCESS"),
-		SecretAccessKey: os.Getenv("AWS_SECRET"),
-	}
-
-	return creds, nil
-}
-
 func awsConfig() *aws.Config {
-	return &aws.Config{
-		Credentials: credentials.NewCredentials(&AwsCredentials{}),
+	config := &aws.Config{
+		Credentials: credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), ""),
 	}
+
+	if e := os.Getenv("AWS_ENDPOINT"); e != "" {
+		config.Endpoint = aws.String(e)
+	}
+
+	if r := os.Getenv("AWS_REGION"); r != "" {
+		config.Region = aws.String(r)
+	}
+
+	return config
 }
 
 func AutoScaling() *autoscaling.AutoScaling {
-	return autoscaling.New(awsConfig())
+	return autoscaling.New(session.New(), awsConfig())
 }
 
 func CloudFormation() *cloudformation.CloudFormation {
-	return cloudformation.New(awsConfig())
+	return cloudformation.New(session.New(), awsConfig())
 }
 
 func CloudWatch() *cloudwatch.CloudWatch {
-	return cloudwatch.New(awsConfig())
+	return cloudwatch.New(session.New(), awsConfig())
 }
 
 func CloudWatchLogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(awsConfig())
+	return cloudwatchlogs.New(session.New(), awsConfig())
 }
 
 func DynamoDB() *dynamodb.DynamoDB {
-	return dynamodb.New(awsConfig())
+	return dynamodb.New(session.New(), awsConfig())
 }
 
 func EC2() *ec2.EC2 {
-	return ec2.New(awsConfig())
+	return ec2.New(session.New(), awsConfig())
+}
+
+func ECR() *ecr.ECR {
+	return ecr.New(session.New(), awsConfig())
 }
 
 func ECS() *ecs.ECS {
-	return ecs.New(awsConfig())
+	return ecs.New(session.New(), awsConfig())
 }
 
 func ELB() *elb.ELB {
-	return elb.New(awsConfig())
+	return elb.New(session.New(), awsConfig())
 }
 
 func IAM() *iam.IAM {
-	return iam.New(awsConfig())
+	return iam.New(session.New(), awsConfig())
 }
 
 func Kinesis() *kinesis.Kinesis {
-	return kinesis.New(awsConfig())
+	return kinesis.New(session.New(), awsConfig())
 }
 
 func RDS() *rds.RDS {
-	return rds.New(awsConfig())
+	return rds.New(session.New(), awsConfig())
 }
 
 func S3() *s3.S3 {
-	return s3.New(awsConfig())
+	return s3.New(session.New(), awsConfig())
 }
 
 func SQS() *sqs.SQS {
-	return sqs.New(awsConfig())
+	return sqs.New(session.New(), awsConfig())
 }
 
 func SNS() *sns.SNS {
-	return sns.New(awsConfig())
+	return sns.New(session.New(), awsConfig())
 }
 
 func buildTemplate(name, section string, input interface{}) (string, error) {

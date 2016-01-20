@@ -2,9 +2,9 @@ package main
 
 import (
 	"net/http/httptest"
+	"os"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/convox/release/version"
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
@@ -25,9 +25,9 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 
 	handler := awsutil.NewHandler(cycles)
 	s := httptest.NewServer(handler)
-	defaults.DefaultConfig.Endpoint = &s.URL
-
 	defer s.Close()
+
+	os.Setenv("AWS_ENDPOINT", s.URL)
 
 	latest, _ := version.Latest()
 

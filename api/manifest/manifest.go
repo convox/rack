@@ -331,7 +331,7 @@ func (m *Manifest) PortsWanted() ([]string, error) {
 	return ports, nil
 }
 
-func (m *Manifest) Push(app, registry, auth, tag string) []error {
+func (m *Manifest) Push(app, registry, auth, tag string, flatten string) []error {
 	// ch := make(chan error)
 
 	if auth != "" {
@@ -349,6 +349,10 @@ func (m *Manifest) Push(app, registry, auth, tag string) []error {
 	for name, _ := range *m {
 		local := fmt.Sprintf("%s/%s", app, name)
 		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
+
+		if flatten != "" {
+			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
+		}
 
 		err := pushSync(local, remote)
 

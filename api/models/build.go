@@ -2,6 +2,7 @@ package models
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
@@ -166,16 +168,72 @@ func (b *Build) Cleanup() error {
 	return nil
 }
 
-func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
-	b.Status = "building"
-	b.Save()
+func (b *Build) buildError(err error, ch chan error) {
+	NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
+	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error app=%q build=%q error=%q\n", b.App, b.Id, err)
+	b.Fail(err)
+	ch <- err
+}
 
-	name := b.App
+func (b *Build) ECRLogin() (string, error) {
+	app, err := GetApp(b.App)
 
-	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST")}
+	if err != nil {
+		return "", err
+	}
 
-	if pw := os.Getenv("PASSWORD"); pw != "" {
-		args = append(args, "-auth", pw)
+	res, err := ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+		RegistryIds: []*string{aws.String(app.Outputs["RegistryId"])},
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(res.AuthorizationData) < 1 {
+		return "", fmt.Errorf("no authorization data")
+	}
+
+	endpoint := *res.AuthorizationData[0].ProxyEndpoint
+
+	data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+
+	if err != nil {
+		return "", err
+	}
+
+	parts := strings.SplitN(string(data), ":", 2)
+
+	cmd := exec.Command("docker", "login", "-e", "user@convox.com", "-u", parts[0], "-p", parts[1], endpoint)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return endpoint[8:], cmd.Run()
+}
+
+func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
+	app, err := GetApp(b.App)
+
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id}
+
+	if registryId := app.Outputs["RegistryId"]; registryId != "" {
+		endpoint, err := b.ECRLogin()
+
+		if err != nil {
+			return nil, err
+		}
+
+		args = append(args, "-push", endpoint, "-flatten", app.Outputs["RegistryRepository"])
+	} else {
+		args = append(args, "-push", os.Getenv("REGISTRY_HOST"))
+
+		if pw := os.Getenv("PASSWORD"); pw != "" {
+			args = append(args, "-auth", pw)
+		}
 	}
 
 	if config != "" {
@@ -190,46 +248,38 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 		args = append(args, "-dockercfg", string(dockercfg))
 	}
 
-	args = append(args, name, "-")
+	return args, nil
+}
 
-	err := b.execute(args, r, ch)
+func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
+	b.Status = "building"
+	b.Save()
+
+	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
-		NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
-		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
-		b.Fail(err)
-		ch <- err
-	} else {
-		NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
-		fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
+		b.buildError(err, ch)
+		return
 	}
+
+	args = append(args, b.App, "-")
+
+	err = b.execute(args, r, ch)
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+	fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 }
 
 func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
 	b.Status = "building"
 	b.Save()
 
-	name := b.App
-
-	args := []string{"run", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id, "-push", os.Getenv("REGISTRY_HOST")}
-
-	if pw := os.Getenv("PASSWORD"); pw != "" {
-		args = append(args, "-auth", pw)
-	}
-
-	if config != "" {
-		args = append(args, "-config", config)
-	}
-
-	if !cache {
-		args = append(args, "-no-cache")
-	}
-
-	if dockercfg, err := ioutil.ReadFile("/root/.dockercfg"); err == nil {
-		args = append(args, "-dockercfg", string(dockercfg))
-	}
-
-	args = append(args, name)
+	args, err := b.buildArgs(cache, config)
 
 	parts := strings.Split(repo, "#")
 
@@ -239,17 +289,15 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 		args = append(args, repo)
 	}
 
-	err := b.execute(args, nil, ch)
+	err = b.execute(args, nil, ch)
 
 	if err != nil {
-		NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
-		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error step=build.execute app=%q build=%q error=%q\n", b.App, b.Id, err)
-		b.Fail(err)
-		ch <- err
-	} else {
-		NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
-		fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
+		b.buildError(err, ch)
+		return
 	}
+
+	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 }
 
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {

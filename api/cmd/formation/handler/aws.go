@@ -5,8 +5,10 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/lambda"
@@ -43,56 +45,63 @@ func Region(req *Request) *string {
 }
 
 func CloudFormation(req Request) *cloudformation.CloudFormation {
-	return cloudformation.New(&aws.Config{
+	return cloudformation.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func Lambda(req Request) *lambda.Lambda {
-	return lambda.New(&aws.Config{
+	return lambda.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func EC2(req Request) *ec2.EC2 {
-	return ec2.New(&aws.Config{
+	return ec2.New(session.New(), &aws.Config{
+		Credentials: Credentials(&req),
+		Region:      Region(&req),
+	})
+}
+
+func ECR(req Request) *ecr.ECR {
+	return ecr.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func ECS(req Request) *ecs.ECS {
-	return ecs.New(&aws.Config{
+	return ecs.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func KMS(req Request) *kms.KMS {
-	return kms.New(&aws.Config{
+	return kms.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func S3(req Request) *s3.S3 {
-	return s3.New(&aws.Config{
+	return s3.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func SNS(req Request) *sns.SNS {
-	return sns.New(&aws.Config{
+	return sns.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
 }
 
 func SQS() *sqs.SQS {
-	return sqs.New(&aws.Config{
+	return sqs.New(session.New(), &aws.Config{
 		Credentials: Credentials(nil),
 		Region:      Region(nil),
 	})
