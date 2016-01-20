@@ -365,6 +365,12 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 			otherEnv[parts[0]] = parts[1]
 		}
 
+		//override with manifest env
+		for _, value := range other.EnvironmentArray() {
+			parts := strings.SplitN(value, "=", 2)
+			otherEnv[parts[0]] = parts[1]
+		}
+
 		varName := strings.ToUpper(link) + "_URL"
 		cmd = Execer("docker", "run", "convox/docker-gateway")
 		output, err = cmd.Output()
