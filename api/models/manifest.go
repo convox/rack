@@ -19,16 +19,15 @@ type Manifest []ManifestEntry
 type ManifestEntry struct {
 	Name string
 
-	Build     string                   `yaml:"build"`
-	Command   interface{}              `yaml:"command"`
-	Env       []string                 `yaml:"environment"`
-	Exports   map[string]string        `yaml:"-"`
-	Image     string                   `yaml:"image"`
-	Links     []string                 `yaml:"links"`
-	LinkVars  map[string]template.HTML `yaml:"-"`
-	*Manifest `yaml:"-"`
-	Ports     []string `yaml:"ports"`
-	Volumes   []string `yaml:"volumes"`
+	Build    string                   `yaml:"build"`
+	Command  interface{}              `yaml:"command"`
+	Env      []string                 `yaml:"environment"`
+	Exports  map[string]string        `yaml:"-"`
+	Image    string                   `yaml:"image"`
+	Links    []string                 `yaml:"links"`
+	LinkVars map[string]template.HTML `yaml:"-"`
+	Ports    []string                 `yaml:"ports"`
+	Volumes  []string                 `yaml:"volumes"`
 
 	primary bool
 	randoms map[string]int
@@ -70,7 +69,6 @@ func LoadManifest(data string) (Manifest, error) {
 
 	for _, name := range names {
 		entry := entries[name]
-		entry.Manifest = &manifest
 		entry.Name = name
 		entry.randoms = make(map[string]int)
 

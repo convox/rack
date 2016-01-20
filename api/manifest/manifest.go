@@ -44,7 +44,6 @@ type ManifestEntry struct {
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
-	*Manifest   `yaml:"-"`
 }
 
 func init() {
@@ -138,7 +137,6 @@ func Read(dir, filename string) (*Manifest, error) {
 			entry.Volumes[i] = strings.Join(parts, ":")
 		}
 
-		entry.Manifest = &m
 		m[name] = entry
 	}
 
@@ -256,10 +254,10 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	return []error{}
 }
 
-func (me *ManifestEntry) ResolvedEnvironment() ([]string, error) {
+func (me *ManifestEntry) ResolvedEnvironment(m *Manifest) ([]string, error) {
 	r := []string{}
 
-	linkedVars, err := me.ResolvedLinkVars()
+	linkedVars, err := me.ResolvedLinkVars(m)
 	if err != nil {
 		return r, err
 	}
@@ -308,15 +306,15 @@ func (me *ManifestEntry) EnvironmentArray() []string {
 // NOTE: this is the simpler approach:
 //       build up the ENV from the declared links
 //       assuming local dev is done on DOCKER_HOST
-func (me *ManifestEntry) ResolvedLinkVars() (map[string]string, error) {
+func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error) {
 	linkVars := make(map[string]string)
 
-	if me.Manifest == nil {
+	if m == nil {
 		return linkVars, nil
 	}
 
 	for _, link := range me.Links {
-		other := (*me.Manifest)[link]
+		other := (*m)[link]
 		var port string
 
 		noPortsErr := fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
@@ -415,7 +413,7 @@ func (m *Manifest) MissingEnvironment() ([]string, error) {
 	}
 
 	for _, entry := range *m {
-		resolved, err := entry.ResolvedEnvironment()
+		resolved, err := entry.ResolvedEnvironment(m)
 		if err != nil {
 			return missing, err
 		}
@@ -533,7 +531,7 @@ func (m *Manifest) Run(app string) []error {
 	}()
 
 	for i, name := range m.runOrder() {
-		go (*m)[name].runAsync(m.prefixForEntry(name, i), app, name, ch)
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, ch)
 		time.Sleep(1000 * time.Millisecond)
 	}
 
@@ -640,7 +638,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, ch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -648,7 +646,7 @@ func (me ManifestEntry) runAsync(prefix, app, process string, ch chan error) {
 
 	args := []string{"run", "-i", "--name", name}
 
-	resolved, err := me.ResolvedEnvironment()
+	resolved, err := me.ResolvedEnvironment(m)
 
 	if err != nil {
 		ch <- err

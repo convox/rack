@@ -338,7 +338,7 @@ func (r *Release) Formation() (string, error) {
 	for i, entry := range manifest {
 		entry.LinkVars = make(map[string]template.HTML)
 		for _, link := range entry.Links {
-			other := entry.Manifest.Entry(link)
+			other := manifest.Entry(link)
 
 			if other == nil {
 				return "", fmt.Errorf("Cannot find link %q", link)
@@ -367,7 +367,7 @@ func (r *Release) Formation() (string, error) {
 				userInfo = fmt.Sprintf("%s:%s@", other.Exports["LINK_USERNAME"], other.Exports["LINK_PASSWORD"])
 			}
 
-			mb := entry.Manifest.GetBalancer(link)
+			mb := manifest.GetBalancer(link)
 			if mb == nil {
 				return "", fmt.Errorf("Cannot discover balancer for link %q", link)
 			}
