@@ -79,6 +79,7 @@ func TestManifestFixtures(t *testing.T) {
 	assertFixture(t, "web_external_internal", "")
 	assertFixture(t, "web_postgis", "")
 	assertFixture(t, "web_postgis_internal", "")
+	assertFixture(t, "web_redis", "")
 	assertFixture(t, "worker", "")
 	ManifestRandomPorts = true
 }

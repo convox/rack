@@ -1,0 +1,10 @@
+web:
+  build: .
+  links:
+    - redis
+  ports:
+    - 80:3000
+redis:
+  image: convox/redis
+  ports:
+    - 6379
