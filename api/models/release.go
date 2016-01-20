@@ -298,9 +298,18 @@ func (r *Release) Formation() (string, error) {
 		}
 		manifest[i].Image = imageName
 
+		if os.Getenv("DEVELOPMENT") == "true" {
+			cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				fmt.Println(string(out))
+				return "", err
+			}
+		}
+
 		// BEGIN RESOLVING LINKS
 		cmd := exec.Command("docker", "pull", imageName)
-		err := cmd.Run()
+		_, err := cmd.CombinedOutput()
 
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
 		if err != nil {
@@ -326,7 +335,10 @@ func (r *Release) Formation() (string, error) {
 		}
 
 		entry.Exports = make(map[string]string)
-		for _, val := range inspect[0].Config.Env {
+		//manifest entry gets priority for auto-link
+		linkableEnvs := append(inspect[0].Config.Env, entry.Env...)
+
+		for _, val := range linkableEnvs {
 			if strings.HasPrefix(val, "LINK_") {
 				parts := strings.SplitN(val, "=", 2)
 				entry.Exports[parts[0]] = parts[1]
