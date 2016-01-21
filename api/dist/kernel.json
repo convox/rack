@@ -11,14 +11,14 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-2b3b6041" },
-      "us-west-1": { "Ami": "ami-bfe095df" },
-      "us-west-2": { "Ami": "ami-ac6872cd" },
-      "eu-west-1": { "Ami": "ami-03238b70" },
-      "eu-central-1": { "Ami": "e1e6f88d" },
-      "ap-northeast-1": { "Ami": "ami-fb2f1295" },
-      "ap-southeast-1": { "Ami": "ami-c78f43a4" },
-      "ap-southeast-2": { "Ami": "ami-00e7bf63" }
+      "us-east-1": { "Ami": "ami-cb2305a1" },
+      "us-west-1": { "Ami": "ami-bdafdbdd" },
+      "us-west-2": { "Ami": "ami-ec75908c" },
+      "eu-west-1": { "Ami": "ami-13f84d60" },
+      "eu-central-1": { "Ami": "ami-c3253caf" },
+      "ap-northeast-1": { "Ami": "ami-e9724c87" },
+      "ap-southeast-1": { "Ami": "ami-5f31fd3c" },
+      "ap-southeast-2": { "Ami": "ami-83af8ae0" }
     }
   },
   "Outputs": {
