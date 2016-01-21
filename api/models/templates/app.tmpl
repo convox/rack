@@ -4,6 +4,7 @@
     "Conditions": {
       {{ template "balancer-conditions" . }}
       {{ template "process-conditions" . }}
+      {{ template "registry-conditions" . }}
       "BlankCluster": { "Fn::Equals": [ { "Ref": "Cluster" }, "" ] }
     },
     "Parameters" : {
@@ -334,9 +335,14 @@
   {{ end }}
 {{ end }}
 
+{{ define "registry-conditions" }}
+  "RegionHasRegistry": { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
+{{ end }}
+
 {{ define "registry-resources" }}
   "RegistryRepository": {
     "Type": "Custom::ECRRepository",
+    "Condition": "RegionHasRegistry",
     "Version": "1.0",
     "Properties": {
       "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -350,6 +356,7 @@
     "Value": { "Ref": "AWS::AccountId" }
   },
   "RegistryRepository": {
+    "Condition": "RegionHasRegistry",
     "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
   },
 {{ end }}
