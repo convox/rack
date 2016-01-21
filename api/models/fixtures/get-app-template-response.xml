@@ -1,0 +1,211 @@
+<GetTemplateResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <GetTemplateResult>
+    <TemplateBody>
+  {
+    &quot;AWSTemplateFormatVersion&quot; : &quot;2010-09-09&quot;,
+    &quot;Conditions&quot;: {
+
+
+
+
+
+
+      &quot;BlankCluster&quot;: { &quot;Fn::Equals&quot;: [ { &quot;Ref&quot;: &quot;Cluster&quot; }, &quot;&quot; ] }
+    },
+    &quot;Parameters&quot; : {
+
+
+
+
+
+
+
+      &quot;Cluster&quot;: {
+        &quot;Type&quot; : &quot;String&quot;,
+        &quot;Default&quot; : &quot;&quot;,
+        &quot;Description&quot; : &quot;&quot;
+      },
+      &quot;Cpu&quot;: {
+        &quot;Type&quot;: &quot;Number&quot;,
+        &quot;Default&quot;: &quot;200&quot;,
+        &quot;Description&quot;: &quot;CPU shares of each process&quot;
+      },
+      &quot;Environment&quot;: {
+        &quot;Type&quot;: &quot;String&quot;,
+        &quot;Default&quot;: &quot;&quot;,
+        &quot;Description&quot;: &quot;&quot;
+      },
+      &quot;Key&quot;: {
+        &quot;Type&quot;: &quot;String&quot;,
+        &quot;Default&quot;: &quot;&quot;,
+        &quot;Description&quot;: &quot;&quot;
+      },
+      &quot;Release&quot;: {
+        &quot;Type&quot; : &quot;String&quot;,
+        &quot;Default&quot; : &quot;&quot;,
+        &quot;Description&quot; : &quot;&quot;
+      },
+      &quot;Repository&quot;: {
+        &quot;Type&quot; : &quot;String&quot;,
+        &quot;Default&quot; : &quot;&quot;,
+        &quot;Description&quot; : &quot;Source code repository&quot;
+      },
+      &quot;Subnets&quot;: {
+        &quot;Type&quot; : &quot;List&lt;AWS::EC2::Subnet::Id&gt;&quot;,
+        &quot;Default&quot; : &quot;&quot;,
+        &quot;Description&quot; : &quot;VPC subnets for this app&quot;
+      },
+      &quot;Version&quot;: {
+        &quot;Description&quot;: &quot;(REQUIRED) Lambda CustomTopic Handler Release Version&quot;,
+        &quot;MinLength&quot; : &quot;1&quot;,
+        &quot;Type&quot;: &quot;String&quot;
+      },
+      &quot;VPC&quot;: {
+        &quot;Type&quot; : &quot;AWS::EC2::VPC::Id&quot;,
+        &quot;Default&quot; : &quot;&quot;,
+        &quot;Description&quot; : &quot;VPC for this app&quot;
+      }
+    },
+    &quot;Resources&quot;: {
+      &quot;CustomTopicRole&quot;: {
+        &quot;Type&quot;: &quot;AWS::IAM::Role&quot;,
+        &quot;Properties&quot;: {
+          &quot;AssumeRolePolicyDocument&quot;: {
+            &quot;Version&quot;: &quot;2012-10-17&quot;,
+            &quot;Statement&quot;: [
+              {
+                &quot;Effect&quot;: &quot;Allow&quot;,
+                &quot;Principal&quot;: { &quot;Service&quot;: [ &quot;lambda.amazonaws.com&quot; ] },
+                &quot;Action&quot;: [ &quot;sts:AssumeRole&quot; ]
+              }
+            ]
+          },
+          &quot;Path&quot;: &quot;/&quot;,
+          &quot;Policies&quot;: [
+            {
+              &quot;PolicyName&quot;: &quot;Administrator&quot;,
+              &quot;PolicyDocument&quot;: {
+                &quot;Version&quot;: &quot;2012-10-17&quot;,
+                &quot;Statement&quot;: [ { &quot;Effect&quot;: &quot;Allow&quot;, &quot;Action&quot;: &quot;*&quot;, &quot;Resource&quot;: &quot;*&quot; } ]
+              }
+            }
+          ]
+        }
+      },
+      &quot;CustomTopic&quot;: {
+        &quot;Type&quot;: &quot;AWS::Lambda::Function&quot;,
+        &quot;Properties&quot;: {
+          &quot;Code&quot;: {
+            &quot;S3Bucket&quot;: { &quot;Fn::Join&quot;: [ &quot;-&quot;, [ &quot;convox&quot;, { &quot;Ref&quot;: &quot;AWS::Region&quot; } ] ] },
+            &quot;S3Key&quot;: { &quot;Fn::Join&quot;: [ &quot;&quot;, [ &quot;release/&quot;, { &quot;Ref&quot;: &quot;Version&quot; }, &quot;/formation.zip&quot; ] ] }
+          },
+          &quot;Handler&quot;: &quot;lambda.external&quot;,
+          &quot;MemorySize&quot;: &quot;128&quot;,
+          &quot;Role&quot;: { &quot;Fn::GetAtt&quot;: [ &quot;CustomTopicRole&quot;, &quot;Arn&quot; ] },
+          &quot;Runtime&quot;: &quot;nodejs&quot;,
+          &quot;Timeout&quot;: &quot;30&quot;
+        }
+      },
+
+
+
+
+  &quot;Kinesis&quot;: {
+    &quot;Type&quot;: &quot;AWS::Kinesis::Stream&quot;,
+    &quot;Properties&quot;: {
+      &quot;ShardCount&quot;: 1
+    }
+  },
+  &quot;LogGroup&quot;: {
+    &quot;Type&quot;: &quot;AWS::Logs::LogGroup&quot;
+  },
+
+
+
+
+
+
+
+  &quot;ServiceRole&quot;: {
+    &quot;Type&quot;: &quot;AWS::IAM::Role&quot;,
+    &quot;Properties&quot;: {
+      &quot;AssumeRolePolicyDocument&quot;: {
+        &quot;Statement&quot;: [
+          {
+            &quot;Action&quot;: [
+              &quot;sts:AssumeRole&quot;
+            ],
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Principal&quot;: {
+              &quot;Service&quot;: [
+                &quot;ecs.amazonaws.com&quot;
+              ]
+            }
+          }
+        ],
+        &quot;Version&quot;: &quot;2012-10-17&quot;
+      },
+      &quot;Path&quot;: &quot;/&quot;,
+      &quot;Policies&quot;: [
+        {
+          &quot;PolicyName&quot;: &quot;ServiceRole&quot;,
+          &quot;PolicyDocument&quot;: {
+            &quot;Statement&quot;: [
+              {
+                &quot;Effect&quot;: &quot;Allow&quot;,
+                &quot;Action&quot;: [
+                  &quot;elasticloadbalancing:Describe*&quot;,
+                  &quot;elasticloadbalancing:DeregisterInstancesFromLoadBalancer&quot;,
+                  &quot;elasticloadbalancing:RegisterInstancesWithLoadBalancer&quot;,
+                  &quot;ec2:Describe*&quot;,
+                  &quot;ec2:AuthorizeSecurityGroupIngress&quot;
+                ],
+                &quot;Resource&quot;: [
+                  &quot;*&quot;
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+
+
+  &quot;Settings&quot;: {
+    &quot;Type&quot;: &quot;AWS::S3::Bucket&quot;,
+    &quot;DeletionPolicy&quot;: &quot;Retain&quot;,
+    &quot;Properties&quot;: {
+      &quot;AccessControl&quot;: &quot;Private&quot;,
+      &quot;Tags&quot;: [
+        { &quot;Key&quot;: &quot;system&quot;, &quot;Value&quot;: &quot;convox&quot; },
+        { &quot;Key&quot;: &quot;app&quot;, &quot;Value&quot;: { &quot;Ref&quot;: &quot;AWS::StackName&quot; } }
+      ]
+    }
+  }
+
+    },
+    &quot;Outputs&quot;: {
+
+
+
+
+  &quot;Kinesis&quot;: {
+    &quot;Value&quot;: { &quot;Ref&quot;: &quot;Kinesis&quot; }
+  },
+  &quot;LogGroup&quot;: {
+    &quot;Value&quot;: { &quot;Ref&quot;: &quot;LogGroup&quot; }
+  },
+
+
+      &quot;Settings&quot;: {
+        &quot;Value&quot;: { &quot;Ref&quot;: &quot;Settings&quot; }
+      }
+    }
+  }
+</TemplateBody>
+  </GetTemplateResult>
+  <ResponseMetadata>
+    <RequestId>1c73a458-bfd8-11e5-a958-27f415e60535</RequestId>
+  </ResponseMetadata>
+</GetTemplateResponse>

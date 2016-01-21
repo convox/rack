@@ -66,7 +66,7 @@
     "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWeb",
+          "Balancer",
           "DNSName"
         ]
       }
@@ -213,6 +213,103 @@
     }
   },
   "Resources": {
+    "Balancer": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 3600
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WebPort80Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BlankWebPort80Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "Fn::If": [
+                  "SecureWebPort80",
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort80Host"
+                    },
+                    "InstanceProtocol": "SSL",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort80Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort80Certificate"
+                    }
+                  },
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort80Host"
+                    },
+                    "InstanceProtocol": "TCP",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort80Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort80Certificate"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Ref": "AWS::StackName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
     "BalancerRedisInternal": {
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -354,112 +451,7 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "BalancerWeb": {
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": 60
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": 3600
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": {
-            "Fn::Join": [
-              ":",
-              [
-                "TCP",
-                {
-                  "Ref": "WebPort80Host"
-                }
-              ]
-            ]
-          },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "Fn::If": [
-              "BlankWebPort80Certificate",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": "TCP",
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": "TCP"
-              },
-              {
-                "Fn::If": [
-                  "SecureWebPort80",
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort80Host"
-                    },
-                    "InstanceProtocol": "SSL",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort80Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort80Certificate"
-                    }
-                  },
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort80Host"
-                    },
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort80Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort80Certificate"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "SecurityGroups": [
-          {
-            "Ref": "BalancerWebSecurityGroup"
-          }
-        ],
-        "Subnets": {
-          "Ref": "Subnets"
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerWebSecurityGroup": {
+    "BalancerSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -677,6 +669,7 @@
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
+                  "LINK_SCHEME": "redis",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
@@ -789,7 +782,7 @@
     },
     "WebECSService": {
       "DependsOn": [
-        "BalancerWeb",
+        "Balancer",
         "CustomTopic"
       ],
       "Properties": {
@@ -805,7 +798,7 @@
               ":",
               [
                 {
-                  "Ref": "BalancerWeb"
+                  "Ref": "Balancer"
                 },
                 "web",
                 "3000"
@@ -888,9 +881,28 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "web",
+                  "REDIS_URL": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "redis",
+                        "://",
+                        "",
+                        {
+                          "Fn::GetAtt": [
+                            "BalancerRedisInternal",
+                            "DNSName"
+                          ]
+                        },
+                        ":",
+                        "6379",
+                        ""
+                      ]
+                    ]
+                  }
                 },
-                "Image": "",
+                "Image": "/web-web:DEADBEEF",
                 "Memory": {
                   "Ref": "WebMemory"
                 },

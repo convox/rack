@@ -6,5 +6,7 @@ web:
     - 80:3000
 redis:
   image: convox/redis
+  environment:
+    - LINK_SCHEME=redis
   ports:
     - 6379

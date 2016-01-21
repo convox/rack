@@ -289,7 +289,18 @@ func (r *Release) Formation() (string, error) {
 		if entry.Name == primary {
 			manifest[i].primary = true
 		}
+	}
 
+	if os.Getenv("DEVELOPMENT") == "true" {
+		cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(out))
+			return "", err
+		}
+	}
+
+	for i, entry := range manifest {
 		var imageName string
 		if registryId := app.Outputs["RegistryId"]; registryId != "" {
 			imageName = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], entry.Name, r.Build)
@@ -298,45 +309,46 @@ func (r *Release) Formation() (string, error) {
 		}
 		manifest[i].Image = imageName
 
-		if os.Getenv("DEVELOPMENT") == "true" {
-			cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				fmt.Println(string(out))
-				return "", err
-			}
-		}
-
 		// BEGIN RESOLVING LINKS
-		cmd := exec.Command("docker", "pull", imageName)
-		_, err := cmd.CombinedOutput()
-
-		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
-		if err != nil {
-			return "", err
-		}
-
-		cmd = exec.Command("docker", "inspect", imageName)
-		output, err := cmd.CombinedOutput()
-		fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q err=%t\n", imageName, err == nil)
-		if err != nil {
-			return "", err
-		}
-
 		var inspect []struct {
 			Config struct {
 				Env []string
 			}
 		}
-		err = json.Unmarshal(output, &inspect)
-		if err != nil {
-			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=true output=%q\n", string(output))
-			return "", fmt.Errorf("could not inspect image %q", imageName)
+
+		cmd := exec.Command("docker", "pull", imageName)
+		_, err := cmd.CombinedOutput()
+
+		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
+		/*
+			if err != nil {
+				return "", err
+			}
+		*/
+
+		if err == nil {
+			cmd = exec.Command("docker", "inspect", imageName)
+			output, err := cmd.CombinedOutput()
+			fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q err=%t\n", imageName, err == nil)
+			/*
+				if err != nil {
+					return "", err
+				}
+			*/
+
+			err = json.Unmarshal(output, &inspect)
+			if err != nil {
+				fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=true output=%q\n", string(output))
+				return "", fmt.Errorf("could not inspect image %q", imageName)
+			}
 		}
 
 		entry.Exports = make(map[string]string)
 		//manifest entry gets priority for auto-link
-		linkableEnvs := append(inspect[0].Config.Env, entry.Env...)
+		linkableEnvs := entry.Env
+		if len(inspect) == 1 {
+			linkableEnvs = append(inspect[0].Config.Env, entry.Env...)
+		}
 
 		for _, val := range linkableEnvs {
 			if strings.HasPrefix(val, "LINK_") {
