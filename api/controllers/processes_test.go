@@ -33,11 +33,17 @@ func TestProcessesList(t *testing.T) {
 		test.DescribeInstancesFilteredCycle(),
 		test.DescribeAppStackResourcesCycle("myapp-staging"),
 		test.DescribeServicesCycle("convox-test-cluster"),
+		test.ListContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeInstancesCycle(),
 	)
 	defer aws.Close()
 
 	docker := test.StubDocker(
 		test.ListContainersCycle(),
+		test.ListConvoxContainersCycle(),
+		test.ListConvoxContainersCycle(),
+		test.ListConvoxContainersCycle(),
 		test.StatsCycle(),
 	)
 	defer docker.Close()
@@ -52,7 +58,7 @@ func TestProcessesList(t *testing.T) {
 	err := json.Unmarshal([]byte(body), &resp)
 
 	if assert.Nil(t, err) {
-		assert.Equal(t, 1, len(resp))
+		assert.Equal(t, 4, len(resp))
 		assert.Equal(t, 0.0, resp[0].Memory)
 	}
 }
@@ -73,12 +79,18 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 		test.DescribeAppStackResourcesCycle("myapp-staging"),
 		test.DescribeServicesWithDeploymentsCycle("convox-test-cluster"),
 		test.DescribeTaskDefinition3Cycle("convox-test-cluster"),
+		test.ListContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeInstancesCycle(),
 		test.DescribeTaskDefinition1Cycle("convox-test-cluster"),
 	)
 	defer aws.Close()
 
 	docker := test.StubDocker(
 		test.ListContainersCycle(),
+		test.ListConvoxContainersCycle(),
+		test.ListConvoxContainersCycle(),
+		test.ListConvoxContainersCycle(),
 		test.StatsCycle(),
 	)
 	defer docker.Close()
@@ -91,8 +103,11 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	err := json.Unmarshal([]byte(body), &resp)
 
 	if assert.Nil(t, err) {
-		assert.Equal(t, 2, len(resp))
-		assert.Equal(t, "pending", resp[1].Id)
+		assert.Equal(t, 5, len(resp))
+		assert.Equal(t, "8dfafdbc3a40", resp[1].Id)
+		assert.Equal(t, "8dfafdbc3a40", resp[2].Id)
+		assert.Equal(t, "4932cce0897b", resp[3].Id)
+		assert.Equal(t, "pending", resp[4].Id)
 	}
 }
 
