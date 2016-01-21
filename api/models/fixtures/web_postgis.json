@@ -37,6 +37,14 @@
         ""
       ]
     },
+    "RegionHasRegistry": {
+      "Fn::Equals": [
+        {
+          "Ref": "AWS::Region"
+        },
+        "us-east-1"
+      ]
+    },
     "SecureWebPort443": {
       "Fn::Equals": [
         {
@@ -74,11 +82,13 @@
       }
     },
     "RegistryId": {
+      "Condition": "RegionHasRegistry",
       "Value": {
         "Ref": "AWS::AccountId"
       }
     },
     "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
       "Value": {
         "Fn::GetAtt": [
           "RegistryRepository",
@@ -649,6 +659,7 @@
       "Version": "1.0"
     },
     "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
       "Properties": {
         "Name": {
           "Ref": "AWS::StackName"
