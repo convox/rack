@@ -291,15 +291,7 @@ func (r *Release) Formation() (string, error) {
 		}
 	}
 
-	if os.Getenv("DEVELOPMENT") == "true" {
-		cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			fmt.Println(string(out))
-			return "", err
-		}
-	}
-
+	// set the image
 	for i, entry := range manifest {
 		var imageName string
 		if registryId := app.Outputs["RegistryId"]; registryId != "" {
@@ -308,45 +300,58 @@ func (r *Release) Formation() (string, error) {
 			imageName = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
 		}
 		manifest[i].Image = imageName
+	}
 
-		// BEGIN RESOLVING LINKS
+	manifest, err = r.resolveLinks(&manifest)
+
+	if err != nil {
+		return "", err
+	}
+
+	return manifest.Formation()
+}
+
+func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
+	if os.Getenv("DEVELOPMENT") == "true" {
+		cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(out))
+			return *manifest, err
+		}
+	}
+
+	m := *manifest
+
+	for i, entry := range m {
 		var inspect []struct {
 			Config struct {
 				Env []string
 			}
 		}
 
+		imageName := entry.Image
 		cmd := exec.Command("docker", "pull", imageName)
 		_, err := cmd.CombinedOutput()
-
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
-		/*
-			if err != nil {
-				return "", err
-			}
-		*/
 
+		//if we can't pull it, skip it
 		if err == nil {
 			cmd = exec.Command("docker", "inspect", imageName)
 			output, err := cmd.CombinedOutput()
 			fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q err=%t\n", imageName, err == nil)
-			/*
-				if err != nil {
-					return "", err
-				}
-			*/
 
 			err = json.Unmarshal(output, &inspect)
 			if err != nil {
 				fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=true output=%q\n", string(output))
-				return "", fmt.Errorf("could not inspect image %q", imageName)
+				return m, fmt.Errorf("could not inspect image %q", imageName)
 			}
 		}
 
 		entry.Exports = make(map[string]string)
-		//manifest entry gets priority for auto-link
 		linkableEnvs := entry.Env
 		if len(inspect) == 1 {
+			//manifest entry gets priority for auto-link
 			linkableEnvs = append(inspect[0].Config.Env, entry.Env...)
 		}
 
@@ -354,26 +359,26 @@ func (r *Release) Formation() (string, error) {
 			if strings.HasPrefix(val, "LINK_") {
 				parts := strings.SplitN(val, "=", 2)
 				entry.Exports[parts[0]] = parts[1]
-				manifest[i] = entry
+				m[i] = entry
 			}
 		}
 	}
 
-	for i, entry := range manifest {
+	for i, entry := range m {
 		entry.LinkVars = make(map[string]template.HTML)
 		for _, link := range entry.Links {
-			other := manifest.Entry(link)
+			other := m.Entry(link)
 
 			if other == nil {
-				return "", fmt.Errorf("Cannot find link %q", link)
+				return m, fmt.Errorf("Cannot find link %q", link)
 			}
 
 			if len(other.Ports) == 0 {
-				return "", fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
+				return m, fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
 			}
 
 			if len(other.Ports) > 1 {
-				return "", fmt.Errorf("Cannot link to %q because it exposes too many ports", link)
+				return m, fmt.Errorf("Cannot link to %q because it exposes too many ports", link)
 			}
 
 			port := other.Ports[0]
@@ -393,7 +398,7 @@ func (r *Release) Formation() (string, error) {
 
 			mb := manifest.GetBalancer(link)
 			if mb == nil {
-				return "", fmt.Errorf("Cannot discover balancer for link %q", link)
+				return m, fmt.Errorf("Cannot discover balancer for link %q", link)
 			}
 
 			host := fmt.Sprintf(`{ "Fn::GetAtt" : [ "%s", "DNSName" ] }`, mb.ResourceName())
@@ -403,11 +408,11 @@ func (r *Release) Formation() (string, error) {
 			varName := strings.ToUpper(link) + "_URL"
 
 			entry.LinkVars[varName] = template.HTML(html)
-			manifest[i] = entry
+			m[i] = entry
 		}
 	}
 
-	return manifest.Formation()
+	return m, nil
 }
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)

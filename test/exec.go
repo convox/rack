@@ -21,10 +21,15 @@ type ExecRun struct {
 	Stdout   string
 	OutMatch string
 	Stderr   string
+	Dump     bool
 }
 
 func (er ExecRun) Test(t *testing.T) {
 	stdout, stderr, code, err := er.exec()
+
+	if er.Dump {
+		t.Log("ExecRun", stdout, stderr, code, err)
+	}
 
 	assert.Nil(t, err, "should be nil")
 	assert.Equal(t, er.Exit, code, "exit code should be equal")

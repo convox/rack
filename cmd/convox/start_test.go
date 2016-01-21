@@ -117,6 +117,7 @@ func TestStartWithLink(t *testing.T) {
 			Env:      map[string]string{"CONVOX_CONFIG": temp},
 			OutMatch: "REDIS_URL",
 			Exit:     0,
+			Dump:     true,
 		},
 	)
 }
