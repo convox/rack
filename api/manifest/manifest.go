@@ -337,11 +337,17 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 			return linkVars, noPortsErr
 		}
 
+		pull := Execer("docker", "pull", other.Image)
+		err := pull.Run()
+		if err != nil {
+			return linkVars, fmt.Errorf("could not pull container %q: %s", other.Image, err.Error())
+		}
+
 		cmd := Execer("docker", "inspect", other.Image)
 		output, err := cmd.CombinedOutput()
 
 		if err != nil {
-			return linkVars, err
+			return linkVars, fmt.Errorf("could not inspect container %q: %s", other.Image, err.Error())
 		}
 
 		var inspect []struct {
@@ -662,20 +668,6 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, ch ch
 	for _, env := range resolved {
 		args = append(args, "-e", env)
 	}
-
-	/* NO MORE LINKS
-	for _, link := range me.Links {
-		parts := strings.Split(link, ":")
-
-		switch len(parts) {
-		case 1:
-			args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, link, link))
-		case 2:
-			args = append(args, "--link", fmt.Sprintf("%s-%s:%s", app, parts[0], parts[1]))
-		default:
-		}
-	}
-	*/
 
 	ports := []string{}
 

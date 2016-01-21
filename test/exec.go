@@ -28,7 +28,7 @@ func (er ExecRun) Test(t *testing.T) {
 	stdout, stderr, code, err := er.exec()
 
 	if er.Dump {
-		t.Log("ExecRun", stdout, stderr, code, err)
+		t.Log("ExecRun", er.Command, stdout, stderr, code, err)
 	}
 
 	assert.Nil(t, err, "should be nil")
