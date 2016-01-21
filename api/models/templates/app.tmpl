@@ -353,6 +353,7 @@
 
 {{ define "registry-outputs" }}
   "RegistryId": {
+    "Condition": "RegionHasRegistry",
     "Value": { "Ref": "AWS::AccountId" }
   },
   "RegistryRepository": {
