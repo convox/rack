@@ -26,6 +26,7 @@ func TestLinks(t *testing.T) {
 	getAppTemplateCycle.Response.Body = string(resp)
 	stubAws := test.StubAws(
 		getAppTemplateCycle,
+		test.DescribeAppStackCycle("web"),
 	)
 	defer stubAws.Close()
 

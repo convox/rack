@@ -37,6 +37,14 @@
         ""
       ]
     },
+    "RegionHasRegistry": {
+      "Fn::Equals": [
+        {
+          "Ref": "AWS::Region"
+        },
+        "us-east-1"
+      ]
+    },
     "SecureRedisPort6379": {
       "Fn::Equals": [
         {
@@ -86,6 +94,35 @@
         "Ref": "RedisPort6379Balancer"
       }
     },
+    "RedisPort6379BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "redis",
+            "internal"
+          ]
+        ]
+      }
+    },
+    "RegistryId": {
+      "Condition": "RegionHasRegistry",
+      "Value": {
+        "Ref": "AWS::AccountId"
+      }
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
+      "Value": {
+        "Fn::GetAtt": [
+          "RegistryRepository",
+          "RepositoryName"
+        ]
+      }
+    },
     "Settings": {
       "Value": {
         "Ref": "Settings"
@@ -94,6 +131,11 @@
     "WebPort80Balancer": {
       "Value": {
         "Ref": "WebPort80Balancer"
+      }
+    },
+    "WebPort80BalancerName": {
+      "Value": {
+        "Ref": "AWS::StackName"
       }
     }
   },
@@ -675,7 +717,7 @@
                   },
                   "PROCESS": "redis"
                 },
-                "Image": "convox/redis",
+                "Image": "/web-redis:DEADBEEF",
                 "Memory": {
                   "Ref": "RedisMemory"
                 },
@@ -715,6 +757,22 @@
         ]
       },
       "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "Custom::ECRRepository",
       "Version": "1.0"
     },
     "ServiceRole": {
