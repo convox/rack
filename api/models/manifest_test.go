@@ -11,31 +11,9 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/require"
 )
 
-type Cases []struct {
-	got, want interface{}
-}
-
-func assertFixture(t *testing.T, name string, primary string) {
-	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
-	require.Nil(t, err)
-
-	manifest, err := LoadManifest(string(data))
-	require.Nil(t, err)
-
-	for i, _ := range manifest {
-		if manifest[i].Name == primary {
-			manifest[i].primary = true
-		}
-	}
-
-	formation, err := manifest.Formation()
-	require.Nil(t, err)
-
-	data, err = ioutil.ReadFile(fmt.Sprintf("fixtures/%s.json", name))
-	require.Nil(t, err)
-
-	diff1 := strings.Split(strings.TrimSpace(string(data)), "\n")
-	diff2 := strings.Split(strings.TrimSpace(formation), "\n")
+func Diff(t *testing.T, name, s1, s2 string) {
+	diff1 := strings.Split(strings.TrimSpace(s1), "\n")
+	diff2 := strings.Split(strings.TrimSpace(s2), "\n")
 
 	diff := difflib.Diff(diff1, diff2)
 	diffs := []string{}
@@ -63,6 +41,32 @@ func assertFixture(t *testing.T, name string, primary string) {
 	if len(diffs) > 0 {
 		t.Errorf("Unexpected results for %s:\n%s", name, strings.Join(diffs, "\n"))
 	}
+}
+
+type Cases []struct {
+	got, want interface{}
+}
+
+func assertFixture(t *testing.T, name string, primary string) {
+	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
+	require.Nil(t, err)
+
+	manifest, err := LoadManifest(string(data))
+	require.Nil(t, err)
+
+	for i, _ := range manifest {
+		if manifest[i].Name == primary {
+			manifest[i].primary = true
+		}
+	}
+
+	formation, err := manifest.Formation()
+	require.Nil(t, err)
+
+	data, err = ioutil.ReadFile(fmt.Sprintf("fixtures/%s.json", name))
+	require.Nil(t, err)
+
+	Diff(t, name, string(data), formation)
 }
 
 func TestManifestInvalid(t *testing.T) {

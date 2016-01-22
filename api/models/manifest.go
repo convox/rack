@@ -19,13 +19,15 @@ type Manifest []ManifestEntry
 type ManifestEntry struct {
 	Name string
 
-	Build   string      `yaml:"build"`
-	Command interface{} `yaml:"command"`
-	Env     []string    `yaml:"environment"`
-	Image   string      `yaml:"image"`
-	Links   []string    `yaml:"links"`
-	Ports   []string    `yaml:"ports"`
-	Volumes []string    `yaml:"volumes"`
+	Build    string                   `yaml:"build"`
+	Command  interface{}              `yaml:"command"`
+	Env      []string                 `yaml:"environment"`
+	Exports  map[string]string        `yaml:"-"`
+	Image    string                   `yaml:"image"`
+	Links    []string                 `yaml:"links"`
+	LinkVars map[string]template.HTML `yaml:"-"`
+	Ports    []string                 `yaml:"ports"`
+	Volumes  []string                 `yaml:"volumes"`
 
 	primary bool
 	randoms map[string]int
@@ -146,6 +148,16 @@ func (m Manifest) Formation() (string, error) {
 	}
 
 	return pretty, nil
+}
+
+func (m Manifest) GetBalancer(name string) *ManifestBalancer {
+	for _, mb := range m.Balancers() {
+		if mb.Entry.Name == name {
+			return &mb
+		}
+	}
+
+	return nil
 }
 
 func (m Manifest) HasExternalPorts() bool {

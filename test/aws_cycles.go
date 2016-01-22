@@ -68,6 +68,13 @@ func DescribeAppStackResourcesCycle(stackName string) awsutil.Cycle {
 	}
 }
 
+func GetAppTemplateCycle(stackName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=GetTemplate&StackName=` + stackName + `&Version=2010-05-15`},
+		awsutil.Response{200, ""},
+	}
+}
+
 // returns the stack you asked for with a status
 func DescribeAppStatusStackCycle(stackName string, status string) awsutil.Cycle {
 	return awsutil.Cycle{

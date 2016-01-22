@@ -4,13 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/api/manifest"
@@ -75,47 +72,27 @@ func cmdStart(c *cli.Context) {
 		}
 	}
 
-	missing := m.MissingEnvironment()
-
-	if len(missing) > 0 {
-		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
-		return
-	}
-
-	wanted, err := m.PortsWanted()
+	conflicts, err := m.PortConflicts()
 
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	conflicts := make([]string, 0)
-
-	host := "127.0.0.1"
-
-	if h := os.Getenv("DOCKER_HOST"); h != "" {
-		u, err := url.Parse(h)
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		parts := strings.Split(u.Host, ":")
-		host = parts[0]
-	}
-
-	for _, p := range wanted {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, p), 200*time.Millisecond)
-
-		if err == nil {
-			conflicts = append(conflicts, p)
-			defer conn.Close()
-		}
-	}
-
 	if len(conflicts) > 0 {
 		stdcli.Error(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
+		return
+	}
+
+	missing, err := m.MissingEnvironment()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(missing) > 0 {
+		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
 		return
 	}
 

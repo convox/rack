@@ -420,6 +420,9 @@
       {{ range $key, $value := .EnvMap }}
         "{{ $key }}": "{{ $value }}",
       {{ end }}
+      {{ range $key, $value := .LinkVars }}
+        "{{ $key }}": {{ $value }},
+      {{ end }}
       "KINESIS": { "Ref": "Kinesis" },
       "LOG_GROUP": { "Ref": "LogGroup" },
       "PROCESS": "{{ .Name }}"

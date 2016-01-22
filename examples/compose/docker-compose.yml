@@ -8,3 +8,5 @@ web:
     - .:/app
 postgres:
   image: convox/postgres
+  ports:
+    - 5432

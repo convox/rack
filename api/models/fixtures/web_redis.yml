@@ -1,0 +1,12 @@
+web:
+  build: .
+  links:
+    - redis
+  ports:
+    - 80:3000
+redis:
+  image: convox/redis
+  environment:
+    - LINK_SCHEME=redis
+  ports:
+    - 6379
