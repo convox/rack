@@ -22,7 +22,6 @@ func TestInstanceList(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
 	aws := test.StubAws(
-		test.DescribeConvoxStackCycle("convox-test"),
 		test.ListContainerInstancesCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesCycle("convox-test-cluster"),
 		test.DescribeInstancesCycle(),

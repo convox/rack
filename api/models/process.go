@@ -146,8 +146,21 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
-	pending, _ := ListPendingProcesses(app)
+	pending, err := ListPendingProcesses(app)
+
+	if err != nil {
+		return nil, err
+	}
+
 	pss = append(pss, pending...)
+
+	oneoff, err := ListOneoffProcesses(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pss = append(pss, oneoff...)
 
 	sort.Sort(pss)
 
@@ -203,6 +216,49 @@ func ListPendingProcesses(app string) (Processes, error) {
 	}
 
 	return pss, nil
+}
+
+func ListOneoffProcesses(app string) (Processes, error) {
+	instances, err := ListInstances()
+
+	if err != nil {
+		return nil, err
+	}
+
+	procs := Processes{}
+
+	for _, instance := range instances {
+		d, err := instance.Docker()
+
+		if err != nil {
+			return nil, err
+		}
+
+		pss, err := d.ListContainers(docker.ListContainersOptions{
+			Filters: map[string][]string{
+				"label": []string{
+					"com.convox.rack.type=oneoff",
+					fmt.Sprintf("com.convox.rack.app=%s", app),
+				},
+			},
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, ps := range pss {
+			procs = append(procs, Process{
+				Id:      ps.ID[0:12],
+				Command: ps.Command,
+				Name:    ps.Labels["com.convox.rack.process"],
+				Release: ps.Labels["com.convox.rack.release"],
+				Started: time.Unix(ps.Created, 0),
+			})
+		}
+	}
+
+	return procs, nil
 }
 
 func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.ContainerDefinition, c ecs.Container, psch chan Process, errch chan error) {
@@ -413,6 +469,10 @@ func (p *Process) FetchStatsAsync(psch chan Process, errch chan error) {
 }
 
 func (p *Process) Stop() error {
+	if p.taskArn == "" {
+		return fmt.Errorf("can not stop one-off processes")
+	}
+
 	req := &ecs.StopTaskInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 		Task:    aws.String(p.taskArn),

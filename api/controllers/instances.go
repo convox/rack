@@ -25,17 +25,7 @@ func InstancesKeyroll(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.GetSystem()
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	instances, err := rack.GetInstances()
+	instances, err := models.ListInstances()
 
 	if err != nil {
 		return httperr.Server(err)

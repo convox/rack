@@ -2,6 +2,7 @@ package test
 
 import (
 	"net/http/httptest"
+	"os"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/api/config"
@@ -23,6 +24,7 @@ func StubDocker(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	s = httptest.NewServer(handler)
 
 	config.TestConfig.DockerHost = s.URL
+	os.Setenv("TEST_DOCKER_HOST", s.URL)
 
 	return s
 }
@@ -31,6 +33,20 @@ func ListContainersCycle() awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
 			RequestURI: "/containers/json?filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A901416387788%3Atask%2F320a8b6a-c243-47d3-a1d1-6db5dfcb3f58%22%2C%22com.amazonaws.ecs.container-name%3Dworker%22%5D%7D",
+			Operation:  "",
+			Body:       ``,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `[{"Id": "8dfafdbc3a40","Command": "echo 1"}]`,
+		},
+	}
+}
+
+func ListConvoxContainersCycle() awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/containers/json?filters=%7B%22label%22%3A%5B%22com.convox.rack.type%3Doneoff%22%2C%22com.convox.rack.app%3Dmyapp-staging%22%5D%7D",
 			Operation:  "",
 			Body:       ``,
 		},
