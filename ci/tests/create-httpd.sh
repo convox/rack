@@ -21,9 +21,14 @@ convox logs --app $APP_NAME > $CIRCLE_ARTIFACTS/$APP_NAME.log &
 
 convox deploy --app $APP_NAME
 
-sleep 240
+echo "waiting for the ELB..."
+sleep 60
 
-curl -m2 http://$(convox apps info --app httpd-${CIRCLE_BUILD_NUM} | egrep -o 'httpd.*.amazonaws.com'):3000
+url=http://$(convox apps info --app httpd-${CIRCLE_BUILD_NUM} | egrep -o 'httpd.*.amazonaws.com'):3000
+while ! curl -m2 $url; do
+  echo "still waiting for the ELB..."
+  sleep 10
+done
 
 convox apps delete $APP_NAME
 
