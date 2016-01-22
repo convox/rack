@@ -1,5 +1,8 @@
 # Rack Master Release
 
+- create the release in slack
+  /release create
+
 - confirm all changes are in master
 
   `git checkout master`

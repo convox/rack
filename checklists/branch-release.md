@@ -1,5 +1,8 @@
 # Rack Branch Release
 
+- create the release in slack
+  /release create <branch-name>
+
 - confirm you are on the right branch
 
   `git status`
