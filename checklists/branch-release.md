@@ -15,6 +15,11 @@
 
   `convox switch demo`
 
+- observe process formation and version
+
+  `convox rack`
+  `convox ps -a demo`
+
 - upgrade demo to the branch
 
   ```
@@ -24,9 +29,22 @@
     head -n1)
   ```
 
-- demo is on the right version
+- login to console and watch cloudformation
+
+Upgrading takes some time. Short upgrades include
+just starting new Rack processes and can take
+around 5 minutes. Rolling instances can take a lot longer.
+
+  `open https://console.aws.amazon.com/`
+
+  wait for "UPDATE_COMPLETE"
+
+- confirm upgrade
 
   `convox rack`
+
+- confirm processes back
+
   `convox ps -a demo`
 
-- demo is working
+- test release
