@@ -13,6 +13,7 @@ test:
     - ci/tests/create-httpd.sh
   post:
     - ci/test-post.sh
+    - ci/test-cleanup.sh
 
 general:
   branches:
