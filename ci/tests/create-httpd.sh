@@ -30,9 +30,4 @@ while ! curl -m2 $url; do
   sleep 10
 done
 
-convox apps delete $APP_NAME
-
-while convox apps info --app $APP_NAME | grep -i deleting; do
-  echo "app deleting"
-  sleep 10
-done
+echo "app created and deployed!"
