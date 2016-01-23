@@ -13,20 +13,22 @@ cd ci/examples/httpd
 convox apps create $APP_NAME
 
 while convox apps info --app $APP_NAME | grep -i creating; do
-  echo "app creating"
-  sleep 10
+  echo "app creating..."
+  sleep 20
 done
 
 convox logs --app $APP_NAME > $CIRCLE_ARTIFACTS/$APP_NAME.log &
 
 convox deploy --app $APP_NAME
 
-echo "waiting for the ELB..."
-sleep 60
+while convox apps info --app $APP_NAME | grep -i updating; do
+  echo "app updating..."
+  sleep 20
+done
 
-url=http://$(convox apps info --app httpd-${CIRCLE_BUILD_NUM} | egrep -o 'httpd.*.amazonaws.com'):3000
+url="http://$(convox apps info --app httpd-${CIRCLE_BUILD_NUM} | egrep -o 'httpd.*.amazonaws.com'):3000"
 while ! curl -m2 $url; do
-  echo "still waiting for the ELB..."
+  echo "waiting for the ELB..."
   sleep 10
 done
 
