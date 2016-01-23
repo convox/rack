@@ -36,8 +36,6 @@ jq -s 'sort_by(.timestamp)' $CIRCLE_ARTIFACTS/get-log-events-unsorted.json > $CI
 for stack in $(aws cloudformation list-stacks | jq -r ".StackSummaries[] | select(.StackName | endswith(\"-$CIRCLE_BUILD_NUM\")) | .StackName"); do
   aws cloudformation describe-stacks       --stack-name $stack | tee $CIRCLE_ARTIFACTS/describe-stacks-$stack.json
   aws cloudformation describe-stack-events --stack-name $stack | tee $CIRCLE_ARTIFACTS/describe-stack-events-$stack.json
-
-  aws cloudformation delete-stack --stack-name $stack
 done
 
 # describe possible DELETE_COMPLETE kernel and app stacks from latest build
