@@ -407,7 +407,14 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		}
 	}
 
-	image := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
+	var image string
+
+	if registryId := a.Outputs["RegistryId"]; registryId != "" {
+		image = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"], me.Name, release.Build)
+	} else {
+		image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
+	}
+	fmt.Println(image)
 
 	d, err := Docker(host)
 
@@ -415,8 +422,16 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return err
 	}
 
+	var repository string
+
+	if registryId := a.Outputs["RegistryId"]; registryId != "" {
+		repository = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"])
+	} else {
+		repository = fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name)
+	}
+
 	err = d.PullImage(docker.PullImageOptions{
-		Repository: fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name),
+		Repository: repository,
 		Tag:        release.Build,
 	}, docker.AuthConfiguration{
 		ServerAddress: os.Getenv("REGISTRY_HOST"),
