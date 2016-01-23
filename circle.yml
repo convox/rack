@@ -12,7 +12,9 @@ test:
   override:
     - ci/tests/create-httpd.sh
   post:
+    - ci/delete-all-apps.sh
     - ci/test-post.sh
+    - ci/test-cleanup.sh
 
 general:
   branches:
