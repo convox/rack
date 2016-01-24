@@ -605,7 +605,7 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 
 			fmt.Printf("Skipped %s: %s\n", name, id)
 		case "DELETE_FAILED":
-			return fmt.Errorf("stack deletion failed")
+			fmt.Printf("Failed to delete %s: %s\n", name, id)
 		case "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE":
 		case "UPDATE_IN_PROGRESS", "UPDATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_FAILED", "UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_FAILED":
 		default:
