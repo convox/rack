@@ -16,8 +16,3 @@ test:
     - ci/test-post.sh:
         timeout: 1800
     - ci/test-cleanup.sh
-
-general:
-  branches:
-     only:
-       - master
