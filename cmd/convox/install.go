@@ -428,8 +428,23 @@ func cmdUninstall(c *cli.Context) {
 	_, err = waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
-		handleError("uninstall", distinctId, err)
-		return
+		sendMixpanelEvent("convox-uninstall-retry", "")
+
+		_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+			StackName: aws.String(stackId),
+		})
+
+		if err != nil {
+			handleError("uninstall", distinctId, err)
+			return
+		}
+
+		_, err = waitForCompletion(stackId, CloudFormation, true)
+
+		if err != nil {
+			handleError("uninstall", distinctId, err)
+			return
+		}
 	}
 
 	host := ""
