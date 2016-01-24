@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Running locally:
+#
+#   export CIRCLE_ARTIFACTS=/tmp/
+#   export CIRCLE_BUILD_NUM=0
+#   ./ci/tests/example-app <repo from node-example>
+
+set -ex
+
+export EXAMPLE_NAME=$1
+
+# inferred
+export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
+export APP_NAME=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
+export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
+
+# so we reuse
+wait_for_app_state() {
+
+while convox apps info --app $APP_NAME | grep -i $1; do
+  sleep 20
+done
+
+}
+
+convox logs --app $STACK_NAME > $CIRCLE_ARTIFACTS/convox.log &
+
+git clone git@github.com:convox-examples/${EXAMPLE_NAME}.git
+cd ${EXAMPLE_NAME}
+
+convox apps create $APP_NAME
+
+wait_for_app_state creating
+
+convox logs --app $APP_NAME > $CIRCLE_ARTIFACTS/$APP_NAME.log &
+
+convox deploy --app $APP_NAME
+
+wait_for_app_state updating
+
+convox apps info --app $APP_NAME
+
+#note: would like to do something like: `convox apps endpoint web --port 80`
+url=http://$(convox apps info --app $APP_NAME | egrep -o "${EXAMPLE_NAME}.*.amazonaws.com:80")
+while ! curl -m2 $url; do
+  sleep 10
+done
+
+convox apps info -app $APP_NAME
+
+convox scale web --count 2 --memory 1024 --app $APP_NAME
+
+wait_for_app_state updating
+
+convox ps --app $APP_NAME
+
+convox run --app $APP_NAME web echo "hello world" | grep "hello world"
