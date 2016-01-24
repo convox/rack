@@ -1,11 +1,13 @@
 package models
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/api/helpers"
@@ -14,6 +16,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
@@ -407,7 +410,46 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		}
 	}
 
-	image := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
+	var image, repository, tag, username, password, serverAddress string
+
+	if registryId := a.Outputs["RegistryId"]; registryId != "" {
+		image = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"], me.Name, release.Build)
+		repository = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"])
+		tag = fmt.Sprintf("%s.%s", me.Name, release.Build)
+
+		resp, err := ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+			RegistryIds: []*string{aws.String(a.Outputs["RegistryId"])},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if len(resp.AuthorizationData) < 1 {
+			return fmt.Errorf("no authorization data")
+		}
+
+		endpoint := *resp.AuthorizationData[0].ProxyEndpoint
+		serverAddress = endpoint[8:]
+
+		data, err := base64.StdEncoding.DecodeString(*resp.AuthorizationData[0].AuthorizationToken)
+
+		if err != nil {
+			return err
+		}
+
+		parts := strings.SplitN(string(data), ":", 2)
+
+		username = parts[0]
+		password = parts[1]
+	} else {
+		image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
+		repository = fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name)
+		tag = release.Build
+		serverAddress = os.Getenv("REGISTRY_HOST")
+		username = "convox"
+		password = os.Getenv("PASSWORD")
+	}
 
 	d, err := Docker(host)
 
@@ -416,12 +458,12 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 	}
 
 	err = d.PullImage(docker.PullImageOptions{
-		Repository: fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name),
-		Tag:        release.Build,
+		Repository: repository,
+		Tag:        tag,
 	}, docker.AuthConfiguration{
-		ServerAddress: os.Getenv("REGISTRY_HOST"),
-		Username:      "convox",
-		Password:      os.Getenv("PASSWORD"),
+		ServerAddress: serverAddress,
+		Username:      username,
+		Password:      password,
 	})
 
 	if err != nil {
