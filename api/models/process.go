@@ -154,13 +154,15 @@ func ListProcesses(app string) (Processes, error) {
 
 	pss = append(pss, pending...)
 
-	oneoff, err := ListOneoffProcesses(app)
+	// This codepath gets the wrong IP for the Docker host
+	// It should get the internal IP running on AWS
+	// oneoff, err := ListOneoffProcesses(app)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	pss = append(pss, oneoff...)
+	// pss = append(pss, oneoff...)
 
 	sort.Sort(pss)
 
