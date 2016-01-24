@@ -13,7 +13,8 @@ test:
     - ci/tests/create-httpd.sh
   post:
     - ci/delete-all-apps.sh
-    - ci/test-post.sh
+    - ci/test-post.sh:
+        timeout: 1800
     - ci/test-cleanup.sh
 
 general:
