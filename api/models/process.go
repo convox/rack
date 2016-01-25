@@ -42,7 +42,7 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 	resources, err := ListResources(app)
 
 	if err != nil {
-		return services, err
+		return nil, err
 	}
 
 	arns := []*string{}
@@ -63,7 +63,7 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 			})
 
 			if err != nil {
-				return services, err
+				return nil, err
 			}
 
 			services = append(services, dres.Services...)
