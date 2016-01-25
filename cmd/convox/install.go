@@ -392,6 +392,14 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Uninstalling Convox...")
 
+	// CF Stack Delete and Retry could take 30+ minutes. Periodically generate more progress output.
+	go func() {
+		t := time.Tick(2 * time.Minute)
+		for range t {
+			fmt.Println("Uninstalling Convox...")
+		}
+	}()
+
 	distinctId := randomString(10)
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
