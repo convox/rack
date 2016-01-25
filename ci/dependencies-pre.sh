@@ -5,7 +5,7 @@ VERSION=${VERSION:-ci}
 
 # install utilities
 curl -O http://stedolan.github.io/jq/download/linux64/jq && chmod +x jq && sudo mv jq /usr/local/bin
-sudo pip install awscli
+sudo pip install awscli --upgrade
 
 # build and install with VERSION
 go get -d github.com/convox/rack/cmd/convox

@@ -7,8 +7,18 @@ export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 export TEMPLATE_FILE=api/dist/kernel.json
 
-# Clean S3 Buckets
-aws s3 ls | grep "\-$CIRCLE_BUILD_NUM\-" | cut -d" " -f3 | xargs -L1 -I% aws s3 rb --force s3://%
+# Clean leaked S3 Buckets, Repositories and Log Groups
+aws s3api list-buckets |\
+  jq ".Buckets[] | select(.Name | contains(\"-$CIRCLE_BUILD_NUM-\")) | .Name" |\
+  xargs -L1 -I% aws s3 rb --force s3://%
+
+aws ecr describe-repositories |\
+  jq ".repositories[] | select(.repositoryName | contains(\"-$CIRCLE_BUILD_NUM-\")) | .repositoryName" |\
+  xargs -L1 aws ecr delete-repository --force --repository-name
+
+aws logs describe-log-groups |\
+  jq ".logGroups[] | select(.logGroupName | contains(\"-$CIRCLE_BUILD_NUM-\")) | .logGroupName" |\
+  xargs -L1 aws logs delete-log-group --log-group-name
 
 # Save ECS Artifacts
 aws ecs list-clusters | tee $CIRCLE_ARTIFACTS/list-clusters.json

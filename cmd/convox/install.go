@@ -392,6 +392,14 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Uninstalling Convox...")
 
+	// CF Stack Delete and Retry could take 30+ minutes. Periodically generate more progress output.
+	go func() {
+		t := time.Tick(2 * time.Minute)
+		for range t {
+			fmt.Println("Uninstalling Convox...")
+		}
+	}()
+
 	distinctId := randomString(10)
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
@@ -428,8 +436,23 @@ func cmdUninstall(c *cli.Context) {
 	_, err = waitForCompletion(stackId, CloudFormation, true)
 
 	if err != nil {
-		handleError("uninstall", distinctId, err)
-		return
+		sendMixpanelEvent("convox-uninstall-retry", "")
+
+		_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
+			StackName: aws.String(stackId),
+		})
+
+		if err != nil {
+			handleError("uninstall", distinctId, err)
+			return
+		}
+
+		_, err = waitForCompletion(stackId, CloudFormation, true)
+
+		if err != nil {
+			handleError("uninstall", distinctId, err)
+			return
+		}
 	}
 
 	host := ""
@@ -590,7 +613,13 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 
 			fmt.Printf("Skipped %s: %s\n", name, id)
 		case "DELETE_FAILED":
-			return fmt.Errorf("stack deletion failed")
+			id := *event.PhysicalResourceId
+
+			if strings.HasPrefix(id, "arn:") {
+				id = *event.LogicalResourceId
+			}
+
+			fmt.Printf("Failed to delete %s: %s\n", name, id)
 		case "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE":
 		case "UPDATE_IN_PROGRESS", "UPDATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_FAILED", "UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_FAILED":
 		default:
