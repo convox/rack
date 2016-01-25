@@ -370,6 +370,17 @@ func cmdUninstall(c *cli.Context) {
 		if len(apps) != 0 {
 			stdcli.Error(fmt.Errorf("Please delete all apps before uninstalling."))
 		}
+
+		services, err := rackClient(c).GetServices()
+
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+
+		if len(services) != 0 {
+			stdcli.Error(fmt.Errorf("Please delete all services before uninstalling."))
+		}
 	}
 
 	fmt.Println(Banner)
