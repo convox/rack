@@ -47,22 +47,31 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 
 	arns := []*string{}
 
+	i := 0
 	for _, r := range resources {
+		i = i + 1
+
 		if r.Type == "Custom::ECSService" {
 			arns = append(arns, aws.String(r.Id))
 		}
+
+		//have to make requests in batches of ten
+		if len(arns) == 10 || i == len(resources) {
+			dres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
+				Cluster:  aws.String(os.Getenv("CLUSTER")),
+				Services: arns,
+			})
+
+			if err != nil {
+				return services, err
+			}
+
+			services = append(services, dres.Services...)
+			arns = []*string{}
+		}
 	}
 
-	dres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: arns,
-	})
-
-	if err != nil {
-		return services, err
-	}
-
-	return dres.Services, nil
+	return services, nil
 }
 
 func ListProcesses(app string) (Processes, error) {
@@ -87,6 +96,7 @@ func ListProcesses(app string) (Processes, error) {
 		Tasks:   res.TaskArns,
 	}
 
+	//NOTE: we don't handle this error right away
 	tres, err := ECS().DescribeTasks(treq)
 
 	psch := make(chan Process)
