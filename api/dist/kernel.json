@@ -662,7 +662,7 @@
       }
     },
     "Instances": {
-      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1", "Subnet2" ],
+      "DependsOn": [ "AvailabilityZones", "GatewayAttachment", "Subnet0", "Subnet1", "Subnet2" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
@@ -737,7 +737,7 @@
       }
     },
     "Balancer": {
-      "DependsOn": [ "BalancerSecurityGroup", "Subnet0", "Subnet1", "Subnet2" ],
+      "DependsOn": [ "BalancerSecurityGroup", "GatewayAttachment", "Subnet0", "Subnet1", "Subnet2" ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
