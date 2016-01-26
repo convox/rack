@@ -17,10 +17,11 @@ track(){
       \"userId\": \"circleci\",
       \"event\": \"command\",
       \"properties\": {
-        \"cmd\": \"$1\",
+        \"branch\": \"$CIRCLE_BRANCH\",
         \"code\": $2,
-        \"seconds\": $3,
-        \"region\": \"$AWS_REGION\"
+        \"cmd\": \"$1\",
+        \"region\": \"$AWS_REGION\",
+        \"seconds\": $3
       }
     }"
 }
