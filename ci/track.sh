@@ -10,7 +10,7 @@
 SECONDS=0
 
 track(){
-  curl -vi https://api.segment.io/v1/track      \
+  curl -s https://api.segment.io/v1/track       \
     -H "Content-Type: application/json" -X POST \
     --user $SEGMENT_WRITE_KEY:                  \
     -d "{
@@ -25,8 +25,6 @@ track(){
       }
     }"
 }
-
-set -x
 
 "$@"
 
