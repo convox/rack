@@ -20,3 +20,9 @@ test:
         parallel: true
     - ci/track.sh ci/test-cleanup.sh:
         parallel: true
+
+deployment:
+  release:
+    branch: master
+    commands:
+      - ci/track.sh ci/release.sh
