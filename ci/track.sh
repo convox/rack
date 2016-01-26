@@ -10,6 +10,7 @@
 SECONDS=0
 
 track(){
+  echo "track $1 $2 $3: "
   curl -s https://api.segment.io/v1/track       \
     -H "Content-Type: application/json" -X POST \
     --user $SEGMENT_WRITE_KEY:                  \
