@@ -19,7 +19,8 @@ track(){
       \"properties\": {
         \"cmd\": \"$1\",
         \"code\": $2,
-        \"seconds\": $3
+        \"seconds\": $3,
+        \"region\": \"$AWS_REGION\"
       }
     }"
 }
