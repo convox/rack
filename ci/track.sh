@@ -15,15 +15,14 @@ track(){
     -H "Content-Type: application/json" -X POST \
     --user $SEGMENT_WRITE_KEY:                  \
     -d "{
-      \"userId\": \"ci\",
+      \"userId\": \"circleci\",
       \"event\": \"CI Command\",
       \"properties\": {
         \"branch\": \"$CIRCLE_BRANCH\",
         \"code\": $2,
         \"cmd\": \"$1\",
         \"region\": \"$AWS_REGION\",
-        \"seconds\": $3,
-        \"service\": \"circleci\"
+        \"seconds\": $3
       }
     }"
 }
