@@ -8,10 +8,15 @@ dependencies:
 
 test:
   pre:
-    - ci/test-pre.sh
+    - ci/test-pre.sh:
+        parallel: true
   override:
-    - ci/tests/create-httpd.sh
+    - ci/tests/create-httpd.sh:
+        parallel: true
   post:
-    - ci/delete-all-apps.sh
-    - ci/test-post.sh
-    - ci/test-cleanup.sh
+    - ci/delete-all-apps.sh:
+        parallel: true
+    - ci/test-post.sh:
+        parallel: true
+    - ci/test-cleanup.sh:
+        parallel: true
