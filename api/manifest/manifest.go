@@ -332,13 +332,9 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 			return linkVars, err
 		}
 
-		port := linkEntryEnv["LINK_PORT"]
-		if port == "" {
-			port, err = resolveOtherPort(link, linkEntry)
-
-			if err != nil {
-				return linkVars, err
-			}
+		port, err := resolveOtherPort(link, linkEntry)
+		if err != nil {
+			return linkVars, err
 		}
 
 		linkUrl := url.URL{

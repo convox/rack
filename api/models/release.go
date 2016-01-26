@@ -384,15 +384,12 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 			}
 			host := fmt.Sprintf(`{ "Fn::GetAtt" : [ "%s", "DNSName" ] }`, mb.ResourceName())
 
-			port := other.Exports["LINK_PORT"]
-			if port == "" {
-				if len(other.Ports) == 0 {
-					return m, fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
-				}
-
-				port = other.Ports[0]
-				port = strings.Split(port, ":")[0]
+			if len(other.Ports) == 0 {
+				return m, fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
 			}
+
+			port := other.Ports[0]
+			port = strings.Split(port, ":")[0]
 
 			path := other.Exports["LINK_PATH"]
 
