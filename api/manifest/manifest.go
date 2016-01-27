@@ -349,8 +349,14 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 			linkUrl.User = url.UserPassword(linkEntryEnv["LINK_USERNAME"], linkEntryEnv["LINK_PASSWORD"])
 		}
 
-		varName := strings.ToUpper(link) + "_URL"
-		linkVars[varName] = linkUrl.String()
+		prefix := strings.ToUpper(link) + "_"
+		linkVars[prefix+"URL"] = linkUrl.String()
+		linkVars[prefix+"HOST"] = host
+		linkVars[prefix+"SCHEME"] = scheme
+		linkVars[prefix+"PORT"] = port
+		linkVars[prefix+"USERNAME"] = linkEntryEnv["LINK_USERNAME"]
+		linkVars[prefix+"PASSWORD"] = linkEntryEnv["LINK_PASSWORD"]
+		linkVars[prefix+"PATH"] = linkEntryEnv["LINK_PATH"]
 	}
 
 	return linkVars, nil
