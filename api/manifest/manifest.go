@@ -335,7 +335,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 		// we don't create a balancer without a port,
 		// so we don't create a link url either
 		port := resolveOtherPort(link, linkEntry)
-		if port != "" {
+		if port == "" {
 			continue
 		}
 
