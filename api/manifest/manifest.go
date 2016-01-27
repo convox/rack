@@ -283,6 +283,8 @@ func (me *ManifestEntry) ResolvedEnvironment(m *Manifest) ([]string, error) {
 		r = append([]string{env}, r...)
 	}
 
+	sort.Strings(r)
+
 	return r, nil
 }
 
