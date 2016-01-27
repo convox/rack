@@ -899,38 +899,40 @@ func dockerHost() (host string) {
 func getLinkEntryEnv(linkEntry ManifestEntry) (map[string]string, error) {
 	linkEntryEnv := make(map[string]string)
 
-	pull := Execer("docker", "pull", linkEntry.Image)
-	err := pull.Run()
-	if err != nil {
-		return linkEntryEnv, fmt.Errorf("could not pull container %q: %s", linkEntry.Image, err.Error())
-	}
-
-	cmd := Execer("docker", "inspect", linkEntry.Image)
-	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		return linkEntryEnv, fmt.Errorf("could not inspect container %q: %s", linkEntry.Image, err.Error())
-	}
-
-	var inspect []struct {
-		Config struct {
-			Env []string
+	if linkEntry.Image != "" {
+		pull := Execer("docker", "pull", linkEntry.Image)
+		err := pull.Run()
+		if err != nil {
+			return linkEntryEnv, fmt.Errorf("could not pull container %q: %s", linkEntry.Image, err.Error())
 		}
-	}
 
-	err = json.Unmarshal(output, &inspect)
-	if err != nil {
-		return linkEntryEnv, err
-	}
+		cmd := Execer("docker", "inspect", linkEntry.Image)
+		output, err := cmd.CombinedOutput()
 
-	if len(inspect) < 1 {
-		return linkEntryEnv, fmt.Errorf("could not inspect container %q", linkEntry.Image)
-	}
+		if err != nil {
+			return linkEntryEnv, fmt.Errorf("could not inspect container %q: %s", linkEntry.Image, err.Error())
+		}
 
-	for _, val := range inspect[0].Config.Env {
-		parts := strings.SplitN(val, "=", 2)
-		if len(parts) == 2 {
-			linkEntryEnv[parts[0]] = parts[1]
+		var inspect []struct {
+			Config struct {
+				Env []string
+			}
+		}
+
+		err = json.Unmarshal(output, &inspect)
+		if err != nil {
+			return linkEntryEnv, err
+		}
+
+		if len(inspect) < 1 {
+			return linkEntryEnv, fmt.Errorf("could not inspect container %q", linkEntry.Image)
+		}
+
+		for _, val := range inspect[0].Config.Env {
+			parts := strings.SplitN(val, "=", 2)
+			if len(parts) == 2 {
+				linkEntryEnv[parts[0]] = parts[1]
+			}
 		}
 	}
 
