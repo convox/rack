@@ -1,12 +1,11 @@
 #!/bin/bash
-#
+set -ex
+
 # Running locally:
 #
 #   export CIRCLE_ARTIFACTS=/tmp/
 #   export CIRCLE_BUILD_NUM=0
 #   ./ci/tests/example-app <repo from node-example>
-
-set -ex
 
 export EXAMPLE_NAME=$1
 
