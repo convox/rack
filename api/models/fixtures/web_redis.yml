@@ -8,5 +8,8 @@ redis:
   image: convox/redis
   environment:
     - LINK_SCHEME=redis
+    - LINK_USERNAME=user
+    - LINK_PASSWORD=pass-the-word
+    - LINK_PATH=/0
   ports:
     - 6379

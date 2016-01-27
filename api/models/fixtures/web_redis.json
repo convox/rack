@@ -711,7 +711,10 @@
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
+                  "LINK_PASSWORD": "pass-the-word",
+                  "LINK_PATH": "/0",
                   "LINK_SCHEME": "redis",
+                  "LINK_USERNAME": "user",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
@@ -940,13 +943,23 @@
                     "Ref": "LogGroup"
                   },
                   "PROCESS": "web",
+                  "REDIS_HOST": {
+                    "Fn::GetAtt": [
+                      "BalancerRedisInternal",
+                      "DNSName"
+                    ]
+                  },
+                  "REDIS_PASSWORD": "pass-the-word",
+                  "REDIS_PATH": "/0",
+                  "REDIS_PORT": "6379",
+                  "REDIS_SCHEME": "redis",
                   "REDIS_URL": {
                     "Fn::Join": [
                       "",
                       [
                         "redis",
                         "://",
-                        "",
+                        "user:pass-the-word@",
                         {
                           "Fn::GetAtt": [
                             "BalancerRedisInternal",
@@ -955,10 +968,11 @@
                         },
                         ":",
                         "6379",
-                        ""
+                        "/0"
                       ]
                     ]
-                  }
+                  },
+                  "REDIS_USERNAME": "user"
                 },
                 "Image": "/web-web:DEADBEEF",
                 "Memory": {

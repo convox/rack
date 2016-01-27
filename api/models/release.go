@@ -410,11 +410,11 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 			prefix := strings.ToUpper(link) + "_"
 
 			entry.LinkVars[prefix+"HOST"] = template.HTML(host)
-			entry.LinkVars[prefix+"SCHEME"] = template.HTML(scheme)
-			entry.LinkVars[prefix+"PORT"] = template.HTML(port)
-			entry.LinkVars[prefix+"PASSWORD"] = template.HTML(other.Exports["LINK_PASSWORD"])
-			entry.LinkVars[prefix+"USERNAME"] = template.HTML(other.Exports["LINK_USERNAME"])
-			entry.LinkVars[prefix+"PATH"] = template.HTML(path)
+			entry.LinkVars[prefix+"SCHEME"] = template.HTML(fmt.Sprintf("%q", scheme))
+			entry.LinkVars[prefix+"PORT"] = template.HTML(fmt.Sprintf("%q", port))
+			entry.LinkVars[prefix+"PASSWORD"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_PASSWORD"]))
+			entry.LinkVars[prefix+"USERNAME"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_USERNAME"]))
+			entry.LinkVars[prefix+"PATH"] = template.HTML(fmt.Sprintf("%q", path))
 			entry.LinkVars[prefix+"URL"] = template.HTML(html)
 			m[i] = entry
 		}
