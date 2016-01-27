@@ -314,97 +314,40 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 	}
 
 	for _, link := range me.Links {
-		other := (*m)[link]
-		var port string
+		linkEntry := (*m)[link]
 
-		noPortsErr := fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
-		switch t := other.Ports.(type) {
-		case []string:
-			if len(t) < 1 {
-				return linkVars, noPortsErr
-			}
-
-			port = t[0]
-		case []interface{}:
-			if len(t) < 1 {
-				return linkVars, noPortsErr
-			}
-
-			port = fmt.Sprintf("%v", t[0])
-		}
-
-		if port == "" {
-			return linkVars, noPortsErr
-		}
-
-		pull := Execer("docker", "pull", other.Image)
-		err := pull.Run()
-		if err != nil {
-			return linkVars, fmt.Errorf("could not pull container %q: %s", other.Image, err.Error())
-		}
-
-		cmd := Execer("docker", "inspect", other.Image)
-		output, err := cmd.CombinedOutput()
-
-		if err != nil {
-			return linkVars, fmt.Errorf("could not inspect container %q: %s", other.Image, err.Error())
-		}
-
-		var inspect []struct {
-			Config struct {
-				Env []string
-			}
-		}
-
-		err = json.Unmarshal(output, &inspect)
+		linkEntryEnv, err := getLinkEntryEnv(linkEntry)
 		if err != nil {
 			return linkVars, err
 		}
 
-		if len(inspect) < 1 {
-			return linkVars, fmt.Errorf("could not inspect container %q", other.Image)
-		}
-
-		otherEnv := make(map[string]string)
-		for _, val := range inspect[0].Config.Env {
-			parts := strings.SplitN(val, "=", 2)
-			otherEnv[parts[0]] = parts[1]
-		}
-
-		//override with manifest env
-		for _, value := range other.EnvironmentArray() {
-			parts := strings.SplitN(value, "=", 2)
-			otherEnv[parts[0]] = parts[1]
-		}
-
-		varName := strings.ToUpper(link) + "_URL"
-		cmd = Execer("docker", "run", "convox/docker-gateway")
-		output, err = cmd.Output()
-		if err != nil {
-			return linkVars, err
-		}
-
-		host := strings.TrimSpace(string(output))
-		if port != "" {
-			port = strings.Split(port, ":")[0]
-			host = host + ":" + port
-		}
-
-		scheme := otherEnv["LINK_SCHEME"]
+		// get url parts from various places
+		scheme := linkEntryEnv["LINK_SCHEME"]
 		if scheme == "" {
 			scheme = "tcp"
 		}
 
+		host, err := getDockerGateway()
+		if err != nil {
+			return linkVars, err
+		}
+
+		port, err := resolveOtherPort(link, linkEntry)
+		if err != nil {
+			return linkVars, err
+		}
+
 		linkUrl := url.URL{
 			Scheme: scheme,
-			Host:   host,
-			Path:   otherEnv["LINK_PATH"],
+			Host:   host + ":" + port,
+			Path:   linkEntryEnv["LINK_PATH"],
 		}
 
-		if otherEnv["LINK_USERNAME"] != "" || otherEnv["LINK_PASSWORD"] != "" {
-			linkUrl.User = url.UserPassword(otherEnv["LINK_USERNAME"], otherEnv["LINK_PASSWORD"])
+		if linkEntryEnv["LINK_USERNAME"] != "" || linkEntryEnv["LINK_PASSWORD"] != "" {
+			linkUrl.User = url.UserPassword(linkEntryEnv["LINK_USERNAME"], linkEntryEnv["LINK_PASSWORD"])
 		}
 
+		varName := strings.ToUpper(link) + "_URL"
 		linkVars[varName] = linkUrl.String()
 	}
 
@@ -949,4 +892,93 @@ func dockerHost() (host string) {
 	}
 
 	return
+}
+
+// gets link entry env by pulling and inspecting the image for LINK_ vars
+// overrides with vars specififed in the link's manifest
+func getLinkEntryEnv(linkEntry ManifestEntry) (map[string]string, error) {
+	linkEntryEnv := make(map[string]string)
+
+	pull := Execer("docker", "pull", linkEntry.Image)
+	err := pull.Run()
+	if err != nil {
+		return linkEntryEnv, fmt.Errorf("could not pull container %q: %s", linkEntry.Image, err.Error())
+	}
+
+	cmd := Execer("docker", "inspect", linkEntry.Image)
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return linkEntryEnv, fmt.Errorf("could not inspect container %q: %s", linkEntry.Image, err.Error())
+	}
+
+	var inspect []struct {
+		Config struct {
+			Env []string
+		}
+	}
+
+	err = json.Unmarshal(output, &inspect)
+	if err != nil {
+		return linkEntryEnv, err
+	}
+
+	if len(inspect) < 1 {
+		return linkEntryEnv, fmt.Errorf("could not inspect container %q", linkEntry.Image)
+	}
+
+	for _, val := range inspect[0].Config.Env {
+		parts := strings.SplitN(val, "=", 2)
+		if len(parts) == 2 {
+			linkEntryEnv[parts[0]] = parts[1]
+		}
+	}
+
+	//override with manifest env
+	for _, value := range linkEntry.EnvironmentArray() {
+		parts := strings.SplitN(value, "=", 2)
+		if len(parts) == 2 {
+			linkEntryEnv[parts[0]] = parts[1]
+		}
+	}
+
+	return linkEntryEnv, nil
+}
+
+// gets port from linkEntry's manifest
+// throws error for no ports
+// uses first port in the list otherwise
+// uses exposed side of p1:p2 port mappings (p1)
+func resolveOtherPort(name string, linkEntry ManifestEntry) (string, error) {
+	var port string
+	noPortsErr := fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", name)
+	switch t := linkEntry.Ports.(type) {
+	case []string:
+		if len(t) < 1 {
+			return "", noPortsErr
+		}
+
+		port = t[0]
+	case []interface{}:
+		if len(t) < 1 {
+			return "", noPortsErr
+		}
+
+		port = fmt.Sprintf("%v", t[0])
+	}
+
+	port = strings.Split(port, ":")[0]
+	return port, nil
+}
+
+// gets ip address for docker gateway for network lookup
+func getDockerGateway() (string, error) {
+	cmd := Execer("docker", "run", "convox/docker-gateway")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	host := strings.TrimSpace(string(output))
+	return host, nil
 }

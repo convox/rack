@@ -358,8 +358,10 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 		for _, val := range linkableEnvs {
 			if strings.HasPrefix(val, "LINK_") {
 				parts := strings.SplitN(val, "=", 2)
-				entry.Exports[parts[0]] = parts[1]
-				m[i] = entry
+				if len(parts) == 2 {
+					entry.Exports[parts[0]] = parts[1]
+					m[i] = entry
+				}
 			}
 		}
 	}
@@ -373,21 +375,23 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 				return m, fmt.Errorf("Cannot find link %q", link)
 			}
 
-			if len(other.Ports) == 0 {
-				return m, fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
-			}
-
-			if len(other.Ports) > 1 {
-				return m, fmt.Errorf("Cannot link to %q because it exposes too many ports", link)
-			}
-
-			port := other.Ports[0]
-			port = strings.Split(port, ":")[0]
-
 			scheme := other.Exports["LINK_SCHEME"]
 			if scheme == "" {
 				scheme = "tcp"
 			}
+
+			mb := manifest.GetBalancer(link)
+			if mb == nil {
+				return m, fmt.Errorf("Cannot discover balancer for link %q", link)
+			}
+			host := fmt.Sprintf(`{ "Fn::GetAtt" : [ "%s", "DNSName" ] }`, mb.ResourceName())
+
+			if len(other.Ports) == 0 {
+				return m, fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", link)
+			}
+
+			port := other.Ports[0]
+			port = strings.Split(port, ":")[0]
 
 			path := other.Exports["LINK_PATH"]
 
@@ -396,12 +400,6 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 				userInfo = fmt.Sprintf("%s:%s@", other.Exports["LINK_USERNAME"], other.Exports["LINK_PASSWORD"])
 			}
 
-			mb := manifest.GetBalancer(link)
-			if mb == nil {
-				return m, fmt.Errorf("Cannot discover balancer for link %q", link)
-			}
-
-			host := fmt.Sprintf(`{ "Fn::GetAtt" : [ "%s", "DNSName" ] }`, mb.ResourceName())
 			html := fmt.Sprintf(`{ "Fn::Join": [ "", [ "%s", "://", "%s", %s, ":", "%s", "%s" ] ] }`,
 				scheme, userInfo, host, port, path)
 
