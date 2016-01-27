@@ -109,7 +109,7 @@
               "Ref": "AWS::StackName"
             },
             "web",
-            "internal"
+            "i"
           ]
         ]
       }
@@ -128,7 +128,7 @@
               "Ref": "AWS::StackName"
             },
             "web",
-            "internal"
+            "i"
           ]
         ]
       }
@@ -377,7 +377,7 @@
                 "Ref": "AWS::StackName"
               },
               "web",
-              "internal"
+              "i"
             ]
           ]
         },

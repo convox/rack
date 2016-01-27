@@ -103,7 +103,7 @@
               "Ref": "AWS::StackName"
             },
             "redis",
-            "internal"
+            "i"
           ]
         ]
       }
@@ -443,7 +443,7 @@
                 "Ref": "AWS::StackName"
               },
               "redis",
-              "internal"
+              "i"
             ]
           ]
         },
