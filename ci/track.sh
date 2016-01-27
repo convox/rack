@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Run the args, and track the command, exit code and time elapsed
 #
 # usage:

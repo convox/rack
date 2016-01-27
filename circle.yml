@@ -13,6 +13,8 @@ test:
   override:
     - ci/track.sh ci/tests/create-httpd.sh:
         parallel: true
+    - ci/track.sh ci/tests/example-app node-workers:
+        parallel: true
   post:
     - ci/track.sh ci/delete-all-apps.sh:
         parallel: true
