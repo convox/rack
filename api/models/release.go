@@ -358,8 +358,10 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 		for _, val := range linkableEnvs {
 			if strings.HasPrefix(val, "LINK_") {
 				parts := strings.SplitN(val, "=", 2)
-				entry.Exports[parts[0]] = parts[1]
-				m[i] = entry
+				if len(parts) == 2 {
+					entry.Exports[parts[0]] = parts[1]
+					m[i] = entry
+				}
 			}
 		}
 	}

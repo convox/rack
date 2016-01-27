@@ -929,13 +929,17 @@ func getLinkEntryEnv(linkEntry ManifestEntry) (map[string]string, error) {
 
 	for _, val := range inspect[0].Config.Env {
 		parts := strings.SplitN(val, "=", 2)
-		linkEntryEnv[parts[0]] = parts[1]
+		if len(parts) == 2 {
+			linkEntryEnv[parts[0]] = parts[1]
+		}
 	}
 
 	//override with manifest env
 	for _, value := range linkEntry.EnvironmentArray() {
 		parts := strings.SplitN(value, "=", 2)
-		linkEntryEnv[parts[0]] = parts[1]
+		if len(parts) == 2 {
+			linkEntryEnv[parts[0]] = parts[1]
+		}
 	}
 
 	return linkEntryEnv, nil
