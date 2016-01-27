@@ -332,9 +332,11 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 			return linkVars, err
 		}
 
-		port, err := resolveOtherPort(link, linkEntry)
-		if err != nil {
-			return linkVars, err
+		// we don't create a balancer without a port,
+		// so we don't create a link url either
+		port := resolveOtherPort(link, linkEntry)
+		if port != "" {
+			continue
 		}
 
 		linkUrl := url.URL{
@@ -951,26 +953,25 @@ func getLinkEntryEnv(linkEntry ManifestEntry) (map[string]string, error) {
 // throws error for no ports
 // uses first port in the list otherwise
 // uses exposed side of p1:p2 port mappings (p1)
-func resolveOtherPort(name string, linkEntry ManifestEntry) (string, error) {
+func resolveOtherPort(name string, linkEntry ManifestEntry) string {
 	var port string
-	noPortsErr := fmt.Errorf("Cannot link to %q because it does not expose ports in the manifest", name)
 	switch t := linkEntry.Ports.(type) {
 	case []string:
 		if len(t) < 1 {
-			return "", noPortsErr
+			return ""
 		}
 
 		port = t[0]
 	case []interface{}:
 		if len(t) < 1 {
-			return "", noPortsErr
+			return ""
 		}
 
 		port = fmt.Sprintf("%v", t[0])
 	}
 
 	port = strings.Split(port, ":")[0]
-	return port, nil
+	return port
 }
 
 // gets ip address for docker gateway for network lookup
