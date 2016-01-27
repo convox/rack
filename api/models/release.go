@@ -382,7 +382,9 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 
 			mb := manifest.GetBalancer(link)
 			if mb == nil {
-				return m, fmt.Errorf("Cannot discover balancer for link %q", link)
+				// commented out to be less strict, just don't create the link
+				//return m, fmt.Errorf("Cannot discover balancer for link %q", link)
+				continue
 			}
 			host := fmt.Sprintf(`{ "Fn::GetAtt" : [ "%s", "DNSName" ] }`, mb.ResourceName())
 
