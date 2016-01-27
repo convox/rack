@@ -407,9 +407,15 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 			html := fmt.Sprintf(`{ "Fn::Join": [ "", [ "%s", "://", "%s", %s, ":", "%s", "%s" ] ] }`,
 				scheme, userInfo, host, port, path)
 
-			varName := strings.ToUpper(link) + "_URL"
+			prefix := strings.ToUpper(link) + "_"
 
-			entry.LinkVars[varName] = template.HTML(html)
+			entry.LinkVars[prefix+"HOST"] = template.HTML(host)
+			entry.LinkVars[prefix+"SCHEME"] = template.HTML(fmt.Sprintf("%q", scheme))
+			entry.LinkVars[prefix+"PORT"] = template.HTML(fmt.Sprintf("%q", port))
+			entry.LinkVars[prefix+"PASSWORD"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_PASSWORD"]))
+			entry.LinkVars[prefix+"USERNAME"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_USERNAME"]))
+			entry.LinkVars[prefix+"PATH"] = template.HTML(fmt.Sprintf("%q", path))
+			entry.LinkVars[prefix+"URL"] = template.HTML(html)
 			m[i] = entry
 		}
 	}
