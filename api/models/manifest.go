@@ -206,7 +206,7 @@ func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 		return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s" ] ] }`, mb.ProcessName()))
 	}
 
-	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "internal" ] ] }`, mb.ProcessName()))
+	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "i" ] ] }`, mb.ProcessName()))
 }
 
 func (mb ManifestBalancer) InternalPorts() []string {
