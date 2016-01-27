@@ -26,6 +26,10 @@ func init() {
 				Value: "docker-compose.yml",
 				Usage: "a file to use in place of docker-compose.yml",
 			},
+			cli.BoolFlag{
+				Name:  "no-cache",
+				Usage: "Do not use Docker cache during build.",
+			},
 		},
 	})
 	stdcli.RegisterCommand(cli.Command{
@@ -96,7 +100,7 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	errors := m.Build(app, dir, true)
+	errors := m.Build(app, dir, !c.Bool("no-cache"))
 
 	if len(errors) != 0 {
 		fmt.Printf("errors: %+v\n", errors)
