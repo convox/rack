@@ -211,6 +211,28 @@ func (b *Build) ECRLogin() (string, error) {
 	return endpoint[8:], cmd.Run()
 }
 
+func (b *Build) PrivateRegistriesLogin() error {
+	_, acs, err := GetRegistriesAuth()
+
+	if err != nil {
+		return err
+	}
+
+	for _, auth := range acs {
+		cmd := exec.Command("docker", "login", "-e", "user@convox.com", "-u", auth.Username, "-p", auth.Password, auth.ServerAddress)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		err := cmd.Run()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 	app, err := GetApp(b.App)
 
@@ -219,6 +241,12 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 	}
 
 	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id}
+
+	err = b.PrivateRegistriesLogin()
+
+	if err != nil {
+		return nil, err
+	}
 
 	if registryId := app.Outputs["RegistryId"]; registryId != "" {
 		endpoint, err := b.ECRLogin()
