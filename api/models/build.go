@@ -281,6 +281,13 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 
 	args, err := b.buildArgs(cache, config)
 
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	args = append(args, b.App)
+
 	parts := strings.Split(repo, "#")
 
 	if len(parts) > 1 {
