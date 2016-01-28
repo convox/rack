@@ -17,6 +17,11 @@
         "Default" : "db.t2.micro",
         "Description" : "Instance class for database nodes"
       },
+      "MultiAZ": {
+        "Type" : "String",
+        "Default" : "false",
+        "Description" : "Multiple availability zone"
+      },
       "Password": {
         "Type" : "String",
         "Description" : "Server password"
@@ -71,6 +76,7 @@
           "Engine": "postgres",
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
+          "MultiAZ": { "Ref": "MultiAZ" },
           "Port": "5432",
           "PubliclyAccessible": "false",
           "StorageType": "gp2",
