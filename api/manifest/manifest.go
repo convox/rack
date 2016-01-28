@@ -155,8 +155,7 @@ func buildSync(source, tag string, cache bool, dockerfile string) error {
 	}
 
 	if dockerfile != "" {
-		args = append(args, "-f")
-		args = append(args, dockerfile)
+		args = append(args, "-f", filepath.Join(source, dockerfile))
 	}
 
 	args = append(args, source)
