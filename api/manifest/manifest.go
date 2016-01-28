@@ -37,6 +37,7 @@ type Manifest map[string]ManifestEntry
 
 type ManifestEntry struct {
 	Build       string      `yaml:"build,omitempty"`
+	Dockerfile  string      `yaml:"dockerfile,omitempty"`
 	Image       string      `yaml:"image,omitempty"`
 	Command     interface{} `yaml:"command,omitempty"`
 	Entrypoint  string      `yaml:"entrypoint,omitempty"`
@@ -143,7 +144,7 @@ func Read(dir, filename string) (*Manifest, error) {
 	return &m, nil
 }
 
-func buildSync(source, tag string, cache bool) error {
+func buildSync(source, tag string, cache bool, dockerfile string) error {
 	args := []string{"build", "-t", tag}
 
 	// if called with `convox build --no-cache`, assume intent to build from scratch.
@@ -151,6 +152,10 @@ func buildSync(source, tag string, cache bool) error {
 	if !cache {
 		args = append(args, "--pull")
 		args = append(args, "--no-cache")
+	}
+
+	if dockerfile != "" {
+		args = append(args, "-f", filepath.Join(source, dockerfile))
 	}
 
 	args = append(args, source)
@@ -182,6 +187,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
+	dockerfiles := map[string]string{}
 
 	for name, entry := range *m {
 		tag := fmt.Sprintf("%s/%s", app, name)
@@ -204,6 +210,12 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			}
 
 			tags[tag] = builds[sym]
+
+			// Dockerfile can only be specified if Build is also specified
+			if entry.Dockerfile != "" {
+				dockerfiles[sym] = entry.Dockerfile
+			}
+
 		case entry.Image != "":
 			pulls = append(pulls, entry.Image)
 			tags[tag] = entry.Image
@@ -213,7 +225,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	errors := []error{}
 
 	for source, tag := range builds {
-		err := buildSync(source, tag, cache)
+		err := buildSync(source, tag, cache, dockerfiles[source])
 
 		if err != nil {
 			return []error{err}
