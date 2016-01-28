@@ -67,6 +67,9 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
 	config := r.FormValue("config")
 
+	// to make concurrent builds:
+	//   ecr needs to support it
+	//   need to have better locking around /root/.dockercfg
 	if build.IsRunning() {
 		return httperr.Errorf(403, "another build is currently running. Please try again later.")
 	}
