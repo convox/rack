@@ -82,10 +82,14 @@ func main() {
 		die(err)
 	}
 
-	cfg := []byte(*dockercfg)
+	if *dockercfg != "" {
+		err := os.MkdirAll("/root/.docker", 0700)
 
-	if len(cfg) > 0 {
-		err = ioutil.WriteFile("/root/.dockercfg", cfg, 0400)
+		if err != nil {
+			die(err)
+		}
+
+		err = ioutil.WriteFile("/root/.docker/config.json", []byte(*dockercfg), 0400)
 
 		if err != nil {
 			die(err)
