@@ -190,7 +190,7 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		case "postgres":
 			exports["URL"] = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 		case "redis":
-			exports["URL"] = fmt.Sprintf("redis://u@%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+			exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 		case "webhook":
 			if parsedUrl, err := url.Parse(parameters["Url"]); err == nil {
 				exports["URL"] = parsedUrl.Query().Get("endpoint")
