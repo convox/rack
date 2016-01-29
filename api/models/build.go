@@ -244,7 +244,7 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 		args = append(args, "-no-cache")
 	}
 
-	if dockercfg, err := ioutil.ReadFile("/root/.dockercfg"); err == nil {
+	if dockercfg, err := ioutil.ReadFile("/root/.docker/config.json"); err == nil {
 		args = append(args, "-dockercfg", string(dockercfg))
 	}
 

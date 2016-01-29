@@ -1,4 +1,4 @@
-FROM gliderlabs/alpine:3.2
+FROM gliderlabs/alpine:3.3
 
 RUN apk-install docker git go haproxy python
 
