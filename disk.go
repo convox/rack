@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
@@ -34,7 +33,7 @@ import (
 // Payload: {"MetricData":[{"Timestamp":1447269869,"Dimensions":[{"Value":"i-287d9cf2","Name":"InstanceId"}],"Value":0,"Unit":"Percent","MetricName":"SwapUtilization"},{"Timestamp":1447269869,"Dimensions":[{"Value":"i-287d9cf2","Name":"InstanceId"}],"Value":0,"Unit":"Megabytes","MetricName":"SwapUsed"},{"Timestamp":1447269869,"Dimensions":[{"Value":"/dev/xvda1","Name":"Filesystem"},{"Value":"i-287d9cf2","Name":"InstanceId"},{"Value":"/","Name":"MountPath"}],"Value":23.3918103617163,"Unit":"Percent","MetricName":"DiskSpaceUtilization"},{"Timestamp":1447269869,"Dimensions":[{"Value":"/dev/xvda1","Name":"Filesystem"},{"Value":"i-287d9cf2","Name":"InstanceId"},{"Value":"/","Name":"MountPath"}],"Value":6.87773513793945,"Unit":"Gigabytes","MetricName":"DiskSpaceUsed"},{"Timestamp":1447269869,"Dimensions":[{"Value":"/dev/xvda1","Name":"Filesystem"},{"Value":"i-287d9cf2","Name":"InstanceId"},{"Value":"/","Name":"MountPath"}],"Value":22.2089805603027,"Unit":"Gigabytes","MetricName":"DiskSpaceAvailable"}],"Namespace":"System/Linux","__type":"com.amazonaws.cloudwatch.v2010_08_01#PutMetricDataInput"}
 //
 // Currently this only accurrately reports root disk usage on the Amazon ECS AMI, not Docker Machine and boot2docker
-func MonitorDisk() {
+func (m *Monitor) Disk() {
 	instance := GetInstanceId()
 
 	fmt.Printf("disk monitor instance=%s\n", instance)
@@ -46,7 +45,7 @@ func MonitorDisk() {
 
 	counter := 0
 
-	for _ = range time.Tick(5 * time.Minute) {
+	for _ = range time.Tick(MONITOR_INTERVAL) {
 		// https://github.com/StalkR/goircbot/blob/master/lib/disk/space_unix.go
 		s := syscall.Statfs_t{}
 		err := syscall.Statfs(path, &s)
@@ -71,37 +70,6 @@ func MonitorDisk() {
 		counter += 1
 		if util > 80.0 && counter%12 == 0 {
 			RemoveDockerArtifacts()
-		}
-	}
-}
-
-// grep dmesg for file system error strings
-// if grep exits 0 it was a match so we mark the instance unhealthy
-// if grep exits 1 there was no match so we carry on
-func MonitorDmesg() {
-	instance := GetInstanceId()
-
-	fmt.Printf("dmesg monitor instance=%s\n", instance)
-
-	for _ = range time.Tick(5 * time.Minute) {
-		cmd := exec.Command("sh", "-c", `dmesg | grep "Remounting filesystem read-only"`)
-		out, err := cmd.CombinedOutput()
-
-		// grep returned 0
-		if err == nil {
-			LogPutRecord(fmt.Sprintf("dmesg monitor instance=%s unhealthy=true msg=%q\n", instance, out))
-
-			AutoScaling := autoscaling.New(&aws.Config{})
-
-			_, err := AutoScaling.SetInstanceHealth(&autoscaling.SetInstanceHealthInput{
-				HealthStatus:             aws.String("Unhealthy"),
-				InstanceId:               aws.String(instance),
-				ShouldRespectGracePeriod: aws.Bool(true),
-			})
-
-			if err != nil {
-				fmt.Printf("%+v\n", err)
-			}
 		}
 	}
 }
