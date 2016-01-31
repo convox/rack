@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -65,7 +64,7 @@ func NewMonitor() *Monitor {
 
 	svc := ec2metadata.New(&ec2metadata.Config{})
 
-	if MetadataAvailable() {
+	if svc.Available() {
 		m.amiId, _ = svc.GetMetadata("ami-id")
 		m.az, _ = svc.GetMetadata("placement/availability-zone")
 		m.instanceId, _ = svc.GetMetadata("instance-id")
@@ -74,21 +73,6 @@ func NewMonitor() *Monitor {
 	}
 
 	return m
-}
-
-func MetadataAvailable() bool {
-	client := http.Client{
-		Timeout: 500 * time.Millisecond,
-	}
-
-	_, err := client.Get("http://169.254.169.254/latest/meta-data/instance-id")
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return false
-	}
-
-	return true
 }
 
 func (m *Monitor) logAppEvent(id, message string) {
