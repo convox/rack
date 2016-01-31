@@ -9,6 +9,7 @@ func main() {
 
 	go monitor.Containers()
 	go monitor.Disk()
+	go monitor.Docker()
 	go monitor.Dmesg()
 
 	for {
