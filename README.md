@@ -12,6 +12,7 @@ AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=XXX
 AWS_SECRET_ACCESS_KEY=YYY
 KINESIS=convox-Kinesis-2NQ3Q5ASHY1N
+LOG_GROUP=convox-LogGroup-9I65CAJ6OLO9
 ```
 
 This approximates the IAM role and env the agent has on a cluster instance.
@@ -26,10 +27,10 @@ agent | disk monitor hostname=4f7ca7a9232a utilization=16.02% used=0.1209G avail
 agent | disk monitor upload to=kinesis stream="convox-Kinesis-2NQ3Q5ASHY1N" lines=1
 ```
 
-Run a Docker container to see Docker event Kinesis upload activity:
+Run a Docker container to see Docker event Kinesis and CloudWatch Logs upload activity:
 
 ```bash
-$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N -e PROCESS=hello-world -e RELEASE=RXBKPDQEGDU hello-world
+$ docker run -e KINESIS=convox-Kinesis-2NQ3Q5ASHY1N -e LOG_GROUP=convox-LogGroup-9I65CAJ6OLO9 -e PROCESS=hello-world -e RELEASE=RXBKPDQEGDU hello-world
 ```
 
 ```
