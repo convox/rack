@@ -44,9 +44,8 @@ func (m *Monitor) handleRunning() {
 		img := container.Image
 
 		if strings.HasPrefix(img, "convox/agent") || strings.HasPrefix(img, "agent/agent") {
-			m.image = img
-			fmt.Printf("monitor event id=%s status=skipped\n", shortId)
-			continue
+			m.agentId = container.ID
+			m.agentImage = img
 		}
 
 		fmt.Printf("monitor event id=%s status=started\n", shortId)
@@ -137,7 +136,10 @@ func (m *Monitor) handleKill(id string) {
 
 func (m *Monitor) handleStart(id string) {
 	m.updateCgroups(id)
-	go m.subscribeLogs(id)
+
+	if id != m.agentId {
+		go m.subscribeLogs(id)
+	}
 }
 
 func (m *Monitor) handleStop(id string) {

@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -16,8 +18,10 @@ type Monitor struct {
 
 	envs map[string]map[string]string
 
+	agentId    string
+	agentImage string
+
 	instanceId string
-	image      string
 
 	lock    sync.Mutex
 	lines   map[string][][]byte
@@ -38,16 +42,56 @@ func NewMonitor() *Monitor {
 
 		envs: make(map[string]map[string]string),
 
+		agentImage: "convox/agent", // also set during handleRunning
+
 		instanceId: GetInstanceId(),
-		image:      "convox/agent", // also set during handleRunning
 
 		lines:   make(map[string][][]byte),
 		loggers: make(map[string]logger.Logger),
 	}
 }
 
+// Get an instance identifier
+// On EC2 use the meta-data API to get an instance id
+// Fall back to system hostname written in 'i-12345678' style if unavailable
+func GetInstanceId() string {
+	hostname, err := os.Hostname()
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		hostname = "hosterr"
+	}
+
+	if len(hostname) > 8 {
+		hostname = hostname[0:8]
+	}
+
+	hostname = fmt.Sprintf("i-%s", hostname)
+
+	client := http.Client{
+		Timeout: 500 * time.Millisecond,
+	}
+
+	resp, err := client.Get("http://169.254.169.254/latest/meta-data/instance-id")
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return hostname
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return hostname
+	}
+
+	return string(body)
+}
+
 func (m *Monitor) logAppEvent(id, message string) {
-	msg := []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.image, message))
+	msg := []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.agentImage, message))
 
 	if awslogger, ok := m.loggers[id]; ok {
 		awslogger.Log(&logger.Message{
@@ -60,4 +104,8 @@ func (m *Monitor) logAppEvent(id, message string) {
 	if stream, ok := m.envs[id]["KINESIS"]; ok {
 		m.addLine(stream, msg)
 	}
+}
+
+func (m *Monitor) logSystemEvent(message string) {
+	m.logAppEvent(m.agentId, message)
 }

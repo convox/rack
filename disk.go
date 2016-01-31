@@ -2,17 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
 // Monitor Disk Metrics for Instance
@@ -34,9 +28,7 @@ import (
 //
 // Currently this only accurrately reports root disk usage on the Amazon ECS AMI, not Docker Machine and boot2docker
 func (m *Monitor) Disk() {
-	instance := GetInstanceId()
-
-	fmt.Printf("disk monitor instance=%s\n", instance)
+	fmt.Printf("disk monitor instance=%s\n", m.instanceId)
 
 	// On the ECS AMI /cgroup is on the root partition (/dev/xvda1)
 	// However on boot2docker /cgroup is is a tmpfs
@@ -63,83 +55,14 @@ func (m *Monitor) Disk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / (used + avail) * 100
 
-		LogPutRecord(fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", instance, util, used, avail))
+		m.logSystemEvent(fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", m.instanceId, util, used, avail))
 
 		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
 		// Only do this every 12th tick (60 minutes)
 		counter += 1
 		if util > 80.0 && counter%12 == 0 {
-			RemoveDockerArtifacts()
+			m.RemoveDockerArtifacts()
 		}
-	}
-}
-
-// Get an instance identifier
-// On EC2 use the meta-data API to get an instance id
-// Fall back to system hostname written in 'i-12345678' style if unavailable
-func GetInstanceId() string {
-	hostname, err := os.Hostname()
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		hostname = "hosterr"
-	}
-
-	if len(hostname) > 8 {
-		hostname = hostname[0:8]
-	}
-
-	hostname = fmt.Sprintf("i-%s", hostname)
-
-	client := http.Client{
-		Timeout: 500 * time.Millisecond,
-	}
-
-	resp, err := client.Get("http://169.254.169.254/latest/meta-data/instance-id")
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return hostname
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return hostname
-	}
-
-	return string(body)
-}
-
-// Log string to stdout and try to put it to kinesis
-// Kinesis errors are logged but don't need to be handled
-func LogPutRecord(s string) {
-	fmt.Print(s)
-
-	// If no KINESIS, return gracefully
-
-	stream := os.Getenv("KINESIS")
-
-	if stream == "" {
-		return
-	}
-
-	Kinesis := kinesis.New(&aws.Config{})
-
-	record := &kinesis.PutRecordInput{
-		Data:         []byte(fmt.Sprintf("agent: %s", s)),
-		StreamName:   aws.String(stream),
-		PartitionKey: aws.String(string(time.Now().UnixNano())),
-	}
-
-	_, err := Kinesis.PutRecord(record)
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	} else {
-		fmt.Printf("disk monitor upload to=kinesis stream=%q lines=1\n", stream)
 	}
 }
 
@@ -147,17 +70,15 @@ func LogPutRecord(s string) {
 // This is a quick and dirty way to remove everything but running containers their images
 // This will blow away build or run cache but hopefully preserve
 // disk space.
-func RemoveDockerArtifacts() {
-	instance := GetInstanceId()
+func (m *Monitor) RemoveDockerArtifacts() {
+	prefix := fmt.Sprintf("remove_docker monitor instance=%s", m.instanceId)
 
-	prefix := fmt.Sprintf("remove_docker monitor instance=%s", instance)
-
-	run(prefix, `docker rm -v $(docker ps -a -q)`)
-	run(prefix, `docker rmi -f $(docker images -a -q)`)
+	m.run(prefix, `docker rm -v $(docker ps -a -q)`)
+	m.run(prefix, `docker rmi -f $(docker images -a -q)`)
 }
 
 // Blindly run a shell command and log its output and error
-func run(log_prefix, cmd string) {
+func (m *Monitor) run(log_prefix, cmd string) {
 	fmt.Printf("%s cmd=%q\n", log_prefix, cmd)
 
 	out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
@@ -165,10 +86,10 @@ func run(log_prefix, cmd string) {
 	lines := strings.Split(string(out), "\n")
 
 	for _, l := range lines {
-		LogPutRecord(fmt.Sprintf("%s out=%q\n", log_prefix, l))
+		m.logSystemEvent(fmt.Sprintf("%s out=%q\n", log_prefix, l))
 	}
 
 	if err != nil {
-		LogPutRecord(fmt.Sprintf("%s error=%q\n", log_prefix, err))
+		m.logSystemEvent(fmt.Sprintf("%s error=%q\n", log_prefix, err))
 	}
 }
