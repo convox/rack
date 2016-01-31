@@ -270,7 +270,7 @@
             "  var stack = fn.split('-').slice(0,-2).join('-');",
             "  var cloudwatch = new AWS.CloudWatch();",
             "  var payload = new Buffer(input.awslogs.data, 'base64');",
-            "  var r = /(count#|measure#|sample#)([\\w.]+)=(\\\")?([\\d.]+)([\\w]+)?(\\\")?/g;",
+            "  var r = /(count#|measure#|sample#)([\\w.]+)=(\\\")?([\\d.]+)([\\w/%\\/]+)?(\\\")?/g;",
             "  var units = {'sec':'Seconds','s':'Seconds','us':'Microseconds','ms':'Milliseconds',",
             "    'B':'Bytes','kB':'Kilobytes','mB':'Megabytes','gB':'Gigabytes','tB':'Terabytes',",
             "    'b':'Bits','kb':'Kilobits','mb':'Megabits','gb':'Gigabits','tb':'Terabits',",
