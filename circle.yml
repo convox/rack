@@ -8,7 +8,7 @@ dependencies:
 
 test:
   pre:
-    - ci/track.sh ci/test-pre.sh:
+    - ci/track.sh ci/install.sh:
         parallel: true
   override:
     - ci/track.sh ci/tests/create-httpd.sh:
@@ -18,9 +18,9 @@ test:
   post:
     - ci/track.sh ci/delete-all-apps.sh:
         parallel: true
-    - ci/track.sh ci/test-post.sh:
+    - ci/track.sh ci/uninstall.sh:
         parallel: true
-    - ci/track.sh ci/test-cleanup.sh:
+    - ci/track.sh ci/cleanup.sh:
         parallel: true
 
 deployment:
