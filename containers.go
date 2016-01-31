@@ -50,7 +50,7 @@ func (m *Monitor) handleRunning() {
 		}
 
 		fmt.Printf("monitor event id=%s status=started\n", shortId)
-		m.handleStart(container.ID)
+		m.handleCreate(container.ID)
 	}
 }
 
@@ -100,22 +100,9 @@ func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
 	}
 }
 
+// Inspect created or existing container
+// Extract env and create awslogger, and save on monitor struct
 func (m *Monitor) handleCreate(id string) {
-	m.logEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
-}
-
-func (m *Monitor) handleDie(id string) {
-	// While we could remove a container and volumes on this event
-	// It seems like explicitly doing a `docker run --rm` is the best way
-	// to state this intent.
-	m.logEvent(id, fmt.Sprintf("Dead process %s", id[0:12]))
-}
-
-func (m *Monitor) handleKill(id string) {
-	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGKILL", id[0:12]))
-}
-
-func (m *Monitor) handleStart(id string) {
 	container, env, err := m.inspectContainer(id)
 
 	if err != nil {
@@ -125,13 +112,36 @@ func (m *Monitor) handleStart(id string) {
 
 	m.envs[id] = env
 
-	m.updateCgroups(id, env)
+	// create a an awslogger and associated CloudWatch Logs LogGroup
+	awslogger, aerr := m.StartAWSLogger(container, env["LOG_GROUP"])
 
-	go m.subscribeLogs(container, env)
+	if aerr != nil {
+		fmt.Printf("ERROR: %+v\n", aerr)
+	} else {
+		m.loggers[id] = awslogger
+	}
+
+	m.logAppEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
+}
+
+func (m *Monitor) handleDie(id string) {
+	// While we could remove a container and volumes on this event
+	// It seems like explicitly doing a `docker run --rm` is the best way
+	// to state this intent.
+	m.logAppEvent(id, fmt.Sprintf("Dead process %s", id[0:12]))
+}
+
+func (m *Monitor) handleKill(id string) {
+	m.logAppEvent(id, fmt.Sprintf("Stopped process %s via SIGKILL", id[0:12]))
+}
+
+func (m *Monitor) handleStart(id string) {
+	m.updateCgroups(id)
+	go m.subscribeLogs(id)
 }
 
 func (m *Monitor) handleStop(id string) {
-	m.logEvent(id, fmt.Sprintf("Stopped process %s via SIGTERM", id[0:12]))
+	m.logAppEvent(id, fmt.Sprintf("Stopped process %s via SIGTERM", id[0:12]))
 }
 
 func (m *Monitor) inspectContainer(id string) (*docker.Container, map[string]string, error) {
@@ -158,7 +168,9 @@ func (m *Monitor) inspectContainer(id string) (*docker.Container, map[string]str
 // Modify the container cgroup to enable swap if SWAP=1 is set
 // Currently this only works on the Amazon ECS AMI, not Docker Machine and boot2docker
 // until a better strategy for knowing where the cgroup mount is implemented
-func (m *Monitor) updateCgroups(id string, env map[string]string) {
+func (m *Monitor) updateCgroups(id string) {
+	env := m.envs[id]
+
 	if env["SWAP"] == "1" {
 		shortId := id[0:12]
 
@@ -187,8 +199,8 @@ func (m *Monitor) updateCgroups(id string, env map[string]string) {
 	}
 }
 
-func (m *Monitor) subscribeLogs(container *docker.Container, env map[string]string) {
-	id := container.ID
+func (m *Monitor) subscribeLogs(id string) {
+	env := m.envs[id]
 
 	kinesis := env["KINESIS"]
 	logGroup := env["LOG_GROUP"]
@@ -216,14 +228,6 @@ func (m *Monitor) subscribeLogs(container *docker.Container, env map[string]stri
 		app = strings.Join(parts[0:len(parts)-2], "-") // drop -Kinesis-YXXX
 	}
 
-	// create a an awslogger and associated CloudWatch Logs LogGroup
-	// if this doesn't error, write to the logger in the scanner loop
-	awslogger, aerr := m.StartAWSLogger(container, logGroup)
-
-	if aerr != nil {
-		fmt.Printf("ERROR: %+v\n", aerr)
-	}
-
 	r, w := io.Pipe()
 
 	go func(prefix string, r io.ReadCloser) {
@@ -242,9 +246,9 @@ func (m *Monitor) subscribeLogs(container *docker.Container, env map[string]stri
 				m.addLine(kinesis, line)
 			}
 
-			if aerr == nil {
+			if awslogger, ok := m.loggers[id]; ok {
 				awslogger.Log(&logger.Message{
-					ContainerID: container.ID,
+					ContainerID: id,
 					Line:        line,
 					Timestamp:   time.Now(),
 				})
@@ -315,7 +319,15 @@ func (m *Monitor) StartAWSLogger(container *docker.Container, logGroup string) (
 		ContainerLabels:     container.Config.Labels,
 	}
 
-	return awslogs.New(ctx)
+	logger, err := awslogs.New(ctx)
+
+	if err != nil {
+		return logger, err
+	}
+
+	m.loggers[container.ID] = logger
+
+	return logger, nil
 }
 
 func (m *Monitor) streamLogs() {

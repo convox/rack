@@ -7,16 +7,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
 	docker "github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Monitor struct {
-	client     *docker.Client
-	envs       map[string]map[string]string
+	client *docker.Client
+
+	envs map[string]map[string]string
+
 	instanceId string
 	image      string
-	lock       sync.Mutex
-	lines      map[string][][]byte
+
+	lock    sync.Mutex
+	lines   map[string][][]byte
+	loggers map[string]logger.Logger
 }
 
 func NewMonitor() *Monitor {
@@ -29,19 +34,30 @@ func NewMonitor() *Monitor {
 	fmt.Printf("monitor new region=%s kinesis=%s log_group=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"), os.Getenv("LOG_GROUP"))
 
 	return &Monitor{
-		client:     client,
-		envs:       make(map[string]map[string]string),
-		lines:      make(map[string][][]byte),
+		client: client,
+
+		envs: make(map[string]map[string]string),
+
 		instanceId: GetInstanceId(),
 		image:      "convox/agent", // also set during handleRunning
+
+		lines:   make(map[string][][]byte),
+		loggers: make(map[string]logger.Logger),
 	}
 }
 
-func (m *Monitor) logEvent(id, message string) {
-	env := m.envs[id]
-	stream := env["KINESIS"]
+func (m *Monitor) logAppEvent(id, message string) {
+	msg := []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.image, message))
 
-	if stream != "" {
-		m.addLine(stream, []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.image, message)))
+	if awslogger, ok := m.loggers[id]; ok {
+		awslogger.Log(&logger.Message{
+			ContainerID: id,
+			Line:        msg,
+			Timestamp:   time.Now(),
+		})
+	}
+
+	if stream, ok := m.envs[id]["KINESIS"]; ok {
+		m.addLine(stream, msg)
 	}
 }
