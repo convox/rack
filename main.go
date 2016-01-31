@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-var MONITOR_INTERVAL = 5 * time.Minute
+var MONITOR_INTERVAL = 5 * time.Second
 
 func main() {
 	monitor := NewMonitor()

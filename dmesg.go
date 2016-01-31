@@ -21,7 +21,7 @@ func (m *Monitor) Dmesg() {
 
 		// grep returned 0
 		if err == nil {
-			m.logSystemEvent(fmt.Sprintf("dmesg monitor instance=%s unhealthy=true msg=%q\n", m.instanceId, out))
+			m.logSystemEvent("dmesg monitor", fmt.Sprintf("count#dmesg.unhealthy=1 msg=%q", out))
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 

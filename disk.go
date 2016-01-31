@@ -55,7 +55,7 @@ func (m *Monitor) Disk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / (used + avail) * 100
 
-		m.logSystemEvent(fmt.Sprintf("disk monitor instance=%s utilization=%.2f%% used=%.4fG available=%.4fG\n", m.instanceId, util, used, avail))
+		m.logSystemEvent("disk monitor", fmt.Sprintf("sample#disk.utilization=%.2f%% sample#disk.used=%.4fgB sample#disk.available=%.4fgB", util, used, avail))
 
 		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
 		// Only do this every 12th tick (60 minutes)
@@ -78,18 +78,18 @@ func (m *Monitor) RemoveDockerArtifacts() {
 }
 
 // Blindly run a shell command and log its output and error
-func (m *Monitor) run(log_prefix, cmd string) {
-	fmt.Printf("%s cmd=%q\n", log_prefix, cmd)
+func (m *Monitor) run(prefix, cmd string) {
+	fmt.Printf("%s cmd=%q\n", prefix, cmd)
 
 	out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
 
 	lines := strings.Split(string(out), "\n")
 
 	for _, l := range lines {
-		m.logSystemEvent(fmt.Sprintf("%s out=%q\n", log_prefix, l))
+		m.logSystemEvent(prefix, fmt.Sprintf("%s out=%q", l))
 	}
 
 	if err != nil {
-		m.logSystemEvent(fmt.Sprintf("%s error=%q\n", log_prefix, err))
+		m.logSystemEvent(prefix, fmt.Sprintf("error=%q", err))
 	}
 }
