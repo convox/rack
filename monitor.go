@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,9 +28,11 @@ type Monitor struct {
 	instanceType string
 	region       string
 
-	dockerVersion   string
-	ecsAgentVersion string
-	convoxVersion   string
+	dockerDriver        string
+	dockerServerVersion string
+	ecsAgentImage       string
+	kernelVersion       string
+	convoxVersion       string
 
 	lock    sync.Mutex
 	lines   map[string][][]byte
@@ -37,26 +40,44 @@ type Monitor struct {
 }
 
 func NewMonitor() *Monitor {
+	fmt.Printf("monitor new region=%s kinesis=%s log_group=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"), os.Getenv("LOG_GROUP"))
+
 	client, err := docker.NewClient(os.Getenv("DOCKER_HOST"))
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("monitor new region=%s kinesis=%s log_group=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"), os.Getenv("LOG_GROUP"))
+	info, err := client.Info()
+
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err)
+	}
+
+	img, err := GetECSAgentImage(client)
+
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err)
+	}
 
 	m := &Monitor{
 		client: client,
 
 		envs: make(map[string]map[string]string),
 
-		agentImage: "convox/agent", // also set during handleRunning
+		agentId:    "unknown",          // updated during handleRunning
+		agentImage: "convox/agent:dev", // updated during handleRunning
 
 		amiId:        "ami-dev",
 		az:           "us-dev-1b",
 		instanceId:   "i-dev",
 		instanceType: "d1.dev",
 		region:       "us-dev-1",
+
+		dockerDriver:        info.Get("Driver"),
+		dockerServerVersion: info.Get("ServerVersion"),
+		ecsAgentImage:       img,
+		kernelVersion:       info.Get("KernelVersion"),
 
 		lines:   make(map[string][][]byte),
 		loggers: make(map[string]logger.Logger),
@@ -92,13 +113,37 @@ func (m *Monitor) logAppEvent(id, message string) {
 }
 
 func (m *Monitor) logSystemEvent(prefix, message string) {
-	msg := fmt.Sprintf("%s dim#amiId=%s dim#az=%s dim#instanceId=%s dim#instanceType=%s dim#region=%s %s",
+	msg := fmt.Sprintf("%s dim#agentImage=%s dim#amiId=%s dim#az=%s dim#instanceId=%s dim#instanceType=%s dim#region=%s dim#dockerDriver=%s dim#dockerServerVersion=%s dim#ecsAgentImage=%s dim#kernelVersion=%s %s",
 		prefix,
+		m.agentImage,
 		m.amiId, m.az, m.instanceId, m.instanceType, m.region,
+		m.dockerDriver, m.dockerServerVersion, m.ecsAgentImage, m.kernelVersion,
 		message,
 	)
 
 	fmt.Println(msg)
 
 	m.logAppEvent(m.agentId, msg)
+}
+
+func GetECSAgentImage(client *docker.Client) (string, error) {
+	containers, err := client.ListContainers(docker.ListContainersOptions{})
+
+	if err != nil {
+		return "error", err
+	}
+
+	for _, c := range containers {
+		if strings.HasPrefix(c.Image, "amazon/amazon-ecs-agent") {
+			ic, err := client.InspectContainer(c.ID)
+
+			if err != nil {
+				return "unknown", err
+			}
+
+			return ic.Image[0:12], nil
+		}
+	}
+
+	return "notfound", nil
 }
