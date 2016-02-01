@@ -115,16 +115,32 @@ func (m *Monitor) logAppEvent(id, message string) {
 
 // Write event to convox CloudWatch Log Group
 func (m *Monitor) logSystemMetric(prefix, message string, kinesis bool) {
-	msg := fmt.Sprintf("%s az=%s instanceId=%s instanceType=%s region=%s dim#agentImage=%s dim#amiId=%s dim#dockerServerVersion=%s dim#ecsAgentImage=%s dim#kernelVersion=%s %s",
+	message = fmt.Sprintf("%s az=%s instanceId=%s instanceType=%s region=%s dim#agentImage=%s dim#amiId=%s dim#dockerServerVersion=%s dim#ecsAgentImage=%s dim#kernelVersion=%s %s",
 		prefix,
 		m.az, m.instanceId, m.instanceType, m.region,
 		m.agentImage, m.amiId, m.dockerServerVersion, m.ecsAgentImage, m.kernelVersion,
 		message,
 	)
 
-	fmt.Println(msg)
+	fmt.Println(message)
 
-	m.logAppEvent(m.agentId, msg)
+	id := m.agentId
+	msg := []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.agentImage, message))
+
+	if awslogger, ok := m.loggers[id]; ok {
+		awslogger.Log(&logger.Message{
+			ContainerID: id,
+			Line:        msg,
+			Timestamp:   time.Now(),
+		})
+	}
+
+	if kinesis {
+		if stream, ok := m.envs[id]["KINESIS"]; ok {
+			m.addLine(stream, msg)
+		}
+
+	}
 }
 
 func GetECSAgentImage(client *docker.Client) (string, error) {
