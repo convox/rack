@@ -19,7 +19,7 @@ case $CIRCLE_NODE_INDEX in
 esac
 
 
-# Save ECS Artifacts
+# Save Remaining ECS Artifacts
 aws ecs list-clusters | tee $CIRCLE_ARTIFACTS/list-clusters.json
 aws ecs describe-clusters --clusters $(jq -r '.clusterArns[]' $CIRCLE_ARTIFACTS/list-clusters.json) | tee $CIRCLE_ARTIFACTS/describe-clusters.json
 
@@ -28,7 +28,7 @@ for cluster in $(jq -r '.clusters[].clusterName' $CIRCLE_ARTIFACTS/describe-clus
   aws ecs describe-services --cluster $cluster --services $(jq -r '.serviceArns[]' $CIRCLE_ARTIFACTS/list-services-$cluster.json) | tee $CIRCLE_ARTIFACTS/describe-services-$cluster.json
 done
 
-# Save CloudWatch Logs Artifacts
+# Save Remaining CloudWatch Logs Artifacts
 aws logs describe-log-groups | tee $CIRCLE_ARTIFACTS/describe-log-groups.json
 
 for groupName in $(jq -r ".logGroups[] | select(.logGroupName | contains(\"-$CIRCLE_BUILD_NUM-\")) | .logGroupName" $CIRCLE_ARTIFACTS/describe-log-groups.json); do
@@ -37,10 +37,7 @@ for groupName in $(jq -r ".logGroups[] | select(.logGroupName | contains(\"-$CIR
   for streamName in $(jq -r '.logStreams[].logStreamName' $CIRCLE_ARTIFACTS/describe-log-streams-${groupName//\//-}.json); do
     aws logs get-log-events --log-group-name $groupName --log-stream-name $streamName | jq '.events[]' | tee -a $CIRCLE_ARTIFACTS/get-log-events-${groupName//\//-}-${streamName//\//-}-unsorted.json
   done
-
-  jq -s 'sort_by(.timestamp)' $CIRCLE_ARTIFACTS/get-log-events-${groupName//\//-}-${streamName//\//-}-unsorted.json > $CIRCLE_ARTIFACTS/get-log-events-${groupName//\//-}-${streamName//\//-}.json
 done
-
 
 # Save CF Artifacts
 aws cloudformation list-stacks | tee $CIRCLE_ARTIFACTS/list-stacks.json
