@@ -16,11 +16,22 @@ func (m *Monitor) Docker() {
 
 	for _ = range time.Tick(MONITOR_INTERVAL) {
 		cmd := exec.Command("docker", "ps")
-		out, err := cmd.CombinedOutput()
+
+		if err := cmd.Start(); err != nil {
+			m.logSystemEvent("docker monitor at=error", fmt.Sprintf("dim#system=docker count#Command.Start.error=1 err=%q", err))
+			continue
+		}
+
+		timer := time.AfterFunc(10*time.Second, func() {
+			cmd.Process.Kill()
+		})
+
+		err := cmd.Wait()
+		timer.Stop()
 
 		// docker ps returned non-zero
 		if err != nil {
-			m.logSystemEvent("docker monitor at=error", fmt.Sprintf("dim#system=docker count#AutoScaling.SetInstanceHealth=1 out=%q", out))
+			m.logSystemEvent("docker monitor at=error", fmt.Sprintf("dim#system=docker count#AutoScaling.SetInstanceHealth=1 err=%q", err))
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 
