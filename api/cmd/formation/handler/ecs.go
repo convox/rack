@@ -250,11 +250,10 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 		}
 	}
 
-	// TODO let the cloudformation finish thinking this deleted
-	// but take note so we can figure out why
+	// signal DELETE_FAILED to cloudformation
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return req.PhysicalResourceId, nil, nil
+		return req.PhysicalResourceId, nil, err
 	}
 
 	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
@@ -262,11 +261,10 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 		Service: aws.String(name),
 	})
 
-	// TODO let the cloudformation finish thinking this deleted
-	// but take note so we can figure out why
+	// signal DELETE_FAILED to cloudformation
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return req.PhysicalResourceId, nil, nil
+		return req.PhysicalResourceId, nil, err
 	}
 
 	return req.PhysicalResourceId, nil, nil

@@ -16,11 +16,15 @@ export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 
 # so we reuse
 wait_for_app_state() {
+  while convox apps info --app $APP_NAME | grep -i $1; do
+    sleep 20
+  done
+}
 
-while convox apps info --app $APP_NAME | grep -i $1; do
-  sleep 20
-done
-
+wait_for_app_deployment() {
+  while convox ps --app $APP_NAME | grep -i PENDING; do
+    sleep 20
+  done
 }
 
 convox logs --app $STACK_NAME > $CIRCLE_ARTIFACTS/convox.log &
@@ -51,6 +55,8 @@ convox apps info -app $APP_NAME
 convox scale web --count 2 --memory 1024 --app $APP_NAME
 
 wait_for_app_state updating
+
+wait_for_app_deployment
 
 convox ps --app $APP_NAME
 
