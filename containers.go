@@ -112,12 +112,14 @@ func (m *Monitor) handleCreate(id string) {
 	m.envs[id] = env
 
 	// create a an awslogger and associated CloudWatch Logs LogGroup
-	awslogger, aerr := m.StartAWSLogger(container, env["LOG_GROUP"])
+	if env["LOG_GROUP"] != "" {
+		awslogger, aerr := m.StartAWSLogger(container, env["LOG_GROUP"])
 
-	if aerr != nil {
-		fmt.Printf("ERROR: %+v\n", aerr)
-	} else {
-		m.loggers[id] = awslogger
+		if aerr != nil {
+			fmt.Printf("ERROR: %+v\n", aerr)
+		} else {
+			m.loggers[id] = awslogger
+		}
 	}
 
 	m.logAppEvent(id, fmt.Sprintf("Starting process %s", id[0:12]))
