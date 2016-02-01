@@ -55,7 +55,7 @@ func (m *Monitor) Disk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / (used + avail) * 100
 
-		m.logSystemMetric("disk", fmt.Sprintf("sample#disk.utilization=%.2f%% sample#disk.used=%.4fgB sample#disk.available=%.4fgB", util, used, avail), true)
+		m.logSystemMetric("disk", fmt.Sprintf("dim#instanceId=%s sample#disk.utilization=%.2f%% sample#disk.used=%.4fgB sample#disk.available=%.4fgB", m.instanceId, util, used, avail), true)
 
 		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
 		// Only do this every 12th tick (60 minutes)
