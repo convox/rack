@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -102,8 +103,7 @@ func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
 	sres, err := Kinesis().DescribeStream(sreq)
 
 	if err != nil {
-		fmt.Printf("err1 %+v\n", err)
-		// panic(err)
+		fmt.Fprintf(os.Stderr, "ERROR(subscribeKinesis): %s\n", err)
 		return
 	}
 
@@ -148,8 +148,7 @@ func subscribeKinesisShard(stream, shard string, output chan []byte, quit chan b
 			gres, err := Kinesis().GetRecords(greq)
 
 			if err != nil {
-				fmt.Printf("err3 %+v\n", err)
-				// panic(err)
+				fmt.Fprintf(os.Stderr, "ERROR(subscribeKinesisShard): %s\n", err)
 				return
 			}
 
@@ -183,7 +182,8 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 		res, err := RDS().DescribeDBLogFiles(params)
 
 		if err != nil {
-			panic(err)
+			fmt.Fprintf(os.Stderr, "ERROR(subscribeRDS.DescribeDBLogFiles): %s\n", err)
+			return
 		}
 
 		if res.Marker == nil {
@@ -206,7 +206,8 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 	res, err := RDS().DownloadDBLogFilePortion(params)
 
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "ERROR(subscribeRDS.DownloadDBLogFilePortion): %s\n", err)
+		return
 	}
 
 	output <- []byte(fmt.Sprintf("%s: %s\n", prefix, *res.LogFileData))
@@ -222,7 +223,8 @@ func subscribeRDS(prefix, id string, output chan []byte, quit chan bool) {
 			res, err := RDS().DownloadDBLogFilePortion(params)
 
 			if err != nil {
-				panic(err)
+				fmt.Fprintf(os.Stderr, "ERROR(subscribeRDS.DownloadDBLogFilePortion): %s\n", err)
+				return
 			}
 
 			if *params.Marker != *res.Marker {
