@@ -115,7 +115,7 @@ func (m *Monitor) logAppEvent(id, message string) {
 
 // Write event to convox CloudWatch Log Group
 func (m *Monitor) logSystemMetric(prefix, message string, kinesis bool) {
-	message = fmt.Sprintf("%s az=%s instanceId=%s instanceType=%s region=%s dim#agentImage=%s dim#amiId=%s dim#dockerServerVersion=%s dim#ecsAgentImage=%s dim#kernelVersion=%s %s",
+	message = fmt.Sprintf("%s az=%s instanceId=%s instanceType=%s region=%s agentImage=%s amiId=%s dockerServerVersion=%s ecsAgentImage=%s kernelVersion=%s %s",
 		prefix,
 		m.az, m.instanceId, m.instanceType, m.region,
 		m.agentImage, m.amiId, m.dockerServerVersion, m.ecsAgentImage, m.kernelVersion,

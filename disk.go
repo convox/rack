@@ -71,7 +71,7 @@ func (m *Monitor) Disk() {
 // This will blow away build or run cache but hopefully preserve
 // disk space.
 func (m *Monitor) RemoveDockerArtifacts() {
-	m.logSystemMetric("disk", "dim#system=Monitor.RemoveDockerArtifacts count#docker.rmi=1", true)
+	m.logSystemMetric("disk", "count#docker.rmi=1", true)
 
 	m.run(`docker rm -v $(docker ps -a -q)`)
 	m.run(`docker rmi -f $(docker images -a -q)`)

@@ -21,7 +21,7 @@ func (m *Monitor) Dmesg() {
 
 		// grep returned 0
 		if err == nil {
-			m.logSystemMetric("dmesg at=error", fmt.Sprintf("dim#system=Monitor.Dmesg count#AutoScaling.SetInstanceHealth=1 out=%q", out), true)
+			m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth=1 out=%q", out), true)
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 
@@ -32,7 +32,7 @@ func (m *Monitor) Dmesg() {
 			})
 
 			if err != nil {
-				m.logSystemMetric("dmesg at=error", fmt.Sprintf("dim#system=Monitor.Dmesg count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
+				m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 			}
 		} else {
 			m.logSystemMetric("dmesg monitor at=ok", "", true)

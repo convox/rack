@@ -18,7 +18,7 @@ func (m *Monitor) Docker() {
 		cmd := exec.Command("docker", "ps")
 
 		if err := cmd.Start(); err != nil {
-			m.logSystemMetric("docker at=error", fmt.Sprintf("dim#system=Monitor.Docker count#Command.Start.error=1 err=%q", err), true)
+			m.logSystemMetric("docker at=error", fmt.Sprintf("count#Command.Start.error=1 err=%q", err), true)
 			continue
 		}
 
@@ -31,7 +31,7 @@ func (m *Monitor) Docker() {
 
 		// docker ps returned non-zero
 		if err != nil {
-			m.logSystemMetric("docker at=error", fmt.Sprintf("dim#system=Monitor.Docker count#AutoScaling.SetInstanceHealth=1 err=%q", err), true)
+			m.logSystemMetric("docker at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth=1 err=%q", err), true)
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 
@@ -42,7 +42,7 @@ func (m *Monitor) Docker() {
 			})
 
 			if err != nil {
-				m.logSystemMetric("docker at=error", fmt.Sprintf("dim#system=Monitor.Docker count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
+				m.logSystemMetric("docker at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 			}
 		} else {
 			m.logSystemMetric("docker at=ok", "", true)
