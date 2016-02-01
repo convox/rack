@@ -217,11 +217,11 @@ func (m *Monitor) subscribeLogs(id string) {
 	}
 
 	if logResource == "" {
-		fmt.Printf("agent _fn=subscribeLogs at=skip id=%s kinesis=%s logGroup=%s process=%s instanceId=%s\n", id, kinesis, logGroup, process, m.instanceId)
+		m.logSystemMetric("container subscribeLogs at=skip", fmt.Sprintf("id=%s kinesis=%s logGroup=%s process=%s", id, kinesis, logGroup, process), true)
 		return
 	}
 
-	fmt.Printf("agent _fn=subscribeLogs at=start id=%s kinesis=%s process=%s logGroup=%s instanceId=%s\n", id, kinesis, logGroup, process, m.instanceId)
+	m.logSystemMetric("container subscribeLogs at=start", fmt.Sprintf("id=%s kinesis=%s logGroup=%s process=%s", id, kinesis, logGroup, process), true)
 
 	// extract app name from kinesis or logGroup
 	// myapp-staging-Kinesis-L6MUKT1VH451 -> myapp-staging
@@ -237,7 +237,7 @@ func (m *Monitor) subscribeLogs(id string) {
 	go func(prefix string, r io.ReadCloser) {
 		defer r.Close()
 
-		fmt.Printf("agent _fn=subscribeLogs.Scan at=start prefix=%s\n", prefix)
+		m.logSystemMetric("container subscribeLogs.Scan at=start", fmt.Sprintf("prefix=%s", prefix), true)
 
 		scanner := bufio.NewScanner(r)
 
@@ -260,17 +260,17 @@ func (m *Monitor) subscribeLogs(id string) {
 		}
 
 		if scanner.Err() != nil {
-			fmt.Printf("agent _fn=subscribeLogs.Scan dim#process=agent dim#instanceId=%s count#scanner.error=1 msg=%q\n", m.instanceId, scanner.Err().Error())
+			m.logSystemMetric("container subscribeLogs.Scan at=error", fmt.Sprintf("dim#system=monitor.containers count#scanner.error=1 err=%q", scanner.Err().Error()), true)
 		}
 
-		fmt.Printf("agent _fn=subscribeLogs.Scan at=return prefix=%s\n", prefix)
+		m.logSystemMetric("container subscribeLogs.Scan at=return", fmt.Sprintf("prefix=%s", prefix), true)
 	}(process, r)
 
 	// tail docker logs and write to pipe
 	since := time.Unix(0, 0).Unix()
 
 	for {
-		fmt.Printf("agent _fn=subscribeLogs id=%s kinesis=%s logGroup=%s process=%s since=%d dim#process=agent dim#instanceId=%s count#docker.Logs.start=1\n", id, kinesis, logGroup, process, since, m.instanceId)
+		m.logSystemMetric("container subscribeLogs", fmt.Sprintf("id=%s since=%d dim#system=monitor.container count#docker.Logs.start=1", id, since), true)
 
 		err := m.client.Logs(docker.LogsOptions{
 			Since:        since,
@@ -287,13 +287,13 @@ func (m *Monitor) subscribeLogs(id string) {
 		since = time.Now().Unix() // update cursor to now in anticipation of retry
 
 		if err != nil {
-			fmt.Printf("agent _fn=subscribeLogs id=%s kinesis=%s logGroup=%s process=%s dim#process=agent dim#instanceId=%s count#docker.Logs.error=1 msg=%q\n", id, kinesis, logGroup, process, m.instanceId, err.Error())
+			m.logSystemMetric("container subscribeLogs", fmt.Sprintf("id=%s dim#system=monitor.container count#docker.Logs.error=1 err=%q", id, err), true)
 		}
 
 		container, err := m.client.InspectContainer(id)
 
 		if err != nil {
-			fmt.Printf("agent _fn=subscribeLogs id=%s kinesis=%s logGroup=%s process=%s dim#process=agent dim#instanceId=%s count#docker.InspectContainer.error=1 msg=%q\n", id, kinesis, logGroup, process, m.instanceId, err.Error())
+			m.logSystemMetric("container subscribeLogs", fmt.Sprintf("id=%s dim#system=monitor.container count#docker.InspectContainer.error=1 err=%q", id, err), true)
 			break
 		}
 
@@ -304,7 +304,7 @@ func (m *Monitor) subscribeLogs(id string) {
 
 	w.Close()
 
-	fmt.Printf("agent _fn=subscribeLogs at=return id=%s kinesis=%s logGroup=%s process=%s instanceId=%s\n", id, kinesis, logGroup, process, m.instanceId)
+	m.logSystemMetric("container subscribeLogs at=return", fmt.Sprintf("id=%s kinesis=%s logGroup=%s process=%s", id, kinesis, logGroup, process), true)
 }
 
 func (m *Monitor) StartAWSLogger(container *docker.Container, logGroup string) (logger.Logger, error) {
@@ -360,7 +360,7 @@ func (m *Monitor) streamLogs() {
 			res, err := Kinesis.PutRecords(records)
 
 			if err != nil {
-				fmt.Printf("agent _fn=streamLogs stream=%s dim#process=agent dim#instanceId=%s count#Kinesis.PutRecords.error=1 msg=%q\n", stream, m.instanceId, err.Error())
+				m.logSystemMetric("container streamLogs", fmt.Sprintf("stream=%s dim#system=monitor.container count#Kinesis.PutRecords.error=1 err=%q", stream, err), false)
 			}
 
 			errorCount := 0
@@ -373,7 +373,7 @@ func (m *Monitor) streamLogs() {
 				}
 			}
 
-			fmt.Printf("agent _fn=streamLogs stream=%s dim#process=agent dim#instanceId=%s count#Kinesis.PutRecords.records=%d count#Kinesis.PutRecords.records.errors=%d msg=%q\n", stream, m.instanceId, len(res.Records), errorCount, errorMsg)
+			m.logSystemMetric("container streamLogs", fmt.Sprintf("stream=%s dim#system=monitor.container count#Kinesis.PutRecords.records=%d count#Kinesis.PutRecords.errors=%d err=%q", stream, len(res.Records), errorCount, errorMsg), false)
 		}
 	}
 }
