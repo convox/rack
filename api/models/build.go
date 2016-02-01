@@ -447,7 +447,8 @@ func (b *Build) log(line string) {
 		app, err := GetApp(b.App)
 
 		if err != nil {
-			panic(err)
+			fmt.Fprintf(os.Stderr, "ERROR: %s", err)
+			return
 		}
 
 		b.kinesis = app.Outputs["Kinesis"]

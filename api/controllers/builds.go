@@ -152,7 +152,8 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	// default to local docker socket
 	host := "unix:///var/run/docker.sock"
 
-	// in production loop through docker hosts to find the build
+	// in production loop through docker hosts that the rack is running on
+	// to find the build
 	if os.Getenv("DEVELOPMENT") != "true" {
 		pss, err := models.ListProcesses(os.Getenv("RACK"))
 
