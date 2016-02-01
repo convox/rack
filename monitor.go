@@ -113,11 +113,11 @@ func (m *Monitor) logAppEvent(id, message string) {
 }
 
 func (m *Monitor) logSystemEvent(prefix, message string) {
-	msg := fmt.Sprintf("%s dim#agentImage=%s dim#amiId=%s dim#az=%s dim#instanceId=%s dim#instanceType=%s dim#region=%s dim#dockerDriver=%s dim#dockerServerVersion=%s dim#ecsAgentImage=%s dim#kernelVersion=%s %s",
+	msg := fmt.Sprintf("%s dim#agentImage=%s dim#amiId=%s dim#az=%s dim#instanceId=%s dim#instanceType=%s dim#region=%s dim#dockerServerVersion=%s dim#ecsAgentImage=%s dim#kernelVersion=%s %s",
 		prefix,
 		m.agentImage,
 		m.amiId, m.az, m.instanceId, m.instanceType, m.region,
-		m.dockerDriver, m.dockerServerVersion, m.ecsAgentImage, m.kernelVersion,
+		m.dockerServerVersion, m.ecsAgentImage, m.kernelVersion,
 		message,
 	)
 
