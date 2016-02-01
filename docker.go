@@ -12,13 +12,13 @@ import (
 // interact with dockerd for docker errors
 // if `docker ps` exits non-zero we mark the instance unhealthy
 func (m *Monitor) Docker() {
-	m.logSystemEvent("docker monitor at=start", "")
+	m.logSystemMetric("docker at=start", "", true)
 
 	for _ = range time.Tick(MONITOR_INTERVAL) {
 		cmd := exec.Command("docker", "ps")
 
 		if err := cmd.Start(); err != nil {
-			m.logSystemEvent("docker monitor at=error", fmt.Sprintf("dim#system=docker count#Command.Start.error=1 err=%q", err))
+			m.logSystemMetric("docker at=error", fmt.Sprintf("dim#system=Monitor.Docker count#Command.Start.error=1 err=%q", err), true)
 			continue
 		}
 
@@ -31,7 +31,7 @@ func (m *Monitor) Docker() {
 
 		// docker ps returned non-zero
 		if err != nil {
-			m.logSystemEvent("docker monitor at=error", fmt.Sprintf("dim#system=docker count#AutoScaling.SetInstanceHealth=1 err=%q", err))
+			m.logSystemMetric("docker at=error", fmt.Sprintf("dim#system=Monitor.Docker count#AutoScaling.SetInstanceHealth=1 err=%q", err), true)
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 
@@ -42,10 +42,10 @@ func (m *Monitor) Docker() {
 			})
 
 			if err != nil {
-				m.logSystemEvent("docker monitor at=error", fmt.Sprintf("dim#system=docker count#AutoScaling.SetInstanceHealth.error=1 err=%q", err))
+				m.logSystemMetric("docker at=error", fmt.Sprintf("dim#system=Monitor.Docker count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 			}
 		} else {
-			m.logSystemEvent("docker monitor at=ok", "")
+			m.logSystemMetric("docker at=ok", "", true)
 		}
 	}
 }

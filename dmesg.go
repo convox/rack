@@ -13,7 +13,7 @@ import (
 // if grep exits 0 it was a match so we mark the instance unhealthy
 // if grep exits 1 there was no match so we carry on
 func (m *Monitor) Dmesg() {
-	m.logSystemEvent("dmesg monitor at=start", "")
+	m.logSystemMetric("dmesg monitor at=start", "", true)
 
 	for _ = range time.Tick(MONITOR_INTERVAL) {
 		cmd := exec.Command("sh", "-c", `dmesg | grep "Remounting filesystem read-only"`)
@@ -21,7 +21,7 @@ func (m *Monitor) Dmesg() {
 
 		// grep returned 0
 		if err == nil {
-			m.logSystemEvent("dmesg monitor at=error", fmt.Sprintf("dim#system=dmesg count#AutoScaling.SetInstanceHealth=1 out=%q", out))
+			m.logSystemMetric("dmesg at=error", fmt.Sprintf("dim#system=Monitor.Dmesg count#AutoScaling.SetInstanceHealth=1 out=%q", out), true)
 
 			AutoScaling := autoscaling.New(&aws.Config{})
 
@@ -32,10 +32,10 @@ func (m *Monitor) Dmesg() {
 			})
 
 			if err != nil {
-				m.logSystemEvent("dmesg monitor at=error", fmt.Sprintf("dim#system=dmesg count#AutoScaling.SetInstanceHealth.error=1 err=%q", err))
+				m.logSystemMetric("dmesg at=error", fmt.Sprintf("dim#system=Monitor.Dmesg count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 			}
 		} else {
-			m.logSystemEvent("dmesg monitor at=ok", "")
+			m.logSystemMetric("dmesg monitor at=ok", "", true)
 		}
 	}
 }

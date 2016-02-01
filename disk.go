@@ -55,7 +55,7 @@ func (m *Monitor) Disk() {
 		used = (float64)(total-free) / 1024 / 1024 / 1024
 		util = used / (used + avail) * 100
 
-		m.logSystemEvent("disk monitor", fmt.Sprintf("sample#disk.utilization=%.2f%% sample#disk.used=%.4fgB sample#disk.available=%.4fgB", util, used, avail))
+		m.logSystemMetric("disk", fmt.Sprintf("sample#disk.utilization=%.2f%% sample#disk.used=%.4fgB sample#disk.available=%.4fgB", util, used, avail), true)
 
 		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
 		// Only do this every 12th tick (60 minutes)
@@ -71,25 +71,23 @@ func (m *Monitor) Disk() {
 // This will blow away build or run cache but hopefully preserve
 // disk space.
 func (m *Monitor) RemoveDockerArtifacts() {
-	prefix := fmt.Sprintf("remove_docker monitor instance=%s", m.instanceId)
+	m.logSystemMetric("disk", "dim#system=Monitor.RemoveDockerArtifacts count#docker.rmi=1", true)
 
-	m.run(prefix, `docker rm -v $(docker ps -a -q)`)
-	m.run(prefix, `docker rmi -f $(docker images -a -q)`)
+	m.run(`docker rm -v $(docker ps -a -q)`)
+	m.run(`docker rmi -f $(docker images -a -q)`)
 }
 
 // Blindly run a shell command and log its output and error
-func (m *Monitor) run(prefix, cmd string) {
-	fmt.Printf("%s cmd=%q\n", prefix, cmd)
-
+func (m *Monitor) run(cmd string) {
 	out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
 
 	lines := strings.Split(string(out), "\n")
 
 	for _, l := range lines {
-		m.logSystemEvent(prefix, fmt.Sprintf("%s out=%q", l))
+		m.logSystemMetric("disk run", fmt.Sprintf("%s cmd=%q out=%q", cmd, l), true)
 	}
 
 	if err != nil {
-		m.logSystemEvent(prefix, fmt.Sprintf("error=%q", err))
+		m.logSystemMetric("disk run", fmt.Sprintf("error=%q", err), true)
 	}
 }
