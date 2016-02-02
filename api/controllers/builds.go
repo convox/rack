@@ -149,9 +149,44 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	// default to local docker socket
+	host := "unix:///var/run/docker.sock"
+
+	// in production loop through docker hosts that the rack is running on
+	// to find the build
+	if os.Getenv("DEVELOPMENT") != "true" {
+		pss, err := models.ListProcesses(os.Getenv("RACK"))
+
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		for _, ps := range pss {
+			client, err := ps.Docker()
+
+			if err != nil {
+				return httperr.Server(err)
+			}
+
+			res, err := client.ListContainers(docker.ListContainersOptions{
+				All: true,
+				Filters: map[string][]string{
+					"name": []string{fmt.Sprintf("build-%s", build)},
+				},
+			})
+
+			if len(res) > 0 {
+				host = fmt.Sprintf("http://%s:2376", ps.Host)
+				break
+			}
+		}
+	}
+
+	fmt.Printf("host %+v\n", host)
+
 	// proxy to docker container logs
 	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
-	client, err := docker.NewClient("unix:///var/run/docker.sock")
+	client, err := docker.NewClient(host)
 
 	if err != nil {
 		return httperr.Server(err)

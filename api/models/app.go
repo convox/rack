@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/convox/rack/client"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
@@ -538,7 +536,11 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 }
 
 func (a *App) RunDetached(process, command string) error {
-	resources := a.Resources()
+	resources, err := a.Resources()
+
+	if err != nil {
+		return err
+	}
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
@@ -561,7 +563,7 @@ func (a *App) RunDetached(process, command string) error {
 		}
 	}
 
-	_, err := ECS().RunTask(req)
+	_, err = ECS().RunTask(req)
 
 	if err != nil {
 		return err
@@ -604,132 +606,14 @@ func (a *App) ProcessPorts(ps string) map[string]string {
 	return ports
 }
 
-func (a *App) Builds() Builds {
-	builds, err := ListBuilds(a.Name)
-
-	if err != nil {
-		if err.(awserr.Error).Message() == "Requested resource not found" {
-			return Builds{}
-		} else {
-			panic(err)
-		}
-	}
-
-	return builds
-}
-
-func (a *App) Created() bool {
-	return len(a.Outputs) != 0
-}
-
-func (a *App) Deployments() Deployments {
-	deployments, err := ListDeployments(a.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return deployments
-}
-
-func (a *App) HealthCheck() string {
-	return a.Outputs["HealthCheck"]
-}
-
-func (a *App) HealthCheckEndpoints() []string {
-	pp := []string{}
-
-	for _, ps := range a.Processes() {
-		for _, port := range a.ProcessPorts(ps.Name) {
-			pp = append(pp, fmt.Sprintf("%s:%s", ps.Name, port))
-		}
-	}
-
-	return pp
-}
-
-var regexpHealthCheckEndpoint = regexp.MustCompile(`HTTP:(\d+)(.*)`)
-
-func (a *App) HealthCheckEndpoint() string {
-	check := regexpHealthCheckEndpoint.FindStringSubmatch(a.Parameters["Check"])
-
-	if len(check) != 3 {
-		return ""
-	}
-
-	for _, ps := range a.Processes() {
-		for _, port := range a.ProcessPorts(ps.Name) {
-			if check[1] == a.Parameters[fmt.Sprintf("%sPort%sHost", UpperName(ps.Name), port)] {
-				return fmt.Sprintf("%s:%s", ps.Name, port)
-			}
-		}
-	}
-
-	return ""
-}
-
-func (a *App) HealthCheckPath() string {
-	check := regexpHealthCheckEndpoint.FindStringSubmatch(a.Parameters["Check"])
-
-	if len(check) != 3 {
-		return ""
-	}
-
-	return check[2]
-}
-
-func (a *App) ELBReady() bool {
-	_, err := net.LookupCNAME(a.Outputs["BalancerHost"])
-
-	return err == nil
-}
-
-func (a *App) Metrics() *Metrics {
-	metrics, err := AppMetrics(a.Name)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return metrics
-}
-
-func (a *App) Processes() Processes {
-	processes, err := ListProcesses(a.Name)
-
-	if err != nil {
-		if aerr, ok := err.(awserr.RequestFailure); ok && aerr.StatusCode() == 400 {
-			return Processes{}
-		} else {
-			// panic(err)
-		}
-	}
-
-	return processes
-}
-
-func (a *App) Releases() Releases {
-	releases, err := ListReleases(a.Name)
-
-	if err != nil {
-		if err.(awserr.Error).Message() == "Requested resource not found" {
-			return Releases{}
-		} else {
-			panic(err)
-		}
-	}
-
-	return releases
-}
-
-func (a *App) Resources() Resources {
+func (a *App) Resources() (Resources, error) {
 	resources, err := ListResources(a.Name)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return resources
+	return resources, nil
 }
 
 func appFromStack(stack *cloudformation.Stack) *App {

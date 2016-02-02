@@ -659,6 +659,7 @@
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
             "curl -s https://convox.s3.amazonaws.com/agent/0.62/convox.conf > /etc/init/convox.conf",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
+            "sleep 30",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "start convox"
           ] ] }
@@ -745,7 +746,7 @@
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
-          "Timeout": 60
+          "Timeout": 5
         },
         "ConnectionSettings": {
           "IdleTimeout": 3600
@@ -864,7 +865,9 @@
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
-        "DesiredCount": "1",
+        "DeploymentMinimumPercent": "50",
+        "DeploymentMaximumPercent": "200",
+        "DesiredCount": "2",
         "LoadBalancers": [
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
