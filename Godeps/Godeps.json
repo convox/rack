@@ -85,6 +85,11 @@
 			"Rev": "2fb7694010aa553998ed513dc8805ab00708077a"
 		},
 		{
+			"ImportPath": "github.com/stvp/rollbar",
+			"Comment": "v0.3.1-8-g8b39372",
+			"Rev": "8b39372e6211ddf06fd182579c397b33c8b8d593"
+		},
+		{
 			"ImportPath": "github.com/vaughan0/go-ini",
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
 		}
