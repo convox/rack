@@ -150,6 +150,25 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 		break
 	}
 
+	if req.ResourceProperties["DeploymentMinimum"] != nil && req.ResourceProperties["DeploymentMaximum"] != nil {
+		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimum"].(string))
+
+		if err != nil {
+			return "could not parse DeploymentMinimum", nil, err
+		}
+
+		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximum"].(string))
+
+		if err != nil {
+			return "could not parse DeploymentMaximum", nil, err
+		}
+
+		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
+			MinimumHealthyPercent: aws.Int64(int64(min)),
+			MaximumPercent:        aws.Int64(int64(max)),
+		}
+	}
+
 	res, err := ECS(req).CreateService(r)
 
 	if err != nil {
