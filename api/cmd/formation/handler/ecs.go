@@ -195,12 +195,33 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 		return ECSServiceCreate(req)
 	}
 
-	res, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
+	r := &ecs.UpdateServiceInput{
 		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
 		Service:        aws.String(name),
 		DesiredCount:   aws.Int64(int64(count)),
 		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
-	})
+	}
+
+	if req.ResourceProperties["DeploymentMinimumPercent"] != nil && req.ResourceProperties["DeploymentMaximumPercent"] != nil {
+		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimumPercent"].(string))
+
+		if err != nil {
+			return "could not parse DeploymentMinimumPercent", nil, err
+		}
+
+		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximumPercent"].(string))
+
+		if err != nil {
+			return "could not parse DeploymentMaximumPercent", nil, err
+		}
+
+		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
+			MinimumHealthyPercent: aws.Int64(int64(min)),
+			MaximumPercent:        aws.Int64(int64(max)),
+		}
+	}
+
+	res, err := ECS(req).UpdateService(r)
 
 	if err != nil {
 		return req.PhysicalResourceId, nil, err
