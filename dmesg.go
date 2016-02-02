@@ -13,29 +13,34 @@ import (
 // if grep exits 0 it was a match so we mark the instance unhealthy
 // if grep exits 1 there was no match so we carry on
 func (m *Monitor) Dmesg() {
-	m.logSystemMetric("dmesg monitor at=start", "", true)
+	m.logSystemMetric("dmesg at=start", "", true)
 
 	for _ = range time.Tick(MONITOR_INTERVAL) {
-		cmd := exec.Command("sh", "-c", `dmesg | grep "Remounting filesystem read-only"`)
-		out, err := cmd.CombinedOutput()
+		m.grep("Remounting filesystem read-only")
+		m.grep("switching pool to read-only mode")
+	}
+}
 
-		// grep returned 0
-		if err == nil {
-			m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth=1 out=%q", out), true)
+func (m *Monitor) grep(pattern string) {
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("dmesg | grep %q", pattern))
+	out, err := cmd.CombinedOutput()
 
-			AutoScaling := autoscaling.New(&aws.Config{})
+	// grep returned 0
+	if err == nil {
+		m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth=1 out=%q", out), true)
 
-			_, err := AutoScaling.SetInstanceHealth(&autoscaling.SetInstanceHealthInput{
-				HealthStatus:             aws.String("Unhealthy"),
-				InstanceId:               aws.String(m.instanceId),
-				ShouldRespectGracePeriod: aws.Bool(true),
-			})
+		AutoScaling := autoscaling.New(&aws.Config{})
 
-			if err != nil {
-				m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
-			}
-		} else {
-			m.logSystemMetric("dmesg monitor at=ok", "", true)
+		_, err := AutoScaling.SetInstanceHealth(&autoscaling.SetInstanceHealthInput{
+			HealthStatus:             aws.String("Unhealthy"),
+			InstanceId:               aws.String(m.instanceId),
+			ShouldRespectGracePeriod: aws.Bool(true),
+		})
+
+		if err != nil {
+			m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 		}
+	} else {
+		m.logSystemMetric("dmesg at=ok", "", true)
 	}
 }
