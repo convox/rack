@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -42,21 +42,19 @@ func (m *Monitor) grep(pattern string) {
 			m.logSystemMetric("dmesg at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 		}
 
-		m.LogDmesg()
+		m.ReportDmesg()
 	} else {
 		m.logSystemMetric("dmesg at=ok", "", true)
 	}
 }
 
-// Dump dmesg to convox log stream
-func (m *Monitor) LogDmesg() {
+// Dump dmesg to convox log stream and rollbar
+func (m *Monitor) ReportDmesg() {
 	out, err := exec.Command("dmesg").CombinedOutput()
 
 	if err != nil {
-		m.logSystemMetric("dmesg log at=error", fmt.Sprintf("err=%q", err), true)
-	}
-
-	for _, l := range strings.Split(string(out), "\n") {
-		m.logSystemMetric("dmesg", fmt.Sprintf("line=%q", l), true)
+		m.ReportError(err)
+	} else {
+		m.ReportError(errors.New(string(out)))
 	}
 }

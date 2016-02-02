@@ -45,7 +45,7 @@ func (m *Monitor) Docker() {
 				m.logSystemMetric("docker at=error", fmt.Sprintf("count#AutoScaling.SetInstanceHealth.error=1 err=%q", err), true)
 			}
 
-			m.LogDmesg()
+			m.ReportDmesg()
 		} else {
 			m.logSystemMetric("docker at=ok", "", true)
 		}

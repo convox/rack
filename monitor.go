@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/stvp/rollbar"
 
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
 	docker "github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
@@ -163,4 +164,29 @@ func GetECSAgentImage(client *docker.Client) (string, error) {
 	}
 
 	return "notfound", nil
+}
+
+func (m *Monitor) ReportError(err error) {
+	m.logSystemMetric("monitor at=error", fmt.Sprintf("err=%q", err), true)
+
+	rollbar.Token = "f67f25b8a9024d5690f997bd86bf14b0"
+
+	extraData := map[string]string{
+		"agentId":    m.agentId,
+		"agentImage": m.agentImage,
+
+		"amiId":        m.amiId,
+		"az":           m.az,
+		"instanceId":   m.instanceId,
+		"instanceType": m.instanceType,
+		"region":       m.region,
+
+		"dockerDriver":        m.dockerDriver,
+		"dockerServerVersion": m.dockerServerVersion,
+		"ecsAgentImage":       m.ecsAgentImage,
+		"kernelVersion":       m.kernelVersion,
+	}
+	extraField := &rollbar.Field{"env", extraData}
+
+	rollbar.Error(rollbar.CRIT, err, extraField)
 }
