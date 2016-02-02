@@ -150,17 +150,17 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 		break
 	}
 
-	if req.ResourceProperties["DeploymentMinimum"] != nil && req.ResourceProperties["DeploymentMaximum"] != nil {
-		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimum"].(string))
+	if req.ResourceProperties["DeploymentMinimumPercent"] != nil && req.ResourceProperties["DeploymentMaximumPercent"] != nil {
+		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimumPercent"].(string))
 
 		if err != nil {
-			return "could not parse DeploymentMinimum", nil, err
+			return "could not parse DeploymentMinimumPercent", nil, err
 		}
 
-		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximum"].(string))
+		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximumPercent"].(string))
 
 		if err != nil {
-			return "could not parse DeploymentMaximum", nil, err
+			return "could not parse DeploymentMaximumPercent", nil, err
 		}
 
 		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
