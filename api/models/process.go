@@ -191,6 +191,10 @@ func ListPendingProcesses(app string) (Processes, error) {
 	for _, service := range services {
 		// Test every service deployment for running != pending, to put in a placeholder
 		for _, d := range service.Deployments {
+			if *d.Status != "PRIMARY" {
+				continue
+			}
+
 			if *d.DesiredCount == *d.RunningCount {
 				continue
 			}
@@ -207,22 +211,22 @@ func ListPendingProcesses(app string) (Processes, error) {
 				continue
 			}
 
-			cd := *tres.TaskDefinition.ContainerDefinitions[0]
+			for i := *d.RunningCount; i < (*d.DesiredCount - *d.PendingCount); i++ {
+				for _, cd := range tres.TaskDefinition.ContainerDefinitions {
+					ps := Process{
+						Id:   "pending",
+						Name: *cd.Name,
+						Size: *cd.Memory,
+					}
 
-			ps := Process{
-				Id:   "pending",
-				Name: *cd.Name,
-				Size: *cd.Memory,
-			}
+					for _, env := range cd.Environment {
+						if *env.Name == "RELEASE" {
+							ps.Release = *env.Value
+						}
+					}
 
-			for _, env := range cd.Environment {
-				if *env.Name == "RELEASE" {
-					ps.Release = *env.Value
+					pss = append(pss, ps)
 				}
-			}
-
-			for i := *d.RunningCount; i < *d.DesiredCount; i++ {
-				pss = append(pss, ps)
 			}
 		}
 	}
