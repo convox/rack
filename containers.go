@@ -116,8 +116,9 @@ func (m *Monitor) handleCreate(id string) {
 		awslogger, aerr := m.StartAWSLogger(container, env["LOG_GROUP"])
 
 		if aerr != nil {
-			fmt.Printf("ERROR: %+v\n", aerr)
+			m.logSystemMetric("container StartAWSLogger at=error", fmt.Sprintf("id=%s logGroup=%s process=%s err=%q", id, env["LOG_GROUP"], env["PROCESS"], aerr), true)
 		} else {
+			m.logSystemMetric("container StartAWSLogger at=ok", fmt.Sprintf("id=%s logGroup=%s process=%s", id, env["LOG_GROUP"], env["PROCESS"]), true)
 			m.loggers[id] = awslogger
 		}
 	}
@@ -303,6 +304,18 @@ func (m *Monitor) subscribeLogs(id string) {
 	}
 
 	w.Close()
+
+	if awslogger, ok := m.loggers[id]; ok {
+		err := awslogger.Close()
+
+		if err != nil {
+			m.logSystemMetric("container awslogger.Close at=error", fmt.Sprintf("id=%s logGroup=%s process=%s err=%q", id, logGroup, process, err), true)
+		} else {
+			m.logSystemMetric("container awslogger.Close at=ok", fmt.Sprintf("id=%s logGroup=%s process=%s", id, logGroup, process), true)
+		}
+
+		delete(m.loggers, id)
+	}
 
 	m.logSystemMetric("container subscribeLogs at=return", fmt.Sprintf("id=%s kinesis=%s logGroup=%s process=%s", id, kinesis, logGroup, process), true)
 }
