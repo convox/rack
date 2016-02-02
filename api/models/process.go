@@ -339,6 +339,12 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 
 	instance := ires.Reservations[0].Instances[0]
 
+	// if there's no private ip address we have no more information to grab
+	if instance.PrivateIpAddress == nil {
+		psch <- ps
+		return
+	}
+
 	// Connect to a Docker client
 	// In testing use the stub Docker server.
 	// In development, modify the security group for port 2376 and use the public IP
