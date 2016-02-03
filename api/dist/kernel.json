@@ -457,6 +457,8 @@
       "Type": "AWS::EC2::VPC",
       "Properties": {
         "CidrBlock": { "Ref": "VPCCIDR" },
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
         "InstanceTenancy": "default",
         "Tags": [
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
