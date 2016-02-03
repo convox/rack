@@ -623,7 +623,7 @@
       "Properties": {
         "AssociatePublicIpAddress": true,
         "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvda",
+          "DeviceName": "/dev/xvdcz",
           "Ebs": {
             "VolumeSize": { "Ref": "VolumeSize" },
             "VolumeType":"gp2"
