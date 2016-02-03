@@ -658,10 +658,10 @@
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
             "curl -s https://convox.s3.amazonaws.com/agent/0.62/convox.conf > /etc/init/convox.conf",
+            "start convox",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "sleep 30",
-            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
-            "start convox"
+            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
           ] ] }
         }
       }
