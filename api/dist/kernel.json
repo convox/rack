@@ -215,7 +215,7 @@
     "VolumeSize": {
       "Type": "Number",
       "Description": "Default disk size in GB",
-      "Default": "30"
+      "Default": "50"
     },
     "VPCCIDR": {
       "Default": "10.0.0.0/16",
