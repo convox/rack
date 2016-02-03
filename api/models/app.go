@@ -37,7 +37,7 @@ type App struct {
 type Apps []App
 
 func ListApps() (Apps, error) {
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{})
+	res, err := DescribeStacks()
 
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+	res, err := DescribeStack(name)
 
 	if err != nil {
 		return nil, err
