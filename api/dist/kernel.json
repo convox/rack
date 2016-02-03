@@ -686,7 +686,7 @@
         "Cooldown": 5,
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
-        "HealthCheckGracePeriod": 0,
+        "HealthCheckGracePeriod": "60",
         "MinSize" : "1",
         "MaxSize" : "100",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
