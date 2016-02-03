@@ -215,7 +215,7 @@
     "VolumeSize": {
       "Type": "Number",
       "Description": "Default disk size in GB",
-      "Default": "30"
+      "Default": "50"
     },
     "VPCCIDR": {
       "Default": "10.0.0.0/16",
@@ -457,6 +457,8 @@
       "Type": "AWS::EC2::VPC",
       "Properties": {
         "CidrBlock": { "Ref": "VPCCIDR" },
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
         "InstanceTenancy": "default",
         "Tags": [
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
@@ -623,7 +625,7 @@
       "Properties": {
         "AssociatePublicIpAddress": true,
         "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvda",
+          "DeviceName": "/dev/xvdcz",
           "Ebs": {
             "VolumeSize": { "Ref": "VolumeSize" },
             "VolumeType":"gp2"
@@ -658,10 +660,10 @@
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
             "curl -s https://convox.s3.amazonaws.com/agent/0.62/convox.conf > /etc/init/convox.conf",
+            "start convox",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "sleep 30",
-            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
-            "start convox"
+            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
           ] ] }
         }
       }
@@ -684,7 +686,7 @@
         "Cooldown": 5,
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
-        "HealthCheckGracePeriod": 0,
+        "HealthCheckGracePeriod": "120",
         "MinSize" : "1",
         "MaxSize" : "100",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
@@ -703,8 +705,8 @@
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MaxBatchSize": 1,
-          "MinInstancesInService": 1,
+          "MaxBatchSize": "1",
+          "MinInstancesInService": { "Ref": "InstanceCount" },
           "PauseTime" : "PT15M",
           "WaitOnResourceSignals": "true"
         }
