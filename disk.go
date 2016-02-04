@@ -15,8 +15,6 @@ import (
 func (m *Monitor) Disk() {
 	m.logSystemMetric("disk at=start", "", true)
 
-	counter := 0
-
 	for _ = range time.Tick(MONITOR_INTERVAL) {
 		info, err := m.client.Info()
 
@@ -78,9 +76,7 @@ func (m *Monitor) Disk() {
 		m.logSystemMetric("disk", fmt.Sprintf("dim#instanceId=%s sample#disk.available=%.4fgB sample#disk.total=%.4fgB sample#disk.used=%.4fgB sample#disk.utilization=%.2f%%", m.instanceId, a, t, u, util), true)
 
 		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
-		// Only do this every 12th tick (60 minutes)
-		counter += 1
-		if util > 80.0 && counter%12 == 0 {
+		if util > 80.0 {
 			m.RemoveDockerArtifacts()
 		}
 	}
