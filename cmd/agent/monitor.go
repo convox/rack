@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/convox/agent/Godeps/_workspace/src/github.com/stvp/rollbar"
 
@@ -84,7 +85,13 @@ func NewMonitor() *Monitor {
 		loggers: make(map[string]logger.Logger),
 	}
 
-	svc := ec2metadata.New(&ec2metadata.Config{})
+	cfg := ec2metadata.Config{}
+
+	if os.Getenv("EC2_METADATA_ENDPOINT") != "" {
+		cfg.Endpoint = aws.String(os.Getenv("EC2_METADATA_ENDPOINT"))
+	}
+
+	svc := ec2metadata.New(&cfg)
 
 	if svc.Available() {
 		m.amiId, _ = svc.GetMetadata("ami-id")
