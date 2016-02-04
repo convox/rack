@@ -2,65 +2,81 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/go-units"
 )
 
 // Monitor Disk Metrics for Instance
-//
-// Inspired by the techniques and Perl scripts in the CloudWatch Developer Guide
-// http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/mon-scripts.html
-//
-// $./mon-put-instance-data.pl --swap-util --swap-used --disk-path / --disk-space-util --disk-space-used --disk-space-avail  --verify --verbose
-// SwapUtilization: 0 (Percent)
-// SwapUsed: 0 (Megabytes)
-// DiskSpaceUtilization [/]: 23.3918103617163 (Percent)
-// DiskSpaceUsed [/]: 6.87773513793945 (Gigabytes)
-// DiskSpaceAvailable [/]: 22.2089805603027 (Gigabytes)
-// No credential methods are specified. Trying default IAM role.
-// Using IAM role <convox-IamRole-2B1GK98KX6BX>
-// Endpoint: https://monitoring.us-west-2.amazonaws.com
-//
-// Payload: {"MetricData":[{"Timestamp":1447269869,"Dimensions":[{"Value":"i-287d9cf2","Name":"InstanceId"}],"Value":0,"Unit":"Percent","MetricName":"SwapUtilization"},{"Timestamp":1447269869,"Dimensions":[{"Value":"i-287d9cf2","Name":"InstanceId"}],"Value":0,"Unit":"Megabytes","MetricName":"SwapUsed"},{"Timestamp":1447269869,"Dimensions":[{"Value":"/dev/xvda1","Name":"Filesystem"},{"Value":"i-287d9cf2","Name":"InstanceId"},{"Value":"/","Name":"MountPath"}],"Value":23.3918103617163,"Unit":"Percent","MetricName":"DiskSpaceUtilization"},{"Timestamp":1447269869,"Dimensions":[{"Value":"/dev/xvda1","Name":"Filesystem"},{"Value":"i-287d9cf2","Name":"InstanceId"},{"Value":"/","Name":"MountPath"}],"Value":6.87773513793945,"Unit":"Gigabytes","MetricName":"DiskSpaceUsed"},{"Timestamp":1447269869,"Dimensions":[{"Value":"/dev/xvda1","Name":"Filesystem"},{"Value":"i-287d9cf2","Name":"InstanceId"},{"Value":"/","Name":"MountPath"}],"Value":22.2089805603027,"Unit":"Gigabytes","MetricName":"DiskSpaceAvailable"}],"Namespace":"System/Linux","__type":"com.amazonaws.cloudwatch.v2010_08_01#PutMetricDataInput"}
-//
-// Currently this only accurrately reports root disk usage on the Amazon ECS AMI, not Docker Machine and boot2docker
+// Currently this only accurrately reports disk usage on the Amazon ECS AMI and the devicemapper driver
+// not Docker Machine, boot2docker and aufs driver
 func (m *Monitor) Disk() {
-	fmt.Printf("disk monitor instance=%s\n", m.instanceId)
-
-	// On the ECS AMI /cgroup is on the root partition (/dev/xvda1)
-	// However on boot2docker /cgroup is is a tmpfs
-	// There is almost certainly a better way to introspect the root partition on all environments
-	path := "/cgroup"
-
-	counter := 0
+	m.logSystemMetric("disk at=start", "", true)
 
 	for _ = range time.Tick(MONITOR_INTERVAL) {
-		// https://github.com/StalkR/goircbot/blob/master/lib/disk/space_unix.go
-		s := syscall.Statfs_t{}
-		err := syscall.Statfs(path, &s)
+		info, err := m.client.Info()
 
 		if err != nil {
-			log.Printf("error: %s\n", err)
+			m.logSystemMetric("disk at=error", fmt.Sprintf("err=%q", err), true)
+		}
+
+		status := [][]string{}
+
+		err = info.GetJSON("DriverStatus", &status)
+
+		if err != nil {
+			m.logSystemMetric("disk at=error", fmt.Sprintf("err=%q", err), true)
 			continue
 		}
 
-		total := int(s.Bsize) * int(s.Blocks)
-		free := int(s.Bsize) * int(s.Bfree)
+		var avail, total, used int64
 
-		var avail, used, util float64
-		avail = (float64)(free) / 1024 / 1024 / 1024
-		used = (float64)(total-free) / 1024 / 1024 / 1024
-		util = used / (used + avail) * 100
+		for _, v := range status {
+			if v[0] == "Data Space Available" {
+				avail, err = units.FromHumanSize(v[1])
 
-		m.logSystemMetric("disk", fmt.Sprintf("dim#instanceId=%s sample#disk.utilization=%.2f%% sample#disk.used=%.4fgB sample#disk.available=%.4fgB", m.instanceId, util, used, avail), true)
+				if err != nil {
+					m.logSystemMetric("disk at=error", fmt.Sprintf("err=%q", err), true)
+					continue
+				}
+			}
+
+			if v[0] == "Data Space Total" {
+				total, err = units.FromHumanSize(v[1])
+
+				if err != nil {
+					m.logSystemMetric("disk at=error", fmt.Sprintf("err=%q", err), true)
+					continue
+				}
+			}
+
+			if v[0] == "Data Space Used" {
+				used, err = units.FromHumanSize(v[1])
+
+				if err != nil {
+					m.logSystemMetric("disk at=error", fmt.Sprintf("err=%q", err), true)
+					continue
+				}
+			}
+		}
+
+		if total == 0 {
+			m.logSystemMetric("disk at=skip", fmt.Sprintf("driver=%s", m.dockerDriver), true)
+			continue
+		}
+
+		var a, t, u, util float64
+		a = float64(avail) / 1000 / 1000 / 1000
+		t = float64(total) / 1000 / 1000 / 1000
+		u = float64(used) / 1000 / 1000 / 1000
+		util = float64(used) / float64(total) * 100
+
+		m.logSystemMetric("disk", fmt.Sprintf("dim#instanceId=%s sample#disk.available=%.4fgB sample#disk.total=%.4fgB sample#disk.used=%.4fgB sample#disk.utilization=%.2f%%", m.instanceId, a, t, u, util), true)
 
 		// If disk is over 80.0 full, delete docker containers and images in attempt to reclaim space
-		// Only do this every 12th tick (60 minutes)
-		counter += 1
-		if util > 80.0 && counter%12 == 0 {
+		if util > 80.0 {
 			m.RemoveDockerArtifacts()
 		}
 	}

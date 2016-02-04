@@ -81,6 +81,11 @@
 			"Rev": "82401a4b13c0581908d46dbc3e7b475c7de48334"
 		},
 		{
+			"ImportPath": "github.com/docker/go-units",
+			"Comment": "v0.1.0-23-g5d2041e",
+			"Rev": "5d2041e26a699eaca682e2ea41c8f891e1060444"
+		},
+		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Rev": "2fb7694010aa553998ed513dc8805ab00708077a"
 		},
