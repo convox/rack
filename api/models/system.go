@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
@@ -12,10 +13,61 @@ import (
 
 type System client.System
 
+var DescribeStacksCache = map[string]DescribeStacksResult{}
+
+var DescribeStacksCacheTTL = 5 * time.Second
+
+type DescribeStacksResult struct {
+	Name        string
+	Output      *cloudformation.DescribeStacksOutput
+	RequestTime time.Time
+}
+
+func DescribeStacks() (*cloudformation.DescribeStacksOutput, error) {
+	return doDescribeStack(cloudformation.DescribeStacksInput{})
+}
+
+func DescribeStack(name string) (*cloudformation.DescribeStacksOutput, error) {
+	return doDescribeStack(cloudformation.DescribeStacksInput{
+		StackName: aws.String(name),
+	})
+}
+
+func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+	name := "<blank>"
+
+	if input.StackName != nil {
+		name = *input.StackName
+	}
+
+	s := DescribeStacksCache[name]
+
+	// if last request was before the TTL, or if running in the test environment, make a request
+	if s.RequestTime.Before(time.Now().Add(-DescribeStacksCacheTTL)) || os.Getenv("AWS_REGION") == "test" {
+		fmt.Printf("fn=doDescribeStack at=miss name=%q\n", name)
+
+		res, err := CloudFormation().DescribeStacks(&input)
+
+		if err != nil {
+			DescribeStacksCache[name] = DescribeStacksResult{
+				Name:        name,
+				Output:      res,
+				RequestTime: time.Now(),
+			}
+		}
+
+		return res, err
+	}
+
+	fmt.Printf("fn=doDescribeStack at=hit name=%q age=%s\n", name, time.Now().Sub(s.RequestTime))
+
+	return s.Output, nil
+}
+
 func GetSystem() (*System, error) {
 	rack := os.Getenv("RACK")
 
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(rack)})
+	res, err := DescribeStack(rack)
 
 	if err != nil {
 		return nil, err

@@ -16,7 +16,7 @@ type Service client.Service
 type Services []Service
 
 func ListServices() (Services, error) {
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{})
+	res, err := DescribeStacks()
 
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func ListServices() (Services, error) {
 }
 
 func GetService(name string) (*Service, error) {
-	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{StackName: aws.String(name)})
+	res, err := DescribeStack(name)
 
 	if err != nil {
 		return nil, err
