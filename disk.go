@@ -100,7 +100,7 @@ func (m *Monitor) run(cmd string) {
 	lines := strings.Split(string(out), "\n")
 
 	for _, l := range lines {
-		m.logSystemMetric("disk run", fmt.Sprintf("%s cmd=%q out=%q", cmd, l), true)
+		m.logSystemMetric("disk run", fmt.Sprintf("cmd=%q out=%q", cmd, l), true)
 	}
 
 	if err != nil {
