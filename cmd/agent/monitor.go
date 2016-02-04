@@ -1,270 +1,198 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
-	docker "github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/stvp/rollbar"
+
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
+	docker "github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Monitor struct {
 	client *docker.Client
-	lock   sync.Mutex
-	lines  map[string][][]byte
+
+	envs map[string]map[string]string
+
+	agentId    string
+	agentImage string
+
+	amiId        string
+	az           string
+	instanceId   string
+	instanceType string
+	region       string
+
+	dockerDriver        string
+	dockerServerVersion string
+	ecsAgentImage       string
+	kernelVersion       string
+	convoxVersion       string
+
+	lock    sync.Mutex
+	lines   map[string][][]byte
+	loggers map[string]logger.Logger
 }
 
 func NewMonitor() *Monitor {
+	fmt.Printf("monitor new region=%s kinesis=%s log_group=%s\n", os.Getenv("AWS_REGION"), os.Getenv("KINESIS"), os.Getenv("LOG_GROUP"))
+
 	client, err := docker.NewClient(os.Getenv("DOCKER_HOST"))
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return &Monitor{
+	info, err := client.Info()
+
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err)
+	}
+
+	img, err := GetECSAgentImage(client)
+
+	if err != nil {
+		fmt.Printf("ERROR: %s\n", err)
+	}
+
+	m := &Monitor{
 		client: client,
-		lines:  make(map[string][][]byte),
+
+		envs: make(map[string]map[string]string),
+
+		agentId:    "unknown",          // updated during handleRunning
+		agentImage: "convox/agent:dev", // updated during handleRunning
+
+		amiId:        "ami-dev",
+		az:           "us-dev-1b",
+		instanceId:   "i-dev",
+		instanceType: "d1.dev",
+		region:       "us-dev-1",
+
+		dockerDriver:        info.Get("Driver"),
+		dockerServerVersion: info.Get("ServerVersion"),
+		ecsAgentImage:       img,
+		kernelVersion:       info.Get("KernelVersion"),
+
+		lines:   make(map[string][][]byte),
+		loggers: make(map[string]logger.Logger),
+	}
+
+	cfg := ec2metadata.Config{}
+
+	if os.Getenv("EC2_METADATA_ENDPOINT") != "" {
+		cfg.Endpoint = aws.String(os.Getenv("EC2_METADATA_ENDPOINT"))
+	}
+
+	svc := ec2metadata.New(&cfg)
+
+	if svc.Available() {
+		m.amiId, _ = svc.GetMetadata("ami-id")
+		m.az, _ = svc.GetMetadata("placement/availability-zone")
+		m.instanceId, _ = svc.GetMetadata("instance-id")
+		m.instanceType, _ = svc.GetMetadata("instance-type")
+		m.region, _ = svc.Region()
+	}
+
+	message := fmt.Sprintf("az=%s instanceId=%s instanceType=%s region=%s agentImage=%s amiId=%s dockerServerVersion=%s ecsAgentImage=%s kernelVersion=%s",
+		m.az, m.instanceId, m.instanceType, m.region,
+		m.agentImage, m.amiId, m.dockerServerVersion, m.ecsAgentImage, m.kernelVersion,
+	)
+
+	m.logSystemMetric("monitor at=new", message, true)
+
+	return m
+}
+
+// Write event to app CloudWatch Log Group and Kinesis stream
+func (m *Monitor) logAppEvent(id, message string) {
+	msg := []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.agentImage, message))
+
+	if awslogger, ok := m.loggers[id]; ok {
+		awslogger.Log(&logger.Message{
+			ContainerID: id,
+			Line:        msg,
+			Timestamp:   time.Now(),
+		})
+	}
+
+	if stream, ok := m.envs[id]["KINESIS"]; ok {
+		m.addLine(stream, msg)
 	}
 }
 
-func (m *Monitor) Listen() {
-	containers, err := m.client.ListContainers(docker.ListContainersOptions{})
+// Write event to convox CloudWatch Log Group
+func (m *Monitor) logSystemMetric(prefix, message string, kinesis bool) {
+	message = fmt.Sprintf("%s instanceId=%s %s", prefix, m.instanceId, message)
+
+	fmt.Println(message)
+
+	id := m.agentId
+	msg := []byte(fmt.Sprintf("%s %s %s : %s", time.Now().Format("2006-01-02 15:04:05"), m.instanceId, m.agentImage, message))
+
+	if awslogger, ok := m.loggers[id]; ok {
+		awslogger.Log(&logger.Message{
+			ContainerID: id,
+			Line:        msg,
+			Timestamp:   time.Now(),
+		})
+	}
+
+	if stream, ok := m.envs[id]["KINESIS"]; kinesis && ok {
+		m.addLine(stream, msg)
+	}
+}
+
+func GetECSAgentImage(client *docker.Client) (string, error) {
+	containers, err := client.ListContainers(docker.ListContainersOptions{})
 
 	if err != nil {
-		log.Fatal(err)
+		return "error", err
 	}
 
-	for _, container := range containers {
-		m.handleCreate(container.ID)
-	}
-
-	ch := make(chan *docker.APIEvents)
-
-	go m.handleEvents(ch)
-	go m.streamLogs()
-
-	m.client.AddEventListener(ch)
-
-	for {
-		time.Sleep(60 * time.Second)
-	}
-}
-
-func (m *Monitor) handleEvents(ch chan *docker.APIEvents) {
-	for event := range ch {
-		switch event.Status {
-		case "create":
-			m.handleCreate(event.ID)
-		case "die":
-			m.handleDie(event.ID)
-		case "start":
-			m.handleStart(event.ID)
-		}
-	}
-}
-
-func (m *Monitor) handleCreate(id string) {
-	env, err := m.inspectContainerEnv(id)
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return
-	}
-
-	go m.subscribeLogs(id, env["KINESIS"], env["PROCESS"])
-}
-
-func (m *Monitor) handleDie(id string) {
-}
-
-func (m *Monitor) handleStart(id string) {
-	env, err := m.inspectContainerEnv(id)
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return
-	}
-
-	m.updateCgroups(id, env)
-}
-
-func (m *Monitor) inspectContainerEnv(id string) (map[string]string, error) {
-	env := map[string]string{}
-
-	container, err := m.client.InspectContainer(id)
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-		return env, err
-	}
-
-	for _, e := range container.Config.Env {
-		parts := strings.SplitN(e, "=", 2)
-
-		if len(parts) == 2 {
-			env[parts[0]] = parts[1]
-		}
-	}
-
-	return env, nil
-}
-
-func (m *Monitor) updateCgroups(id string, env map[string]string) {
-	if env["SWAP"] == "1" {
-		bytes := "18446744073709551615"
-
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.memsw.limit_in_bytes value=%s\n", id, bytes)
-		err := ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.memsw.limit_in_bytes", id), []byte(bytes), 0644)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		}
-
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.soft_limit_in_bytes value=%s\n", id, bytes)
-		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.soft_limit_in_bytes", id), []byte(bytes), 0644)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		}
-
-		fmt.Fprintf(os.Stderr, "id=%s cgroup=memory.limit_in_bytes value=%s\n", id, bytes)
-		err = ioutil.WriteFile(fmt.Sprintf("/cgroup/memory/docker/%s/memory.limit_in_bytes", id), []byte(bytes), 0644)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		}
-	}
-}
-
-func (m *Monitor) subscribeLogs(id, stream, process string) {
-	if stream == "" {
-		return
-	}
-
-	time.Sleep(500 * time.Millisecond)
-
-	r, w := io.Pipe()
-
-	go func(prefix string, r io.ReadCloser) {
-		defer r.Close()
-
-		scanner := bufio.NewScanner(r)
-
-		for scanner.Scan() {
-			m.addLine(stream, []byte(fmt.Sprintf("%s: %s", process, scanner.Text())))
-		}
-
-		if scanner.Err() != nil {
-			log.Printf("error: %s\n", scanner.Err())
-		}
-	}(process, r)
-
-	err := m.client.Logs(docker.LogsOptions{
-		Container:    id,
-		Follow:       true,
-		Stdout:       true,
-		Stderr:       true,
-		Tail:         "all",
-		RawTerminal:  false,
-		OutputStream: w,
-		ErrorStream:  w,
-	})
-
-	if err != nil {
-		log.Printf("error: %s\n", err)
-	}
-
-	w.Close()
-}
-
-func (m *Monitor) streamLogs() {
-	Kinesis := kinesis.New(session.New(), &aws.Config{})
-
-	for _ = range time.Tick(100 * time.Millisecond) {
-		for _, stream := range m.streams() {
-			l := m.getLines(stream)
-
-			if l == nil {
-				continue
-			}
-
-			records := &kinesis.PutRecordsInput{
-				Records:    make([]*kinesis.PutRecordsRequestEntry, len(l)),
-				StreamName: aws.String(stream),
-			}
-
-			for i, line := range l {
-				records.Records[i] = &kinesis.PutRecordsRequestEntry{
-					Data:         line,
-					PartitionKey: aws.String(string(time.Now().UnixNano())),
-				}
-			}
-
-			res, err := Kinesis.PutRecords(records)
+	for _, c := range containers {
+		if strings.HasPrefix(c.Image, "amazon/amazon-ecs-agent") {
+			ic, err := client.InspectContainer(c.ID)
 
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %s\n", err)
+				return "unknown", err
 			}
 
-			for _, r := range res.Records {
-				if r.ErrorCode != nil {
-					fmt.Printf("error: %s\n", *r.ErrorCode)
-				}
-			}
-
-			fmt.Printf("upload to=kinesis stream=%q lines=%d\n", stream, len(res.Records))
+			return ic.Image[0:12], nil
 		}
 	}
+
+	return "notfound", nil
 }
 
-func (m *Monitor) addLine(stream string, data []byte) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+func (m *Monitor) ReportError(err error) {
+	m.logSystemMetric("monitor at=error", fmt.Sprintf("err=%q", err), true)
 
-	m.lines[stream] = append(m.lines[stream], data)
-}
+	rollbar.Token = "f67f25b8a9024d5690f997bd86bf14b0"
 
-func (m *Monitor) getLines(stream string) [][]byte {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+	extraData := map[string]string{
+		"agentId":    m.agentId,
+		"agentImage": m.agentImage,
 
-	nl := len(m.lines[stream])
+		"amiId":        m.amiId,
+		"az":           m.az,
+		"instanceId":   m.instanceId,
+		"instanceType": m.instanceType,
+		"region":       m.region,
 
-	if nl == 0 {
-		return nil
+		"dockerDriver":        m.dockerDriver,
+		"dockerServerVersion": m.dockerServerVersion,
+		"ecsAgentImage":       m.ecsAgentImage,
+		"kernelVersion":       m.kernelVersion,
 	}
+	extraField := &rollbar.Field{"env", extraData}
 
-	if nl > 500 {
-		nl = 500
-	}
-
-	ret := make([][]byte, nl)
-	copy(ret, m.lines[stream])
-	m.lines[stream] = m.lines[stream][nl:]
-
-	return ret
-}
-
-func (m *Monitor) streams() []string {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	streams := make([]string, len(m.lines))
-	i := 0
-
-	for key, _ := range m.lines {
-		streams[i] = key
-		i += 1
-	}
-
-	return streams
+	rollbar.Error(rollbar.CRIT, err, extraField)
 }
