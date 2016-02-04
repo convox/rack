@@ -9,7 +9,7 @@ package unix_test
 import (
 	"testing"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix"
 )
 
 func TestSysctUint64(t *testing.T) {

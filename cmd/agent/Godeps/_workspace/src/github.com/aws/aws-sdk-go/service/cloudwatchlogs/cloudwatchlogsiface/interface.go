@@ -4,8 +4,8 @@
 package cloudwatchlogsiface
 
 import (
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
 // CloudWatchLogsAPI is the interface type for cloudwatchlogs.CloudWatchLogs.

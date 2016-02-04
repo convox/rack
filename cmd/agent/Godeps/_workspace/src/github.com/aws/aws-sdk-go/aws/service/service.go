@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/corehandlers"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service/serviceinfo"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/endpoints"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/corehandlers"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/service/serviceinfo"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/internal/endpoints"
 )
 
 // A Service implements the base service request and response handling

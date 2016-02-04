@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/stvp/rollbar"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/stvp/rollbar"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
-	docker "github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
+	docker "github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 type Monitor struct {

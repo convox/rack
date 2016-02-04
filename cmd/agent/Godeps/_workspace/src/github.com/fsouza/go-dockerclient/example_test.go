@@ -12,7 +12,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
 func ExampleClient_AttachToContainer() {

@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/pkg/jsonlog"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/pkg/jsonlog"
 	"github.com/docker/docker/pkg/filenotify"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/tailfile"

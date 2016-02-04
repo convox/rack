@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/go-units"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/docker/go-units"
 )
 
 // ReadMemInfo retrieves memory statistics of the host system and returns a

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
 )
 
 // ParseLogTag generates a context aware tag for consistency across different

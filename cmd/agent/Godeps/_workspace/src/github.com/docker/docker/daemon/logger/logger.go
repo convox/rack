@@ -11,7 +11,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/pkg/jsonlog"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/pkg/jsonlog"
 )
 
 // ErrReadLogsNotSupported is returned when the logger does not support reading logs.

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 )
 
 // Copier can copy logs from specified sources to Logger and attach

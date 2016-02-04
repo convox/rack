@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger/loggerutils"
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/docker/pkg/jsonlog"
-	"github.com/docker/go-units"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/daemon/logger/loggerutils"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/docker/pkg/jsonlog"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/go-units"
 )
 
 // Name is the name of the file that the jsonlogger logs to.

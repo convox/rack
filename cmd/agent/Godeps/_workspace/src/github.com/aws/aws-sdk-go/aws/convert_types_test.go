@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 var testCasesStringSlice = [][]string{

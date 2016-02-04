@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/agent/Godeps/_workspace/src/github.com/docker/go-units"
+	"github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/docker/go-units"
 )
 
 // Monitor Disk Metrics for Instance

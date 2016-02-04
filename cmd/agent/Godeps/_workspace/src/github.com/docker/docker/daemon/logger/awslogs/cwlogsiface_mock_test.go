@@ -1,6 +1,6 @@
 package awslogs
 
-import "github.com/convox/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+import "github.com/convox/rack/cmd/agent/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
 type mockcwlogsclient struct {
 	createLogStreamArgument chan *cloudwatchlogs.CreateLogStreamInput
