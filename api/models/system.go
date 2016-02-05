@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -16,6 +17,8 @@ type System client.System
 var DescribeStacksCache = map[string]DescribeStacksResult{}
 
 var DescribeStacksCacheTTL = 5 * time.Second
+
+var DescribeStacksMutex = &sync.Mutex{}
 
 type DescribeStacksResult struct {
 	Name        string
@@ -34,6 +37,9 @@ func DescribeStack(name string) (*cloudformation.DescribeStacksOutput, error) {
 }
 
 func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+	DescribeStacksMutex.Lock()
+	defer DescribeStacksMutex.Unlock()
+
 	name := "<blank>"
 
 	if input.StackName != nil {
