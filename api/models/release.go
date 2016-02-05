@@ -302,7 +302,7 @@ func (r *Release) Formation() (string, error) {
 		manifest[i].Image = imageName
 	}
 
-	manifest, err = r.resolveLinks(&manifest)
+	manifest, err = r.resolveLinks(*app, &manifest)
 
 	if err != nil {
 		return "", err
@@ -311,17 +311,14 @@ func (r *Release) Formation() (string, error) {
 	return manifest.Formation()
 }
 
-func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
-	if os.Getenv("DEVELOPMENT") == "true" {
-		cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			fmt.Println(string(out))
-			return *manifest, err
-		}
-	}
-
+func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 	m := *manifest
+
+	endpoint, err := AppDockerLogin(app)
+
+	if err != nil {
+		return m, fmt.Errorf("could not log into %q", endpoint)
+	}
 
 	for i, entry := range m {
 		var inspect []struct {
