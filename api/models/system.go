@@ -54,7 +54,7 @@ func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.
 
 		res, err := CloudFormation().DescribeStacks(&input)
 
-		if err != nil {
+		if err == nil {
 			DescribeStacksCache[name] = DescribeStacksResult{
 				Name:        name,
 				Output:      res,
