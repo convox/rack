@@ -331,21 +331,28 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 		}
 
 		imageName := entry.Image
+
 		cmd := exec.Command("docker", "pull", imageName)
-		_, err := cmd.CombinedOutput()
-		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
+		out, err := cmd.CombinedOutput()
+		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
 
-		//if we can't pull it, skip it
-		if err == nil {
-			cmd = exec.Command("docker", "inspect", imageName)
-			output, err := cmd.CombinedOutput()
-			fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q err=%t\n", imageName, err == nil)
+		if err != nil {
+			return m, fmt.Errorf("could not pull %q", imageName)
+		}
 
-			err = json.Unmarshal(output, &inspect)
-			if err != nil {
-				fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=true output=%q\n", string(output))
-				return m, fmt.Errorf("could not inspect image %q", imageName)
-			}
+		cmd = exec.Command("docker", "inspect", imageName)
+		out, err = cmd.CombinedOutput()
+		fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
+
+		if err != nil {
+			return m, fmt.Errorf("could not inspect %q", imageName)
+		}
+
+		err = json.Unmarshal(out, &inspect)
+
+		if err != nil {
+			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)
