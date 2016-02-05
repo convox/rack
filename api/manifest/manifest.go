@@ -452,17 +452,7 @@ func (m *Manifest) PortsWanted() []string {
 	return ports
 }
 
-func (m *Manifest) Push(app, registry, auth, tag string, flatten string) []error {
-	// ch := make(chan error)
-
-	if auth != "" {
-		err := run("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", auth, registry)
-
-		if err != nil {
-			return []error{err}
-		}
-	}
-
+func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 	if tag == "" {
 		tag = "latest"
 	}
