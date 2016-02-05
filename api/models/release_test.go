@@ -10,6 +10,8 @@ import (
 )
 
 func TestLinks(t *testing.T) {
+	t.Skip("skipping until we have a strategy for stubbing out the registry dependency")
+
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test")
 
