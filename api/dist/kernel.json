@@ -860,8 +860,8 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "Api": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiTasks", "ServiceRole" ],
+    "ApiWeb": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiWebTasks", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
@@ -875,13 +875,13 @@
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api" ] ] },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
         "Role": { "Ref": "ServiceRole" },
-        "TaskDefinition": { "Ref": "ApiTasks" }
+        "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
     },
-    "Monitor": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "MonitorTasks", "ServiceRole" ],
+    "ApiMonitor": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiMonitorTasks", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
@@ -891,9 +891,9 @@
         "DeploymentMaximumPercent": "100",
         "DesiredCount": "1",
         "LoadBalancers": [],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-monitor" ] ] },
         "Role": { "Ref": "ServiceRole" },
-        "TaskDefinition": { "Ref": "MonitorTasks" }
+        "TaskDefinition": { "Ref": "ApiMonitorTasks" }
       }
     },
     "ServiceRole": {
@@ -997,7 +997,7 @@
       "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
     },
-    "ApiTasks": {
+    "ApiWebTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": {
@@ -1084,7 +1084,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "MonitorTasks": {
+    "ApiMonitorTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": {
