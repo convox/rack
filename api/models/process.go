@@ -110,6 +110,10 @@ func ListProcesses(app string) (Processes, error) {
 			return nil, err
 		}
 
+		if len(taskArns.TaskArns) == 0 {
+			continue
+		}
+
 		tasks, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(os.Getenv("CLUSTER")),
 			Tasks:   taskArns.TaskArns,
