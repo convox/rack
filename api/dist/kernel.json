@@ -860,8 +860,8 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "ApiWeb": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiWebTasks", "ServiceRole" ],
+    "Kernel": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "KernelTasks", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
@@ -875,9 +875,9 @@
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api" ] ] },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
         "Role": { "Ref": "ServiceRole" },
-        "TaskDefinition": { "Ref": "ApiWebTasks" }
+        "TaskDefinition": { "Ref": "KernelTasks" }
       }
     },
     "ApiMonitor": {
@@ -997,7 +997,7 @@
       "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
     },
-    "ApiWebTasks": {
+    "KernelTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
