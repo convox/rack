@@ -890,6 +890,7 @@
         "DeploymentMinimumPercent": "0",
         "DeploymentMaximumPercent": "100",
         "DesiredCount": "1",
+        "LoadBalancers": [],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
         "Role": { "Ref": "ServiceRole" },
         "TaskDefinition": { "Ref": "MonitorTasks" }
