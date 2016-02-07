@@ -1000,9 +1000,7 @@
     "ApiWebTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
-        "Name": {
-          "Ref": "AWS::StackName"
-        },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
@@ -1087,9 +1085,7 @@
     "ApiMonitorTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
-        "Name": {
-          "Ref": "AWS::StackName"
-        },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
