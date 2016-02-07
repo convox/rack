@@ -875,7 +875,7 @@
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api" ] ] },
         "Role": { "Ref": "ServiceRole" },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
