@@ -868,7 +868,7 @@
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
         "DeploymentMinimumPercent": "50",
-        "DeploymentMaximumPercent": "200",
+        "DeploymentMaximumPercent": "100",
         "DesiredCount": "2",
         "LoadBalancers": [
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
