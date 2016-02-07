@@ -1,3 +1,4 @@
 .env
-/api
 *.swp
+/api
+/worker
