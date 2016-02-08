@@ -75,65 +75,76 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 }
 
 func ListProcesses(app string) (Processes, error) {
-	_, err := GetApp(app)
+	a, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	req := &ecs.ListTasksInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	}
-
-	res, err := ECS().ListTasks(req)
+	resources, err := a.Resources()
 
 	if err != nil {
 		return nil, err
 	}
 
-	treq := &ecs.DescribeTasksInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Tasks:   res.TaskArns,
-	}
+	services := []string{}
 
-	//NOTE: we don't handle this error right away
-	tres, err := ECS().DescribeTasks(treq)
+	for _, resource := range resources {
+		if resource.Type == "Custom::ECSService" {
+			parts := strings.Split(resource.Id, "/")
+			services = append(services, parts[len(parts)-1])
+		}
+	}
 
 	psch := make(chan Process)
 	errch := make(chan error)
 	num := 0
 
-	for _, task := range tres.Tasks {
-		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-			TaskDefinition: task.TaskDefinitionArn,
+	for _, service := range services {
+		taskArns, err := ECS().ListTasks(&ecs.ListTasksInput{
+			Cluster:     aws.String(os.Getenv("CLUSTER")),
+			ServiceName: aws.String(service),
 		})
 
 		if err != nil {
 			return nil, err
 		}
 
-		for _, cd := range tres.TaskDefinition.ContainerDefinitions {
-			family := *tres.TaskDefinition.Family
+		if len(taskArns.TaskArns) == 0 {
+			continue
+		}
 
-			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
-				continue
+		tasks, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+			Tasks:   taskArns.TaskArns,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, task := range tasks.Tasks {
+			td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+				TaskDefinition: task.TaskDefinitionArn,
+			})
+
+			if err != nil {
+				return nil, err
 			}
 
-			if family != fmt.Sprintf("%s-%s", app, *tres.TaskDefinition.ContainerDefinitions[0].Name) {
-				continue
-			}
+			for _, cd := range td.TaskDefinition.ContainerDefinitions {
+				var cc *ecs.Container
 
-			var cc *ecs.Container
-
-			for _, c := range task.Containers {
-				if *c.Name == *cd.Name {
-					cc = c
+				for _, c := range task.Containers {
+					if *c.Name == *cd.Name {
+						cc = c
+					}
 				}
+
+				go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, psch, errch)
+
+				num += 1
 			}
-
-			go fetchProcess(app, *task, *tres.TaskDefinition, *cd, *cc, psch, errch)
-
-			num += 1
 		}
 	}
 
