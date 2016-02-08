@@ -19,7 +19,7 @@ export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 wait_for_app_state() {
   local c=0
 
-  sleep 2
+  sleep 20
 
   while convox apps info --app $APP_NAME | grep -i $1; do
     let c=c+1
@@ -32,7 +32,7 @@ wait_for_app_state() {
 wait_for_app_deployment() {
   local c=0
 
-  sleep 2
+  sleep 20
 
   while convox ps --app $APP_NAME | grep -i PENDING; do
     let c=c+1
