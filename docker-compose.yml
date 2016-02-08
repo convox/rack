@@ -33,6 +33,38 @@ web:
   volumes:
     - .:/go/src/github.com/convox/rack
     - /var/run/docker.sock:/var/run/docker.sock
+monitor:
+  build: .
+  command: api/bin/monitor
+  environment:
+    - DEVELOPMENT=true
+    - AWS_REGION
+    - AWS_ACCESS
+    - AWS_SECRET
+    - CLIENT_ID=dev@convox.com
+    - CLUSTER
+    - CUSTOM_TOPIC
+    - DOCKER_IMAGE_API=rack/web
+    - DYNAMO_BUILDS
+    - DYNAMO_RELEASES
+    - ENCRYPTION_KEY
+    - NOTIFICATION_HOST
+    - NOTIFICATION_TOPIC
+    - PASSWORD
+    - RACK
+    - REGISTRY_HOST
+    - RELEASE
+    - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
+    - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
+    - STACK_ID
+    - SUBNETS
+    - VPC
+    - KINESIS
+    - LOG_GROUP
+    - PROCESS=monitor
+  volumes:
+    - .:/go/src/github.com/convox/rack
+    - /var/run/docker.sock:/var/run/docker.sock
 registry:
   environment:
     - SETTINGS_FLAVOR=local

@@ -177,7 +177,7 @@
       "Type": "String"
     },
     "Password": {
-      "Description": "(REQUIRED) Kernel HTTP password",
+      "Description": "(REQUIRED) API HTTP password",
       "Type": "String",
       "MinLength": "1",
       "MaxLength": "50"
@@ -860,24 +860,40 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "Kernel": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "KernelTasks", "ServiceRole" ],
+    "ApiWeb": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiWebTasks", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
         "DeploymentMinimumPercent": "50",
-        "DeploymentMaximumPercent": "200",
+        "DeploymentMaximumPercent": "100",
         "DesiredCount": "2",
         "LoadBalancers": [
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "kernel" ] ] },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
         "Role": { "Ref": "ServiceRole" },
-        "TaskDefinition": { "Ref": "KernelTasks" }
+        "TaskDefinition": { "Ref": "ApiWebTasks" }
+      }
+    },
+    "ApiMonitor": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiMonitorTasks", "ServiceRole" ],
+      "Type": "Custom::ECSService",
+      "Version": "1.0",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Cluster": { "Ref": "Cluster" },
+        "DeploymentMinimumPercent": "0",
+        "DeploymentMaximumPercent": "100",
+        "DesiredCount": "1",
+        "LoadBalancers": [],
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-monitor" ] ] },
+        "Role": { "Ref": "ServiceRole" },
+        "TaskDefinition": { "Ref": "ApiMonitorTasks" }
       }
     },
     "ServiceRole": {
@@ -981,12 +997,10 @@
       "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
     },
-    "KernelTasks": {
+    "ApiWebTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
-        "Name": {
-          "Ref": "AWS::StackName"
-        },
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Tasks": [
           {
@@ -1040,7 +1054,7 @@
             ]
           },
           {
-            "CPU": "256",
+            "CPU": "128",
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "RegistryAccess" },
@@ -1055,13 +1069,70 @@
             },
             "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
             "Links": [],
-            "Memory": "256",
+            "Memory": "128",
             "Name": "registry",
             "PortMappings": [
               "3100:3000",
               "3101:443"
             ],
             "Volumes": []
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "ApiMonitorTasks": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
+      "Properties": {
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Tasks": [
+          {
+            "Command": "api/bin/monitor",
+            "CPU": "64",
+            "Environment": {
+              "AWS_REGION": { "Ref": "AWS::Region" },
+              "AWS_ACCESS": { "Ref": "KernelAccess" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "CLIENT_ID": { "Ref": "ClientId" },
+              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+              "CLUSTER": { "Ref": "Cluster" },
+              "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
+                { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+                { "Ref": "DockerImageApi" }
+              ] },
+              "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
+              "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
+              "ENCRYPTION_KEY": { "Fn::If": [ "Encryption",
+                { "Ref": "EncryptionKey" },
+                ""
+              ] },
+              "KINESIS": { "Ref": "Kinesis" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
+              "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
+              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
+              "PASSWORD": { "Ref": "Password" },
+              "PROCESS": "web",
+              "RACK": { "Ref": "AWS::StackName" },
+              "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
+                { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
+                { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }
+              ] },
+              "RELEASE": { "Ref": "Version" },
+              "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
+              "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
+              "STACK_ID": { "Ref": "AWS::StackId" },
+              "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
+              "VPC": { "Ref": "Vpc" }
+            },
+            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+            "Links": [],
+            "Memory": "64",
+            "Name": "monitor",
+            "Volumes": [
+              "/var/run/docker.sock:/var/run/docker.sock"
+            ]
           }
         ]
       },

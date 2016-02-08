@@ -1,10 +1,6 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/convox/rack/api/workers"
-)
+import "fmt"
 
 func recoverWith(f func(err error)) {
 	if r := recover(); r != nil {
@@ -19,10 +15,5 @@ func recoverWith(f func(err error)) {
 }
 
 func main() {
-	go workers.StartCluster()
-	go workers.StartHeartbeat()
-	go workers.StartImages()
-	go workers.StartServicesCapacity()
-
 	startWeb()
 }

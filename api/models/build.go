@@ -2,7 +2,6 @@ package models
 
 import (
 	"bufio"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 )
 
@@ -175,42 +173,6 @@ func (b *Build) buildError(err error, ch chan error) {
 	ch <- err
 }
 
-func (b *Build) ECRLogin() (string, error) {
-	app, err := GetApp(b.App)
-
-	if err != nil {
-		return "", err
-	}
-
-	res, err := ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-		RegistryIds: []*string{aws.String(app.Outputs["RegistryId"])},
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	if len(res.AuthorizationData) < 1 {
-		return "", fmt.Errorf("no authorization data")
-	}
-
-	endpoint := *res.AuthorizationData[0].ProxyEndpoint
-
-	data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
-
-	if err != nil {
-		return "", err
-	}
-
-	parts := strings.SplitN(string(data), ":", 2)
-
-	cmd := exec.Command("docker", "login", "-e", "user@convox.com", "-u", parts[0], "-p", parts[1], endpoint)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return endpoint[8:], cmd.Run()
-}
-
 func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 	app, err := GetApp(b.App)
 
@@ -220,20 +182,16 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 
 	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id}
 
-	if registryId := app.Outputs["RegistryId"]; registryId != "" {
-		endpoint, err := b.ECRLogin()
+	endpoint, err := AppDockerLogin(*app)
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
+	}
 
-		args = append(args, "-push", endpoint, "-flatten", app.Outputs["RegistryRepository"])
-	} else {
-		args = append(args, "-push", os.Getenv("REGISTRY_HOST"))
+	args = append(args, "-push", endpoint)
 
-		if pw := os.Getenv("PASSWORD"); pw != "" {
-			args = append(args, "-auth", pw)
-		}
+	if repository := app.Outputs["RegistryRepository"]; repository != "" {
+		args = append(args, "-flatten", repository)
 	}
 
 	if config != "" {

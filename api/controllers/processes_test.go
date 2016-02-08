@@ -26,7 +26,8 @@ func TestProcessesList(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
-		test.ListTasksCycle("convox-test-cluster"),
+		test.DescribeAppStackResourcesCycle("myapp-staging"),
+		test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
@@ -71,7 +72,8 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
-		test.ListTasksCycle("convox-test-cluster"),
+		test.DescribeAppStackResourcesCycle("myapp-staging"),
+		test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),

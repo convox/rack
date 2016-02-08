@@ -165,12 +165,12 @@ func ListContainerInstancesCycle(clusterName string) awsutil.Cycle {
 	}
 }
 
-func ListTasksCycle(clusterName string) awsutil.Cycle {
+func ListTasksCycle(clusterName, serviceName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
-			Body:       `{"cluster":"` + clusterName + `"}`,
+			Body:       `{"cluster":"` + clusterName + `","serviceName":"` + serviceName + `"}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,

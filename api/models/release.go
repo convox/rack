@@ -229,7 +229,7 @@ func (r *Release) Promote() error {
 		Parameters:   params,
 	}
 
-	_, err = CloudFormation().UpdateStack(req)
+	_, err = UpdateStack(req)
 
 	NotifySuccess("release:promote", map[string]string{
 		"app": r.App,
@@ -302,7 +302,7 @@ func (r *Release) Formation() (string, error) {
 		manifest[i].Image = imageName
 	}
 
-	manifest, err = r.resolveLinks(&manifest)
+	manifest, err = r.resolveLinks(*app, &manifest)
 
 	if err != nil {
 		return "", err
@@ -311,17 +311,14 @@ func (r *Release) Formation() (string, error) {
 	return manifest.Formation()
 }
 
-func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
-	if os.Getenv("DEVELOPMENT") == "true" {
-		cmd := exec.Command("docker", "login", "-e", "user@convox.io", "-u", "convox", "-p", os.Getenv("PASSWORD"), os.Getenv("REGISTRY_HOST"))
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			fmt.Println(string(out))
-			return *manifest, err
-		}
-	}
-
+func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 	m := *manifest
+
+	endpoint, err := AppDockerLogin(app)
+
+	if err != nil {
+		return m, fmt.Errorf("could not log into %q", endpoint)
+	}
 
 	for i, entry := range m {
 		var inspect []struct {
@@ -331,21 +328,28 @@ func (r *Release) resolveLinks(manifest *Manifest) (Manifest, error) {
 		}
 
 		imageName := entry.Image
+
 		cmd := exec.Command("docker", "pull", imageName)
-		_, err := cmd.CombinedOutput()
-		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q err=%t\n", imageName, err == nil)
+		out, err := cmd.CombinedOutput()
+		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
 
-		//if we can't pull it, skip it
-		if err == nil {
-			cmd = exec.Command("docker", "inspect", imageName)
-			output, err := cmd.CombinedOutput()
-			fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q err=%t\n", imageName, err == nil)
+		if err != nil {
+			return m, fmt.Errorf("could not pull %q", imageName)
+		}
 
-			err = json.Unmarshal(output, &inspect)
-			if err != nil {
-				fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=true output=%q\n", string(output))
-				return m, fmt.Errorf("could not inspect image %q", imageName)
-			}
+		cmd = exec.Command("docker", "inspect", imageName)
+		out, err = cmd.CombinedOutput()
+		fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
+
+		if err != nil {
+			return m, fmt.Errorf("could not inspect %q", imageName)
+		}
+
+		err = json.Unmarshal(out, &inspect)
+
+		if err != nil {
+			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)

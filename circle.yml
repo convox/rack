@@ -11,7 +11,7 @@ test:
     - ci/track.sh ci/install.sh:
         parallel: true
   override:
-    - ci/track.sh ci/tests/create-httpd.sh:
+    - ci/track.sh ci/tests/example-app httpd:
         parallel: true
     - ci/track.sh ci/tests/example-app node-workers:
         parallel: true

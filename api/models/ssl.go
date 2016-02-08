@@ -107,7 +107,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		})
 	}
 
-	_, err = CloudFormation().UpdateStack(req)
+	_, err = UpdateStack(req)
 
 	if err != nil {
 		return nil, err
@@ -318,7 +318,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		})
 	}
 
-	_, err = CloudFormation().UpdateStack(req)
+	_, err = UpdateStack(req)
 
 	if err != nil {
 		return nil, err
