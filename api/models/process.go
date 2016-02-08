@@ -75,76 +75,65 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 }
 
 func ListProcesses(app string) (Processes, error) {
-	a, err := GetApp(app)
+	_, err := GetApp(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	resources, err := a.Resources()
+	req := &ecs.ListTasksInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	}
+
+	res, err := ECS().ListTasks(req)
 
 	if err != nil {
 		return nil, err
 	}
 
-	services := []string{}
-
-	for _, resource := range resources {
-		if resource.Type == "Custom::ECSService" {
-			parts := strings.Split(resource.Id, "/")
-			services = append(services, parts[len(parts)-1])
-		}
+	treq := &ecs.DescribeTasksInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Tasks:   res.TaskArns,
 	}
+
+	//NOTE: we don't handle this error right away
+	tres, err := ECS().DescribeTasks(treq)
 
 	psch := make(chan Process)
 	errch := make(chan error)
 	num := 0
 
-	for _, service := range services {
-		taskArns, err := ECS().ListTasks(&ecs.ListTasksInput{
-			Cluster:     aws.String(os.Getenv("CLUSTER")),
-			ServiceName: aws.String(service),
+	for _, task := range tres.Tasks {
+		tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: task.TaskDefinitionArn,
 		})
 
 		if err != nil {
 			return nil, err
 		}
 
-		if len(taskArns.TaskArns) == 0 {
-			continue
-		}
+		for _, cd := range tres.TaskDefinition.ContainerDefinitions {
+			family := *tres.TaskDefinition.Family
 
-		tasks, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
-			Cluster: aws.String(os.Getenv("CLUSTER")),
-			Tasks:   taskArns.TaskArns,
-		})
-
-		if err != nil {
-			return nil, err
-		}
-
-		for _, task := range tasks.Tasks {
-			td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-				TaskDefinition: task.TaskDefinitionArn,
-			})
-
-			if err != nil {
-				return nil, err
+			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
+				continue
 			}
 
-			for _, cd := range td.TaskDefinition.ContainerDefinitions {
-				var cc *ecs.Container
+			if family != fmt.Sprintf("%s-%s", app, *tres.TaskDefinition.ContainerDefinitions[0].Name) {
+				continue
+			}
 
-				for _, c := range task.Containers {
-					if *c.Name == *cd.Name {
-						cc = c
-					}
+			var cc *ecs.Container
+
+			for _, c := range task.Containers {
+				if *c.Name == *cd.Name {
+					cc = c
 				}
-
-				go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, psch, errch)
-
-				num += 1
 			}
+
+			go fetchProcess(app, *task, *tres.TaskDefinition, *cd, *cc, psch, errch)
+
+			num += 1
 		}
 	}
 
