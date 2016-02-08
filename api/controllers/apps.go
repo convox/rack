@@ -89,17 +89,17 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	if app.Tags["Type"] == "app" && app.Tags["System"] == "convox" && app.Tags["Rack"] == os.Getenv("RACK") {
-		err = app.Delete()
-
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		return RenderSuccess(rw)
-	} else {
+	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
 		return httperr.Errorf(404, "invalid app: %s", name)
 	}
+
+	err = app.Delete()
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderSuccess(rw)
 }
 
 func AppLogs(ws *websocket.Conn) *httperr.Error {
