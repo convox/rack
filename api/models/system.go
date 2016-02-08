@@ -36,6 +36,17 @@ func DescribeStack(name string) (*cloudformation.DescribeStacksOutput, error) {
 	})
 }
 
+func UpdateStack(req *cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
+	if req.StackName != nil {
+		name := *req.StackName
+		fmt.Printf("fn=UpdateStack at=delete name=%q\n", name)
+
+		delete(DescribeStacksCache, name)
+	}
+
+	return CloudFormation().UpdateStack(req)
+}
+
 func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
 	DescribeStacksMutex.Lock()
 	defer DescribeStacksMutex.Unlock()
@@ -50,7 +61,7 @@ func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.
 
 	// if last request was before the TTL, or if running in the test environment, make a request
 	if s.RequestTime.Before(time.Now().Add(-DescribeStacksCacheTTL)) || os.Getenv("AWS_REGION") == "test" {
-		fmt.Printf("fn=doDescribeStack at=miss name=%q\n", name)
+		fmt.Printf("fn=doDescribeStack at=miss name=%q age=%s\n", name, time.Now().Sub(s.RequestTime))
 
 		res, err := CloudFormation().DescribeStacks(&input)
 

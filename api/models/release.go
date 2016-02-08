@@ -229,7 +229,7 @@ func (r *Release) Promote() error {
 		Parameters:   params,
 	}
 
-	_, err = CloudFormation().UpdateStack(req)
+	_, err = UpdateStack(req)
 
 	NotifySuccess("release:promote", map[string]string{
 		"app": r.App,

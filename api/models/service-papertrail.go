@@ -88,7 +88,7 @@ func (s *Service) UpdatePapertrail(arns map[string]string) error {
 	}
 
 	// Update stack with all linked ARNs and EventSourceMappings
-	_, err = CloudFormation().UpdateStack(&cloudformation.UpdateStackInput{
+	_, err = UpdateStack(&cloudformation.UpdateStackInput{
 		StackName:    aws.String(s.Name),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{

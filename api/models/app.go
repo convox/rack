@@ -223,7 +223,7 @@ func (a *App) UpdateParamsAndTemplate(changes map[string]string, template string
 		})
 	}
 
-	_, err := CloudFormation().UpdateStack(req)
+	_, err := UpdateStack(req)
 
 	return err
 }
