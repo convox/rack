@@ -55,6 +55,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/sns", SNSConfirm).Methods("POST").Headers("X-Amz-Sns-Message-Type", "SubscriptionConfirmation")
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
+	router.HandleFunc("/system/releases", api("system.release.list", SystemReleaseList)).Methods("GET")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
 
 	// websockets
