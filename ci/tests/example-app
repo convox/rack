@@ -79,7 +79,7 @@ wait_for_app_response $url
 
 convox apps info -app $APP_NAME
 
-convox scale web --count 2 --memory 1024 --app $APP_NAME
+convox scale web --count 2 --memory 512 --app $APP_NAME
 
 wait_for_app_state updating
 
