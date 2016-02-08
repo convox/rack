@@ -177,7 +177,8 @@ func cmdRackReleases(c *cli.Context) {
 		return
 	}
 
-	if strings.Compare(next, pendingVersion) == 1 {
+	if next > pendingVersion {
+		// if strings.Compare(next, pendingVersion) == 1 {
 		fmt.Println()
 		fmt.Printf("New version available: %s\n", next)
 	}
