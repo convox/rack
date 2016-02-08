@@ -326,6 +326,16 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	return tags
 }
 
+func shortNameToStackName(appName string) string {
+	rack := os.Getenv("RACK")
+
+	if rack == appName {
+		return appName
+	}
+
+	return rack + "-" + appName
+}
+
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
 		"upper": func(s string) string {

@@ -87,7 +87,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 	}
 
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(a.Name),
+		StackName:    aws.String(a.StackName()),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		TemplateBody: aws.String(tmpl),
 	}
@@ -302,7 +302,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 
 	// update cloudformation
 	req := &cloudformation.UpdateStackInput{
-		StackName:           aws.String(a.Name),
+		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
 	}

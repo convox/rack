@@ -44,6 +44,10 @@ func ListServices() (Services, error) {
 func GetService(name string) (*Service, error) {
 	res, err := DescribeStack(name)
 
+	if awsError(err) == "ValidationError" {
+		res, err = DescribeStack(shortNameToStackName(name))
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +56,7 @@ func GetService(name string) (*Service, error) {
 
 	if service.Status == "failed" {
 		eres, err := CloudFormation().DescribeStackEvents(
-			&cloudformation.DescribeStackEventsInput{StackName: aws.String(name)},
+			&cloudformation.DescribeStackEventsInput{StackName: aws.String(service.StackName())},
 		)
 
 		if err != nil {
@@ -68,6 +72,19 @@ func GetService(name string) (*Service, error) {
 	}
 
 	return service, nil
+}
+
+func (s *Service) StackName() string {
+	if s.Tags == nil {
+		return shortNameToStackName(s.Name)
+	}
+
+	nameTag, ok := s.Tags["Name"]
+	if !ok {
+		return s.Name
+	}
+
+	return shortNameToStackName(nameTag)
 }
 
 func (s *Service) Create() error {
@@ -101,6 +118,7 @@ func (s *Service) Create() error {
 		"System":  "convox",
 		"Service": s.Type,
 		"Type":    "service",
+		"Name":    s.Name,
 	}
 
 	for key, value := range tags {
@@ -120,9 +138,7 @@ func (s *Service) Create() error {
 }
 
 func (s *Service) Delete() error {
-	name := s.Name
-
-	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(s.StackName())})
 
 	if err != nil {
 		return err
@@ -181,6 +197,12 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 	tags := stackTags(stack)
 	exports := make(map[string]string)
 
+	name := cs(stack.StackName, "<unknown>")
+	if value, ok := tags["Name"]; ok {
+		// StackName probably includes the Rack prefix, prefer Name tag.
+		name = value
+	}
+
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
 		case "mysql":
@@ -199,7 +221,7 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 	}
 
 	return &Service{
-		Name:       cs(stack.StackName, "<unknown>"),
+		Name:       name,
 		Type:       tags["Service"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    outputs,

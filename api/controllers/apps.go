@@ -47,11 +47,13 @@ func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
 
-	app := &models.App{
-		Name: name,
+	app, err := models.GetApp(name)
+
+	if awsError(err) == "ValidationError" {
+		app = &models.App{Name: name}
 	}
 
-	err := app.Create()
+	err = app.Create()
 
 	if awsError(err) == "AlreadyExistsException" {
 		app, err := models.GetApp(name)
