@@ -56,7 +56,7 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 		}
 
 		//have to make requests in batches of ten
-		if len(arns) == 10 || i == len(resources) {
+		if len(arns) == 10 || (i == len(resources) && len(arns) > 0) {
 			dres, err := ECS().DescribeServices(&ecs.DescribeServicesInput{
 				Cluster:  aws.String(os.Getenv("CLUSTER")),
 				Services: arns,
