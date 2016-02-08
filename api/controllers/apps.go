@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 
@@ -88,13 +89,17 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	err = app.Delete()
+	if app.Tags["Type"] == "app" && app.Tags["System"] == "convox" && app.Tags["Rack"] == os.Getenv("RACK") {
+		err = app.Delete()
 
-	if err != nil {
-		return httperr.Server(err)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderSuccess(rw)
+	} else {
+		return httperr.Errorf(404, "invalid app: %s", name)
 	}
-
-	return RenderSuccess(rw)
 }
 
 func AppLogs(ws *websocket.Conn) *httperr.Error {
