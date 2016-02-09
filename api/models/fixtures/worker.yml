@@ -8,6 +8,7 @@ worker:
     - postgres
   volumes:
     - .:/app
+  privileged: true
 postgres:
   image: mdillon/postgis
   environment:

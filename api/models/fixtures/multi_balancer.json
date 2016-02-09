@@ -813,6 +813,7 @@
                     "Ref": "AWS::NoValue"
                   }
                 ],
+                "Privileged": "false",
                 "Services": [
                   {
                     "Ref": "AWS::NoValue"
@@ -958,6 +959,7 @@
                     "Ref": "AWS::NoValue"
                   }
                 ],
+                "Privileged": "false",
                 "Services": [
                   {
                     "Ref": "AWS::NoValue"
