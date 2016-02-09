@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"encoding/json"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
@@ -12,12 +13,13 @@ import (
 )
 
 func init() {
+	os.Setenv("RACK", "convox-test")
 	models.PauseNotifications = true
 	test.HandlerFunc = controllers.HandlerFunc
 }
 
 func TestAppList(t *testing.T) {
-	aws := test.StubAws(test.DescribeStackCycleWithoutQuery("bar"))
+	aws := test.StubAws(test.DescribeStackCycleWithoutQuery("convox-test-bar"))
 	defer aws.Close()
 
 	body := test.HTTPBody("GET", "http://convox/apps", nil)
@@ -32,7 +34,10 @@ func TestAppList(t *testing.T) {
 }
 
 func TestAppShow(t *testing.T) {
-	aws := test.StubAws(test.DescribeAppStackCycle("bar"))
+	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-bar"),
+		test.DescribeAppStackCycle("bar"),
+	)
 	defer aws.Close()
 
 	body := test.HTTPBody("GET", "http://convox/apps/bar", nil)
@@ -47,7 +52,10 @@ func TestAppShow(t *testing.T) {
 }
 
 func TestAppShowWithAppNotFound(t *testing.T) {
-	aws := test.StubAws(test.DescribeStackNotFound("bar"))
+	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-bar"),
+		test.DescribeStackNotFound("bar"),
+	)
 	defer aws.Close()
 
 	test.AssertStatus(t, 404, "GET", "http://convox/apps/bar", nil)
@@ -55,8 +63,9 @@ func TestAppShowWithAppNotFound(t *testing.T) {
 
 func TestAppCreate(t *testing.T) {
 	aws := test.StubAws(
-		test.CreateAppStackCycle("application"),
-		test.DescribeAppStackCycle("application"),
+		test.DescribeStackNotFound("application"),
+		test.CreateAppStackCycle("convox-test-application"),
+		test.DescribeAppStackCycle("convox-test-application"),
 	)
 	defer aws.Close()
 
@@ -74,10 +83,24 @@ func TestAppCreate(t *testing.T) {
 	}
 }
 
-func TestAppCreateWithAlreadyExists(t *testing.T) {
+func TestAppCreateWithAlreadyExistsUnbound(t *testing.T) {
 	aws := test.StubAws(
-		test.CreateAppStackExistsCycle("application"),
 		test.DescribeAppStackCycle("application"),
+		test.CreateAppStackExistsCycle("application"),
+		test.DescribeStackNotFound("convox-test-application"),
+		test.DescribeAppStackCycle("application"),
+	)
+	defer aws.Close()
+
+	val := url.Values{"name": []string{"application"}}
+	test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+}
+
+func TestAppCreateWithAlreadyExistsBound(t *testing.T) {
+	aws := test.StubAws(
+		test.DescribeStackNotFound("application"),
+		test.CreateAppStackExistsCycle("convox-test-application"),
+		test.DescribeAppStackCycle("convox-test-application"),
 	)
 	defer aws.Close()
 
@@ -91,8 +114,8 @@ bucket name to the ephermeral host, so you get `app-XXX.127.0.0.1`
 */
 func TestAppDelete(t *testing.T) {
 	aws := test.StubAws(
-		test.DescribeAppStackCycle("bar"),
-		test.DeleteStackCycle("bar"),
+		test.DescribeAppStackCycle("convox-test-bar"),
+		test.DeleteStackCycle("convox-test-bar"),
 	)
 	defer aws.Close()
 
@@ -107,7 +130,10 @@ func TestAppDelete(t *testing.T) {
 }
 
 func TestAppDeleteWithAppNotFound(t *testing.T) {
-	aws := test.StubAws(test.DescribeStackNotFound("bar"))
+	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-bar"),
+		test.DescribeStackNotFound("bar"),
+	)
 	defer aws.Close()
 
 	test.AssertStatus(t, 404, "DELETE", "http://convox/apps/bar", nil)

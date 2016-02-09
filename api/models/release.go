@@ -233,7 +233,7 @@ func (r *Release) Promote() error {
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(r.App),
+		StackName:    aws.String(app.StackName()),
 		TemplateURL:  aws.String(url),
 		Parameters:   params,
 	}
@@ -441,7 +441,7 @@ var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+
 // try to determine which process to map to the main load balancer
 func primaryProcess(app string) (string, error) {
 	res, err := CloudFormation().GetTemplate(&cloudformation.GetTemplateInput{
-		StackName: aws.String(app),
+		StackName: aws.String(shortNameToStackName(app)),
 	})
 
 	if err != nil {

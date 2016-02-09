@@ -47,11 +47,15 @@ func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
 
-	app := &models.App{
-		Name: name,
+	// Early check for unbound app only.
+	app, err := models.GetAppFast(name, false, true)
+
+	if awsError(err) == "ValidationError" {
+		// If unbound check fails this will result in a bound app.
+		app = &models.App{Name: name}
 	}
 
-	err := app.Create()
+	err = app.Create()
 
 	if awsError(err) == "AlreadyExistsException" {
 		app, err := models.GetApp(name)

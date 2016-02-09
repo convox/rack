@@ -20,7 +20,7 @@ func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(s.Name),
+		StackName:    aws.String(s.StackName()),
 		TemplateBody: aws.String(formation),
 	}
 

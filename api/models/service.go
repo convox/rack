@@ -42,7 +42,32 @@ func ListServices() (Services, error) {
 }
 
 func GetService(name string) (*Service, error) {
-	res, err := DescribeStack(name)
+	return GetServiceFast(name, true, true)
+}
+
+func GetServiceFast(name string, bound bool, unbound bool) (*Service, error) {
+	stackName := shortNameToStackName(name)
+
+	switch {
+	case !bound && !unbound:
+		// User requested no lookups, return empty Service.
+		return &Service{Name: name}, nil
+	case bound && !unbound:
+		// User requested bound lookup only, reset short name.
+		name = stackName
+	case !bound && unbound:
+		// User requested unbound lookup only, reset long name.
+		stackName = name
+	}
+
+	res, err := DescribeStack(stackName)
+
+	// Setting to the same value results in at most a single lookup.
+	if name != stackName && awsError(err) == "ValidationError" {
+		// Only lookup an unbound service if the name/stackName differ and the
+		// bound lookup fails.
+		res, err = DescribeStack(name)
+	}
 
 	if err != nil {
 		return nil, err
@@ -52,7 +77,7 @@ func GetService(name string) (*Service, error) {
 
 	if service.Status == "failed" {
 		eres, err := CloudFormation().DescribeStackEvents(
-			&cloudformation.DescribeStackEventsInput{StackName: aws.String(name)},
+			&cloudformation.DescribeStackEventsInput{StackName: aws.String(service.StackName())},
 		)
 
 		if err != nil {
@@ -68,6 +93,19 @@ func GetService(name string) (*Service, error) {
 	}
 
 	return service, nil
+}
+
+func (s *Service) StackName() string {
+	if s.Tags == nil {
+		return shortNameToStackName(s.Name)
+	}
+
+	if _, ok := s.Tags["Name"]; ok {
+		// Use the name provided by the user (they *should* match).
+		return shortNameToStackName(s.Name)
+	}
+
+	return s.Name
 }
 
 func (s *Service) Create() error {
@@ -101,6 +139,7 @@ func (s *Service) Create() error {
 		"System":  "convox",
 		"Service": s.Type,
 		"Type":    "service",
+		"Name":    s.Name,
 	}
 
 	for key, value := range tags {
@@ -120,9 +159,7 @@ func (s *Service) Create() error {
 }
 
 func (s *Service) Delete() error {
-	name := s.Name
-
-	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(s.StackName())})
 
 	if err != nil {
 		return err
@@ -181,6 +218,12 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 	tags := stackTags(stack)
 	exports := make(map[string]string)
 
+	name := cs(stack.StackName, "<unknown>")
+	if value, ok := tags["Name"]; ok {
+		// StackName probably includes the Rack prefix, prefer Name tag.
+		name = value
+	}
+
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
 		case "mysql":
@@ -199,7 +242,7 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 	}
 
 	return &Service{
-		Name:       cs(stack.StackName, "<unknown>"),
+		Name:       name,
 		Type:       tags["Service"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    outputs,
