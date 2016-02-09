@@ -356,8 +356,17 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	for i, itask := range tasks {
 		task := itask.(map[string]interface{})
 
-		memory, _ := strconv.Atoi(task["Memory"].(string))
-		privileged, _ := strconv.ParseBool(task["Privileged"].(string))
+		memory, err := strconv.Atoi(task["Memory"].(string))
+
+		if err != nil {
+			return "error parsing memory value", nil, err
+		}
+
+		privileged, err := strconv.ParseBool(task["Privileged"].(string))
+
+		if err != nil {
+			return "error parsing privileged value", nil, err
+		}
 
 		r.ContainerDefinitions[i] = &ecs.ContainerDefinition{
 			Name:       aws.String(task["Name"].(string)),
