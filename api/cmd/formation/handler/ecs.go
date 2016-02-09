@@ -359,13 +359,17 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		memory, err := strconv.Atoi(task["Memory"].(string))
 
 		if err != nil {
-			return "error parsing memory value", nil, err
+			return "invalid", nil, err
 		}
 
-		privileged, err := strconv.ParseBool(task["Privileged"].(string))
+		privileged := false
 
-		if err != nil {
-			return "error parsing privileged value", nil, err
+		if p, ok := task["Privileged"].(string); ok && p != "" {
+			privileged, err = strconv.ParseBool(p)
+
+			if err != nil {
+				return "invalid", nil, err
+			}
 		}
 
 		r.ContainerDefinitions[i] = &ecs.ContainerDefinition{
