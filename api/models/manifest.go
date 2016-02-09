@@ -19,15 +19,16 @@ type Manifest []ManifestEntry
 type ManifestEntry struct {
 	Name string
 
-	Build    string                   `yaml:"build"`
-	Command  interface{}              `yaml:"command"`
-	Env      []string                 `yaml:"environment"`
-	Exports  map[string]string        `yaml:"-"`
-	Image    string                   `yaml:"image"`
-	Links    []string                 `yaml:"links"`
-	LinkVars map[string]template.HTML `yaml:"-"`
-	Ports    []string                 `yaml:"ports"`
-	Volumes  []string                 `yaml:"volumes"`
+	Build      string                   `yaml:"build"`
+	Command    interface{}              `yaml:"command"`
+	Env        []string                 `yaml:"environment"`
+	Exports    map[string]string        `yaml:"-"`
+	Image      string                   `yaml:"image"`
+	Links      []string                 `yaml:"links"`
+	LinkVars   map[string]template.HTML `yaml:"-"`
+	Ports      []string                 `yaml:"ports"`
+	Privileged bool                     `yaml:"privileged"`
+	Volumes    []string                 `yaml:"volumes"`
 
 	primary bool
 	randoms map[string]int
