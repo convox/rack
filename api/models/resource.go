@@ -21,9 +21,17 @@ type Resource struct {
 type Resources map[string]Resource
 
 func ListResources(app string) (Resources, error) {
+	stackName := shortNameToStackName(app)
+
 	res, err := CloudFormation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(app),
+		StackName: aws.String(stackName),
 	})
+
+	if app != stackName && awsError(err) == "ValidationError" {
+		res, err = CloudFormation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+			StackName: aws.String(app),
+		})
+	}
 
 	if err != nil {
 		return nil, err

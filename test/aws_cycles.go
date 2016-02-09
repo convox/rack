@@ -3,6 +3,7 @@ package test
 import (
 	"net/http/httptest"
 	"os"
+	"strings"
 
 	"github.com/convox/rack/api/awsutil"
 )
@@ -377,6 +378,13 @@ func convoxStackXML(stackName string) string {
 }
 
 func appStackXML(appName string, status string) string {
+	rack := os.Getenv("RACK")
+	shortName := appName
+
+	if strings.HasPrefix(appName, rack + "-") {
+		shortName = appName[len(rack)+1:]
+	}
+
 	return `
       <member>
 				<Tags>
@@ -387,6 +395,14 @@ func appStackXML(appName string, status string) string {
           <member>
             <Value>convox</Value>
             <Key>System</Key>
+          </member>
+          <member>
+            <Value>convox-test</Value>
+            <Key>Rack</Key>
+          </member>
+          <member>
+            <Value>` + shortName + `</Value>
+            <Key>Name</Key>
           </member>
         </Tags>
         <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/` + appName + `/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
