@@ -32,7 +32,7 @@ func TestRackUpdateStable(t *testing.T) {
 		test.ExecRun{
 			Command: "convox rack update",
 			Exit:    0,
-			Stdout:  "Name     mysystem\nStatus   \nVersion  ver\nCount    1\nType     type\n",
+			Stdout:  fmt.Sprintf("Name     mysystem\nStatus   \nVersion  ver\nCount    1\nType     type\n\nUpdating to version: %s\n", stable.Version),
 		},
 	)
 }
@@ -53,7 +53,7 @@ func TestRackUpdateSpecified(t *testing.T) {
 		test.ExecRun{
 			Command: "convox rack update 20150909014908",
 			Exit:    0,
-			Stdout:  "Name     mysystem\nStatus   \nVersion  ver\nCount    1\nType     type\n",
+			Stdout:  "Name     mysystem\nStatus   \nVersion  ver\nCount    1\nType     type\n\nUpdating to version: 20150909014908\n",
 		},
 	)
 }

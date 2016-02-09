@@ -9,7 +9,24 @@ import (
 	"github.com/convox/rack/api/models"
 )
 
-func init() {
+func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	rack, err := models.GetSystem()
+
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such stack: %s", rack)
+	}
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	releases, err := models.ListReleases(rack.Name)
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, releases)
 }
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {

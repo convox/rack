@@ -49,6 +49,18 @@ func (c *Client) GetSystem() (*System, error) {
 	return &system, nil
 }
 
+func (c *Client) GetSystemReleases() (Releases, error) {
+	var releases Releases
+
+	err := c.Get("/system/releases", &releases)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return releases, nil
+}
+
 func (c *Client) restoreVersionCheck(check bool) {
 	c.skipVersionCheck = check
 }

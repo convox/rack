@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sort"
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -105,6 +104,9 @@ func cmdRackUpdate(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+
+	fmt.Println()
+	fmt.Printf("Updating to version: %s\n", version.Version)
 }
 
 func cmdRackScale(c *cli.Context) {
@@ -134,31 +136,51 @@ func cmdRackScale(c *cli.Context) {
 }
 
 func cmdRackReleases(c *cli.Context) {
-	vs, err := version.All()
+	system, err := rackClient(c).GetSystem()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	pendingVersion := system.Version
+
+	releases, err := rackClient(c).GetSystemReleases()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	t := stdcli.NewTable("VERSION", "UPDATED", "STATUS")
+
+	for i, r := range releases {
+		status := ""
+
+		if system.Status == "updating" && i == 0 {
+			pendingVersion = r.Id
+			status = "updating"
+		}
+
+		if system.Version == r.Id {
+			status = "active"
+		}
+
+		t.AddRow(r.Id, humanizeTime(r.Created), status)
+	}
+
+	t.Print()
+
+	next, err := version.Next(system.Version)
 
 	if err != nil {
 		return
 	}
 
-	selected := version.Versions{}
-
-	for _, v := range vs {
-		switch {
-		case !v.Published && c.Bool("unpublished"):
-			selected = append(selected, v)
-		case v.Published:
-			selected = append(selected, v)
-		}
-	}
-
-	sort.Sort(sort.Reverse(selected))
-
-	if len(selected) > 20 {
-		selected = selected[0:20]
-	}
-
-	for _, v := range selected {
-		fmt.Println(v.Version)
+	if next > pendingVersion {
+		// if strings.Compare(next, pendingVersion) == 1 {
+		fmt.Println()
+		fmt.Printf("New version available: %s\n", next)
 	}
 }
 

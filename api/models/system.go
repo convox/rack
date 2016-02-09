@@ -9,6 +9,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/client"
 )
 
@@ -138,6 +139,23 @@ func (r *System) Save() error {
 	}
 
 	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", r.Version)
+
+	if r.Version != app.Parameters["Version"] {
+		req := &dynamodb.PutItemInput{
+			Item: map[string]*dynamodb.AttributeValue{
+				"id":      &dynamodb.AttributeValue{S: aws.String(r.Version)},
+				"app":     &dynamodb.AttributeValue{S: aws.String(rack)},
+				"created": &dynamodb.AttributeValue{S: aws.String(time.Now().Format(SortableTime))},
+			},
+			TableName: aws.String(releasesTable(rack)),
+		}
+
+		_, err = DynamoDB().PutItem(req)
+
+		if err != nil {
+			return err
+		}
+	}
 
 	return app.UpdateParamsAndTemplate(params, template)
 }
