@@ -24,6 +24,7 @@ func TestProcessesList(t *testing.T) {
 	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackResourcesCycle("myapp-staging"),
@@ -70,6 +71,7 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackCycle("myapp-staging"),
 		test.DescribeAppStackResourcesCycle("myapp-staging"),

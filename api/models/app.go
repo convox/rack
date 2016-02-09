@@ -59,7 +59,32 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	res, err := DescribeStack(name)
+	return GetAppFast(name, true, true)
+}
+
+func GetAppFast(name string, bound bool, unbound bool) (*App, error) {
+	stackName := shortNameToStackName(name)
+
+	switch {
+	case !bound && !unbound:
+		// User requested no lookups, return empty App.
+		return &App{Name: name}, nil
+	case bound && !unbound:
+		// User requested bound lookup only, reset short name.
+		name = stackName
+	case !bound && unbound:
+		// User requested unbound lookup only, reset long name.
+		stackName = name
+	}
+
+	res, err := DescribeStack(stackName)
+
+	// Setting to the same value results in at most a single lookup.
+	if name != stackName && awsError(err) == "ValidationError" {
+		// Only lookup an unbound app if the name/stackName differ and the
+		// bound lookup fails.
+		res, err = DescribeStack(name)
+	}
 
 	if err != nil {
 		return nil, err
@@ -81,6 +106,19 @@ func GetApp(name string) (*App, error) {
 }
 
 var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+
+func (a *App) StackName() string {
+	if a.Tags == nil {
+		return shortNameToStackName(a.Name)
+	}
+
+	if _, ok := a.Tags["Name"]; ok {
+		// Use the name provided by the user (they *should* match).
+		return shortNameToStackName(a.Name)
+	}
+
+	return a.Name
+}
 
 func (a *App) Create() error {
 	helpers.TrackEvent("kernel-app-create-start", nil)
@@ -111,11 +149,12 @@ func (a *App) Create() error {
 		"Rack":   os.Getenv("RACK"),
 		"System": "convox",
 		"Type":   "app",
+		"Name":	  a.Name,
 	}
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(a.Name),
+		StackName:    aws.String(a.StackName()),
 		TemplateBody: aws.String(formation),
 	}
 
@@ -180,9 +219,7 @@ func (a *App) Cleanup() error {
 func (a *App) Delete() error {
 	helpers.TrackEvent("kernel-app-delete-start", nil)
 
-	name := a.Name
-
-	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.StackName())})
 
 	if err != nil {
 		helpers.TrackEvent("kernel-app-delete-error", nil)
@@ -200,7 +237,7 @@ func (a *App) Delete() error {
 
 func (a *App) UpdateParamsAndTemplate(changes map[string]string, template string) error {
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(a.Name),
+		StackName:    aws.String(a.StackName()),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 	}
 
@@ -441,8 +478,8 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		username = parts[0]
 		password = parts[1]
 	} else {
-		image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
-		repository = fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name)
+		image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.StackName(), me.Name, release.Build)
+		repository = fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.StackName(), me.Name)
 		tag = release.Build
 		serverAddress = os.Getenv("REGISTRY_HOST")
 		username = "convox"
@@ -617,13 +654,19 @@ func (a *App) Resources() (Resources, error) {
 }
 
 func appFromStack(stack *cloudformation.Stack) *App {
+	name := *stack.StackName
+	tags := stackTags(stack)
+	if value, ok := tags["Name"]; ok {
+		// StackName probably includes the Rack prefix, prefer Name tag.
+		name = value
+	}
 	return &App{
-		Name:       *stack.StackName,
+		Name:       name,
 		Release:    stackParameters(stack)["Release"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
 		Parameters: stackParameters(stack),
-		Tags:       stackTags(stack),
+		Tags:       tags,
 	}
 }
 
