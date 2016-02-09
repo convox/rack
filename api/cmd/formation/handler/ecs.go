@@ -357,12 +357,14 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		task := itask.(map[string]interface{})
 
 		memory, _ := strconv.Atoi(task["Memory"].(string))
+		privileged, _ := strconv.ParseBool(task["Privileged"].(string))
 
 		r.ContainerDefinitions[i] = &ecs.ContainerDefinition{
-			Name:      aws.String(task["Name"].(string)),
-			Essential: aws.Bool(true),
-			Image:     aws.String(task["Image"].(string)),
-			Memory:    aws.Int64(int64(memory)),
+			Name:       aws.String(task["Name"].(string)),
+			Essential:  aws.Bool(true),
+			Image:      aws.String(task["Image"].(string)),
+			Memory:     aws.Int64(int64(memory)),
+			Privileged: aws.Bool(privileged),
 		}
 
 		if command, ok := task["Command"].(string); ok && command != "" {
