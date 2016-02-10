@@ -180,7 +180,13 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 		return nil, err
 	}
 
-	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock", os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id}
+	args := []string{"run", "-i", "--name", fmt.Sprintf("build-%s", b.Id), "-v", "/var/run/docker.sock:/var/run/docker.sock"}
+
+	args = append(args, "-e", fmt.Sprintf("AWS_REGION=%s", os.Getenv("AWS_REGION")))
+	args = append(args, "-e", fmt.Sprintf("AWS_ACCESS=%s", os.Getenv("AWS_ACCESS")))
+	args = append(args, "-e", fmt.Sprintf("AWS_SECRET=%s", os.Getenv("AWS_SECRET")))
+
+	args = append(args, os.Getenv("DOCKER_IMAGE_API"), "build", "-id", b.Id)
 
 	endpoint, err := AppDockerLogin(*app)
 
