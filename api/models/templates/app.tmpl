@@ -445,7 +445,8 @@
         ] ] },
       {{ end }}
       { "Ref" : "AWS::NoValue" }
-    ]
+    ],
+    "Privileged": "{{ .Privileged }}"
   },
   { "Ref" : "AWS::NoValue" } ]
 }

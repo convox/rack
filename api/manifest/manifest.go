@@ -44,6 +44,7 @@ type ManifestEntry struct {
 	Environment interface{} `yaml:"environment,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
+	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
@@ -622,6 +623,10 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, ch ch
 
 	for _, env := range resolved {
 		args = append(args, "-e", env)
+	}
+
+	if me.Privileged {
+		args = append(args, "--privileged")
 	}
 
 	ports := []string{}

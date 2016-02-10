@@ -34,7 +34,7 @@ type Sns struct {
 }
 
 func die(err error) {
-	fmt.Fprintf(os.Stderr, "die error: %s\n", err)
+	fmt.Printf("die error: %s\n", err)
 	os.Exit(1)
 }
 
@@ -58,7 +58,7 @@ func main() {
 	err = handler.HandleRequest(req)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "main error: %s\n", err)
+		fmt.Printf("main error: %s\n", err)
 		return
 	}
 }

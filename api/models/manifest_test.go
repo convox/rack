@@ -52,6 +52,11 @@ func assertFixture(t *testing.T, name string, primary string) {
 	require.Nil(t, err)
 
 	manifest, err := LoadManifest(string(data))
+
+	if err != nil {
+		fmt.Printf("ERROR: %+v\n", err)
+	}
+
 	require.Nil(t, err)
 
 	for i, _ := range manifest {
@@ -61,6 +66,11 @@ func assertFixture(t *testing.T, name string, primary string) {
 	}
 
 	formation, err := manifest.Formation()
+
+	if err != nil {
+		fmt.Printf("ERROR: %+v\n", err)
+	}
+
 	require.Nil(t, err)
 
 	data, err = ioutil.ReadFile(fmt.Sprintf("fixtures/%s.json", name))
