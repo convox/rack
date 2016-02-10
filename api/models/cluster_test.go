@@ -115,5 +115,5 @@ func TestGetAppServices(t *testing.T) {
 	assert.Equal(t, 1, len(services))
 
 	s := services[0]
-	assert.Equal(t, "arn:aws:ecs:us-west-2:901416387788:service/httpd-web-SRZPVERKQOL", *s.ServiceArn)
+	assert.Equal(t, "arn:aws:ecs:us-west-2:901416387788:service/convox-test-httpd-web-SRZPVERKQOL", *s.ServiceArn)
 }
