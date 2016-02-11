@@ -397,7 +397,7 @@ func appStackXML(appName string, status string) string {
             <Key>System</Key>
           </member>
           <member>
-            <Value>convox-test</Value>
+            <Value>` + rack + `</Value>
             <Key>Rack</Key>
           </member>
           <member>
