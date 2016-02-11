@@ -24,15 +24,15 @@ func TestProcessesList(t *testing.T) {
 	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
-		test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
+		test.DescribeAppStackCycle("convox-test-myapp-staging"),
+		test.DescribeAppStackCycle("convox-test-myapp-staging"),
+		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
+		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
 		test.DescribeInstancesFilteredCycle(),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
+		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
 		test.DescribeServicesCycle("convox-test-cluster"),
 		test.ListContainerInstancesCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesCycle("convox-test-cluster"),
@@ -70,15 +70,15 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
-		test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
+		test.DescribeAppStackCycle("convox-test-myapp-staging"),
+		test.DescribeAppStackCycle("convox-test-myapp-staging"),
+		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
+		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
 		test.DescribeInstancesFilteredCycle(),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
+		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
 		test.DescribeServicesWithDeploymentsCycle("convox-test-cluster"),
 		test.DescribeTaskDefinition3Cycle("convox-test-cluster"),
 		test.ListContainerInstancesCycle("convox-test-cluster"),

@@ -87,7 +87,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 	}
 
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(a.Name),
+		StackName:    aws.String(a.StackName()),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		TemplateBody: aws.String(tmpl),
 	}
@@ -164,7 +164,7 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 
 			if a.Status == "running" {
 				params := &iam.DeleteServerCertificateInput{
-					ServerCertificateName: aws.String(certName(a.Name, process, port)),
+					ServerCertificateName: aws.String(certName(a.StackName(), process, port)),
 				}
 
 				resp, err := IAM().DeleteServerCertificate(params)
@@ -209,7 +209,7 @@ func ListSSLs(a string) (SSLs, error) {
 			}
 
 			resp, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
-				ServerCertificateName: aws.String(certName(a, matches[1], port)),
+				ServerCertificateName: aws.String(certName(app.StackName(), matches[1], port)),
 			})
 
 			if err != nil {
@@ -302,7 +302,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 
 	// update cloudformation
 	req := &cloudformation.UpdateStackInput{
-		StackName:           aws.String(a.Name),
+		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
 	}
@@ -482,7 +482,7 @@ func uploadCert(a *App, process string, port int, body, key string, chain string
 
 	timestamp := currentTime.Format("20060102150405")
 
-	name := fmt.Sprintf("%s%s%d-%s", UpperName(a.Name), UpperName(process), port, timestamp)
+	name := fmt.Sprintf("%s%s%d-%s", UpperName(a.StackName()), UpperName(process), port, timestamp)
 
 	input := &iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(body),
