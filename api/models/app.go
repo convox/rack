@@ -357,16 +357,32 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 }
 
 func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
-	env, err := GetEnvironment(a.Name)
+	resources, err := a.Resources()
 
 	if err != nil {
 		return err
 	}
 
+	input := &ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
+	}
+	task, err := ECS().DescribeTaskDefinition(input)
+
+	if err != nil {
+		return err
+	}
+
+	var container *ecs.ContainerDefinition
+	for _, container = range task.TaskDefinition.ContainerDefinitions {
+		if *container.Name == process {
+			break
+		}
+	}
+
 	ea := make([]string, 0)
 
-	for k, v := range env {
-		ea = append(ea, fmt.Sprintf("%s=%s", k, v))
+	for _, env := range container.Environment {
+		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
 	release, err := a.LatestRelease()
