@@ -51,12 +51,15 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 		KeyId: aws.String(req.PhysicalResourceId),
 	})
 
-	// TODO let the cloudformation finish thinking this deleted
-	// but take note so we can figure out why
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return req.PhysicalResourceId, nil, nil
+		return req.PhysicalResourceId, nil, err
 	}
 
-	return req.PhysicalResourceId, nil, nil
+	_, err = KMS(req).ScheduleKeyDeletion(&kms.ScheduleKeyDeletionInput{
+		KeyId:               aws.String(req.PhysicalResourceId),
+		PendingWindowInDays: aws.Int64(7),
+	})
+
+	return req.PhysicalResourceId, nil, err
 }

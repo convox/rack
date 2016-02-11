@@ -19,4 +19,4 @@ case $CIRCLE_NODE_INDEX in
 	;;
 esac
 
-convox install --disable-encryption
+convox install
