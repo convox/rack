@@ -35,6 +35,23 @@ func TestAppList(t *testing.T) {
 
 func TestAppShow(t *testing.T) {
 	aws := test.StubAws(
+		test.DescribeAppStackCycle("convox-test-bar"),
+	)
+	defer aws.Close()
+
+	body := test.HTTPBody("GET", "http://convox/apps/bar", nil)
+
+	var resp map[string]string
+	err := json.Unmarshal([]byte(body), &resp)
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, "bar", resp["name"])
+		assert.Equal(t, "running", resp["status"])
+	}
+}
+
+func TestAppShowUnbound(t *testing.T) {
+	aws := test.StubAws(
 		test.DescribeStackNotFound("convox-test-bar"),
 		test.DescribeAppStackCycle("bar"),
 	)
@@ -83,20 +100,7 @@ func TestAppCreate(t *testing.T) {
 	}
 }
 
-func TestAppCreateWithAlreadyExistsUnbound(t *testing.T) {
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("application"),
-		test.CreateAppStackExistsCycle("application"),
-		test.DescribeStackNotFound("convox-test-application"),
-		test.DescribeAppStackCycle("application"),
-	)
-	defer aws.Close()
-
-	val := url.Values{"name": []string{"application"}}
-	test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
-}
-
-func TestAppCreateWithAlreadyExistsBound(t *testing.T) {
+func TestAppCreateWithAlreadyExists(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeStackNotFound("application"),
 		test.CreateAppStackExistsCycle("convox-test-application"),
@@ -105,7 +109,19 @@ func TestAppCreateWithAlreadyExistsBound(t *testing.T) {
 	defer aws.Close()
 
 	val := url.Values{"name": []string{"application"}}
-	test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	body := test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	assert.Equal(t, "{\"error\":\"there is already an app named application (running)\"}", body)
+}
+
+func TestAppCreateWithAlreadyExistsUnbound(t *testing.T) {
+	aws := test.StubAws(
+		test.DescribeAppStackCycle("application"),
+	)
+	defer aws.Close()
+
+	val := url.Values{"name": []string{"application"}}
+	body := test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	assert.Equal(t, "{\"error\":\"there is already a legacy app named application (running). We recommend you delete this app and create it again.\"}", body)
 }
 
 // TODO: test bucket cleanup. this is handled via goroutines.
