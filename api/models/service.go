@@ -42,32 +42,28 @@ func ListServices() (Services, error) {
 }
 
 func GetService(name string) (*Service, error) {
-	return GetServiceFast(name, true, true)
-}
-
-func GetServiceFast(name string, bound bool, unbound bool) (*Service, error) {
 	stackName := shortNameToStackName(name)
+	service, err := getServiceByStackName(stackName)
 
-	switch {
-	case !bound && !unbound:
-		// User requested no lookups, return empty Service.
-		return &Service{Name: name}, nil
-	case bound && !unbound:
-		// User requested bound lookup only, reset short name.
-		name = stackName
-	case !bound && unbound:
-		// User requested unbound lookup only, reset long name.
-		stackName = name
-	}
-
-	res, err := DescribeStack(stackName)
-
-	// Setting to the same value results in at most a single lookup.
 	if name != stackName && awsError(err) == "ValidationError" {
 		// Only lookup an unbound service if the name/stackName differ and the
 		// bound lookup fails.
-		res, err = DescribeStack(name)
+		service, err = getServiceByStackName(name)
 	}
+
+	return service, err
+}
+
+func GetServiceBound(name string) (*Service, error) {
+	return getServiceByStackName(shortNameToStackName(name))
+}
+
+func GetServiceUnbound(name string) (*Service, error) {
+	return getServiceByStackName(name)
+}
+
+func getServiceByStackName(stackName string) (*Service, error) {
+	res, err := DescribeStack(stackName)
 
 	if err != nil {
 		return nil, err

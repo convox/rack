@@ -60,45 +60,35 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	return GetAppFast(name, true, true)
-}
-
-func GetAppFast(name string, bound bool, unbound bool) (*App, error) {
 	stackName := shortNameToStackName(name)
+	app, err := getAppByStackName(stackName)
 
-	switch {
-	case !bound && !unbound:
-		// User requested no lookups, return empty App.
-		return &App{Name: name}, nil
-	case bound && !unbound:
-		// User requested bound lookup only, reset short name.
-		name = stackName
-	case !bound && unbound:
-		// User requested unbound lookup only, reset long name.
-		stackName = name
-	}
-
-	res, err := DescribeStack(stackName)
-
-	// Setting to the same value results in at most a single lookup.
 	if name != stackName && awsError(err) == "ValidationError" {
 		// Only lookup an unbound app if the name/stackName differ and the
 		// bound lookup fails.
-		res, err = DescribeStack(name)
+		app, err = getAppByStackName(name)
 	}
+
+	if app != nil && app.Tags["Rack"] != "" && app.Tags["Rack"] != os.Getenv("RACK") {
+		return nil, fmt.Errorf("no such app: %s", name)
+	}
+
+	return app, err
+}
+
+func GetAppBound(name string) (*App, error) {
+	return getAppByStackName(shortNameToStackName(name))
+}
+
+func GetAppUnbound(name string) (*App, error) {
+	return getAppByStackName(name)
+}
+
+func getAppByStackName(stackName string) (*App, error) {
+	res, err := DescribeStack(stackName)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if len(res.Stacks) != 1 {
-		return nil, fmt.Errorf("could not load stack for app: %s", name)
-	}
-
-	tags := stackTags(res.Stacks[0])
-
-	if tags["Rack"] != "" && tags["Rack"] != os.Getenv("RACK") {
-		return nil, fmt.Errorf("no such app: %s", name)
 	}
 
 	app := appFromStack(res.Stacks[0])

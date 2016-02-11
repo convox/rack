@@ -56,7 +56,11 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "type")
 
 	// Early check for unbound service only.
-	service, err := models.GetServiceFast(name, false, true)
+	service, err := models.GetServiceUnbound(name)
+
+	if err != nil {
+		return httperr.Errorf(403, "there is already a legacy service named %s (%s). We recommend you delete this service and create it again.", name, service.Status)
+	}
 
 	if awsError(err) == "ValidationError" {
 		// If unbound check fails this will result in a bound service.
