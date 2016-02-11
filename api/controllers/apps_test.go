@@ -78,11 +78,17 @@ func TestAppShowWithAppNotFound(t *testing.T) {
 	test.AssertStatus(t, 404, "GET", "http://convox/apps/bar", nil)
 }
 
+// Test the primary path: creating an app on a `convox` rack
+// Return to testing against a `convox-test` rack afterwards
 func TestAppCreate(t *testing.T) {
+	r := os.Getenv("RACK")
+	os.Setenv("RACK", "convox")
+	defer os.Setenv("RACK", r)
+
 	aws := test.StubAws(
 		test.DescribeStackNotFound("application"),
-		test.CreateAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
+		test.CreateAppStackCycle("convox-application"),
+		test.DescribeAppStackCycle("convox-application"),
 	)
 	defer aws.Close()
 
