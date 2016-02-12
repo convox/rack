@@ -651,8 +651,8 @@
               { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
             ] },
             { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
-              "echo 'OPTIONS=\"${OPTIONS} --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
+              { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
+              "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
             ] },
             "service docker restart",
             "mkdir -p /etc/convox",
