@@ -277,6 +277,42 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /apps/{app}/parameters:
+    get:
+      description: List advanced parameters for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: parameters
+          schema:
+            $ref: '#/definitions/parameters'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+    post:
+      description: Set advanced parameters for an app
+      parameters:
+      - name: body
+        description: parameters (as formdata)
+        in: body
+        schema:
+          type: string
+        required: true
+      responses:
+        200:
+          description: environment
+          schema:
+            $ref: '#/definitions/environment'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}/processes:
     get:
       description: List processes for an app
@@ -681,6 +717,9 @@ definitions:
         type: number
       status:
         type: string
+  parameters:
+    additionalProperties:
+      type: string
   process:
     properties:
       id:

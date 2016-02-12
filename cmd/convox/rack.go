@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
@@ -18,6 +19,21 @@ func init() {
 		Usage:       "",
 		Action:      cmdRack,
 		Subcommands: []cli.Command{
+			{
+				Name:        "params",
+				Description: "list advanced rack parameters",
+				Usage:       "",
+				Action:      cmdRackParams,
+				Subcommands: []cli.Command{
+					{
+						Name:        "set",
+						Description: "update advanced rack parameters",
+						Usage:       "NAME=VALUE [NAME=VALUE]",
+						Action:      cmdRackParamsSet,
+						Flags:       []cli.Flag{appFlag},
+					},
+				},
+			},
 			{
 				Name:        "scale",
 				Description: "scale the rack capacity",
@@ -69,6 +85,71 @@ func cmdRack(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+}
+
+func cmdRackParams(c *cli.Context) {
+	system, err := rackClient(c).GetSystem()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	params, err := rackClient(c).ListParameters(system.Name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	keys := []string{}
+
+	for key, _ := range params {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	t := stdcli.NewTable("NAME", "VALUE")
+
+	for _, key := range keys {
+		t.AddRow(key, params[key])
+	}
+
+	t.Print()
+}
+
+func cmdRackParamsSet(c *cli.Context) {
+	system, err := rackClient(c).GetSystem()
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	params := map[string]string{}
+
+	for _, arg := range c.Args() {
+		parts := strings.SplitN(arg, "=", 2)
+
+		if len(parts) != 2 {
+			stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
+			return
+		}
+
+		params[parts[0]] = parts[1]
+	}
+
+	fmt.Print("Updating parameters... ")
+
+	err = rackClient(c).SetParameters(system.Name, params)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("OK")
 }
 
 func cmdRackUpdate(c *cli.Context) {
