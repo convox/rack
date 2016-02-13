@@ -61,7 +61,7 @@ func Listen() {
 		messages, err := dequeueMessage()
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			fmt.Printf("error: %s\n", err)
 			continue
 		}
 
@@ -78,7 +78,7 @@ func Listen() {
 		num, err := ackMessage(messages)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			fmt.Printf("error: %s\n", err)
 			continue
 		}
 
@@ -92,14 +92,14 @@ func handleFormation(message Message) {
 	err := json.Unmarshal([]byte(message.Message), &freq)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		return
 	}
 
 	err = HandleRequest(freq)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		return
 	}
 }
@@ -199,7 +199,7 @@ func HandleRequest(freq Request) error {
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		fres.Reason = err.Error()
 		fres.Status = "FAILED"
 	}

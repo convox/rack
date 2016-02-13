@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -86,7 +85,7 @@ func LambdaFunctionDelete(req Request) (string, error) {
 	// TODO let the cloudformation finish thinking this deleted
 	// but take note so we can figure out why
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		return req.PhysicalResourceId, nil
 	}
 
