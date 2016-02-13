@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -61,7 +60,7 @@ func ECRRepositoryDelete(req Request) (string, map[string]string, error) {
 	fmt.Printf("parts %+v\n", parts)
 
 	if len(parts) != 2 {
-		fmt.Fprintf(os.Stderr, "could not split ecr arn\n")
+		fmt.Printf("could not split ecr arn\n")
 		return req.PhysicalResourceId, nil, nil
 	}
 
@@ -74,7 +73,7 @@ func ECRRepositoryDelete(req Request) (string, map[string]string, error) {
 	// TODO let the cloudformation finish thinking this deleted
 	// but take note so we can figure out why
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		return req.PhysicalResourceId, nil, nil
 	}
 

@@ -605,7 +605,8 @@
     "WebECSService": {
       "DependsOn": [
         "BalancerWebInternal",
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {

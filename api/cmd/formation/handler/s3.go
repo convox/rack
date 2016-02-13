@@ -44,7 +44,7 @@ func S3BucketCleanupDelete(req Request) (string, map[string]string, error) {
 	// // TODO let the cloudformation finish thinking this deleted
 	// // but take note so we can figure out why
 	// if err != nil {
-	//   fmt.Fprintf(os.Stderr, "error: %s\n", err)
+	//   fmt.Printf("error: %s\n", err)
 	//   return req.PhysicalResourceId, nil, nil
 	// }
 
