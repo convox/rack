@@ -218,7 +218,8 @@
     },
     "PostgresECSService": {
       "DependsOn": [
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {
@@ -421,7 +422,8 @@
     },
     "WorkerECSService": {
       "DependsOn": [
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {

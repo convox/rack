@@ -537,7 +537,8 @@
     },
     "PostgresECSService": {
       "DependsOn": [
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {
@@ -741,7 +742,8 @@
     "WebECSService": {
       "DependsOn": [
         "BalancerWeb",
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {

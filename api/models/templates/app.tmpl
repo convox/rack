@@ -181,7 +181,8 @@
           {{ if $e.HasBalancer }}
             "{{ $manifest.BalancerResourceName $e.Name }}",
           {{ end }}
-          "CustomTopic"
+          "CustomTopic",
+          "ServiceRole"
          ],
         "Type": "Custom::ECSService",
         "Version": "1.0",

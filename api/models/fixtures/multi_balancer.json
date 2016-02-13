@@ -692,7 +692,8 @@
     "WebECSService": {
       "DependsOn": [
         "Balancer",
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {
@@ -838,7 +839,8 @@
     "WorkerECSService": {
       "DependsOn": [
         "BalancerWorker",
-        "CustomTopic"
+        "CustomTopic",
+        "ServiceRole"
       ],
       "Properties": {
         "Cluster": {
