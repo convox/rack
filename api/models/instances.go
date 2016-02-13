@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -25,6 +26,8 @@ type Instance struct {
 	Status    string    `json:"status"`
 	Started   time.Time `json:"started"`
 }
+
+type Instances []Instance
 
 type InstanceResource struct {
 	Total int `json:"total"`
@@ -164,7 +167,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 	return nil
 }
 
-func ListInstances() ([]*Instance, error) {
+func ListInstances() (Instances, error) {
 	res, err := ECS().ListContainerInstances(
 		&ecs.ListContainerInstancesInput{
 			Cluster: aws.String(os.Getenv("CLUSTER")),
@@ -208,7 +211,7 @@ func ListInstances() ([]*Instance, error) {
 		}
 	}
 
-	var instances []*Instance
+	var instances Instances
 	for _, i := range ecsRes.ContainerInstances {
 		// figure out the CPU and memory metrics
 		var cpu, memory InstanceResource
@@ -237,7 +240,7 @@ func ListInstances() ([]*Instance, error) {
 		ec2Instance := ec2Instances[*i.Ec2InstanceId]
 
 		// build up the struct
-		instance := &Instance{
+		instance := Instance{
 			Cpu:    truncate(cpu.PercentUsed(), 4),
 			Memory: truncate(memory.PercentUsed(), 4),
 			Id:     *i.Ec2InstanceId,
@@ -268,6 +271,8 @@ func ListInstances() ([]*Instance, error) {
 		instances = append(instances, instance)
 	}
 
+	sort.Sort(instances)
+
 	return instances, nil
 }
 
@@ -285,4 +290,16 @@ func exitCode(err error) int {
 
 func (i *Instance) Docker() (*docker.Client, error) {
 	return Docker(fmt.Sprintf("http://%s:2376", i.Ip))
+}
+
+func (ii Instances) Len() int {
+	return len(ii)
+}
+
+func (ii Instances) Less(i, j int) bool {
+	return ii[i].Started.Before(ii[j].Started)
+}
+
+func (ii Instances) Swap(i, j int) {
+	ii[i], ii[j] = ii[j], ii[i]
 }
