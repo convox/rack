@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
@@ -99,7 +100,7 @@ func ECSClusterDelete(req Request) (string, map[string]string, error) {
 	// TODO let the cloudformation finish thinking this deleted
 	// but take note so we can figure out why
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("error: %s\n", err)
 		return req.PhysicalResourceId, nil, nil
 	}
 
@@ -277,6 +278,7 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 	parts := strings.Split(req.PhysicalResourceId, "/")
 	name := parts[1]
 
+	// Set Desired to 0
 	_, err := ECS(req).UpdateService(&ecs.UpdateServiceInput{
 		Cluster:      aws.String(cluster),
 		Service:      aws.String(name),
@@ -292,22 +294,61 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 
 	// signal DELETE_FAILED to cloudformation
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		fmt.Printf("ECS UpdateService error: %s\n", err)
 		return req.PhysicalResourceId, nil, err
 	}
 
-	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
-		Cluster: aws.String(cluster),
-		Service: aws.String(name),
+	// Help move Desired to 0 by stopping all tasks
+	tasks, err := ECS(req).ListTasks(&ecs.ListTasksInput{
+		Cluster:     aws.String(cluster),
+		ServiceName: aws.String(name),
 	})
 
-	// signal DELETE_FAILED to cloudformation
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		return req.PhysicalResourceId, nil, err
+		fmt.Printf("ECS ListTasks error: %s\n", err)
+	} else {
+		for _, arn := range tasks.TaskArns {
+			_, err = ECS(req).StopTask(&ecs.StopTaskInput{
+				Cluster: aws.String(cluster),
+				Task:    arn,
+			})
+
+			if err != nil {
+				fmt.Printf("ECS StopTask error: %s\n", err)
+			}
+		}
 	}
 
-	return req.PhysicalResourceId, nil, nil
+	// Delete service, sleeping/retrying for 2 minutes if the error is:
+	// Failed to delete resource. InvalidParameterException: The service cannot be stopped while deployments are active.
+	var derr error
+
+	for i := 0; i < 12; i++ {
+		_, derr = ECS(req).DeleteService(&ecs.DeleteServiceInput{
+			Cluster: aws.String(cluster),
+			Service: aws.String(name),
+		})
+
+		// sleep and retry
+		if ae, ok := derr.(awserr.Error); ok {
+			if ae.Code() == "InvalidParameterException" {
+				time.Sleep(10 * time.Second)
+				continue
+			}
+		}
+
+		// signal DELETE_FAILED to cloudformation
+		if derr != nil {
+			fmt.Printf("error: %s\n", derr)
+			return req.PhysicalResourceId, nil, derr
+		}
+
+		// signal DELETE_COMPLETE to cloudformation
+		return req.PhysicalResourceId, nil, nil
+	}
+
+	// signal DELETE_FAILED to cloudformation
+	return req.PhysicalResourceId, nil, derr
 }
 
 func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
