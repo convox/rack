@@ -34,6 +34,22 @@ func init() {
 				Action:      cmdAppInfo,
 				Flags:       []cli.Flag{appFlag},
 			},
+			{
+				Name:        "params",
+				Description: "list advanced parameters for an app",
+				Usage:       "[name]",
+				Action:      cmdAppParams,
+				Flags:       []cli.Flag{appFlag},
+				Subcommands: []cli.Command{
+					{
+						Name:        "set",
+						Description: "update advanced parameters for an app",
+						Usage:       "NAME=VALUE [NAME=VALUE]",
+						Action:      cmdAppParamsSet,
+						Flags:       []cli.Flag{appFlag},
+					},
+				},
+			},
 		},
 	})
 }
@@ -146,4 +162,69 @@ func cmdAppInfo(c *cli.Context) {
 	fmt.Printf("Release    %s\n", stdcli.Default(a.Release, "(none)"))
 	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(ps, " "), "(none)"))
 	fmt.Printf("Endpoints  %s\n", strings.Join(endpoints, "\n           "))
+}
+
+func cmdAppParams(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	params, err := rackClient(c).ListParameters(app)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	keys := []string{}
+
+	for key, _ := range params {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	t := stdcli.NewTable("NAME", "VALUE")
+
+	for _, key := range keys {
+		t.AddRow(key, params[key])
+	}
+
+	t.Print()
+}
+
+func cmdAppParamsSet(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	params := map[string]string{}
+
+	for _, arg := range c.Args() {
+		parts := strings.SplitN(arg, "=", 2)
+
+		if len(parts) != 2 {
+			stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
+			return
+		}
+
+		params[parts[0]] = parts[1]
+	}
+
+	fmt.Print("Updating parameters... ")
+
+	err = rackClient(c).SetParameters(app, params)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("OK")
 }
