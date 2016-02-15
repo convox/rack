@@ -9,6 +9,9 @@ go:
 - 1.4
 - 1.5
 
+env:
+  - PROVIDER=test
+
 before_install:
 - go get -u golang.org/x/tools/cmd/cover
 - go get -u github.com/axw/gocov/gocov
@@ -18,7 +21,7 @@ before_install:
 script:
 - go get ./...
 - go install ./cmd/convox
-- goveralls -gocovdata <(env PROVIDER=test gocov test -v ./...) -service travis-ci
+- goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
 
 notifications:
   slack:
