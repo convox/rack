@@ -18,8 +18,7 @@ before_install:
 - go get -u github.com/convox/release/version
 
 script:
-- go get ./...
-- go install ./cmd/convox
+- go install ./...
 - goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
 
 notifications:
