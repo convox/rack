@@ -1,4 +1,5 @@
 exports.external = function(event, context) {
+  process.env['PROVIDER'] = 'aws';
 
   console.log('event', event);
   console.log('context', context);
