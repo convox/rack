@@ -18,8 +18,7 @@ before_install:
 script:
 - go get ./...
 - go install ./cmd/convox
-- go test -v ./...
-- goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
+- goveralls -gocovdata <(env PROVIDER=test gocov test -v ./...) -service travis-ci
 
 notifications:
   slack:
