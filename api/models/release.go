@@ -306,7 +306,7 @@ func (r *Release) Formation() (string, error) {
 		if registryId := app.Outputs["RegistryId"]; registryId != "" {
 			imageName = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], entry.Name, r.Build)
 		} else {
-			imageName = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
+			imageName = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), app.StackName(), entry.Name, r.Build)
 		}
 		manifest[i].Image = imageName
 	}
