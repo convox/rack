@@ -11,7 +11,7 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
-func (p *AWSProvider) InstancesList() (structs.Instances, error) {
+func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 	})

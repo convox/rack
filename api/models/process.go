@@ -239,7 +239,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 }
 
 func ListOneoffProcesses(app string) (Processes, error) {
-	instances, err := provider.InstancesList()
+	instances, err := provider.InstanceList()
 
 	if err != nil {
 		return nil, err
