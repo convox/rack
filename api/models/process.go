@@ -13,6 +13,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/api/config"
+	"github.com/convox/rack/api/provider"
 )
 
 type Process struct {
@@ -238,7 +239,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 }
 
 func ListOneoffProcesses(app string) (Processes, error) {
-	instances, err := ListInstances()
+	instances, err := provider.InstancesList()
 
 	if err != nil {
 		return nil, err
@@ -247,7 +248,7 @@ func ListOneoffProcesses(app string) (Processes, error) {
 	procs := Processes{}
 
 	for _, instance := range instances {
-		d, err := instance.Docker()
+		d, err := Docker(instance.Ip)
 
 		if err != nil {
 			return nil, err

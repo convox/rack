@@ -88,9 +88,9 @@
       "Condition": "Development",
       "Value": { "Ref": "Password" }
     },
-    "Private": {
+    "Provider": {
       "Condition": "Development",
-      "Value": { "Ref": "Private" }
+      "Value": "aws"
     },
     "Rack": {
       "Condition": "Development",
