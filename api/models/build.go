@@ -375,10 +375,6 @@ func (b *Build) Fail(err error) {
 	b.Save()
 }
 
-func (b *Build) Image(process string) string {
-	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY"), b.App, process, b.Id)
-}
-
 func (b *Build) scanLines(r io.Reader, wg *sync.WaitGroup) {
 	defer wg.Done()
 
