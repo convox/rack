@@ -2,17 +2,20 @@ package provider
 
 import "github.com/convox/rack/api/structs"
 
-type TestProvider struct {
+var TestProvider = &TestProviderRunner{}
+
+type TestProviderRunner struct {
+	Instances structs.Instances
 }
 
-func (p TestProvider) InstanceList() (structs.Instances, error) {
+func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
+	return p.Instances, nil
+}
+
+func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
 	return nil, nil
 }
 
-func (p TestProvider) SystemGet() (*structs.System, error) {
-	return nil, nil
-}
-
-func (p TestProvider) SystemSave(system structs.System) error {
+func (p *TestProviderRunner) SystemSave(system structs.System) error {
 	return nil
 }

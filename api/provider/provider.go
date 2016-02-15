@@ -24,7 +24,7 @@ func init() {
 	case "aws":
 		CurrentProvider, err = aws.NewProvider(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), os.Getenv("AWS_ENDPOINT"))
 	case "test":
-		CurrentProvider = TestProvider{}
+		CurrentProvider = TestProvider
 	default:
 		die(fmt.Errorf("PROVIDER must be one of (aws)"))
 	}
