@@ -11,7 +11,7 @@ import (
 var CurrentProvider Provider
 
 type Provider interface {
-	InstancesList() (structs.Instances, error)
+	InstanceList() (structs.Instances, error)
 
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
@@ -34,8 +34,8 @@ func init() {
 
 /** package-level functions ************************************************************************/
 
-func InstancesList() (structs.Instances, error) {
-	return CurrentProvider.InstancesList()
+func InstanceList() (structs.Instances, error) {
+	return CurrentProvider.InstanceList()
 }
 
 func SystemGet() (*structs.System, error) {
