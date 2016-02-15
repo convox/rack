@@ -3,14 +3,14 @@ package controllers
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.GetSystem()
+	rack, err := provider.SystemGet()
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)
@@ -30,7 +30,7 @@ func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.GetSystem()
+	rack, err := provider.SystemGet()
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)
@@ -44,7 +44,7 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.GetSystem()
+	rack, err := provider.SystemGet()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -76,22 +76,13 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		notifyData["version"] = version
 	}
 
-	err = rack.Save()
-
-	if awsError(err) == "ValidationError" {
-		switch {
-		case strings.Index(err.Error(), "No updates are to be performed") > -1:
-			return httperr.Errorf(403, "no system updates are to be performed")
-		case strings.Index(err.Error(), "can not be updated") > -1:
-			return httperr.Errorf(403, "system is already updating")
-		}
-	}
+	err = provider.SystemSave(*rack)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	rack, err = models.GetSystem()
+	rack, err = provider.SystemGet()
 
 	if err != nil {
 		return httperr.Server(err)
