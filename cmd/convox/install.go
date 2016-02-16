@@ -144,6 +144,25 @@ func init() {
 				Value: "10.0.3.0/24",
 				Usage: "Subnet 2 CIDR block",
 			},
+			cli.StringFlag{
+				Name:  "subnet-private0-cidr",
+				Value: "10.0.4.0/24",
+				Usage: "Private Subnet 0 CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet-private1-cidr",
+				Value: "10.0.5.0/24",
+				Usage: "Private Subnet 1 CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet-private2-cidr",
+				Value: "10.0.6.0/24",
+				Usage: "Private Subnet 2 CIDR block",
+			},
+			cli.BoolFlag{
+				Name:  "private",
+				Usage: "Create private network resources",
+			},
 		},
 	})
 
@@ -238,6 +257,11 @@ func cmdInstall(c *cli.Context) {
 		encryption = "No"
 	}
 
+	private := "No"
+	if c.Bool("private") {
+		private = "Yes"
+	}
+
 	ami := c.String("ami")
 
 	key := c.String("key")
@@ -247,10 +271,12 @@ func cmdInstall(c *cli.Context) {
 	vpcCIDR := c.String("vpc-cidr")
 
 	subnet0CIDR := c.String("subnet0-cidr")
-
 	subnet1CIDR := c.String("subnet1-cidr")
-
 	subnet2CIDR := c.String("subnet2-cidr")
+
+	subnetPrivate0CIDR := c.String("subnet-private0-cidr")
+	subnetPrivate1CIDR := c.String("subnet-private1-cidr")
+	subnetPrivate2CIDR := c.String("subnet-private2-cidr")
 
 	versions, err := version.All()
 
@@ -292,11 +318,15 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet1CIDR"), ParameterValue: aws.String(subnet1CIDR)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet2CIDR"), ParameterValue: aws.String(subnet2CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("SubnetPrivate0CIDR"), ParameterValue: aws.String(subnetPrivate0CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("SubnetPrivate1CIDR"), ParameterValue: aws.String(subnetPrivate1CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("SubnetPrivate2CIDR"), ParameterValue: aws.String(subnetPrivate2CIDR)},
 			&cloudformation.Parameter{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
 		},
 		StackName:   aws.String(stackName),
