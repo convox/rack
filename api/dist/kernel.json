@@ -511,6 +511,54 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
+    "NatGateway0": {
+      "Condition": "Private",
+      "Type": "Custom::EC2NatGateway",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatIp0", "AllocationId" ] },
+        "SubnetId": { "Ref": "Subnet0" }
+      }
+    },
+    "NatGateway1": {
+      "Condition": "Private",
+      "Type": "Custom::EC2NatGateway",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatIp1", "AllocationId" ] },
+        "SubnetId": { "Ref": "Subnet1" }
+      }
+    },
+    "NatGateway2": {
+      "Condition": "Private",
+      "Type": "Custom::EC2NatGateway",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatIp2", "AllocationId" ] },
+        "SubnetId": { "Ref": "Subnet2" }
+      }
+    },
+    "NatIp0": {
+      "Condition": "Private",
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NatIp1": {
+      "Condition": "Private",
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NatIp2": {
+      "Condition": "Private",
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
     "Subnet0": {
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
@@ -548,6 +596,7 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
+
     "SubnetPrivate1": {
       "Condition": "Private",
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
