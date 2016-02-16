@@ -633,6 +633,7 @@
       }
     },
     "RoutesPrivate0": {
+      "Condition": "Private",
       "DependsOn": [ "NatGateway0", "Vpc" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -640,6 +641,7 @@
       }
     },
     "RoutesPrivate1": {
+      "Condition": "Private",
       "DependsOn": [ "NatGateway1", "Vpc" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -647,6 +649,7 @@
       }
     },
     "RoutesPrivate2": {
+      "Condition": "Private",
       "DependsOn": [ "NatGateway2", "Vpc" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -654,6 +657,7 @@
       }
     },
     "RoutePrivateDefault0": {
+      "Condition": "Private",
       "DependsOn": [ "NatGateway0", "RoutesPrivate0" ],
       "Type": "Custom::EC2Route",
       "Properties": {
@@ -664,6 +668,7 @@
       }
     },
     "RoutePrivateDefault1": {
+      "Condition": "Private",
       "DependsOn": [ "NatGateway1", "RoutesPrivate1" ],
       "Type": "Custom::EC2Route",
       "Properties": {
@@ -674,6 +679,7 @@
       }
     },
     "RoutePrivateDefault2": {
+      "Condition": "Private",
       "DependsOn": [ "NatGateway2", "RoutesPrivate2" ],
       "Type": "Custom::EC2Route",
       "Properties": {
@@ -708,6 +714,7 @@
       }
     },
     "SubnetPrivate0Routes": {
+      "Condition": "Private",
       "DependsOn": [ "SubnetPrivate0", "RoutesPrivate0" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -716,6 +723,7 @@
       }
     },
     "SubnetPrivate1Routes": {
+      "Condition": "Private",
       "DependsOn": [ "SubnetPrivate1", "RoutesPrivate1" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -724,6 +732,7 @@
       }
     },
     "SubnetPrivate2Routes": {
+      "Condition": "Private",
       "DependsOn": [ "SubnetPrivate2", "RoutesPrivate2" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
