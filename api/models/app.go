@@ -527,8 +527,8 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		username = parts[0]
 		password = parts[1]
 	} else {
-		image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.StackName(), me.Name, release.Build)
-		repository = fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.StackName(), me.Name)
+		image = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name, release.Build)
+		repository = fmt.Sprintf("%s/%s-%s", os.Getenv("REGISTRY_HOST"), a.Name, me.Name)
 		tag = release.Build
 		serverAddress = os.Getenv("REGISTRY_HOST")
 		username = "convox"
