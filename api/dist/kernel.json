@@ -596,7 +596,6 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
-
     "SubnetPrivate1": {
       "Condition": "Private",
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
@@ -633,6 +632,57 @@
         "RouteTableId": { "Ref": "Routes" }
       }
     },
+    "RoutesPrivate0": {
+      "DependsOn": [ "NatGateway0", "Vpc" ],
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "RoutesPrivate1": {
+      "DependsOn": [ "NatGateway1", "Vpc" ],
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "RoutesPrivate2": {
+      "DependsOn": [ "NatGateway2", "Vpc" ],
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "RoutePrivateDefault0": {
+      "DependsOn": [ "NatGateway0", "RoutesPrivate0" ],
+      "Type": "Custom::EC2Route",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": { "Ref": "NatGateway0" },
+        "RouteTableId": { "Ref": "RoutesPrivate0" }
+      }
+    },
+    "RoutePrivateDefault1": {
+      "DependsOn": [ "NatGateway1", "RoutesPrivate1" ],
+      "Type": "Custom::EC2Route",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": { "Ref": "NatGateway1" },
+        "RouteTableId": { "Ref": "RoutesPrivate1" }
+      }
+    },
+    "RoutePrivateDefault2": {
+      "DependsOn": [ "NatGateway2", "RoutesPrivate2" ],
+      "Type": "Custom::EC2Route",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": { "Ref": "NatGateway2" },
+        "RouteTableId": { "Ref": "RoutesPrivate2" }
+      }
+    },
     "Subnet0Routes": {
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
@@ -655,6 +705,30 @@
       "Properties": {
         "SubnetId": { "Ref": "Subnet2" },
         "RouteTableId": { "Ref": "Routes" }
+      }
+    },
+    "SubnetPrivate0Routes": {
+      "DependsOn": [ "SubnetPrivate0", "RoutesPrivate0" ],
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "SubnetPrivate0" },
+        "RouteTableId": { "Ref": "RoutesPrivate0" }
+      }
+    },
+    "SubnetPrivate1Routes": {
+      "DependsOn": [ "SubnetPrivate1", "RoutesPrivate1" ],
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "SubnetPrivate1" },
+        "RouteTableId": { "Ref": "RoutesPrivate1" }
+      }
+    },
+    "SubnetPrivate2Routes": {
+      "DependsOn": [ "SubnetPrivate2", "RoutesPrivate2" ],
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "SubnetPrivate2" },
+        "RouteTableId": { "Ref": "RoutesPrivate2" }
       }
     },
     "SecurityGroup": {
@@ -790,11 +864,18 @@
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
         ],
-        "VPCZoneIdentifier": [
-          { "Ref": "Subnet0" },
-          { "Ref": "Subnet1" },
-          { "Ref": "Subnet2" }
-        ],
+        "VPCZoneIdentifier": { "Fn::If": [ "Private",
+          [
+            { "Ref": "SubnetPrivate0" },
+            { "Ref": "SubnetPrivate1" },
+            { "Ref": "SubnetPrivate2" }
+          ],
+          [
+            { "Ref": "Subnet0" },
+            { "Ref": "Subnet1" },
+            { "Ref": "Subnet2" }
+          ]
+        ] },
         "Cooldown": 5,
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
