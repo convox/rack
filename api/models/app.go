@@ -97,10 +97,12 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"Cluster": os.Getenv("CLUSTER"),
-		"Subnets": os.Getenv("SUBNETS"),
-		"Version": os.Getenv("RELEASE"),
-		"VPC":     os.Getenv("VPC"),
+		"Cluster":        os.Getenv("CLUSTER"),
+		"Private":        os.Getenv("PRIVATE"),
+		"Subnets":        os.Getenv("SUBNETS"),
+		"SubnetsPrivate": os.Getenv("SUBNETS_PRIVATE"),
+		"Version":        os.Getenv("RELEASE"),
+		"VPC":            os.Getenv("VPC"),
 	}
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {

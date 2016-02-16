@@ -5,7 +5,7 @@
       {{ template "balancer-conditions" . }}
       {{ template "process-conditions" . }}
       {{ template "registry-conditions" . }}
-      "BlankCluster": { "Fn::Equals": [ { "Ref": "Cluster" }, "" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
     },
     "Parameters" : {
       {{ template "balancer-params" . }}
@@ -31,6 +31,12 @@
         "Default": "",
         "Description": ""
       },
+      "Private": {
+        "Type": "String",
+        "Description": "Create internal load balancers in private subnets",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
       "Release": {
         "Type" : "String",
         "Default" : "",
@@ -45,6 +51,11 @@
         "Type" : "List<AWS::EC2::Subnet::Id>",
         "Default" : "",
         "Description" : "VPC subnets for this app"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets for this app"
       },
       "Version": {
         "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
@@ -285,9 +296,14 @@
     "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "Subnets": { "Ref": "Subnets" },
+        "Scheme": "{{ .Scheme }}",
         {{ if eq .Scheme "internal" }}
-          "Scheme": "{{ .Scheme }}",
+          "Subnets": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] },
+        {{ else }}
+          "Subnets": { "Ref": "Subnets" },
         {{ end }}
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
