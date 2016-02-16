@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 )
 
@@ -47,6 +48,27 @@ func HandleEC2NatGateway(req Request) (string, map[string]string, error) {
 		fmt.Println("DELETING NATGATEWAY")
 		fmt.Printf("req %+v\n", req)
 		return EC2NatGatewayDelete(req)
+	}
+
+	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
+
+func HandleEC2Route(req Request) (string, map[string]string, error) {
+	defer recoverFailure(req)
+
+	switch req.RequestType {
+	case "Create":
+		fmt.Println("CREATING ROUTE")
+		fmt.Printf("req %+v\n", req)
+		return EC2RouteCreate(req)
+	case "Update":
+		fmt.Println("UPDATING ROUTE")
+		fmt.Printf("req %+v\n", req)
+		return EC2RouteUpdate(req)
+	case "Delete":
+		fmt.Println("DELETING ROUTE")
+		fmt.Printf("req %+v\n", req)
+		return EC2RouteDelete(req)
 	}
 
 	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
@@ -108,6 +130,72 @@ func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
 	_, err := EC2(req).DeleteNatGateway(&ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(req.PhysicalResourceId),
 	})
+
+	return req.PhysicalResourceId, nil, err
+}
+
+func EC2RouteCreate(req Request) (string, map[string]string, error) {
+	destinationCidrBlock := req.ResourceProperties["DestinationCidrBlock"].(string)
+	routeTableId := req.ResourceProperties["RouteTableId"].(string)
+
+	_, err := EC2(req).CreateRoute(&ec2.CreateRouteInput{
+		DestinationCidrBlock: aws.String(destinationCidrBlock),
+		NatGatewayId:         aws.String(req.ResourceProperties["NatGatewayId"].(string)),
+		RouteTableId:         aws.String(routeTableId),
+	})
+
+	if err != nil {
+		return "invalid", nil, err
+	}
+
+	return routeTableId + "/" + destinationCidrBlock, nil, nil
+}
+
+func EC2RouteUpdate(req Request) (string, map[string]string, error) {
+	parts := strings.SplitN(req.PhysicalResourceId, "/", 2)
+
+	destinationCidrBlock := req.ResourceProperties["DestinationCidrBlock"].(string)
+	routeTableId := req.ResourceProperties["RouteTableId"].(string)
+
+	if parts[0] == routeTableId && parts[1] == destinationCidrBlock {
+		return req.PhysicalResourceId, nil, nil
+	}
+
+	_, err := EC2(req).DeleteRoute(&ec2.DeleteRouteInput{
+		DestinationCidrBlock: aws.String(parts[1]),
+		RouteTableId:         aws.String(parts[0]),
+	})
+
+	if err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	_, err = EC2(req).CreateRoute(&ec2.CreateRouteInput{
+		DestinationCidrBlock: aws.String(destinationCidrBlock),
+		NatGatewayId:         aws.String(req.ResourceProperties["NatGatewayId"].(string)),
+		RouteTableId:         aws.String(routeTableId),
+	})
+
+	if err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	return routeTableId + "/" + destinationCidrBlock, nil, nil
+}
+
+func EC2RouteDelete(req Request) (string, map[string]string, error) {
+	parts := strings.SplitN(req.PhysicalResourceId, "/", 2)
+
+	_, err := EC2(req).DeleteRoute(&ec2.DeleteRouteInput{
+		DestinationCidrBlock: aws.String(parts[1]),
+		RouteTableId:         aws.String(parts[0]),
+	})
+
+	if ae, ok := err.(awserr.Error); ok {
+		if ae.Code() == "InvalidRoute.NotFound" {
+			return req.PhysicalResourceId, nil, nil
+		}
+	}
 
 	return req.PhysicalResourceId, nil, err
 }
