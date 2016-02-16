@@ -1041,7 +1041,10 @@
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
               "VPC": { "Ref": "Vpc" }
             },
-            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+            "Image": { "Fn::If": [ "BlankDockerImageApi",
+              { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+              { "Ref": "DockerImageApi" }
+            ] },
             "Links": [],
             "Memory": "128",
             "Name": "web",
@@ -1126,7 +1129,10 @@
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
               "VPC": { "Ref": "Vpc" }
             },
-            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+            "Image": { "Fn::If": [ "BlankDockerImageApi",
+              { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+              { "Ref": "DockerImageApi" }
+            ] },
             "Links": [],
             "Memory": "64",
             "Name": "monitor",
