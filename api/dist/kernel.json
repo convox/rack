@@ -1221,6 +1221,7 @@
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
+              "PRIVATE": { "Ref": "Private" },
               "PROCESS": "web",
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
@@ -1232,6 +1233,10 @@
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
               "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
+              "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
+                ""
+              ] },
               "VPC": { "Ref": "Vpc" }
             },
             "Image": { "Fn::If": [ "BlankDockerImageApi",
@@ -1309,6 +1314,7 @@
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
               "PASSWORD": { "Ref": "Password" },
+              "PRIVATE": { "Ref": "Private" },
               "PROCESS": "web",
               "RACK": { "Ref": "AWS::StackName" },
               "REGISTRY_HOST": { "Fn::If": [ "BlankRegistryHost",
@@ -1320,6 +1326,10 @@
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
               "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
+              "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
+                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
+                ""
+              ] },
               "VPC": { "Ref": "Vpc" }
             },
             "Image": { "Fn::If": [ "BlankDockerImageApi",
