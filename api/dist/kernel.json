@@ -953,7 +953,7 @@
       }
     },
     "Balancer": {
-      "DependsOn": [ "BalancerSecurityGroup", "GatewayAttachment", "Subnet0", "Subnet1", "Subnet2", "SubnetPrivate0", "SubnetPrivate1", "SubnetPrivate2" ],
+      "DependsOn": [ "BalancerSecurityGroup", "GatewayAttachment" ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
