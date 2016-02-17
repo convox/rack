@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
@@ -131,6 +132,39 @@ func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
 		NatGatewayId: aws.String(req.PhysicalResourceId),
 	})
 
+	// block for 2 minutes until it's deleted
+	// Fixes subsequent CF error on deleting Elastic IP:
+	//   API: ec2:disassociateAddress You do not have permission to access the specified resource.
+	for i := 0; i < 12; i++ {
+		resp, derr := EC2(req).DescribeNatGateways(&ec2.DescribeNatGatewaysInput{
+			NatGatewayIds: []*string{aws.String(req.PhysicalResourceId)},
+		})
+
+		if derr != nil {
+			fmt.Printf("EC2NatGatewayDelete error: %s\n", derr)
+
+			// if nat gateway not found, break
+			if ae, ok := derr.(awserr.Error); ok {
+				if ae.Code() == "InvalidParameterException" {
+					break
+				}
+			}
+		}
+
+		// if NAT gateway is deleted, break
+		if len(resp.NatGateways) == 1 {
+			n := resp.NatGateways[0]
+
+			if *n.State == "deleted" {
+				break
+			}
+		}
+
+		// sleep and retry
+		time.Sleep(10 * time.Second)
+	}
+
+	// return original DeleteNatGateway success / failure
 	return req.PhysicalResourceId, nil, err
 }
 
