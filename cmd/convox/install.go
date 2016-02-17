@@ -313,6 +313,10 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("(Development Mode)")
 	}
 
+	if private == "Yes" {
+		fmt.Println("(Private Network Edition)")
+	}
+
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
@@ -694,6 +698,10 @@ func friendlyName(t string) string {
 		return ""
 	case "AWS::CloudFormation::Stack":
 		return "CloudFormation Stack"
+	case "AWS::DynamoDB::Table":
+		return "DynamoDB Table"
+	case "AWS::EC2::EIP":
+		return "NAT Elastic IP"
 	case "AWS::EC2::InternetGateway":
 		return "VPC Internet Gateway"
 	case "AWS::EC2::Route":
@@ -714,8 +722,6 @@ func friendlyName(t string) string {
 		return "ECS Cluster"
 	case "AWS::ElasticLoadBalancing::LoadBalancer":
 		return "Elastic Load Balancer"
-	case "AWS::Lambda::Function":
-		return "Lambda Function"
 	case "AWS::IAM::AccessKey":
 		return "Access Key"
 	case "AWS::IAM::InstanceProfile":
@@ -726,11 +732,23 @@ func friendlyName(t string) string {
 		return "IAM User"
 	case "AWS::Kinesis::Stream":
 		return "Kinesis Stream"
+	case "AWS::Lambda::Function":
+		return "Lambda Function"
+	case "AWS::Lambda::Permission":
+		return ""
+	case "AWS::Logs::LogGroup":
+		return "CloudWatch Log Group"
+	case "AWS::Logs::SubscriptionFilter":
+		return ""
 	case "AWS::S3::Bucket":
 		return "S3 Bucket"
-	case "AWS::DynamoDB::Table":
-		return "DynamoDB Table"
+	case "AWS::SNS::Topic":
+		return ""
 	case "Custom::EC2AvailabilityZones":
+		return ""
+	case "Custom::EC2NatGateway":
+		return ""
+	case "Custom::EC2Route":
 		return ""
 	case "Custom::ECSTaskDefinition":
 		return "ECS TaskDefinition"
