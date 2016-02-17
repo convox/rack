@@ -1016,13 +1016,13 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
-        "Scheme": { "Fn::If": [ "Private", "internal", "internet-facing" ] },
+        "Scheme": { "Fn::If": [ "PrivateApi", "internal", "internet-facing" ] },
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
           }
         ],
-        "Subnets": { "Fn::If": [ "Private",
+        "Subnets": { "Fn::If": [ "PrivateApi",
           [
             { "Ref": "SubnetPrivate0" },
             { "Ref": "SubnetPrivate1" },
