@@ -163,6 +163,10 @@ func init() {
 				Name:  "private",
 				Usage: "Create private network resources",
 			},
+			cli.BoolFlag{
+				Name:  "private-api",
+				Usage: "Put Rack API Load Balancer in private network. Implies --private",
+			},
 		},
 	})
 
@@ -262,6 +266,12 @@ func cmdInstall(c *cli.Context) {
 		private = "Yes"
 	}
 
+	privateApi := "No"
+	if c.Bool("private-api") {
+		private = "Yes"
+		privateApi = "Yes"
+	}
+
 	ami := c.String("ami")
 
 	key := c.String("key")
@@ -319,6 +329,7 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
+			&cloudformation.Parameter{ParameterKey: aws.String("PrivateApi"), ParameterValue: aws.String(privateApi)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
@@ -374,16 +385,20 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("Waiting for load balancer...")
+	if privateApi == "Yes" {
+		fmt.Println("Success. See http://convox.com/docs/private-api/ for instructions to log into the private Rack API.")
+	} else {
+		fmt.Println("Waiting for load balancer...")
 
-	waitForAvailability(fmt.Sprintf("http://%s/", host))
+		waitForAvailability(fmt.Sprintf("http://%s/", host))
 
-	fmt.Println("Logging in...")
+		fmt.Println("Logging in...")
 
-	addLogin(host, password)
-	switchHost(host)
+		addLogin(host, password)
+		switchHost(host)
 
-	fmt.Println("Success, try `convox apps`")
+		fmt.Println("Success, try `convox apps`")
+	}
 
 	sendMixpanelEvent("convox-install-success", "")
 }

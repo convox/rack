@@ -8,7 +8,8 @@
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] },
-    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
+    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+    "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] }
   },
   "Mappings": {
     "RegionConfig": {
@@ -197,6 +198,12 @@
     "Private": {
       "Type": "String",
       "Description": "Create non publicly routable resources",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
+    },
+    "PrivateApi": {
+      "Type": "String",
+      "Description": "Put Rack API Load Balancer in private network",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
     },
@@ -946,7 +953,7 @@
       }
     },
     "Balancer": {
-      "DependsOn": [ "BalancerSecurityGroup", "GatewayAttachment", "Subnet0", "Subnet1", "Subnet2" ],
+      "DependsOn": [ "BalancerSecurityGroup", "GatewayAttachment", "Subnet0", "Subnet1", "Subnet2", "SubnetPrivate0", "SubnetPrivate1", "SubnetPrivate2" ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -1009,16 +1016,24 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
+        "Scheme": { "Fn::If": [ "Private", "internal", "internet-facing" ] },
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
           }
         ],
-        "Subnets": [
-          { "Ref": "Subnet0" },
-          { "Ref": "Subnet1" },
-          { "Ref": "Subnet2" }
-        ]
+        "Subnets": { "Fn::If": [ "Private",
+          [
+            { "Ref": "SubnetPrivate0" },
+            { "Ref": "SubnetPrivate1" },
+            { "Ref": "SubnetPrivate2" }
+          ],
+          [
+            { "Ref": "Subnet0" },
+            { "Ref": "Subnet1" },
+            { "Ref": "Subnet2" }
+          ]
+        ] }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
