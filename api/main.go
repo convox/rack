@@ -21,8 +21,10 @@ func recoverWith(f func(err error)) {
 func main() {
 	// prime the API and instance for builds by logging into private registries
 	// and pulling down latest app images
-	go models.LoginPrivateRegistries()
-	go models.PullAppImages()
+	go func() {
+		models.LoginPrivateRegistries()
+		models.PullAppImages()
+	}()
 
 	startWeb()
 }

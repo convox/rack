@@ -17,7 +17,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
@@ -189,7 +188,7 @@ func PullAppImages() {
 	apps, err := ListApps()
 
 	if err != nil {
-		log.Error(err)
+		fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=ListApps err=%q\n", err)
 		return
 	}
 
@@ -197,7 +196,7 @@ func PullAppImages() {
 		a, err := GetApp(app.Name)
 
 		if err != nil {
-			log.Error(err)
+			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=GetApp err=%q\n", err.Error())
 			continue
 		}
 
@@ -209,18 +208,38 @@ func PullAppImages() {
 				break
 			}
 
+			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=AppDockerLogin err=%q\n", err.Error())
 			time.Sleep(30 * time.Second)
 		}
 
-		for key, value := range a.Parameters {
-			if strings.HasSuffix(key, "Image") {
-				log.Log("cmd=%q", fmt.Sprintf("docker pull %s", value))
-				data, err := exec.Command("docker", "pull", value).CombinedOutput()
+		resources, err := a.Resources()
+
+		if err != nil {
+			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=Resources err=%q\n", err)
+		}
+
+		for key, r := range resources {
+			if strings.HasSuffix(key, "TaskDefinition") {
+				td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+					TaskDefinition: aws.String(r.Id),
+				})
 
 				if err != nil {
-					fmt.Printf("%+v\n", string(data))
-					log.Error(err)
+					fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=DescribeTaskDefinition err=%q\n", err.Error())
 					continue
+				}
+
+				for _, cd := range td.TaskDefinition.ContainerDefinitions {
+					fmt.Printf("IMAGE: %s", *cd.Image)
+
+					fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=exec.Command cmd=%q\n", fmt.Sprintf("docker pull %s", *cd.Image))
+
+					_, err := exec.Command("docker", "pull", *cd.Image).CombinedOutput()
+
+					if err != nil {
+						fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=exec.Command cmd=%q err=%q\n", fmt.Sprintf("docker pull %s", *cd.Image), err.Error())
+						continue
+					}
 				}
 			}
 		}
@@ -228,6 +247,8 @@ func PullAppImages() {
 }
 
 func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {
+	fmt.Printf("ns=kernel cn=docker fn=GetPrivateRegistriesAuth\n")
+
 	acs := docker.AuthConfigurations119{}
 
 	env, err := GetRackSettings()
@@ -248,6 +269,8 @@ func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, erro
 }
 
 func LoginPrivateRegistries() error {
+	fmt.Printf("ns=kernel cn=docker fn=LoginPrivateRegistries\n")
+
 	_, acs, err := GetPrivateRegistriesAuth()
 
 	if err != nil {
