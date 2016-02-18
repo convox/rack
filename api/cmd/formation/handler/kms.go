@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
 )
 
@@ -35,7 +36,7 @@ func KMSKeyCreate(req Request) (string, map[string]string, error) {
 	})
 
 	if err != nil {
-		return "", nil, err
+		return "invalid", nil, err
 	}
 
 	return *res.KeyMetadata.Arn, nil, nil
@@ -50,12 +51,22 @@ func KMSKeyDelete(req Request) (string, map[string]string, error) {
 		KeyId: aws.String(req.PhysicalResourceId),
 	})
 
-	// TODO let the cloudformation finish thinking this deleted
-	// but take note so we can figure out why
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return req.PhysicalResourceId, nil, nil
+	// go ahead and mark the delete good if the key is not found
+	if ae, ok := err.(awserr.Error); ok {
+		if ae.Code() == "NotFoundException" {
+			return req.PhysicalResourceId, nil, nil
+		}
 	}
 
-	return req.PhysicalResourceId, nil, nil
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+		return req.PhysicalResourceId, nil, err
+	}
+
+	_, err = KMS(req).ScheduleKeyDeletion(&kms.ScheduleKeyDeletionInput{
+		KeyId:               aws.String(req.PhysicalResourceId),
+		PendingWindowInDays: aws.Int64(7),
+	})
+
+	return req.PhysicalResourceId, nil, err
 }

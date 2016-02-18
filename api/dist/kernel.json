@@ -7,7 +7,6 @@
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
-    "Encryption": { "Fn::Equals": [ { "Ref": "Encryption" }, "Yes" ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] }
   },
@@ -64,10 +63,7 @@
     },
     "EncryptionKey": {
       "Condition": "Development",
-      "Value": { "Fn::If": [ "Encryption",
-        { "Ref": "EncryptionKey" },
-        { "Ref": "AWS::NoValue" }
-      ] }
+      "Value": { "Ref": "EncryptionKey" }
     },
     "Kinesis": {
       "Value": { "Ref": "Kinesis" }
@@ -168,12 +164,6 @@
       "Description": "Deprecated",
       "Default": ""
     },
-    "Encryption": {
-      "Type": "String",
-      "Description": "Encrypt secrets with KMS",
-      "Default": "Yes",
-      "AllowedValues": [ "Yes", "No" ]
-    },
     "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
@@ -271,7 +261,6 @@
   },
   "Resources": {
     "EncryptionKey": {
-      "Condition": "Encryption",
       "DependsOn": "CustomTopic",
       "Type": "Custom::KMSKey",
       "Properties": {
@@ -1236,10 +1225,7 @@
               ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
-              "ENCRYPTION_KEY": { "Fn::If": [ "Encryption",
-                { "Ref": "EncryptionKey" },
-                ""
-              ] },
+              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
               "KINESIS": { "Ref": "Kinesis" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
@@ -1329,10 +1315,7 @@
               ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
-              "ENCRYPTION_KEY": { "Fn::If": [ "Encryption",
-                { "Ref": "EncryptionKey" },
-                ""
-              ] },
+              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
               "KINESIS": { "Ref": "Kinesis" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },

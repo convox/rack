@@ -105,10 +105,6 @@ func init() {
 				EnvVar: "DEVELOPMENT",
 				Usage:  "create additional CloudFormation outputs to copy development .env file",
 			},
-			cli.BoolFlag{
-				Name:  "disable-encryption",
-				Usage: "disable encrypting secrets with KMS",
-			},
 			cli.StringFlag{
 				Name:  "key",
 				Usage: "name of an SSH keypair to install on EC2 instances",
@@ -256,11 +252,6 @@ func cmdInstall(c *cli.Context) {
 		development = "Yes"
 	}
 
-	encryption := "Yes"
-	if c.Bool("disable-encryption") {
-		encryption = "No"
-	}
-
 	private := "No"
 	if c.Bool("private") {
 		private = "Yes"
@@ -327,7 +318,6 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
-			&cloudformation.Parameter{ParameterKey: aws.String("Encryption"), ParameterValue: aws.String(encryption)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
