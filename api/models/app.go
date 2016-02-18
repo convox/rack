@@ -98,17 +98,27 @@ func getAppByStackName(stackName string) (*App, error) {
 
 var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
-func (a *App) StackName() string {
+func (a *App) IsBound() bool {
 	if a.Tags == nil {
-		return shortNameToStackName(a.Name)
+		// Default to bound.
+		return true
 	}
 
 	if _, ok := a.Tags["Name"]; ok {
-		// Use the name provided by the user (they *should* match).
-		return shortNameToStackName(a.Name)
+		// Bound apps MUST have a "Name" tag.
+		return true
 	}
 
-	return a.Name
+	// Tags are present but "Name" tag is not, so we have an unbound app.
+	return false
+}
+
+func (a *App) StackName() string {
+	if a.IsBound() {
+		return shortNameToStackName(a.Name)
+	} else {
+		return a.Name
+	}
 }
 
 func (a *App) Create() error {
@@ -268,11 +278,6 @@ func (a *App) Delete() error {
 	NotifySuccess("app:delete", map[string]string{"name": a.Name})
 
 	return nil
-}
-
-// shim that will change when rack prefix lands
-func (a *App) StackName() string {
-	return a.Name
 }
 
 // Shortcut for updating current parameters
@@ -465,7 +470,7 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return fmt.Errorf("no releases for app: %s", a.Name)
 	}
 
-	manifest, err := LoadManifest(release.Manifest)
+	manifest, err := LoadManifest(release.Manifest, a.IsBound())
 
 	if err != nil {
 		return err
