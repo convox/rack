@@ -13,6 +13,7 @@ import (
 	"github.com/convox/rack/client"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
@@ -183,6 +184,43 @@ func (a *App) Cleanup() error {
 		go cleanupRelease(release)
 	}
 
+	// monitor and stack deletion state for up to 10 minutes
+	// retry once if DELETE_FAILED to automate around transient errors
+	// send delete success event only when stack is gone
+	shouldRetry := true
+
+	for i := 0; i < 60; i++ {
+		res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{
+			StackName: aws.String(a.StackName()),
+		})
+
+		// return when stack is not found indicating successful delete
+		if ae, ok := err.(awserr.Error); ok {
+			if ae.Code() == "ValidationError" {
+				helpers.TrackEvent("kernel-app-delete-success", nil)
+				return nil
+			}
+		}
+
+		if err == nil && len(res.Stacks) == 1 && shouldRetry {
+			// if delete failed, issue one more delete stack and return
+			s := res.Stacks[0]
+			if *s.StackStatus == "DELETE_FAILED" {
+				helpers.TrackEvent("kernel-app-delete-retry", nil)
+
+				_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.StackName())})
+
+				if err != nil {
+					helpers.TrackEvent("kernel-app-delete-retry-error", nil)
+				} else {
+					shouldRetry = false
+				}
+			}
+		}
+
+		time.Sleep(10 * time.Second)
+	}
+
 	return nil
 }
 
@@ -200,11 +238,14 @@ func (a *App) Delete() error {
 
 	go a.Cleanup()
 
-	helpers.TrackEvent("kernel-app-delete-success", nil)
-
 	NotifySuccess("app:delete", map[string]string{"name": a.Name})
 
 	return nil
+}
+
+// shim that will change when rack prefix lands
+func (a *App) StackName() string {
+	return a.Name
 }
 
 // Shortcut for updating current parameters
