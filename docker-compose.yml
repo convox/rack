@@ -16,6 +16,7 @@ web:
     - NOTIFICATION_HOST
     - NOTIFICATION_TOPIC
     - PASSWORD
+    - PRIVATE
     - RACK
     - REGISTRY_HOST
     - RELEASE
@@ -23,6 +24,7 @@ web:
     - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
     - STACK_ID
     - SUBNETS
+    - SUBNETS_PRIVATE
     - VPC
     - KINESIS
     - LOG_GROUP
@@ -51,6 +53,7 @@ monitor:
     - NOTIFICATION_HOST
     - NOTIFICATION_TOPIC
     - PASSWORD
+    - PRIVATE
     - RACK
     - REGISTRY_HOST
     - RELEASE
@@ -58,6 +61,7 @@ monitor:
     - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
     - STACK_ID
     - SUBNETS
+    - SUBNETS_PRIVATE
     - VPC
     - KINESIS
     - LOG_GROUP

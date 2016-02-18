@@ -1,14 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankCluster": {
-      "Fn::Equals": [
-        {
-          "Ref": "Cluster"
-        },
-        ""
-      ]
-    },
     "BlankWebPort80Certificate": {
       "Fn::Equals": [
         {
@@ -35,6 +27,14 @@
       "Fn::Equals": [
         "",
         ""
+      ]
+    },
+    "Private": {
+      "Fn::Equals": [
+        {
+          "Ref": "Private"
+        },
+        "Yes"
       ]
     },
     "RegionHasRegistry": {
@@ -159,6 +159,15 @@
       "Description": "",
       "Type": "String"
     },
+    "Private": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Create internal load balancers in private subnets",
+      "Type": "String"
+    },
     "Release": {
       "Default": "",
       "Description": "",
@@ -172,6 +181,11 @@
     "Subnets": {
       "Default": "",
       "Description": "VPC subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "SubnetsPrivate": {
+      "Default": "",
+      "Description": "VPC private subnets for this app",
       "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
     },
     "VPC": {
@@ -340,6 +354,7 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
+        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
@@ -479,6 +494,7 @@
             ]
           ]
         },
+        "Scheme": "internet-facing",
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"

@@ -144,6 +144,29 @@ func init() {
 				Value: "10.0.3.0/24",
 				Usage: "Subnet 2 CIDR block",
 			},
+			cli.StringFlag{
+				Name:  "subnet-private0-cidr",
+				Value: "10.0.4.0/24",
+				Usage: "Private Subnet 0 CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet-private1-cidr",
+				Value: "10.0.5.0/24",
+				Usage: "Private Subnet 1 CIDR block",
+			},
+			cli.StringFlag{
+				Name:  "subnet-private2-cidr",
+				Value: "10.0.6.0/24",
+				Usage: "Private Subnet 2 CIDR block",
+			},
+			cli.BoolFlag{
+				Name:  "private",
+				Usage: "Create private network resources",
+			},
+			cli.BoolFlag{
+				Name:  "private-api",
+				Usage: "Put Rack API Load Balancer in private network. Implies --private",
+			},
 		},
 	})
 
@@ -238,6 +261,17 @@ func cmdInstall(c *cli.Context) {
 		encryption = "No"
 	}
 
+	private := "No"
+	if c.Bool("private") {
+		private = "Yes"
+	}
+
+	privateApi := "No"
+	if c.Bool("private-api") {
+		private = "Yes"
+		privateApi = "Yes"
+	}
+
 	ami := c.String("ami")
 
 	key := c.String("key")
@@ -247,10 +281,12 @@ func cmdInstall(c *cli.Context) {
 	vpcCIDR := c.String("vpc-cidr")
 
 	subnet0CIDR := c.String("subnet0-cidr")
-
 	subnet1CIDR := c.String("subnet1-cidr")
-
 	subnet2CIDR := c.String("subnet2-cidr")
+
+	subnetPrivate0CIDR := c.String("subnet-private0-cidr")
+	subnetPrivate1CIDR := c.String("subnet-private1-cidr")
+	subnetPrivate2CIDR := c.String("subnet-private2-cidr")
 
 	versions, err := version.All()
 
@@ -277,6 +313,10 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("(Development Mode)")
 	}
 
+	if private == "Yes" {
+		fmt.Println("(Private Network Edition)")
+	}
+
 	password := randomString(30)
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
@@ -292,11 +332,16 @@ func cmdInstall(c *cli.Context) {
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
+			&cloudformation.Parameter{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
+			&cloudformation.Parameter{ParameterKey: aws.String("PrivateApi"), ParameterValue: aws.String(privateApi)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet1CIDR"), ParameterValue: aws.String(subnet1CIDR)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet2CIDR"), ParameterValue: aws.String(subnet2CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("SubnetPrivate0CIDR"), ParameterValue: aws.String(subnetPrivate0CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("SubnetPrivate1CIDR"), ParameterValue: aws.String(subnetPrivate1CIDR)},
+			&cloudformation.Parameter{ParameterKey: aws.String("SubnetPrivate2CIDR"), ParameterValue: aws.String(subnetPrivate2CIDR)},
 			&cloudformation.Parameter{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
 		},
 		StackName:   aws.String(stackName),
@@ -344,16 +389,20 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
-	fmt.Println("Waiting for load balancer...")
+	if privateApi == "Yes" {
+		fmt.Println("Success. See http://convox.com/docs/private-api/ for instructions to log into the private Rack API.")
+	} else {
+		fmt.Println("Waiting for load balancer...")
 
-	waitForAvailability(fmt.Sprintf("http://%s/", host))
+		waitForAvailability(fmt.Sprintf("http://%s/", host))
 
-	fmt.Println("Logging in...")
+		fmt.Println("Logging in...")
 
-	addLogin(host, password)
-	switchHost(host)
+		addLogin(host, password)
+		switchHost(host)
 
-	fmt.Println("Success, try `convox apps`")
+		fmt.Println("Success, try `convox apps`")
+	}
 
 	sendMixpanelEvent("convox-install-success", "")
 }
@@ -649,6 +698,10 @@ func friendlyName(t string) string {
 		return ""
 	case "AWS::CloudFormation::Stack":
 		return "CloudFormation Stack"
+	case "AWS::DynamoDB::Table":
+		return "DynamoDB Table"
+	case "AWS::EC2::EIP":
+		return "NAT Elastic IP"
 	case "AWS::EC2::InternetGateway":
 		return "VPC Internet Gateway"
 	case "AWS::EC2::Route":
@@ -669,8 +722,6 @@ func friendlyName(t string) string {
 		return "ECS Cluster"
 	case "AWS::ElasticLoadBalancing::LoadBalancer":
 		return "Elastic Load Balancer"
-	case "AWS::Lambda::Function":
-		return "Lambda Function"
 	case "AWS::IAM::AccessKey":
 		return "Access Key"
 	case "AWS::IAM::InstanceProfile":
@@ -681,11 +732,23 @@ func friendlyName(t string) string {
 		return "IAM User"
 	case "AWS::Kinesis::Stream":
 		return "Kinesis Stream"
+	case "AWS::Lambda::Function":
+		return "Lambda Function"
+	case "AWS::Lambda::Permission":
+		return ""
+	case "AWS::Logs::LogGroup":
+		return "CloudWatch Log Group"
+	case "AWS::Logs::SubscriptionFilter":
+		return ""
 	case "AWS::S3::Bucket":
 		return "S3 Bucket"
-	case "AWS::DynamoDB::Table":
-		return "DynamoDB Table"
+	case "AWS::SNS::Topic":
+		return ""
 	case "Custom::EC2AvailabilityZones":
+		return ""
+	case "Custom::EC2NatGateway":
+		return ""
+	case "Custom::EC2Route":
 		return ""
 	case "Custom::ECSTaskDefinition":
 		return "ECS TaskDefinition"

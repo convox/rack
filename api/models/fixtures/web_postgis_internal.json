@@ -1,14 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankCluster": {
-      "Fn::Equals": [
-        {
-          "Ref": "Cluster"
-        },
-        ""
-      ]
-    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
@@ -27,6 +19,14 @@
       "Fn::Equals": [
         "",
         ""
+      ]
+    },
+    "Private": {
+      "Fn::Equals": [
+        {
+          "Ref": "Private"
+        },
+        "Yes"
       ]
     },
     "RegionHasRegistry": {
@@ -136,6 +136,15 @@
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
+    "Private": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Create internal load balancers in private subnets",
+      "Type": "String"
+    },
     "Release": {
       "Default": "",
       "Description": "",
@@ -149,6 +158,11 @@
     "Subnets": {
       "Default": "",
       "Description": "VPC subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "SubnetsPrivate": {
+      "Default": "",
+      "Description": "VPC private subnets for this app",
       "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
     },
     "VPC": {
@@ -299,7 +313,15 @@
           }
         ],
         "Subnets": {
-          "Ref": "Subnets"
+          "Fn::If": [
+            "Private",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
         }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"

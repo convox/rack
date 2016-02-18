@@ -96,11 +96,20 @@ func (a *App) Create() error {
 		return err
 	}
 
+	// SubnetsPrivate is a List<AWS::EC2::Subnet::Id> and can not be empty
+	// So reuse SUBNETS if SUBNETS_PRIVATE is not set
+	subnetsPrivate := os.Getenv("SUBNETS_PRIVATE")
+	if subnetsPrivate == "" {
+		subnetsPrivate = os.Getenv("SUBNETS")
+	}
+
 	params := map[string]string{
-		"Cluster": os.Getenv("CLUSTER"),
-		"Subnets": os.Getenv("SUBNETS"),
-		"Version": os.Getenv("RELEASE"),
-		"VPC":     os.Getenv("VPC"),
+		"Cluster":        os.Getenv("CLUSTER"),
+		"Private":        os.Getenv("PRIVATE"),
+		"Subnets":        os.Getenv("SUBNETS"),
+		"SubnetsPrivate": subnetsPrivate,
+		"Version":        os.Getenv("RELEASE"),
+		"VPC":            os.Getenv("VPC"),
 	}
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {
