@@ -3,6 +3,7 @@ package manifest
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +20,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fatih/color"
 	yaml "github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
@@ -164,7 +169,40 @@ func buildSync(source, tag string, cache bool, dockerfile string) error {
 	return run("docker", args...)
 }
 
+var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.[^.]+\.amazonaws\.com/.*`)
+
 func pullSync(image string) error {
+	if match := regexpECRImage.FindStringSubmatch(image); len(match) > 1 {
+		id := match[1]
+
+		res, err := ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+			RegistryIds: []*string{aws.String(id)},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if len(res.AuthorizationData) < 1 {
+			return fmt.Errorf("no authorization data")
+		}
+
+		data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+
+		if err != nil {
+			return err
+		}
+
+		endpoint := *res.AuthorizationData[0].ProxyEndpoint
+		parts := strings.SplitN(string(data), ":", 2)
+
+		err = run("docker", "login", "-e", "user@convox.com", "-u", parts[0], "-p", parts[1], endpoint)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	return run("docker", "pull", image)
 }
 
@@ -999,4 +1037,24 @@ func getDockerGateway() (string, error) {
 
 	host := strings.TrimSpace(string(output))
 	return host, nil
+}
+
+func awsConfig() *aws.Config {
+	config := &aws.Config{
+		Credentials: credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), ""),
+	}
+
+	if e := os.Getenv("AWS_ENDPOINT"); e != "" {
+		config.Endpoint = aws.String(e)
+	}
+
+	if r := os.Getenv("AWS_REGION"); r != "" {
+		config.Region = aws.String(r)
+	}
+
+	return config
+}
+
+func ECR() *ecr.ECR {
+	return ecr.New(session.New(), awsConfig())
 }
