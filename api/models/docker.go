@@ -6,16 +6,21 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
+
+var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com.*`)
 
 func Docker(host string) (*docker.Client, error) {
 	if host == "" {
@@ -81,6 +86,40 @@ func DockerHost() (string, error) {
 func DockerLogin(ac docker.AuthConfiguration) error {
 	if ac.Email == "" {
 		ac.Email = "user@convox.com"
+	}
+
+	// if ECR URL, try Username and Password as IAM keys to get auth token
+	if match := regexpECR.FindStringSubmatch(ac.ServerAddress); len(match) > 1 {
+		ECR := ecr.New(session.New(), &aws.Config{
+			Credentials: credentials.NewStaticCredentials(ac.Username, ac.Password, ""),
+			Region:      aws.String(match[2]),
+		})
+
+		res, err := ECR.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+			RegistryIds: []*string{aws.String(match[1])},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if len(res.AuthorizationData) < 1 {
+			return fmt.Errorf("no authorization data")
+		}
+
+		endpoint := *res.AuthorizationData[0].ProxyEndpoint
+
+		data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+
+		if err != nil {
+			return err
+		}
+
+		parts := strings.SplitN(string(data), ":", 2)
+
+		ac.Password = parts[1]
+		ac.ServerAddress = endpoint
+		ac.Username = parts[0]
 	}
 
 	args := []string{"login", "-e", ac.Email, "-u", ac.Username, "-p", ac.Password, ac.ServerAddress}
