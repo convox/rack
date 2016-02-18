@@ -374,6 +374,7 @@ func (c *Client) client() *http.Client {
 	client := &http.Client{}
 
 	client.Transport = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
