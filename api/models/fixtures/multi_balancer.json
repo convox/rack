@@ -269,6 +269,9 @@
   },
   "Resources": {
     "Balancer": {
+      "DependsOn": [
+        "BalancerSecurityGroup"
+      ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -400,6 +403,9 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "BalancerWorker": {
+      "DependsOn": [
+        "BalancerWorkerSecurityGroup"
+      ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
