@@ -10,7 +10,6 @@ func main() {
 	go workers.StartAutoscale()
 	go workers.StartCluster()
 	go workers.StartHeartbeat()
-	go workers.StartImages()
 	go workers.StartServicesCapacity()
 
 	for {

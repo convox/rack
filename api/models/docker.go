@@ -7,11 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
@@ -159,4 +161,54 @@ func AppDockerLogin(app App) (string, error) {
 	})
 
 	return os.Getenv("REGISTRY_HOST"), err
+}
+
+func PullAppImages() {
+	var log = logger.New("ns=app_images")
+
+	if os.Getenv("DEVELOPMENT") == "true" {
+		return
+	}
+
+	maxRetries := 5
+
+	apps, err := ListApps()
+
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	for _, app := range apps {
+		a, err := GetApp(app.Name)
+
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		// retry login a few times in case v1 registry is not yet available
+		for i := 0; i < maxRetries; i++ {
+			_, err = AppDockerLogin(app)
+
+			if err == nil {
+				break
+			}
+
+			time.Sleep(30 * time.Second)
+		}
+
+		for key, value := range a.Parameters {
+			if strings.HasSuffix(key, "Image") {
+				log.Log("cmd=%q", fmt.Sprintf("docker pull %s", value))
+				data, err := exec.Command("docker", "pull", value).CombinedOutput()
+
+				if err != nil {
+					fmt.Printf("%+v\n", string(data))
+					log.Error(err)
+					continue
+				}
+			}
+		}
+	}
 }
