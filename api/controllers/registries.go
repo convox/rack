@@ -28,7 +28,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		ServerAddress: GetForm(r, "serveraddress"),
 	}
 
-	err := models.DockerLogin(ac)
+	_, err := models.DockerLogin(ac)
 
 	if err != nil {
 		return httperr.Errorf(400, "Could not login to server with provided credentials")

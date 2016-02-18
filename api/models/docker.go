@@ -84,7 +84,7 @@ func DockerHost() (string, error) {
 	return fmt.Sprintf("http://%s:2376", ip), nil
 }
 
-func DockerLogin(ac docker.AuthConfiguration) error {
+func DockerLogin(ac docker.AuthConfiguration) (string, error) {
 	if ac.Email == "" {
 		ac.Email = "user@convox.com"
 	}
@@ -101,11 +101,11 @@ func DockerLogin(ac docker.AuthConfiguration) error {
 		})
 
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		if len(res.AuthorizationData) < 1 {
-			return fmt.Errorf("no authorization data")
+			return "", fmt.Errorf("no authorization data")
 		}
 
 		endpoint := *res.AuthorizationData[0].ProxyEndpoint
@@ -113,7 +113,7 @@ func DockerLogin(ac docker.AuthConfiguration) error {
 		data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
 
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		parts := strings.SplitN(string(data), ":", 2)
@@ -137,7 +137,7 @@ func DockerLogin(ac docker.AuthConfiguration) error {
 		fmt.Printf("ns=kernel cn=docker at=DockerLogin state=success step=exec.Command cmd=%q\n", cmd)
 	}
 
-	return err
+	return ac.ServerAddress, err
 }
 
 func DockerLogout(ac docker.AuthConfiguration) error {
@@ -160,51 +160,25 @@ func DockerLogout(ac docker.AuthConfiguration) error {
 // This could be the self-hosted v1 registry or an ECR registry
 func AppDockerLogin(app App) (string, error) {
 	if registryId := app.Outputs["RegistryId"]; registryId != "" {
-		res, err := ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-			RegistryIds: []*string{aws.String(app.Outputs["RegistryId"])},
-		})
-
-		if err != nil {
-			return "", err
-		}
-
-		if len(res.AuthorizationData) < 1 {
-			return "", fmt.Errorf("no authorization data")
-		}
-
-		endpoint := *res.AuthorizationData[0].ProxyEndpoint
-
-		data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
-
-		if err != nil {
-			return "", err
-		}
-
-		parts := strings.SplitN(string(data), ":", 2)
-
-		err = DockerLogin(docker.AuthConfiguration{
+		return DockerLogin(docker.AuthConfiguration{
 			Email:         "user@convox.com",
-			Password:      parts[1],
-			ServerAddress: endpoint,
-			Username:      parts[0],
+			Password:      os.Getenv("AWS_SECRET"),
+			ServerAddress: fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", registryId, os.Getenv("AWS_REGION")),
+			Username:      os.Getenv("AWS_ACCESS"),
 		})
-
-		return endpoint[8:], err
 	}
 
 	// fall back to v1 registry login
-	err := DockerLogin(docker.AuthConfiguration{
+	return DockerLogin(docker.AuthConfiguration{
 		Email:         "user@convox.com",
 		Password:      os.Getenv("PASSWORD"),
 		ServerAddress: os.Getenv("REGISTRY_HOST"),
 		Username:      "convox",
 	})
-
-	return os.Getenv("REGISTRY_HOST"), err
 }
 
 func PullAppImages() {
-	var log = logger.New("ns=app_images")
+	fmt.Printf("ns=kernel cn=docker fn=PullAppImages\n")
 
 	if os.Getenv("DEVELOPMENT") == "true" {
 		return
