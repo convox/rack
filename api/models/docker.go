@@ -118,7 +118,7 @@ func DockerLogin(ac docker.AuthConfiguration) (string, error) {
 		parts := strings.SplitN(string(data), ":", 2)
 
 		ac.Password = parts[1]
-		ac.ServerAddress = endpoint
+		ac.ServerAddress = endpoint[8:]
 		ac.Username = parts[0]
 	}
 
