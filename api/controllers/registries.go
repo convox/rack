@@ -11,7 +11,7 @@ import (
 )
 
 func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	_, acs, err := models.GetRegistriesAuth()
+	_, acs, err := models.GetPrivateRegistriesAuth()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -34,7 +34,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(400, "Could not login to server with provided credentials")
 	}
 
-	env, acs, err := models.GetRegistriesAuth()
+	env, acs, err := models.GetPrivateRegistriesAuth()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -63,7 +63,7 @@ func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	// server := mux.Vars(r)["server"]
 	server := r.FormValue("server")
 
-	env, acs, err := models.GetRegistriesAuth()
+	env, acs, err := models.GetPrivateRegistriesAuth()
 
 	if err != nil {
 		return httperr.Server(err)

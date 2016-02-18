@@ -24,7 +24,7 @@ func StartImages() {
 	}
 
 	// doing this in development updates a ~/.docker file and causes a rerun loop
-	models.LoginRegistries()
+	models.LoginPrivateRegistries()
 
 	maxRetries := 5
 	var err error

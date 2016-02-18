@@ -6,7 +6,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
 
-func GetRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {
+func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {
 	acs := docker.AuthConfigurations119{}
 
 	env, err := GetRackSettings()
@@ -26,8 +26,8 @@ func GetRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {
 	return env, acs, nil
 }
 
-func LoginRegistries() error {
-	_, acs, err := GetRegistriesAuth()
+func LoginPrivateRegistries() error {
+	_, acs, err := GetPrivateRegistriesAuth()
 
 	if err != nil {
 		return err
