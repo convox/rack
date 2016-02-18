@@ -50,7 +50,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, err
 	}
 
-	manifest, err := LoadManifest(release.Manifest)
+	manifest, err := LoadManifest(release.Manifest, a.IsBound())
 
 	if err != nil {
 		return nil, err

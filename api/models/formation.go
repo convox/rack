@@ -36,7 +36,7 @@ func ListFormation(app string) (Formation, error) {
 		return Formation{}, nil
 	}
 
-	manifest, err := LoadManifest(release.Manifest)
+	manifest, err := LoadManifest(release.Manifest, a.IsBound())
 
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func SetFormation(app, process string, count, memory int64) error {
 		return err
 	}
 
-	m, err := LoadManifest(rel.Manifest)
+	m, err := LoadManifest(rel.Manifest, a.IsBound())
 
 	if err != nil {
 		return err
