@@ -205,7 +205,7 @@ func (mb ManifestBalancer) FirstPort() string {
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 	// Bound apps do not use the StackName directly and ignore Entry.primary
 	if mb.Entry.bound {
-		hash := sha256.Sum256([]byte(shortNameToStackName(mb.Entry.Name)))
+		hash := sha256.Sum256([]byte(os.Getenv("RACK")))
 		prefix := mb.Entry.Name
 		suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
 		if !mb.Public {
