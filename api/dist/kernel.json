@@ -110,7 +110,7 @@
       "Condition": "Development",
       "Value": { "Fn::If": [ "Private",
         { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
-        { "Ref": "AWS::NoValue" }
+        ""
       ] }
     },
     "StackId": {
@@ -163,6 +163,12 @@
       "Type": "String",
       "Description": "Deprecated",
       "Default": ""
+    },
+    "Encryption": {
+      "Type": "String",
+      "Description": "Encrypt secrets with KMS",
+      "Default": "Yes",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "InstanceCount": {
       "Default": "3",
@@ -1005,7 +1011,7 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
-        "Scheme": { "Fn::If": [ "PrivateApi", "internal", "internet-facing" ] },
+        "Scheme": { "Fn::If": [ "PrivateApi", "internal", { "Ref": "AWS::NoValue" } ] },
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
