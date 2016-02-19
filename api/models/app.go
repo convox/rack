@@ -207,16 +207,13 @@ func (a *App) Delete() error {
 	return nil
 }
 
-func (a *App) UpdateParamsAndTemplate(changes map[string]string, template string) error {
+// Shortcut for updating current parameters
+// If template changed, more care about new or removed parameters must be taken (see Release.Promote or System.Save)
+func (a *App) UpdateParams(changes map[string]string) error {
 	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(a.Name),
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-	}
-
-	if template != "" {
-		req.TemplateURL = aws.String(template)
-	} else {
-		req.UsePreviousTemplate = aws.Bool(true)
+		StackName:           aws.String(a.Name),
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		UsePreviousTemplate: aws.Bool(true),
 	}
 
 	params := a.Parameters
@@ -235,10 +232,6 @@ func (a *App) UpdateParamsAndTemplate(changes map[string]string, template string
 	_, err := UpdateStack(req)
 
 	return err
-}
-
-func (a *App) UpdateParams(changes map[string]string) error {
-	return a.UpdateParamsAndTemplate(changes, "")
 }
 
 func (a *App) Formation() (string, error) {
