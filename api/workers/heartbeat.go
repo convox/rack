@@ -8,6 +8,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func StartHeartbeat() {
@@ -25,7 +26,7 @@ func StartHeartbeat() {
 }
 
 func heartbeat() {
-	system, err := models.GetSystem()
+	system, err := provider.SystemGet()
 
 	if err != nil {
 		log.Error(err)

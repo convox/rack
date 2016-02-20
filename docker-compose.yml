@@ -16,7 +16,7 @@ web:
     - NOTIFICATION_HOST
     - NOTIFICATION_TOPIC
     - PASSWORD
-    - PRIVATE
+    - PROVIDER
     - RACK
     - REGISTRY_HOST
     - RELEASE
@@ -54,7 +54,7 @@ monitor:
     - NOTIFICATION_HOST
     - NOTIFICATION_TOPIC
     - PASSWORD
-    - PRIVATE
+    - PROVIDER
     - RACK
     - REGISTRY_HOST
     - RELEASE

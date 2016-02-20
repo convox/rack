@@ -5,39 +5,11 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"sort"
-	"strings"
-	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
 )
-
-type Instance struct {
-	Agent     bool      `json:"agent"`
-	Cpu       float64   `json:"cpu"`
-	Id        string    `json:"id"`
-	Ip        string    `json:"ip"`
-	Memory    float64   `json:"memory"`
-	Processes int       `json:"processes"`
-	Status    string    `json:"status"`
-	Started   time.Time `json:"started"`
-}
-
-type Instances []Instance
-
-type InstanceResource struct {
-	Total int `json:"total"`
-	Free  int `json:"free"`
-	Used  int `json:"used"`
-}
-
-func (ir InstanceResource) PercentUsed() float64 {
-	return float64(ir.Used) / float64(ir.Total)
-}
 
 func InstanceKeyroll() error {
 	keyname := fmt.Sprintf("%s-keypair-%d", os.Getenv("RACK"), (rand.Intn(8999) + 1000))
@@ -167,115 +139,6 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 	return nil
 }
 
-func ListInstances() (Instances, error) {
-	res, err := ECS().ListContainerInstances(
-		&ecs.ListContainerInstancesInput{
-			Cluster: aws.String(os.Getenv("CLUSTER")),
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	ecsRes, err := ECS().DescribeContainerInstances(
-		&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: res.ContainerInstanceArns,
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var instanceIds []*string
-	for _, i := range ecsRes.ContainerInstances {
-		instanceIds = append(instanceIds, i.Ec2InstanceId)
-	}
-
-	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
-		},
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	ec2Instances := make(map[string]*ec2.Instance)
-	for _, r := range ec2Res.Reservations {
-		for _, i := range r.Instances {
-			ec2Instances[*i.InstanceId] = i
-		}
-	}
-
-	var instances Instances
-	for _, i := range ecsRes.ContainerInstances {
-		// figure out the CPU and memory metrics
-		var cpu, memory InstanceResource
-
-		for _, r := range i.RegisteredResources {
-			switch *r.Name {
-			case "CPU":
-				cpu.Total = int(*r.IntegerValue)
-			case "MEMORY":
-				memory.Total = int(*r.IntegerValue)
-			}
-		}
-
-		for _, r := range i.RemainingResources {
-			switch *r.Name {
-			case "CPU":
-				cpu.Free = int(*r.IntegerValue)
-				cpu.Used = cpu.Total - cpu.Free
-			case "MEMORY":
-				memory.Free = int(*r.IntegerValue)
-				memory.Used = memory.Total - memory.Free
-			}
-		}
-
-		// find the matching Instance from the EC2 response
-		ec2Instance := ec2Instances[*i.Ec2InstanceId]
-
-		// build up the struct
-		instance := Instance{
-			Cpu:    truncate(cpu.PercentUsed(), 4),
-			Memory: truncate(memory.PercentUsed(), 4),
-			Id:     *i.Ec2InstanceId,
-		}
-
-		if i.AgentConnected != nil {
-			instance.Agent = *i.AgentConnected
-		}
-
-		if ec2Instance != nil {
-			if ec2Instance.PublicIpAddress != nil {
-				instance.Ip = *ec2Instance.PublicIpAddress
-			}
-
-			if ec2Instance.LaunchTime != nil {
-				instance.Started = *ec2Instance.LaunchTime
-			}
-		}
-
-		if i.RunningTasksCount != nil {
-			instance.Processes = int(*i.RunningTasksCount)
-		}
-
-		if i.Status != nil {
-			instance.Status = strings.ToLower(*i.Status)
-		}
-
-		instances = append(instances, instance)
-	}
-
-	sort.Sort(instances)
-
-	return instances, nil
-}
-
 func exitCode(err error) int {
 	if ee, ok := err.(*ssh.ExitError); ok {
 		return ee.Waitmsg.ExitStatus()
@@ -286,20 +149,4 @@ func exitCode(err error) int {
 	}
 
 	return 0
-}
-
-func (i *Instance) Docker() (*docker.Client, error) {
-	return Docker(fmt.Sprintf("http://%s:2376", i.Ip))
-}
-
-func (ii Instances) Len() int {
-	return len(ii)
-}
-
-func (ii Instances) Less(i, j int) bool {
-	return ii[i].Started.Before(ii[j].Started)
-}
-
-func (ii Instances) Swap(i, j int) {
-	ii[i], ii[j] = ii[j], ii[i]
 }

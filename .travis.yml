@@ -10,8 +10,10 @@ branches:
 language: go
 
 go:
-- 1.4
 - 1.5
+
+env:
+  - PROVIDER=test
 
 before_install:
 - go get -u golang.org/x/tools/cmd/cover
@@ -20,9 +22,7 @@ before_install:
 - go get -u github.com/convox/release/version
 
 script:
-- go get ./...
-- go install ./cmd/convox
-- go test -v ./...
+- go install ./...
 - goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
 
 notifications:

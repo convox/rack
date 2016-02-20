@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+
+	"github.com/convox/rack/api/provider"
 )
 
 type FormationEntry struct {
@@ -98,7 +100,7 @@ func SetFormation(app, process string, count, memory int64) error {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
-	capacity, err := GetSystemCapacity()
+	capacity, err := provider.CapacityGet()
 
 	if err != nil {
 		return err

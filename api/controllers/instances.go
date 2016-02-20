@@ -9,6 +9,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func init() {
@@ -25,7 +26,7 @@ func InstancesKeyroll(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	instances, err := models.ListInstances()
+	instances, err := provider.InstanceList()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -58,7 +59,7 @@ func InstanceSSH(ws *websocket.Conn) *httperr.Error {
 }
 
 func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.GetSystem()
+	rack, err := provider.SystemGet()
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)
