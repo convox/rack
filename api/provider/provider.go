@@ -11,6 +11,8 @@ import (
 var CurrentProvider Provider
 
 type Provider interface {
+	AppGet(name string) (*structs.App, error)
+
 	CapacityGet() (*structs.Capacity, error)
 
 	InstanceList() (structs.Instances, error)
@@ -37,6 +39,10 @@ func init() {
 }
 
 /** package-level functions ************************************************************************/
+
+func AppGet(name string) (*structs.App, error) {
+	return CurrentProvider.AppGet(name)
+}
 
 func CapacityGet() (*structs.Capacity, error) {
 	return CurrentProvider.CapacityGet()
