@@ -8,6 +8,10 @@ type TestProviderRunner struct {
 	Instances structs.Instances
 }
 
+func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
+	return nil, nil
+}
+
 func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	return p.Instances, nil
 }

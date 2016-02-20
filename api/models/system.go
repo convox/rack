@@ -2,8 +2,6 @@ package models
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -77,50 +75,4 @@ func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.
 	fmt.Printf("fn=doDescribeStack at=hit name=%q age=%s\n", name, time.Now().Sub(s.RequestTime))
 
 	return s.Output, nil
-}
-
-func maxAppConcurrency() (int, error) {
-	apps, err := ListApps()
-
-	if err != nil {
-		return 0, err
-	}
-
-	max := 0
-
-	for _, app := range apps {
-		rel, err := app.LatestRelease()
-
-		if err != nil {
-			return 0, err
-		}
-
-		if rel == nil {
-			continue
-		}
-
-		m, err := LoadManifest(rel.Manifest)
-
-		if err != nil {
-			return 0, err
-		}
-
-		f, err := ListFormation(app.Name)
-
-		if err != nil {
-			return 0, err
-		}
-
-		for _, me := range m {
-			if len(me.ExternalPorts()) > 0 {
-				entry := f.Entry(me.Name)
-
-				if entry != nil && entry.Count > max {
-					max = entry.Count
-				}
-			}
-		}
-	}
-
-	return max, nil
 }

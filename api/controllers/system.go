@@ -94,7 +94,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	capacity, err := models.GetSystemCapacity()
+	capacity, err := provider.CapacityGet()
 
 	if err != nil {
 		return httperr.Server(err)
