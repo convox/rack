@@ -3,6 +3,10 @@ sudo: required
 services:
 - docker
 
+branches:
+  except:
+    - /^\d{14}/
+
 language: go
 
 go:
