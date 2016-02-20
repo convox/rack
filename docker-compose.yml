@@ -40,6 +40,7 @@ monitor:
   command: api/bin/monitor
   environment:
     - DEVELOPMENT=true
+    - AUTOSCALE
     - AWS_REGION
     - AWS_ACCESS
     - AWS_SECRET

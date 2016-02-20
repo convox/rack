@@ -12,10 +12,24 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/convox/rack/client"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 )
 
-type System client.System
+type System struct {
+	Count   int    `json:"count"`
+	Name    string `json:"name"`
+	Status  string `json:"status"`
+	Type    string `json:"type"`
+	Version string `json:"version"`
+}
+
+type SystemCapacity struct {
+	ClusterMemory  int64 `json:"cluster-memory"`
+	InstanceMemory int64 `json:"instance-memory"`
+	ProcessCount   int64 `json:"process-count"`
+	ProcessMemory  int64 `json:"process-memory"`
+	ProcessWidth   int64 `json:"process-width"`
+}
 
 var DescribeStacksCache = map[string]DescribeStacksResult{}
 
@@ -126,6 +140,10 @@ func (r *System) Save() error {
 		return err
 	}
 
+	if r.Count < 2 {
+		return fmt.Errorf("can't scale rack below 2 instances")
+	}
+
 	// Validate scale
 	mac, err := maxAppConcurrency()
 
@@ -207,6 +225,66 @@ func (r *System) Save() error {
 	}
 
 	return nil
+}
+
+// returns individual server memory, total rack memory
+func GetSystemCapacity() (*SystemCapacity, error) {
+	capacity := &SystemCapacity{}
+
+	lres, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	ires, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(os.Getenv("CLUSTER")),
+		ContainerInstances: lres.ContainerInstanceArns,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, instance := range ires.ContainerInstances {
+		for _, resource := range instance.RegisteredResources {
+			if *resource.Name == "MEMORY" {
+				capacity.InstanceMemory = *resource.IntegerValue
+				capacity.ClusterMemory += *resource.IntegerValue
+				break
+			}
+		}
+	}
+
+	services, err := ClusterServices()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, service := range services {
+		if len(service.LoadBalancers) > 0 && *service.DesiredCount > capacity.ProcessWidth {
+			capacity.ProcessWidth = *service.DesiredCount
+		}
+
+		res, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: service.TaskDefinition,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, cd := range res.TaskDefinition.ContainerDefinitions {
+			capacity.ProcessCount += *service.DesiredCount
+			capacity.ProcessMemory += (*service.DesiredCount * *cd.Memory)
+		}
+	}
+
+	// return capacity, concurrency, nil
+	return capacity, nil
 }
 
 func maxAppConcurrency() (int, error) {

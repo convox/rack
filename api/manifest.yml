@@ -655,6 +655,14 @@ paths:
           description: system
           schema:
             $ref: '#/definitions/system'
+  /system/capacity:
+    get:
+      description: Get system information
+      responses:
+        200:
+          description: system
+          schema:
+            $ref: '#/definitions/capacity'
 definitions:
   app:
     properties:
@@ -682,6 +690,18 @@ definitions:
         type: string
       ended:
         type: string
+  capacity:
+    properties:
+      cluster-memory:
+        type: integer
+      instance-memory:
+        type: integer
+      process-count:
+        type: integer
+      process-memory:
+        type: integer
+      process-width:
+        type: integer
   error:
     properties:
       error:
@@ -744,18 +764,6 @@ definitions:
           type: string
       release:
         type: string
-  system:
-    properties:
-      count:
-        type: integer
-      name:
-        type: string
-      status:
-        type: string
-      type:
-        type: string
-      version:
-        type: string
   release:
     properties:
       app:
@@ -784,3 +792,15 @@ definitions:
     properties:
       success:
         type: boolean
+  system:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+      version:
+        type: string

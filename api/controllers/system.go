@@ -101,3 +101,13 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	return RenderJson(rw, rack)
 }
+
+func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	capacity, err := models.GetSystemCapacity()
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, capacity)
+}

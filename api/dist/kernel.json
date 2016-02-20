@@ -1,6 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
@@ -23,6 +24,10 @@
     }
   },
   "Outputs": {
+    "Autoscale": {
+      "Condition": "Development",
+      "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
+    },
     "AwsRegion": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
@@ -127,6 +132,12 @@
       "Type": "String",
       "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
       "Default": ""
+    },
+    "Autoscale": {
+      "Type": "String",
+      "Description": "Autoscale rack instances",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "ClientId": {
       "Type": "String",
@@ -1309,6 +1320,7 @@
             "Command": "api/bin/monitor",
             "CPU": "64",
             "Environment": {
+              "AUTOSCALE": { "Fn::If": [ "Autoscale", "true", "false" ] },
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
