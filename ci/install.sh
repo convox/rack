@@ -19,4 +19,6 @@ case $CIRCLE_NODE_INDEX in
 	;;
 esac
 
-convox install
+convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
+
+grep "Created Unknown" $CIRCLE_ARTIFACTS/convox-installer.log
