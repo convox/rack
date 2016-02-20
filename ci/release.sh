@@ -1,4 +1,5 @@
 #!/bin/bash
 set -x
 
-curl -vik -X POST $RELEASE_URL/publish -d token=$RELEASE_TOKEN -d version=$VERSION
+# don't auto-publish until upgrade path is automatically tested
+# curl -vik -X POST $RELEASE_URL/publish -d token=$RELEASE_TOKEN -d version=$VERSION

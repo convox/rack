@@ -296,8 +296,8 @@
     "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "Scheme": "{{ .Scheme }}",
         {{ if eq .Scheme "internal" }}
+          "Scheme": "{{ .Scheme }}",
           "Subnets": { "Fn::If": [ "Private",
             { "Ref": "SubnetsPrivate" },
             { "Ref": "Subnets" }

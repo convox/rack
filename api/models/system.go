@@ -2,6 +2,8 @@ package models
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
@@ -124,6 +126,7 @@ func (r *System) Save() error {
 		return err
 	}
 
+	// Validate scale
 	mac, err := maxAppConcurrency()
 
 	// dont scale the rack below the max concurrency plus one
@@ -132,15 +135,61 @@ func (r *System) Save() error {
 		return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
 	}
 
-	params := map[string]string{
-		"InstanceCount": strconv.Itoa(r.Count),
-		"InstanceType":  r.Type,
-		"Version":       r.Version,
+	// Read new formation template and parameters
+	url := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", r.Version)
+
+	resp, err := http.Get(url)
+
+	if err != nil {
+		return err
 	}
 
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", r.Version)
+	defer resp.Body.Close()
 
-	if r.Version != app.Parameters["Version"] {
+	formation, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	existing, err := formationParameters(string(formation))
+
+	if err != nil {
+		return err
+	}
+
+	// set new parameters
+	newVersion := r.Version != app.Parameters["Version"]
+
+	app.Parameters["InstanceCount"] = strconv.Itoa(r.Count)
+	app.Parameters["InstanceType"] = r.Type
+	app.Parameters["Version"] = r.Version
+
+	params := []*cloudformation.Parameter{}
+
+	// filter out parameters removed from the template
+	for key, value := range app.Parameters {
+		if _, ok := existing[key]; ok {
+			params = append(params, &cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(value)})
+		}
+	}
+
+	// update the stack
+	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(rack),
+		TemplateURL:  aws.String(url),
+		Parameters:   params,
+	}
+
+	_, err = UpdateStack(req)
+
+	if err != nil {
+		return err
+	}
+
+	// save a record of the new release
+	if newVersion {
 		req := &dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
 				"id":      &dynamodb.AttributeValue{S: aws.String(r.Version)},
@@ -157,7 +206,7 @@ func (r *System) Save() error {
 		}
 	}
 
-	return app.UpdateParamsAndTemplate(params, template)
+	return nil
 }
 
 func maxAppConcurrency() (int, error) {

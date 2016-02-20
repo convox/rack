@@ -206,6 +206,15 @@ func (r *Release) Promote() error {
 		app.Parameters["Key"] = os.Getenv("ENCRYPTION_KEY")
 	}
 
+	// SubnetsPrivate is a List<AWS::EC2::Subnet::Id> and can not be empty
+	// So reuse SUBNETS if SUBNETS_PRIVATE is not set
+	subnetsPrivate := os.Getenv("SUBNETS_PRIVATE")
+	if subnetsPrivate == "" {
+		subnetsPrivate = os.Getenv("SUBNETS")
+	}
+
+	app.Parameters["SubnetsPrivate"] = subnetsPrivate
+
 	params := []*cloudformation.Parameter{}
 
 	for key, value := range app.Parameters {
