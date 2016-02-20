@@ -212,6 +212,9 @@
   },
   "Resources": {
     "BalancerWebInternal": {
+      "DependsOn": [
+        "BalancerWebInternalSecurityGroup"
+      ],
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,

@@ -295,6 +295,7 @@
     },
     "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
         {{ if eq .Scheme "internal" }}
           "Scheme": "{{ .Scheme }}",
