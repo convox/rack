@@ -100,7 +100,7 @@ func SetFormation(app, process string, count, memory int64) error {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
-	system, err := provider.SystemGet()
+	capacity, err := provider.CapacityGet()
 
 	if err != nil {
 		return err
