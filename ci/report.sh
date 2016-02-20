@@ -12,6 +12,10 @@ case $CIRCLE_NODE_INDEX in
   export AWS_DEFAULT_REGION=us-west-2
   export AWS_REGION=us-west-2
   ;;
+  2)
+  export AWS_DEFAULT_REGION=us-west-2
+  export AWS_REGION=us-west-2
+  ;;
   *)
   export AWS_DEFAULT_REGION=us-east-1
   export AWS_REGION=us-east-1
