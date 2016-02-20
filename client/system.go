@@ -10,6 +10,14 @@ type System struct {
 	Version string `json:"version"`
 }
 
+type SystemCapacity struct {
+	ClusterMemory  int64 `json:"cluster-memory"`
+	InstanceMemory int64 `json:"instance-memory"`
+	ProcessCount   int64 `json:"process-count"`
+	ProcessMemory  int64 `json:"process-memory"`
+	ProcessWidth   int64 `json:"process-width"`
+}
+
 func (c *Client) GetSystem() (*System, error) {
 	var system System
 
@@ -47,6 +55,18 @@ func (c *Client) GetSystem() (*System, error) {
 	}
 
 	return &system, nil
+}
+
+func (c *Client) GetSystemCapacity() (*SystemCapacity, error) {
+	var capacity SystemCapacity
+
+	err := c.Get("/system/capacity", &capacity)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &capacity, nil
 }
 
 func (c *Client) GetSystemReleases() (Releases, error) {

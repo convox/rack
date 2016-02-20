@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
@@ -32,13 +33,29 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	process := vars["process"]
-	count := GetForm(r, "count")
-	memory := GetForm(r, "memory")
 
 	_, err := models.GetApp(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
+	}
+
+	var count, memory int64
+
+	if cc := GetForm(r, "count"); cc != "" {
+		if c, err := strconv.ParseInt(cc, 10, 64); err != nil {
+			return httperr.Errorf(403, "count must be numeric")
+		} else {
+			count = c
+		}
+	}
+
+	if mm := GetForm(r, "memory"); mm != "" {
+		if m, err := strconv.ParseInt(mm, 10, 64); err != nil {
+			return httperr.Errorf(403, "memory must be numeric")
+		} else {
+			memory = m
+		}
 	}
 
 	err = models.SetFormation(app, process, count, memory)

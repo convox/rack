@@ -73,7 +73,7 @@ func ListFormation(app string) (Formation, error) {
 	return formation, nil
 }
 
-func SetFormation(app, process, count, memory string) error {
+func SetFormation(app, process string, count, memory int64) error {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -98,7 +98,7 @@ func SetFormation(app, process, count, memory string) error {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
-	system, err := GetSystem()
+	capacity, err := GetSystemCapacity()
 
 	if err != nil {
 		return err
@@ -106,25 +106,16 @@ func SetFormation(app, process, count, memory string) error {
 
 	params := map[string]string{}
 
-	if count != "" {
-		c, err := strconv.Atoi(count)
-
-		if err != nil {
-			return err
-		}
-
-		// if the app has external ports we can only have n-1 instances of it
-		// because elbs expect the process to be available at the same port on
-		// every instance and we need room for the rolling updates
-		if len(me.ExternalPorts()) > 0 && c >= system.Count {
-			return fmt.Errorf("rack has %d instances, can't scale processes beyond %d", system.Count, system.Count-1)
-		}
-
-		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = count
+	if count > 0 {
+		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = fmt.Sprintf("%d", count)
 	}
 
-	if memory != "" {
-		params[fmt.Sprintf("%sMemory", UpperName(process))] = memory
+	if memory > 0 {
+		if memory > capacity.InstanceMemory {
+			return fmt.Errorf("requested memory %d greater than instance size %d", memory, capacity.InstanceMemory)
+		}
+
+		params[fmt.Sprintf("%sMemory", UpperName(process))] = fmt.Sprintf("%d", memory)
 	}
 
 	NotifySuccess("release:scale", map[string]string{
