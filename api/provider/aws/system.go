@@ -51,19 +51,20 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 func (p *AWSProvider) SystemSave(system structs.System) error {
 	rack := os.Getenv("RACK")
 
-	// FIXME
-	// mac, err := maxAppConcurrency()
+	if system.Count < 2 {
+		return fmt.Errorf("rack cannot be scaled below 2 instances")
+	}
 
-	// // dont scale the rack below the max concurrency plus one
-	// // see formation.go for more details
-	// if err == nil && r.Count < (mac+1) {
-	//   return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
-	// }
-
-	app, err := p.AppGet(rack)
+	capacity, err := p.CapacityGet()
 
 	if err != nil {
 		return err
+	}
+
+	requiredInstances := int(capacity.ProcessWidth) + 1
+
+	if system.Count < requiredInstances {
+		return fmt.Errorf("your process concurrency requires at least %d instances in the rack", requiredInstances)
 	}
 
 	params := map[string]string{
@@ -74,7 +75,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 
 	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", system.Version)
 
-	if system.Version != app.Parameters["Version"] {
+	if system.Version != os.Getenv("RELEASE") {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
 				"id":      &dynamodb.AttributeValue{S: aws.String(system.Version)},
@@ -89,7 +90,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
-	err = p.stackUpdate(app.Name, template, params)
+	err = p.stackUpdate(rack, template, params)
 
 	if awsError(err) == "ValidationError" {
 		switch {
