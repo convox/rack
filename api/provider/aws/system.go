@@ -16,7 +16,7 @@ import (
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	rack := os.Getenv("RACK")
 
-	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+	res, err := p.CachedDescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(rack),
 	})
 

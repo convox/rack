@@ -10,7 +10,7 @@ import (
 )
 
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
-	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+	res, err := p.CachedDescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(name),
 	})
 

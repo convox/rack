@@ -8,8 +8,8 @@ import (
 	"github.com/convox/rack/api/cache"
 )
 
-func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
-	res, ok := cache.Get("describeStacks", input.StackName).(*cloudformation.DescribeStacksOutput)
+func (p *AWSProvider) CachedDescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+	res, ok := cache.Get("DescribeStacks", input.StackName).(*cloudformation.DescribeStacksOutput)
 
 	if ok {
 		return res, nil
@@ -21,7 +21,7 @@ func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) 
 		return nil, err
 	}
 
-	err = cache.Set("describeStacks", input.StackName, res, 5*time.Second)
+	err = cache.Set("DescribeStacks", input.StackName, res, 5*time.Second)
 
 	if err != nil {
 		return nil, err
@@ -30,8 +30,8 @@ func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) 
 	return res, nil
 }
 
-func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
-	res, ok := cache.Get("listContainerInstances", input).(*ecs.ListContainerInstancesOutput)
+func (p *AWSProvider) CachedListContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
+	res, ok := cache.Get("ListContainerInstances", input).(*ecs.ListContainerInstancesOutput)
 
 	if ok {
 		return res, nil
@@ -43,7 +43,7 @@ func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesIn
 		return nil, err
 	}
 
-	err = cache.Set("listContainerInstances", input, res, 10*time.Second)
+	err = cache.Set("ListContainerInstances", input, res, 10*time.Second)
 
 	if err != nil {
 		return nil, err
@@ -52,9 +52,9 @@ func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesIn
 	return res, nil
 }
 
-func (p *AWSProvider) updateStack(input *cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
-	cache.Clear("describeStacks", nil)
-	cache.Clear("describeStacks", input.StackName)
+func (p *AWSProvider) CachedUpdateStack(input *cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
+	cache.Clear("DescribeStacks", nil)
+	cache.Clear("DescribeStacks", input.StackName)
 
 	return p.cloudformation().UpdateStack(input)
 }

@@ -161,7 +161,7 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 		})
 	}
 
-	_, err = p.updateStack(req)
+	_, err = p.CachedUpdateStack(req)
 
 	return err
 }

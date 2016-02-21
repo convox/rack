@@ -12,7 +12,7 @@ import (
 )
 
 func (p *AWSProvider) InstanceList() (structs.Instances, error) {
-	res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
+	res, err := p.CachedListContainerInstances(&ecs.ListContainerInstancesInput{
 		Cluster: aws.String(os.Getenv("CLUSTER")),
 	})
 
