@@ -9,6 +9,11 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
+	"github.com/convox/rack/api/provider"
+)
+
+var (
+	StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:" // needs to be random
 )
 
 func InstanceKeyroll() error {
@@ -28,20 +33,23 @@ func InstanceKeyroll() error {
 	}
 
 	env["InstancePEM"] = *keypair.KeyMaterial
+
 	err = PutRackSettings(env)
 
 	if err != nil {
 		return err
 	}
 
-	app, err := GetApp(os.Getenv("RACK"))
+	app, err := provider.AppGet(os.Getenv("RACK"))
+
 	if err != nil {
 		return err
 	}
 
-	err = app.UpdateParams(map[string]string{
+	err = AppUpdateParams(app, map[string]string{
 		"Key": keyname,
 	})
+
 	if err != nil {
 		return err
 	}

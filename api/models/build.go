@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/convox/rack/api/provider"
 )
 
 type Build struct {
@@ -124,7 +125,7 @@ func (b *Build) Save() error {
 		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
 	}
 
-	a, err := GetApp(b.App)
+	a, err := provider.AppGet(b.App)
 
 	if err != nil {
 		return err
@@ -167,14 +168,17 @@ func (b *Build) Cleanup() error {
 }
 
 func (b *Build) buildError(err error, ch chan error) {
-	NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
+	provider.NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
+
 	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error app=%q build=%q error=%q\n", b.App, b.Id, err)
+
 	b.Fail(err)
+
 	ch <- err
 }
 
 func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
-	app, err := GetApp(b.App)
+	app, err := provider.AppGet(b.App)
 
 	if err != nil {
 		return nil, err
@@ -235,7 +239,8 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 		return
 	}
 
-	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+	provider.NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+
 	fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 }
 
@@ -267,12 +272,13 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 		return
 	}
 
-	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+	provider.NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+
 	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 }
 
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
-	app, err := GetApp(b.App)
+	app, err := provider.AppGet(b.App)
 
 	if err != nil {
 		return err
@@ -345,7 +351,7 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 		return fmt.Errorf("error from builder")
 	}
 
-	release, err := app.ForkRelease()
+	release, err := appForkRelease(app)
 
 	if err != nil {
 		return err
@@ -354,7 +360,7 @@ func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	release.Build = b.Id
 	release.Manifest = b.Manifest
 
-	err = release.Save()
+	err = provider.ReleaseSave(release)
 
 	if err != nil {
 		return err
@@ -408,7 +414,7 @@ func (b *Build) log(line string) {
 	b.Logs += fmt.Sprintf("%s\n", line)
 
 	if b.kinesis == "" {
-		app, err := GetApp(b.App)
+		app, err := provider.AppGet(b.App)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s", err)
@@ -465,7 +471,7 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 }
 
 func getS3BuildLogs(app, build_id string) (string, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return "", err

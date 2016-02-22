@@ -15,6 +15,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -26,7 +27,7 @@ func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	_, err = models.GetApp(app)
+	_, err = provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -44,7 +45,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.GetApp(app)
+	_, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -137,7 +138,7 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.GetApp(app)
+	_, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -155,14 +156,14 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	// in production loop through docker hosts that the rack is running on
 	// to find the build
 	if os.Getenv("DEVELOPMENT") != "true" {
-		pss, err := models.ListProcesses(os.Getenv("RACK"))
+		pss, err := provider.ProcessList(os.Getenv("RACK"))
 
 		if err != nil {
 			return httperr.Server(err)
 		}
 
 		for _, ps := range pss {
-			client, err := ps.Docker()
+			client, err := models.Docker(fmt.Sprintf("http://%s:2376", ps.Host))
 
 			if err != nil {
 				return httperr.Server(err)

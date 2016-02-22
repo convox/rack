@@ -6,6 +6,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func LinkCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -31,7 +32,7 @@ func LinkCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	app := GetForm(r, "app")
 
-	a, err := models.GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -72,7 +73,7 @@ func LinkDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "unlinking is not yet implemented for service type: %s", s.Type)
 	}
 
-	a, err := models.GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)

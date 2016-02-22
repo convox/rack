@@ -11,6 +11,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/api/provider"
 )
 
 type Environment map[string]string
@@ -34,7 +35,7 @@ func LoadEnvironment(data []byte) Environment {
 }
 
 func GetEnvironment(app string) (Environment, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return nil, err
@@ -64,7 +65,7 @@ func GetEnvironment(app string) (Environment, error) {
 }
 
 func PutEnvironment(app string, env Environment) (string, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return "", err
@@ -78,7 +79,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 		return "", fmt.Errorf("unable to set environment on app: %s", app)
 	}
 
-	release, err := a.ForkRelease()
+	release, err := appForkRelease(a)
 
 	if err != nil {
 		return "", err
@@ -86,7 +87,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 
 	release.Env = env.Raw()
 
-	err = release.Save()
+	err = provider.ReleaseSave(release)
 
 	if err != nil {
 		return "", err
@@ -116,7 +117,7 @@ func PutEnvironment(app string, env Environment) (string, error) {
 // Use the Rack Settings bucket and EncryptionKey KMS key to store and retrieve
 // sensitive credentials, just like app env
 func GetRackSettings() (Environment, error) {
-	a, err := GetApp(os.Getenv("RACK"))
+	a, err := provider.AppGet(os.Getenv("RACK"))
 
 	if err != nil {
 		return nil, err
@@ -160,7 +161,7 @@ func GetRackSettings() (Environment, error) {
 }
 
 func PutRackSettings(env Environment) error {
-	a, err := GetApp(os.Getenv("RACK"))
+	a, err := provider.AppGet(os.Getenv("RACK"))
 
 	if err != nil {
 		return err

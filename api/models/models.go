@@ -27,7 +27,10 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sqs"
 )
 
-var SortableTime = "20060102.150405.000000000"
+var (
+	CustomTopic  = os.Getenv("CUSTOM_TOPIC")
+	SortableTime = "20060102.150405.000000000"
+)
 
 func awsConfig() *aws.Config {
 	config := &aws.Config{

@@ -7,6 +7,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/convox/rack/api/structs"
 )
 
 func (s *Service) CreatePapertrail() (*cloudformation.CreateStackInput, error) {
@@ -31,7 +32,7 @@ func (s *Service) CreatePapertrail() (*cloudformation.CreateStackInput, error) {
 	return req, nil
 }
 
-func (s *Service) LinkPapertrail(app App) error {
+func (s *Service) LinkPapertrail(app structs.App) error {
 	// build map of app name -> arn of all linked services
 	arns := map[string]string{}
 
@@ -58,7 +59,7 @@ func (s *Service) LinkPapertrail(app App) error {
 	return s.UpdatePapertrail(arns)
 }
 
-func (s *Service) UnlinkPapertrail(app App) error {
+func (s *Service) UnlinkPapertrail(app structs.App) error {
 	// build map of app name -> arn of all linked services
 	arns := map[string]string{}
 
@@ -88,7 +89,7 @@ func (s *Service) UpdatePapertrail(arns map[string]string) error {
 	}
 
 	// Update stack with all linked ARNs and EventSourceMappings
-	_, err = UpdateStack(&cloudformation.UpdateStackInput{
+	_, err = CloudFormation().UpdateStack(&cloudformation.UpdateStackInput{
 		StackName:    aws.String(s.Name),
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
