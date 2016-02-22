@@ -48,7 +48,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
-func (p *AWSProvider) SystemSave(system structs.System) error {
+func (p *AWSProvider) SystemSave(system *structs.System) error {
 	rack := os.Getenv("RACK")
 
 	if system.Count < 2 {

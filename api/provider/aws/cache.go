@@ -9,7 +9,13 @@ import (
 )
 
 func (p *AWSProvider) CachedDescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
-	res, ok := cache.Get("DescribeStacks", input.StackName).(*cloudformation.DescribeStacksOutput)
+	key := ""
+
+	if input != nil && input.StackName != nil {
+		key = *input.StackName
+	}
+
+	res, ok := cache.Get("DescribeStacks", key).(*cloudformation.DescribeStacksOutput)
 
 	if ok {
 		return res, nil
@@ -21,7 +27,7 @@ func (p *AWSProvider) CachedDescribeStacks(input *cloudformation.DescribeStacksI
 		return nil, err
 	}
 
-	err = cache.Set("DescribeStacks", input.StackName, res, 5*time.Second)
+	err = cache.Set("DescribeStacks", key, res, 5*time.Second)
 
 	if err != nil {
 		return nil, err
@@ -53,8 +59,8 @@ func (p *AWSProvider) CachedListContainerInstances(input *ecs.ListContainerInsta
 }
 
 func (p *AWSProvider) CachedUpdateStack(input *cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
-	cache.Clear("DescribeStacks", nil)
-	cache.Clear("DescribeStacks", input.StackName)
+	cache.Clear("DescribeStacks", "")
+	cache.Clear("DescribeStacks", *input.StackName)
 
 	return p.cloudformation().UpdateStack(input)
 }

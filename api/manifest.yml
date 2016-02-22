@@ -338,7 +338,7 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
-  /apps/{app}/processes/{process}:
+  /apps/{app}/processes/{pid}:
     get:
       description: Get a process for an app
       parameters:
@@ -347,7 +347,7 @@ paths:
         type: string
         in: path
         required: true
-      - name: process
+      - name: pid
         description: process id
         type: string
         in: path
@@ -369,7 +369,7 @@ paths:
         type: string
         in: path
         required: true
-      - name: process
+      - name: pid
         description: process id
         type: string
         in: path

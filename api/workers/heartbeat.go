@@ -7,7 +7,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/cloudflare/cfssl/log"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/api/helpers"
-	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
 )
 
@@ -33,7 +32,7 @@ func heartbeat() {
 		return
 	}
 
-	apps, err := models.ListApps()
+	apps, err := provider.AppList()
 
 	if err != nil {
 		log.Error(err)
