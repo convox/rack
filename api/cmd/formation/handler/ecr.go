@@ -37,7 +37,7 @@ func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
-		return "", nil, err
+		return "invalid", nil, err
 	}
 
 	outputs := map[string]string{

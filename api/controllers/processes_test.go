@@ -8,13 +8,13 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
 )
 
 func init() {
-	models.PauseNotifications = true
 	test.HandlerFunc = controllers.HandlerFunc
 }
 
@@ -23,31 +23,34 @@ func TestProcessesList(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test-cluster")
 	os.Setenv("TEST", "true")
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
-		test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
-		test.DescribeTasksCycle("convox-test-cluster"),
-		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
-		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
-		test.DescribeInstancesFilteredCycle(),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
-		test.DescribeServicesCycle("convox-test-cluster"),
-		test.ListContainerInstancesCycle("convox-test-cluster"),
-		test.DescribeContainerInstancesCycle("convox-test-cluster"),
-		test.DescribeInstancesCycle(),
-	)
-	defer aws.Close()
+	provider.TestProvider.Processes = structs.Processes{
+		structs.Process{},
+	}
 
-	docker := test.StubDocker(
-		test.ListContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.StatsCycle(),
-	)
-	defer docker.Close()
+	// FIXME move to provider
+	// aws := test.StubAws(
+	//   test.DescribeAppStackResourcesCycle("myapp-staging"),
+	//   test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
+	//   test.DescribeTasksCycle("convox-test-cluster"),
+	//   test.DescribeTaskDefinitionCycle("convox-test-cluster"),
+	//   test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
+	//   test.DescribeInstancesFilteredCycle(),
+	//   test.DescribeAppStackResourcesCycle("myapp-staging"),
+	//   test.DescribeServicesCycle("convox-test-cluster"),
+	//   test.ListContainerInstancesCycle("convox-test-cluster"),
+	//   test.DescribeContainerInstancesCycle("convox-test-cluster"),
+	//   test.DescribeInstancesCycle(),
+	// )
+	// defer aws.Close()
+
+	// docker := test.StubDocker(
+	//   test.ListContainersCycle(),
+	//   test.ListConvoxContainersCycle(),
+	//   test.ListConvoxContainersCycle(),
+	//   test.ListConvoxContainersCycle(),
+	//   test.StatsCycle(),
+	// )
+	// defer docker.Close()
 
 	// Note: there is a synchronization issue inside the Docker Stats fanout
 	// So while the StatsCycle does work sometimes, the test bypasses stats for now
@@ -69,33 +72,37 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test-cluster")
 	os.Setenv("TEST", "true")
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackCycle("myapp-staging"),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
-		test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
-		test.DescribeTasksCycle("convox-test-cluster"),
-		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
-		test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
-		test.DescribeInstancesFilteredCycle(),
-		test.DescribeAppStackResourcesCycle("myapp-staging"),
-		test.DescribeServicesWithDeploymentsCycle("convox-test-cluster"),
-		test.DescribeTaskDefinition3Cycle("convox-test-cluster"),
-		test.ListContainerInstancesCycle("convox-test-cluster"),
-		test.DescribeContainerInstancesCycle("convox-test-cluster"),
-		test.DescribeInstancesCycle(),
-		test.DescribeTaskDefinition1Cycle("convox-test-cluster"),
-	)
-	defer aws.Close()
+	provider.TestProvider.Processes = structs.Processes{
+		structs.Process{},
+		structs.Process{Id: "pending"},
+	}
 
-	docker := test.StubDocker(
-		test.ListContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.StatsCycle(),
-	)
-	defer docker.Close()
+	// FIXME move to provider
+	// aws := test.StubAws(
+	//   test.DescribeAppStackResourcesCycle("myapp-staging"),
+	//   test.ListTasksCycle("convox-test-cluster", "myapp-staging-worker-SCELGCIYSKF"),
+	//   test.DescribeTasksCycle("convox-test-cluster"),
+	//   test.DescribeTaskDefinitionCycle("convox-test-cluster"),
+	//   test.DescribeContainerInstancesFilteredCycle("convox-test-cluster"),
+	//   test.DescribeInstancesFilteredCycle(),
+	//   test.DescribeAppStackResourcesCycle("myapp-staging"),
+	//   test.DescribeServicesWithDeploymentsCycle("convox-test-cluster"),
+	//   test.DescribeTaskDefinition3Cycle("convox-test-cluster"),
+	//   test.ListContainerInstancesCycle("convox-test-cluster"),
+	//   test.DescribeContainerInstancesCycle("convox-test-cluster"),
+	//   test.DescribeInstancesCycle(),
+	//   test.DescribeTaskDefinition1Cycle("convox-test-cluster"),
+	// )
+	// defer aws.Close()
+
+	// docker := test.StubDocker(
+	//   test.ListContainersCycle(),
+	//   test.ListConvoxContainersCycle(),
+	//   test.ListConvoxContainersCycle(),
+	//   test.ListConvoxContainersCycle(),
+	//   test.StatsCycle(),
+	// )
+	// defer docker.Close()
 
 	v := url.Values{}
 	v.Add("stats", "false")
@@ -107,10 +114,6 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	if assert.Nil(t, err) {
 		assert.Equal(t, 2, len(resp))
 		assert.Equal(t, "pending", resp[1].Id)
-		//assert.Equal(t, "8dfafdbc3a40", resp[1].Id)
-		//assert.Equal(t, "8dfafdbc3a40", resp[2].Id)
-		//assert.Equal(t, "4932cce0897b", resp[3].Id)
-		//assert.Equal(t, "pending", resp[4].Id)
 	}
 }
 

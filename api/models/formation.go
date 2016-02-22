@@ -20,13 +20,13 @@ type FormationEntry struct {
 type Formation []FormationEntry
 
 func ListFormation(app string) (Formation, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return nil, err
 	}
 
-	release, err := a.LatestRelease()
+	release, err := appLatestRelease(a)
 
 	if err != nil {
 		return nil, err
@@ -76,13 +76,13 @@ func ListFormation(app string) (Formation, error) {
 }
 
 func SetFormation(app, process string, count, memory int64) error {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return err
 	}
 
-	rel, err := a.LatestRelease()
+	rel, err := appLatestRelease(a)
 
 	if err != nil {
 		return err
@@ -120,12 +120,12 @@ func SetFormation(app, process string, count, memory int64) error {
 		params[fmt.Sprintf("%sMemory", UpperName(process))] = fmt.Sprintf("%d", memory)
 	}
 
-	NotifySuccess("release:scale", map[string]string{
+	provider.NotifySuccess("release:scale", map[string]string{
 		"app": rel.App,
 		"id":  rel.Id,
 	})
 
-	return a.UpdateParams(params)
+	return AppUpdateParams(a, params)
 }
 
 func (f Formation) Entry(name string) *FormationEntry {

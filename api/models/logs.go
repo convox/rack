@@ -96,7 +96,7 @@ func subscribeCloudWatchLogsStream(group, stream string, startTime time.Time, ou
 	}
 }
 
-func subscribeKinesis(stream string, output chan []byte, quit chan bool) {
+func SubscribeKinesis(stream string, output chan []byte, quit chan bool) {
 	sreq := &kinesis.DescribeStreamInput{
 		StreamName: aws.String(stream),
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 // Monitor ECS Cluster.
@@ -63,13 +64,13 @@ func monitorConverged(lastConverged bool, lastEventAt time.Time) (bool, ecs.Serv
 	log.Log("fn=monitorConverged converged=%t events=%d lastEventAt=%q", converged, len(events), lastEventAt)
 
 	if events.HasCapacityWarning() {
-		models.NotifyError("rack:capacity", fmt.Errorf(events.CapacityWarning()), map[string]string{
+		provider.NotifyError("rack:capacity", fmt.Errorf(events.CapacityWarning()), map[string]string{
 			"rack": os.Getenv("RACK"),
 		})
 	}
 
 	if converged != lastConverged {
-		models.NotifySuccess("rack:converge", map[string]string{
+		provider.NotifySuccess("rack:converge", map[string]string{
 			"rack":      os.Getenv("RACK"),
 			"converged": fmt.Sprintf("%t", converged),
 		})

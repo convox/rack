@@ -68,7 +68,7 @@ func autoscaleRack() {
 
 	system.Count = instances
 
-	err = provider.SystemSave(*system)
+	err = provider.SystemSave(system)
 
 	if err != nil {
 		log.Log("fn=system.Save err=%q", err)

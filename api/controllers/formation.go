@@ -9,12 +9,13 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func FormationList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	_, err := models.GetApp(app)
+	_, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -34,7 +35,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	process := vars["process"]
 
-	_, err := models.GetApp(app)
+	_, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)

@@ -2,25 +2,15 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
 )
 
 func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := provider.SystemGet()
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	releases, err := models.ListReleases(rack.Name)
+	releases, err := provider.ReleaseList(os.Getenv("RACK"))
 
 	if err != nil {
 		return httperr.Server(err)
@@ -76,7 +66,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		notifyData["version"] = version
 	}
 
-	err = provider.SystemSave(*rack)
+	err = provider.SystemSave(rack)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -88,7 +78,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	models.NotifySuccess("rack:update", notifyData)
+	provider.NotifySuccess("rack:update", notifyData)
 
 	return RenderJson(rw, rack)
 }
