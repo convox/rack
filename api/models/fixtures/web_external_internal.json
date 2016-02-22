@@ -101,7 +101,7 @@
       }
     },
     "WebPort3001BalancerName": {
-      "Value": "web-6ZPKHGH-i"
+      "Value": "httpd-web-JBVEG3F-i"
     },
     "WebPort80Balancer": {
       "Value": {
@@ -109,7 +109,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": "web-6ZPKHGH-i"
+      "Value": "httpd-web-JBVEG3F-i"
     }
   },
   "Parameters": {
@@ -364,7 +364,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "web-6ZPKHGH-i",
+        "LoadBalancerName": "httpd-web-JBVEG3F-i",
         "Scheme": "internal",
         "SecurityGroups": [
           {

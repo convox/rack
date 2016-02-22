@@ -205,9 +205,10 @@ func (mb ManifestBalancer) FirstPort() string {
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 	// Bound apps do not use the StackName directly and ignore Entry.primary
+	// and use AppName-EntryName-RackHash format
 	if mb.Entry.app != nil && mb.Entry.app.IsBound() {
-		hash := sha256.Sum256([]byte(mb.Entry.app.StackName()))
-		prefix := mb.Entry.Name
+		hash := sha256.Sum256([]byte(os.Getenv("RACK")))
+		prefix := fmt.Sprintf("%s-%s", mb.Entry.app.Name, mb.Entry.Name)
 		suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
 		if !mb.Public {
 			suffix += "-i"
@@ -219,6 +220,7 @@ func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 		return template.HTML(`"` + prefix + suffix + `"`)
 	}
 
+	// Unbound apps use legacy StackName or StackName-ProcessName format
 	if mb.Entry.primary {
 		return template.HTML(`{ "Ref": "AWS::StackName" }`)
 	}
