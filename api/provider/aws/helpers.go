@@ -1,15 +1,37 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 )
+
+type StackResource struct {
+	Id   string
+	Name string
+
+	Reason string
+	Status string
+	Type   string
+
+	Time time.Time
+}
+
+type StackResources map[string]StackResource
 
 type Template struct {
 	Parameters map[string]TemplateParameter
@@ -27,6 +49,97 @@ func awsError(err error) string {
 	}
 
 	return ""
+}
+
+func (p *AWSProvider) cleanupBucket(bucket string) error {
+	req := &s3.ListObjectVersionsInput{
+		Bucket: aws.String(bucket),
+	}
+
+	res, err := p.s3().ListObjectVersions(req)
+
+	if err != nil {
+		return err
+	}
+
+	for _, d := range res.DeleteMarkers {
+		go p.cleanupBucketObject(bucket, *d.Key, *d.VersionId)
+	}
+
+	for _, v := range res.Versions {
+		go p.cleanupBucketObject(bucket, *v.Key, *v.VersionId)
+	}
+
+	return nil
+}
+
+func (p *AWSProvider) cleanupBucketObject(bucket, key, version string) {
+	req := &s3.DeleteObjectInput{
+		Bucket:    aws.String(bucket),
+		Key:       aws.String(key),
+		VersionId: aws.String(version),
+	}
+
+	_, err := p.s3().DeleteObject(req)
+
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+}
+
+func (p *AWSProvider) clusterServices() ([]*ecs.Service, error) {
+	services := []*ecs.Service{}
+
+	lsres, err := p.ecs().ListServices(&ecs.ListServicesInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	})
+
+	if err != nil {
+		return services, err
+	}
+
+	dsres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Services: lsres.ServiceArns,
+	})
+
+	if err != nil {
+		return services, err
+	}
+
+	for i := 0; i < len(dsres.Services); i++ {
+		services = append(services, dsres.Services[i])
+	}
+
+	return services, nil
+}
+
+func coalesce(s *dynamodb.AttributeValue, def string) string {
+	if s != nil {
+		return *s.S
+	} else {
+		return def
+	}
+}
+
+func cs(s *string, def string) string {
+	if s != nil {
+		return *s
+	} else {
+		return def
+	}
+}
+
+func ct(t *time.Time) time.Time {
+	if t != nil {
+		return *t
+	} else {
+		return time.Time{}
+	}
+}
+
+func dockerClient(endpoint string) (*docker.Client, error) {
+	return docker.NewClient(endpoint)
 }
 
 func formationParameters(formation string) (map[string]TemplateParameter, error) {
@@ -77,6 +190,32 @@ func humanStatus(original string) string {
 	}
 }
 
+func (p *AWSProvider) s3Delete(bucket, key string) error {
+	_, err := p.s3().DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	return err
+}
+
+func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error {
+	req := &s3.PutObjectInput{
+		Body:          bytes.NewReader(data),
+		Bucket:        aws.String(bucket),
+		ContentLength: aws.Int64(int64(len(data))),
+		Key:           aws.String(key),
+	}
+
+	if public {
+		req.ACL = aws.String("public-read")
+	}
+
+	_, err := p.s3().PutObject(req)
+
+	return err
+}
+
 func stackParameters(stack *cloudformation.Stack) map[string]string {
 	parameters := make(map[string]string)
 
@@ -105,6 +244,31 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	}
 
 	return tags
+}
+
+func (p *AWSProvider) stackResources(name string) (StackResources, error) {
+	res, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(name),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	resources := make(StackResources, len(res.StackResources))
+
+	for _, r := range res.StackResources {
+		resources[*r.LogicalResourceId] = StackResource{
+			Id:     cs(r.PhysicalResourceId, ""),
+			Name:   cs(r.LogicalResourceId, ""),
+			Reason: cs(r.ResourceStatusReason, ""),
+			Status: cs(r.ResourceStatus, ""),
+			Type:   cs(r.ResourceType, ""),
+			Time:   ct(r.Timestamp),
+		}
+	}
+
+	return resources, nil
 }
 
 func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[string]string) error {
@@ -164,4 +328,66 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	_, err = p.CachedUpdateStack(req)
 
 	return err
+}
+
+func templateLoad(name, section string, input interface{}) (string, error) {
+	data, err := ioutil.ReadFile(fmt.Sprintf("provider/aws/templates/%s.tmpl", name))
+
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data))
+
+	if err != nil {
+		return "", err
+	}
+
+	var formation bytes.Buffer
+
+	err = tmpl.Execute(&formation, input)
+
+	if err != nil {
+		return "", err
+	}
+
+	return formation.String(), nil
+}
+
+func templateHelpers() template.FuncMap {
+	return template.FuncMap{
+		"upper": func(s string) string {
+			return upperName(s)
+		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+	}
+}
+
+func upperName(name string) string {
+	// myapp -> Myapp; my-app -> MyApp
+	us := strings.ToUpper(name[0:1]) + name[1:]
+
+	for {
+		i := strings.Index(us, "-")
+
+		if i == -1 {
+			break
+		}
+
+		s := us[0:i]
+
+		if len(us) > i+1 {
+			s += strings.ToUpper(us[i+1 : i+2])
+		}
+
+		if len(us) > i+2 {
+			s += us[i+2:]
+		}
+
+		us = s
+	}
+
+	return us
 }

@@ -7,33 +7,45 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 )
 
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	processes, err := models.ListProcesses(app)
+	_, err := provider.AppGet(app)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	final := models.Processes{}
+	processes, err := provider.ProcessList(app)
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	final := structs.Processes{}
 
 	if r.URL.Query().Get("stats") != "false" {
-		psch := make(chan models.Process)
+		psch := make(chan structs.Process)
 		errch := make(chan error)
 
 		for _, p := range processes {
-			p := p
-			go p.FetchStatsAsync(psch, errch)
+			go func(p structs.Process) {
+				stats, err := provider.ProcessStats(app, p.Id)
+
+				if err != nil {
+					errch <- err
+					return
+				}
+
+				p.Cpu = stats.Cpu
+				p.Memory = stats.Memory
+
+				psch <- p
+			}(p)
 		}
 
 		for _, _ = range processes {
@@ -57,25 +69,28 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ProcessShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
-	process := vars["process"]
+	pid := vars["pid"]
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	p, err := models.GetProcess(app, process)
+	_, err := provider.AppGet(app)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	err = p.FetchStats()
+	p, err := provider.ProcessGet(app, pid)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
+
+	stats, err := provider.ProcessStats(app, pid)
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	p.Cpu = stats.Cpu
+	p.Memory = stats.Memory
 
 	return RenderJson(rw, p)
 }
@@ -86,17 +101,7 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	pid := vars["pid"]
 	command := ws.Request().Header.Get("Command")
 
-	a, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return httperr.Server(a.ExecAttached(pid, command, ws))
+	return httperr.Server(provider.ProcessExec(app, pid, command, ws))
 }
 
 func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -105,13 +110,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 	process := vars["process"]
 	command := GetForm(r, "command")
 
-	a, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	err = a.RunDetached(process, command)
+	err := provider.RunDetached(app, process, command)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -126,41 +125,25 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	process := vars["process"]
 	command := ws.Request().Header.Get("Command")
 
-	a, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return httperr.Server(a.RunAttached(process, command, ws))
+	return httperr.Server(provider.RunAttached(app, process, command, ws))
 }
 
 func ProcessStop(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
-	process := vars["process"]
+	pid := vars["pid"]
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	ps, err := models.GetProcess(app, process)
+	ps, err := provider.ProcessGet(app, pid)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	if ps == nil {
-		return httperr.Errorf(404, "no such process: %s", process)
+		return httperr.Errorf(404, "no such process: %s", pid)
 	}
 
-	err = ps.Stop()
+	err = provider.ProcessStop(app, pid)
 
 	if err != nil {
 		return httperr.Server(err)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/client"
 )
 
@@ -16,7 +17,7 @@ type Service client.Service
 type Services []Service
 
 func ListServices() (Services, error) {
-	res, err := DescribeStacks()
+	res, err := CloudFormation().DescribeStacks(nil)
 
 	if err != nil {
 		return nil, err
@@ -42,7 +43,9 @@ func ListServices() (Services, error) {
 }
 
 func GetService(name string) (*Service, error) {
-	res, err := DescribeStack(name)
+	res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(name),
+	})
 
 	if err != nil {
 		return nil, err
@@ -110,7 +113,7 @@ func (s *Service) Create() error {
 	_, err = CloudFormation().CreateStack(req)
 
 	if err != nil {
-		NotifySuccess("service:create", map[string]string{
+		provider.NotifySuccess("service:create", map[string]string{
 			"name": s.Name,
 			"type": s.Type,
 		})
@@ -128,7 +131,7 @@ func (s *Service) Delete() error {
 		return err
 	}
 
-	NotifySuccess("service:delete", map[string]string{
+	provider.NotifySuccess("service:delete", map[string]string{
 		"name": s.Name,
 		"type": s.Type,
 	})
@@ -157,8 +160,9 @@ func (s *Service) SubscribeLogs(output chan []byte, quit chan bool) error {
 			return err
 		}
 
-		go subscribeKinesis(resources["Kinesis"].Id, output, quit)
+		go SubscribeKinesis(resources["Kinesis"].Id, output, quit)
 	}
+
 	return nil
 }
 

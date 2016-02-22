@@ -13,6 +13,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/api/structs"
 )
 
 func Docker(host string) (*docker.Client, error) {
@@ -116,7 +117,7 @@ func DockerLogout(ac docker.AuthConfiguration) error {
 
 // Log into the appropriate registry for the given app
 // This could be the self-hosted v1 registry or an ECR registry
-func AppDockerLogin(app App) (string, error) {
+func AppDockerLogin(app structs.App) (string, error) {
 	if registryId := app.Outputs["RegistryId"]; registryId != "" {
 		res, err := ECR().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
 			RegistryIds: []*string{aws.String(app.Outputs["RegistryId"])},
