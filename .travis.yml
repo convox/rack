@@ -12,18 +12,11 @@ language: go
 go:
 - 1.5
 
-env:
-  - PROVIDER=test
-
 before_install:
-- go get -u golang.org/x/tools/cmd/cover
-- go get -u github.com/axw/gocov/gocov
-- go get -u github.com/mattn/goveralls
 - go get -u github.com/convox/release/version
 
 script:
-- go install ./...
-- goveralls -gocovdata <(gocov test -v ./...) -service travis-ci
+- make test
 
 notifications:
   slack:
