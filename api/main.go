@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/convox/rack/api/models"
+)
 
 func recoverWith(f func(err error)) {
 	if r := recover(); r != nil {
@@ -15,5 +19,12 @@ func recoverWith(f func(err error)) {
 }
 
 func main() {
+	// prime the API and instance for builds by logging into private registries
+	// and pulling down latest app images
+	go func() {
+		models.LoginPrivateRegistries()
+		models.PullAppImages()
+	}()
+
 	startWeb()
 }
