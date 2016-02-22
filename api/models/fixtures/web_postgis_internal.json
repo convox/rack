@@ -91,18 +91,7 @@
       }
     },
     "WebPort3000BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "web",
-            "i"
-          ]
-        ]
-      }
+      "Value": "web-JBVEG3F-i"
     }
   },
   "Parameters": {
@@ -297,18 +286,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web",
-              "i"
-            ]
-          ]
-        },
+        "LoadBalancerName": "web-JBVEG3F-i",
         "Scheme": "internal",
         "SecurityGroups": [
           {

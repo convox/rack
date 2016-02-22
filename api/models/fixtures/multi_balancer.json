@@ -115,9 +115,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": {
-        "Ref": "AWS::StackName"
-      }
+      "Value": "web-JBVEG3F"
     },
     "WorkerPort80Balancer": {
       "Value": {
@@ -125,17 +123,7 @@
       }
     },
     "WorkerPort80BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "worker"
-          ]
-        ]
-      }
+      "Value": "worker-JBVEG3F"
     }
   },
   "Parameters": {
@@ -354,9 +342,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Ref": "AWS::StackName"
-        },
+        "LoadBalancerName": "web-JBVEG3F",
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
@@ -488,17 +474,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "worker"
-            ]
-          ]
-        },
+        "LoadBalancerName": "worker-JBVEG3F",
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"
