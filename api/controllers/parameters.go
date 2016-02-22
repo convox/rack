@@ -6,12 +6,13 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func ParametersList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	a, err := models.GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -27,7 +28,7 @@ func ParametersList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ParametersSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	a, err := models.GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -45,7 +46,7 @@ func ParametersSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		params[key] = values[0]
 	}
 
-	err = a.UpdateParams(params)
+	err = models.AppUpdateParams(a, params)
 
 	if err != nil {
 		return httperr.Server(err)

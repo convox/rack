@@ -2,18 +2,17 @@ package controllers
 
 import (
 	"net/http"
-	"os"
 	"sort"
-	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	apps, err := models.ListApps()
+	apps, err := provider.AppList()
 
 	if err != nil {
 		return httperr.Server(err)
@@ -25,17 +24,7 @@ func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	app := mux.Vars(r)["app"]
-
-	a, err := models.GetApp(mux.Vars(r)["app"])
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	if err != nil && strings.HasPrefix(err.Error(), "no such app") {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
+	a, err := provider.AppGet(mux.Vars(r)["app"])
 
 	if err != nil {
 		return httperr.Server(err)
@@ -47,27 +36,13 @@ func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
 
-	app := &models.App{
-		Name: name,
-	}
-
-	err := app.Create()
-
-	if awsError(err) == "AlreadyExistsException" {
-		app, err := models.GetApp(name)
-
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		return httperr.Errorf(403, "there is already an app named %s (%s)", name, app.Status)
-	}
+	err := provider.AppCreate(name)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	app, err = models.GetApp(name)
+	app, err := provider.AppGet(name)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -79,21 +54,13 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := mux.Vars(r)["app"]
 
-	app, err := models.GetApp(name)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", name)
-	}
+	app, err := provider.AppGet(name)
 
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
-		return httperr.Errorf(404, "invalid app: %s", name)
-	}
-
-	err = app.Delete()
+	err = provider.AppDelete(app)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -105,7 +72,7 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppLogs(ws *websocket.Conn) *httperr.Error {
 	app := mux.Vars(ws.Request())["app"]
 
-	a, err := models.GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -118,8 +85,7 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 	logs := make(chan []byte)
 	done := make(chan bool)
 
-	a.SubscribeLogs(logs, done)
-
+	go models.SubscribeKinesis(a.Outputs["Kinesis"], logs, done)
 	go signalWsClose(ws, done)
 
 	for data := range logs {

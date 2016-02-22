@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/require"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/test"
 )
 
@@ -32,7 +33,7 @@ func TestLinks(t *testing.T) {
 	)
 	defer stubAws.Close()
 
-	release := &Release{
+	release := &structs.Release{
 		Id:       "DEADBEEF",
 		App:      "web",
 		Build:    "DEADBEEF",
@@ -41,7 +42,7 @@ func TestLinks(t *testing.T) {
 	}
 
 	ManifestRandomPorts = false
-	formation, err := release.Formation()
+	formation, err := releaseFormation(release)
 	require.Nil(t, err)
 	ManifestRandomPorts = true
 

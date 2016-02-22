@@ -67,32 +67,3 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	// return capacity, concurrency, nil
 	return capacity, nil
 }
-
-type ECSServices []*ecs.Service
-
-func (p *AWSProvider) clusterServices() (ECSServices, error) {
-	services := ECSServices{}
-
-	lsres, err := p.ecs().ListServices(&ecs.ListServicesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-
-	if err != nil {
-		return services, err
-	}
-
-	dsres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(os.Getenv("CLUSTER")),
-		Services: lsres.ServiceArns,
-	})
-
-	if err != nil {
-		return services, err
-	}
-
-	for i := 0; i < len(dsres.Services); i++ {
-		services = append(services, dsres.Services[i])
-	}
-
-	return services, nil
-}

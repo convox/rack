@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
@@ -48,7 +49,7 @@ func StartImages() {
 		return
 	}
 
-	apps, err := models.ListApps()
+	apps, err := provider.AppList()
 
 	if err != nil {
 		log.Error(err)
@@ -56,7 +57,7 @@ func StartImages() {
 	}
 
 	for _, app := range apps {
-		a, err := models.GetApp(app.Name)
+		a, err := provider.AppGet(app.Name)
 
 		if err != nil {
 			log.Error(err)
