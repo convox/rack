@@ -107,17 +107,7 @@
       }
     },
     "WebPort443BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "web"
-          ]
-        ]
-      }
+      "Value": "web-JBVEG3F"
     },
     "WebPort80Balancer": {
       "Value": {
@@ -125,17 +115,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "web"
-          ]
-        ]
-      }
+      "Value": "web-JBVEG3F"
     }
   },
   "Parameters": {
@@ -400,17 +380,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
+        "LoadBalancerName": "web-JBVEG3F",
         "SecurityGroups": [
           {
             "Ref": "BalancerWebSecurityGroup"

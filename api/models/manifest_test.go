@@ -51,7 +51,7 @@ func assertFixture(t *testing.T, name string, primary string) {
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
 	require.Nil(t, err)
 
-	manifest, err := LoadManifest(string(data))
+	manifest, err := LoadManifest(string(data), true)
 
 	if err != nil {
 		fmt.Printf("ERROR: %+v\n", err)
@@ -80,7 +80,7 @@ func assertFixture(t *testing.T, name string, primary string) {
 }
 
 func TestManifestInvalid(t *testing.T) {
-	manifest, err := LoadManifest("invalid-manifest")
+	manifest, err := LoadManifest("invalid-manifest", true)
 
 	assert.Nil(t, manifest)
 	assert.NotNil(t, err)
@@ -98,7 +98,7 @@ func TestManifestFixtures(t *testing.T) {
 }
 
 func TestManifestRandomPorts(t *testing.T) {
-	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001")
+	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", true)
 
 	require.Nil(t, err)
 

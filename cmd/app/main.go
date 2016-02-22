@@ -23,7 +23,7 @@ func main() {
 			die(err)
 		}
 
-		manifest, err = models.LoadManifest(string(data))
+		manifest, err = models.LoadManifest(string(data), true)
 
 		if err != nil {
 			die(err)
