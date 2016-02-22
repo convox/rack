@@ -1,0 +1,804 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankPostgresService": {
+      "Fn::Equals": [
+        "",
+        ""
+      ]
+    },
+    "BlankWebPort3000Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankWebService": {
+      "Fn::Equals": [
+        "",
+        ""
+      ]
+    },
+    "Private": {
+      "Fn::Equals": [
+        {
+          "Ref": "Private"
+        },
+        "Yes"
+      ]
+    },
+    "RegionHasRegistry": {
+      "Fn::Equals": [
+        {
+          "Ref": "AWS::Region"
+        },
+        "us-east-1"
+      ]
+    },
+    "SecureWebPort3000": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000Secure"
+        },
+        "Yes"
+      ]
+    }
+  },
+  "Outputs": {
+    "BalancerWebHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerWebInternal",
+          "DNSName"
+        ]
+      }
+    },
+    "Kinesis": {
+      "Value": {
+        "Ref": "Kinesis"
+      }
+    },
+    "LogGroup": {
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
+    "RegistryId": {
+      "Condition": "RegionHasRegistry",
+      "Value": {
+        "Ref": "AWS::AccountId"
+      }
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
+      "Value": {
+        "Fn::GetAtt": [
+          "RegistryRepository",
+          "RepositoryName"
+        ]
+      }
+    },
+    "Settings": {
+      "Value": {
+        "Ref": "Settings"
+      }
+    },
+    "WebPort3000Balancer": {
+      "Value": {
+        "Ref": "WebPort3000Balancer"
+      }
+    },
+    "WebPort3000BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "web",
+            "i"
+          ]
+        ]
+      }
+    }
+  },
+  "Parameters": {
+    "Cluster": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Cpu": {
+      "Default": "200",
+      "Description": "CPU shares of each process",
+      "Type": "Number"
+    },
+    "Environment": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Key": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "PostgresDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
+    "PostgresMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
+    },
+    "Private": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Create internal load balancers in private subnets",
+      "Type": "String"
+    },
+    "Release": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Repository": {
+      "Default": "",
+      "Description": "Source code repository",
+      "Type": "String"
+    },
+    "Subnets": {
+      "Default": "",
+      "Description": "VPC subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "SubnetsPrivate": {
+      "Default": "",
+      "Description": "VPC private subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "VPC": {
+      "Default": "",
+      "Description": "VPC for this app",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "Version": {
+      "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
+      "MinLength": "1",
+      "Type": "String"
+    },
+    "WebDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
+    "WebMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
+    },
+    "WebPort3000Balancer": {
+      "Default": "3000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3000Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3000Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort3000Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "BalancerWebInternal": {
+      "DependsOn": [
+        "BalancerWebInternalSecurityGroup"
+      ],
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 3600
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "WebPort3000Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BlankWebPort3000Certificate",
+              {
+                "InstancePort": {
+                  "Ref": "WebPort3000Host"
+                },
+                "InstanceProtocol": "TCP",
+                "LoadBalancerPort": {
+                  "Ref": "WebPort3000Balancer"
+                },
+                "Protocol": "TCP"
+              },
+              {
+                "Fn::If": [
+                  "SecureWebPort3000",
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort3000Host"
+                    },
+                    "InstanceProtocol": "SSL",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort3000Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort3000Certificate"
+                    }
+                  },
+                  {
+                    "InstancePort": {
+                      "Ref": "WebPort3000Host"
+                    },
+                    "InstanceProtocol": "TCP",
+                    "LoadBalancerPort": {
+                      "Ref": "WebPort3000Balancer"
+                    },
+                    "Protocol": "SSL",
+                    "SSLCertificateId": {
+                      "Ref": "WebPort3000Certificate"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web",
+              "i"
+            ]
+          ]
+        },
+        "Scheme": "internal",
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerWebInternalSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Private",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerWebInternalSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "WebPort3000Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "WebPort3000Balancer"
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "CustomTopic": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                "release/",
+                {
+                  "Ref": "Version"
+                },
+                "/formation.zip"
+              ]
+            ]
+          }
+        },
+        "Handler": "lambda.external",
+        "MemorySize": "128",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomTopicRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": "30"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "CustomTopicRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "*",
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "Administrator"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Kinesis": {
+      "Properties": {
+        "ShardCount": 1
+      },
+      "Type": "AWS::Kinesis::Stream"
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "PostgresECSService": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "PostgresDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "postgres"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "PostgresECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "PostgresECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "postgres"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankPostgresService",
+              {
+                "Command": "",
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "LOG_GROUP": {
+                    "Ref": "LogGroup"
+                  },
+                  "POSTGRES_PASSWORD": "password",
+                  "POSTGRES_USERNAME": "postgres",
+                  "PROCESS": "postgres"
+                },
+                "Image": "mdillon/postgis",
+                "Memory": {
+                  "Ref": "PostgresMemory"
+                },
+                "Name": "postgres",
+                "PortMappings": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Privileged": "false",
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "Custom::ECRRepository",
+      "Version": "1.0"
+    },
+    "ServiceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "elasticloadbalancing:Describe*",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "ec2:Describe*",
+                    "ec2:AuthorizeSecurityGroupIngress"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            },
+            "PolicyName": "ServiceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Settings": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "WebECSService": {
+      "DependsOn": [
+        "BalancerWebInternal",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "WebDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerWebInternal"
+                },
+                "web",
+                "3000"
+              ]
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "WebECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankWebService",
+              {
+                "Command": "",
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "LOG_GROUP": {
+                    "Ref": "LogGroup"
+                  },
+                  "PROCESS": "web"
+                },
+                "Image": "",
+                "Memory": {
+                  "Ref": "WebMemory"
+                },
+                "Name": "web",
+                "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "WebPort3000Host"
+                        },
+                        "3000"
+                      ]
+                    ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Privileged": "false",
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    }
+  }
+}
