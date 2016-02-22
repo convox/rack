@@ -66,7 +66,7 @@
     "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "Balancer",
+          "BalancerWeb",
           "DNSName"
         ]
       }
@@ -256,9 +256,9 @@
     }
   },
   "Resources": {
-    "Balancer": {
+    "BalancerWeb": {
       "DependsOn": [
-        "BalancerSecurityGroup"
+        "BalancerWebSecurityGroup"
       ],
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -345,7 +345,7 @@
         "LoadBalancerName": "web-JBVEG3F",
         "SecurityGroups": [
           {
-            "Ref": "BalancerSecurityGroup"
+            "Ref": "BalancerWebSecurityGroup"
           }
         ],
         "Subnets": {
@@ -354,7 +354,7 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerSecurityGroup": {
+    "BalancerWebSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -687,7 +687,7 @@
     },
     "WebECSService": {
       "DependsOn": [
-        "Balancer",
+        "BalancerWeb",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -704,7 +704,7 @@
               ":",
               [
                 {
-                  "Ref": "Balancer"
+                  "Ref": "BalancerWeb"
                 },
                 "web",
                 "3000"

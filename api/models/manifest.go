@@ -32,7 +32,7 @@ type ManifestEntry struct {
 	Privileged bool                     `yaml:"privileged"`
 	Volumes    []string                 `yaml:"volumes"`
 
-	bound bool
+	bound   bool
 	primary bool
 	randoms map[string]int
 }
@@ -212,7 +212,7 @@ func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 			suffix += "-i"
 		}
 		// ELB name must be 32 chars or less
-		if len(prefix) > 32 - len(suffix) {
+		if len(prefix) > 32-len(suffix) {
 			prefix = prefix[:32-len(suffix)]
 		}
 		return template.HTML(`"` + prefix + suffix + `"`)
@@ -254,7 +254,8 @@ func (mb ManifestBalancer) Randoms() map[string]int {
 }
 
 func (mb ManifestBalancer) ResourceName() string {
-	if mb.Entry.primary {
+	// unbound apps special case the balancer name for the primary proces
+	if !mb.Entry.bound && mb.Entry.primary {
 		return "Balancer"
 	}
 

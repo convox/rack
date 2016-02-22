@@ -59,12 +59,6 @@ func assertFixture(t *testing.T, name string, primary string) {
 
 	require.Nil(t, err)
 
-	for i, _ := range manifest {
-		if manifest[i].Name == primary {
-			manifest[i].primary = true
-		}
-	}
-
 	formation, err := manifest.Formation()
 
 	if err != nil {
