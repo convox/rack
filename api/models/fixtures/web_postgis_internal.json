@@ -91,7 +91,7 @@
       }
     },
     "WebPort3000BalancerName": {
-      "Value": "web-JBVEG3F-i"
+      "Value": "web-6ZPKHGH-i"
     }
   },
   "Parameters": {
@@ -286,7 +286,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "web-JBVEG3F-i",
+        "LoadBalancerName": "web-6ZPKHGH-i",
         "Scheme": "internal",
         "SecurityGroups": [
           {

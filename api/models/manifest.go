@@ -32,7 +32,7 @@ type ManifestEntry struct {
 	Privileged bool                     `yaml:"privileged"`
 	Volumes    []string                 `yaml:"volumes"`
 
-	bound   bool
+	app     *App
 	primary bool
 	randoms map[string]int
 }
@@ -50,7 +50,7 @@ type ManifestBalancer struct {
 	Public bool
 }
 
-func LoadManifest(data string, bound bool) (Manifest, error) {
+func LoadManifest(data string, app *App) (Manifest, error) {
 	var entries ManifestEntries
 
 	err := yaml.Unmarshal([]byte(data), &entries)
@@ -74,7 +74,8 @@ func LoadManifest(data string, bound bool) (Manifest, error) {
 	for _, name := range names {
 		entry := entries[name]
 		entry.Name = name
-		entry.bound = bound
+		// This could be nil
+		entry.app = app
 		entry.randoms = make(map[string]int)
 
 		for _, port := range entry.Ports {
@@ -204,8 +205,8 @@ func (mb ManifestBalancer) FirstPort() string {
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 	// Bound apps do not use the StackName directly and ignore Entry.primary
-	if mb.Entry.bound {
-		hash := sha256.Sum256([]byte(os.Getenv("RACK")))
+	if mb.Entry.app != nil && mb.Entry.app.IsBound() {
+		hash := sha256.Sum256([]byte(mb.Entry.app.StackName()))
 		prefix := mb.Entry.Name
 		suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
 		if !mb.Public {
@@ -255,8 +256,10 @@ func (mb ManifestBalancer) Randoms() map[string]int {
 
 func (mb ManifestBalancer) ResourceName() string {
 	// unbound apps special case the balancer name for the primary proces
-	if !mb.Entry.bound && mb.Entry.primary {
-		return "Balancer"
+	if mb.Entry.primary {
+		if mb.Entry.app == nil || !mb.Entry.app.IsBound() {
+			return "Balancer"
+		}
 	}
 
 	var suffix string

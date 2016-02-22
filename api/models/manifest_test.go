@@ -51,7 +51,16 @@ func assertFixture(t *testing.T, name string, primary string) {
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
 	require.Nil(t, err)
 
-	manifest, err := LoadManifest(string(data), true)
+	app := &App{
+		Name: "httpd",
+		Tags: map[string]string{
+			"Name":   "httpd",
+			"Type":   "app",
+			"System": "convox",
+			"Rack":   "convox-test",
+		},
+	}
+	manifest, err := LoadManifest(string(data), app)
 
 	if err != nil {
 		fmt.Printf("ERROR: %+v\n", err)
@@ -77,7 +86,15 @@ func assertFixtureUnbound(t *testing.T, name string, primary string) {
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
 	require.Nil(t, err)
 
-	manifest, err := LoadManifest(string(data), false)
+	app := &App{
+		Name: "httpd",
+		Tags: map[string]string{
+			"Type":   "app",
+			"System": "convox",
+			"Rack":   "convox-test",
+		},
+	}
+	manifest, err := LoadManifest(string(data), app)
 
 	if err != nil {
 		fmt.Printf("ERROR: %+v\n", err)
@@ -106,7 +123,7 @@ func assertFixtureUnbound(t *testing.T, name string, primary string) {
 }
 
 func TestManifestInvalid(t *testing.T) {
-	manifest, err := LoadManifest("invalid-manifest", true)
+	manifest, err := LoadManifest("invalid-manifest", nil)
 
 	assert.Nil(t, manifest)
 	assert.NotNil(t, err)
@@ -135,7 +152,7 @@ func TestManifestFixtureUnbound(t *testing.T) {
 }
 
 func TestManifestRandomPorts(t *testing.T) {
-	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", true)
+	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", nil)
 
 	require.Nil(t, err)
 

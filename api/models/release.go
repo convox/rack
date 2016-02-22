@@ -266,15 +266,14 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	bound := app.IsBound()
-	manifest, err := LoadManifest(r.Manifest, bound)
+	manifest, err := LoadManifest(r.Manifest, app)
 
 	if err != nil {
 		return "", err
 	}
 
 	// Bound apps do not use the StackName as ELB name.
-	if !bound {
+	if !app.IsBound() {
 		// try to figure out which process to map to the main load balancer
 		primary, err := primaryProcess(app.StackName())
 
