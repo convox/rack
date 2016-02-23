@@ -3,11 +3,13 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func RegistryList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -50,7 +52,7 @@ func RegistryCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	env["DOCKER_AUTH_DATA"] = string(dat)
 
-	err = models.PutRackSettings(env)
+	err = provider.SettingsSet(os.Getenv("RACK"), env)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -86,7 +88,7 @@ func RegistryDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	env["DOCKER_AUTH_DATA"] = string(dat)
 
-	err = models.PutRackSettings(env)
+	err = provider.SettingsSet(os.Getenv("RACK"), env)
 
 	if err != nil {
 		return httperr.Server(err)

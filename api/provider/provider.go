@@ -42,6 +42,9 @@ type Provider interface {
 	RunAttached(app, process, command string, rw io.ReadWriter) error
 	RunDetached(app, process, command string) error
 
+	SettingsGet(app string) (structs.Settings, error)
+	SettingsSet(app string, settings structs.Settings) error
+
 	SystemGet() (*structs.System, error)
 	SystemSave(system *structs.System) error
 }
@@ -147,6 +150,14 @@ func RunAttached(app, process, command string, rw io.ReadWriter) error {
 
 func RunDetached(app, process, command string) error {
 	return CurrentProvider.RunDetached(app, process, command)
+}
+
+func SettingsGet(app string) (structs.Settings, error) {
+	return CurrentProvider.SettingsGet(app)
+}
+
+func SettingsSet(app string, settings structs.Settings) error {
+	return CurrentProvider.SettingsSet(app, settings)
 }
 
 func SystemGet() (*structs.System, error) {

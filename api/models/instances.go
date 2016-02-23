@@ -26,7 +26,7 @@ func InstanceKeyroll() error {
 		return err
 	}
 
-	env, err := GetRackSettings()
+	env, err := provider.SettingsGet(os.Getenv("RACK"))
 
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func InstanceKeyroll() error {
 
 	env["InstancePEM"] = *keypair.KeyMaterial
 
-	err = PutRackSettings(env)
+	err = provider.SettingsSet(os.Getenv("RACK"), env)
 
 	if err != nil {
 		return err
@@ -71,7 +71,8 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 
 	instance := ec2Res.Reservations[0].Instances[0]
 
-	env, err := GetRackSettings()
+	env, err := provider.SettingsGet(os.Getenv("RACK"))
+
 	if err != nil {
 		return err
 	}

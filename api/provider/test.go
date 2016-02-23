@@ -101,6 +101,14 @@ func (p *TestProviderRunner) RunDetached(app, process, command string) error {
 	return nil
 }
 
+func (p *TestProviderRunner) SettingsGet(app string) (structs.Settings, error) {
+	return nil, nil
+}
+
+func (p *TestProviderRunner) SettingsSet(app string, settings structs.Settings) error {
+	return nil
+}
+
 func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
 	return nil, nil
 }

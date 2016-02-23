@@ -248,12 +248,12 @@ func PullAppImages() {
 	}
 }
 
-func GetPrivateRegistriesAuth() (structs.Environment, docker.AuthConfigurations119, error) {
+func GetPrivateRegistriesAuth() (structs.Settings, docker.AuthConfigurations119, error) {
 	fmt.Printf("ns=kernel cn=docker fn=GetPrivateRegistriesAuth\n")
 
 	acs := docker.AuthConfigurations119{}
 
-	env, err := GetRackSettings()
+	env, err := provider.SettingsGet(os.Getenv("RACK"))
 
 	if err != nil {
 		return env, acs, err
