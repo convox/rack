@@ -107,7 +107,7 @@
       }
     },
     "WebPort443BalancerName": {
-      "Value": "httpd-web-JBVEG3F"
+      "Value": "httpd-web-2FSOCVM"
     },
     "WebPort80Balancer": {
       "Value": {
@@ -115,7 +115,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": "httpd-web-JBVEG3F"
+      "Value": "httpd-web-2FSOCVM"
     }
   },
   "Parameters": {
@@ -380,7 +380,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-JBVEG3F",
+        "LoadBalancerName": "httpd-web-2FSOCVM",
         "SecurityGroups": [
           {
             "Ref": "BalancerWebSecurityGroup"

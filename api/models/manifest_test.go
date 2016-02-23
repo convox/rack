@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -158,4 +159,91 @@ func TestManifestRandomPorts(t *testing.T) {
 
 	// kinda hacky but just making sure we're not in sequence here
 	assert.NotEqual(t, 1, (manifest[0].randoms["3001"] - manifest[0].randoms["80:3000"]))
+}
+
+func TestLoadBalancerNameUniquePerEntryWithTruncation(t *testing.T) {
+	mb1 := ManifestBalancer{
+		Entry: ManifestEntry{
+			app: &App{
+				Name: "myverylogappname-production",
+			},
+			Name: "web",
+		},
+		Public: true,
+	}
+
+	mb2 := ManifestBalancer{
+		Entry: ManifestEntry{
+			app: &App{
+				Name: "myverylogappname-production",
+			},
+			Name: "worker",
+		},
+		Public: true,
+	}
+
+	assert.EqualValues(t, `"myverylogappname-product-3ILLIA3"`, mb1.LoadBalancerName())
+	assert.EqualValues(t, `"myverylogappname-product-TLOC362"`, mb2.LoadBalancerName())
+
+	assert.Equal(t, 34, len(mb1.LoadBalancerName())) // ELB name is max 32 characters + quotes
+
+	mb1.Public = false
+	mb2.Public = false
+
+	assert.EqualValues(t, `"myverylogappname-produ-3ILLIA3-i"`, mb1.LoadBalancerName())
+	assert.EqualValues(t, `"myverylogappname-produ-TLOC362-i"`, mb2.LoadBalancerName())
+
+	assert.Equal(t, 34, len(mb1.LoadBalancerName())) // ELB name is max 32 characters + quotes
+}
+
+func TestLoadBalancerNameUniquePerRack(t *testing.T) {
+	// reset RACK after this test
+	r := os.Getenv("RACK")
+	defer os.Setenv("RACK", r)
+
+	mb := ManifestBalancer{
+		Entry: ManifestEntry{
+			app: &App{
+				Name: "foo",
+			},
+			Name: "web",
+		},
+	}
+
+	os.Setenv("RACK", "staging")
+	assert.EqualValues(t, `"foo-web-AH47UEG-i"`, mb.LoadBalancerName())
+
+	os.Setenv("RACK", "production")
+	assert.EqualValues(t, `"foo-web-GVPH4YP-i"`, mb.LoadBalancerName())
+}
+
+func TestLoadBalancerNameUnbound(t *testing.T) {
+	// an app stack with Tags but no "Name" tag is an unbound/legacy app
+	mb := ManifestBalancer{
+		Entry: ManifestEntry{
+			app: &App{
+				Name: "foo",
+				Tags: map[string]string{
+					"Rack":   "convox",
+					"System": "convox",
+					"Type":   "app",
+				},
+			},
+			Name:    "web",
+			primary: true,
+		},
+	}
+
+	// legacy naming for backwards compatibility
+	assert.Equal(t, `{ "Ref": "AWS::StackName" }`, string(mb.LoadBalancerName()))
+
+	// known bug in primary / internal naming
+	mb.Public = false
+	assert.Equal(t, `{ "Ref": "AWS::StackName" }`, string(mb.LoadBalancerName()))
+
+	mb.Entry.primary = false
+	assert.Equal(t, `{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web", "i" ] ] }`, string(mb.LoadBalancerName()))
+
+	mb.Public = true
+	assert.Equal(t, `{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] }`, string(mb.LoadBalancerName()))
 }

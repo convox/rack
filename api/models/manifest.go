@@ -207,7 +207,7 @@ func (mb ManifestBalancer) LoadBalancerName() template.HTML {
 	// Bound apps do not use the StackName directly and ignore Entry.primary
 	// and use AppName-EntryName-RackHash format
 	if mb.Entry.app != nil && mb.Entry.app.IsBound() {
-		hash := sha256.Sum256([]byte(os.Getenv("RACK")))
+		hash := sha256.Sum256([]byte(fmt.Sprintf("%s-%s-%s", os.Getenv("RACK"), mb.Entry.app.Name, mb.Entry.Name)))
 		prefix := fmt.Sprintf("%s-%s", mb.Entry.app.Name, mb.Entry.Name)
 		suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
 		if !mb.Public {

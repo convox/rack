@@ -91,7 +91,7 @@
       }
     },
     "WebPort3000BalancerName": {
-      "Value": "httpd-web-JBVEG3F-i"
+      "Value": "httpd-web-2FSOCVM-i"
     }
   },
   "Parameters": {
@@ -286,7 +286,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-JBVEG3F-i",
+        "LoadBalancerName": "httpd-web-2FSOCVM-i",
         "Scheme": "internal",
         "SecurityGroups": [
           {
