@@ -1,0 +1,6 @@
+main:
+  build: .
+  command: bin/eat
+  environment:
+   - FOOD=pb&j
+   - 'DRINK=top "o" the mornin'
