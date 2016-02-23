@@ -101,7 +101,7 @@
       }
     },
     "WebPort3001BalancerName": {
-      "Value": "httpd-web-2FSOCVM-i"
+      "Value": "httpd-web-XHW5F4P-i"
     },
     "WebPort80Balancer": {
       "Value": {
@@ -109,7 +109,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": "httpd-web-2FSOCVM-i"
+      "Value": "httpd-web-XHW5F4P-i"
     }
   },
   "Parameters": {
@@ -364,7 +364,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-2FSOCVM-i",
+        "LoadBalancerName": "httpd-web-XHW5F4P-i",
         "Scheme": "internal",
         "SecurityGroups": [
           {

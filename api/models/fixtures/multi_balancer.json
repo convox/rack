@@ -115,7 +115,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": "httpd-web-2FSOCVM"
+      "Value": "httpd-web-XHW5F4P"
     },
     "WorkerPort80Balancer": {
       "Value": {
@@ -123,7 +123,7 @@
       }
     },
     "WorkerPort80BalancerName": {
-      "Value": "httpd-worker-CEWRLF2"
+      "Value": "httpd-worker-3XM5YXK"
     }
   },
   "Parameters": {
@@ -342,7 +342,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-2FSOCVM",
+        "LoadBalancerName": "httpd-web-XHW5F4P",
         "SecurityGroups": [
           {
             "Ref": "BalancerWebSecurityGroup"
@@ -474,7 +474,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-worker-CEWRLF2",
+        "LoadBalancerName": "httpd-worker-3XM5YXK",
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"
