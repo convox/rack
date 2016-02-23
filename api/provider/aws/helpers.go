@@ -2,10 +2,12 @@ package aws
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -18,6 +20,10 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+)
+
+var (
+	IdAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 type StackResource struct {
@@ -154,6 +160,18 @@ func formationParameters(formation string) (map[string]TemplateParameter, error)
 	return t.Parameters, nil
 }
 
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(IdAlphabet))))
+		if err != nil {
+			panic(err)
+		}
+		b[i] = IdAlphabet[idx.Int64()]
+	}
+	return prefix + string(b)
+}
+
 func humanStatus(original string) string {
 	switch original {
 	case "":
@@ -199,6 +217,18 @@ func (p *AWSProvider) s3Delete(bucket, key string) error {
 	return err
 }
 
+func (p *AWSProvider) s3Get(bucket, key string) ([]byte, error) {
+	res, err := p.s3().GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(res.Body)
+}
 func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error {
 	req := &s3.PutObjectInput{
 		Body:          bytes.NewReader(data),

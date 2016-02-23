@@ -14,7 +14,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/crypt"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/structs"
 )
 
 func HandleECSCluster(req Request) (string, map[string]string, error) {
@@ -363,7 +363,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	// get environment from S3 URL
 	// 'Environment' is a CloudFormation Template Property that references 'Environment' CF Parameter with S3 URL
 	// S3 body may be encrypted with KMS key
-	var env models.Environment
+	var env structs.Environment
 
 	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
 		res, err := http.Get(envUrl)
@@ -389,7 +389,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			data = dec
 		}
 
-		env = models.LoadEnvironment(data)
+		env = structs.LoadEnvironment(data)
 	}
 
 	r.ContainerDefinitions = make([]*ecs.ContainerDefinition, len(tasks))

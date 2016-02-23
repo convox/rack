@@ -128,6 +128,25 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	return p.s3Put(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id), env, true)
 }
 
+func (p *AWSProvider) ReleaseFork(app string) (*structs.Release, error) {
+	release, err := p.appLatestRelease(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if release == nil {
+		release = &structs.Release{
+			App: app,
+		}
+	}
+
+	release.Id = generateId("R", 10)
+	release.Created = time.Time{}
+
+	return release, nil
+}
+
 func (p *AWSProvider) releaseCleanup(release structs.Release) error {
 	app, err := p.AppGet(release.App)
 

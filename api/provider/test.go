@@ -41,6 +41,14 @@ func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	return p.Instances, nil
 }
 
+func (p *TestProviderRunner) EnvironmentGet(app string) (structs.Environment, error) {
+	return nil, nil
+}
+
+func (p *TestProviderRunner) EnvironmentSet(app string, env structs.Environment) (string, error) {
+	return "", nil
+}
+
 func (p *TestProviderRunner) NotifySuccess(action string, data map[string]string) error {
 	return nil
 }
@@ -79,6 +87,10 @@ func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error
 
 func (p *TestProviderRunner) ReleaseSave(release *structs.Release) error {
 	return nil
+}
+
+func (p *TestProviderRunner) ReleaseFork(app string) (*structs.Release, error) {
+	return nil, nil
 }
 
 func (p *TestProviderRunner) RunAttached(app, process, command string, rw io.ReadWriter) error {

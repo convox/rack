@@ -18,6 +18,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -186,7 +187,7 @@ func PullAppImages() {
 
 	maxRetries := 5
 
-	apps, err := ListApps()
+	apps, err := provider.AppList()
 
 	if err != nil {
 		fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=ListApps err=%q\n", err)
@@ -194,7 +195,7 @@ func PullAppImages() {
 	}
 
 	for _, app := range apps {
-		a, err := GetApp(app.Name)
+		a, err := provider.AppGet(app.Name)
 
 		if err != nil {
 			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=GetApp err=%q\n", err.Error())
@@ -213,7 +214,7 @@ func PullAppImages() {
 			time.Sleep(30 * time.Second)
 		}
 
-		resources, err := a.Resources()
+		resources, err := ListResources(a.Name)
 
 		if err != nil {
 			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=Resources err=%q\n", err)
@@ -247,7 +248,7 @@ func PullAppImages() {
 	}
 }
 
-func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {
+func GetPrivateRegistriesAuth() (structs.Environment, docker.AuthConfigurations119, error) {
 	fmt.Printf("ns=kernel cn=docker fn=GetPrivateRegistriesAuth\n")
 
 	acs := docker.AuthConfigurations119{}

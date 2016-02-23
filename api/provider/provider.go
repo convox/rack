@@ -19,6 +19,9 @@ type Provider interface {
 
 	CapacityGet() (*structs.Capacity, error)
 
+	EnvironmentGet(app string) (structs.Environment, error)
+	EnvironmentSet(app string, env structs.Environment) (string, error)
+
 	InstanceList() (structs.Instances, error)
 
 	NotifySuccess(action string, data map[string]string) error
@@ -33,6 +36,7 @@ type Provider interface {
 	ReleaseList(app string) (structs.Releases, error)
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseSave(release *structs.Release) error
+	ReleaseFork(app string) (*structs.Release, error)
 	// ReleasePromote(app, release string) error
 
 	RunAttached(app, process, command string, rw io.ReadWriter) error
@@ -81,6 +85,14 @@ func CapacityGet() (*structs.Capacity, error) {
 	return CurrentProvider.CapacityGet()
 }
 
+func EnvironmentGet(app string) (structs.Environment, error) {
+	return CurrentProvider.EnvironmentGet(app)
+}
+
+func EnvironmentSet(app string, env structs.Environment) (string, error) {
+	return CurrentProvider.EnvironmentSet(app, env)
+}
+
 func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
 }
@@ -123,6 +135,10 @@ func ReleaseGet(app, id string) (*structs.Release, error) {
 
 func ReleaseSave(release *structs.Release) error {
 	return CurrentProvider.ReleaseSave(release)
+}
+
+func ReleaseFork(app string) (*structs.Release, error) {
+	return CurrentProvider.ReleaseFork(app)
 }
 
 func RunAttached(app, process, command string, rw io.ReadWriter) error {

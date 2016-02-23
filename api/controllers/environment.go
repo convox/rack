@@ -6,13 +6,14 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 )
 
 func EnvironmentList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	env, err := models.GetEnvironment(app)
+	env, err := provider.EnvironmentGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -30,7 +31,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	app := vars["app"]
 
-	_, err := models.GetEnvironment(app)
+	_, err := provider.EnvironmentGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -42,7 +43,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	releaseId, err := models.PutEnvironment(app, models.LoadEnvironment(body))
+	releaseId, err := provider.EnvironmentSet(app, structs.LoadEnvironment(body))
 
 	if err != nil {
 		return httperr.Server(err)
@@ -50,7 +51,7 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	rw.Header().Set("Release-Id", releaseId)
 
-	env, err := models.GetEnvironment(app)
+	env, err := provider.EnvironmentGet(app)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -64,7 +65,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	name := vars["name"]
 
-	env, err := models.GetEnvironment(app)
+	env, err := provider.EnvironmentGet(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
@@ -76,7 +77,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	delete(env, name)
 
-	releaseId, err := models.PutEnvironment(app, env)
+	releaseId, err := provider.EnvironmentSet(app, env)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -84,7 +85,7 @@ func EnvironmentDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	rw.Header().Set("Release-Id", releaseId)
 
-	env, err = models.GetEnvironment(app)
+	env, err = provider.EnvironmentGet(app)
 
 	if err != nil {
 		return httperr.Server(err)
