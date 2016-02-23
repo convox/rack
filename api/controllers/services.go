@@ -55,10 +55,20 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	kind := params["type"]
 	delete(params, "type")
 
-	service := &models.Service{
-		Name:       name,
-		Type:       kind,
-		Parameters: models.CFParams(params),
+	// Early check for unbound service only.
+	service, err := models.GetServiceUnbound(name)
+
+	if err != nil {
+		return httperr.Errorf(403, "there is already a legacy service named %s (%s). We recommend you delete this service and create it again.", name, service.Status)
+	}
+
+	if awsError(err) == "ValidationError" {
+		// If unbound check fails this will result in a bound service.
+		service = &models.Service{
+			Name:       name,
+			Type:       kind,
+			Parameters: models.CFParams(params),
+		}
 	}
 
 	err = service.Create()

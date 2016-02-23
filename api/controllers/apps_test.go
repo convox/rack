@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"encoding/json"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
@@ -12,12 +13,13 @@ import (
 )
 
 func init() {
+	os.Setenv("RACK", "convox-test")
 	models.PauseNotifications = true
 	test.HandlerFunc = controllers.HandlerFunc
 }
 
 func TestAppList(t *testing.T) {
-	aws := test.StubAws(test.DescribeStackCycleWithoutQuery("bar"))
+	aws := test.StubAws(test.DescribeStackCycleWithoutQuery("convox-test-bar"))
 	defer aws.Close()
 
 	body := test.HTTPBody("GET", "http://convox/apps", nil)
@@ -32,7 +34,27 @@ func TestAppList(t *testing.T) {
 }
 
 func TestAppShow(t *testing.T) {
-	aws := test.StubAws(test.DescribeAppStackCycle("bar"))
+	aws := test.StubAws(
+		test.DescribeAppStackCycle("convox-test-bar"),
+	)
+	defer aws.Close()
+
+	body := test.HTTPBody("GET", "http://convox/apps/bar", nil)
+
+	var resp map[string]string
+	err := json.Unmarshal([]byte(body), &resp)
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, "bar", resp["name"])
+		assert.Equal(t, "running", resp["status"])
+	}
+}
+
+func TestAppShowUnbound(t *testing.T) {
+	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-bar"),
+		test.DescribeAppStackCycle("bar"),
+	)
 	defer aws.Close()
 
 	body := test.HTTPBody("GET", "http://convox/apps/bar", nil)
@@ -47,16 +69,26 @@ func TestAppShow(t *testing.T) {
 }
 
 func TestAppShowWithAppNotFound(t *testing.T) {
-	aws := test.StubAws(test.DescribeStackNotFound("bar"))
+	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-bar"),
+		test.DescribeStackNotFound("bar"),
+	)
 	defer aws.Close()
 
 	test.AssertStatus(t, 404, "GET", "http://convox/apps/bar", nil)
 }
 
+// Test the primary path: creating an app on a `convox` rack
+// Return to testing against a `convox-test` rack afterwards
 func TestAppCreate(t *testing.T) {
+	r := os.Getenv("RACK")
+	os.Setenv("RACK", "convox")
+	defer os.Setenv("RACK", r)
+
 	aws := test.StubAws(
-		test.CreateAppStackCycle("application"),
-		test.DescribeAppStackCycle("application"),
+		test.DescribeStackNotFound("application"),
+		test.CreateAppStackCycle("convox-application"),
+		test.DescribeAppStackCycle("convox-application"),
 	)
 	defer aws.Close()
 
@@ -76,13 +108,26 @@ func TestAppCreate(t *testing.T) {
 
 func TestAppCreateWithAlreadyExists(t *testing.T) {
 	aws := test.StubAws(
-		test.CreateAppStackExistsCycle("application"),
+		test.DescribeStackNotFound("application"),
+		test.CreateAppStackExistsCycle("convox-test-application"),
+		test.DescribeAppStackCycle("convox-test-application"),
+	)
+	defer aws.Close()
+
+	val := url.Values{"name": []string{"application"}}
+	body := test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	assert.Equal(t, "{\"error\":\"there is already an app named application (running)\"}", body)
+}
+
+func TestAppCreateWithAlreadyExistsUnbound(t *testing.T) {
+	aws := test.StubAws(
 		test.DescribeAppStackCycle("application"),
 	)
 	defer aws.Close()
 
 	val := url.Values{"name": []string{"application"}}
-	test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	body := test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	assert.Equal(t, "{\"error\":\"there is already a legacy app named application (running). We recommend you delete this app and create it again.\"}", body)
 }
 
 // TODO: test bucket cleanup. this is handled via goroutines.
@@ -91,8 +136,8 @@ bucket name to the ephermeral host, so you get `app-XXX.127.0.0.1`
 */
 func TestAppDelete(t *testing.T) {
 	aws := test.StubAws(
-		test.DescribeAppStackCycle("bar"),
-		test.DeleteStackCycle("bar"),
+		test.DescribeAppStackCycle("convox-test-bar"),
+		test.DeleteStackCycle("convox-test-bar"),
 	)
 	defer aws.Close()
 
@@ -107,7 +152,10 @@ func TestAppDelete(t *testing.T) {
 }
 
 func TestAppDeleteWithAppNotFound(t *testing.T) {
-	aws := test.StubAws(test.DescribeStackNotFound("bar"))
+	aws := test.StubAws(
+		test.DescribeStackNotFound("convox-test-bar"),
+		test.DescribeStackNotFound("bar"),
+	)
 	defer aws.Close()
 
 	test.AssertStatus(t, 404, "DELETE", "http://convox/apps/bar", nil)

@@ -91,18 +91,7 @@
       }
     },
     "WebPort3000BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "web",
-            "i"
-          ]
-        ]
-      }
+      "Value": "httpd-web-XHW5F4P-i"
     }
   },
   "Parameters": {
@@ -297,18 +286,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web",
-              "i"
-            ]
-          ]
-        },
+        "LoadBalancerName": "httpd-web-XHW5F4P-i",
         "Scheme": "internal",
         "SecurityGroups": [
           {

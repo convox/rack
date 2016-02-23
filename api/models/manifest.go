@@ -1,6 +1,8 @@
 package models
 
 import (
+	"crypto/sha256"
+	"encoding/base32"
 	"fmt"
 	"html/template"
 	"math/rand"
@@ -30,6 +32,7 @@ type ManifestEntry struct {
 	Privileged bool                     `yaml:"privileged"`
 	Volumes    []string                 `yaml:"volumes"`
 
+	app     *App
 	primary bool
 	randoms map[string]int
 }
@@ -47,7 +50,7 @@ type ManifestBalancer struct {
 	Public bool
 }
 
-func LoadManifest(data string) (Manifest, error) {
+func LoadManifest(data string, app *App) (Manifest, error) {
 	var entries ManifestEntries
 
 	err := yaml.Unmarshal([]byte(data), &entries)
@@ -71,6 +74,8 @@ func LoadManifest(data string) (Manifest, error) {
 	for _, name := range names {
 		entry := entries[name]
 		entry.Name = name
+		// This could be nil
+		entry.app = app
 		entry.randoms = make(map[string]int)
 
 		for _, port := range entry.Ports {
@@ -199,6 +204,23 @@ func (mb ManifestBalancer) FirstPort() string {
 }
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
+	// Bound apps do not use the StackName directly and ignore Entry.primary
+	// and use AppName-EntryName-RackAppEntryHash format
+	if mb.Entry.app != nil && mb.Entry.app.IsBound() {
+		hash := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", os.Getenv("RACK"), mb.Entry.app.Name, mb.Entry.Name)))
+		prefix := fmt.Sprintf("%s-%s", mb.Entry.app.Name, mb.Entry.Name)
+		suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
+		if !mb.Public {
+			suffix += "-i"
+		}
+		// ELB name must be 32 chars or less
+		if len(prefix) > 32-len(suffix) {
+			prefix = prefix[:32-len(suffix)]
+		}
+		return template.HTML(`"` + prefix + suffix + `"`)
+	}
+
+	// Unbound apps use legacy StackName or StackName-ProcessName format
 	if mb.Entry.primary {
 		return template.HTML(`{ "Ref": "AWS::StackName" }`)
 	}
@@ -235,8 +257,11 @@ func (mb ManifestBalancer) Randoms() map[string]int {
 }
 
 func (mb ManifestBalancer) ResourceName() string {
+	// unbound apps special case the balancer name for the primary proces
 	if mb.Entry.primary {
-		return "Balancer"
+		if mb.Entry.app == nil || !mb.Entry.app.IsBound() {
+			return "Balancer"
+		}
 	}
 
 	var suffix string

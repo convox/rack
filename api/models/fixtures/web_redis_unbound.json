@@ -1,11 +1,25 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankWebPort3001Certificate": {
+    "BlankCluster": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort3001Certificate"
+          "Ref": "Cluster"
         },
+        ""
+      ]
+    },
+    "BlankRedisPort6379Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "RedisPort6379Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankRedisService": {
+      "Fn::Equals": [
+        "",
         ""
       ]
     },
@@ -23,14 +37,6 @@
         ""
       ]
     },
-    "Private": {
-      "Fn::Equals": [
-        {
-          "Ref": "Private"
-        },
-        "Yes"
-      ]
-    },
     "RegionHasRegistry": {
       "Fn::Equals": [
         {
@@ -39,10 +45,10 @@
         "us-east-1"
       ]
     },
-    "SecureWebPort3001": {
+    "SecureRedisPort6379": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort3001Secure"
+          "Ref": "RedisPort6379Secure"
         },
         "Yes"
       ]
@@ -57,10 +63,18 @@
     }
   },
   "Outputs": {
+    "BalancerRedisHost": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerRedisInternal",
+          "DNSName"
+        ]
+      }
+    },
     "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWebInternal",
+          "Balancer",
           "DNSName"
         ]
       }
@@ -73,6 +87,25 @@
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
+      }
+    },
+    "RedisPort6379Balancer": {
+      "Value": {
+        "Ref": "RedisPort6379Balancer"
+      }
+    },
+    "RedisPort6379BalancerName": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "redis",
+            "i"
+          ]
+        ]
       }
     },
     "RegistryId": {
@@ -95,21 +128,15 @@
         "Ref": "Settings"
       }
     },
-    "WebPort3001Balancer": {
-      "Value": {
-        "Ref": "WebPort3001Balancer"
-      }
-    },
-    "WebPort3001BalancerName": {
-      "Value": "httpd-web-XHW5F4P-i"
-    },
     "WebPort80Balancer": {
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
-      "Value": "httpd-web-XHW5F4P-i"
+      "Value": {
+        "Ref": "AWS::StackName"
+      }
     }
   },
   "Parameters": {
@@ -133,13 +160,38 @@
       "Description": "",
       "Type": "String"
     },
-    "Private": {
+    "RedisDesiredCount": {
+      "Default": "1",
+      "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "Type": "Number"
+    },
+    "RedisMemory": {
+      "Default": "256",
+      "Description": "MB of RAM to reserve",
+      "Type": "Number"
+    },
+    "RedisPort6379Balancer": {
+      "Default": "6379",
+      "Description": "",
+      "Type": "String"
+    },
+    "RedisPort6379Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "RedisPort6379Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "RedisPort6379Secure": {
       "AllowedValues": [
         "Yes",
         "No"
       ],
       "Default": "No",
-      "Description": "Create internal load balancers in private subnets",
+      "Description": "",
       "Type": "String"
     },
     "Release": {
@@ -155,11 +207,6 @@
     "Subnets": {
       "Default": "",
       "Description": "VPC subnets for this app",
-      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
-    },
-    "SubnetsPrivate": {
-      "Default": "",
-      "Description": "VPC private subnets for this app",
       "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
     },
     "VPC": {
@@ -182,30 +229,6 @@
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
-    "WebPort3001Balancer": {
-      "Default": "3001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort3001Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort3001Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort3001Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "WebPort80Balancer": {
       "Default": "80",
       "Description": "",
@@ -217,7 +240,7 @@
       "Type": "String"
     },
     "WebPort80Host": {
-      "Default": "5000",
+      "Default": "5001",
       "Description": "",
       "Type": "String"
     },
@@ -232,10 +255,7 @@
     }
   },
   "Resources": {
-    "BalancerWebInternal": {
-      "DependsOn": [
-        "BalancerWebInternalSecurityGroup"
-      ],
+    "Balancer": {
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
@@ -315,45 +335,96 @@
             ]
           },
           {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Ref": "AWS::StackName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "BalancerSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerRedisInternal": {
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 3600
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": 5,
+          "Target": {
+            "Fn::Join": [
+              ":",
+              [
+                "TCP",
+                {
+                  "Ref": "RedisPort6379Host"
+                }
+              ]
+            ]
+          },
+          "Timeout": 3,
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
             "Fn::If": [
-              "BlankWebPort3001Certificate",
+              "BlankRedisPort6379Certificate",
               {
                 "InstancePort": {
-                  "Ref": "WebPort3001Host"
+                  "Ref": "RedisPort6379Host"
                 },
                 "InstanceProtocol": "TCP",
                 "LoadBalancerPort": {
-                  "Ref": "WebPort3001Balancer"
+                  "Ref": "RedisPort6379Balancer"
                 },
                 "Protocol": "TCP"
               },
               {
                 "Fn::If": [
-                  "SecureWebPort3001",
+                  "SecureRedisPort6379",
                   {
                     "InstancePort": {
-                      "Ref": "WebPort3001Host"
+                      "Ref": "RedisPort6379Host"
                     },
                     "InstanceProtocol": "SSL",
                     "LoadBalancerPort": {
-                      "Ref": "WebPort3001Balancer"
+                      "Ref": "RedisPort6379Balancer"
                     },
                     "Protocol": "SSL",
                     "SSLCertificateId": {
-                      "Ref": "WebPort3001Certificate"
+                      "Ref": "RedisPort6379Certificate"
                     }
                   },
                   {
                     "InstancePort": {
-                      "Ref": "WebPort3001Host"
+                      "Ref": "RedisPort6379Host"
                     },
                     "InstanceProtocol": "TCP",
                     "LoadBalancerPort": {
-                      "Ref": "WebPort3001Balancer"
+                      "Ref": "RedisPort6379Balancer"
                     },
                     "Protocol": "SSL",
                     "SSLCertificateId": {
-                      "Ref": "WebPort3001Certificate"
+                      "Ref": "RedisPort6379Certificate"
                     }
                   }
                 ]
@@ -364,28 +435,65 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-XHW5F4P-i",
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "redis",
+              "i"
+            ]
+          ]
+        },
         "Scheme": "internal",
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebInternalSecurityGroup"
+            "Ref": "BalancerRedisInternalSecurityGroup"
           }
         ],
         "Subnets": {
-          "Fn::If": [
-            "Private",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
+          "Ref": "Subnets"
         }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebInternalSecurityGroup": {
+    "BalancerRedisInternalSecurityGroup": {
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "RedisPort6379Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "RedisPort6379Balancer"
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -407,16 +515,6 @@
             "IpProtocol": "tcp",
             "ToPort": {
               "Ref": "WebPort80Balancer"
-            }
-          },
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "WebPort3001Balancer"
-            },
-            "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "WebPort3001Balancer"
             }
           },
           {
@@ -515,6 +613,155 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
+    "RedisECSService": {
+      "DependsOn": [
+        "BalancerRedisInternal",
+        "CustomTopic"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": {
+          "Ref": "RedisDesiredCount"
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerRedisInternal"
+                },
+                "redis",
+                "6379"
+              ]
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "redis"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "RedisECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "RedisECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "redis"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankRedisService",
+              {
+                "Command": "",
+                "Environment": {
+                  "KINESIS": {
+                    "Ref": "Kinesis"
+                  },
+                  "LINK_PASSWORD": "pass-the-word",
+                  "LINK_PATH": "/0",
+                  "LINK_SCHEME": "redis",
+                  "LINK_USERNAME": "user",
+                  "LOG_GROUP": {
+                    "Ref": "LogGroup"
+                  },
+                  "PROCESS": "redis"
+                },
+                "Image": "/web-redis:DEADBEEF",
+                "Memory": {
+                  "Ref": "RedisMemory"
+                },
+                "Name": "redis",
+                "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "RedisPort6379Host"
+                        },
+                        "6379"
+                      ]
+                    ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
     "RegistryRepository": {
       "Condition": "RegionHasRegistry",
       "Properties": {
@@ -596,9 +843,8 @@
     },
     "WebECSService": {
       "DependsOn": [
-        "BalancerWebInternal",
-        "CustomTopic",
-        "ServiceRole"
+        "Balancer",
+        "CustomTopic"
       ],
       "Properties": {
         "Cluster": {
@@ -613,22 +859,10 @@
               ":",
               [
                 {
-                  "Ref": "BalancerWebInternal"
+                  "Ref": "Balancer"
                 },
                 "web",
                 "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWebInternal"
-                },
-                "web",
-                "3001"
               ]
             ]
           },
@@ -708,9 +942,39 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "web",
+                  "REDIS_HOST": {
+                    "Fn::GetAtt": [
+                      "BalancerRedisInternal",
+                      "DNSName"
+                    ]
+                  },
+                  "REDIS_PASSWORD": "pass-the-word",
+                  "REDIS_PATH": "/0",
+                  "REDIS_PORT": "6379",
+                  "REDIS_SCHEME": "redis",
+                  "REDIS_URL": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "redis",
+                        "://",
+                        "user:pass-the-word@",
+                        {
+                          "Fn::GetAtt": [
+                            "BalancerRedisInternal",
+                            "DNSName"
+                          ]
+                        },
+                        ":",
+                        "6379",
+                        "/0"
+                      ]
+                    ]
+                  },
+                  "REDIS_USERNAME": "user"
                 },
-                "Image": "",
+                "Image": "/web-web:DEADBEEF",
                 "Memory": {
                   "Ref": "WebMemory"
                 },
@@ -728,21 +992,9 @@
                     ]
                   },
                   {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort3001Host"
-                        },
-                        "3001"
-                      ]
-                    ]
-                  },
-                  {
                     "Ref": "AWS::NoValue"
                   }
                 ],
-                "Privileged": "false",
                 "Services": [
                   {
                     "Ref": "AWS::NoValue"

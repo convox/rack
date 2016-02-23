@@ -60,20 +60,35 @@ func ListApps() (Apps, error) {
 }
 
 func GetApp(name string) (*App, error) {
-	res, err := DescribeStack(name)
+	stackName := shortNameToStackName(name)
+	app, err := getAppByStackName(stackName)
+
+	if name != stackName && awsError(err) == "ValidationError" {
+		// Only lookup an unbound app if the name/stackName differ and the
+		// bound lookup fails.
+		app, err = getAppByStackName(name)
+	}
+
+	if app != nil && app.Tags["Rack"] != "" && app.Tags["Rack"] != os.Getenv("RACK") {
+		return nil, fmt.Errorf("no such app: %s", name)
+	}
+
+	return app, err
+}
+
+func GetAppBound(name string) (*App, error) {
+	return getAppByStackName(shortNameToStackName(name))
+}
+
+func GetAppUnbound(name string) (*App, error) {
+	return getAppByStackName(name)
+}
+
+func getAppByStackName(stackName string) (*App, error) {
+	res, err := DescribeStack(stackName)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if len(res.Stacks) != 1 {
-		return nil, fmt.Errorf("could not load stack for app: %s", name)
-	}
-
-	tags := stackTags(res.Stacks[0])
-
-	if tags["Rack"] != "" && tags["Rack"] != os.Getenv("RACK") {
-		return nil, fmt.Errorf("no such app: %s", name)
 	}
 
 	app := appFromStack(res.Stacks[0])
@@ -82,6 +97,29 @@ func GetApp(name string) (*App, error) {
 }
 
 var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+
+func (a *App) IsBound() bool {
+	if a.Tags == nil {
+		// Default to bound.
+		return true
+	}
+
+	if _, ok := a.Tags["Name"]; ok {
+		// Bound apps MUST have a "Name" tag.
+		return true
+	}
+
+	// Tags are present but "Name" tag is not, so we have an unbound app.
+	return false
+}
+
+func (a *App) StackName() string {
+	if a.IsBound() {
+		return shortNameToStackName(a.Name)
+	} else {
+		return a.Name
+	}
+}
 
 func (a *App) Create() error {
 	helpers.TrackEvent("kernel-app-create-start", nil)
@@ -121,11 +159,12 @@ func (a *App) Create() error {
 		"Rack":   os.Getenv("RACK"),
 		"System": "convox",
 		"Type":   "app",
+		"Name":   a.Name,
 	}
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(a.Name),
+		StackName:    aws.String(a.StackName()),
 		TemplateBody: aws.String(formation),
 	}
 
@@ -227,9 +266,7 @@ func (a *App) Cleanup() error {
 func (a *App) Delete() error {
 	helpers.TrackEvent("kernel-app-delete-start", nil)
 
-	name := a.Name
-
-	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(name)})
+	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.StackName())})
 
 	if err != nil {
 		helpers.TrackEvent("kernel-app-delete-error", nil)
@@ -243,16 +280,11 @@ func (a *App) Delete() error {
 	return nil
 }
 
-// shim that will change when rack prefix lands
-func (a *App) StackName() string {
-	return a.Name
-}
-
 // Shortcut for updating current parameters
 // If template changed, more care about new or removed parameters must be taken (see Release.Promote or System.Save)
 func (a *App) UpdateParams(changes map[string]string) error {
 	req := &cloudformation.UpdateStackInput{
-		StackName:           aws.String(a.Name),
+		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
 	}
@@ -438,7 +470,7 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 		return fmt.Errorf("no releases for app: %s", a.Name)
 	}
 
-	manifest, err := LoadManifest(release.Manifest)
+	manifest, err := LoadManifest(release.Manifest, a)
 
 	if err != nil {
 		return err
@@ -676,13 +708,19 @@ func (a *App) Resources() (Resources, error) {
 }
 
 func appFromStack(stack *cloudformation.Stack) *App {
+	name := *stack.StackName
+	tags := stackTags(stack)
+	if value, ok := tags["Name"]; ok {
+		// StackName probably includes the Rack prefix, prefer Name tag.
+		name = value
+	}
 	return &App{
-		Name:       *stack.StackName,
+		Name:       name,
 		Release:    stackParameters(stack)["Release"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
 		Parameters: stackParameters(stack),
-		Tags:       stackTags(stack),
+		Tags:       tags,
 	}
 }
 

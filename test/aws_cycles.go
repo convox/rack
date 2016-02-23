@@ -3,6 +3,7 @@ package test
 import (
 	"net/http/httptest"
 	"os"
+	"strings"
 
 	"github.com/convox/rack/api/awsutil"
 )
@@ -188,7 +189,7 @@ func DescribeTasksCycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"tasks":[{"containerInstanceArn":"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","containers":[{"containerArn":"arn:aws:ecs:us-east-1:901416387788:container/821cc6e1-b120-422c-9092-4932cce0897b","name":"worker"}], "taskArn":"arn:aws:ecs:us-east-1:901416387788:task/320a8b6a-c243-47d3-a1d1-6db5dfcb3f58","taskDefinitionArn":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3","lastStatus":"RUNNING"}]}`,
+			Body:       `{"tasks":[{"containerInstanceArn":"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","containers":[{"containerArn":"arn:aws:ecs:us-east-1:901416387788:container/821cc6e1-b120-422c-9092-4932cce0897b","name":"worker"}], "taskArn":"arn:aws:ecs:us-east-1:901416387788:task/320a8b6a-c243-47d3-a1d1-6db5dfcb3f58","taskDefinitionArn":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:3","lastStatus":"RUNNING"}]}`,
 		},
 	}
 }
@@ -198,11 +199,11 @@ func DescribeTaskDefinitionCycle(clusterName string) awsutil.Cycle {
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
-			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3"}`,
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:3"}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"myapp-staging-worker"}}`,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
 		},
 	}
 }
@@ -216,7 +217,7 @@ func ListServicesCycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"serviceArns":["arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF"]}`,
+			Body:       `{"serviceArns":["arn:aws:ecs:us-west-2:901416387788:service/convox-test-myapp-staging-worker-SCELGCIYSKF"]}`,
 		},
 	}
 }
@@ -226,7 +227,7 @@ func DescribeServicesCycle(clusterName string) awsutil.Cycle {
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
-			Body:       `{"cluster":"` + clusterName + `", "services":["arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF"]}`,
+			Body:       `{"cluster":"` + clusterName + `", "services":["arn:aws:ecs:us-west-2:901416387788:service/convox-test-myapp-staging-worker-SCELGCIYSKF"]}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
@@ -240,7 +241,7 @@ func DescribeServicesWithDeploymentsCycle(clusterName string) awsutil.Cycle {
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
-			Body:       `{"cluster":"` + clusterName + `", "services":["arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF"]}`,
+			Body:       `{"cluster":"` + clusterName + `", "services":["arn:aws:ecs:us-west-2:901416387788:service/convox-test-myapp-staging-worker-SCELGCIYSKF"]}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
@@ -254,11 +255,11 @@ func DescribeTaskDefinition3Cycle(clusterName string) awsutil.Cycle {
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
-			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3"}`,
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:3"}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"myapp-staging-worker"}}`,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
 		},
 	}
 }
@@ -268,11 +269,11 @@ func DescribeTaskDefinition1Cycle(clusterName string) awsutil.Cycle {
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
-			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1"}`,
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:1"}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"myapp-staging-worker"}}`,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
 		},
 	}
 }
@@ -377,6 +378,13 @@ func convoxStackXML(stackName string) string {
 }
 
 func appStackXML(appName string, status string) string {
+	rack := os.Getenv("RACK")
+	shortName := appName
+
+	if strings.HasPrefix(appName, rack+"-") {
+		shortName = appName[len(rack)+1:]
+	}
+
 	return `
       <member>
 				<Tags>
@@ -387,6 +395,14 @@ func appStackXML(appName string, status string) string {
           <member>
             <Value>convox</Value>
             <Key>System</Key>
+          </member>
+          <member>
+            <Value>` + rack + `</Value>
+            <Key>Rack</Key>
+          </member>
+          <member>
+            <Value>` + shortName + `</Value>
+            <Key>Name</Key>
           </member>
         </Tags>
         <StackId>arn:aws:cloudformation:us-east-1:938166070011:stack/` + appName + `/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
@@ -1155,27 +1171,27 @@ func describeServicesResponse(clusterName string) string {
     "services": [
         {
             "status": "ACTIVE",
-            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:1",
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:1",
             "pendingCount": 0,
             "loadBalancers": [
                 {
                     "containerName": "worker",
                     "containerPort": 80,
-                    "loadBalancerName": "myapp-staging"
+                    "loadBalancerName": "convox-test-myapp-staging"
                 }
             ],
-            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
+            "roleArn": "arn:aws:iam::901416387788:role/convox-test-myapp-staging-ServiceRole-1HNRHXNKGNLT9",
             "desiredCount": 1,
-            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
+            "serviceName": "convox-test-myapp-staging-worker-SCELGCIYSKF",
             "clusterArn": "` + clusterName + `",
-            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/convox-test-myapp-staging-worker-SCELGCIYSKF",
             "deployments": [
                 {
                     "status": "ACTIVE",
                     "pendingCount": 0,
                     "createdAt": 1449511658.683,
                     "desiredCount": 1,
-                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:1",
                     "updatedAt": 1449511869.412,
                     "id": "ecs-svc/9223370587343117124",
                     "runningCount": 1
@@ -1183,7 +1199,7 @@ func describeServicesResponse(clusterName string) string {
             ],
             "events": [
                 {
-                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
+                    "message": "(service convox-test-myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
                     "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
                     "createdAt": 1449003339.092
                 }
@@ -1201,27 +1217,27 @@ func describeServicesWithDeploymentsResponse(clusterName string) string {
     "services": [
         {
             "status": "ACTIVE",
-            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/myapp-staging-worker:3",
+            "taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:3",
             "pendingCount": 0,
             "loadBalancers": [
                 {
                     "containerName": "worker",
                     "containerPort": 80,
-                    "loadBalancerName": "myapp-staging"
+                    "loadBalancerName": "convox-test-myapp-staging"
                 }
             ],
-            "roleArn": "arn:aws:iam::901416387788:role/myapp-staging-ServiceRole-1HNRHXNKGNLT9",
+            "roleArn": "arn:aws:iam::901416387788:role/convox-test-myapp-staging-ServiceRole-1HNRHXNKGNLT9",
             "desiredCount": 1,
-            "serviceName": "myapp-staging-worker-SCELGCIYSKF",
+            "serviceName": "convox-test-myapp-staging-worker-SCELGCIYSKF",
             "clusterArn": "` + clusterName + `",
-            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/myapp-staging-worker-SCELGCIYSKF",
+            "serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/convox-test-myapp-staging-worker-SCELGCIYSKF",
             "deployments": [
                 {
                     "status": "PRIMARY",
                     "pendingCount": 0,
                     "createdAt": 1449559137.768,
                     "desiredCount": 1,
-                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:3",
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:3",
                     "updatedAt": 1449559137.768,
                     "id": "ecs-svc/9223370587295638039",
                     "runningCount": 0
@@ -1231,7 +1247,7 @@ func describeServicesWithDeploymentsResponse(clusterName string) string {
                     "pendingCount": 0,
                     "createdAt": 1449511658.683,
                     "desiredCount": 1,
-                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/myapp-staging-worker:1",
+                    "taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:1",
                     "updatedAt": 1449511869.412,
                     "id": "ecs-svc/9223370587343117124",
                     "runningCount": 1
@@ -1239,12 +1255,12 @@ func describeServicesWithDeploymentsResponse(clusterName string) string {
             ],
             "events": [
                 {
-                    "message": "(service myapp-staging-worker-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.",
+                    "message": "(service convox-test-myapp-staging-worker-SCELGCIYSKF) was unable to place a task because no container instance met all of its requirements. The closest matching (container-instance b1a73168-f8a6-4ed9-b69e-94adc7a0f1e0) has insufficient memory available. For more information, see the Troubleshooting section of the Amazon ECS Developer Guide.",
                     "id": "3890020b-7e55-4d25-9694-ba823cc34822",
                     "createdAt": 1449760390.037
                 },
                 {
-                    "message": "(service myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
+                    "message": "(service convox-test-myapp-staging-worker-SCELGCIYSKF) has started 1 tasks: (task f120ddee-5aa5-434e-b765-30503080078b).",
                     "id": "d84b8245-9653-453f-a449-27d7c7cfdc0a",
                     "createdAt": 1449003339.092
                 }

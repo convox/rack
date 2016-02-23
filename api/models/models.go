@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
@@ -28,6 +29,14 @@ import (
 )
 
 var SortableTime = "20060102.150405.000000000"
+
+func awsError(err error) string {
+	if ae, ok := err.(awserr.Error); ok {
+		return ae.Code()
+	}
+
+	return ""
+}
 
 func awsConfig() *aws.Config {
 	config := &aws.Config{

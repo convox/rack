@@ -50,7 +50,7 @@ If you have the `aws` cli configured with CI creds and the `jq` utility, this sc
 set -x
 export AWS_DEFAULT_PROFILE=ci
 
-aws s3api list-buckets | jq '.Buckets[] | select(.Name | startswith("convox") or startswith("httpd")) | .Name' | xargs -n1 -I{} aws s3 rb --force s3://{}
+aws s3api list-buckets | jq '.Buckets[] | select(.Name | startswith("convox") or startswith("httpd") or startswith("node-workers")) | .Name' | xargs -n1 -I{} aws s3 rb --force s3://{}
 
 aws logs describe-log-groups | jq .logGroups[].logGroupName | xargs -n1 aws logs delete-log-group --log-group-name
 

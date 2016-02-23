@@ -66,7 +66,7 @@
     "BalancerWebHost": {
       "Value": {
         "Fn::GetAtt": [
-          "Balancer",
+          "BalancerWeb",
           "DNSName"
         ]
       }
@@ -115,9 +115,7 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": {
-        "Ref": "AWS::StackName"
-      }
+      "Value": "httpd-web-XHW5F4P"
     },
     "WorkerPort80Balancer": {
       "Value": {
@@ -125,17 +123,7 @@
       }
     },
     "WorkerPort80BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "worker"
-          ]
-        ]
-      }
+      "Value": "httpd-worker-3XM5YXK"
     }
   },
   "Parameters": {
@@ -268,9 +256,9 @@
     }
   },
   "Resources": {
-    "Balancer": {
+    "BalancerWeb": {
       "DependsOn": [
-        "BalancerSecurityGroup"
+        "BalancerWebSecurityGroup"
       ],
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -354,12 +342,10 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Ref": "AWS::StackName"
-        },
+        "LoadBalancerName": "httpd-web-XHW5F4P",
         "SecurityGroups": [
           {
-            "Ref": "BalancerSecurityGroup"
+            "Ref": "BalancerWebSecurityGroup"
           }
         ],
         "Subnets": {
@@ -368,7 +354,7 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerSecurityGroup": {
+    "BalancerWebSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -488,17 +474,7 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "worker"
-            ]
-          ]
-        },
+        "LoadBalancerName": "httpd-worker-3XM5YXK",
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"
@@ -711,7 +687,7 @@
     },
     "WebECSService": {
       "DependsOn": [
-        "Balancer",
+        "BalancerWeb",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -728,7 +704,7 @@
               ":",
               [
                 {
-                  "Ref": "Balancer"
+                  "Ref": "BalancerWeb"
                 },
                 "web",
                 "3000"

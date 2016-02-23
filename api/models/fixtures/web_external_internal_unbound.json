@@ -101,7 +101,18 @@
       }
     },
     "WebPort3001BalancerName": {
-      "Value": "httpd-web-XHW5F4P-i"
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "web",
+            "i"
+          ]
+        ]
+      }
     },
     "WebPort80Balancer": {
       "Value": {
@@ -109,7 +120,18 @@
       }
     },
     "WebPort80BalancerName": {
-      "Value": "httpd-web-XHW5F4P-i"
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "AWS::StackName"
+            },
+            "web",
+            "i"
+          ]
+        ]
+      }
     }
   },
   "Parameters": {
@@ -364,7 +386,18 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-XHW5F4P-i",
+        "LoadBalancerName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web",
+              "i"
+            ]
+          ]
+        },
         "Scheme": "internal",
         "SecurityGroups": [
           {

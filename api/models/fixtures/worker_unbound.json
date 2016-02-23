@@ -7,23 +7,7 @@
         ""
       ]
     },
-    "BlankWebPort443Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort443Certificate"
-        },
-        ""
-      ]
-    },
-    "BlankWebPort80Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Certificate"
-        },
-        ""
-      ]
-    },
-    "BlankWebService": {
+    "BlankWorkerService": {
       "Fn::Equals": [
         "",
         ""
@@ -44,33 +28,9 @@
         },
         "us-east-1"
       ]
-    },
-    "SecureWebPort443": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort443Secure"
-        },
-        "Yes"
-      ]
-    },
-    "SecureWebPort80": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Secure"
-        },
-        "Yes"
-      ]
     }
   },
   "Outputs": {
-    "BalancerWebHost": {
-      "Value": {
-        "Fn::GetAtt": [
-          "BalancerWeb",
-          "DNSName"
-        ]
-      }
-    },
     "Kinesis": {
       "Value": {
         "Ref": "Kinesis"
@@ -100,22 +60,6 @@
       "Value": {
         "Ref": "Settings"
       }
-    },
-    "WebPort443Balancer": {
-      "Value": {
-        "Ref": "WebPort443Balancer"
-      }
-    },
-    "WebPort443BalancerName": {
-      "Value": "httpd-web-XHW5F4P"
-    },
-    "WebPort80Balancer": {
-      "Value": {
-        "Ref": "WebPort80Balancer"
-      }
-    },
-    "WebPort80BalancerName": {
-      "Value": "httpd-web-XHW5F4P"
     }
   },
   "Parameters": {
@@ -188,254 +132,18 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebDesiredCount": {
+    "WorkerDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
     },
-    "WebMemory": {
+    "WorkerMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
-    },
-    "WebPort443Balancer": {
-      "Default": "443",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Balancer": {
-      "Default": "80",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
-    "BalancerWeb": {
-      "DependsOn": [
-        "BalancerWebSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": 60
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": 3600
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": {
-            "Fn::Join": [
-              ":",
-              [
-                "TCP",
-                {
-                  "Ref": "WebPort80Host"
-                }
-              ]
-            ]
-          },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "Fn::If": [
-              "BlankWebPort80Certificate",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": "TCP",
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": "TCP"
-              },
-              {
-                "Fn::If": [
-                  "SecureWebPort80",
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort80Host"
-                    },
-                    "InstanceProtocol": "SSL",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort80Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort80Certificate"
-                    }
-                  },
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort80Host"
-                    },
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort80Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort80Certificate"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BlankWebPort443Certificate",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort443Host"
-                },
-                "InstanceProtocol": "TCP",
-                "LoadBalancerPort": {
-                  "Ref": "WebPort443Balancer"
-                },
-                "Protocol": "TCP"
-              },
-              {
-                "Fn::If": [
-                  "SecureWebPort443",
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort443Host"
-                    },
-                    "InstanceProtocol": "SSL",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort443Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort443Certificate"
-                    }
-                  },
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort443Host"
-                    },
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort443Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort443Certificate"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": "httpd-web-XHW5F4P",
-        "SecurityGroups": [
-          {
-            "Ref": "BalancerWebSecurityGroup"
-          }
-        ],
-        "Subnets": {
-          "Ref": "Subnets"
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerWebSecurityGroup": {
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "WebPort80Balancer"
-            },
-            "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "WebPort80Balancer"
-            }
-          },
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "WebPort443Balancer"
-            },
-            "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "WebPort443Balancer"
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -726,9 +434,8 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WebECSService": {
+    "WorkerECSService": {
       "DependsOn": [
-        "BalancerWeb",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -737,33 +444,9 @@
           "Ref": "Cluster"
         },
         "DesiredCount": {
-          "Ref": "WebDesiredCount"
+          "Ref": "WorkerDesiredCount"
         },
         "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3001"
-              ]
-            ]
-          },
           {
             "Ref": "AWS::NoValue"
           }
@@ -775,7 +458,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "web"
+              "worker"
             ]
           ]
         },
@@ -789,13 +472,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
+          "Ref": "WorkerECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "WebECSTaskDefinition": {
+    "WorkerECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -814,7 +497,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "web"
+              "worker"
             ]
           ]
         },
@@ -830,9 +513,9 @@
         "Tasks": [
           {
             "Fn::If": [
-              "BlankWebService",
+              "BlankWorkerService",
               {
-                "Command": "",
+                "Command": "bin/work",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
@@ -840,41 +523,19 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "worker"
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WebMemory"
+                  "Ref": "WorkerMemory"
                 },
-                "Name": "web",
+                "Name": "worker",
                 "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort443Host"
-                        },
-                        "3001"
-                      ]
-                    ]
-                  },
                   {
                     "Ref": "AWS::NoValue"
                   }
                 ],
-                "Privileged": "false",
+                "Privileged": "true",
                 "Services": [
                   {
                     "Ref": "AWS::NoValue"

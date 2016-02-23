@@ -233,7 +233,7 @@ func (r *Release) Promote() error {
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(r.App),
+		StackName:    aws.String(app.StackName()),
 		TemplateURL:  aws.String(url),
 		Parameters:   params,
 	}
@@ -260,43 +260,46 @@ func (r *Release) EnvironmentUrl() string {
 }
 
 func (r *Release) Formation() (string, error) {
-	manifest, err := LoadManifest(r.Manifest)
-
-	if err != nil {
-		return "", err
-	}
-
-	// try to figure out which process to map to the main load balancer
-	primary, err := primaryProcess(r.App)
-
-	if err != nil {
-		return "", err
-	}
-
-	// if we dont have a primary default to a process named web
-	if primary == "" && manifest.Entry("web") != nil {
-		primary = "web"
-	}
-
-	// if we still dont have a primary try the first process with external ports
-	if primary == "" && manifest.HasExternalPorts() {
-		for _, entry := range manifest {
-			if len(entry.ExternalPorts()) > 0 {
-				primary = entry.Name
-				break
-			}
-		}
-	}
-
 	app, err := GetApp(r.App)
 
 	if err != nil {
 		return "", err
 	}
 
-	for i, entry := range manifest {
-		if entry.Name == primary {
-			manifest[i].primary = true
+	manifest, err := LoadManifest(r.Manifest, app)
+
+	if err != nil {
+		return "", err
+	}
+
+	// Bound apps do not use the StackName as ELB name.
+	if !app.IsBound() {
+		// try to figure out which process to map to the main load balancer
+		primary, err := primaryProcess(app.StackName())
+
+		if err != nil {
+			return "", err
+		}
+
+		// if we dont have a primary default to a process named web
+		if primary == "" && manifest.Entry("web") != nil {
+			primary = "web"
+		}
+
+		// if we still dont have a primary try the first process with external ports
+		if primary == "" && manifest.HasExternalPorts() {
+			for _, entry := range manifest {
+				if len(entry.ExternalPorts()) > 0 {
+					primary = entry.Name
+					break
+				}
+			}
+		}
+
+		for i, entry := range manifest {
+			if entry.Name == primary {
+				manifest[i].primary = true
+			}
 		}
 	}
 
@@ -439,9 +442,9 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)
 
 // try to determine which process to map to the main load balancer
-func primaryProcess(app string) (string, error) {
+func primaryProcess(stackName string) (string, error) {
 	res, err := CloudFormation().GetTemplate(&cloudformation.GetTemplateInput{
-		StackName: aws.String(app),
+		StackName: aws.String(stackName),
 	})
 
 	if err != nil {
