@@ -6,10 +6,10 @@ ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
 
 RUN apk-install gcc libc-dev libtool libgcc
-RUN go get github.com/convox/cfssl/cmd/cfssl
 
 RUN go get github.com/ddollar/init
 RUN go get github.com/ddollar/rerun
+COPY pkg/cfssl /go/bin/cfssl
 
 COPY conf/haproxy.cfg /etc/haproxy/haproxy.cfg
 
