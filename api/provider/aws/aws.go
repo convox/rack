@@ -2,7 +2,6 @@ package aws
 
 import (
 	"os"
-	"regexp"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
@@ -14,12 +13,12 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
 )
 
 var (
 	CustomTopic  = os.Getenv("CUSTOM_TOPIC")
 	SortableTime = "20060102.150405.000000000"
-	ValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 )
 
 type AWSProvider struct {
@@ -84,4 +83,8 @@ func (p *AWSProvider) kinesis() *kinesis.Kinesis {
 
 func (p *AWSProvider) s3() *s3.S3 {
 	return s3.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) sns() *sns.SNS {
+	return sns.New(session.New(), p.config())
 }

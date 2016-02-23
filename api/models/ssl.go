@@ -19,6 +19,8 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/cenkalti/backoff"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 )
 
 type SSL struct {
@@ -32,7 +34,7 @@ type SSL struct {
 type SSLs []SSL
 
 func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return nil, err
@@ -44,7 +46,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 	}
 
 	// validate app has hostPort
-	release, err := a.LatestRelease()
+	release, err := appLatestRelease(a)
 
 	if err != nil {
 		return nil, err
@@ -80,7 +82,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, err
 	}
 
-	tmpl, err := release.Formation()
+	tmpl, err := releaseFormation(release)
 
 	if err != nil {
 		return nil, err
@@ -107,7 +109,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		})
 	}
 
-	_, err = UpdateStack(req)
+	_, err = CloudFormation().UpdateStack(req)
 
 	if err != nil {
 		return nil, err
@@ -122,7 +124,7 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 }
 
 func DeleteSSL(app, process string, port int) (*SSL, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return nil, err
@@ -150,13 +152,17 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 		a.Parameters[secureParam] = "No"
 	}
 
-	a.UpdateParams(changes)
+	err = AppUpdateParams(a, changes)
+
+	if err != nil {
+		return nil, err
+	}
 
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
 
-			a, err := GetApp(a.Name)
+			a, err := provider.AppGet(a.Name)
 
 			if err != nil {
 				return
@@ -184,7 +190,7 @@ func DeleteSSL(app, process string, port int) (*SSL, error) {
 }
 
 func ListSSLs(a string) (SSLs, error) {
-	app, err := GetApp(a)
+	app, err := provider.AppGet(a)
 
 	if err != nil {
 		return nil, err
@@ -235,7 +241,7 @@ func ListSSLs(a string) (SSLs, error) {
 }
 
 func UpdateSSL(app, process string, port int, body, key string, chain string) (*SSL, error) {
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		return nil, err
@@ -318,7 +324,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		})
 	}
 
-	_, err = UpdateStack(req)
+	_, err = CloudFormation().UpdateStack(req)
 
 	if err != nil {
 		return nil, err
@@ -336,7 +342,7 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 func certName(app, process string, port int) string {
 	key := fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)
 
-	a, err := GetApp(app)
+	a, err := provider.AppGet(app)
 
 	if err != nil {
 		fmt.Printf(err.Error())
@@ -463,7 +469,7 @@ func resolveCertificateChain(body string) (string, error) {
 	return buf.String(), nil
 }
 
-func uploadCert(a *App, process string, port int, body, key string, chain string) (string, error) {
+func uploadCert(a *structs.App, process string, port int, body, key string, chain string) (string, error) {
 	// strip off any intermediate certs from the body
 	endEntityCert, _ := pem.Decode([]byte(body))
 	body = string(pem.EncodeToMemory(endEntityCert))

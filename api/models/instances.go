@@ -9,6 +9,11 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
+	"github.com/convox/rack/api/provider"
+)
+
+var (
+	StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:" // needs to be random
 )
 
 func InstanceKeyroll() error {
@@ -21,27 +26,30 @@ func InstanceKeyroll() error {
 		return err
 	}
 
-	env, err := GetRackSettings()
+	env, err := provider.SettingsGet(os.Getenv("RACK"))
 
 	if err != nil {
 		return err
 	}
 
 	env["InstancePEM"] = *keypair.KeyMaterial
-	err = PutRackSettings(env)
+
+	err = provider.SettingsSet(os.Getenv("RACK"), env)
 
 	if err != nil {
 		return err
 	}
 
-	app, err := GetApp(os.Getenv("RACK"))
+	app, err := provider.AppGet(os.Getenv("RACK"))
+
 	if err != nil {
 		return err
 	}
 
-	err = app.UpdateParams(map[string]string{
+	err = AppUpdateParams(app, map[string]string{
 		"Key": keyname,
 	})
+
 	if err != nil {
 		return err
 	}
@@ -63,7 +71,8 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 
 	instance := ec2Res.Reservations[0].Instances[0]
 
-	env, err := GetRackSettings()
+	env, err := provider.SettingsGet(os.Getenv("RACK"))
+
 	if err != nil {
 		return err
 	}
