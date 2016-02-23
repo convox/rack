@@ -12,7 +12,7 @@ export EXAMPLE_NAME=$1
 # inferred
 export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 export APP_NAME=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
-export STACK_NAME=c${CIRCLE_BUILD_NUM}
+export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 
 # Helpers to wait for stack and deployment status
 # Timeout after 20m
