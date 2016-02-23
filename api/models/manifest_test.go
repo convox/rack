@@ -182,16 +182,16 @@ func TestLoadBalancerNameUniquePerEntryWithTruncation(t *testing.T) {
 		Public: true,
 	}
 
-	assert.EqualValues(t, `"myverylogappname-product-3ILLIA3"`, mb1.LoadBalancerName())
-	assert.EqualValues(t, `"myverylogappname-product-TLOC362"`, mb2.LoadBalancerName())
+	assert.EqualValues(t, `"myverylogappname-product-DIVTGA7"`, mb1.LoadBalancerName())
+	assert.EqualValues(t, `"myverylogappname-product-LQYILNJ"`, mb2.LoadBalancerName())
 
 	assert.Equal(t, 34, len(mb1.LoadBalancerName())) // ELB name is max 32 characters + quotes
 
 	mb1.Public = false
 	mb2.Public = false
 
-	assert.EqualValues(t, `"myverylogappname-produ-3ILLIA3-i"`, mb1.LoadBalancerName())
-	assert.EqualValues(t, `"myverylogappname-produ-TLOC362-i"`, mb2.LoadBalancerName())
+	assert.EqualValues(t, `"myverylogappname-produ-DIVTGA7-i"`, mb1.LoadBalancerName())
+	assert.EqualValues(t, `"myverylogappname-produ-LQYILNJ-i"`, mb2.LoadBalancerName())
 
 	assert.Equal(t, 34, len(mb1.LoadBalancerName())) // ELB name is max 32 characters + quotes
 }
@@ -211,10 +211,10 @@ func TestLoadBalancerNameUniquePerRack(t *testing.T) {
 	}
 
 	os.Setenv("RACK", "staging")
-	assert.EqualValues(t, `"foo-web-AH47UEG-i"`, mb.LoadBalancerName())
+	assert.EqualValues(t, `"foo-web-GSAGMQZ-i"`, mb.LoadBalancerName())
 
 	os.Setenv("RACK", "production")
-	assert.EqualValues(t, `"foo-web-GVPH4YP-i"`, mb.LoadBalancerName())
+	assert.EqualValues(t, `"foo-web-7MS5NPT-i"`, mb.LoadBalancerName())
 }
 
 func TestLoadBalancerNameUnbound(t *testing.T) {
