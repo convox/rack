@@ -436,7 +436,7 @@
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}
-        "{{ $key }}": "{{ $value }}",
+        "{{ $key }}": {{ value $value }},
       {{ end }}
       {{ range $key, $value := .LinkVars }}
         "{{ $key }}": {{ $value }},
