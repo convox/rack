@@ -13,6 +13,7 @@ import (
 	docker "github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 )
@@ -68,25 +69,25 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	config := r.FormValue("config")
 
 	if build.IsRunning() {
-		return httperr.Errorf(403, "another build is currently running. Please try again later.")
+		return httperr.TrackErrorf("BuildCreate", "build.IsRunning", 403, "Another build is currently running. Please try again later.")
 	}
 
 	err := r.ParseMultipartForm(50 * 1024 * 1024)
 
 	if err != nil && err != http.ErrNotMultipart {
-		return httperr.Server(err)
+		return httperr.TrackServer("BuildCreate", "ParseMultipartForm", err)
 	}
 
 	err = build.Save()
 
 	if err != nil {
-		return httperr.Server(err)
+		return httperr.TrackServer("BuildCreate", "build.Save", err)
 	}
 
 	resources, err := models.ListResources(os.Getenv("RACK"))
 
 	if err != nil {
-		return httperr.Server(err)
+		return httperr.TrackServer("BuildCreate", "models.ListResources", err)
 	}
 
 	ch := make(chan error)
@@ -94,7 +95,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	source, _, err := r.FormFile("source")
 
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		return httperr.Server(err)
+		return httperr.TrackServer("BuildCreate", "FormFile", err)
 	}
 
 	cache := !(r.FormValue("cache") == "false")
@@ -103,33 +104,39 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
 
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.TrackServer("BuildCreate", "models.S3PutFile", err)
 		}
+
+		helpers.TrackSuccess("BuildCreate", "build.ExecuteLocal")
 
 		go build.ExecuteLocal(source, cache, config, ch)
 
 		err = <-ch
 
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.TrackServer("BuildExecute", "build.ExecuteLocal", err)
 		} else {
+			helpers.TrackSuccess("BuildExecute", "build.ExecuteLocal")
 			return RenderJson(rw, build)
 		}
 	}
 
 	if repo := r.FormValue("repo"); repo != "" {
+		helpers.TrackSuccess("BuildCreate", "build.ExecuteRemote")
+
 		go build.ExecuteRemote(repo, cache, config, ch)
 
 		err = <-ch
 
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.TrackServer("BuildExecute", "build.ExecuteRemote", err)
 		} else {
+			helpers.TrackSuccess("BuildExecute", "build.ExecuteRemote")
 			return RenderJson(rw, build)
 		}
 	}
 
-	return httperr.Errorf(403, "no source or repo")
+	return httperr.TrackErrorf("BuildCreate", "Form", 403, "no source or repo")
 }
 
 func BuildLogs(ws *websocket.Conn) *httperr.Error {

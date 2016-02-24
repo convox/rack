@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -71,6 +72,17 @@ func TrackEvent(event string, params map[string]interface{}) {
 		UserId:     userId,
 		Properties: params,
 	})
+}
+
+// Convenience function to track success in a controller handler
+// See also httperr.TrackErrorf and httperr.TrackServer
+func TrackSuccess(handler, at string) {
+	TrackEvent(
+		fmt.Sprintf("api-%s-success", handler),
+		map[string]interface{}{
+			"at": at,
+		},
+	)
 }
 
 func RackId() string {
