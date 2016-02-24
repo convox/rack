@@ -46,7 +46,7 @@ func init() {
 					},
 					cli.StringFlag{
 						Name:  "type",
-						Usage: "vertically scale the instance type, e.g. t2.small or c3.xlargs",
+						Usage: "vertically scale the instance type, e.g. t2.small or c3.xlarge",
 					},
 				},
 			},
