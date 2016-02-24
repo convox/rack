@@ -218,7 +218,10 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			}
 
 		case entry.Image != "":
-			pulls = append(pulls, entry.Image)
+			if !cache {
+				pulls = append(pulls, entry.Image)
+			}
+
 			tags[tag] = entry.Image
 		}
 	}
@@ -267,10 +270,10 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	return []error{}
 }
 
-func (me *ManifestEntry) ResolvedEnvironment(m *Manifest) ([]string, error) {
+func (me *ManifestEntry) ResolvedEnvironment(m *Manifest, cache bool) ([]string, error) {
 	r := []string{}
 
-	linkedVars, err := me.ResolvedLinkVars(m)
+	linkedVars, err := me.ResolvedLinkVars(m, cache)
 	if err != nil {
 		return r, err
 	}
@@ -321,7 +324,7 @@ func (me *ManifestEntry) EnvironmentArray() []string {
 // NOTE: this is the simpler approach:
 //       build up the ENV from the declared links
 //       assuming local dev is done on DOCKER_HOST
-func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error) {
+func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]string, error) {
 	linkVars := make(map[string]string)
 
 	if m == nil {
@@ -331,7 +334,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 	for _, link := range me.Links {
 		linkEntry := (*m)[link]
 
-		linkEntryEnv, err := getLinkEntryEnv(linkEntry)
+		linkEntryEnv, err := getLinkEntryEnv(linkEntry, cache)
 		if err != nil {
 			return linkVars, err
 		}
@@ -377,7 +380,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest) (map[string]string, error
 	return linkVars, nil
 }
 
-func (m *Manifest) MissingEnvironment() ([]string, error) {
+func (m *Manifest) MissingEnvironment(cache bool) ([]string, error) {
 	existing := map[string]bool{}
 	missingh := map[string]bool{}
 	missing := []string{}
@@ -391,7 +394,7 @@ func (m *Manifest) MissingEnvironment() ([]string, error) {
 	}
 
 	for _, entry := range *m {
-		resolved, err := entry.ResolvedEnvironment(m)
+		resolved, err := entry.ResolvedEnvironment(m, cache)
 		if err != nil {
 			return missing, err
 		}
@@ -480,7 +483,7 @@ func (m *Manifest) Raw() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Run(app string) []error {
+func (m *Manifest) Run(app string, cache bool) []error {
 	ch := make(chan error)
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
@@ -499,7 +502,7 @@ func (m *Manifest) Run(app string) []error {
 	}()
 
 	for i, name := range m.runOrder() {
-		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, ch)
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch)
 		time.Sleep(1000 * time.Millisecond)
 	}
 
@@ -606,7 +609,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, ch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -614,7 +617,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, ch ch
 
 	args := []string{"run", "-i", "--name", name}
 
-	resolved, err := me.ResolvedEnvironment(m)
+	resolved, err := me.ResolvedEnvironment(m, cache)
 
 	if err != nil {
 		ch <- err
@@ -913,14 +916,18 @@ func dockerHost() (host string) {
 
 // gets link entry env by pulling and inspecting the image for LINK_ vars
 // overrides with vars specififed in the link's manifest
-func getLinkEntryEnv(linkEntry ManifestEntry) (map[string]string, error) {
+func getLinkEntryEnv(linkEntry ManifestEntry, cache bool) (map[string]string, error) {
 	linkEntryEnv := make(map[string]string)
 
 	if linkEntry.Image != "" {
-		pull := Execer("docker", "pull", linkEntry.Image)
-		err := pull.Run()
-		if err != nil {
-			return linkEntryEnv, fmt.Errorf("could not pull container %q: %s", linkEntry.Image, err.Error())
+		err := Execer("docker", "inspect", linkEntry.Image).Run()
+
+		if err != nil || !cache {
+			pull := Execer("docker", "pull", linkEntry.Image)
+			err := pull.Run()
+			if err != nil {
+				return linkEntryEnv, fmt.Errorf("could not pull container %q: %s", linkEntry.Image, err.Error())
+			}
 		}
 
 		cmd := Execer("docker", "inspect", linkEntry.Image)
