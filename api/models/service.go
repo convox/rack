@@ -91,17 +91,27 @@ func getServiceByStackName(stackName string) (*Service, error) {
 	return service, nil
 }
 
-func (s *Service) StackName() string {
+func (s *Service) IsBound() bool {
 	if s.Tags == nil {
-		return shortNameToStackName(s.Name)
+		// Default to bound.
+		return true
 	}
 
 	if _, ok := s.Tags["Name"]; ok {
-		// Use the name provided by the user (they *should* match).
-		return shortNameToStackName(s.Name)
+		// Bound services MUST have a "Name" tag.
+		return true
 	}
 
-	return s.Name
+	// Tags are present but "Name" tag is not, so we have an unbound service.
+	return false
+}
+
+func (s *Service) StackName() string {
+	if s.IsBound() {
+		return shortNameToStackName(s.Name)
+	} else {
+		return s.Name
+	}
 }
 
 func (s *Service) Create() error {
