@@ -201,10 +201,12 @@ func (c *Client) PostMultipart(path string, files map[string][]byte, params Para
 		return err
 	}
 
-	err = json.Unmarshal(data, out)
+	if out != nil {
+		err = json.Unmarshal(data, out)
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

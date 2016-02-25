@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -30,6 +31,30 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	}
 
 	return builds, nil
+}
+
+func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config string) (*Build, error) {
+	var build Build
+
+	data, err := json.Marshal(index)
+
+	if err != nil {
+		return nil, err
+	}
+
+	params := map[string]string{
+		"index":  string(data),
+		"cache":  fmt.Sprintf("%t", cache),
+		"config": config,
+	}
+
+	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &build, nil
 }
 
 func (c *Client) CreateBuildSource(app string, source []byte, cache bool, config string) (*Build, error) {

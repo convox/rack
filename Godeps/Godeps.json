@@ -199,6 +199,16 @@
 			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/builder/dockerignore",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/fileutils",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
 			"ImportPath": "github.com/dustin/go-humanize",
 			"Rev": "c128122e0b9b93799aef8181a537e5d8fd7081d6"
 		},

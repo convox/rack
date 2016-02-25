@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -134,7 +135,30 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	return httperr.TrackErrorf("BuildCreate", "Form", 403, "no source or repo")
+	if data := r.FormValue("index"); data != "" {
+		var index models.Index
+
+		err := json.Unmarshal([]byte(data), &index)
+
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		go build.ExecuteIndex(index, cache, config, ch)
+
+		err = <-ch
+
+		fmt.Printf("err %+v\n", err)
+		fmt.Printf("build %+v\n", build)
+
+		if err != nil {
+			return httperr.Server(err)
+		} else {
+			return RenderJson(rw, build)
+		}
+	}
+
+	return httperr.Errorf(403, "no source or repo")
 }
 
 func BuildLogs(ws *websocket.Conn) *httperr.Error {

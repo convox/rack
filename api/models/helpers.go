@@ -227,6 +227,23 @@ func s3Delete(bucket, key string) error {
 	return err
 }
 
+func s3Exists(bucket, key string) (bool, error) {
+	_, err := S3().HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		if aerr, ok := err.(awserr.RequestFailure); ok && aerr.StatusCode() == 404 {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
 func s3Get(bucket, key string) ([]byte, error) {
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
