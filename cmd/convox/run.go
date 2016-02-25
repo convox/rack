@@ -107,7 +107,13 @@ func runAttached(c *cli.Context, app string, ps string, args string) (int, error
 		defer terminal.Restore(int(fd), stdinState)
 	}
 
-	code, err := rackClient(c).RunProcessAttached(app, ps, args, os.Stdin, os.Stdout)
+	w, h, err := terminal.GetSize(int(fd))
+
+	if err != nil {
+		return -1, err
+	}
+
+	code, err := rackClient(c).RunProcessAttached(app, ps, args, h, w, os.Stdin, os.Stdout)
 
 	if err != nil {
 		return -1, err

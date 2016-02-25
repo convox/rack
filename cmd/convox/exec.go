@@ -37,9 +37,16 @@ func cmdExec(c *cli.Context) {
 		return
 	}
 
+	w, h, err := terminal.GetSize(int(fd))
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
 	ps := c.Args()[0]
 
-	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout)
+	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, h, w)
 	terminal.Restore(int(fd), stdinState)
 
 	if err != nil {
