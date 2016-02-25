@@ -116,7 +116,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if err != nil {
 			return httperr.TrackServer("BuildExecute", "build.ExecuteLocal", err)
 		} else {
-			helpers.TrackSuccess("BuildExecute", "build.ExecuteLocal")
 			return RenderJson(rw, build)
 		}
 	}
@@ -131,7 +130,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if err != nil {
 			return httperr.TrackServer("BuildExecute", "build.ExecuteRemote", err)
 		} else {
-			helpers.TrackSuccess("BuildExecute", "build.ExecuteRemote")
 			return RenderJson(rw, build)
 		}
 	}
