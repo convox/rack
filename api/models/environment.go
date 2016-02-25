@@ -116,20 +116,8 @@ func PutEnvironment(app string, env Environment) (string, error) {
 // Use the Rack Settings bucket and EncryptionKey KMS key to store and retrieve
 // sensitive credentials, just like app env
 func GetRackSettings() (Environment, error) {
-	a, err := GetApp(os.Getenv("RACK"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	resources, err := ListResources(a.Name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	key := resources["EncryptionKey"].Id
-	settings := resources["Settings"].Id
+	key := os.Getenv("ENCRYPTION_KEY")
+	settings := os.Getenv("SETTINGS_BUCKET")
 
 	data, err := s3Get(settings, "env")
 
