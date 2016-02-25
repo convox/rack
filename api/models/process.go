@@ -97,6 +97,38 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
+	// get ECS and EC2 instance info up front
+	lres, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
+		Cluster: aws.String(os.Getenv("CLUSTER")),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	dres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(os.Getenv("CLUSTER")),
+		ContainerInstances: lres.ContainerInstanceArns,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	instanceIds := []*string{}
+
+	for _, i := range dres.ContainerInstances {
+		instanceIds = append(instanceIds, i.Ec2InstanceId)
+	}
+
+	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
+		InstanceIds: instanceIds,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	psch := make(chan Process)
 	errch := make(chan error)
 	num := 0
@@ -133,16 +165,44 @@ func ListProcesses(app string) (Processes, error) {
 				return nil, err
 			}
 
+			var ci *ecs.ContainerInstance
+			var ec2i *ec2.Instance
+
+			for _, i := range dres.ContainerInstances {
+				if *i.ContainerInstanceArn == *task.ContainerInstanceArn {
+					ci = i
+					break
+				}
+			}
+
+			if ci == nil {
+				return nil, fmt.Errorf("could not find ECS instance")
+			}
+
+			for _, r := range ires.Reservations {
+				for _, i := range r.Instances {
+					if *ci.Ec2InstanceId == *i.InstanceId {
+						ec2i = i
+						break
+					}
+				}
+			}
+
+			if ec2i == nil {
+				return nil, fmt.Errorf("could not find EC2 instance")
+			}
+
 			for _, cd := range td.TaskDefinition.ContainerDefinitions {
 				var cc *ecs.Container
 
 				for _, c := range task.Containers {
 					if *c.Name == *cd.Name {
 						cc = c
+						break
 					}
 				}
 
-				go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, psch, errch)
+				go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, *ci, *ec2i, psch, errch)
 
 				num += 1
 			}
@@ -281,7 +341,7 @@ func ListOneoffProcesses(app string) (Processes, error) {
 	return procs, nil
 }
 
-func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.ContainerDefinition, c ecs.Container, psch chan Process, errch chan error) {
+func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.ContainerDefinition, c ecs.Container, ci ecs.ContainerInstance, instance ec2.Instance, psch chan Process, errch chan error) {
 	idp := strings.Split(*c.ContainerArn, "-")
 	id := idp[len(idp)-1]
 
@@ -311,41 +371,6 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	}
 
 	ps.taskArn = *task.TaskArn
-
-	cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: []*string{task.ContainerInstanceArn},
-	})
-
-	if err != nil {
-		errch <- err
-		return
-	}
-
-	if len(cres.ContainerInstances) != 1 {
-		errch <- fmt.Errorf("could not find ECS instance")
-		return
-	}
-
-	ci := cres.ContainerInstances[0]
-
-	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{ci.Ec2InstanceId}},
-		},
-	})
-
-	if err != nil {
-		errch <- err
-		return
-	}
-
-	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
-		errch <- fmt.Errorf("could not find EC2 instance")
-		return
-	}
-
-	instance := ires.Reservations[0].Instances[0]
 
 	// if there's no private ip address we have no more information to grab
 	if instance.PrivateIpAddress == nil {
