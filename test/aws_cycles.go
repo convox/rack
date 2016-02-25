@@ -110,7 +110,7 @@ func DescribeConvoxStackCycle(stackName string) awsutil.Cycle {
 
 func DescribeInstancesCycle() awsutil.Cycle {
 	return awsutil.Cycle{
-		awsutil.Request{"/", "", `Action=DescribeInstances&Filter.1.Name=instance-id&Filter.1.Value.1=i-4a5513f4&Filter.1.Value.2=i-3963798e&Filter.1.Value.3=i-c6a72b76&Version=2015-10-01`},
+		awsutil.Request{"/", "", `Action=DescribeInstances&InstanceId.1=i-4a5513f4&InstanceId.2=i-3963798e&InstanceId.3=i-c6a72b76&Version=2015-10-01`},
 		awsutil.Response{200, describeInstancesResponse()},
 	}
 }

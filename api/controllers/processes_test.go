@@ -30,14 +30,14 @@ func TestProcessesList(t *testing.T) {
 
 		test.ListContainerInstancesCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeInstancesCycle(),
 
 		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
-		test.DescribeInstancesFilteredCycle(),
+
 		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
 		test.DescribeServicesCycle("convox-test-cluster"),
-		test.DescribeInstancesCycle(),
 	)
 	defer aws.Close()
 
@@ -77,15 +77,15 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 
 		test.ListContainerInstancesCycle("convox-test-cluster"),
 		test.DescribeContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeInstancesCycle(),
 
 		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
-		test.DescribeInstancesFilteredCycle(),
+
 		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
 		test.DescribeServicesWithDeploymentsCycle("convox-test-cluster"),
 		test.DescribeTaskDefinition3Cycle("convox-test-cluster"),
-		test.DescribeInstancesCycle(),
 		test.DescribeTaskDefinition1Cycle("convox-test-cluster"),
 	)
 	defer aws.Close()
