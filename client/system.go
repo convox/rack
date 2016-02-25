@@ -21,12 +21,7 @@ type SystemCapacity struct {
 func (c *Client) GetSystem() (*System, error) {
 	var system System
 
-	check := c.skipVersionCheck
-	c.skipVersionCheck = true
-
 	err := c.Get("/system", &system)
-
-	c.skipVersionCheck = check
 
 	if err != nil {
 		return nil, err
@@ -38,12 +33,7 @@ func (c *Client) GetSystem() (*System, error) {
 			Parameters map[string]string
 		}
 
-		check := c.skipVersionCheck
-		c.skipVersionCheck = true
-
 		err = c.Get("/system", &sys)
-
-		c.skipVersionCheck = check
 
 		if err != nil {
 			return nil, err
@@ -81,15 +71,8 @@ func (c *Client) GetSystemReleases() (Releases, error) {
 	return releases, nil
 }
 
-func (c *Client) restoreVersionCheck(check bool) {
-	c.skipVersionCheck = check
-}
-
 func (c *Client) UpdateSystem(version string) (*System, error) {
 	var system System
-
-	defer c.restoreVersionCheck(c.skipVersionCheck)
-	c.skipVersionCheck = true
 
 	err := c.Get("/system", &system)
 
@@ -115,9 +98,11 @@ func (c *Client) UpdateSystem(version string) (*System, error) {
 }
 
 func (c *Client) UpdateSystemOriginal(version string) (*System, error) {
-	c.WithoutVersionCheck(func(c *Client) {
-		c.Post("/system", map[string]string{"version": version}, nil)
-	})
+	err := c.Post("/system", map[string]string{"version": version}, nil)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return c.GetSystem()
 }

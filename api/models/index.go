@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/convox/rack/api/cache"
 )
 
 type Index map[string]IndexItem
@@ -17,23 +19,13 @@ type IndexItem struct {
 }
 
 func IndexUpload(hash string, data []byte) error {
-	bucket, err := indexBucket()
-
-	if err != nil {
-		return err
-	}
-
-	return S3Put(bucket, fmt.Sprintf("index/%s", hash), data, false)
+	return S3Put(os.Getenv("SETTINGS_BUCKET"), fmt.Sprintf("index/%s", hash), data, false)
 }
 
 func (index Index) Diff() ([]string, error) {
 	missing := []string{}
 
-	bucket, err := indexBucket()
-
-	if err != nil {
-		return nil, err
-	}
+	bucket := os.Getenv("SETTINGS_BUCKET")
 
 	hashch := make(chan string)
 	errch := make(chan error)
@@ -59,11 +51,7 @@ func (index Index) Diff() ([]string, error) {
 func (index Index) Download(dir string) error {
 	ch := make(chan error)
 
-	bucket, err := indexBucket()
-
-	if err != nil {
-		return err
-	}
+	bucket := os.Getenv("SETTINGS_BUCKET")
 
 	for hash, item := range index {
 		go downloadItem(bucket, hash, item, dir, ch)
@@ -79,6 +67,13 @@ func (index Index) Download(dir string) error {
 }
 
 func missingHash(bucket, hash string, hashch chan string, errch chan error) {
+	if exists, ok := cache.Get("index.missingHash", hash).(bool); ok {
+		if exists {
+			hashch <- ""
+			return
+		}
+	}
+
 	exists, err := s3Exists(bucket, fmt.Sprintf("index/%s", hash))
 
 	if err != nil {
@@ -90,6 +85,8 @@ func missingHash(bucket, hash string, hashch chan string, errch chan error) {
 		hashch <- hash
 		return
 	}
+
+	cache.Set("index.missingHash", hash, true, 30*24*time.Hour)
 
 	hashch <- ""
 }
@@ -126,20 +123,4 @@ func downloadItem(bucket, hash string, item IndexItem, dir string, ch chan error
 	}
 
 	ch <- nil
-}
-
-func indexBucket() (string, error) {
-	resources, err := ListResources(os.Getenv("RACK"))
-
-	if err != nil {
-		return "", err
-	}
-
-	bucket := resources["Settings"].Id
-
-	if bucket == "" {
-		return "", fmt.Errorf("invalid settings bucket")
-	}
-
-	return bucket, nil
 }

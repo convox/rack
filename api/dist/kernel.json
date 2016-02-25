@@ -107,6 +107,10 @@
       "Condition": "Development",
       "Value": { "Ref": "Version" }
     },
+    "SettingsBucket": {
+      "Condition": "Development",
+      "Value": { "Ref": "Settings" }
+    },
     "Subnets": {
       "Condition": "Development",
       "Value": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] }
@@ -1259,6 +1263,7 @@
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
+              "SETTINGS_BUCKET": { "Ref": "Settings" },
               "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": { "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ] },
               "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
