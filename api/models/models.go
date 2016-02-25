@@ -107,7 +107,7 @@ func RDS() *rds.RDS {
 func S3() *s3.S3 {
 	// incrememtal uploads hammer s3
 	config := awsConfig()
-	config.MaxRetries = aws.Int(10)
+	config.MaxRetries = aws.Int(50)
 
 	return s3.New(session.New(), config)
 }
