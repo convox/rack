@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cheggaaa/pb"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/builder/dockerignore"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/pkg/fileutils"
