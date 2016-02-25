@@ -13,6 +13,7 @@ type IndexItem struct {
 	Name    string      `json:"name"`
 	Mode    os.FileMode `json:"mode"`
 	ModTime time.Time   `json:"mtime"`
+	Size    int         `json:"-"`
 }
 
 func (c *Client) IndexMissing(index Index) ([]string, error) {

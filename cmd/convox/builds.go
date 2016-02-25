@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cheggaaa/pb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/builder/dockerignore"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/pkg/fileutils"
@@ -237,6 +238,7 @@ func indexWalker(root string, index client.Index, ignore []string) filepath.Walk
 			Name:    rel,
 			Mode:    info.Mode(),
 			ModTime: info.ModTime(),
+			Size:    len(data),
 		}
 
 		return nil
@@ -270,10 +272,27 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 		return err
 	}
 
+	total := 0
+
+	for _, m := range missing {
+		total += index[m].Size
+	}
+
+	bar := pb.New(total)
+
+	bar.Prefix("Uploading changes... ")
+	bar.SetMaxWidth(40)
+
+	if total == 0 {
+		fmt.Println("NONE")
+	} else {
+		bar.Start()
+	}
+
 	ch := make(chan error)
 
 	for _, hash := range missing {
-		go uploadItem(c, hash, index[hash].Name, ch)
+		go uploadItem(c, hash, index[hash], bar, ch)
 	}
 
 	for range missing {
@@ -282,25 +301,36 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 		}
 	}
 
+	if total > 0 {
+		bar.Finish()
+	}
+
 	return nil
 }
 
-func uploadItem(c *cli.Context, hash, file string, ch chan error) {
-	data, err := ioutil.ReadFile(file)
+func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.ProgressBar, ch chan error) {
+	data, err := ioutil.ReadFile(item.Name)
 
 	if err != nil {
 		ch <- err
 		return
 	}
 
-	err = rackClient(c).IndexUpload(hash, data)
+	for i := 0; i < 3; i++ {
+		err = rackClient(c).IndexUpload(hash, data)
 
-	if err != nil {
-		ch <- err
+		if err != nil {
+			continue
+		}
+
+		bar.Add(item.Size)
+
+		ch <- nil
 		return
 	}
 
-	ch <- nil
+	ch <- fmt.Errorf("max 3 retries on upload")
+	return
 }
 
 func executeBuildDir(c *cli.Context, dir string, app string, config string) (string, error) {
@@ -329,8 +359,6 @@ func executeBuildDir(c *cli.Context, dir string, app string, config string) (str
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println("OK")
 
 	fmt.Printf("Starting build... ")
 
