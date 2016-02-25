@@ -144,15 +144,14 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
+		helpers.TrackSuccess("BuildCreate", "build.ExecuteIndex")
+
 		go build.ExecuteIndex(index, cache, config, ch)
 
 		err = <-ch
 
-		fmt.Printf("err %+v\n", err)
-		fmt.Printf("build %+v\n", build)
-
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.TrackServer("BuildExecute", "build.ExecuteIndex", err)
 		} else {
 			return RenderJson(rw, build)
 		}
