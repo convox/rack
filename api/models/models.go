@@ -83,7 +83,9 @@ func ECR() *ecr.ECR {
 }
 
 func ECS() *ecs.ECS {
-	return ecs.New(session.New(), awsConfig())
+	c := awsConfig()
+	c.MaxRetries = aws.Int(10)
+	return ecs.New(session.New(), c)
 }
 
 func ELB() *elb.ELB {
