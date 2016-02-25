@@ -5,6 +5,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/api/cache"
 )
 
 type Resource struct {
@@ -21,6 +22,10 @@ type Resource struct {
 type Resources map[string]Resource
 
 func ListResources(app string) (Resources, error) {
+	if resources, ok := cache.Get("ListResources", app).(Resources); ok {
+		return resources, nil
+	}
+
 	stackName := shortNameToStackName(app)
 
 	res, err := CloudFormation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
@@ -48,6 +53,12 @@ func ListResources(app string) (Resources, error) {
 			Type:   cs(r.ResourceType, ""),
 			Time:   ct(r.Timestamp),
 		}
+	}
+
+	err = cache.Set("ListResources", app, resources, 15*time.Second)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return resources, nil
