@@ -282,6 +282,7 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 
 	bar.Prefix("Uploading changes... ")
 	bar.SetMaxWidth(40)
+	bar.SetUnits(pb.U_BYTES)
 
 	if total == 0 {
 		fmt.Println("NONE")
