@@ -160,6 +160,44 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return httperr.Errorf(403, "no source or repo")
 }
 
+func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	dest := r.FormValue("app")
+
+	_, err := models.GetApp(app)
+
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such source app: %s", app)
+	}
+
+	srcBuild, err := models.GetBuild(app, build)
+
+	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
+		return httperr.Errorf(404, err.Error())
+	}
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	destApp, err := models.GetApp(dest)
+
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such desination app: %s", dest)
+	}
+
+	destBuild, err := srcBuild.CopyTo(*destApp)
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, destBuild)
+}
+
 func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 	app := vars["app"]

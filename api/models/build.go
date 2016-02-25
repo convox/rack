@@ -26,6 +26,8 @@ type Build struct {
 	Release  string `json:"release"`
 	Status   string `json:"status"`
 
+	Description string `json:"description"`
+
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 
@@ -106,10 +108,11 @@ func (b *Build) Save() error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
-			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
-			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
-			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
+			"id":          &dynamodb.AttributeValue{S: aws.String(b.Id)},
+			"app":         &dynamodb.AttributeValue{S: aws.String(b.App)},
+			"status":      &dynamodb.AttributeValue{S: aws.String(b.Status)},
+			"created":     &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
+			"description": &dynamodb.AttributeValue{S: aws.String(b.Description)},
 		},
 		TableName: aws.String(buildsTable(b.App)),
 	}
@@ -338,6 +341,40 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	helpers.TrackSuccess("Build", "ExecuteIndex")
 }
 
+func (b *Build) CopyTo(app App) (*Build, error) {
+	// generate a new build ID
+	b2 := NewBuild(app.Name)
+
+	// copy other build properties
+	b2.Logs = b.Logs
+	b2.Manifest = b.Manifest
+	b2.Status = b.Status
+	b2.Started = b.Started
+	b2.Ended = b.Ended
+
+	b2.Description = fmt.Sprintf("Copy of %s %s", b.App, b.Id)
+
+	release, err := app.ForkRelease()
+
+	if err != nil {
+		return nil, err
+	}
+
+	release.Build = b2.Id
+	release.Manifest = b2.Manifest
+
+	err = release.Save()
+
+	if err != nil {
+		return nil, err
+	}
+
+	b2.Release = release.Id
+	err = b2.Save()
+
+	return &b2, err
+}
+
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	app, err := GetApp(b.App)
 
@@ -516,14 +553,15 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	}
 
 	return &Build{
-		Id:       coalesce(item["id"], ""),
-		App:      coalesce(item["app"], ""),
-		Logs:     coalesce(item["logs"], logs),
-		Manifest: coalesce(item["manifest"], ""),
-		Release:  coalesce(item["release"], ""),
-		Status:   coalesce(item["status"], ""),
-		Started:  started,
-		Ended:    ended,
+		Id:          coalesce(item["id"], ""),
+		App:         coalesce(item["app"], ""),
+		Description: coalesce(item["description"], ""),
+		Logs:        coalesce(item["logs"], logs),
+		Manifest:    coalesce(item["manifest"], ""),
+		Release:     coalesce(item["release"], ""),
+		Status:      coalesce(item["status"], ""),
+		Started:     started,
+		Ended:       ended,
 	}
 }
 
