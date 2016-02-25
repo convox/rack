@@ -2,6 +2,7 @@ package models
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -284,6 +285,58 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	helpers.TrackSuccess("Build", "ExecuteRemote")
 }
 
+func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan error) {
+	b.Status = "building"
+	b.Save()
+
+	args, err := b.buildArgs(cache, config)
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	dir, err := ioutil.TempDir("", "source")
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	err = os.Chmod(dir, 0755)
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	err = index.Download(dir)
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	tgz, err := createTarball(dir)
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	args = append(args, b.App, "-")
+
+	err = b.execute(args, bytes.NewReader(tgz), ch)
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
+
+	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
+	fmt.Printf("ns=kernel cn=build at=ExecuteIndex state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
+}
+
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	app, err := GetApp(b.App)
 
@@ -471,6 +524,59 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 		Started:  started,
 		Ended:    ended,
 	}
+}
+
+func createTarball(base string) ([]byte, error) {
+	cwd, err := os.Getwd()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(base)
+
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"cz"}
+
+	// If .dockerignore exists, use it to exclude files from the tarball
+	if _, err = os.Stat(".dockerignore"); err == nil {
+		args = append(args, "--exclude-from", ".dockerignore")
+	}
+
+	args = append(args, ".")
+
+	cmd := exec.Command("tar", args...)
+
+	out, err := cmd.StdoutPipe()
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Start()
+
+	bytes, err := ioutil.ReadAll(out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(cwd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 func getS3BuildLogs(app, build_id string) (string, error) {
