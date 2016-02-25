@@ -218,7 +218,9 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			}
 
 		case entry.Image != "":
-			if !cache {
+			err := Execer("docker", "inspect", entry.Image).Run()
+
+			if err != nil || !cache {
 				pulls = append(pulls, entry.Image)
 			}
 
