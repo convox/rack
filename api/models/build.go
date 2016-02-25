@@ -169,7 +169,7 @@ func (b *Build) Cleanup() error {
 
 func (b *Build) buildError(err error, ch chan error) {
 	NotifyError("build:create", err, map[string]string{"id": b.Id, "app": b.App})
-	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=error app=%q build=%q error=%q\n", b.App, b.Id, err)
+	fmt.Printf("ns=kernel cn=build state=error app=%q build=%q error=%q\n", b.App, b.Id, err)
 	b.Fail(err)
 	ch <- err
 }
@@ -218,7 +218,12 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 
 func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
 	b.Status = "building"
-	b.Save()
+	err := b.Save()
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
 
 	args, err := b.buildArgs(cache, config)
 
@@ -243,7 +248,12 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 
 func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
 	b.Status = "building"
-	b.Save()
+	err := b.Save()
+
+	if err != nil {
+		b.buildError(err, ch)
+		return
+	}
 
 	args, err := b.buildArgs(cache, config)
 
