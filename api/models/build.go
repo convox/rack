@@ -335,6 +335,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteIndex state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
+	helpers.TrackSuccess("Build", "ExecuteIndex")
 }
 
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
