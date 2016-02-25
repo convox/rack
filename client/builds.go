@@ -15,6 +15,8 @@ type Build struct {
 	Release  string `json:"release"`
 	Status   string `json:"status"`
 
+	Description string `json:"description"`
+
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 }
@@ -109,4 +111,20 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 
 func (c *Client) StreamBuildLogs(app, id string, output io.WriteCloser) error {
 	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
+}
+
+func (c *Client) CopyBuild(app, id, destApp string) (*Build, error) {
+	var build Build
+
+	params := map[string]string{
+		"app": destApp,
+	}
+
+	err := c.Post(fmt.Sprintf("/apps/%s/builds/%s/copy", app, id), params, &build)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &build, nil
 }
