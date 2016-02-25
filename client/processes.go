@@ -40,7 +40,7 @@ func (c *Client) GetProcesses(app string, stats bool) (Processes, error) {
 	return processes, nil
 }
 
-func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out io.WriteCloser) (int, error) {
+func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out io.WriteCloser, height, width int) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -50,7 +50,13 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 
 	go copyWithExit(out, r, ch)
 
-	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), map[string]string{"Command": command}, in, w)
+	headers := map[string]string{
+		"Command": command,
+		"Height":  strconv.Itoa(height),
+		"Width":   strconv.Itoa(width),
+	}
+
+	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), headers, in, w)
 
 	if err != nil {
 		return 0, err
@@ -61,7 +67,7 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 	return code, nil
 }
 
-func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, out io.WriteCloser) (int, error) {
+func (c *Client) RunProcessAttached(app, process, command string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -71,7 +77,13 @@ func (c *Client) RunProcessAttached(app, process, command string, in io.Reader, 
 
 	go copyWithExit(out, r, ch)
 
-	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), map[string]string{"Command": command}, in, w)
+	headers := map[string]string{
+		"Command": command,
+		"Height":  strconv.Itoa(height),
+		"Width":   strconv.Itoa(width),
+	}
+
+	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), headers, in, w)
 
 	if err != nil {
 		return 0, err

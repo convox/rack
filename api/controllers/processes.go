@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"sort"
+	"strconv"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
@@ -82,9 +83,13 @@ func ProcessShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
+	header := ws.Request().Header
+
 	app := vars["app"]
 	pid := vars["pid"]
-	command := ws.Request().Header.Get("Command")
+	command := header.Get("Command")
+	height, _ := strconv.Atoi(header.Get("Height"))
+	width, _ := strconv.Atoi(header.Get("Width"))
 
 	a, err := models.GetApp(app)
 
@@ -96,7 +101,7 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	return httperr.Server(a.ExecAttached(pid, command, ws))
+	return httperr.Server(a.ExecAttached(pid, command, height, width, ws))
 }
 
 func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -122,9 +127,13 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 
 func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
+	header := ws.Request().Header
+
 	app := vars["app"]
 	process := vars["process"]
-	command := ws.Request().Header.Get("Command")
+	command := header.Get("Command")
+	height, _ := strconv.Atoi(header.Get("Height"))
+	width, _ := strconv.Atoi(header.Get("Width"))
 
 	a, err := models.GetApp(app)
 
@@ -136,7 +145,7 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	return httperr.Server(a.RunAttached(process, command, ws))
+	return httperr.Server(a.RunAttached(process, command, height, width, ws))
 }
 
 func ProcessStop(rw http.ResponseWriter, r *http.Request) *httperr.Error {

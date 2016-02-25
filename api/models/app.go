@@ -357,7 +357,7 @@ func (a *App) LatestRelease() (*Release, error) {
 	return &releases[0], nil
 }
 
-func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
+func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWriter) error {
 	var ps Process
 
 	pss, err := ListProcesses(a.Name)
@@ -396,12 +396,22 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 		return err
 	}
 
+	id := res.ID
+
 	// Create pipes so StartExec closes pipes, not the websocket.
 	ir, iw := io.Pipe()
 	or, ow := io.Pipe()
 
 	go io.Copy(iw, rw)
 	go io.Copy(rw, or)
+
+	success := make(chan struct{})
+
+	go func() {
+		<-success
+		d.ResizeExecTTY(id, height, width)
+		success <- struct{}{}
+	}()
 
 	err = d.StartExec(res.ID, docker.StartExecOptions{
 		Detach:       false,
@@ -410,9 +420,11 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 		OutputStream: ow,
 		ErrorStream:  ow,
 		RawTerminal:  true,
+		Success:      success,
 	})
 
-	if err != nil && err != io.ErrClosedPipe {
+	// comparing with io.ErrClosedPipe isn't working
+	if err != nil && !strings.HasSuffix(err.Error(), "closed pipe") {
 		return err
 	}
 
@@ -431,7 +443,7 @@ func (a *App) ExecAttached(pid, command string, rw io.ReadWriter) error {
 	return nil
 }
 
-func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
+func (a *App) RunAttached(process, command string, height, width int, rw io.ReadWriter) error {
 	resources, err := a.Resources()
 
 	if err != nil {
@@ -606,6 +618,12 @@ func (a *App) RunAttached(process, command string, rw io.ReadWriter) error {
 	time.Sleep(100 * time.Millisecond)
 
 	err = d.StartContainer(res.ID, nil)
+
+	if err != nil {
+		return err
+	}
+
+	err = d.ResizeContainerTTY(res.ID, height, width)
 
 	if err != nil {
 		return err
