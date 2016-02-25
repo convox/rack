@@ -41,6 +41,8 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) {
+	cache := !c.Bool("no-cache")
+
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -88,7 +90,7 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	missing, err := m.MissingEnvironment()
+	missing, err := m.MissingEnvironment(cache)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -100,14 +102,14 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	errors := m.Build(app, dir, !c.Bool("no-cache"))
+	errors := m.Build(app, dir, cache)
 
 	if len(errors) != 0 {
 		fmt.Printf("errors: %+v\n", errors)
 		return
 	}
 
-	errors = m.Run(app)
+	errors = m.Run(app, cache)
 
 	if len(errors) != 0 {
 		// TODO figure out what to do here

@@ -279,7 +279,7 @@ func testBuild(m *Manifest, app string) (string, string) {
 }
 
 func testRun(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, func() { m.Run(app) })
+	return testRunner(m, app, func() { m.Run(app, true) })
 }
 
 func testRunner(m *Manifest, app string, fn runnerFn) (string, string) {
