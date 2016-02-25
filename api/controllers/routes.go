@@ -40,6 +40,8 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.update", SSLUpdate)).Methods("PUT")
 	router.HandleFunc("/apps/{app}/ssl/{process}/{port}", api("ssl.delete", SSLDelete)).Methods("DELETE")
 	router.HandleFunc("/auth", api("auth", Auth)).Methods("GET")
+	router.HandleFunc("/index/diff", api("index.diff", IndexDiff)).Methods("POST")
+	router.HandleFunc("/index/file/{hash}", api("index.upload", IndexUpload)).Methods("POST")
 	router.HandleFunc("/instances", api("instances.get", InstancesList)).Methods("GET")
 	router.HandleFunc("/instances/{id}", api("instance.delete", InstanceTerminate)).Methods("DELETE")
 	router.HandleFunc("/instances/keyroll", api("instances.keyroll", InstancesKeyroll)).Methods("POST")
