@@ -108,13 +108,16 @@ func (b *Build) Save() error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":          &dynamodb.AttributeValue{S: aws.String(b.Id)},
-			"app":         &dynamodb.AttributeValue{S: aws.String(b.App)},
-			"status":      &dynamodb.AttributeValue{S: aws.String(b.Status)},
-			"created":     &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
-			"description": &dynamodb.AttributeValue{S: aws.String(b.Description)},
+			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
+			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
+			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
+			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
 		},
 		TableName: aws.String(buildsTable(b.App)),
+	}
+
+	if b.Description != "" {
+		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(b.Description)}
 	}
 
 	if b.Manifest != "" {
