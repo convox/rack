@@ -65,6 +65,19 @@ func init() {
 				},
 			},
 			{
+				Name:        "copy",
+				Description: "copy a build to an app",
+				Usage:       "<ID> <app>",
+				Action:      cmdBuildsCopy,
+				Flags: []cli.Flag{
+					appFlag,
+					cli.BoolFlag{
+						Name:  "promote",
+						Usage: "promote the release after copy",
+					},
+				},
+			},
+			{
 				Name:        "info",
 				Description: "print output for a build",
 				Usage:       "<ID>",
@@ -90,7 +103,7 @@ func cmdBuilds(c *cli.Context) {
 		return
 	}
 
-	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED")
+	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED", "DESC")
 
 	for _, build := range builds {
 		started := humanizeTime(build.Started)
@@ -100,7 +113,7 @@ func cmdBuilds(c *cli.Context) {
 			elapsed = ""
 		}
 
-		t.AddRow(build.Id, build.Status, build.Release, started, elapsed)
+		t.AddRow(build.Id, build.Status, build.Release, started, elapsed, build.Description)
 	}
 
 	t.Print()
@@ -174,6 +187,51 @@ func cmdBuildsInfo(c *cli.Context) {
 	}
 
 	fmt.Println(b.Logs)
+}
+
+func cmdBuildsCopy(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 2 {
+		stdcli.Usage(c, "copy")
+		return
+	}
+
+	build := c.Args()[0]
+	destApp := c.Args()[1]
+
+	fmt.Print("Copying build... ")
+
+	b, err := rackClient(c).CopyBuild(app, build, destApp)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("OK")
+
+	if b.Release != "" {
+		if c.Bool("promote") {
+			fmt.Printf("Promoting %s... ", b.Release)
+
+			_, err = rackClient(c).PromoteRelease(destApp, b.Release)
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			fmt.Println("OK")
+		} else {
+			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", b.Release, destApp)
+		}
+	}
 }
 
 func executeBuild(c *cli.Context, source string, app string, config string) (string, error) {

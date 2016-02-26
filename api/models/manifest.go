@@ -408,3 +408,11 @@ func (me ManifestEntry) ExternalPorts() []string {
 func (me ManifestEntry) Randoms() map[string]int {
 	return me.randoms
 }
+
+func (me ManifestEntry) RegistryImage(app *App, buildId string) string {
+	if registryId := app.Outputs["RegistryId"]; registryId != "" {
+		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], me.Name, buildId)
+	}
+
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), app.Name, me.Name, buildId)
+}

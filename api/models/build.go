@@ -26,6 +26,8 @@ type Build struct {
 	Release  string `json:"release"`
 	Status   string `json:"status"`
 
+	Description string `json:"description"`
+
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
 
@@ -114,6 +116,10 @@ func (b *Build) Save() error {
 		TableName: aws.String(buildsTable(b.App)),
 	}
 
+	if b.Description != "" {
+		req.Item["description"] = &dynamodb.AttributeValue{S: aws.String(b.Description)}
+	}
+
 	if b.Manifest != "" {
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
 	}
@@ -173,6 +179,11 @@ func (b *Build) buildError(err error, ch chan error) {
 	fmt.Printf("ns=kernel cn=build state=error app=%q build=%q error=%q\n", b.App, b.Id, err)
 	b.Fail(err)
 	ch <- err
+}
+
+func (b *Build) copyError(err error) {
+	NotifyError("build:copy", err, map[string]string{"id": b.Id, "app": b.App})
+	b.Fail(err)
 }
 
 func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
@@ -336,6 +347,115 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteIndex state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
 	helpers.TrackSuccess("Build", "ExecuteIndex")
+}
+
+func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
+	srcApp, err := GetApp(srcBuild.App)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// generate a new build ID
+	destBuild := NewBuild(destApp.Name)
+
+	// copy src build properties
+	destBuild.Manifest = srcBuild.Manifest
+
+	// set copy properties
+	destBuild.Description = fmt.Sprintf("Copy of %s %s", srcBuild.App, srcBuild.Id)
+	destBuild.Status = "copying"
+
+	err = destBuild.Save()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	// pull, tag, push images
+	manifest, err := LoadManifest(destBuild.Manifest, &destApp)
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	for _, entry := range manifest {
+		var srcImg, destImg string
+
+		srcImg = entry.RegistryImage(srcApp, srcBuild.Id)
+		destImg = entry.RegistryImage(&destApp, destBuild.Id)
+
+		destBuild.Logs += fmt.Sprintf("RUNNING: docker pull %s\n", srcImg)
+
+		out, err := exec.Command("docker", "pull", srcImg).CombinedOutput()
+
+		if err != nil {
+			destBuild.copyError(err)
+			return nil, err
+		}
+
+		destBuild.Logs += string(out)
+
+		destBuild.Logs += fmt.Sprintf("RUNNING: docker tag -f %s %s\n", srcImg, destImg)
+
+		out, err = exec.Command("docker", "tag", "-f", srcImg, destImg).CombinedOutput()
+
+		if err != nil {
+			destBuild.copyError(err)
+			return nil, err
+		}
+
+		destBuild.Logs += string(out)
+
+		destBuild.Logs += fmt.Sprintf("RUNNING: docker push %s\n", destImg)
+
+		out, err = exec.Command("docker", "push", destImg).CombinedOutput()
+
+		if err != nil {
+			destBuild.copyError(err)
+			return nil, err
+		}
+
+		destBuild.Logs += string(out)
+
+	}
+
+	// make release for new build
+	release, err := destApp.ForkRelease()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	release.Build = destBuild.Id
+	release.Manifest = destBuild.Manifest
+
+	err = release.Save()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	// finalize new build
+	destBuild.Ended = time.Now()
+	destBuild.Release = release.Id
+	destBuild.Status = "complete"
+
+	err = destBuild.Save()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	NotifySuccess("build:copy", map[string]string{"id": destBuild.Id, "app": destBuild.App})
+	helpers.TrackSuccess("Build", "Copy")
+
+	return &destBuild, nil
 }
 
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
@@ -516,14 +636,15 @@ func buildFromItem(item map[string]*dynamodb.AttributeValue) *Build {
 	}
 
 	return &Build{
-		Id:       coalesce(item["id"], ""),
-		App:      coalesce(item["app"], ""),
-		Logs:     coalesce(item["logs"], logs),
-		Manifest: coalesce(item["manifest"], ""),
-		Release:  coalesce(item["release"], ""),
-		Status:   coalesce(item["status"], ""),
-		Started:  started,
-		Ended:    ended,
+		Id:          coalesce(item["id"], ""),
+		App:         coalesce(item["app"], ""),
+		Description: coalesce(item["description"], ""),
+		Logs:        coalesce(item["logs"], logs),
+		Manifest:    coalesce(item["manifest"], ""),
+		Release:     coalesce(item["release"], ""),
+		Status:      coalesce(item["status"], ""),
+		Started:     started,
+		Ended:       ended,
 	}
 }
 
