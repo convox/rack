@@ -178,6 +178,11 @@ func (b *Build) buildError(err error, ch chan error) {
 	ch <- err
 }
 
+func (b *Build) copyError(err error) {
+	NotifyError("build:copy", err, map[string]string{"id": b.Id, "app": b.App})
+	b.Fail(err)
+}
+
 func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 	app, err := GetApp(b.App)
 
@@ -341,38 +346,124 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	helpers.TrackSuccess("Build", "ExecuteIndex")
 }
 
-func (b *Build) CopyTo(app App) (*Build, error) {
-	// generate a new build ID
-	b2 := NewBuild(app.Name)
-
-	// copy other build properties
-	b2.Logs = b.Logs
-	b2.Manifest = b.Manifest
-	b2.Status = b.Status
-	b2.Started = b.Started
-	b2.Ended = b.Ended
-
-	b2.Description = fmt.Sprintf("Copy of %s %s", b.App, b.Id)
-
-	release, err := app.ForkRelease()
+func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
+	srcApp, err := GetApp(srcBuild.App)
 
 	if err != nil {
 		return nil, err
 	}
 
-	release.Build = b2.Id
-	release.Manifest = b2.Manifest
+	// generate a new build ID
+	destBuild := NewBuild(destApp.Name)
+
+	// copy src build properties
+	destBuild.Logs = srcBuild.Logs
+	destBuild.Manifest = srcBuild.Manifest
+
+	// set copy properties
+	destBuild.Description = fmt.Sprintf("Copy of %s %s", srcBuild.App, srcBuild.Id)
+	destBuild.Logs += fmt.Sprintf("\nCopying %s %s\n", srcBuild.App, srcBuild.Id)
+	destBuild.Status = "copying"
+
+	err = destBuild.Save()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	// pull, tag, push images
+	manifest, err := LoadManifest(destBuild.Manifest, &destApp)
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	for _, entry := range manifest {
+		var srcImg, destImg string
+
+		if registryId := srcApp.Outputs["RegistryId"]; registryId != "" {
+			srcImg = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), srcApp.Outputs["RegistryRepository"], entry.Name, srcBuild.Id)
+		} else {
+			srcImg = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), srcBuild.App, entry.Name, srcBuild.Id)
+		}
+
+		if registryId := destApp.Outputs["RegistryId"]; registryId != "" {
+			destImg = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), destApp.Outputs["RegistryRepository"], entry.Name, destBuild.Id)
+		} else {
+			destImg = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), destBuild.App, entry.Name, destBuild.Id)
+		}
+
+		destBuild.Logs += fmt.Sprintf("RUNNING: docker pull %s\n", srcImg)
+
+		out, err := exec.Command("docker", "pull", srcImg).CombinedOutput()
+
+		if err != nil {
+			destBuild.copyError(err)
+			return nil, err
+		}
+
+		destBuild.Logs += string(out)
+
+		destBuild.Logs += fmt.Sprintf("RUNNING: docker tag -f %s %s\n", srcImg, destImg)
+
+		out, err = exec.Command("docker", "tag", "-f", srcImg, destImg).CombinedOutput()
+
+		if err != nil {
+			destBuild.copyError(err)
+			return nil, err
+		}
+
+		destBuild.Logs += string(out)
+
+		destBuild.Logs += fmt.Sprintf("RUNNING: docker push %s\n", destImg)
+
+		out, err = exec.Command("docker", "push", destImg).CombinedOutput()
+
+		if err != nil {
+			destBuild.copyError(err)
+			return nil, err
+		}
+
+		destBuild.Logs += string(out)
+
+	}
+
+	// make release for new build
+	release, err := destApp.ForkRelease()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	release.Build = destBuild.Id
+	release.Manifest = destBuild.Manifest
 
 	err = release.Save()
 
 	if err != nil {
+		destBuild.copyError(err)
 		return nil, err
 	}
 
-	b2.Release = release.Id
-	err = b2.Save()
+	// finalize new build
+	destBuild.Ended = time.Now()
+	destBuild.Release = release.Id
+	destBuild.Status = "complete"
 
-	return &b2, err
+	err = destBuild.Save()
+
+	if err != nil {
+		destBuild.copyError(err)
+		return nil, err
+	}
+
+	NotifySuccess("build:copy", map[string]string{"id": destBuild.Id, "app": destBuild.App})
+	helpers.TrackSuccess("Build", "Copy")
+
+	return &destBuild, nil
 }
 
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
