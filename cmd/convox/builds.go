@@ -69,7 +69,13 @@ func init() {
 				Description: "copy a build to an app",
 				Usage:       "<ID> <app>",
 				Action:      cmdBuildsCopy,
-				Flags:       []cli.Flag{appFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					cli.BoolFlag{
+						Name:  "promote",
+						Usage: "promote the release after copy",
+					},
+				},
 			},
 			{
 				Name:        "info",
@@ -199,6 +205,8 @@ func cmdBuildsCopy(c *cli.Context) {
 	build := c.Args()[0]
 	destApp := c.Args()[1]
 
+	fmt.Print("Copying build... ")
+
 	b, err := rackClient(c).CopyBuild(app, build, destApp)
 
 	if err != nil {
@@ -206,7 +214,24 @@ func cmdBuildsCopy(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Release: %s\n", b.Release)
+	fmt.Println("OK")
+
+	if b.Release != "" {
+		if c.Bool("promote") {
+			fmt.Printf("Promoting %s... ", b.Release)
+
+			_, err = rackClient(c).PromoteRelease(destApp, b.Release)
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			fmt.Println("OK")
+		} else {
+			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", b.Release, destApp)
+		}
+	}
 }
 
 func executeBuild(c *cli.Context, source string, app string, config string) (string, error) {
