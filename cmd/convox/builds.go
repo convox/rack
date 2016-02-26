@@ -355,8 +355,9 @@ func executeBuildDirIncremental(c *cli.Context, dir string, app string, config s
 		return "", err
 	}
 
+	// fall back to classic build for now
 	// if the rack doesn't support incremental builds fall back to old-style
-	if system.Version < "20160226133529" {
+	if true || system.Version < "20160226133529" {
 		return executeBuildDir(c, dir, app, config)
 	}
 
