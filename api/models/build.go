@@ -357,12 +357,10 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 	destBuild := NewBuild(destApp.Name)
 
 	// copy src build properties
-	destBuild.Logs = srcBuild.Logs
 	destBuild.Manifest = srcBuild.Manifest
 
 	// set copy properties
 	destBuild.Description = fmt.Sprintf("Copy of %s %s", srcBuild.App, srcBuild.Id)
-	destBuild.Logs += fmt.Sprintf("\nCopying %s %s\n", srcBuild.App, srcBuild.Id)
 	destBuild.Status = "copying"
 
 	err = destBuild.Save()
