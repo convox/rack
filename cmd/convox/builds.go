@@ -20,6 +20,10 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
+var (
+	IndexOperationConcurrency = 128
+)
+
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "build",
@@ -362,17 +366,26 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 		bar.Start()
 	}
 
-	ch := make(chan error)
+	inch := make(chan string)
+	errch := make(chan error)
 
-	for _, hash := range missing {
-		go uploadItem(c, hash, index[hash], bar, ch)
+	for i := 1; i < IndexOperationConcurrency; i++ {
+		go uploadItems(c, index, bar, inch, errch)
 	}
 
+	go func() {
+		for _, hash := range missing {
+			inch <- hash
+		}
+	}()
+
 	for range missing {
-		if err := <-ch; err != nil {
+		if err := <-errch; err != nil {
 			return err
 		}
 	}
+
+	close(inch)
 
 	if total > 0 {
 		bar.Finish()
@@ -406,6 +419,12 @@ func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.Prog
 	return
 }
 
+func uploadItems(c *cli.Context, index client.Index, bar *pb.ProgressBar, inch chan string, errch chan error) {
+	for hash := range inch {
+		uploadItem(c, hash, index[hash], bar, errch)
+	}
+}
+
 func executeBuildDirIncremental(c *cli.Context, dir string, app string, config string) (string, error) {
 	system, err := rackClient(c).GetSystem()
 
@@ -413,9 +432,8 @@ func executeBuildDirIncremental(c *cli.Context, dir string, app string, config s
 		return "", err
 	}
 
-	// fall back to classic build for now
-	// if the rack doesn't support incremental builds fall back to old-style
-	if true || system.Version < "20160226133529" {
+	// will change this with a new fixed release number
+	if true || system.Version < "" {
 		return executeBuildDir(c, dir, app, config)
 	}
 

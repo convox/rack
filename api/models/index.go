@@ -10,6 +10,10 @@ import (
 	"github.com/convox/rack/api/cache"
 )
 
+var (
+	IndexOperationConcurrency = 128
+)
+
 type Index map[string]IndexItem
 
 type IndexItem struct {
@@ -27,16 +31,23 @@ func (index Index) Diff() ([]string, error) {
 
 	bucket := os.Getenv("SETTINGS_BUCKET")
 
-	hashch := make(chan string)
+	inch := make(chan string)
+	outch := make(chan string)
 	errch := make(chan error)
 
-	for hash, _ := range index {
-		go missingHash(bucket, hash, hashch, errch)
+	for i := 1; i < IndexOperationConcurrency; i++ {
+		go missingHashes(bucket, inch, outch, errch)
 	}
+
+	go func() {
+		for hash := range index {
+			inch <- hash
+		}
+	}()
 
 	for range index {
 		select {
-		case hash := <-hashch:
+		case hash := <-outch:
 			if hash != "" {
 				missing = append(missing, hash)
 			}
@@ -45,20 +56,29 @@ func (index Index) Diff() ([]string, error) {
 		}
 	}
 
+	close(inch)
+
 	return missing, nil
 }
 
 func (index Index) Download(dir string) error {
-	ch := make(chan error)
-
 	bucket := os.Getenv("SETTINGS_BUCKET")
 
-	for hash, item := range index {
-		go downloadItem(bucket, hash, item, dir, ch)
+	inch := make(chan string)
+	errch := make(chan error)
+
+	for i := 1; i < IndexOperationConcurrency; i++ {
+		go downloadItems(bucket, index, dir, inch, errch)
 	}
 
+	go func() {
+		for hash := range index {
+			inch <- hash
+		}
+	}()
+
 	for range index {
-		if err := <-ch; err != nil {
+		if err := <-errch; err != nil {
 			return err
 		}
 	}
@@ -66,37 +86,49 @@ func (index Index) Download(dir string) error {
 	return nil
 }
 
-func missingHash(bucket, hash string, hashch chan string, errch chan error) {
-	if exists, ok := cache.Get("index.missingHash", hash).(bool); ok {
-		if exists {
-			hashch <- ""
-			return
+func missingHashes(bucket string, inch, outch chan string, errch chan error) {
+	for hash := range inch {
+		exists, err := hashExists(bucket, hash)
+
+		if err != nil {
+			errch <- err
+		} else if !exists {
+			outch <- hash
+		} else {
+			outch <- ""
 		}
+	}
+}
+
+func hashExists(bucket, hash string) (bool, error) {
+	if exists, ok := cache.Get("index.missingHash", hash).(bool); ok && exists {
+		return true, nil
 	}
 
 	exists, err := s3Exists(bucket, fmt.Sprintf("index/%s", hash))
 
 	if err != nil {
-		errch <- err
-		return
+		return false, err
 	}
 
-	if !exists {
-		hashch <- hash
-		return
+	if exists {
+		cache.Set("index.missingHash", hash, true, 30*24*time.Hour)
 	}
 
-	cache.Set("index.missingHash", hash, true, 30*24*time.Hour)
-
-	hashch <- ""
+	return exists, nil
 }
 
-func downloadItem(bucket, hash string, item IndexItem, dir string, ch chan error) {
+func downloadItems(bucket string, index Index, dir string, inch chan string, errch chan error) {
+	for hash := range inch {
+		errch <- downloadItem(bucket, hash, index[hash], dir)
+	}
+}
+
+func downloadItem(bucket, hash string, item IndexItem, dir string) error {
 	data, err := s3Get(bucket, fmt.Sprintf("index/%s", hash))
 
 	if err != nil {
-		ch <- err
-		return
+		return err
 	}
 
 	file := filepath.Join(dir, item.Name)
@@ -104,23 +136,20 @@ func downloadItem(bucket, hash string, item IndexItem, dir string, ch chan error
 	err = os.MkdirAll(filepath.Dir(file), 0755)
 
 	if err != nil {
-		ch <- err
-		return
+		return err
 	}
 
 	err = ioutil.WriteFile(file, data, item.Mode)
 
 	if err != nil {
-		ch <- err
-		return
+		return err
 	}
 
 	err = os.Chtimes(file, item.ModTime, item.ModTime)
 
 	if err != nil {
-		ch <- err
-		return
+		return err
 	}
 
-	ch <- nil
+	return nil
 }
