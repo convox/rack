@@ -414,5 +414,5 @@ func (me ManifestEntry) RegistryImage(app *App, buildId string) string {
 		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], me.Name, buildId)
 	}
 
-	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), app, me.Name, buildId)
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), app.Name, me.Name, buildId)
 }
