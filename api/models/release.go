@@ -305,13 +305,7 @@ func (r *Release) Formation() (string, error) {
 
 	// set the image
 	for i, entry := range manifest {
-		var imageName string
-		if registryId := app.Outputs["RegistryId"]; registryId != "" {
-			imageName = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], entry.Name, r.Build)
-		} else {
-			imageName = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), r.App, entry.Name, r.Build)
-		}
-		manifest[i].Image = imageName
+		manifest[i].Image = entry.RegistryImage(app, r.Build)
 	}
 
 	manifest, err = r.resolveLinks(*app, &manifest)
