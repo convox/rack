@@ -32,6 +32,10 @@ func init() {
 				Name:  "no-cache",
 				Usage: "Do not use Docker cache during build.",
 			},
+			cli.BoolFlag{
+				Name:  "classic",
+				Usage: "Use tarball-style build",
+			},
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
@@ -179,7 +183,11 @@ func executeBuild(c *cli.Context, source string, app string, config string) (str
 	case "http", "https":
 		return executeBuildUrl(c, source, app, config)
 	default:
-		return executeBuildDir(c, source, app, config)
+		if c.Bool("classic") {
+			return executeBuildDir(c, source, app, config)
+		} else {
+			return executeBuildDirIncremental(c, source, app, config)
+		}
 	}
 
 	return "", fmt.Errorf("unreachable")
@@ -194,7 +202,13 @@ func createIndex(dir string) (client.Index, error) {
 		return nil, err
 	}
 
-	err = filepath.Walk(dir, indexWalker(dir, index, ignore))
+	resolved, err := filepath.EvalSymlinks(dir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(resolved, indexWalker(resolved, index, ignore))
 
 	if err != nil {
 		return nil, err
@@ -334,7 +348,18 @@ func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.Prog
 	return
 }
 
-func executeBuildDir(c *cli.Context, dir string, app string, config string) (string, error) {
+func executeBuildDirIncremental(c *cli.Context, dir string, app string, config string) (string, error) {
+	// system, err := rackClient(c).GetSystem()
+
+	// if err != nil {
+	//   return "", err
+	// }
+
+	// fill in with proper version once released
+	// if system.Version < "" {
+	//   return executeBuildDir(c, dir, app, config)
+	// }
+
 	cache := !c.Bool("no-cache")
 
 	dir, err := filepath.Abs(dir)
@@ -364,6 +389,38 @@ func executeBuildDir(c *cli.Context, dir string, app string, config string) (str
 	fmt.Printf("Starting build... ")
 
 	build, err := rackClient(c).CreateBuildIndex(app, index, cache, config)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("OK")
+
+	return finishBuild(c, app, build)
+}
+
+func executeBuildDir(c *cli.Context, dir string, app string, config string) (string, error) {
+	dir, err := filepath.Abs(dir)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Print("Creating tarball... ")
+
+	tar, err := createTarball(dir)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("OK")
+
+	cache := !c.Bool("no-cache")
+
+	fmt.Print("Uploading... ")
+
+	build, err := rackClient(c).CreateBuildSource(app, tar, cache, config)
 
 	if err != nil {
 		return "", err
