@@ -381,17 +381,8 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 	for _, entry := range manifest {
 		var srcImg, destImg string
 
-		if registryId := srcApp.Outputs["RegistryId"]; registryId != "" {
-			srcImg = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), srcApp.Outputs["RegistryRepository"], entry.Name, srcBuild.Id)
-		} else {
-			srcImg = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), srcBuild.App, entry.Name, srcBuild.Id)
-		}
-
-		if registryId := destApp.Outputs["RegistryId"]; registryId != "" {
-			destImg = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), destApp.Outputs["RegistryRepository"], entry.Name, destBuild.Id)
-		} else {
-			destImg = fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), destBuild.App, entry.Name, destBuild.Id)
-		}
+		srcImg = entry.RegistryImage(srcApp, srcBuild.Id)
+		destImg = entry.RegistryImage(&destApp, destBuild.Id)
 
 		destBuild.Logs += fmt.Sprintf("RUNNING: docker pull %s\n", srcImg)
 
