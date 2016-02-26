@@ -70,6 +70,10 @@ func cmdEnvList(c *cli.Context) {
 		return
 	}
 
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
+	}
+
 	env, err := rackClient(c).GetEnvironment(app)
 
 	if err != nil {
