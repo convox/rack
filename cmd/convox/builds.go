@@ -349,20 +349,20 @@ func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.Prog
 }
 
 func executeBuildDirIncremental(c *cli.Context, dir string, app string, config string) (string, error) {
-	// system, err := rackClient(c).GetSystem()
+	system, err := rackClient(c).GetSystem()
 
-	// if err != nil {
-	//   return "", err
-	// }
+	if err != nil {
+		return "", err
+	}
 
-	// fill in with proper version once released
-	// if system.Version < "" {
-	//   return executeBuildDir(c, dir, app, config)
-	// }
+	// if the rack doesn't support incremental builds fall back to old-style
+	if system.Version < "20160226133529" {
+		return executeBuildDir(c, dir, app, config)
+	}
 
 	cache := !c.Bool("no-cache")
 
-	dir, err := filepath.Abs(dir)
+	dir, err = filepath.Abs(dir)
 
 	if err != nil {
 		return "", err
