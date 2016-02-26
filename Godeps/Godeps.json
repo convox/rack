@@ -168,6 +168,10 @@
 			"Rev": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
+			"ImportPath": "github.com/cheggaaa/pb",
+			"Rev": "4788033326290f47bb40c29942fa8e919e2ee597"
+		},
+		{
 			"ImportPath": "github.com/cloudflare/cfssl/log",
 			"Comment": "1.1.0-323-g9bc07ed",
 			"Rev": "9bc07ed3545fbc5908d81beb6915cccdc56adb47"
@@ -197,6 +201,16 @@
 		{
 			"ImportPath": "github.com/ddollar/logger",
 			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/builder/dockerignore",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/fileutils",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",

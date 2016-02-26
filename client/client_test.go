@@ -42,54 +42,6 @@ func (er ErrorReader) Close() error {
 	return nil
 }
 
-func TestClientRackNoVersion(t *testing.T) {
-	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/system", Code: 200, Response: System{
-			Count:   1,
-			Name:    "system",
-			Status:  "running",
-			Type:    "type",
-			Version: "",
-		}},
-	)
-
-	u, _ := url.Parse(ts.URL)
-
-	client := New(u.Host, "test", "test")
-
-	var out interface{}
-
-	err := client.Get("/apps", &out)
-
-	assert.NotNil(t, err)
-	assert.Equal(t, "rack outdated, please update with `convox rack update`", err.Error())
-}
-
-func TestClientRackOldVersion(t *testing.T) {
-	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/system", Code: 200, Response: System{
-			Count:   1,
-			Name:    "system",
-			Status:  "running",
-			Type:    "type",
-			Version: "1",
-		}},
-	)
-
-	u, _ := url.Parse(ts.URL)
-
-	MinimumServerVersion = "2"
-
-	client := New(u.Host, "test", "test")
-
-	var out interface{}
-
-	err := client.Get("/apps", &out)
-
-	assert.NotNil(t, err, "err is not nil")
-	assert.Equal(t, "rack outdated, please update with `convox rack update`", err.Error())
-}
-
 func TestClientErrorReading(t *testing.T) {
 	er := ErrorReader{Error: "error reading"}
 	res := &http.Response{StatusCode: 400, Body: er}
@@ -113,7 +65,6 @@ func TestClientNonJson(t *testing.T) {
 
 func TestClientGetErrors(t *testing.T) {
 	client := New("", "", "")
-	client.skipVersionCheck = true
 
 	err := client.Get("", nil)
 

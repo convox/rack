@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,7 +12,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/cheggaaa/pb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/builder/dockerignore"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/pkg/fileutils"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
@@ -26,6 +31,10 @@ func init() {
 			cli.BoolFlag{
 				Name:  "no-cache",
 				Usage: "Do not use Docker cache during build.",
+			},
+			cli.BoolFlag{
+				Name:  "classic",
+				Usage: "Use tarball-style build",
 			},
 			cli.StringFlag{
 				Name:  "file, f",
@@ -174,10 +183,220 @@ func executeBuild(c *cli.Context, source string, app string, config string) (str
 	case "http", "https":
 		return executeBuildUrl(c, source, app, config)
 	default:
-		return executeBuildDir(c, source, app, config)
+		if c.Bool("classic") {
+			return executeBuildDir(c, source, app, config)
+		} else {
+			return executeBuildDirIncremental(c, source, app, config)
+		}
 	}
 
 	return "", fmt.Errorf("unreachable")
+}
+
+func createIndex(dir string) (client.Index, error) {
+	index := client.Index{}
+
+	ignore, err := readDockerIgnore(dir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resolved, err := filepath.EvalSymlinks(dir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(resolved, indexWalker(resolved, index, ignore))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return index, nil
+}
+
+func indexWalker(root string, index client.Index, ignore []string) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		rel, err := filepath.Rel(root, path)
+
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		match, err := fileutils.Matches(rel, ignore)
+
+		if err != nil {
+			return err
+		}
+
+		if match {
+			return nil
+		}
+
+		data, err := ioutil.ReadFile(path)
+
+		if err != nil {
+			return err
+		}
+
+		sum := sha256.Sum256(data)
+		hash := hex.EncodeToString([]byte(sum[:]))
+
+		index[hash] = client.IndexItem{
+			Name:    rel,
+			Mode:    info.Mode(),
+			ModTime: info.ModTime(),
+			Size:    len(data),
+		}
+
+		return nil
+	}
+}
+
+func readDockerIgnore(dir string) ([]string, error) {
+	fd, err := os.Open(filepath.Join(dir, ".dockerignore"))
+
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	ignore, err := dockerignore.ReadAll(fd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ignore, nil
+}
+
+func uploadIndex(c *cli.Context, index client.Index) error {
+	missing, err := rackClient(c).IndexMissing(index)
+
+	if err != nil {
+		return err
+	}
+
+	total := 0
+
+	for _, m := range missing {
+		total += index[m].Size
+	}
+
+	bar := pb.New(total)
+
+	bar.Prefix("Uploading changes... ")
+	bar.SetMaxWidth(40)
+	bar.SetUnits(pb.U_BYTES)
+
+	if total == 0 {
+		fmt.Println("NONE")
+	} else {
+		bar.Start()
+	}
+
+	ch := make(chan error)
+
+	for _, hash := range missing {
+		go uploadItem(c, hash, index[hash], bar, ch)
+	}
+
+	for range missing {
+		if err := <-ch; err != nil {
+			return err
+		}
+	}
+
+	if total > 0 {
+		bar.Finish()
+	}
+
+	return nil
+}
+
+func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.ProgressBar, ch chan error) {
+	data, err := ioutil.ReadFile(item.Name)
+
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	for i := 0; i < 3; i++ {
+		err = rackClient(c).IndexUpload(hash, data)
+
+		if err != nil {
+			continue
+		}
+
+		bar.Add(item.Size)
+
+		ch <- nil
+		return
+	}
+
+	ch <- fmt.Errorf("max 3 retries on upload")
+	return
+}
+
+func executeBuildDirIncremental(c *cli.Context, dir string, app string, config string) (string, error) {
+	// system, err := rackClient(c).GetSystem()
+
+	// if err != nil {
+	//   return "", err
+	// }
+
+	// fill in with proper version once released
+	// if system.Version < "" {
+	//   return executeBuildDir(c, dir, app, config)
+	// }
+
+	cache := !c.Bool("no-cache")
+
+	dir, err := filepath.Abs(dir)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("Analyzing source... ")
+
+	index, err := createIndex(dir)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("OK")
+
+	fmt.Printf("Uploading changes... ")
+
+	err = uploadIndex(c, index)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("Starting build... ")
+
+	build, err := rackClient(c).CreateBuildIndex(app, index, cache, config)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("OK")
+
+	return finishBuild(c, app, build)
 }
 
 func executeBuildDir(c *cli.Context, dir string, app string, config string) (string, error) {
