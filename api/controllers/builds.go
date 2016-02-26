@@ -186,7 +186,7 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	destApp, err := models.GetApp(dest)
 
 	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such desination app: %s", dest)
+		return httperr.Errorf(404, "no such destination app: %s", dest)
 	}
 
 	destBuild, err := srcBuild.CopyTo(*destApp)
