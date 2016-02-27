@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
@@ -13,6 +14,7 @@ import (
 
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
+	stats := r.URL.Query().Get("stats") == "true"
 
 	_, err := models.GetApp(app)
 
@@ -26,33 +28,37 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	final := models.Processes{}
-
-	if r.URL.Query().Get("stats") != "false" {
-		psch := make(chan models.Process)
-		errch := make(chan error)
+	if stats {
+		w := new(sync.WaitGroup)
+		erch := make(chan error, len(processes))
 
 		for _, p := range processes {
-			p := p
-			go p.FetchStatsAsync(psch, errch)
+			w.Add(1)
+
+			go func(p *models.Process, w *sync.WaitGroup, erch chan error) {
+				err := p.FetchStats()
+
+				w.Done()
+
+				if err != nil {
+					erch <- err
+				}
+			}(p, w, erch)
 		}
 
-		for _, _ = range processes {
-			err := <-errch
+		w.Wait()
 
-			if err != nil {
-				return httperr.Server(err)
-			}
-
-			final = append(final, <-psch)
+		select {
+		case err := <-erch:
+			return httperr.Server(err)
+		default:
+			// noop
 		}
-	} else {
-		final = processes
 	}
 
-	sort.Sort(final)
+	sort.Sort(models.Processes(processes))
 
-	return RenderJson(rw, final)
+	return RenderJson(rw, processes)
 }
 
 func ProcessShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {

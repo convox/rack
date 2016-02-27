@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -35,7 +34,7 @@ type Process struct {
 	taskArn     string   `json:"-"`
 }
 
-type Processes []Process
+type Processes []*Process
 
 func GetAppServices(app string) ([]*ecs.Service, error) {
 	services := []*ecs.Service{}
@@ -75,7 +74,7 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 	return services, nil
 }
 
-func ListProcesses(app string) (Processes, error) {
+func ListProcesses(app string) ([]*Process, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -209,12 +208,12 @@ func ListProcesses(app string) (Processes, error) {
 		}
 	}
 
-	pss := Processes{}
+	pss := make([]*Process, 0)
 
 	for i := 0; i < num; i++ {
 		select {
 		case ps := <-psch:
-			pss = append(pss, ps)
+			pss = append(pss, &ps)
 		case err := <-errch:
 			return nil, err
 		}
@@ -238,13 +237,11 @@ func ListProcesses(app string) (Processes, error) {
 
 	// pss = append(pss, oneoff...)
 
-	sort.Sort(pss)
-
 	return pss, nil
 }
 
-func ListPendingProcesses(app string) (Processes, error) {
-	pss := Processes{}
+func ListPendingProcesses(app string) ([]*Process, error) {
+	pss := make([]*Process, 0)
 
 	services, err := GetAppServices(app)
 
@@ -289,7 +286,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 						}
 					}
 
-					pss = append(pss, ps)
+					pss = append(pss, &ps)
 				}
 			}
 		}
@@ -328,7 +325,7 @@ func ListOneoffProcesses(app string) (Processes, error) {
 		}
 
 		for _, ps := range pss {
-			procs = append(procs, Process{
+			procs = append(procs, &Process{
 				Id:      ps.ID[0:12],
 				Command: ps.Command,
 				Name:    ps.Labels["com.convox.rack.process"],
@@ -438,7 +435,7 @@ func GetProcess(app, id string) (*Process, error) {
 
 	for _, p := range processes {
 		if p.Id == id {
-			return &p, nil
+			return p, nil
 		}
 	}
 
@@ -500,7 +497,14 @@ func (p *Process) FetchStats() error {
 	go d.Stats(options)
 
 	stat := <-stch
-	dnch <- true
+
+	toch := time.After(5 * time.Second)
+	select {
+	case dnch <- true:
+		// nop
+	case <-toch:
+		fmt.Println("timeout closing stats") // TODO: track this ?
+	}
 
 	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
 	psys := stat.PreCPUStats.SystemCPUUsage
@@ -512,11 +516,6 @@ func (p *Process) FetchStats() error {
 	}
 
 	return nil
-}
-
-func (p *Process) FetchStatsAsync(psch chan Process, errch chan error) {
-	errch <- p.FetchStats()
-	psch <- *p
 }
 
 func (p *Process) Stop() error {

@@ -42,9 +42,6 @@ func TestProcessesList(t *testing.T) {
 
 	docker := test.StubDocker(
 		test.ListContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
 		test.StatsCycle(),
 	)
 	defer docker.Close()
@@ -52,7 +49,7 @@ func TestProcessesList(t *testing.T) {
 	// Note: there is a synchronization issue inside the Docker Stats fanout
 	// So while the StatsCycle does work sometimes, the test bypasses stats for now
 	v := url.Values{}
-	v.Add("stats", "false")
+	v.Add("stats", "true")
 	body := test.HTTPBody("GET", "http://convox/apps/myapp-staging/processes", v)
 
 	var resp client.Processes
@@ -60,7 +57,7 @@ func TestProcessesList(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		assert.Equal(t, 1, len(resp))
-		assert.Equal(t, 0.0, resp[0].Memory)
+		assert.Equal(t, 0.0974, resp[0].Memory)
 	}
 }
 
@@ -89,15 +86,12 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 
 	docker := test.StubDocker(
 		test.ListContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
-		test.ListConvoxContainersCycle(),
 		test.StatsCycle(),
 	)
 	defer docker.Close()
 
 	v := url.Values{}
-	v.Add("stats", "false")
+	v.Add("stats", "true")
 	body := test.HTTPBody("GET", "http://convox/apps/myapp-staging/processes", v)
 
 	var resp client.Processes
@@ -105,11 +99,10 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		assert.Equal(t, 2, len(resp))
+		assert.Equal(t, "4932cce0897b", resp[0].Id)
+		assert.Equal(t, 0.0974, resp[0].Memory)
 		assert.Equal(t, "pending", resp[1].Id)
-		//assert.Equal(t, "8dfafdbc3a40", resp[1].Id)
-		//assert.Equal(t, "8dfafdbc3a40", resp[2].Id)
-		//assert.Equal(t, "4932cce0897b", resp[3].Id)
-		//assert.Equal(t, "pending", resp[4].Id)
+		assert.EqualValues(t, 0, resp[1].Memory)
 	}
 }
 
