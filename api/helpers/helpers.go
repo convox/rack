@@ -77,16 +77,13 @@ func TrackEvent(event string, params map[string]interface{}) {
 // Convenience function to track success in a controller handler
 // See also httperr.TrackErrorf and httperr.TrackServer
 func TrackSuccess(event string, params map[string]interface{}) {
-	params["status"] = "success"
-
-	TrackEvent(event, params)
+	TrackEvent(fmt.Sprintf("%s-success", event), params)
 }
 
 func TrackError(event string, err error, params map[string]interface{}) {
-	params["status"] = "error"
 	params["error"] = fmt.Sprintf("%v", err)
 
-	TrackEvent(event, params)
+	TrackEvent(fmt.Sprintf("%s-error", event), params)
 }
 
 func RackId() string {
