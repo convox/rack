@@ -42,7 +42,7 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:  "file, f",
-				Value: "./docker-compose.yml",
+				Value: "docker-compose.yml",
 				Usage: "path to docker-compose.yml",
 			},
 		},
