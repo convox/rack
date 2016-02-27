@@ -34,16 +34,16 @@ func init() {
 			appFlag,
 			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "Do not use Docker cache during build.",
+				Usage: "pull and build from fresh images",
 			},
 			cli.BoolFlag{
-				Name:  "classic",
-				Usage: "Use tarball-style build",
+				Name:  "incremental",
+				Usage: "use incremental builds",
 			},
 			cli.StringFlag{
 				Name:  "file, f",
-				Value: "docker-compose.yml",
-				Usage: "a file to use in place of docker-compose.yml",
+				Value: "./docker-compose.yml",
+				Usage: "path to docker-compose.yml",
 			},
 		},
 	})
@@ -245,10 +245,10 @@ func executeBuild(c *cli.Context, source string, app string, config string) (str
 	case "http", "https":
 		return executeBuildUrl(c, source, app, config)
 	default:
-		if c.Bool("classic") {
-			return executeBuildDir(c, source, app, config)
-		} else {
+		if c.Bool("incremental") {
 			return executeBuildDirIncremental(c, source, app, config)
+		} else {
+			return executeBuildDir(c, source, app, config)
 		}
 	}
 
