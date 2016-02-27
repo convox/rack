@@ -229,10 +229,13 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 }
 
 func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
+	started := time.Now()
+
 	b.Status = "building"
 	err := b.Save()
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.Save"})
 		b.buildError(err, ch)
 		return
 	}
@@ -240,6 +243,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.buildArgs"})
 		b.buildError(err, ch)
 		return
 	}
@@ -249,20 +253,26 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	err = b.execute(args, r, ch)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.execute"})
 		b.buildError(err, ch)
 		return
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
-	helpers.TrackSuccess("Build", "ExecuteLocal")
+	helpers.TrackSuccess("build", map[string]interface{}{"type": "local", "elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 }
 
 func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
+	started := time.Now()
+
 	b.Status = "building"
 	err := b.Save()
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.Save"})
 		b.buildError(err, ch)
 		return
 	}
@@ -270,6 +280,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.buildArgs"})
 		b.buildError(err, ch)
 		return
 	}
@@ -287,22 +298,34 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	err = b.execute(args, nil, ch)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.execute"})
 		b.buildError(err, ch)
 		return
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
-	helpers.TrackSuccess("Build", "ExecuteRemote")
+	helpers.TrackSuccess("build", map[string]interface{}{"type": "remote", "elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 }
 
 func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan error) {
+	started := time.Now()
+
 	b.Status = "building"
-	b.Save()
+	err := b.Save()
+
+	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.Save"})
+		b.buildError(err, ch)
+		return
+	}
 
 	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "b.buildArgs"})
 		b.buildError(err, ch)
 		return
 	}
@@ -310,6 +333,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	dir, err := ioutil.TempDir("", "source")
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "ioutil.TempDir"})
 		b.buildError(err, ch)
 		return
 	}
@@ -317,6 +341,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	err = os.Chmod(dir, 0755)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "os.Chmod"})
 		b.buildError(err, ch)
 		return
 	}
@@ -324,6 +349,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	err = index.Download(dir)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "index.Download"})
 		b.buildError(err, ch)
 		return
 	}
@@ -331,6 +357,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	tgz, err := createTarball(dir)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "createTarball"})
 		b.buildError(err, ch)
 		return
 	}
@@ -340,16 +367,21 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	err = b.execute(args, bytes.NewReader(tgz), ch)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "b.execute"})
 		b.buildError(err, ch)
 		return
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteIndex state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
-	helpers.TrackSuccess("Build", "ExecuteIndex")
+	helpers.TrackSuccess("build", map[string]interface{}{"type": "index", "elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 }
 
 func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
+	started := time.Now()
+
 	srcApp, err := GetApp(srcBuild.App)
 
 	if err != nil {
@@ -452,8 +484,10 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 		return nil, err
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:copy", map[string]string{"id": destBuild.Id, "app": destBuild.App})
-	helpers.TrackSuccess("Build", "Copy")
+	helpers.TrackSuccess("build-copy", map[string]interface{}{"elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 
 	return &destBuild, nil
 }
