@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stvp/rollbar"
-	"github.com/convox/rack/api/helpers"
 )
 
 const ErrorHandlerSkipLines = 7
@@ -39,32 +38,6 @@ func Server(err error) *Error {
 
 func Errorf(code int, format string, args ...interface{}) *Error {
 	return New(code, fmt.Errorf(format, args...))
-}
-
-// Convenience function to track an internal server error in a controller handler
-// See also helpers.TrackSuccess
-func TrackServer(handler string, at string, err error) *Error {
-	helpers.TrackEvent(
-		fmt.Sprintf("api-%s-error", handler),
-		map[string]interface{}{
-			"at": at,
-		},
-	)
-
-	return Server(err)
-}
-
-// Convenience function to track a user error (warning) in a controller handler
-// See also helpers.TrackSuccess
-func TrackErrorf(handler string, at string, code int, format string, args ...interface{}) *Error {
-	helpers.TrackEvent(
-		fmt.Sprintf("api-%s-warning", handler),
-		map[string]interface{}{
-			"at": at,
-		},
-	)
-
-	return Errorf(code, format, args...)
 }
 
 func (e *Error) Code() int {

@@ -229,6 +229,8 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 }
 
 func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
+	started := time.Now()
+
 	b.Status = "building"
 	err := b.Save()
 
@@ -253,12 +255,16 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 		return
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteLocal state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
-	helpers.TrackSuccess("Build", "ExecuteLocal")
+	helpers.TrackSuccess("build", map[string]interface{}{"type": "local", "elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 }
 
 func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
+	started := time.Now()
+
 	b.Status = "building"
 	err := b.Save()
 
@@ -291,12 +297,16 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 		return
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteRemote state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
-	helpers.TrackSuccess("Build", "ExecuteRemote")
+	helpers.TrackSuccess("build", map[string]interface{}{"type": "remote", "elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 }
 
 func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan error) {
+	started := time.Now()
+
 	b.Status = "building"
 	b.Save()
 
@@ -344,12 +354,16 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 		return
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:create", map[string]string{"id": b.Id, "app": b.App})
 	fmt.Printf("ns=kernel cn=build at=ExecuteIndex state=success step=build.execute app=%q build=%q\n", b.App, b.Id)
-	helpers.TrackSuccess("Build", "ExecuteIndex")
+	helpers.TrackSuccess("build", map[string]interface{}{"type": "index", "elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 }
 
 func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
+	started := time.Now()
+
 	srcApp, err := GetApp(srcBuild.App)
 
 	if err != nil {
@@ -452,8 +466,10 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 		return nil, err
 	}
 
+	elapsed := time.Now().Sub(started)
+
 	NotifySuccess("build:copy", map[string]string{"id": destBuild.Id, "app": destBuild.App})
-	helpers.TrackSuccess("Build", "Copy")
+	helpers.TrackSuccess("build-copy", map[string]interface{}{"elapsed": fmt.Sprintf("%0.2f", elapsed.Seconds())})
 
 	return &destBuild, nil
 }
