@@ -368,7 +368,7 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 
 	for _, p := range pss {
 		if p.Id == pid {
-			ps = p
+			ps = *p
 			break
 		}
 	}
