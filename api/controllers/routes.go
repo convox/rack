@@ -61,6 +61,10 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/system/releases", api("system.release.list", SystemReleaseList)).Methods("GET")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
 
+	// gitproxy
+	// router.PathPrefix("/apps/{app}/repo").HandlerFunc(GitProxy)
+	router.HandleFunc(`/apps/{app}/repo{rest:[a-zA-Z0-9=\-\/]+}`, GitProxy)
+
 	// websockets
 	router.Handle("/apps/{app}/logs", ws("app.logs", AppLogs)).Methods("GET")
 	router.Handle("/apps/{app}/builds/{build}/logs", ws("build.logs", BuildLogs)).Methods("GET")
