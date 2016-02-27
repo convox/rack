@@ -432,8 +432,8 @@ func executeBuildDirIncremental(c *cli.Context, dir string, app string, config s
 		return "", err
 	}
 
-	// will change this with a new fixed release number
-	if true || system.Version < "" {
+	// if the rack doesnt support incremental builds then fall back
+	if system.Version < "20160226234213" {
 		return executeBuildDir(c, dir, app, config)
 	}
 
