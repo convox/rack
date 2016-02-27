@@ -7,7 +7,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -94,8 +93,12 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 		}
 
 		if ec2Instance != nil {
+			if ec2Instance.PrivateIpAddress != nil {
+				instance.PrivateIp = *ec2Instance.PrivateIpAddress
+			}
+
 			if ec2Instance.PublicIpAddress != nil {
-				instance.Ip = *ec2Instance.PublicIpAddress
+				instance.PublicIp = *ec2Instance.PublicIpAddress
 			}
 
 			if ec2Instance.LaunchTime != nil {
@@ -115,10 +118,4 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	return instances, nil
-}
-
-/** helpers *****************************************************************************************/
-
-func instanceDocker(instance structs.Instance) (*docker.Client, error) {
-	return docker.NewClient(instance.Ip)
 }

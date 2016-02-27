@@ -227,15 +227,13 @@ func ListProcesses(app string) ([]*Process, error) {
 
 	pss = append(pss, pending...)
 
-	// This codepath gets the wrong IP for the Docker host
-	// It should get the internal IP running on AWS
-	// oneoff, err := ListOneoffProcesses(app)
+	oneoff, err := ListOneoffProcesses(app)
 
-	// if err != nil {
-	// 	return nil, err
-	// }
+	if err != nil {
+		return nil, err
+	}
 
-	// pss = append(pss, oneoff...)
+	pss = append(pss, oneoff...)
 
 	return pss, nil
 }
@@ -305,7 +303,7 @@ func ListOneoffProcesses(app string) (Processes, error) {
 	procs := Processes{}
 
 	for _, instance := range instances {
-		d, err := Docker(instance.Ip)
+		d, err := instance.DockerClient()
 
 		if err != nil {
 			return nil, err
