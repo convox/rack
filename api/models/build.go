@@ -235,6 +235,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	err := b.Save()
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.Save"})
 		b.buildError(err, ch)
 		return
 	}
@@ -242,6 +243,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.buildArgs"})
 		b.buildError(err, ch)
 		return
 	}
@@ -251,6 +253,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	err = b.execute(args, r, ch)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.execute"})
 		b.buildError(err, ch)
 		return
 	}
@@ -269,6 +272,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	err := b.Save()
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.Save"})
 		b.buildError(err, ch)
 		return
 	}
@@ -276,6 +280,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.buildArgs"})
 		b.buildError(err, ch)
 		return
 	}
@@ -293,6 +298,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	err = b.execute(args, nil, ch)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.execute"})
 		b.buildError(err, ch)
 		return
 	}
@@ -308,11 +314,18 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	started := time.Now()
 
 	b.Status = "building"
-	b.Save()
+	err := b.Save()
+
+	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.Save"})
+		b.buildError(err, ch)
+		return
+	}
 
 	args, err := b.buildArgs(cache, config)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "b.buildArgs"})
 		b.buildError(err, ch)
 		return
 	}
@@ -320,6 +333,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	dir, err := ioutil.TempDir("", "source")
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "ioutil.TempDir"})
 		b.buildError(err, ch)
 		return
 	}
@@ -327,6 +341,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	err = os.Chmod(dir, 0755)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "os.Chmod"})
 		b.buildError(err, ch)
 		return
 	}
@@ -334,6 +349,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	err = index.Download(dir)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "index.Download"})
 		b.buildError(err, ch)
 		return
 	}
@@ -341,6 +357,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	tgz, err := createTarball(dir)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "createTarball"})
 		b.buildError(err, ch)
 		return
 	}
@@ -350,6 +367,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 	err = b.execute(args, bytes.NewReader(tgz), ch)
 
 	if err != nil {
+		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "b.execute"})
 		b.buildError(err, ch)
 		return
 	}
