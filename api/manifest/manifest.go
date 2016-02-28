@@ -207,7 +207,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 				return []error{err}
 			}
 			if _, ok := builds[sym]; !ok {
-				builds[sym] = randomString(10)
+				builds[sym] = randomString("convox-start-",10)
 			}
 
 			tags[tag] = builds[sym]
@@ -782,12 +782,12 @@ func runPrefix(prefix, executable string, args ...string) error {
 
 var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
 
-func randomString(size int) string {
+func randomString(prefix string, size int) string {
 	b := make([]rune, size)
 	for i := range b {
 		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
 	}
-	return string(b)
+	return prefix + string(b)
 }
 
 var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
