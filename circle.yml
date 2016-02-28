@@ -4,29 +4,33 @@ machine:
 
 dependencies:
   pre:
-    - ci/track.sh ci/dependencies-pre.sh
+    - ci/dependencies-pre.sh
 
 test:
   pre:
-    - ci/track.sh ci/install.sh:
+    - ci/install.sh:
         parallel: true
   override:
-    - ci/track.sh ci/tests/example-app httpd:
+    - ci/tests/example-app httpd:
         parallel: true
-    - ci/track.sh ci/tests/example-app node-workers:
+    - ci/tests/example-app node-workers:
         parallel: true
   post:
-    - ci/track.sh ci/report.sh:
+    - ci/report.sh:
         parallel: true
-    - ci/track.sh ci/delete-all-apps.sh:
+    - ci/delete-all-apps.sh:
         parallel: true
-    - ci/track.sh ci/uninstall.sh:
+    - ci/uninstall.sh:
         parallel: true
-    - ci/track.sh ci/cleanup.sh:
+    - ci/cleanup.sh:
         parallel: true
 
 deployment:
   release:
     branch: master
     commands:
-      - ci/track.sh ci/release.sh
+      - ci/release.sh
+
+notify:
+  webhooks:
+    - url: https://release.convox.com/circleci/build/rack
