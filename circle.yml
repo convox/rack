@@ -33,4 +33,4 @@ deployment:
 
 notify:
   webhooks:
-    - url: https://release.convox.com/circleci/build
+    - url: https://release.convox.com/circleci/build/rack
