@@ -207,7 +207,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 				return []error{err}
 			}
 			if _, ok := builds[sym]; !ok {
-				builds[sym] = randomString("convox-build-",10)
+				builds[sym] = randomString("convox-start-",10)
 			}
 
 			tags[tag] = builds[sym]
@@ -785,11 +785,7 @@ var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
 func randomString(prefix string, size int) string {
 	b := make([]rune, size)
 	for i := range b {
-		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(randomAlphabet))))
-		if err != nil {
-			panic(err)
-		}
-		b[i] = randomAlphabet[idx.Int64()]
+		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
 	}
 	return prefix + string(b)
 }
