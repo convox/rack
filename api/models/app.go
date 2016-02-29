@@ -651,6 +651,7 @@ func (a *App) RunDetached(process, command string) error {
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
 		Count:          aws.Int64(1),
+		StartedBy:      aws.String("convox"),
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
 	}
 
@@ -671,11 +672,7 @@ func (a *App) RunDetached(process, command string) error {
 
 	_, err = ECS().RunTask(req)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (a *App) TaskDefinitionFamily() string {
