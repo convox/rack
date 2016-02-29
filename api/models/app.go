@@ -472,14 +472,10 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
-	release, err := a.LatestRelease()
+	release, err := GetRelease(a.Name, a.Release)
 
 	if err != nil {
 		return err
-	}
-
-	if release == nil {
-		return fmt.Errorf("no releases for app: %s", a.Name)
 	}
 
 	manifest, err := LoadManifest(release.Manifest, a)
@@ -585,6 +581,7 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 				"com.convox.rack.type":    "oneoff",
 				"com.convox.rack.app":     a.Name,
 				"com.convox.rack.process": process,
+				"com.convox.rack.release": release.Id,
 			},
 		},
 		HostConfig: &docker.HostConfig{
