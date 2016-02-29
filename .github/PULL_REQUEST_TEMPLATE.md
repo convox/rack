@@ -1,0 +1,12 @@
+## Release Playbook
+- [ ] Rebase against master
+- [ ] Pass checks
+- [ ] Release branch ()
+- [ ] Pass CI ()
+- [ ] Code review
+- [ ] Merge into master
+- [ ] Release master ()
+- [ ] Pass CI ()
+- [ ] Update dev and testing racks
+- [ ] Publish release
+- [ ] Release CLI
