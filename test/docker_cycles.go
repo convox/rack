@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/config"
 )
 
 /*
@@ -23,7 +22,6 @@ func StubDocker(cycles ...awsutil.Cycle) (s *httptest.Server) {
 	handler := awsutil.NewHandler(cycles)
 	s = httptest.NewServer(handler)
 
-	config.TestConfig.DockerHost = s.URL
 	os.Setenv("TEST_DOCKER_HOST", s.URL)
 
 	return s
