@@ -26,7 +26,7 @@ func ListFormation(app string) (Formation, error) {
 		return nil, err
 	}
 
-	release, err := a.LatestRelease()
+	release, err := GetRelease(a.Name, a.Release)
 
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func SetFormation(app, process string, count, memory int64) error {
 		return err
 	}
 
-	rel, err := a.LatestRelease()
+	rel, err := GetRelease(a.Name, a.Release)
 
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func SetFormation(app, process string, count, memory int64) error {
 
 	params := map[string]string{}
 
-	if count > 0 {
+	if count >= 0 {
 		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = fmt.Sprintf("%d", count)
 	}
 
