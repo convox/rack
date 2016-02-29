@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -31,10 +32,22 @@ func (ir InstanceResource) PercentUsed() float64 {
 	return float64(ir.Used) / float64(ir.Total)
 }
 
-func (i *Instance) DockerClient() (*docker.Client, error) {
+func (i *Instance) Ip() string {
 	if os.Getenv("DEVELOPMENT") == "true" {
-		return docker.NewClient(i.PublicIp)
+		return i.PublicIp
 	}
 
-	return docker.NewClient(i.PrivateIp)
+	return i.PrivateIp
+}
+
+func (i *Instance) DockerHost() string {
+	if h := os.Getenv("TEST_DOCKER_HOST"); h != "" {
+		return h
+	}
+
+	return fmt.Sprintf("http://%s:2376", i.Ip())
+}
+
+func (i *Instance) DockerClient() (*docker.Client, error) {
+	return docker.NewClient(i.DockerHost())
 }
