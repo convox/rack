@@ -115,6 +115,12 @@ func init() {
 				Usage:  "email address to receive project updates",
 			},
 			cli.StringFlag{
+				Name:   "password",
+				EnvVar: "PASSWORD",
+				Value: randomString(30),
+				Usage:  "custom password for rack",
+			},
+			cli.StringFlag{
 				Name:   "version",
 				EnvVar: "VERSION",
 				Value:  "latest",
@@ -324,7 +330,7 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("(Private Network Edition)")
 	}
 
-	password := randomString(30)
+	password := c.String("password")
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
 
