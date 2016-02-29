@@ -41,13 +41,19 @@ func TestProcessesList(t *testing.T) {
 	defer aws.Close()
 
 	docker := test.StubDocker(
-		test.ListContainersCycle(),
+		// query for every ECS task to get docker id, command, created
+		test.ListECSContainersCycle(),
+
+		// query every instance for one-off containers
+		test.ListEmptyOneoffContainersCycle(),
+		test.ListEmptyOneoffContainersCycle(),
+		test.ListEmptyOneoffContainersCycle(),
+
+		// query for every container to get CPU and Memory stats
 		test.StatsCycle(),
 	)
 	defer docker.Close()
 
-	// Note: there is a synchronization issue inside the Docker Stats fanout
-	// So while the StatsCycle does work sometimes, the test bypasses stats for now
 	v := url.Values{}
 	v.Add("stats", "true")
 	body := test.HTTPBody("GET", "http://convox/apps/myapp-staging/processes", v)
@@ -85,7 +91,15 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	defer aws.Close()
 
 	docker := test.StubDocker(
-		test.ListContainersCycle(),
+		// query for every ECS task to get docker id, command, created
+		test.ListECSContainersCycle(),
+
+		// query every instance for one-off containers
+		test.ListEmptyOneoffContainersCycle(),
+		test.ListEmptyOneoffContainersCycle(),
+		test.ListEmptyOneoffContainersCycle(),
+
+		// query for every container to get CPU and Memory stats
 		test.StatsCycle(),
 	)
 	defer docker.Close()
