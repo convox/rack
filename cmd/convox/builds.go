@@ -38,12 +38,12 @@ func init() {
 			},
 			cli.BoolFlag{
 				Name:  "incremental",
-				Usage: "use incremental builds",
+				Usage: "use incremental build",
 			},
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
-				Usage: "path to docker-compose.yml",
+				Usage: "location of docker-compose.yml",
 			},
 		},
 	})
