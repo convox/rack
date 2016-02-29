@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 )
@@ -23,6 +24,10 @@ var (
 )
 
 func Get(collection string, key interface{}) interface{} {
+	if os.Getenv("PROVIDER") == "test" {
+		return nil
+	}
+
 	hash, err := hashKey(key)
 
 	if err != nil {
