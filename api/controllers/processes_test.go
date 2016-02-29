@@ -33,6 +33,7 @@ func TestProcessesList(t *testing.T) {
 
 		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
+		test.ListTasksOneoffEmptyCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 
 		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
@@ -82,6 +83,7 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 
 		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
+		test.ListTasksOneoffEmptyCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 
 		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
@@ -136,6 +138,7 @@ func TestProcessesListWithAttached(t *testing.T) {
 
 		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
 		test.DescribeTasksCycle("convox-test-cluster"),
+		test.ListTasksOneoffEmptyCycle("convox-test-cluster"),
 		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
 
 		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
@@ -164,6 +167,58 @@ func TestProcessesListWithAttached(t *testing.T) {
 		assert.Equal(t, 2, len(resp))
 		assert.Equal(t, "/bin/sh -c bash", resp[0].Command)
 		assert.Equal(t, "echo 1", resp[1].Command)
+	}
+}
+
+func TestProcessesListWithDetached(t *testing.T) {
+	os.Setenv("RACK", "convox-test")
+	os.Setenv("CLUSTER", "convox-test-cluster")
+
+	aws := test.StubAws(
+		test.DescribeAppStackCycle("convox-test-myapp-staging"),
+		test.DescribeAppStackCycle("convox-test-myapp-staging"),
+		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
+
+		test.ListContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeContainerInstancesCycle("convox-test-cluster"),
+		test.DescribeInstancesCycle(),
+
+		test.ListTasksCycle("convox-test-cluster", "convox-test-myapp-staging-worker-SCELGCIYSKF"),
+		test.DescribeTasksCycle("convox-test-cluster"),
+		test.ListTasksOneoffCycle("convox-test-cluster"),
+		test.DescribeTasksOneoffCycle("convox-test-cluster"),
+		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
+		test.DescribeTaskDefinitionCycle("convox-test-cluster"),
+
+		test.DescribeAppStackResourcesCycle("convox-test-myapp-staging"),
+		test.DescribeServicesCycle("convox-test-cluster"),
+	)
+	defer aws.Close()
+
+	docker := test.StubDocker(
+		// query for every ECS task to get docker id, command, created
+		test.ListECSContainersCycle(),
+		test.ListECSOneoffContainersCycle(),
+
+		// query every instance for one-off containers
+		test.ListOneoffContainersEmptyCycle(),
+		test.ListOneoffContainersEmptyCycle(),
+		test.ListOneoffContainersEmptyCycle(),
+
+		// query for every container to get CPU and Memory stats
+		test.StatsCycle(),
+	)
+	defer docker.Close()
+
+	body := test.HTTPBody("GET", "http://convox/apps/myapp-staging/processes", url.Values{})
+
+	var resp client.Processes
+	err := json.Unmarshal([]byte(body), &resp)
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, 2, len(resp))
+		assert.Equal(t, "echo 1", resp[0].Command)
+		assert.Equal(t, "/bin/sh -c yes", resp[1].Command)
 	}
 }
 
