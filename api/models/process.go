@@ -131,6 +131,9 @@ func ListProcesses(app string) ([]*Process, error) {
 	errch := make(chan error)
 	num := 0
 
+	tasks := []*ecs.Task{}
+
+	// Describe Service Tasks
 	for _, service := range services {
 		taskArns, err := ECS().ListTasks(&ecs.ListTasksInput{
 			Cluster:     aws.String(os.Getenv("CLUSTER")),
@@ -145,7 +148,7 @@ func ListProcesses(app string) ([]*Process, error) {
 			continue
 		}
 
-		tasks, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
+		ts, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(os.Getenv("CLUSTER")),
 			Tasks:   taskArns.TaskArns,
 		})
@@ -154,56 +157,82 @@ func ListProcesses(app string) ([]*Process, error) {
 			return nil, err
 		}
 
-		for _, task := range tasks.Tasks {
-			td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-				TaskDefinition: task.TaskDefinitionArn,
-			})
+		tasks = append(tasks, ts.Tasks...)
+	}
 
-			if err != nil {
-				return nil, err
+	// Describe one-off Tasks
+	lreq, err := ECS().ListTasks(&ecs.ListTasksInput{
+		Cluster:   aws.String(os.Getenv("CLUSTER")),
+		StartedBy: aws.String("convox"),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(lreq.TaskArns) > 0 {
+		dreq, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+			Tasks:   lreq.TaskArns,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, dreq.Tasks...)
+	}
+
+	// Collect information for all ECS Tasks
+	for _, task := range tasks {
+		td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: task.TaskDefinitionArn,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		var ci *ecs.ContainerInstance
+		var ec2i *ec2.Instance
+
+		for _, i := range dres.ContainerInstances {
+			if *i.ContainerInstanceArn == *task.ContainerInstanceArn {
+				ci = i
+				break
 			}
+		}
 
-			var ci *ecs.ContainerInstance
-			var ec2i *ec2.Instance
+		if ci == nil {
+			return nil, fmt.Errorf("could not find ECS instance")
+		}
 
-			for _, i := range dres.ContainerInstances {
-				if *i.ContainerInstanceArn == *task.ContainerInstanceArn {
-					ci = i
+		for _, r := range ires.Reservations {
+			for _, i := range r.Instances {
+				if *ci.Ec2InstanceId == *i.InstanceId {
+					ec2i = i
+					break
+				}
+			}
+		}
+
+		if ec2i == nil {
+			return nil, fmt.Errorf("could not find EC2 instance")
+		}
+
+		for _, cd := range td.TaskDefinition.ContainerDefinitions {
+			var cc *ecs.Container
+
+			for _, c := range task.Containers {
+				if *c.Name == *cd.Name {
+					cc = c
 					break
 				}
 			}
 
-			if ci == nil {
-				return nil, fmt.Errorf("could not find ECS instance")
-			}
+			go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, *ci, *ec2i, psch, errch)
 
-			for _, r := range ires.Reservations {
-				for _, i := range r.Instances {
-					if *ci.Ec2InstanceId == *i.InstanceId {
-						ec2i = i
-						break
-					}
-				}
-			}
-
-			if ec2i == nil {
-				return nil, fmt.Errorf("could not find EC2 instance")
-			}
-
-			for _, cd := range td.TaskDefinition.ContainerDefinitions {
-				var cc *ecs.Container
-
-				for _, c := range task.Containers {
-					if *c.Name == *cd.Name {
-						cc = c
-						break
-					}
-				}
-
-				go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, *ci, *ec2i, psch, errch)
-
-				num += 1
-			}
+			num += 1
 		}
 	}
 
