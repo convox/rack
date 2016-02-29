@@ -21,7 +21,6 @@ func init() {
 func TestProcessesList(t *testing.T) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
-	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),
@@ -71,7 +70,6 @@ func TestProcessesList(t *testing.T) {
 func TestGetProcessesWithDeployments(t *testing.T) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
-	os.Setenv("TEST", "true")
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),

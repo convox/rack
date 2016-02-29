@@ -11,7 +11,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	"github.com/convox/rack/api/config"
 	"github.com/convox/rack/api/provider"
 )
 
@@ -490,8 +489,8 @@ func (p *Process) Docker() (*docker.Client, error) {
 		return nil, ErrPending
 	}
 
-	if os.Getenv("TEST") == "true" {
-		return Docker(config.TestConfig.DockerHost)
+	if h := os.Getenv("TEST_DOCKER_HOST"); h != "" {
+		return Docker(h)
 	}
 
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
