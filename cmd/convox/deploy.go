@@ -17,16 +17,16 @@ func init() {
 			appFlag,
 			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "Do not use Docker cache during build.",
+				Usage: "pull and build from fresh images",
 			},
 			cli.BoolFlag{
-				Name:  "classic",
-				Usage: "Use tarball-style build",
+				Name:  "incremental",
+				Usage: "use incremental build",
 			},
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
-				Usage: "a file to use in place of docker-compose.yml",
+				Usage: "location of docker-compose.yml",
 			},
 		},
 	})
