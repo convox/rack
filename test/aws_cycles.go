@@ -180,6 +180,34 @@ func ListTasksCycle(clusterName, serviceName string) awsutil.Cycle {
 	}
 }
 
+func ListTasksOneoffEmptyCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+			Body:       `{"cluster":"` + clusterName + `","startedBy":"convox"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"taskArns":[]}`,
+		},
+	}
+}
+
+func ListTasksOneoffCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+			Body:       `{"cluster":"` + clusterName + `","startedBy":"convox"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"taskArns":["arn:aws:ecs:us-east-1:901416387788:task/dbf4506f-6e57-44d5-9cfe-bc6ea10dbacc"]}`,
+		},
+	}
+}
+
 func DescribeTasksCycle(clusterName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		Request: awsutil.Request{
@@ -190,6 +218,20 @@ func DescribeTasksCycle(clusterName string) awsutil.Cycle {
 		Response: awsutil.Response{
 			StatusCode: 200,
 			Body:       `{"tasks":[{"containerInstanceArn":"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","containers":[{"containerArn":"arn:aws:ecs:us-east-1:901416387788:container/821cc6e1-b120-422c-9092-4932cce0897b","name":"worker"}], "taskArn":"arn:aws:ecs:us-east-1:901416387788:task/320a8b6a-c243-47d3-a1d1-6db5dfcb3f58","taskDefinitionArn":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:3","lastStatus":"RUNNING"}]}`,
+		},
+	}
+}
+
+func DescribeTasksOneoffCycle(clusterName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+			Body:       `{"cluster":"` + clusterName + `","tasks":["arn:aws:ecs:us-east-1:901416387788:task/dbf4506f-6e57-44d5-9cfe-bc6ea10dbacc"]}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body:       `{"tasks":[{"containerInstanceArn":"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","containers":[{"containerArn":"arn:aws:ecs:us-east-1:901416387788:container/821cc6e1-b120-422c-9092-4932cce0897b","name":"worker"}], "taskArn":"arn:aws:ecs:us-east-1:901416387788:task/dbf4506f-6e57-44d5-9cfe-bc6ea10dbacc","taskDefinitionArn":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:3","lastStatus":"RUNNING"}]}`,
 		},
 	}
 }
