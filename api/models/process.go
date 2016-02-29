@@ -331,14 +331,16 @@ func ListOneoffProcesses(app string) (Processes, error) {
 			}
 
 			procs = append(procs, &Process{
-				Id:          ps.ID[0:12],
+				Id:      ps.ID[0:12],
+				Command: ps.Command,
+				Host:    instance.Ip(),
+				Name:    ps.Labels["com.convox.rack.process"],
+				Release: ps.Labels["com.convox.rack.release"],
+				Size:    c.HostConfig.Memory,
+				Started: time.Unix(ps.Created, 0),
+
 				containerId: ps.ID,
-				Command:     ps.Command,
-				Host:        instance.Ip(),
-				Name:        ps.Labels["com.convox.rack.process"],
-				Release:     ps.Labels["com.convox.rack.release"],
-				Size:        c.HostConfig.Memory,
-				Started:     time.Unix(ps.Created, 0),
+				taskArn:     "", // empty taskArn indicated Docker container, not ECS task
 			})
 		}
 	}
@@ -435,6 +437,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 }
 
 func GetProcess(app, id string) (*Process, error) {
+	// Find ECS Task
 	processes, err := ListProcesses(app)
 
 	if err != nil {
@@ -442,6 +445,19 @@ func GetProcess(app, id string) (*Process, error) {
 	}
 
 	for _, p := range processes {
+		if p.Id == id {
+			return p, nil
+		}
+	}
+
+	// Find one-off Docker process
+	oneoff, err := ListOneoffProcesses(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range oneoff {
 		if p.Id == id {
 			return p, nil
 		}
@@ -527,22 +543,26 @@ func (p *Process) FetchStats() error {
 }
 
 func (p *Process) Stop() error {
-	if p.taskArn == "" {
-		return fmt.Errorf("can not stop one-off processes")
+	// Stop ECS Task
+	if p.taskArn != "" {
+		req := &ecs.StopTaskInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+			Task:    aws.String(p.taskArn),
+		}
+
+		_, err := ECS().StopTask(req)
+
+		return err
 	}
 
-	req := &ecs.StopTaskInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Task:    aws.String(p.taskArn),
-	}
-
-	_, err := ECS().StopTask(req)
+	// Stop one-off Docker process
+	d, err := p.Docker()
 
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return d.StopContainer(p.containerId, 10)
 }
 
 // from https://github.com/docker/docker/blob/master/api/client/stats.go
