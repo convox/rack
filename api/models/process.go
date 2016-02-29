@@ -323,12 +323,22 @@ func ListOneoffProcesses(app string) (Processes, error) {
 		}
 
 		for _, ps := range pss {
+
+			c, err := d.InspectContainer(ps.ID)
+
+			if err != nil {
+				return nil, err
+			}
+
 			procs = append(procs, &Process{
-				Id:      ps.ID[0:12],
-				Command: ps.Command,
-				Name:    ps.Labels["com.convox.rack.process"],
-				Release: ps.Labels["com.convox.rack.release"],
-				Started: time.Unix(ps.Created, 0),
+				Id:          ps.ID[0:12],
+				containerId: ps.ID,
+				Command:     ps.Command,
+				Host:        instance.Ip(),
+				Name:        ps.Labels["com.convox.rack.process"],
+				Release:     ps.Labels["com.convox.rack.release"],
+				Size:        c.HostConfig.Memory,
+				Started:     time.Unix(ps.Created, 0),
 			})
 		}
 	}
