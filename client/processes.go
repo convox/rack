@@ -40,6 +40,18 @@ func (c *Client) GetProcesses(app string, stats bool) (Processes, error) {
 	return processes, nil
 }
 
+func (c *Client) GetProcess(app, id string) (*Process, error) {
+	var process Process
+
+	err := c.Get(fmt.Sprintf("/apps/%s/processes/%s", app, id), &process)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &process, nil
+}
+
 func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out io.WriteCloser, height, width int) (int, error) {
 	r, w := io.Pipe()
 
