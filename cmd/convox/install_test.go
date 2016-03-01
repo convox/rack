@@ -76,10 +76,10 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox install --stack-name Invalid",
-			Exit:    0,
+			Exit:    1,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"BAR","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  `ERROR: Stack name is invalid, must match (?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*`,
+			Stderr:  `ERROR: Stack name is invalid, must match (?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*`,
 		},
 	)
 }
