@@ -66,6 +66,10 @@ func ListReleases(app string) (Releases, error) {
 }
 
 func GetRelease(app, id string) (*Release, error) {
+	if id == "" {
+		return nil, fmt.Errorf("no release id")
+	}
+
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
