@@ -200,15 +200,21 @@ func cmdInstall(c *cli.Context) {
 	}
 
 	stackName := c.String("stack-name")
-	ecrRegex := "(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*"
-	//regex found here:
-	//http://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_CreateRepository.html
-	rp := regexp.MustCompile(ecrRegex)
-	matchedStr := rp.FindString(stackName)
-	match := len(matchedStr) == len(stackName)
+	awsRegexRules := []string{
+		//ecr: http://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_CreateRepository.html
+		"(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*",
+		//cloud formation: https://forums.aws.amazon.com/thread.jspa?threadID=118427
+		"[a-zA-Z][-a-zA-Z0-9]*",
+	}
 
-	if !match {
-		stdcli.Error(fmt.Errorf("Stack name is invalid, must match %s", ecrRegex))
+	for _, r := range awsRegexRules {
+		rp := regexp.MustCompile(r)
+		matchedStr := rp.FindString(stackName)
+		match := len(matchedStr) == len(stackName)
+
+		if !match {
+			stdcli.Error(fmt.Errorf("Stack name is invalid, must match %s", r))
+		}
 	}
 
 	tenancy := "default"
