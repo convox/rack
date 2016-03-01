@@ -26,14 +26,14 @@ func ListFormation(app string) (Formation, error) {
 		return nil, err
 	}
 
+	if a.Release == "" {
+		return Formation{}, nil
+	}
+
 	release, err := GetRelease(a.Name, a.Release)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if release == nil {
-		return Formation{}, nil
 	}
 
 	manifest, err := LoadManifest(release.Manifest, a)
