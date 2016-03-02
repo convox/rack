@@ -729,12 +729,14 @@ definitions:
         type: number
       id:
         type: string
-      ip:
-        type: string
       memory:
         type: number
+      private-ip:
+        type: string
       processes:
         type: number
+      public-ip:
+        type: string
       status:
         type: string
   parameters:

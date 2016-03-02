@@ -13,9 +13,9 @@ type Instance struct {
 	Cpu       float64   `json:"cpu"`
 	Id        string    `json:"id"`
 	Memory    float64   `json:"memory"`
-	PrivateIp string    `json:"private_ip"`
+	PrivateIp string    `json:"private-ip"`
 	Processes int       `json:"processes"`
-	PublicIp  string    `json:"public_ip"`
+	PublicIp  string    `json:"public-ip"`
 	Status    string    `json:"status"`
 	Started   time.Time `json:"started"`
 }
