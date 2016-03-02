@@ -58,7 +58,7 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	// Early check for unbound service only.
 	service, err := models.GetServiceUnbound(name)
 
-	if err != nil {
+	if err == nil {
 		return httperr.Errorf(403, "there is already a legacy service named %s (%s). We recommend you delete this service and create it again.", name, service.Status)
 	}
 
