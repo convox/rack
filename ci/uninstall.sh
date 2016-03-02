@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -ex -o pipefail
 
 export CIRCLE_ARTIFACTS=${CIRCLE_ARTIFACTS:-/tmp}
 export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}

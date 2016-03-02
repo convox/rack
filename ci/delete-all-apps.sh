@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -ex -o pipefail
 
 # Helpers to wait for stack and deployment status
 # Timeout after 10m
