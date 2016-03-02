@@ -9,10 +9,13 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
@@ -280,9 +283,9 @@ func (c *Client) DeleteResponse(path string, out interface{}) (*http.Response, e
 
 func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.WriteCloser) error {
 	origin := fmt.Sprintf("https://%s", c.Host)
-	url := fmt.Sprintf("wss://%s%s", c.Host, path)
+	endpoint := fmt.Sprintf("wss://%s%s", c.Host, path)
 
-	config, err := websocket.NewConfig(url, origin)
+	config, err := websocket.NewConfig(endpoint, origin)
 
 	if err != nil {
 		return err
@@ -307,10 +310,16 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 		InsecureSkipVerify: true,
 	}
 
-	ws, err := websocket.DialConfig(config)
+	var ws *websocket.Conn
 
-	if err != nil {
-		return err
+	if proxy := os.Getenv("HTTPS_PROXY"); proxy != "" {
+		ws, err = c.proxyWebsocket(config, proxy)
+	} else {
+		ws, err = websocket.DialConfig(config)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	defer ws.Close()
@@ -364,6 +373,60 @@ func (c *Client) request(method, path string, body io.Reader) (*http.Request, er
 	req.Header.Add("Version", c.Version)
 
 	return req, nil
+}
+
+func (c *Client) proxyWebsocket(config *websocket.Config, proxy string) (*websocket.Conn, error) {
+	u, err := url.Parse(proxy)
+
+	if err != nil {
+		return nil, err
+	}
+
+	host := u.Host
+
+	if !strings.Contains(host, ":") {
+		host += ":443"
+	}
+
+	conn, err := net.DialTimeout("tcp", u.Host, 3*time.Second)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = conn.Write([]byte(fmt.Sprintf("CONNECT %s:443 HTTP/1.1\r\n", c.Host))); err != nil {
+		return nil, err
+	}
+
+	if _, err = conn.Write([]byte(fmt.Sprintf("Host: %s:443\r\n", c.Host))); err != nil {
+		return nil, err
+	}
+
+	if auth := u.User.String(); auth != "" {
+		enc := base64.StdEncoding.EncodeToString([]byte(auth))
+
+		if _, err = conn.Write([]byte(fmt.Sprintf("Proxy-Authorization: Basic %s\r\n", enc))); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err = conn.Write([]byte("Proxy-Connection: Keep-Alive\r\n\r\n")); err != nil {
+		return nil, err
+	}
+
+	data := make([]byte, 19)
+
+	n, err := io.ReadAtLeast(conn, data, 19)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if n != 19 || !strings.HasSuffix(strings.TrimSpace(string(data)), "200 OK") {
+		return nil, fmt.Errorf("proxy error: %s", data)
+	}
+
+	return websocket.NewClient(config, tls.Client(conn, config.TlsConfig))
 }
 
 func (c *Client) url(path string) string {
