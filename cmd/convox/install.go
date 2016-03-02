@@ -213,7 +213,7 @@ func cmdInstall(c *cli.Context) {
 		match := len(matchedStr) == len(stackName)
 
 		if !match {
-			stdcli.Error(fmt.Errorf("Stack name is invalid, must match %s", r))
+			stdcli.Error(fmt.Errorf("Stack name is invalid, must match [a-z0-9-]*"))
 		}
 	}
 
