@@ -116,7 +116,7 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		assert.Equal(t, 2, len(resp))
-		assert.Equal(t, "4932cce0897b", resp[0].Id)
+		assert.Equal(t, "8dfafdbc3a40", resp[0].Id)
 		assert.Equal(t, 0.0974, resp[0].Memory)
 		assert.Equal(t, "pending", resp[1].Id)
 		assert.EqualValues(t, 0, resp[1].Memory)
@@ -204,9 +204,6 @@ func TestProcessesListWithDetached(t *testing.T) {
 		test.ListOneoffContainersEmptyCycle(),
 		test.ListOneoffContainersEmptyCycle(),
 		test.ListOneoffContainersEmptyCycle(),
-
-		// query for every container to get CPU and Memory stats
-		test.StatsCycle(),
 	)
 	defer docker.Close()
 

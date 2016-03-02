@@ -381,7 +381,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	id := idp[len(idp)-1]
 
 	ps := Process{
-		Id:    id,
+		Id:    id, // the ECS container arn id will be replaced by a docker container id later
 		App:   app,
 		Image: *cd.Image,
 		Name:  *cd.Name,
@@ -453,6 +453,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		return
 	}
 
+	ps.Id = containers[0].ID[0:12] // update ECS container arn id with Docker container id
 	ps.containerId = containers[0].ID
 	ps.Command = containers[0].Command
 	ps.Started = time.Unix(containers[0].Created, 0)
