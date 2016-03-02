@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	"github.com/convox/rack/api/config"
 	"github.com/convox/rack/api/provider"
 )
 
@@ -35,7 +33,7 @@ type Process struct {
 	taskArn     string   `json:"-"`
 }
 
-type Processes []Process
+type Processes []*Process
 
 func GetAppServices(app string) ([]*ecs.Service, error) {
 	services := []*ecs.Service{}
@@ -75,7 +73,7 @@ func GetAppServices(app string) ([]*ecs.Service, error) {
 	return services, nil
 }
 
-func ListProcesses(app string) (Processes, error) {
+func ListProcesses(app string) ([]*Process, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -133,6 +131,9 @@ func ListProcesses(app string) (Processes, error) {
 	errch := make(chan error)
 	num := 0
 
+	tasks := []*ecs.Task{}
+
+	// Describe Service Tasks
 	for _, service := range services {
 		taskArns, err := ECS().ListTasks(&ecs.ListTasksInput{
 			Cluster:     aws.String(os.Getenv("CLUSTER")),
@@ -147,7 +148,7 @@ func ListProcesses(app string) (Processes, error) {
 			continue
 		}
 
-		tasks, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
+		ts, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(os.Getenv("CLUSTER")),
 			Tasks:   taskArns.TaskArns,
 		})
@@ -156,65 +157,91 @@ func ListProcesses(app string) (Processes, error) {
 			return nil, err
 		}
 
-		for _, task := range tasks.Tasks {
-			td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-				TaskDefinition: task.TaskDefinitionArn,
-			})
+		tasks = append(tasks, ts.Tasks...)
+	}
 
-			if err != nil {
-				return nil, err
+	// Describe one-off Tasks
+	lreq, err := ECS().ListTasks(&ecs.ListTasksInput{
+		Cluster:   aws.String(os.Getenv("CLUSTER")),
+		StartedBy: aws.String("convox"),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(lreq.TaskArns) > 0 {
+		dreq, err := ECS().DescribeTasks(&ecs.DescribeTasksInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+			Tasks:   lreq.TaskArns,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, dreq.Tasks...)
+	}
+
+	// Collect information for all ECS Tasks
+	for _, task := range tasks {
+		td, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: task.TaskDefinitionArn,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		var ci *ecs.ContainerInstance
+		var ec2i *ec2.Instance
+
+		for _, i := range dres.ContainerInstances {
+			if *i.ContainerInstanceArn == *task.ContainerInstanceArn {
+				ci = i
+				break
 			}
+		}
 
-			var ci *ecs.ContainerInstance
-			var ec2i *ec2.Instance
+		if ci == nil {
+			return nil, fmt.Errorf("could not find ECS instance")
+		}
 
-			for _, i := range dres.ContainerInstances {
-				if *i.ContainerInstanceArn == *task.ContainerInstanceArn {
-					ci = i
+		for _, r := range ires.Reservations {
+			for _, i := range r.Instances {
+				if *ci.Ec2InstanceId == *i.InstanceId {
+					ec2i = i
+					break
+				}
+			}
+		}
+
+		if ec2i == nil {
+			return nil, fmt.Errorf("could not find EC2 instance")
+		}
+
+		for _, cd := range td.TaskDefinition.ContainerDefinitions {
+			var cc *ecs.Container
+
+			for _, c := range task.Containers {
+				if *c.Name == *cd.Name {
+					cc = c
 					break
 				}
 			}
 
-			if ci == nil {
-				return nil, fmt.Errorf("could not find ECS instance")
-			}
+			go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, *ci, *ec2i, psch, errch)
 
-			for _, r := range ires.Reservations {
-				for _, i := range r.Instances {
-					if *ci.Ec2InstanceId == *i.InstanceId {
-						ec2i = i
-						break
-					}
-				}
-			}
-
-			if ec2i == nil {
-				return nil, fmt.Errorf("could not find EC2 instance")
-			}
-
-			for _, cd := range td.TaskDefinition.ContainerDefinitions {
-				var cc *ecs.Container
-
-				for _, c := range task.Containers {
-					if *c.Name == *cd.Name {
-						cc = c
-						break
-					}
-				}
-
-				go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, *ci, *ec2i, psch, errch)
-
-				num += 1
-			}
+			num += 1
 		}
 	}
 
-	pss := Processes{}
+	pss := make([]*Process, 0)
 
 	for i := 0; i < num; i++ {
 		select {
 		case ps := <-psch:
-			pss = append(pss, ps)
+			pss = append(pss, &ps)
 		case err := <-errch:
 			return nil, err
 		}
@@ -228,23 +255,19 @@ func ListProcesses(app string) (Processes, error) {
 
 	pss = append(pss, pending...)
 
-	// This codepath gets the wrong IP for the Docker host
-	// It should get the internal IP running on AWS
-	// oneoff, err := ListOneoffProcesses(app)
+	oneoff, err := ListOneoffProcesses(app)
 
-	// if err != nil {
-	// 	return nil, err
-	// }
+	if err != nil {
+		return nil, err
+	}
 
-	// pss = append(pss, oneoff...)
-
-	sort.Sort(pss)
+	pss = append(pss, oneoff...)
 
 	return pss, nil
 }
 
-func ListPendingProcesses(app string) (Processes, error) {
-	pss := Processes{}
+func ListPendingProcesses(app string) ([]*Process, error) {
+	pss := make([]*Process, 0)
 
 	services, err := GetAppServices(app)
 
@@ -289,7 +312,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 						}
 					}
 
-					pss = append(pss, ps)
+					pss = append(pss, &ps)
 				}
 			}
 		}
@@ -308,7 +331,7 @@ func ListOneoffProcesses(app string) (Processes, error) {
 	procs := Processes{}
 
 	for _, instance := range instances {
-		d, err := Docker(instance.Ip)
+		d, err := instance.DockerClient()
 
 		if err != nil {
 			return nil, err
@@ -328,12 +351,24 @@ func ListOneoffProcesses(app string) (Processes, error) {
 		}
 
 		for _, ps := range pss {
-			procs = append(procs, Process{
+
+			c, err := d.InspectContainer(ps.ID)
+
+			if err != nil {
+				return nil, err
+			}
+
+			procs = append(procs, &Process{
 				Id:      ps.ID[0:12],
 				Command: ps.Command,
+				Host:    instance.Ip(),
 				Name:    ps.Labels["com.convox.rack.process"],
 				Release: ps.Labels["com.convox.rack.release"],
+				Size:    c.HostConfig.Memory,
 				Started: time.Unix(ps.Created, 0),
+
+				containerId: ps.ID,
+				taskArn:     "", // empty taskArn indicated Docker container, not ECS task
 			})
 		}
 	}
@@ -346,7 +381,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	id := idp[len(idp)-1]
 
 	ps := Process{
-		Id:    id,
+		Id:    id, // the ECS container arn id will be replaced by a docker container id later
 		App:   app,
 		Image: *cd.Image,
 		Name:  *cd.Name,
@@ -418,6 +453,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		return
 	}
 
+	ps.Id = containers[0].ID[0:12] // update ECS container arn id with Docker container id
 	ps.containerId = containers[0].ID
 	ps.Command = containers[0].Command
 	ps.Started = time.Unix(containers[0].Created, 0)
@@ -430,6 +466,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 }
 
 func GetProcess(app, id string) (*Process, error) {
+	// Find ECS Task
 	processes, err := ListProcesses(app)
 
 	if err != nil {
@@ -438,7 +475,20 @@ func GetProcess(app, id string) (*Process, error) {
 
 	for _, p := range processes {
 		if p.Id == id {
-			return &p, nil
+			return p, nil
+		}
+	}
+
+	// Find one-off Docker process
+	oneoff, err := ListOneoffProcesses(app)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range oneoff {
+		if p.Id == id {
+			return p, nil
 		}
 	}
 
@@ -469,8 +519,8 @@ func (p *Process) Docker() (*docker.Client, error) {
 		return nil, ErrPending
 	}
 
-	if os.Getenv("TEST") == "true" {
-		return Docker(config.TestConfig.DockerHost)
+	if h := os.Getenv("TEST_DOCKER_HOST"); h != "" {
+		return Docker(h)
 	}
 
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
@@ -500,7 +550,14 @@ func (p *Process) FetchStats() error {
 	go d.Stats(options)
 
 	stat := <-stch
-	dnch <- true
+
+	toch := time.After(5 * time.Second)
+	select {
+	case dnch <- true:
+		// nop
+	case <-toch:
+		fmt.Println("timeout closing stats") // TODO: track this ?
+	}
 
 	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
 	psys := stat.PreCPUStats.SystemCPUUsage
@@ -514,28 +571,27 @@ func (p *Process) FetchStats() error {
 	return nil
 }
 
-func (p *Process) FetchStatsAsync(psch chan Process, errch chan error) {
-	errch <- p.FetchStats()
-	psch <- *p
-}
-
 func (p *Process) Stop() error {
-	if p.taskArn == "" {
-		return fmt.Errorf("can not stop one-off processes")
+	// Stop ECS Task
+	if p.taskArn != "" {
+		req := &ecs.StopTaskInput{
+			Cluster: aws.String(os.Getenv("CLUSTER")),
+			Task:    aws.String(p.taskArn),
+		}
+
+		_, err := ECS().StopTask(req)
+
+		return err
 	}
 
-	req := &ecs.StopTaskInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-		Task:    aws.String(p.taskArn),
-	}
-
-	_, err := ECS().StopTask(req)
+	// Stop one-off Docker process
+	d, err := p.Docker()
 
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return d.StopContainer(p.containerId, 10)
 }
 
 // from https://github.com/docker/docker/blob/master/api/client/stats.go

@@ -12,9 +12,10 @@ type Instance struct {
 	Agent     bool      `json:"agent"`
 	Cpu       float64   `json:"cpu"`
 	Id        string    `json:"id"`
-	Ip        string    `json:"ip"`
 	Memory    float64   `json:"memory"`
+	PrivateIp string    `json:"private-ip"`
 	Processes int       `json:"processes"`
+	PublicIp  string    `json:"public-ip"`
 	Status    string    `json:"status"`
 	Started   time.Time `json:"started"`
 }

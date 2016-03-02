@@ -368,7 +368,7 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 
 	for _, p := range pss {
 		if p.Id == pid {
-			ps = p
+			ps = *p
 			break
 		}
 	}
@@ -472,14 +472,10 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
-	release, err := a.LatestRelease()
+	release, err := GetRelease(a.Name, a.Release)
 
 	if err != nil {
 		return err
-	}
-
-	if release == nil {
-		return fmt.Errorf("no releases for app: %s", a.Name)
 	}
 
 	manifest, err := LoadManifest(release.Manifest, a)
@@ -585,6 +581,7 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 				"com.convox.rack.type":    "oneoff",
 				"com.convox.rack.app":     a.Name,
 				"com.convox.rack.process": process,
+				"com.convox.rack.release": release.Id,
 			},
 		},
 		HostConfig: &docker.HostConfig{
@@ -654,6 +651,7 @@ func (a *App) RunDetached(process, command string) error {
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
 		Count:          aws.Int64(1),
+		StartedBy:      aws.String("convox"),
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
 	}
 
@@ -674,11 +672,7 @@ func (a *App) RunDetached(process, command string) error {
 
 	_, err = ECS().RunTask(req)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (a *App) TaskDefinitionFamily() string {

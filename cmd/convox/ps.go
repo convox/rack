@@ -23,6 +23,13 @@ func init() {
 		},
 		Subcommands: []cli.Command{
 			{
+				Name:        "info",
+				Description: "show info for a process",
+				Usage:       "<id>",
+				Action:      cmdPsInfo,
+				Flags:       []cli.Flag{appFlag},
+			},
+			{
 				Name:        "stop",
 				Description: "stop a process",
 				Usage:       "<id>",
@@ -65,6 +72,38 @@ func cmdPs(c *cli.Context) {
 
 		t.Print()
 	}
+}
+
+func cmdPsInfo(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "info")
+		return
+	}
+
+	id := c.Args()[0]
+
+	p, err := rackClient(c).GetProcess(app, id)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Id       %s\n", p.Id)
+	fmt.Printf("Name     %s\n", p.Name)
+	fmt.Printf("Release  %s\n", p.Release)
+	fmt.Printf("Size     %d\n", p.Size)
+	fmt.Printf("CPU      %0.2f%%\n", p.Cpu*100)
+	fmt.Printf("Memory   %0.2f%%\n", p.Memory*100)
+	fmt.Printf("Started  %s\n", humanizeTime(p.Started))
+	fmt.Printf("Command  %s\n", p.Command)
 }
 
 func cmdPsStop(c *cli.Context) {
