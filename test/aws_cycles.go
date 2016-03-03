@@ -157,6 +157,56 @@ func DescribeStackNotFound(stackName string) awsutil.Cycle {
 	}
 }
 
+// search for stack, return missing
+func GetItemAppReleaseCycle(appName string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "DynamoDB_20120810.GetItem",
+			Body:       `{"ConsistentRead": true, "Key": {"id": { "S": "RCSUVJNDLDK" } }, "TableName": "convox-releases"}`,
+		},
+		Response: awsutil.Response{
+			StatusCode: 200,
+			Body: `{
+    "Item": {
+        "build": {
+            "S": "BEYVFFXGXAG"
+        },
+        "app": {
+            "S": "` + appName + `"
+        },
+        "created": {
+            "S": "20160226.005255.829308553"
+        },
+        "id": {
+            "S": "RCSUVJNDLDK"
+        },
+        "manifest": {
+            "S": "main:\n  image: httpd\n  ports:\n  - 80:80\n"
+        }
+    }
+}`,
+		},
+	}
+}
+
+func UpdateAppStackCycle(stackName, count, memory string) awsutil.Cycle {
+	return awsutil.Cycle{
+		awsutil.Request{"/", "", `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=Cluster&Parameters.member.1.ParameterValue=convo-Clust-GEFJGLHH7O0V&Parameters.member.10.ParameterKey=MainPort80Host&Parameters.member.10.ParameterValue=33787&Parameters.member.11.ParameterKey=MainService&Parameters.member.11.ParameterValue=&Parameters.member.12.ParameterKey=Release&Parameters.member.12.ParameterValue=RCSUVJNDLDK&Parameters.member.13.ParameterKey=Repository&Parameters.member.13.ParameterValue=&Parameters.member.14.ParameterKey=Subnets&Parameters.member.14.ParameterValue=subnet-2f5e0804%2Csubnet-74a4aa03%2Csubnet-f0c3e3a9&Parameters.member.15.ParameterKey=VPC&Parameters.member.15.ParameterValue=vpc-e853928c&Parameters.member.16.ParameterKey=Version&Parameters.member.16.ParameterValue=latest&Parameters.member.2.ParameterKey=Cpu&Parameters.member.2.ParameterValue=200&Parameters.member.3.ParameterKey=Environment&Parameters.member.3.ParameterValue=https%3A%2F%2Fapache-app2-settings-1vudpykaywx8o.s3.amazonaws.com%2Freleases%2FRCSUVJNDLDK%2Fenv&Parameters.member.4.ParameterKey=Key&Parameters.member.4.ParameterValue=arn%3Aaws%3Akms%3Aus-east-1%3A901416387788%3Akey%2Fe4c9e19c-7410-4e0f-88bf-ac7ac085625d&Parameters.member.5.ParameterKey=MainCommand&Parameters.member.5.ParameterValue=&Parameters.member.6.ParameterKey=MainDesiredCount&Parameters.member.6.ParameterValue=` + count + `&Parameters.member.7.ParameterKey=MainImage&Parameters.member.7.ParameterValue=convox-720091589.us-east-1.elb.amazonaws.com%3A5000%2Fapache-app2-main%3ABDDTZLECEZN&Parameters.member.8.ParameterKey=MainMemory&Parameters.member.8.ParameterValue=` + memory + `&Parameters.member.9.ParameterKey=MainPort80Balancer&Parameters.member.9.ParameterValue=80&StackName=convox-test-application&UsePreviousTemplate=true&Version=2010-05-15`},
+		awsutil.Response{200,
+			`
+<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <UpdateStackResult>
+    <StackId>arn:aws:cloudformation:us-east-1:901416387788:stack/` + stackName + `/9a10bbe0-51d5-11e5-b85a-5001dc3ed8d2</StackId>
+  </UpdateStackResult>
+  <ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+  </ResponseMetadata>
+</UpdateStackResponse>
+`},
+	}
+}
+
 func ListContainerInstancesCycle(clusterName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "AmazonEC2ContainerServiceV20141113.ListContainerInstances",
