@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -295,7 +296,18 @@ func (a *App) UpdateParams(changes map[string]string) error {
 		params[key] = val
 	}
 
-	for key, val := range params {
+	// sort parameters by key name to make test requests stable
+	var keys []string
+
+	for k, _ := range params {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		val := params[key]
+
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
 			ParameterValue: aws.String(val),
