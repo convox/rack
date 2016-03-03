@@ -40,8 +40,10 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
-	var count, memory int64
+	// initialize to invalid values that indicate no change
+	var count, memory int64 = -1, -1
 
+	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
 		if c, err := strconv.ParseInt(cc, 10, 64); err != nil {
 			return httperr.Errorf(403, "count must be numeric")

@@ -75,6 +75,8 @@ func ListFormation(app string) (Formation, error) {
 	return formation, nil
 }
 
+// Update Process Parameters for Count and Memory
+// Expects -1 for count or memory to indicate no change, since count=0 is valid
 func SetFormation(app, process string, count, memory int64) error {
 	a, err := GetApp(app)
 
@@ -108,6 +110,7 @@ func SetFormation(app, process string, count, memory int64) error {
 
 	params := map[string]string{}
 
+	// if not -1, set new parameter values
 	if count >= 0 {
 		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = fmt.Sprintf("%d", count)
 	}
