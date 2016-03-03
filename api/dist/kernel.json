@@ -153,11 +153,6 @@
       "Description": "SSL certificate",
       "Default": ""
     },
-    "ExtraUserDataCommand": {
-      "Type": "String",
-      "Description": "A single line of extra shell script to run as UserData during instance boot.",
-      "Default": ""
-    },
     "Development": {
       "Type": "String",
       "Description": "Development mode",
@@ -189,6 +184,11 @@
       "Description": "Encrypt secrets with KMS",
       "Default": "Yes",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "InstanceBootCommand": {
+      "Type": "String",
+      "Description": "A single line of extra shell script to run as UserData during instance boot.",
+      "Default": ""
     },
     "InstanceCount": {
       "Default": "3",
@@ -874,7 +874,7 @@
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
             "curl -s https://convox.s3.amazonaws.com/agent/0.66/convox.conf > /etc/init/convox.conf",
             "start convox",
-            { "Ref": "ExtraUserDataCommand" },
+            { "Ref": "InstanceBootCommand" },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "sleep 30",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
