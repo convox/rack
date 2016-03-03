@@ -53,7 +53,7 @@ func TestFormationScaleCountInvalid(t *testing.T) {
 }
 
 // post count=2 should set MainDesiredCount=2 in the stack update
-func TestFormationScaleCountTwo(t *testing.T) {
+func TestFormationScaleCount2(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -69,7 +69,7 @@ func TestFormationScaleCountTwo(t *testing.T) {
 }
 
 // post count=0 should set MainDesiredCount=0 in the stack update
-func TestFormationScaleCountZero(t *testing.T) {
+func TestFormationScaleCount0(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
