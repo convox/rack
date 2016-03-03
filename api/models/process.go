@@ -232,6 +232,11 @@ func ListProcesses(app string) ([]*Process, error) {
 
 			go fetchProcess(app, *task, *td.TaskDefinition, *cd, *cc, *ci, *ec2i, psch, errch)
 
+			// HACK. In test environment, throttle fanout to guarantee order of requests for the stub Docker API
+			if h := os.Getenv("TEST_DOCKER_HOST"); h != "" {
+				time.Sleep(10 * time.Millisecond)
+			}
+
 			num += 1
 		}
 	}
