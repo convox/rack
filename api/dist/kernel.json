@@ -153,6 +153,11 @@
       "Description": "SSL certificate",
       "Default": ""
     },
+    "CustomUserData": {
+      "Type": "String",
+      "Description": "A single line of shell script to run as UserData before the instance boots.",
+      "Default": ""
+    },
     "Development": {
       "Type": "String",
       "Description": "Development mode",
@@ -868,6 +873,7 @@
             { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
             "curl -s https://convox.s3.amazonaws.com/agent/0.65/convox.conf > /etc/init/convox.conf",
             "start convox",
+            { "Ref": "CustomUserData" },
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
             "sleep 30",
             { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
