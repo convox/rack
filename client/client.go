@@ -402,8 +402,8 @@ func (c *Client) proxyWebsocket(config *websocket.Config, proxy string) (*websoc
 		return nil, err
 	}
 
-	if auth := u.User.String(); auth != "" {
-		enc := base64.StdEncoding.EncodeToString([]byte(auth))
+	if auth := u.User; auth != nil {
+		enc := base64.StdEncoding.EncodeToString([]byte(auth.String()))
 
 		if _, err = conn.Write([]byte(fmt.Sprintf("Proxy-Authorization: Basic %s\r\n", enc))); err != nil {
 			return nil, err
