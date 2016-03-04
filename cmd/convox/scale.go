@@ -11,7 +11,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "scale",
 		Description: "scale an app's processes",
-		Usage:       "PROCESS [--count 2] [--memory 512]",
+		Usage:       "<process> [--count=2] [--memory=512]",
 		Action:      cmdScale,
 		Flags: []cli.Flag{appFlag,
 			cli.StringFlag{
@@ -36,14 +36,20 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	if len(c.Args()) == 0 {
+	count := c.String("count")
+	memory := c.String("memory")
+
+	if len(c.Args()) == 0 && count == "" && memory == "" {
 		displayFormation(c, app)
 		return
 	}
 
+	if len(c.Args()) != 1 || (count == "" && memory == "") {
+		stdcli.Usage(c, "scale")
+		return
+	}
+
 	process := c.Args()[0]
-	count := c.String("count")
-	memory := c.String("memory")
 
 	err = rackClient(c).SetFormation(app, process, count, memory)
 
