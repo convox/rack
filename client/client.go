@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
@@ -316,10 +317,10 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 		ws, err = c.proxyWebsocket(config, proxy)
 	} else {
 		ws, err = websocket.DialConfig(config)
+	}
 
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
 	defer ws.Close()
@@ -414,16 +415,15 @@ func (c *Client) proxyWebsocket(config *websocket.Config, proxy string) (*websoc
 		return nil, err
 	}
 
-	data := make([]byte, 19)
-
-	n, err := io.ReadAtLeast(conn, data, 19)
+	data, err := bufio.NewReader(conn).ReadString('\n')
 
 	if err != nil {
 		return nil, err
 	}
 
-	if n != 19 || !strings.HasSuffix(strings.TrimSpace(string(data)), "200 OK") {
-		return nil, fmt.Errorf("proxy error: %s", data)
+	// need an http 200 response
+	if !strings.Contains(string(data), " 200 ") {
+		return nil, fmt.Errorf("proxy error: %s", strings.TrimSpace(string(data)))
 	}
 
 	return websocket.NewClient(config, tls.Client(conn, config.TlsConfig))
