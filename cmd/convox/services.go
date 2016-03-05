@@ -9,7 +9,39 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
+type ServiceType struct {
+	name, args string
+}
+
 func init() {
+	types := []ServiceType{
+		ServiceType{
+			"mysql",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az]",
+		},
+		ServiceType{
+			"papertrail",
+			"--url=logs1.papertrailapp.com:11235",
+		},
+		ServiceType{
+			"postgres",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az]",
+		},
+		ServiceType{
+			"redis",
+			"[--instance-type=cache.t2.micro]",
+		},
+		ServiceType{
+			"webhook",
+			"--url=https://grid.convox.com/rack-hook/1234",
+		},
+	}
+
+	usage := "Supported types / options:\n"
+	for _, t := range types {
+		usage += fmt.Sprintf("  %-10s  %s\n", t.name, t.args)
+	}
+
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "services",
 		Description: "manage services",
@@ -19,7 +51,7 @@ func init() {
 			{
 				Name:            "create",
 				Description:     "create a new service",
-				Usage:           "<type> [--name=value] [--key-name=value]\n\nSupported types:\n  mysql\n  papertrail\n  postgres\n  redis\n  webhook",
+				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
 				SkipFlagParsing: true,
 			},
