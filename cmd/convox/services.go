@@ -25,7 +25,7 @@ func init() {
 		},
 		ServiceType{
 			"postgres",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az]",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az]",
 		},
 		ServiceType{
 			"redis",
@@ -37,9 +37,9 @@ func init() {
 		},
 	}
 
-	usage := "Supported types / options:\n"
+	usage := "Supported types / options:"
 	for _, t := range types {
-		usage += fmt.Sprintf("  %-10s  %s\n", t.name, t.args)
+		usage += fmt.Sprintf("\n  %-10s  %s", t.name, t.args)
 	}
 
 	stdcli.RegisterCommand(cli.Command{
