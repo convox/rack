@@ -19,7 +19,7 @@ func init() {
 			{
 				Name:            "create",
 				Description:     "create a new service",
-				Usage:           "<type> [--name=value] [--key-name=value]",
+				Usage:           "<type> [--name=value] [--key-name=value]\n\nSupported types:\n  mysql\n  papertrail\n  postgres\n  redis\n  webhook",
 				Action:          cmdServiceCreate,
 				SkipFlagParsing: true,
 			},
@@ -84,6 +84,12 @@ func cmdServiceCreate(c *cli.Context) {
 	}
 
 	t := c.Args()[0]
+
+	if t == "help" {
+		stdcli.Usage(c, "create")
+		return
+	}
+
 	options := stdcli.ParseOpts(c.Args()[1:])
 	for key, value := range options {
 		if value == "" {
