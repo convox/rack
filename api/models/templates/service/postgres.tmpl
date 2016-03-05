@@ -1,6 +1,9 @@
 {{ define "service" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] }
+    },
     "Parameters": {
       "AllocatedStorage": {
         "Type" : "Number",
@@ -16,6 +19,11 @@
         "Type" : "String",
         "Default" : "db.t2.micro",
         "Description" : "Instance class for database nodes"
+      },
+      "MaxConnections": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "ParameterGroup max_connections value, i.e. '{DBInstanceClassMemory/15000000}'"
       },
       "MultiAZ": {
         "Type" : "String",
@@ -72,8 +80,10 @@
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Ref": "Database" },
+          "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
+          "EngineVersion": "9.4.5",
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
@@ -81,6 +91,16 @@
           "PubliclyAccessible": "false",
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+        }
+      },
+      "ParameterGroup": {
+        "Type": "AWS::RDS::DBParameterGroup",
+        "Properties" : {
+          "Description" : { "Ref": "Database" },
+          "Family" : "postgres9.4",
+          "Parameters" : {
+            "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
+          }
         }
       }
     }
