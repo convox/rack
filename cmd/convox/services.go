@@ -62,6 +62,12 @@ func init() {
 				Action:      cmdServiceDelete,
 			},
 			{
+				Name:        "update",
+				Description: "update a service",
+				Usage:       "<name> --option-name=value [--option-name=value]\n\n" + usage,
+				Action:      cmdServiceUpdate,
+			},
+			{
 				Name:        "info",
 				Description: "info about a service",
 				Usage:       "<name>",
@@ -152,6 +158,48 @@ func cmdServiceCreate(c *cli.Context) {
 	}
 
 	fmt.Println("CREATING")
+}
+
+func cmdServiceUpdate(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "update")
+		return
+	}
+
+	name := c.Args()[0]
+
+	// ensure everything after type is a flag
+	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
+		stdcli.Usage(c, "update")
+		return
+	}
+
+	options := stdcli.ParseOpts(c.Args()[1:])
+	for key, value := range options {
+		if value == "" {
+			options[key] = "true"
+		}
+	}
+
+	var optionsList []string
+	for key, val := range options {
+		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
+	}
+
+	fmt.Printf("Updating %s (", name)
+	if len(optionsList) > 0 {
+		fmt.Printf(": %s", strings.Join(optionsList, " "))
+	}
+	fmt.Printf(")... ")
+
+	// _, err := rackClient(c).CreateService(t, options)
+
+	// if err != nil {
+	// 	stdcli.Error(err)
+	// 	return
+	// }
+
+	fmt.Println("UPDATING")
 }
 
 func cmdServiceDelete(c *cli.Context) {
