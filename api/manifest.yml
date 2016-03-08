@@ -116,6 +116,11 @@ paths:
         type: string
         in: formData
         required: false
+      - name: description
+        description: build description
+        type: string
+        in: formData
+        required: false
       - name: manifest
         default: "docker-compose.yml"
         description: path to a docker compose v1 yaml file that declares what images to build and processes to run

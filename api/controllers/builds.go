@@ -67,6 +67,8 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
+	build.Description = r.FormValue("description")
+
 	manifest := r.FormValue("manifest") // empty value will default "docker-compose.yml" in cmd/build
 
 	// use deprecated "config" param if set
