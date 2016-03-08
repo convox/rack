@@ -123,7 +123,7 @@ paths:
         in: formData
         required: false
       - name: repo
-        description: repository
+        description: repository URL with an optional \#commit-ish fragment
         type: string
         in: formData
         required: false

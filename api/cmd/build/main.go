@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -139,14 +140,32 @@ func clone(source, app string) (string, error) {
 			return "", err
 		}
 	default:
+		u, err := url.Parse(source)
+
+		if err != nil {
+			return "", err
+		}
+
+		commitish := u.Fragment
+		u.Fragment = ""
+		repo := u.String()
+
 		if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
 			return "", err
 		}
 
-		err = run("git", tmp, "git", "clone", "--progress", "-v", source, clone)
+		err = run("git", tmp, "git", "clone", "--progress", "-v", repo, clone)
 
 		if err != nil {
 			return "", err
+		}
+
+		if commitish != "" {
+			err = run("git", clone, "git", "checkout", commitish)
+
+			if err != nil {
+				return "", err
+			}
 		}
 
 		err = run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
