@@ -29,7 +29,7 @@ func main() {
 	push := flag.String("push", "", "push build to this prefix when done")
 	dockercfg := flag.String("dockercfg", "", "dockercfg auth json for pull")
 	noCache := flag.Bool("no-cache", false, "skip the docker cache")
-	config := flag.String("config", "docker-compose.yml", "docker compose filename")
+	manifestPath := flag.String("manifest", "docker-compose.yml", "docker compose filename")
 	flatten := flag.String("flatten", "", "flatten images into a single namespace")
 
 	flag.Parse()
@@ -52,7 +52,7 @@ func main() {
 		die(err)
 	}
 
-	m, err := manifest.Read(dir, *config)
+	m, err := manifest.Read(dir, *manifestPath)
 
 	if err != nil {
 		die(err)

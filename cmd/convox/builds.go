@@ -43,7 +43,7 @@ func init() {
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
-				Usage: "location of docker-compose.yml",
+				Usage: "path to an alternate docker compose manifest file",
 			},
 		},
 	})
@@ -238,17 +238,17 @@ func cmdBuildsCopy(c *cli.Context) {
 	}
 }
 
-func executeBuild(c *cli.Context, source string, app string, config string) (string, error) {
+func executeBuild(c *cli.Context, source string, app string, manifest string) (string, error) {
 	u, _ := url.Parse(source)
 
 	switch u.Scheme {
 	case "http", "https":
-		return executeBuildUrl(c, source, app, config)
+		return executeBuildUrl(c, source, app, manifest)
 	default:
 		if c.Bool("incremental") {
-			return executeBuildDirIncremental(c, source, app, config)
+			return executeBuildDirIncremental(c, source, app, manifest)
 		} else {
-			return executeBuildDir(c, source, app, config)
+			return executeBuildDir(c, source, app, manifest)
 		}
 	}
 
@@ -425,7 +425,7 @@ func uploadItems(c *cli.Context, index client.Index, bar *pb.ProgressBar, inch c
 	}
 }
 
-func executeBuildDirIncremental(c *cli.Context, dir string, app string, config string) (string, error) {
+func executeBuildDirIncremental(c *cli.Context, dir string, app string, manifest string) (string, error) {
 	system, err := rackClient(c).GetSystem()
 
 	if err != nil {
@@ -434,7 +434,7 @@ func executeBuildDirIncremental(c *cli.Context, dir string, app string, config s
 
 	// if the rack doesnt support incremental builds then fall back
 	if system.Version < "20160226234213" {
-		return executeBuildDir(c, dir, app, config)
+		return executeBuildDir(c, dir, app, manifest)
 	}
 
 	cache := !c.Bool("no-cache")
@@ -465,7 +465,7 @@ func executeBuildDirIncremental(c *cli.Context, dir string, app string, config s
 
 	fmt.Printf("Starting build... ")
 
-	build, err := rackClient(c).CreateBuildIndex(app, index, cache, config)
+	build, err := rackClient(c).CreateBuildIndex(app, index, cache, manifest)
 
 	if err != nil {
 		return "", err
@@ -476,7 +476,7 @@ func executeBuildDirIncremental(c *cli.Context, dir string, app string, config s
 	return finishBuild(c, app, build)
 }
 
-func executeBuildDir(c *cli.Context, dir string, app string, config string) (string, error) {
+func executeBuildDir(c *cli.Context, dir string, app string, manifest string) (string, error) {
 	dir, err := filepath.Abs(dir)
 
 	if err != nil {
@@ -497,7 +497,7 @@ func executeBuildDir(c *cli.Context, dir string, app string, config string) (str
 
 	fmt.Print("Uploading... ")
 
-	build, err := rackClient(c).CreateBuildSource(app, tar, cache, config)
+	build, err := rackClient(c).CreateBuildSource(app, tar, cache, manifest)
 
 	if err != nil {
 		return "", err
@@ -508,10 +508,10 @@ func executeBuildDir(c *cli.Context, dir string, app string, config string) (str
 	return finishBuild(c, app, build)
 }
 
-func executeBuildUrl(c *cli.Context, url string, app string, config string) (string, error) {
+func executeBuildUrl(c *cli.Context, url string, app string, manifest string) (string, error) {
 	cache := !c.Bool("no-cache")
 
-	build, err := rackClient(c).CreateBuildUrl(app, url, cache, config)
+	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest)
 
 	if err != nil {
 		return "", err
