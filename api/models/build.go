@@ -283,15 +283,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, manifest string, ch chan 
 		return
 	}
 
-	args = append(args, b.App)
-
-	parts := strings.Split(repo, "#")
-
-	if len(parts) > 1 {
-		args = append(args, strings.Join(parts[0:len(parts)-1], "#"), parts[len(parts)-1])
-	} else {
-		args = append(args, repo)
-	}
+	args = append(args, b.App, repo)
 
 	err = b.execute(args, nil, ch)
 
