@@ -1183,12 +1183,13 @@ func watchVolume(container, local, remote string) error {
 	go processAdds(dc, container, adds, alock)
 	go processRemoves(dc, container, removes, rlock)
 
-	// go watchUpdates(container, local, remote, updates)
-
-	filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
-		files[path] = info.ModTime()
-		return nil
-	})
+	// uncomment this to block initial upload of volume contents
+	// filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
+	//   if info != nil {
+	//     files[path] = info.ModTime()
+	//   }
+	//   return nil
+	// })
 
 	for {
 		err := filepath.Walk(local, watchWalker(files, container, local, remote, adds, alock))
