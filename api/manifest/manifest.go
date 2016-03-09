@@ -733,7 +733,6 @@ func (me ManifestEntry) syncAdds(app, process string) {
 	data, err := ioutil.ReadFile(dockerfile)
 
 	if err != nil {
-		fmt.Printf("err: %+v\n", err)
 		return
 	}
 
