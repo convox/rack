@@ -269,7 +269,7 @@ func run(prefix, dir string, command string, args ...string) error {
 	}
 
 	cmd.Start()
-	go prefixReader(stdout, prefix)
+	prefixReader(stdout, prefix)
 	err = cmd.Wait()
 
 	if err != nil {
