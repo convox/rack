@@ -71,8 +71,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	manifest := r.FormValue("manifest") // empty value will default "docker-compose.yml" in cmd/build
 
-	// use deprecated "config" param if set
-	if config := r.FormValue("config"); config != "" {
+	// use deprecated "config" param if set and "manifest" is not
+	if config := r.FormValue("config"); config != "" && manifest == "" {
 		manifest = config
 	}
 
