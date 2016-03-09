@@ -27,7 +27,7 @@ func TestBuildsPreventAgainstCreating(t *testing.T) {
 func TestBuildsCreateReturnsNoBuild(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/apps/foo", Code: 200, Response: client.App{Name: "foo", Status: "running"}},
-		test.Http{Method: "POST", Path: "/apps/foo/builds", Body: "config=docker-compose.yml&repo=https%3A%2F%2Fexample.org", Code: 200, Response: client.Build{}},
+		test.Http{Method: "POST", Path: "/apps/foo/builds", Body: "cache=true&description=&manifest=docker-compose.yml&repo=https%3A%2F%2Fexample.org", Code: 200, Response: client.Build{}},
 	)
 
 	defer ts.Close()

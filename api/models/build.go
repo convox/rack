@@ -186,7 +186,7 @@ func (b *Build) copyError(err error) {
 	b.Fail(err)
 }
 
-func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
+func (b *Build) buildArgs(cache bool, manifest string) ([]string, error) {
 	app, err := GetApp(b.App)
 
 	if err != nil {
@@ -207,8 +207,8 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 		args = append(args, "-flatten", repository)
 	}
 
-	if config != "" {
-		args = append(args, "-config", config)
+	if manifest != "" {
+		args = append(args, "-manifest", manifest)
 	}
 
 	if !cache {
@@ -228,7 +228,7 @@ func (b *Build) buildArgs(cache bool, config string) ([]string, error) {
 	return args, nil
 }
 
-func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan error) {
+func (b *Build) ExecuteLocal(r io.Reader, cache bool, manifest string, ch chan error) {
 	started := time.Now()
 
 	b.Status = "building"
@@ -240,7 +240,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 		return
 	}
 
-	args, err := b.buildArgs(cache, config)
+	args, err := b.buildArgs(cache, manifest)
 
 	if err != nil {
 		helpers.TrackError("build", err, map[string]interface{}{"type": "local", "at": "b.buildArgs"})
@@ -263,7 +263,7 @@ func (b *Build) ExecuteLocal(r io.Reader, cache bool, config string, ch chan err
 	helpers.TrackSuccess("build", map[string]interface{}{"type": "local", "elapsed": time.Now().Sub(started).Nanoseconds() / 1000000})
 }
 
-func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan error) {
+func (b *Build) ExecuteRemote(repo string, cache bool, manifest string, ch chan error) {
 	started := time.Now()
 
 	b.Status = "building"
@@ -275,7 +275,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 		return
 	}
 
-	args, err := b.buildArgs(cache, config)
+	args, err := b.buildArgs(cache, manifest)
 
 	if err != nil {
 		helpers.TrackError("build", err, map[string]interface{}{"type": "remote", "at": "b.buildArgs"})
@@ -283,15 +283,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 		return
 	}
 
-	args = append(args, b.App)
-
-	parts := strings.Split(repo, "#")
-
-	if len(parts) > 1 {
-		args = append(args, strings.Join(parts[0:len(parts)-1], "#"), parts[len(parts)-1])
-	} else {
-		args = append(args, repo)
-	}
+	args = append(args, b.App, repo)
 
 	err = b.execute(args, nil, ch)
 
@@ -306,7 +298,7 @@ func (b *Build) ExecuteRemote(repo string, cache bool, config string, ch chan er
 	helpers.TrackSuccess("build", map[string]interface{}{"type": "remote", "elapsed": time.Now().Sub(started).Nanoseconds() / 1000000})
 }
 
-func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan error) {
+func (b *Build) ExecuteIndex(index Index, cache bool, manifest string, ch chan error) {
 	started := time.Now()
 
 	b.Status = "building"
@@ -318,7 +310,7 @@ func (b *Build) ExecuteIndex(index Index, cache bool, config string, ch chan err
 		return
 	}
 
-	args, err := b.buildArgs(cache, config)
+	args, err := b.buildArgs(cache, manifest)
 
 	if err != nil {
 		helpers.TrackError("build", err, map[string]interface{}{"type": "index", "at": "b.buildArgs"})

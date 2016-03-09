@@ -67,7 +67,14 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := models.NewBuild(mux.Vars(r)["app"])
-	config := r.FormValue("config")
+	build.Description = r.FormValue("description")
+
+	manifest := r.FormValue("manifest") // empty value will default "docker-compose.yml" in cmd/build
+
+	// use deprecated "config" param if set and "manifest" is not
+	if config := r.FormValue("config"); config != "" && manifest == "" {
+		manifest = config
+	}
 
 	if build.IsRunning() {
 		err := fmt.Errorf("Another build is currently running. Please try again later.")
@@ -115,7 +122,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
-		go build.ExecuteLocal(source, cache, config, ch)
+		go build.ExecuteLocal(source, cache, manifest, ch)
 
 		err = <-ch
 
@@ -128,7 +135,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if repo := r.FormValue("repo"); repo != "" {
-		go build.ExecuteRemote(repo, cache, config, ch)
+		go build.ExecuteRemote(repo, cache, manifest, ch)
 
 		err = <-ch
 
@@ -149,7 +156,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
-		go build.ExecuteIndex(index, cache, config, ch)
+		go build.ExecuteIndex(index, cache, manifest, ch)
 
 		err = <-ch
 

@@ -35,7 +35,7 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	return builds, nil
 }
 
-func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config string) (*Build, error) {
+func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest string, description string) (*Build, error) {
 	var build Build
 
 	data, err := json.Marshal(index)
@@ -45,9 +45,10 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config st
 	}
 
 	params := map[string]string{
-		"index":  string(data),
-		"cache":  fmt.Sprintf("%t", cache),
-		"config": config,
+		"cache":       fmt.Sprintf("%t", cache),
+		"description": description,
+		"index":       string(data),
+		"manifest":    manifest,
 	}
 
 	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
@@ -59,7 +60,7 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config st
 	return &build, nil
 }
 
-func (c *Client) CreateBuildSource(app string, source []byte, cache bool, config string) (*Build, error) {
+func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manifest string, description string) (*Build, error) {
 	var build Build
 
 	files := map[string][]byte{
@@ -67,8 +68,9 @@ func (c *Client) CreateBuildSource(app string, source []byte, cache bool, config
 	}
 
 	params := map[string]string{
-		"cache":  fmt.Sprintf("%t", cache),
-		"config": config,
+		"cache":       fmt.Sprintf("%t", cache),
+		"description": description,
+		"manifest":    manifest,
 	}
 
 	err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), files, params, &build)
@@ -80,12 +82,14 @@ func (c *Client) CreateBuildSource(app string, source []byte, cache bool, config
 	return &build, nil
 }
 
-func (c *Client) CreateBuildUrl(app string, url string, cache bool, config string) (*Build, error) {
+func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest string, description string) (*Build, error) {
 	var build Build
 
 	params := map[string]string{
-		"repo":   url,
-		"config": config,
+		"cache":       fmt.Sprintf("%t", cache),
+		"description": description,
+		"repo":        url,
+		"manifest":    manifest,
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)

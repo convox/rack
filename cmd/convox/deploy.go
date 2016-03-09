@@ -28,6 +28,11 @@ func init() {
 				Value: "docker-compose.yml",
 				Usage: "location of docker-compose.yml",
 			},
+			cli.StringFlag{
+				Name:  "description",
+				Value: "",
+				Usage: "description of the build",
+			},
 		},
 	})
 }
@@ -66,7 +71,7 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	// build
-	release, err := executeBuild(c, dir, app, c.String("file"))
+	release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"))
 
 	if err != nil {
 		stdcli.Error(err)

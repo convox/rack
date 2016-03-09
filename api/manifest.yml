@@ -112,12 +112,23 @@ paths:
         in: formData
         required: false
       - name: config
-        description: docker compose yaml file
+        description: docker compose yaml file. DEPRECATED in favor of manifest parameter.
+        type: string
+        in: formData
+        required: false
+      - name: description
+        description: build description
+        type: string
+        in: formData
+        required: false
+      - name: manifest
+        default: "docker-compose.yml"
+        description: path to a docker compose v1 yaml file that declares what images to build and processes to run
         type: string
         in: formData
         required: false
       - name: repo
-        description: repository
+        description: repository URL with an optional \#commit-ish fragment
         type: string
         in: formData
         required: false

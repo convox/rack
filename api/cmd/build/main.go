@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,7 +30,7 @@ func main() {
 	push := flag.String("push", "", "push build to this prefix when done")
 	dockercfg := flag.String("dockercfg", "", "dockercfg auth json for pull")
 	noCache := flag.Bool("no-cache", false, "skip the docker cache")
-	config := flag.String("config", "docker-compose.yml", "docker compose filename")
+	manifestPath := flag.String("manifest", "docker-compose.yml", "docker compose filename")
 	flatten := flag.String("flatten", "", "flatten images into a single namespace")
 
 	flag.Parse()
@@ -52,7 +53,7 @@ func main() {
 		die(err)
 	}
 
-	m, err := manifest.Read(dir, *config)
+	m, err := manifest.Read(dir, *manifestPath)
 
 	if err != nil {
 		die(err)
@@ -139,14 +140,32 @@ func clone(source, app string) (string, error) {
 			return "", err
 		}
 	default:
+		u, err := url.Parse(source)
+
+		if err != nil {
+			return "", err
+		}
+
+		commitish := u.Fragment
+		u.Fragment = ""
+		repo := u.String()
+
 		if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
 			return "", err
 		}
 
-		err = run("git", tmp, "git", "clone", "--progress", "-v", source, clone)
+		err = run("git", tmp, "git", "clone", "--progress", "-v", repo, clone)
 
 		if err != nil {
 			return "", err
+		}
+
+		if commitish != "" {
+			err = run("git", clone, "git", "checkout", commitish)
+
+			if err != nil {
+				return "", err
+			}
 		}
 
 		err = run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
@@ -250,7 +269,7 @@ func run(prefix, dir string, command string, args ...string) error {
 	}
 
 	cmd.Start()
-	go prefixReader(stdout, prefix)
+	prefixReader(stdout, prefix)
 	err = cmd.Wait()
 
 	if err != nil {
