@@ -512,9 +512,12 @@ func (m *Manifest) Run(app string, cache bool) []error {
 	}()
 
 	for i, name := range m.runOrder() {
+		(*m)[name].syncAdds(app, name)
 		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch)
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
+
+	go m.syncFiles()
 
 	errors := []error{}
 
@@ -543,6 +546,19 @@ func (m *Manifest) Write(filename string) error {
 	}
 
 	return ioutil.WriteFile(filename, data, 0644)
+}
+
+func (m *Manifest) systemPrefix() string {
+	name := "convox"
+	longest := 0
+
+	for name, _ := range *m {
+		if len(name) > longest {
+			longest = len(name)
+		}
+	}
+
+	return name + strings.Repeat(" ", longest-len(name)) + " |"
 }
 
 func (m *Manifest) prefixForEntry(name string, pos int) string {
@@ -667,20 +683,22 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
+	// copy
+
+	// parts := strings.Split(volume, ":")
+
+	// switch len(parts) {
+	// case 1:
+	//   go syncFiles(name, parts[0], parts[0])
+	// case 2:
+	//   go syncFiles(name, parts[0], parts[1])
+	// default:
+	//   ch <- fmt.Errorf("unable to parse volume: %s", volume)
+	//   return
+	// }
+
 	for _, volume := range me.Volumes {
-		parts := strings.Split(volume, ":")
-
-		switch len(parts) {
-		case 1:
-			go watchVolume(name, parts[0], parts[0])
-		case 2:
-			go watchVolume(name, parts[0], parts[1])
-		default:
-			ch <- fmt.Errorf("unable to parse volume: %s", volume)
-			return
-		}
-
-		//args = append(args, "-v", volume)
+		args = append(args, "-v", volume)
 	}
 
 	if me.Entrypoint != "" {
@@ -699,6 +717,42 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	}
 
 	ch <- runPrefix(prefix, "docker", args...)
+}
+
+func (me ManifestEntry) syncAdds(app, process string) {
+	if me.Build == "" {
+		return
+	}
+
+	dockerfile := filepath.Join(me.Build, "Dockerfile")
+
+	if me.Dockerfile != "" {
+		dockerfile = me.Dockerfile
+	}
+
+	data, err := ioutil.ReadFile(dockerfile)
+
+	if err != nil {
+		fmt.Printf("err: %+v\n", err)
+		return
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		parts := strings.Split(strings.TrimSpace(line), " ")
+
+		if len(parts) < 1 {
+			continue
+		}
+
+		switch parts[0] {
+		case "ADD", "COPY":
+			if len(parts) < 3 {
+				continue
+			}
+
+			go registerSync(containerName(app, process), parts[1], parts[2])
+		}
+	}
 }
 
 func exists(filename string) bool {
@@ -1032,7 +1086,7 @@ func getDockerGateway() (string, error) {
 
 type Files map[string]time.Time
 
-func watchWalker(files Files, container, local, remote string, adds map[string]string, lock sync.Mutex) filepath.WalkFunc {
+func watchWalker(files Files, local string, adds map[string]bool, lock sync.Mutex) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -1043,24 +1097,19 @@ func watchWalker(files Files, container, local, remote string, adds map[string]s
 		}
 
 		if files[path] != info.ModTime() {
-			rel, err := filepath.Rel(local, path)
-
-			if err != nil {
-				return err
-			}
-
 			lock.Lock()
-			adds[path] = filepath.Join(remote, rel)
-			defer lock.Unlock()
-
+			adds[path] = true
 			files[path] = info.ModTime()
+			lock.Unlock()
 		}
 
 		return nil
 	}
 }
 
-func processAdds(dc *docker.Client, container string, adds map[string]string, lock sync.Mutex) {
+func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []Sync) {
+	dc, _ := docker.NewClientFromEnv()
+
 	for {
 		time.Sleep(1 * time.Second)
 
@@ -1068,56 +1117,70 @@ func processAdds(dc *docker.Client, container string, adds map[string]string, lo
 			continue
 		}
 
-		var buf bytes.Buffer
-
-		tgz := tar.NewWriter(&buf)
-
 		lock.Lock()
 
-		fmt.Printf("adding %d items\n", len(adds))
+		fmt.Printf("%s syncing %d files\n", prefix, len(adds))
 
-		for local, remote := range adds {
-			delete(adds, local)
+		for _, sync := range syncs {
+			var buf bytes.Buffer
 
-			info, err := os.Stat(local)
+			tgz := tar.NewWriter(&buf)
 
-			if err != nil {
-				continue
+			for local := range adds {
+				info, err := os.Stat(local)
+
+				if err != nil {
+					continue
+				}
+
+				rel, err := filepath.Rel(sync.Local, local)
+
+				if err != nil {
+					continue
+				}
+
+				remote := filepath.Join(sync.Remote, rel)
+
+				tgz.WriteHeader(&tar.Header{
+					Name: remote,
+					Mode: 0644,
+					Size: info.Size(),
+				})
+
+				fd, err := os.Open(local)
+
+				if err != nil {
+					continue
+				}
+
+				io.Copy(tgz, fd)
+				fd.Close()
 			}
 
-			tgz.WriteHeader(&tar.Header{
-				Name: remote,
-				Mode: 0644,
-				Size: info.Size(),
+			tgz.Close()
+
+			err := dc.UploadToContainer(sync.Container, docker.UploadToContainerOptions{
+				InputStream: &buf,
+				Path:        "/",
 			})
 
-			fd, err := os.Open(local)
-
 			if err != nil {
+				fmt.Printf("err: %+v\n", err)
 				continue
 			}
+		}
 
-			io.Copy(tgz, fd)
-			fd.Close()
+		for key := range adds {
+			delete(adds, key)
 		}
 
 		lock.Unlock()
-
-		tgz.Close()
-
-		err := dc.UploadToContainer(container, docker.UploadToContainerOptions{
-			InputStream: &buf,
-			Path:        "/",
-		})
-
-		if err != nil {
-			fmt.Printf("err: %+v\n", err)
-			continue
-		}
 	}
 }
 
-func processRemoves(dc *docker.Client, container string, removes map[string]bool, lock sync.Mutex) {
+func processRemoves(prefix string, removes map[string]bool, lock sync.Mutex, syncs []Sync) {
+	dc, _ := docker.NewClientFromEnv()
+
 	for {
 		time.Sleep(1 * time.Second)
 
@@ -1129,7 +1192,7 @@ func processRemoves(dc *docker.Client, container string, removes map[string]bool
 
 		lock.Lock()
 
-		fmt.Printf("removing %d items\n", len(removes))
+		fmt.Printf("%s removing %d files\n", prefix, len(removes))
 
 		for file := range removes {
 			cmd = append(cmd, file)
@@ -1138,84 +1201,145 @@ func processRemoves(dc *docker.Client, container string, removes map[string]bool
 
 		lock.Unlock()
 
-		res, err := dc.CreateExec(docker.CreateExecOptions{
-			Container: container,
-			Cmd:       cmd,
-		})
+		for _, sync := range syncs {
+			res, err := dc.CreateExec(docker.CreateExecOptions{
+				Container: sync.Container,
+				Cmd:       cmd,
+			})
 
-		if err != nil {
-			fmt.Printf("err: %+v\n", err)
-			continue
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
+
+			err = dc.StartExec(res.ID, docker.StartExecOptions{})
+
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
 		}
 
-		err = dc.StartExec(res.ID, docker.StartExecOptions{})
-
-		if err != nil {
-			fmt.Printf("err: %+v\n", err)
-			continue
+		for key := range removes {
+			delete(removes, key)
 		}
 	}
 }
 
-func watchVolume(container, local, remote string) error {
-	err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &syscall.Rlimit{
+type Sync struct {
+	Container string
+	Local     string
+	Remote    string
+}
+
+var syncs = []Sync{}
+
+func registerSync(container, local, remote string) error {
+	syscall.Setrlimit(syscall.RLIMIT_NOFILE, &syscall.Rlimit{
 		Max: 999999,
 		Cur: 999999,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	dc, err := docker.NewClientFromEnv()
+	abs, err := filepath.Abs(local)
 
 	if err != nil {
 		return err
 	}
 
+	syncs = append(syncs, Sync{
+		Container: container,
+		Local:     abs,
+		Remote:    remote,
+	})
+
+	return nil
+}
+
+func (m *Manifest) syncFiles() error {
+	watches := map[string][]Sync{}
+	candidates := []string{}
+
+	for _, sync := range syncs {
+		candidates = append(candidates, sync.Local)
+	}
+
+	sort.Strings(candidates)
+
+	for _, candidate := range candidates {
+		contained := false
+
+		for watch := range watches {
+			if strings.HasPrefix(candidate, watch) {
+				contained = true
+				break
+			}
+		}
+
+		if !contained {
+			watches[candidate] = []Sync{}
+		}
+	}
+
+	for _, sync := range syncs {
+		for watch := range watches {
+			if sync.Local == watch {
+				watches[watch] = append(watches[watch], sync)
+			}
+		}
+	}
+
+	for watch, syncs := range watches {
+		go m.processSync(watch, syncs)
+	}
+
+	return nil
+}
+
+func (m *Manifest) processSync(local string, syncs []Sync) error {
 	files := Files{}
 
-	adds := map[string]string{}
+	adds := map[string]bool{}
 	removes := map[string]bool{}
 
 	var alock, rlock sync.Mutex
 
-	go processAdds(dc, container, adds, alock)
-	go processRemoves(dc, container, removes, rlock)
+	go processAdds(m.systemPrefix(), adds, alock, syncs)
+	go processRemoves(m.systemPrefix(), removes, rlock, syncs)
 
-	// uncomment this to block initial upload of volume contents
-	// filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
-	//   if info != nil {
-	//     files[path] = info.ModTime()
-	//   }
-	//   return nil
-	// })
+	filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
+		if info != nil {
+			files[path] = info.ModTime()
+		}
+		return nil
+	})
 
 	for {
-		err := filepath.Walk(local, watchWalker(files, container, local, remote, adds, alock))
+		err := filepath.Walk(local, watchWalker(files, local, adds, alock))
+		for _, sync := range syncs {
 
-		if err != nil {
-			fmt.Printf("err: %+v\n", err)
-			continue
-		}
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
 
-		for file := range files {
-			if _, err := os.Stat(file); os.IsNotExist(err) {
-				rel, err := filepath.Rel(local, file)
+			for file := range files {
+				if _, err := os.Stat(file); os.IsNotExist(err) {
+					rel, err := filepath.Rel(local, file)
 
-				if err != nil {
-					continue
+					if err != nil {
+						continue
+					}
+
+					rlock.Lock()
+					removes[filepath.Join(sync.Remote, rel)] = true
+					rlock.Unlock()
+
+					delete(files, file)
 				}
-
-				rlock.Lock()
-				removes[filepath.Join(remote, rel)] = true
-				rlock.Unlock()
-
-				delete(files, file)
 			}
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(900 * time.Millisecond)
 	}
 
 	return nil
