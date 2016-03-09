@@ -1167,7 +1167,7 @@ func watchVolume(container, local, remote string) error {
 		return err
 	}
 
-	dc, err := docker.NewClient("http://192.168.213.128:2376")
+	dc, err := docker.NewClientFromEnv()
 
 	if err != nil {
 		return err
