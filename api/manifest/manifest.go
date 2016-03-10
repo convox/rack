@@ -694,20 +694,6 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
-	// copy
-
-	// parts := strings.Split(volume, ":")
-
-	// switch len(parts) {
-	// case 1:
-	//   go syncFiles(name, parts[0], parts[0])
-	// case 2:
-	//   go syncFiles(name, parts[0], parts[1])
-	// default:
-	//   ch <- fmt.Errorf("unable to parse volume: %s", volume)
-	//   return
-	// }
-
 	for _, volume := range me.Volumes {
 		args = append(args, "-v", volume)
 	}
