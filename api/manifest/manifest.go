@@ -334,7 +334,11 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]s
 	}
 
 	for _, link := range me.Links {
-		linkEntry := (*m)[link]
+		linkEntry, ok := (*m)[link]
+
+		if !ok {
+			return nil, fmt.Errorf("no such link: %s", link)
+		}
 
 		linkEntryEnv, err := getLinkEntryEnv(linkEntry, cache)
 		if err != nil {
