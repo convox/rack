@@ -34,7 +34,7 @@ func init() {
 			appFlag,
 			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "pull and build from fresh images",
+				Usage: "pull fresh image dependencies",
 			},
 			cli.BoolFlag{
 				Name:  "incremental",

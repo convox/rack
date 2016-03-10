@@ -24,11 +24,15 @@ func init() {
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
-				Usage: "a file to use in place of docker-compose.yml",
+				Usage: "path to an alternate docker compose manifest file",
 			},
 			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "Do not use Docker cache during build.",
+				Usage: "pull fresh image dependencies",
+			},
+			cli.BoolFlag{
+				Name:  "sync",
+				Usage: "synchronize local file changes into the running containers",
 			},
 		},
 	})
@@ -115,6 +119,10 @@ func cmdStart(c *cli.Context) {
 		// TODO figure out what to do here
 		// fmt.Printf("errors: %+v\n", errors)
 		return
+	}
+
+	if c.Bool("sync") {
+		m.Sync(app)
 	}
 }
 

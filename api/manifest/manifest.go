@@ -512,12 +512,9 @@ func (m *Manifest) Run(app string, cache bool) []error {
 	}()
 
 	for i, name := range m.runOrder() {
-		(*m)[name].syncAdds(app, name)
 		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch)
 		time.Sleep(100 * time.Millisecond)
 	}
-
-	go m.syncFiles()
 
 	errors := []error{}
 
@@ -531,6 +528,20 @@ func (m *Manifest) Run(app string, cache bool) []error {
 	// errors = append(errors, err)
 
 	return errors
+}
+
+func (m *Manifest) Sync(app string) error {
+	for _, name := range m.runOrder() {
+		err := (*m)[name].syncAdds(app, name)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	go m.syncFiles()
+
+	return nil
 }
 
 func waitForSignal(c chan os.Signal) error {
@@ -719,9 +730,10 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	ch <- runPrefix(prefix, "docker", args...)
 }
 
-func (me ManifestEntry) syncAdds(app, process string) {
+func (me ManifestEntry) syncAdds(app, process string) error {
+	// only sync containers with a build directive
 	if me.Build == "" {
-		return
+		return nil
 	}
 
 	dockerfile := filepath.Join(me.Build, "Dockerfile")
@@ -733,7 +745,7 @@ func (me ManifestEntry) syncAdds(app, process string) {
 	data, err := ioutil.ReadFile(dockerfile)
 
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
@@ -752,6 +764,8 @@ func (me ManifestEntry) syncAdds(app, process string) {
 			go registerSync(containerName(app, process), parts[1], parts[2])
 		}
 	}
+
+	return nil
 }
 
 func exists(filename string) bool {
