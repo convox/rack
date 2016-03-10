@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -146,9 +147,40 @@ func clone(source, app string) (string, error) {
 			return "", err
 		}
 
+		// if URL has a fragment, i.e. http://github.com/nzoschke/httpd.git#1a2b4aac045609f09de34294de61b45344f419de
+		// split it off and pass along http://github.com/nzoschke/httpd.git for `git clone`
 		commitish := u.Fragment
 		u.Fragment = ""
 		repo := u.String()
+
+		// if URL is a ssh/git url, i.e. ssh://user:base64(privatekey)@server/project.git
+		// decode and write private key to disk and pass along user@service:project.git for `git clone`
+		if u.Scheme == "ssh" {
+			repo = fmt.Sprintf("%s@%s%s", u.User.Username(), u.Host, u.Path)
+
+			if pass, ok := u.User.Password(); ok {
+				key, err := base64.StdEncoding.DecodeString(pass)
+
+				if err != nil {
+					die(err)
+				}
+
+				err = os.Mkdir("/root/.ssh", 0700)
+
+				if err != nil {
+					die(err)
+				}
+
+				err = ioutil.WriteFile("/root/.ssh/id_rsa", key, 0400)
+
+				if err != nil {
+					die(err)
+				}
+			}
+
+			// don't interactive prompt for known hosts and fingerprints
+			os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
+		}
 
 		if err = writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil); err != nil {
 			return "", err
