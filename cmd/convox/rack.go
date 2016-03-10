@@ -83,6 +83,7 @@ func cmdRack(c *cli.Context) {
 	fmt.Printf("Name     %s\n", system.Name)
 	fmt.Printf("Status   %s\n", system.Status)
 	fmt.Printf("Version  %s\n", system.Version)
+	fmt.Printf("Region   %s\n", system.Region)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
 }
