@@ -40,6 +40,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	r := &structs.System{
 		Count:   count,
 		Name:    rack,
+		Region:  os.Getenv("AWS_REGION"),
 		Status:  humanStatus(*stack.StackStatus),
 		Type:    params["InstanceType"],
 		Version: os.Getenv("RELEASE"),
