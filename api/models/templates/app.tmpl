@@ -467,7 +467,16 @@
   {
     "Name": "{{ .Name }}",
     "Image": "{{ .Image }}",
-    "Command": {{ value .CommandString }},
+    {{if .CommandArray}}
+      "Command": [
+        {{ range $index, $element := .CommandArray}}
+            {{if $index}},{{else}}{{end}}
+            "{{$element}}"
+        {{end}}
+      ],
+    {{else if ne .CommandString ""}}
+        "Command": {{ value .CommandString }},
+    {{end}}
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}

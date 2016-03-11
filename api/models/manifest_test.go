@@ -153,6 +153,14 @@ func TestManifestFixtureUnbound(t *testing.T) {
 	ManifestRandomPorts = true
 }
 
+func TestCommandExecForm(t *testing.T) {
+	assertFixture(t, "command_exec_form", "")
+}
+
+func TestCommandStringForm(t *testing.T) {
+	assertFixture(t, "command_string_form", "")
+}
+
 func TestManifestRandomPorts(t *testing.T) {
 	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", nil)
 
