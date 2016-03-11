@@ -1,0 +1,3 @@
+main:
+  build: .
+  command: [cmd1, cmd2]
