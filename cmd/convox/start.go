@@ -113,16 +113,22 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	errors = m.Run(app, cache)
+	ch := make(chan []error)
+
+	go func() {
+		ch <- m.Run(app, cache)
+	}()
+
+	if c.Bool("sync") {
+		m.Sync(app)
+	}
+
+	errors = <-ch
 
 	if len(errors) != 0 {
 		// TODO figure out what to do here
 		// fmt.Printf("errors: %+v\n", errors)
 		return
-	}
-
-	if c.Bool("sync") {
-		m.Sync(app)
 	}
 }
 

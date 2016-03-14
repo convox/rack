@@ -561,7 +561,7 @@ func (m *Manifest) Write(filename string) error {
 
 func (m *Manifest) systemPrefix() string {
 	name := "convox"
-	longest := 0
+	longest := len(name)
 
 	for name, _ := range *m {
 		if len(name) > longest {
@@ -573,7 +573,7 @@ func (m *Manifest) systemPrefix() string {
 }
 
 func (m *Manifest) prefixForEntry(name string, pos int) string {
-	longest := 0
+	longest := 6 // (convox)
 
 	for name, _ := range *m {
 		if len(name) > longest {
@@ -747,7 +747,7 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 				continue
 			}
 
-			go registerSync(containerName(app, process), parts[1], parts[2])
+			registerSync(containerName(app, process), parts[1], parts[2])
 		}
 	}
 
@@ -1295,6 +1295,12 @@ func (m *Manifest) syncFiles() error {
 }
 
 func (m *Manifest) processSync(local string, syncs []Sync) error {
+	local, err := filepath.EvalSymlinks(local)
+
+	if err != nil {
+		return err
+	}
+
 	files := Files{}
 
 	adds := map[string]bool{}
@@ -1315,7 +1321,6 @@ func (m *Manifest) processSync(local string, syncs []Sync) error {
 	for {
 		err := filepath.Walk(local, watchWalker(files, local, adds, alock))
 		for _, sync := range syncs {
-
 			if err != nil {
 				fmt.Printf("err: %+v\n", err)
 				continue
