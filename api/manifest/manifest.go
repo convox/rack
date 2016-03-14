@@ -1141,9 +1141,10 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 				remote := filepath.Join(sync.Remote, rel)
 
 				tgz.WriteHeader(&tar.Header{
-					Name: remote,
-					Mode: 0644,
-					Size: info.Size(),
+					Name:    remote,
+					Mode:    0644,
+					Size:    info.Size(),
+					ModTime: info.ModTime(),
 				})
 
 				fd, err := os.Open(local)
