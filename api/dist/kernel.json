@@ -88,6 +88,10 @@
       "Condition": "Development",
       "Value": { "Ref": "Password" }
     },
+    "Private": {
+      "Condition": "Development",
+      "Value": { "Ref": "Private" }
+    },
     "Provider": {
       "Condition": "Development",
       "Value": "aws"

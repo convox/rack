@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -17,9 +18,12 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/fatih/color"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	yaml "github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 )
 
@@ -207,7 +211,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 				return []error{err}
 			}
 			if _, ok := builds[sym]; !ok {
-				builds[sym] = randomString("convox-start-",10)
+				builds[sym] = randomString("convox-start-", 10)
 			}
 
 			tags[tag] = builds[sym]
@@ -509,7 +513,7 @@ func (m *Manifest) Run(app string, cache bool) []error {
 
 	for i, name := range m.runOrder() {
 		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch)
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	errors := []error{}
@@ -524,6 +528,20 @@ func (m *Manifest) Run(app string, cache bool) []error {
 	// errors = append(errors, err)
 
 	return errors
+}
+
+func (m *Manifest) Sync(app string) error {
+	for _, name := range m.runOrder() {
+		err := (*m)[name].syncAdds(app, name)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	go m.syncFiles()
+
+	return nil
 }
 
 func waitForSignal(c chan os.Signal) error {
@@ -541,8 +559,21 @@ func (m *Manifest) Write(filename string) error {
 	return ioutil.WriteFile(filename, data, 0644)
 }
 
+func (m *Manifest) systemPrefix() string {
+	name := "convox"
+	longest := len(name)
+
+	for name, _ := range *m {
+		if len(name) > longest {
+			longest = len(name)
+		}
+	}
+
+	return name + strings.Repeat(" ", longest-len(name)) + " |"
+}
+
 func (m *Manifest) prefixForEntry(name string, pos int) string {
-	longest := 0
+	longest := 6 // (convox)
 
 	for name, _ := range *m {
 		if len(name) > longest {
@@ -683,6 +714,44 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	}
 
 	ch <- runPrefix(prefix, "docker", args...)
+}
+
+func (me ManifestEntry) syncAdds(app, process string) error {
+	// only sync containers with a build directive
+	if me.Build == "" {
+		return nil
+	}
+
+	dockerfile := filepath.Join(me.Build, "Dockerfile")
+
+	if me.Dockerfile != "" {
+		dockerfile = me.Dockerfile
+	}
+
+	data, err := ioutil.ReadFile(dockerfile)
+
+	if err != nil {
+		return err
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		parts := strings.Split(strings.TrimSpace(line), " ")
+
+		if len(parts) < 1 {
+			continue
+		}
+
+		switch parts[0] {
+		case "ADD", "COPY":
+			if len(parts) < 3 {
+				continue
+			}
+
+			registerSync(containerName(app, process), parts[1], parts[2])
+		}
+	}
+
+	return nil
 }
 
 func exists(filename string) bool {
@@ -1012,4 +1081,270 @@ func getDockerGateway() (string, error) {
 
 	host := strings.TrimSpace(string(output))
 	return host, nil
+}
+
+type Files map[string]time.Time
+
+func watchWalker(files Files, local string, adds map[string]bool, lock sync.Mutex) filepath.WalkFunc {
+	return func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		if files[path] != info.ModTime() {
+			lock.Lock()
+			adds[path] = true
+			files[path] = info.ModTime()
+			lock.Unlock()
+		}
+
+		return nil
+	}
+}
+
+func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []Sync) {
+	dc, _ := docker.NewClientFromEnv()
+
+	for {
+		time.Sleep(1 * time.Second)
+
+		if len(adds) == 0 {
+			continue
+		}
+
+		lock.Lock()
+
+		fmt.Printf("%s syncing %d files\n", prefix, len(adds))
+
+		for _, sync := range syncs {
+			var buf bytes.Buffer
+
+			tgz := tar.NewWriter(&buf)
+
+			for local := range adds {
+				info, err := os.Stat(local)
+
+				if err != nil {
+					continue
+				}
+
+				rel, err := filepath.Rel(sync.Local, local)
+
+				if err != nil {
+					continue
+				}
+
+				remote := filepath.Join(sync.Remote, rel)
+
+				tgz.WriteHeader(&tar.Header{
+					Name: remote,
+					Mode: 0644,
+					Size: info.Size(),
+				})
+
+				fd, err := os.Open(local)
+
+				if err != nil {
+					continue
+				}
+
+				io.Copy(tgz, fd)
+				fd.Close()
+			}
+
+			tgz.Close()
+
+			err := dc.UploadToContainer(sync.Container, docker.UploadToContainerOptions{
+				InputStream: &buf,
+				Path:        "/",
+			})
+
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
+		}
+
+		for key := range adds {
+			delete(adds, key)
+		}
+
+		lock.Unlock()
+	}
+}
+
+func processRemoves(prefix string, removes map[string]bool, lock sync.Mutex, syncs []Sync) {
+	dc, _ := docker.NewClientFromEnv()
+
+	for {
+		time.Sleep(1 * time.Second)
+
+		if len(removes) == 0 {
+			continue
+		}
+
+		cmd := []string{"rm", "-f"}
+
+		lock.Lock()
+
+		fmt.Printf("%s removing %d files\n", prefix, len(removes))
+
+		for file := range removes {
+			cmd = append(cmd, file)
+			delete(removes, file)
+		}
+
+		lock.Unlock()
+
+		for _, sync := range syncs {
+			res, err := dc.CreateExec(docker.CreateExecOptions{
+				Container: sync.Container,
+				Cmd:       cmd,
+			})
+
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
+
+			err = dc.StartExec(res.ID, docker.StartExecOptions{})
+
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
+		}
+
+		for key := range removes {
+			delete(removes, key)
+		}
+	}
+}
+
+type Sync struct {
+	Container string
+	Local     string
+	Remote    string
+}
+
+var syncs = []Sync{}
+
+func registerSync(container, local, remote string) error {
+	syscall.Setrlimit(syscall.RLIMIT_NOFILE, &syscall.Rlimit{
+		Max: 999999,
+		Cur: 999999,
+	})
+
+	abs, err := filepath.Abs(local)
+
+	if err != nil {
+		return err
+	}
+
+	sym, err := filepath.EvalSymlinks(abs)
+
+	if err != nil {
+		return err
+	}
+
+	syncs = append(syncs, Sync{
+		Container: container,
+		Local:     sym,
+		Remote:    remote,
+	})
+
+	return nil
+}
+
+func (m *Manifest) syncFiles() error {
+	watches := map[string][]Sync{}
+	candidates := []string{}
+
+	for _, sync := range syncs {
+		candidates = append(candidates, sync.Local)
+	}
+
+	sort.Strings(candidates)
+
+	for _, candidate := range candidates {
+		contained := false
+
+		for watch := range watches {
+			if strings.HasPrefix(candidate, watch) {
+				contained = true
+				break
+			}
+		}
+
+		if !contained {
+			watches[candidate] = []Sync{}
+		}
+	}
+
+	for _, sync := range syncs {
+		for watch := range watches {
+			if sync.Local == watch {
+				watches[watch] = append(watches[watch], sync)
+			}
+		}
+	}
+
+	for watch, syncs := range watches {
+		go m.processSync(watch, syncs)
+	}
+
+	return nil
+}
+
+func (m *Manifest) processSync(local string, syncs []Sync) error {
+	files := Files{}
+
+	adds := map[string]bool{}
+	removes := map[string]bool{}
+
+	var alock, rlock sync.Mutex
+
+	go processAdds(m.systemPrefix(), adds, alock, syncs)
+	go processRemoves(m.systemPrefix(), removes, rlock, syncs)
+
+	filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
+		if info != nil {
+			files[path] = info.ModTime()
+		}
+		return nil
+	})
+
+	for {
+		err := filepath.Walk(local, watchWalker(files, local, adds, alock))
+		for _, sync := range syncs {
+			if err != nil {
+				fmt.Printf("err: %+v\n", err)
+				continue
+			}
+
+			for file := range files {
+				if _, err := os.Stat(file); os.IsNotExist(err) {
+					rel, err := filepath.Rel(local, file)
+
+					if err != nil {
+						continue
+					}
+
+					rlock.Lock()
+					removes[filepath.Join(sync.Remote, rel)] = true
+					rlock.Unlock()
+
+					delete(files, file)
+				}
+			}
+		}
+
+		time.Sleep(900 * time.Millisecond)
+	}
+
+	return nil
 }
