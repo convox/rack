@@ -1245,9 +1245,15 @@ func registerSync(container, local, remote string) error {
 		return err
 	}
 
+	sym, err := filepath.EvalSymlinks(abs)
+
+	if err != nil {
+		return err
+	}
+
 	syncs = append(syncs, Sync{
 		Container: container,
-		Local:     abs,
+		Local:     sym,
 		Remote:    remote,
 	})
 
@@ -1295,12 +1301,6 @@ func (m *Manifest) syncFiles() error {
 }
 
 func (m *Manifest) processSync(local string, syncs []Sync) error {
-	local, err := filepath.EvalSymlinks(local)
-
-	if err != nil {
-		return err
-	}
-
 	files := Files{}
 
 	adds := map[string]bool{}
