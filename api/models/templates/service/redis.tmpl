@@ -2,6 +2,11 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Parameters": {
+      "AutomaticFailoverEnabled": {
+        "Type": "String",
+        "Default": "false",
+        "Description": "Indicates whether Multi-AZ is enabled"
+      },
       "Database": {
         "Type" : "String",
         "Default" : "0",
@@ -11,6 +16,11 @@
         "Type": "String",
         "Default": "cache.t2.micro",
         "Description": "The type of instance to use"
+      },
+      "NumCacheClusters": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The number of cache clusters for this replication group"
       },
       "Password": {
         "Type" : "String",
@@ -51,12 +61,12 @@
       "ReplicationGroup": {
         "Type": "AWS::ElastiCache::ReplicationGroup",
         "Properties": {
-          "AutomaticFailoverEnabled": false,
+          "AutomaticFailoverEnabled": { "Ref": "AutomaticFailoverEnabled" },
           "AutoMinorVersionUpgrade": true,
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
           "Engine": "redis",
-          "NumCacheClusters": "1",
+          "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
           "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
