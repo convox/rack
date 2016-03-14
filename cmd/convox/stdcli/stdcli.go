@@ -95,11 +95,7 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	app := c.String("app")
 
 	if app == "" {
-		app, err = ReadSetting("app")
-
-		if err != nil {
-			app = ""
-		}
+		app = ReadSetting("app")
 	}
 
 	if app == "" {
@@ -111,16 +107,16 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	return abs, app, nil
 }
 
-func ReadSetting(setting string) (string, error) {
+func ReadSetting(setting string) string {
 	value, err := ioutil.ReadFile(fmt.Sprintf(".convox/%s", setting))
 
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	output := strings.TrimSpace(string(value))
 
-	return output, nil
+	return output
 }
 
 func RegisterCommand(cmd cli.Command) {
