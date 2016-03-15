@@ -258,6 +258,12 @@
         "Description" : "",
         "AllowedValues": [ "Yes", "No" ]
       },
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}InsecureProtocol": {
+        "Type" : "String",
+        "Default" : "HTTP",
+        "Description" : "",
+        "AllowedValues": [ "HTTP", "TCP" ]
+      },
     {{ end }}
   {{ end }}
 {{ end }}
@@ -327,9 +333,9 @@
           {{ range .PortMappings }}
             { "Fn::If": [ "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
               {
-                "Protocol": "TCP",
+                "Protocol": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}InsecureProtocol" },
                 "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": "{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}InsecureProtocol" }",
                 "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }
               },
               { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",
@@ -343,7 +349,7 @@
                 {
                   "Protocol": "SSL",
                   "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                  "InstanceProtocol": "TCP",
+                  "InstanceProtocol": "{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}InsecureProtocol" }",
                   "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
                   "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
                 }
