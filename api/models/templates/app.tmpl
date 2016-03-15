@@ -342,7 +342,7 @@
                 {
                   "Protocol": "SSL",
                   "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                  "InstanceProtocol": "{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}InsecureProtocol" }",
+                  "InstanceProtocol": "TCP",
                   "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
                   "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
                 }
