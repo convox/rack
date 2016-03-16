@@ -62,10 +62,11 @@ func init() {
 				Action:      cmdServiceDelete,
 			},
 			{
-				Name:        "update",
-				Description: "update a service",
-				Usage:       "<name> --option-name=value [--option-name=value]\n\n" + usage,
-				Action:      cmdServiceUpdate,
+				Name:            "update",
+				Description:     "update a service",
+				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
+				Action:          cmdServiceUpdate,
+				SkipFlagParsing: true,
 			},
 			{
 				Name:        "info",
@@ -161,7 +162,8 @@ func cmdServiceCreate(c *cli.Context) {
 }
 
 func cmdServiceUpdate(c *cli.Context) {
-	if len(c.Args()) != 1 {
+	// ensure name included
+	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "update")
 		return
 	}
@@ -186,18 +188,19 @@ func cmdServiceUpdate(c *cli.Context) {
 		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
 	}
 
-	fmt.Printf("Updating %s (", name)
-	if len(optionsList) > 0 {
-		fmt.Printf(": %s", strings.Join(optionsList, " "))
+	if len(optionsList) == 0 {
+		stdcli.Usage(c, "update")
+		return
 	}
-	fmt.Printf(")... ")
 
-	// _, err := rackClient(c).CreateService(t, options)
+	fmt.Printf("Updating %s (%s)...", name, strings.Join(optionsList, " "))
 
-	// if err != nil {
-	// 	stdcli.Error(err)
-	// 	return
-	// }
+	_, err := rackClient(c).UpdateService(name, options)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	fmt.Println("UPDATING")
 }
