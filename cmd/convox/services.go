@@ -63,7 +63,7 @@ func init() {
 			},
 			{
 				Name:            "update",
-				Description:     "update a service",
+				Description:     "update a service.\n\nWARNING: updates may cause service downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceUpdate,
 				SkipFlagParsing: true,
