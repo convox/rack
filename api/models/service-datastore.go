@@ -14,7 +14,10 @@ func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 		return nil, err
 	}
 
-	s.Parameters["Password"] = generateId("", 30)
+	if s.Type != "redis" {
+		s.Parameters["Password"] = generateId("", 30)
+	}
+
 	s.Parameters["Subnets"] = os.Getenv("SUBNETS")
 	s.Parameters["Vpc"] = os.Getenv("VPC")
 
