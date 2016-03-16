@@ -15,7 +15,7 @@ func TestCFParams(t *testing.T) {
 	})
 
 	assert.Equal(t, "bar", params["Foo"])
-	assert.Equal(t, "Yes", params["MultiAZ"])
-	assert.Equal(t, "No", params["EncryptedStorage"])
+	assert.Equal(t, "true", params["MultiAZ"])
+	assert.Equal(t, "false", params["EncryptedStorage"])
 	assert.Equal(t, "TEST", params["TestTestTestTest"])
 }
