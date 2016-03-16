@@ -269,9 +269,9 @@ func CFParams(source map[string]string) map[string]string {
 		var val string
 		switch value {
 		case "":
-			val = "No"
+			val = "false"
 		case "true":
-			val = "Yes"
+			val = "true"
 		default:
 			val = value
 		}
