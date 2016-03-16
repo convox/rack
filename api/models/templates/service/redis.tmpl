@@ -5,7 +5,7 @@
       "AutomaticFailoverEnabled": {
         "Type": "String",
         "Default": "false",
-        "Description": "Indicates whether Multi-AZ is enabled"
+        "Description": "Indicates whether Multi-AZ is enabled. Must be accompanied with InstanceType=cache.m3.medium or higher and NumCacheCluster=2 or higher."
       },
       "Database": {
         "Type" : "String",
@@ -21,10 +21,6 @@
         "Type": "String",
         "Default": "1",
         "Description": "The number of cache clusters for this replication group"
-      },
-      "Password": {
-        "Type" : "String",
-        "Description" : "Unused (to be removed)"
       },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
@@ -66,6 +62,7 @@
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
           "Engine": "redis",
+          "EngineVersion": "2.8.24",
           "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
