@@ -117,8 +117,8 @@ func init() {
 			cli.StringFlag{
 				Name:   "password",
 				EnvVar: "PASSWORD",
-				Value: randomString(30),
-				Usage:  "custom password for rack",
+				Value:  "",
+				Usage:  "custom API password. If not set a secure password will be randomly generated.",
 			},
 			cli.StringFlag{
 				Name:   "version",
@@ -331,6 +331,9 @@ func cmdInstall(c *cli.Context) {
 	}
 
 	password := c.String("password")
+	if password == "" {
+		password = randomString(30)
+	}
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
 
