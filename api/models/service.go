@@ -179,6 +179,58 @@ func (s *Service) Delete() error {
 	return nil
 }
 
+// Service Update takes a map of CF Parameter changes and applies on top of
+// the existing parameters and the newest template.
+// The CLI / Client / Server delegates everything to CloudFormation, and
+// makes no guarantees of service uptime during update. In fact, most datastore
+// updates guarantee resource replacement which will cause database downtime.
+func (s *Service) Update(changes map[string]string) error {
+	params := map[string]string{}
+
+	for key, value := range s.Parameters {
+		params[key] = value
+	}
+
+	for key, value := range changes {
+		params[key] = value
+	}
+
+	body, err := s.Formation()
+
+	if err != nil {
+		return err
+	}
+
+	fp, err := formationParameters(body)
+
+	if err != nil {
+		return err
+	}
+
+	// remove params that don't exist in the template
+	for key := range params {
+		if _, ok := fp[key]; !ok {
+			delete(params, key)
+		}
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		StackName:    aws.String(s.StackName()),
+		TemplateBody: aws.String(body),
+	}
+
+	for key, value := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
+	}
+
+	_, err = CloudFormation().UpdateStack(req)
+
+	return err
+}
+
 func (s *Service) Formation() (string, error) {
 	data, err := buildTemplate(fmt.Sprintf("service/%s", s.Type), "service", nil)
 

@@ -123,6 +123,52 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, s)
 }
 
+func ServiceUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	service := mux.Vars(r)["service"]
+
+	s, err := models.GetService(service)
+
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such service: %s", service)
+	}
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	// get the last set value for all form values
+	// ie:  foo=1&foo=2  sets foo to "2"
+	params := make(map[string]string)
+	for key, values := range r.Form {
+		val := values[len(values)-1]
+		params[key] = val
+	}
+
+	err = s.Update(models.CFParams(params))
+
+	if err != nil && awsError(err) == "ValidationError" {
+		e := err.(awserr.Error)
+		return httperr.Errorf(403, convoxifyCloudformationError(e.Message()))
+	}
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	s, err = models.GetService(service)
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, s)
+}
+
 func ServiceLogs(ws *websocket.Conn) *httperr.Error {
 	service := mux.Vars(ws.Request())["service"]
 
