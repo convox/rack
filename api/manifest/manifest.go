@@ -1212,7 +1212,9 @@ func processRemoves(prefix string, removes map[string]bool, lock sync.Mutex, syn
 				continue
 			}
 
-			err = dc.StartExec(res.ID, docker.StartExecOptions{})
+			err = dc.StartExec(res.ID, docker.StartExecOptions{
+				Detach: true,
+			})
 
 			if err != nil {
 				fmt.Printf("err: %+v\n", err)
