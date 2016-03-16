@@ -29,7 +29,7 @@ func init() {
 		},
 		ServiceType{
 			"redis",
-			"[--instance-type=cache.t2.micro]",
+			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1]",
 		},
 		ServiceType{
 			"webhook",
