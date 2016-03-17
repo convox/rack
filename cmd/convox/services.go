@@ -9,7 +9,39 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
+type ServiceType struct {
+	name, args string
+}
+
 func init() {
+	types := []ServiceType{
+		ServiceType{
+			"mysql",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
+		},
+		ServiceType{
+			"papertrail",
+			"--url=logs1.papertrailapp.com:11235",
+		},
+		ServiceType{
+			"postgres",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private]",
+		},
+		ServiceType{
+			"redis",
+			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
+		},
+		ServiceType{
+			"webhook",
+			"--url=https://console.convox.com/webhooks/1234",
+		},
+	}
+
+	usage := "Supported types / options:"
+	for _, t := range types {
+		usage += fmt.Sprintf("\n  %-10s  %s", t.name, t.args)
+	}
+
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "services",
 		Description: "manage services",
@@ -19,7 +51,7 @@ func init() {
 			{
 				Name:            "create",
 				Description:     "create a new service",
-				Usage:           "<type> [--name=value] [--key-name=value]",
+				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
 				SkipFlagParsing: true,
 			},
@@ -28,6 +60,13 @@ func init() {
 				Description: "delete a service",
 				Usage:       "<name>",
 				Action:      cmdServiceDelete,
+			},
+			{
+				Name:            "update",
+				Description:     "update a service.\n\nWARNING: updates may cause service downtime.",
+				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
+				Action:          cmdServiceUpdate,
+				SkipFlagParsing: true,
 			},
 			{
 				Name:        "info",
@@ -84,6 +123,12 @@ func cmdServiceCreate(c *cli.Context) {
 	}
 
 	t := c.Args()[0]
+
+	if t == "help" {
+		stdcli.Usage(c, "create")
+		return
+	}
+
 	options := stdcli.ParseOpts(c.Args()[1:])
 	for key, value := range options {
 		if value == "" {
@@ -114,6 +159,50 @@ func cmdServiceCreate(c *cli.Context) {
 	}
 
 	fmt.Println("CREATING")
+}
+
+func cmdServiceUpdate(c *cli.Context) {
+	// ensure name included
+	if !(len(c.Args()) > 0) {
+		stdcli.Usage(c, "update")
+		return
+	}
+
+	name := c.Args()[0]
+
+	// ensure everything after type is a flag
+	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
+		stdcli.Usage(c, "update")
+		return
+	}
+
+	options := stdcli.ParseOpts(c.Args()[1:])
+	for key, value := range options {
+		if value == "" {
+			options[key] = "true"
+		}
+	}
+
+	var optionsList []string
+	for key, val := range options {
+		optionsList = append(optionsList, fmt.Sprintf("%s=%q", key, val))
+	}
+
+	if len(optionsList) == 0 {
+		stdcli.Usage(c, "update")
+		return
+	}
+
+	fmt.Printf("Updating %s (%s)...", name, strings.Join(optionsList, " "))
+
+	_, err := rackClient(c).UpdateService(name, options)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Println("UPDATING")
 }
 
 func cmdServiceDelete(c *cli.Context) {

@@ -68,3 +68,16 @@ func (c *Client) DeleteService(name string) (*Service, error) {
 
 	return &service, nil
 }
+
+func (c *Client) UpdateService(name string, options map[string]string) (*Service, error) {
+	params := Params(options)
+	var service Service
+
+	err := c.Put(fmt.Sprintf("/services/%s", name), params, &service)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &service, nil
+}

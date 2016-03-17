@@ -1,6 +1,10 @@
 {{ define "service" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
     "Parameters": {
       "AllocatedStorage": {
         "Type" : "Number",
@@ -17,6 +21,11 @@
         "Default" : "db.t2.micro",
         "Description" : "Instance class for database nodes"
       },
+      "MaxConnections": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "ParameterGroup max_connections value, i.e. '{DBInstanceClassMemory/15000000}'"
+      },
       "MultiAZ": {
         "Type" : "String",
         "Default" : "false",
@@ -26,9 +35,20 @@
         "Type" : "String",
         "Description" : "Server password"
       },
+      "Private": {
+        "Type": "String",
+        "Description": "Create in private subnets",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets"
       },
       "Username": {
         "Type" : "String",
@@ -62,7 +82,10 @@
         "Type": "AWS::RDS::DBSubnetGroup",
         "Properties": {
           "DBSubnetGroupDescription": "postgres service",
-          "SubnetIds": { "Ref": "Subnets" }
+          "SubnetIds": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] }
         }
       },
       "Instance": {
@@ -72,8 +95,10 @@
           "DBInstanceClass": { "Ref": "InstanceType" },
           "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
           "DBName": { "Ref": "Database" },
+          "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
+          "EngineVersion": "9.4.5",
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
@@ -81,6 +106,16 @@
           "PubliclyAccessible": "false",
           "StorageType": "gp2",
           "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+        }
+      },
+      "ParameterGroup": {
+        "Type": "AWS::RDS::DBParameterGroup",
+        "Properties" : {
+          "Description" : { "Ref": "Database" },
+          "Family" : "postgres9.4",
+          "Parameters" : {
+            "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
+          }
         }
       }
     }

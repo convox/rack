@@ -1,7 +1,15 @@
 {{ define "service" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
     "Parameters": {
+      "AutomaticFailoverEnabled": {
+        "Type": "String",
+        "Default": "false",
+        "Description": "Indicates whether Multi-AZ is enabled. Must be accompanied with InstanceType=cache.m3.medium or higher and NumCacheCluster=2 or higher."
+      },
       "Database": {
         "Type" : "String",
         "Default" : "0",
@@ -12,13 +20,25 @@
         "Default": "cache.t2.micro",
         "Description": "The type of instance to use"
       },
-      "Password": {
-        "Type" : "String",
-        "Description" : "Unused (to be removed)"
+      "Private": {
+        "Type": "String",
+        "Description": "Create in private subnets",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
+      "NumCacheClusters": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The number of cache clusters for this replication group"
       },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets"
       },
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
@@ -45,18 +65,22 @@
         "Type": "AWS::ElastiCache::SubnetGroup",
         "Properties": {
           "Description": "Redis subnet group",
-          "SubnetIds": { "Ref": "Subnets" }
+          "SubnetIds": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] }
         }
       },
       "ReplicationGroup": {
         "Type": "AWS::ElastiCache::ReplicationGroup",
         "Properties": {
-          "AutomaticFailoverEnabled": false,
+          "AutomaticFailoverEnabled": { "Ref": "AutomaticFailoverEnabled" },
           "AutoMinorVersionUpgrade": true,
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
           "Engine": "redis",
-          "NumCacheClusters": "1",
+          "EngineVersion": "2.8.24",
+          "NumCacheClusters": { "Ref": "NumCacheClusters" },
           "Port": "6379",
           "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
           "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]

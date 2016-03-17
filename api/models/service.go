@@ -179,6 +179,66 @@ func (s *Service) Delete() error {
 	return nil
 }
 
+// Service Update takes a map of CF Parameter changes and applies on top of
+// the existing parameters and the newest template.
+// The CLI / Client / Server delegates everything to CloudFormation, and
+// makes no guarantees of service uptime during update. In fact, most datastore
+// updates guarantee resource replacement which will cause database downtime.
+func (s *Service) Update(changes map[string]string) error {
+	var req *cloudformation.UpdateStackInput
+	var err error
+
+	switch s.Type {
+	case "papertrail":
+		return fmt.Errorf("can not update papertrail")
+	case "webhook":
+		return fmt.Errorf("can not update webhook")
+	default:
+		req, err = s.UpdateDatastore()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	params := map[string]string{}
+
+	// copy existing parameters
+	for key, value := range s.Parameters {
+		params[key] = value
+	}
+
+	// update changes
+	for key, value := range changes {
+		params[key] = value
+	}
+
+	fp, err := formationParameters(*req.TemplateBody)
+
+	if err != nil {
+		return err
+	}
+
+	// remove params that don't exist in the template
+	for key := range params {
+		if _, ok := fp[key]; !ok {
+			delete(params, key)
+		}
+	}
+
+	// pass through service parameters as Cloudformation Parameters
+	for key, value := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
+	}
+
+	_, err = CloudFormation().UpdateStack(req)
+
+	return err
+}
+
 func (s *Service) Formation() (string, error) {
 	data, err := buildTemplate(fmt.Sprintf("service/%s", s.Type), "service", nil)
 
@@ -269,9 +329,9 @@ func CFParams(source map[string]string) map[string]string {
 		var val string
 		switch value {
 		case "":
-			val = "No"
+			val = "false"
 		case "true":
-			val = "Yes"
+			val = "true"
 		default:
 			val = value
 		}
