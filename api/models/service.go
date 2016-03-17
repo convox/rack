@@ -185,23 +185,35 @@ func (s *Service) Delete() error {
 // makes no guarantees of service uptime during update. In fact, most datastore
 // updates guarantee resource replacement which will cause database downtime.
 func (s *Service) Update(changes map[string]string) error {
-	params := map[string]string{}
+	var req *cloudformation.UpdateStackInput
+	var err error
 
-	for key, value := range s.Parameters {
-		params[key] = value
+	switch s.Type {
+	case "papertrail":
+		return fmt.Errorf("can not update papertrail")
+	case "webhook":
+		return fmt.Errorf("can not update webhook")
+	default:
+		req, err = s.UpdateDatastore()
 	}
-
-	for key, value := range changes {
-		params[key] = value
-	}
-
-	body, err := s.Formation()
 
 	if err != nil {
 		return err
 	}
 
-	fp, err := formationParameters(body)
+	params := map[string]string{}
+
+	// copy existing parameters
+	for key, value := range s.Parameters {
+		params[key] = value
+	}
+
+	// update changes
+	for key, value := range changes {
+		params[key] = value
+	}
+
+	fp, err := formationParameters(*req.TemplateBody)
 
 	if err != nil {
 		return err
@@ -214,11 +226,7 @@ func (s *Service) Update(changes map[string]string) error {
 		}
 	}
 
-	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(s.StackName()),
-		TemplateBody: aws.String(body),
-	}
-
+	// pass through service parameters as Cloudformation Parameters
 	for key, value := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
