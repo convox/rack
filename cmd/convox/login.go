@@ -65,11 +65,14 @@ func init() {
 }
 
 func cmdLogin(c *cli.Context) {
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "login")
+	var host string
+
+	if len(c.Args()) < 1 {
+		host = "console.convox.com"
+	} else {
+		host = c.Args()[0]
 	}
 
-	host := c.Args()[0]
 	u, err := url.Parse(host)
 
 	if err != nil {
