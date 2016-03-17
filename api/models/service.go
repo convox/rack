@@ -7,9 +7,11 @@ import (
 	"sort"
 	"strings"
 
+	paws "github.com/convox/rack/api/provider/aws"
+	"github.com/convox/rack/client"
+
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/client"
 )
 
 type Service client.Service
@@ -115,6 +117,10 @@ func (s *Service) StackName() string {
 }
 
 func (s *Service) Create() error {
+	if !paws.ValidAppName.MatchString(s.Name) {
+		return fmt.Errorf("service name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
+	}
+
 	var req *cloudformation.CreateStackInput
 	var err error
 

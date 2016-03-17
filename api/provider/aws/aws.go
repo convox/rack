@@ -19,7 +19,7 @@ import (
 var (
 	CustomTopic  = os.Getenv("CUSTOM_TOPIC")
 	SortableTime = "20060102.150405.000000000"
-	ValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+	ValidAppName = regexp.MustCompile(`\A[a-z][-a-z0-9]{3,29}\z`)
 )
 
 type AWSProvider struct {

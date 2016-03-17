@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/helpers"
+	paws "github.com/convox/rack/api/provider/aws"
 	"github.com/convox/rack/client"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -97,8 +98,6 @@ func getAppByStackName(stackName string) (*App, error) {
 	return app, nil
 }
 
-var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
-
 func (a *App) IsBound() bool {
 	if a.Tags == nil {
 		// Default to bound.
@@ -125,7 +124,7 @@ func (a *App) StackName() string {
 func (a *App) Create() error {
 	helpers.TrackEvent("kernel-app-create-start", nil)
 
-	if !regexValidAppName.MatchString(a.Name) {
+	if !paws.ValidAppName.MatchString(a.Name) {
 		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
 	}
 
