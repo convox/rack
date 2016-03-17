@@ -251,6 +251,12 @@
         "Description" : "",
         "AllowedValues": [ "Yes", "No" ]
       },
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol": {
+        "Type" : "String",
+        "Default" : "TCP",
+        "Description" : "",
+        "AllowedValues": [ "HTTP", "TCP" ]
+      },
     {{ end }}
   {{ end }}
 {{ end }}
@@ -320,9 +326,9 @@
           {{ range .PortMappings }}
             { "Fn::If": [ "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
               {
-                "Protocol": "TCP",
+                "Protocol": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" },
                 "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": "{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }",
                 "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }
               },
               { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",
