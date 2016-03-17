@@ -17,7 +17,7 @@ func init() {
 	types := []ServiceType{
 		ServiceType{
 			"mysql",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az]",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
 		ServiceType{
 			"papertrail",
@@ -25,15 +25,15 @@ func init() {
 		},
 		ServiceType{
 			"postgres",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az]",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private]",
 		},
 		ServiceType{
 			"redis",
-			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1]",
+			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
 		ServiceType{
 			"webhook",
-			"--url=https://grid.convox.com/rack-hook/1234",
+			"--url=https://console.convox.com/webhooks/1234",
 		},
 	}
 
