@@ -1,6 +1,9 @@
 {{ define "service" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
     "Parameters": {
       "AllocatedStorage": {
         "Type" : "Number",
@@ -26,9 +29,20 @@
         "Type" : "String",
         "Description" : "Server password"
       },
+      "Private": {
+        "Type": "String",
+        "Description": "Create in private subnets",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets"
       },
       "Username": {
         "Type" : "String",
@@ -62,7 +76,10 @@
         "Type": "AWS::RDS::DBSubnetGroup",
         "Properties": {
           "DBSubnetGroupDescription": "mysql service",
-          "SubnetIds": { "Ref": "Subnets" }
+          "SubnetIds": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] }
         }
       },
       "Instance": {

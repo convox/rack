@@ -1,6 +1,9 @@
 {{ define "service" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
     "Parameters": {
       "AutomaticFailoverEnabled": {
         "Type": "String",
@@ -17,6 +20,12 @@
         "Default": "cache.t2.micro",
         "Description": "The type of instance to use"
       },
+      "Private": {
+        "Type": "String",
+        "Description": "Create in private subnets",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
       "NumCacheClusters": {
         "Type": "String",
         "Default": "1",
@@ -25,6 +34,11 @@
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets"
       },
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
@@ -51,7 +65,10 @@
         "Type": "AWS::ElastiCache::SubnetGroup",
         "Properties": {
           "Description": "Redis subnet group",
-          "SubnetIds": { "Ref": "Subnets" }
+          "SubnetIds": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] }
         }
       },
       "ReplicationGroup": {
