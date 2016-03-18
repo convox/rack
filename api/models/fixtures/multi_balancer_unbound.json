@@ -37,6 +37,22 @@
         "Yes"
       ]
     },
+    "ProxyProtocolWebPort80": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80ProxyProtocol"
+        },
+        "Yes"
+      ]
+    },
+    "ProxyProtocolWorkerPort80": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerPort80ProxyProtocol"
+        },
+        "Yes"
+      ]
+    },
     "RegionHasRegistry": {
       "Fn::Equals": [
         {
@@ -223,6 +239,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort80ProxyProtocol": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort80Secure": {
       "AllowedValues": [
         "Yes",
@@ -254,6 +279,15 @@
     },
     "WorkerPort80Host": {
       "Default": "5001",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerPort80ProxyProtocol": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
       "Description": "",
       "Type": "String"
     },
@@ -357,6 +391,34 @@
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
         },
+        "Policies": [
+          {
+            "Fn::If": [
+              "ProxyProtocolWebPort80",
+              {
+                "Attributes": [
+                  {
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                  }
+                ],
+                "InstancePorts": [
+                  {
+                    "Ref": "WebPort80Host"
+                  }
+                ],
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "SecurityGroups": [
           {
             "Ref": "BalancerSecurityGroup"
@@ -499,6 +561,34 @@
             ]
           ]
         },
+        "Policies": [
+          {
+            "Fn::If": [
+              "ProxyProtocolWorkerPort80",
+              {
+                "Attributes": [
+                  {
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                  }
+                ],
+                "InstancePorts": [
+                  {
+                    "Ref": "WorkerPort80Host"
+                  }
+                ],
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "SecurityGroups": [
           {
             "Ref": "BalancerWorkerSecurityGroup"

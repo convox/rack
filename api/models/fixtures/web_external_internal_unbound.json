@@ -31,6 +31,22 @@
         "Yes"
       ]
     },
+    "ProxyProtocolWebPort3001": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3001ProxyProtocol"
+        },
+        "Yes"
+      ]
+    },
+    "ProxyProtocolWebPort80": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80ProxyProtocol"
+        },
+        "Yes"
+      ]
+    },
     "RegionHasRegistry": {
       "Fn::Equals": [
         {
@@ -219,6 +235,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort3001ProxyProtocol": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort3001Secure": {
       "AllowedValues": [
         "Yes",
@@ -240,6 +265,15 @@
     },
     "WebPort80Host": {
       "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort80ProxyProtocol": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
       "Description": "",
       "Type": "String"
     },
@@ -398,6 +432,57 @@
             ]
           ]
         },
+        "Policies": [
+          {
+            "Fn::If": [
+              "ProxyProtocolWebPort80",
+              {
+                "Attributes": [
+                  {
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                  }
+                ],
+                "InstancePorts": [
+                  {
+                    "Ref": "WebPort80Host"
+                  }
+                ],
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "ProxyProtocolWebPort3001",
+              {
+                "Attributes": [
+                  {
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                  }
+                ],
+                "InstancePorts": [
+                  {
+                    "Ref": "WebPort3001Host"
+                  }
+                ],
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "Scheme": "internal",
         "SecurityGroups": [
           {

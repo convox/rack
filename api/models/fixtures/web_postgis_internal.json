@@ -29,6 +29,14 @@
         "Yes"
       ]
     },
+    "ProxyProtocolWebPort3000": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000ProxyProtocol"
+        },
+        "Yes"
+      ]
+    },
     "RegionHasRegistry": {
       "Fn::Equals": [
         {
@@ -189,6 +197,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort3000ProxyProtocol": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort3000Secure": {
       "AllowedValues": [
         "Yes",
@@ -287,6 +304,34 @@
           }
         ],
         "LoadBalancerName": "httpd-web-XHW5F4P-i",
+        "Policies": [
+          {
+            "Fn::If": [
+              "ProxyProtocolWebPort3000",
+              {
+                "Attributes": [
+                  {
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                  }
+                ],
+                "InstancePorts": [
+                  {
+                    "Ref": "WebPort3000Host"
+                  }
+                ],
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
         "Scheme": "internal",
         "SecurityGroups": [
           {
