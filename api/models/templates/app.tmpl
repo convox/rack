@@ -222,6 +222,7 @@
     {{ range .PortMappings }}
       "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }, "" ] },
       "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure" }, "Yes" ] },
+      "ProxyProtocol{{ upper $balancer.ProcessName }}Port{{ .Balancer }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}ProxyProtocol" }, "Yes" ] },
     {{ end }}
   {{ end }}
 {{ end }}
@@ -246,6 +247,12 @@
         "Description" : ""
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
+        "Type" : "String",
+        "Default" : "No",
+        "Description" : "",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}ProxyProtocol": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",
@@ -341,6 +348,23 @@
                   "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
                 }
               ] }
+            ] },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ],
+        "Policies": [
+          {{ range .PortMappings }}
+            { "Fn::If": [ "ProxyProtocol{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",
+              {
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType",
+                "Attributes": [{
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                }],
+                "InstancePorts": [{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }]
+              },
+              { "Ref": "AWS::NoValue" }
             ] },
           {{ end }}
           { "Ref": "AWS::NoValue" }
