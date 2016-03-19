@@ -1,0 +1,45 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters": {
+    },
+    "Resources": {
+      "Queue": {
+        "Type": "AWS::SQS::Queue",
+        "Properties": {
+        }
+      },
+      "Policy": {
+        "Type": "AWS::SQS::QueuePolicy",
+          "Properties" : {
+            "PolicyDocument" : {
+            "Version": "2008-10-17",
+            "Id": "example-ID",
+            "Statement": [{
+              "Sid": "example-statement-ID",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": [
+                "SQS:*"
+              ],
+              "Resource": { "Fn::GetAtt": ["Queue", "Arn"] },
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:s3:*:*:*"
+                }
+              }
+            }]
+          },
+          "Queues" : [ { "Ref": "Queue" } ]
+        }
+      }
+    },
+    "Outputs": {
+      "Arn": {
+        "Value": { "Fn::GetAtt": ["Queue", "Arn"] }
+      }
+    }
+  }
+{{ end }}

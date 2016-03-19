@@ -1,0 +1,46 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters": {
+      "BucketName": {
+        "Type" : "String",
+        "Default": "",
+        "Description" : "Bucket name"
+      },
+      "Queue": {
+        "Type" : "String",
+        "Default": "",
+        "Description" : "SQS Queue Arn"
+      }
+    },
+    "Resources": {
+        "Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "AccessControl": "Private",
+                "NotificationConfiguration": {
+                  "QueueConfigurations": [
+                    {
+                      "Event" : "s3:ObjectCreated:*",
+                      "Queue" : { "Ref": "Queue" }
+                    },
+                    {
+                      "Event" : "s3:ObjectRemoved:*",
+                      "Queue" : { "Ref": "Queue" }
+                    }
+                  ]
+                },
+                "Tags": [
+                    { "Key": "system", "Value": "convox" },
+                    { "Key": "service", "Value": { "Ref": "AWS::StackName" } }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+      "Name": {
+        "Value": { "Ref": "Bucket" }
+      }
+    }
+  }
+{{ end }}

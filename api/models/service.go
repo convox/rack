@@ -123,6 +123,10 @@ func (s *Service) Create() error {
 		req, err = s.CreatePapertrail()
 	case "webhook":
 		req, err = s.CreateWebhook()
+	case "s3":
+		req, err = s.CreateS3()
+	case "sqs":
+		req, err = s.CreateSQS()
 	default:
 		req, err = s.CreateDatastore()
 	}
@@ -300,6 +304,10 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 			exports["URL"] = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 		case "redis":
 			exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+		case "s3":
+			exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", "key", "secret", outputs["Name"])
+		case "sqs":
+			exports["URL"] = fmt.Sprintf("sqs://%s", outputs["Arn"])
 		case "webhook":
 			if parsedUrl, err := url.Parse(parameters["Url"]); err == nil {
 				exports["URL"] = parsedUrl.Query().Get("endpoint")

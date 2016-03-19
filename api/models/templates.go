@@ -5,6 +5,8 @@
 // models/templates/service/papertrail.tmpl
 // models/templates/service/postgres.tmpl
 // models/templates/service/redis.tmpl
+// models/templates/service/s3.tmpl
+// models/templates/service/sqs.tmpl
 // models/templates/service/webhook.tmpl
 // DO NOT EDIT!
 
@@ -15,11 +17,11 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
+	"os"
 	"time"
+	"io/ioutil"
+	"path/filepath"
 )
 
 func bindataRead(data []byte, name string) ([]byte, error) {
@@ -48,9 +50,9 @@ type asset struct {
 }
 
 type bindataFileInfo struct {
-	name    string
-	size    int64
-	mode    os.FileMode
+	name string
+	size int64
+	mode os.FileMode
 	modTime time.Time
 }
 
@@ -88,8 +90,8 @@ func templatesAppTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/app.tmpl", size: 16047, mode: os.FileMode(436), modTime: time.Unix(1458304745, 0)}
-	a := &asset{bytes: bytes, info: info}
+	info := bindataFileInfo{name: "templates/app.tmpl", size: 16047, mode: os.FileMode(420), modTime: time.Unix(1458411468, 0)}
+	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
@@ -108,8 +110,8 @@ func templatesServiceMysqlTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/mysql.tmpl", size: 3346, mode: os.FileMode(436), modTime: time.Unix(1458303939, 0)}
-	a := &asset{bytes: bytes, info: info}
+	info := bindataFileInfo{name: "templates/service/mysql.tmpl", size: 3346, mode: os.FileMode(420), modTime: time.Unix(1458240900, 0)}
+	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
@@ -128,8 +130,8 @@ func templatesServicePapertrailTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/papertrail.tmpl", size: 3146, mode: os.FileMode(436), modTime: time.Unix(1457015031, 0)}
-	a := &asset{bytes: bytes, info: info}
+	info := bindataFileInfo{name: "templates/service/papertrail.tmpl", size: 3146, mode: os.FileMode(420), modTime: time.Unix(1446924998, 0)}
+	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
@@ -148,8 +150,8 @@ func templatesServicePostgresTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/postgres.tmpl", size: 4072, mode: os.FileMode(436), modTime: time.Unix(1458303939, 0)}
-	a := &asset{bytes: bytes, info: info}
+	info := bindataFileInfo{name: "templates/service/postgres.tmpl", size: 4072, mode: os.FileMode(420), modTime: time.Unix(1458240900, 0)}
+	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
@@ -168,8 +170,48 @@ func templatesServiceRedisTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/redis.tmpl", size: 3061, mode: os.FileMode(436), modTime: time.Unix(1458303939, 0)}
-	a := &asset{bytes: bytes, info: info}
+	info := bindataFileInfo{name: "templates/service/redis.tmpl", size: 3061, mode: os.FileMode(420), modTime: time.Unix(1458240900, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _templatesServiceS3Tmpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xac\x54\xc1\x6e\xdb\x30\x0c\xbd\xe7\x2b\x08\x1e\x87\x0c\xc8\xd6\xd3\x74\xcb\xba\xed\x32\xa0\x4d\xeb\xa0\x3b\x0c\x3b\x68\x0a\x1d\x68\x8d\x25\x43\xa2\x8d\x05\x81\xff\x7d\x92\xe2\x24\x56\xa3\x0d\x18\x50\x20\x3e\xe4\xf1\xf1\xf1\x91\x36\x79\x38\xc0\x86\x6a\x6d\x08\xd0\x93\xeb\xb5\x22\x84\x61\x98\x01\x1c\xc2\x03\x80\xcb\x6f\xd5\x9a\x9a\x76\x27\x99\xbe\x58\xd7\x48\x7e\x22\xe7\xb5\x35\x08\x02\xf0\xfd\xe2\xdd\xe2\xed\xe2\x43\xf8\xe1\xfc\x48\x5f\x49\x27\x1b\xe2\xc0\x41\x31\x4a\x04\xf4\x63\xa7\x9e\x89\xef\x42\x64\x82\x06\x7c\xbd\x6f\x29\x09\x55\xec\xb4\xd9\x8e\x22\x29\xf4\x89\x6a\xd9\xed\x38\xf0\x31\x87\xbd\x72\xba\xe5\x93\x83\xa3\x32\x98\x28\x3d\xb2\x86\x13\x1d\x1f\x3a\xea\x5e\xbd\x62\xf5\x50\x41\x12\x86\xa5\x33\xe7\x9a\xb3\x49\x65\x7c\x24\x6f\x3b\xa7\xc8\xe7\xb5\x8f\x5e\x33\xec\xe2\x49\xa4\x51\x0b\x51\xdd\x08\x31\x12\xe7\x39\x6d\xe5\x6c\x4b\x8e\xf5\x0b\xd9\x73\x7c\xa9\x42\x45\x7f\x6b\x0d\x3b\xbb\x8b\x7a\x2b\xa7\xfb\xf0\xda\x5e\xe8\x24\xee\x9d\x65\x5d\x6b\x25\x63\x57\x21\xa3\xd6\xdb\xce\xa5\x3f\x45\xe9\xd3\x28\x33\x66\x74\xf1\xbd\x40\x85\xa2\x40\x12\xf9\xdc\x93\xe1\x34\x44\x7f\x23\xee\x7f\xfe\x22\xc5\xb7\x8e\x82\xc5\x8d\x78\x53\x70\x39\x2d\x1d\xb3\x0e\x71\xb2\x75\xec\x6c\x84\x86\x62\xca\x50\x56\xfa\x1f\x57\x8f\xd4\xd8\xfe\x95\x5d\x15\xd0\x1f\x57\x58\xc1\x3b\xae\xe5\xf6\x1f\xb3\x06\xfc\x4a\xfb\x58\xdd\xef\x3d\x53\x83\x73\xc0\x27\xb9\x4b\x9f\x3d\x2a\x6b\x7a\xfb\x1b\xff\x3a\x91\x4b\xee\xb8\xf9\x93\xe4\x4b\x5b\xc7\xcf\x92\xa5\x7a\x4e\x0b\x0c\x43\xa1\x97\xbc\x93\x4b\x3c\xdf\x8b\xfb\x8e\xdb\x8e\xb3\xcb\x70\x7d\x13\xae\x0d\x8c\xeb\x70\x96\x1d\x45\x67\xf1\x09\xe7\x8b\xcc\x26\x5e\xac\x3f\x01\x00\x00\xff\xff\xa5\xb5\xfb\xcf\xc9\x04\x00\x00")
+
+func templatesServiceS3TmplBytes() ([]byte, error) {
+	return bindataRead(
+		_templatesServiceS3Tmpl,
+		"templates/service/s3.tmpl",
+	)
+}
+
+func templatesServiceS3Tmpl() (*asset, error) {
+	bytes, err := templatesServiceS3TmplBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "templates/service/s3.tmpl", size: 1225, mode: os.FileMode(420), modTime: time.Unix(1458414710, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _templatesServiceSqsTmpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x8c\x54\x4d\x8b\xab\x30\x14\xdd\xf7\x57\x84\x2c\x4b\x0b\xf6\xbd\xc5\x7b\x2f\xbb\xf2\x3a\x1d\x0a\x03\x63\x6b\xe9\x2c\x8a\x8b\xa0\x57\x08\xa3\x89\xc4\x38\x9d\x52\xfc\xef\x73\xe3\x07\x1a\x75\x51\x5a\x4b\xbd\xe7\x78\xce\xbd\x87\x6b\x1e\x0f\x12\x43\x22\x24\x10\x5a\x80\xfe\x12\x11\x50\x52\x55\x0b\x42\x1e\x78\x11\x42\xb7\x1f\xc1\x19\xb2\x3c\xe5\x06\xf6\x4a\x67\xdc\x5c\x40\x17\x42\x49\x4a\x18\xa1\xbf\xbc\x8d\xb7\xf6\xfe\xe1\x97\xae\x1a\xba\xcf\x35\xcf\xc0\x20\x87\xb2\x56\xa2\x6a\xa1\x13\x14\xaa\xd4\x11\xf4\x08\x16\x8f\x25\x94\x30\x28\x60\xe9\x7c\xcf\x6d\xc5\x3a\x33\x16\x1c\xf1\xa7\x21\xad\x7a\x8a\xaf\x55\x0e\xda\x08\x47\x0b\x9d\xda\x7f\x55\x47\xa5\xbe\x4a\x45\x74\x7f\x4a\xbf\xa5\xf6\x2e\xae\x0f\x19\x6a\x0c\xb4\x77\x2a\x2a\x33\x90\x66\x86\xd0\x25\x55\x07\xe5\xfd\x5d\x63\x56\x9b\x3f\x8e\x01\x92\x0e\xb1\xc5\xe1\x9b\x63\xc6\xb0\x3e\xec\xc6\x78\x60\x30\xf9\xda\x80\x91\xab\x6b\x60\x51\xe1\x3c\x5e\x74\xe4\xa9\x10\x92\x5f\x92\x04\x22\x53\x8f\x9e\xa6\xea\x36\x25\xf8\x5a\xc8\x48\xe4\x3c\xa5\xe3\x59\x6a\x18\x03\xb3\x0f\x2f\xe9\x08\xaa\x26\x42\xdb\xc8\x34\x83\x5f\xa7\x2a\x36\xf1\x89\x44\x38\x91\xe8\xb6\xc5\xb6\x42\xe8\x5e\x32\xf6\x0a\x66\x6b\xea\x18\xda\xad\x59\xa1\x91\x96\x34\x9c\x69\xe0\xbf\x92\xb1\x68\x7b\x98\x9b\x44\xcb\x37\xf1\x09\xb3\x20\xc2\xfc\x56\xb0\xa0\x76\xb7\xfa\x38\x32\xd7\x92\xd9\x62\xf1\x9b\x2d\xed\x67\xdc\x7e\xbf\x7a\xf3\xf7\x55\x38\xb8\x75\xba\x6d\x46\xa9\xd7\xeb\x6a\x07\x3d\x41\x62\x0d\x9b\x01\x49\x45\xc2\xe9\x72\x3b\x2f\xd5\x7b\x69\xf2\xd2\x38\xaf\x54\xd3\xf3\x60\xe1\x2f\x3c\x2d\x9f\xcb\xd1\xb5\x58\xd8\x0b\xcf\x07\x90\xb1\x3d\x12\x7e\x02\x00\x00\xff\xff\xb8\x3e\x68\xc5\x2a\x04\x00\x00")
+
+func templatesServiceSqsTmplBytes() ([]byte, error) {
+	return bindataRead(
+		_templatesServiceSqsTmpl,
+		"templates/service/sqs.tmpl",
+	)
+}
+
+func templatesServiceSqsTmpl() (*asset, error) {
+	bytes, err := templatesServiceSqsTmplBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "templates/service/sqs.tmpl", size: 1066, mode: os.FileMode(420), modTime: time.Unix(1458414725, 0)}
+	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
@@ -188,8 +230,8 @@ func templatesServiceWebhookTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/webhook.tmpl", size: 781, mode: os.FileMode(436), modTime: time.Unix(1457015031, 0)}
-	a := &asset{bytes: bytes, info: info}
+	info := bindataFileInfo{name: "templates/service/webhook.tmpl", size: 781, mode: os.FileMode(420), modTime: time.Unix(1446924998, 0)}
+	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
@@ -212,7 +254,7 @@ func Asset(name string) ([]byte, error) {
 // It simplifies safe initialization of global variables.
 func MustAsset(name string) []byte {
 	a, err := Asset(name)
-	if err != nil {
+	if (err != nil) {
 		panic("asset: Asset(" + name + "): " + err.Error())
 	}
 
@@ -250,6 +292,8 @@ var _bindata = map[string]func() (*asset, error){
 	"templates/service/papertrail.tmpl": templatesServicePapertrailTmpl,
 	"templates/service/postgres.tmpl": templatesServicePostgresTmpl,
 	"templates/service/redis.tmpl": templatesServiceRedisTmpl,
+	"templates/service/s3.tmpl": templatesServiceS3Tmpl,
+	"templates/service/sqs.tmpl": templatesServiceSqsTmpl,
 	"templates/service/webhook.tmpl": templatesServiceWebhookTmpl,
 }
 
@@ -289,66 +333,76 @@ func AssetDir(name string) ([]string, error) {
 }
 
 type bintree struct {
-	Func     func() (*asset, error)
+	Func func() (*asset, error)
 	Children map[string]*bintree
 }
 var _bintree = &bintree{nil, map[string]*bintree{
 	"templates": &bintree{nil, map[string]*bintree{
-		"app.tmpl": &bintree{templatesAppTmpl, map[string]*bintree{}},
+		"app.tmpl": &bintree{templatesAppTmpl, map[string]*bintree{
+		}},
 		"service": &bintree{nil, map[string]*bintree{
-			"mysql.tmpl": &bintree{templatesServiceMysqlTmpl, map[string]*bintree{}},
-			"papertrail.tmpl": &bintree{templatesServicePapertrailTmpl, map[string]*bintree{}},
-			"postgres.tmpl": &bintree{templatesServicePostgresTmpl, map[string]*bintree{}},
-			"redis.tmpl": &bintree{templatesServiceRedisTmpl, map[string]*bintree{}},
-			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
+			"mysql.tmpl": &bintree{templatesServiceMysqlTmpl, map[string]*bintree{
+			}},
+			"papertrail.tmpl": &bintree{templatesServicePapertrailTmpl, map[string]*bintree{
+			}},
+			"postgres.tmpl": &bintree{templatesServicePostgresTmpl, map[string]*bintree{
+			}},
+			"redis.tmpl": &bintree{templatesServiceRedisTmpl, map[string]*bintree{
+			}},
+			"s3.tmpl": &bintree{templatesServiceS3Tmpl, map[string]*bintree{
+			}},
+			"sqs.tmpl": &bintree{templatesServiceSqsTmpl, map[string]*bintree{
+			}},
+			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{
+			}},
 		}},
 	}},
 }}
 
 // RestoreAsset restores an asset under the given directory
 func RestoreAsset(dir, name string) error {
-	data, err := Asset(name)
-	if err != nil {
-		return err
-	}
-	info, err := AssetInfo(name)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
-	if err != nil {
-		return err
-	}
-	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
-	if err != nil {
-		return err
-	}
-	return nil
+        data, err := Asset(name)
+        if err != nil {
+                return err
+        }
+        info, err := AssetInfo(name)
+        if err != nil {
+                return err
+        }
+        err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
+        if err != nil {
+                return err
+        }
+        err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+        if err != nil {
+                return err
+        }
+        err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+        if err != nil {
+                return err
+        }
+        return nil
 }
 
 // RestoreAssets restores an asset under the given directory recursively
 func RestoreAssets(dir, name string) error {
-	children, err := AssetDir(name)
-	// File
-	if err != nil {
-		return RestoreAsset(dir, name)
-	}
-	// Dir
-	for _, child := range children {
-		err = RestoreAssets(dir, filepath.Join(name, child))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+        children, err := AssetDir(name)
+        // File
+        if err != nil {
+                return RestoreAsset(dir, name)
+        }
+        // Dir
+        for _, child := range children {
+                err = RestoreAssets(dir, filepath.Join(name, child))
+                if err != nil {
+                        return err
+                }
+        }
+        return nil
 }
 
 func _filePath(dir, name string) string {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+        cannonicalName := strings.Replace(name, "\\", "/", -1)
+        return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
 
