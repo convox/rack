@@ -5,11 +5,6 @@
       "Queue": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Queue" }, "" ] } ] }
     },
     "Parameters": {
-      "BucketName": {
-        "Type" : "String",
-        "Default": "",
-        "Description" : "Bucket name"
-      },
       "Queue": {
         "Type" : "String",
         "Default": "",
@@ -77,14 +72,8 @@
             }]
           },
           "Queues": [
-            { "Fn::Join": [ "/", [
-              { "Fn::Join": [ ".", [
-                "https://sqs",
-                { "Ref": "AWS::Region" },
-                "amazonaws.com"
-              ] ] },
-              { "Ref": "AWS::AccountId" },
-              { "Ref": "Queue" }
+            { "Fn::Join": [ "", [
+              "https://sqs.", { "Ref": "AWS::Region" }, ".amazonaws.com/", { "Ref": "AWS::AccountId" }, "/", { "Ref": "Queue" }
             ] ] }
           ]
         }
