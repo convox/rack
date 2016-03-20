@@ -17,6 +17,7 @@ func (s *Service) CreateSQS() (*cloudformation.CreateStackInput, error) {
 	}
 
 	req := &cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.StackName()),
 		TemplateBody: aws.String(formation),
 	}

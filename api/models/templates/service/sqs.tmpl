@@ -7,12 +7,46 @@
       "Queue": {
         "Type": "AWS::SQS::Queue",
         "Properties": {
+          "QueueName": {"Ref": "AWS::StackName"}
+        }
+      },
+      "User": {
+        "Type": "AWS::IAM::User",
+        "Properties": {
+          "Policies": [{
+            "PolicyName" : "SQSAccess",
+            "PolicyDocument" : {
+              "Statement": [{
+                "Effect"   : "Allow",
+                "Action"   : "sqs:*",
+                "Resource" : { "Fn::Join" : ["", ["arn:aws:sqs:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref" : "AWS::StackName"}]] }
+              }]
+            }
+          }]
+        }
+      },
+      "AccessKey": {
+        "Type": "AWS::IAM::AccessKey",
+        "Properties": {
+          "UserName": { "Ref": "User" }
         }
       }
     },
     "Outputs": {
+      "Queue": {
+        "Value": { "Ref": "Queue" }
+      },
+      "Name": {
+        "Value": { "Fn::GetAtt": ["Queue", "QueueName"] }
+      },
       "Arn": {
         "Value": { "Fn::GetAtt": ["Queue", "Arn"] }
+      },
+      "AccessKey": {
+        "Value": { "Ref": "AccessKey" }
+      },
+      "SecretAccessKey": {
+        "Value": { "Fn::Base64": { "Fn::GetAtt": ["AccessKey", "SecretAccessKey"] } }
       }
     }
   }
