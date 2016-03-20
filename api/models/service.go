@@ -305,9 +305,13 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 		case "redis":
 			exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 		case "s3":
-			exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", "key", "secret", outputs["Name"])
+			exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Bucket"])
 		case "sqs":
-			exports["URL"] = fmt.Sprintf("sqs://%s", outputs["Arn"])
+			if u, err := url.Parse(outputs["Queue"]); err == nil {
+				u.Scheme = "sqs"
+				u.User = url.UserPassword(outputs["AccessKey"], outputs["SecretAccessKey"])
+				exports["URL"] = u.String()
+			}
 		case "webhook":
 			if parsedUrl, err := url.Parse(parameters["Url"]); err == nil {
 				exports["URL"] = parsedUrl.Query().Get("endpoint")
