@@ -22,5 +22,11 @@ func (s *Service) CreateS3() (*cloudformation.CreateStackInput, error) {
 		TemplateBody: aws.String(formation),
 	}
 
+	// options reference another service by logical name, need to resolve to physical stack and resource name
+	// e.g. `convox services create s3 --queue=myqueue` needs to resolve to Queue=convox-myqueue
+	if q, ok := s.Parameters["Queue"]; ok {
+		s.Parameters["Queue"] = shortNameToStackName(q)
+	}
+
 	return req, nil
 }
