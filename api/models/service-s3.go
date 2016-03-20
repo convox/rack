@@ -17,6 +17,7 @@ func (s *Service) CreateS3() (*cloudformation.CreateStackInput, error) {
 	}
 
 	req := &cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.StackName()),
 		TemplateBody: aws.String(formation),
 	}
