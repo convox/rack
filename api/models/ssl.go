@@ -16,9 +16,7 @@ import (
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/elb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/iam"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/cenkalti/backoff"
 )
 
 type SSL struct {
@@ -269,37 +267,6 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, err
 	}
 
-	input := &elb.SetLoadBalancerListenerSSLCertificateInput{
-		LoadBalancerName: aws.String(balancer),
-		LoadBalancerPort: aws.Int64(int64(port)),
-		SSLCertificateId: aws.String(arn),
-	}
-
-	// change cert on listener
-	operation := func() error {
-		_, err = ELB().SetLoadBalancerListenerSSLCertificate(input)
-
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	algo := backoff.NewExponentialBackOff()
-	algo.MaxElapsedTime = 60 * time.Second
-
-	err = backoff.Retry(operation, algo)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// delete old cert
-	operation = func() error { return deleteCert(oldCertName) }
-
-	go backoff.Retry(operation, backoff.NewExponentialBackOff())
-
 	// update cloudformation
 	req := &cloudformation.UpdateStackInput{
 		StackName:           aws.String(a.StackName()),
@@ -318,6 +285,8 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		})
 	}
 
+	// TODO: The existing cert will be orphaned. Deleting it now could cause
+	// CF problems if the stack tries to rollback and use the old cert.
 	_, err = UpdateStack(req)
 
 	if err != nil {
