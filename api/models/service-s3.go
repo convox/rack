@@ -30,3 +30,20 @@ func (s *Service) CreateS3() (*cloudformation.CreateStackInput, error) {
 
 	return req, nil
 }
+
+// S3, SNS, SQS create an IAM user, therefore require IAM capabilitites for updates
+func (s *Service) UpdateIAMService() (*cloudformation.UpdateStackInput, error) {
+	formation, err := s.Formation()
+
+	if err != nil {
+		return nil, err
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(s.StackName()),
+		TemplateBody: aws.String(formation),
+	}
+
+	return req, nil
+}
