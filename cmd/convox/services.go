@@ -33,7 +33,7 @@ func init() {
 		},
 		ServiceType{
 			"s3",
-			"[--topic=sns-service-name]",
+			"[--topic=sns-service-name] [--versioning]",
 		},
 		ServiceType{
 			"sns",
