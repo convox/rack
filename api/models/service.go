@@ -125,6 +125,8 @@ func (s *Service) Create() error {
 		req, err = s.CreateWebhook()
 	case "s3":
 		req, err = s.CreateS3()
+	case "sns":
+		req, err = s.CreateSNS()
 	case "sqs":
 		req, err = s.CreateSQS()
 	default:
@@ -306,6 +308,8 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 			exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
 		case "s3":
 			exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Bucket"])
+		case "sns":
+			exports["URL"] = fmt.Sprintf("sns://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Topic"])
 		case "sqs":
 			if u, err := url.Parse(outputs["Queue"]); err == nil {
 				u.Scheme = "sqs"
