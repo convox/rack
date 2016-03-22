@@ -2,13 +2,19 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      "Topic": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Topic" }, "" ] } ] }
+      "Topic": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "Topic" }, "" ] } ] },
+      "Versioning": { "Fn::Equals": [ { "Ref": "Versioning" }, "true" ] }
     },
     "Parameters": {
       "Topic": {
         "Type" : "String",
         "Default": "",
         "Description" : "SNS Topic Name for notifications"
+      },
+      "Versioning": {
+        "Type" : "String",
+        "Default": "false",
+        "Description" : "Enable versioning"
       }
     },
     "Resources": {
@@ -34,6 +40,10 @@
                   { "Ref" : "AWS::NoValue" }
                 ]
               },
+              "VersioningConfiguration": { "Fn::If": [ "Versioning",
+                { "Status": "Enabled" },
+                { "Ref": "AWS::NoValue" }
+              ] },
               "Tags": [
                   {{/*
                     HACK: Referencing TopicPolicy for a tag implicitly creates the TopicPolicy before the Bucket.
