@@ -33,6 +33,10 @@ func init() {
 		},
 		ServiceType{
 			"s3",
+			"[--topic=sns-service-name]",
+		},
+		ServiceType{
+			"sns",
 			"[--queue=sqs-service-name]",
 		},
 		ServiceType{
