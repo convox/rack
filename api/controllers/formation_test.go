@@ -20,13 +20,13 @@ func init() {
 	test.HandlerFunc = controllers.HandlerFunc
 }
 
-// empty string for count should retain MainDesiredCount=1 and MainMemory=256 in the stack update
+// empty string for count should retain MainDesiredCount=1 and MainMemory=128 in the stack update
 func TestFormationScaleEmpty(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "256"),
+		test.UpdateAppStackCycle("convox-test-application", "1", "128"),
 	)
 	defer aws.Close()
 
@@ -42,7 +42,7 @@ func TestFormationScaleCountInvalid(t *testing.T) {
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "0", "256"),
+		test.UpdateAppStackCycle("convox-test-application", "0", "128"),
 	)
 	defer aws.Close()
 
@@ -58,7 +58,7 @@ func TestFormationScaleCount2(t *testing.T) {
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "2", "256"),
+		test.UpdateAppStackCycle("convox-test-application", "2", "128"),
 	)
 	defer aws.Close()
 
@@ -74,7 +74,7 @@ func TestFormationScaleCount0(t *testing.T) {
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "0", "256"),
+		test.UpdateAppStackCycle("convox-test-application", "0", "128"),
 	)
 	defer aws.Close()
 
@@ -90,7 +90,7 @@ func TestFormationScaleMemoryInvalid(t *testing.T) {
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "256"),
+		test.UpdateAppStackCycle("convox-test-application", "1", "128"),
 	)
 	defer aws.Close()
 
@@ -100,13 +100,13 @@ func TestFormationScaleMemoryInvalid(t *testing.T) {
 	assert.Equal(t, `{"error":"memory must be numeric"}`, body)
 }
 
-// post memory=0 should retain MainMemory=256 in the stack update
+// post memory=0 should retain MainMemory=128 in the stack update
 func TestFormationScaleMemory0(t *testing.T) {
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.DescribeAppStackCycle("convox-test-application"),
 		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "256"),
+		test.UpdateAppStackCycle("convox-test-application", "1", "128"),
 	)
 	defer aws.Close()
 

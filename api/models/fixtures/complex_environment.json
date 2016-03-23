@@ -95,7 +95,7 @@
       "Type": "Number"
     },
     "MainMemory": {
-      "Default": "256",
+      "Default": "128",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },

@@ -295,7 +295,7 @@ func DescribeTaskDefinitionCycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":128,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
 		},
 	}
 }
@@ -351,7 +351,7 @@ func DescribeTaskDefinition3Cycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":128,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
 		},
 	}
 }
@@ -365,7 +365,7 @@ func DescribeTaskDefinition1Cycle(clusterName string) awsutil.Cycle {
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
-			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":256,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
+			Body:       `{"taskDefinition":{"volumes":[{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}],"containerDefinitions":[{"name":"worker","cpu":200,"memory":128,"image":"test-image","environment":[{"name":"PROCESS","value":"worker"}],"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}]}],"family":"convox-test-myapp-staging-worker"}}`,
 		},
 	}
 }
@@ -498,7 +498,7 @@ func appStackXML(appName string, status string) string {
             <ParameterKey>Key</ParameterKey>
           </member>
           <member>
-            <ParameterValue>256</ParameterValue>
+            <ParameterValue>128</ParameterValue>
             <ParameterKey>MainMemory</ParameterKey>
           </member>
           <member>
