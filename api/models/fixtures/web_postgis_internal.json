@@ -38,11 +38,23 @@
       ]
     },
     "RegionHasRegistry": {
-      "Fn::Equals": [
+      "Fn::Or": [
         {
-          "Ref": "AWS::Region"
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-east-1"
+          ]
         },
-        "us-east-1"
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-west-2"
+          ]
+        }
       ]
     },
     "SecureWebPort3000": {
