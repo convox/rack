@@ -26,7 +26,7 @@ All throughout the stack we aim to leverage managed services and mature systems 
 
 ### Easy to Maintain
 
-Platform updates are automatically applied with the `convox rack update` command. U
+Platform updates are automatically applied with the `convox rack update` command.
 
 Updates are executed with CloudFormation, so you can be confident that they will be safely executed.
 
@@ -49,7 +49,7 @@ The Convox team and the Rack project have a strong philosophy about how to manag
 * Services over Software
 * Robots over Humans
 * Shared Expertise vs Bespoke
-* Porcelean over Plumbing
+* Porcelain over Plumbing
 
 ## Installation Quick Start
 
@@ -78,14 +78,15 @@ See the [Getting Started Guide](http://convox.com/docs/getting-started/) for mor
 
 ### Development Quick Start
 
-You need a Rack installed on AWS, and a laptop with the Convox CLI, Go, and Docker, and the Rack repo to run and develop the Rack API locally.
+You need a Rack installed on AWS, a laptop with the Convox CLI, Go, and Docker, jq, and the Rack repo to run and develop the Rack API locally.
 
 
 ```
 # Copy Rack AWS credentials and resource names to your development environment
 
-$ WEB_PID=$(convox api get /apps/convox/processes | jq -r '.[] | select(.name == "web") | .id' | head -1)
-$ convox exec $WEB_PID env --app convox > .env
+$ STACK_NAME=$(convox api get /system | jq -r .name)
+$ WEB_PID=$(convox api get /apps/$STACK_NAME/processes | jq -r '.[] | select(.name == "web") | .id' | head -1)
+$ convox exec $WEB_PID env --app $STACK_NAME > .env
 
 # Check out the Rack golang package
 
@@ -109,7 +110,7 @@ See the [Development Guide](Development.md) for more instructions to develop, co
 
 ## Contributing
 
-* Join the [Convox Slack](https://invite.convoxmcom) channel to ask questions from the community and team.
+* Join the [Convox Slack](https://invite.convox.com) channel to ask questions from the community and team
 * Open a [GitHub Issue](https://github.com/convox/rack/issues/new) for bugs and feature requests
 * Initiate a [GitHub Pull Request](https://help.github.com/articles/using-pull-requests/) to submit patches
 

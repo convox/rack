@@ -1,19 +1,19 @@
 # Convox Rack Development Guide
 
-Rack is open source with the goal of enabling everyone to understand the platform and to sugguest and contribute improvements.
+Rack is open source with the goal of everyone to understand the platform, provide suggestions, and contribute improvements.
 
 This guide documents how to:
 
 * Set up a sandbox development Rack to develop and test infrastructure template changes
-* Set up a local development VM to run, develop and test API changes
+* Set up a local development VM to run, develop, and test API changes
 * Run the Rack unit test suite locally
-* Submitting changes upstream
+* Submit changes upstream
 * Run an AWS integration test suite locally or on a CI server
-* Releasing artifacts to enable `convox rack update`
+* Release artifacts to enable `convox rack update`
 
 ## Sponsorship and Mentoring
 
-Developing Rack will incur AWS costs. If this is an obstacle for you to contribute you can contact support@convox.com to request sponsorship.
+Developing Rack will incur AWS costs. If this is an obstacle for you to contribute you can contact [support@convox.com](mailto:support@convox.com) to request sponsorship.
 
 Much of the technical design and implementation in Rack requires understanding of AWS, Docker, Golang, systems engineering and more. If you would like to better learn these systems to contribute, you can contact support@convox.com, join the [Public Slack](http://invite.convox.com/), or open up issues on [GitHub](http://github.com/convox/rack) to ask questions and/or request a mentor.
 
@@ -139,18 +139,18 @@ $ echo $?
 
 GitHub and Travis CI are configured to require that tests are passing before PR can be merged.
 
-The most complex tests setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challening to write but represent a very powerful way to verify Convox behavior.
+The most complex tests setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represent a very powerful way to verify Convox behavior.
 
 ## API Changes
 
-A common and imple thing to do is to fix a bug or make an enhancement to the Rack APIs. For example, maybe the `GET /system` endpoint would be more helpful if it included the ELB hostname, so you'd like to add this.
+A common thing to do is to fix a bug or make an enhancement to the Rack APIs. For example, maybe the `GET /system` endpoint would be more helpful if it included the ELB hostname, so you'd like to add this.
 
 The `convox/rack/api` package has a few key concepts:
 
 * Swagger Manifest (rack/api/manifest.yml). Defines all API endpoints and responses
 * Golang Client (rack/client). Bindings that talk to the HTTP API and returns Golang structs, slices and errors
 * CLI (rack/cmd/convox). High level tool that lets developers issue commands like `convox/deploy`.
-* Routes (rack/api/controllers/routes). A `gorilla/mux` configuration of request URL patterns and HTTP verbs and what handlers they go to
+* Routes (rack/api/controllers/routes). A `gorilla/mux` configuration of request URL patterns, HTTP verbs, and handler functions
 * Controllers (rack/api/controllers). HTTP handlers for every route
 * Models (rack/api/models). Key primatives like "app", "service", "build", and "release" and corresponding logic to control AWS and Docker.
 
@@ -169,7 +169,7 @@ Systems engineering best practices are encouraged:
 
 * Robust error handling
 * Logging that makes a developers life easier
-* Logging that can be turned into operational metrics (count#push.retry=1)
+* Logging that can be turned into operational metrics (e.g. `count#push.retry=1)`
 * Code strategies that make it easy to simulate subsystem requests/responses in a test environment
 
 ## Infrastructure Changes
@@ -202,22 +202,9 @@ The Rack maintainers aim to help land every reasonable pull request, and to prov
 
 ## Checklists
 
-Convox relies on checklists to safely and reliabily take code from a Pull Request to a published release. The standard release checklist is:
+Convox relies on checklists to safely and reliabily take code from a Pull Request to a published release. The standard release checklist is [https://github.com/convox/rack/blob/master/.github/PULL_REQUEST_TEMPLATE.md](PULL_REQUEST_TEMPLATE.md)
 
-**Release Playbook**
-- [ ] Rebase against master
-- [ ] Pass checks
-- [ ] Release branch
-- [ ] Pass CI
-- [ ] Code review
-- [ ] Merge into master
-- [ ] Release master
-- [ ] Pass CI
-- [ ] Update dev and testing racks
-- [ ] Publish release
-- [ ] Release CLI
-
-We aim to automate and simplify the checklist over the life of the project to make releasing software easy, fast and safe.
+We aim to automate and simplify the checklist over the life of the project to make releasing software easy, fast, and safe.
 
 ## Release Changes for `convox rack update`
 
