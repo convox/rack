@@ -87,7 +87,7 @@ func proxy(port int, host string, hostport int, client *client.Client) {
 		fmt.Printf("connect: %d\n", port)
 
 		go func() {
-			err := client.Proxy(host, port, conn)
+			err := client.Proxy(host, hostport, conn)
 
 			if err != nil {
 				fmt.Printf("error: %s\n", err)
