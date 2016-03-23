@@ -71,6 +71,7 @@ func NewRouter() (router *mux.Router) {
 	router.Handle("/apps/{app}/processes/{pid}/exec", ws("process.exec.attach", ProcessExecAttached)).Methods("GET")
 	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run.attach", ProcessRunAttached)).Methods("GET")
 	router.Handle("/instances/{id}/ssh", ws("instance.ssh", InstanceSSH)).Methods("GET")
+	router.Handle("/proxy/{host}/{port}", ws("proxy", Proxy)).Methods("GET")
 	router.Handle("/services/{service}/logs", ws("service.logs", ServiceLogs)).Methods("GET")
 
 	// utility
