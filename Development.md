@@ -5,7 +5,7 @@ Rack is open source with the goal of enabling everyone to understand the platfor
 This guide documents how to:
 
 * Set up a sandbox development Rack to develop and test infrastructure template changes
-* Set up a local development VM to run, develope and test API changes
+* Set up a local development VM to run, develop and test API changes
 * Run the Rack unit test suite locally
 * Submitting changes upstream
 * Run an AWS integration test suite locally or on a CI server
@@ -33,7 +33,7 @@ It can also be bootstrapped with no `convox` tools via the AWS CLI:
 $ aws cloudformation create-stack --stack-name dev --template-body file://$(pwd)/api/dist/kernel.json
 ```
 
-You can also use any existing Rack, with the caveat that running a local Rack against it could have side effects like terminating instances.
+You can also use any existing Rack with the caveat that running a local Rack against it could have side effects like terminating instances.
 
 ## Development Rack Ingress
 
@@ -204,7 +204,7 @@ The Rack maintainers aim to help land every reasonable pull request, and to prov
 
 Convox relies on checklists to safely and reliabily take code from a Pull Request to a published release. The standard release checklist is:
 
-## Release Playbook
+**Release Playbook**
 - [ ] Rebase against master
 - [ ] Pass checks
 - [ ] Release branch
