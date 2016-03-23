@@ -15,7 +15,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "proxy",
 		Description: "proxy local ports into a rack",
-		Usage:       "<port:host:hostport> [port:host:hostport]...",
+		Usage:       "<[port:]host:hostport> [[port:]host:hostport]...",
 		Action:      cmdProxy,
 	})
 }
@@ -30,26 +30,48 @@ func cmdProxy(c *cli.Context) {
 	for _, arg := range c.Args() {
 		parts := strings.SplitN(arg, ":", 3)
 
-		if len(parts) != 3 {
+		var host string
+		var port, hostport int
+
+		switch len(parts) {
+		case 2:
+			host = parts[0]
+
+			p, err := strconv.Atoi(parts[1])
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			port = p
+			hostport = p
+		case 3:
+			host = parts[1]
+
+			p, err := strconv.Atoi(parts[0])
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			port = p
+
+			p, err = strconv.Atoi(parts[2])
+
+			if err != nil {
+				stdcli.Error(err)
+				return
+			}
+
+			hostport = p
+		default:
 			stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
 			return
 		}
 
-		port, err := strconv.Atoi(parts[0])
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		hostport, err := strconv.Atoi(parts[2])
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-
-		go proxy(port, parts[1], hostport, rackClient(c))
+		go proxy(port, host, hostport, rackClient(c))
 	}
 
 	for range c.Args() {
