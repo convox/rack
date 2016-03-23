@@ -123,6 +123,12 @@ func (s *Service) Create() error {
 		req, err = s.CreatePapertrail()
 	case "webhook":
 		req, err = s.CreateWebhook()
+	case "s3":
+		req, err = s.CreateS3()
+	case "sns":
+		req, err = s.CreateSNS()
+	case "sqs":
+		req, err = s.CreateSQS()
 	default:
 		req, err = s.CreateDatastore()
 	}
@@ -193,6 +199,8 @@ func (s *Service) Update(changes map[string]string) error {
 		return fmt.Errorf("can not update papertrail")
 	case "webhook":
 		return fmt.Errorf("can not update webhook")
+	case "s3", "sns", "sqs":
+		req, err = s.UpdateIAMService()
 	default:
 		req, err = s.UpdateDatastore()
 	}
@@ -300,6 +308,16 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 			exports["URL"] = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", outputs["EnvPostgresUsername"], outputs["EnvPostgresPassword"], outputs["Port5432TcpAddr"], outputs["Port5432TcpPort"], outputs["EnvPostgresDatabase"])
 		case "redis":
 			exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", outputs["Port6379TcpAddr"], outputs["Port6379TcpPort"], outputs["EnvRedisDatabase"])
+		case "s3":
+			exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Bucket"])
+		case "sns":
+			exports["URL"] = fmt.Sprintf("sns://%s:%s@%s", outputs["AccessKey"], outputs["SecretAccessKey"], outputs["Topic"])
+		case "sqs":
+			if u, err := url.Parse(outputs["Queue"]); err == nil {
+				u.Scheme = "sqs"
+				u.User = url.UserPassword(outputs["AccessKey"], outputs["SecretAccessKey"])
+				exports["URL"] = u.String()
+			}
 		case "webhook":
 			if parsedUrl, err := url.Parse(parameters["Url"]); err == nil {
 				exports["URL"] = parsedUrl.Query().Get("endpoint")

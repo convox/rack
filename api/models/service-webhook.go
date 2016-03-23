@@ -37,8 +37,6 @@ func (s *Service) CreateWebhook() (*cloudformation.CreateStackInput, error) {
 	s.Parameters["CustomTopic"] = CustomTopic
 
 	req := &cloudformation.CreateStackInput{
-		//TODO: do i need this?
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.StackName()),
 		TemplateBody: aws.String(formation),
 	}

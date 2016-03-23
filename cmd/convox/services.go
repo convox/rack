@@ -32,6 +32,18 @@ func init() {
 			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
 		ServiceType{
+			"s3",
+			"[--topic=sns-service-name] [--versioning]",
+		},
+		ServiceType{
+			"sns",
+			"[--queue=sqs-service-name]",
+		},
+		ServiceType{
+			"sqs",
+			"",
+		},
+		ServiceType{
 			"webhook",
 			"--url=https://console.convox.com/webhooks/1234",
 		},
