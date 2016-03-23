@@ -25,8 +25,6 @@ func cmdProxy(c *cli.Context) {
 		stdcli.Usage(c, "proxy")
 	}
 
-	ch := make(chan error)
-
 	for _, arg := range c.Args() {
 		parts := strings.SplitN(arg, ":", 3)
 
@@ -74,14 +72,8 @@ func cmdProxy(c *cli.Context) {
 		go proxy(port, host, hostport, rackClient(c))
 	}
 
-	for range c.Args() {
-		err := <-ch
-
-		if err != nil {
-			stdcli.Error(err)
-			return
-		}
-	}
+	// block forever
+	select {}
 }
 
 func proxy(port int, host string, hostport int, client *client.Client) {
