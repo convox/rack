@@ -12,15 +12,23 @@ Rack runs in an isolated VPC that only you and your team have access to. Applica
 
 Your network is isolated, your platform is single-tenant, and your application data never leaves your AWS account.
 
-### Simple
+### Simple and Reliable
 
 Apps run as Docker containers on ECS with HTTP access through ELBs. This architecture is modern, simple and provably reliable and scalable.
 
+Container Logs are extracted from Docker with its native APIs and log drivers. Docker daemon options are minimally changed to avoid observed log rotation problems.
+
 Logs are stored in CloudWatch Logs for archival and search, and Kinesis for streaming. This is simple and cost effective for any volume of logs.
+
+Complex and experimental things like overlay networking, persistent container volumes, and distributed file systems are simply not supported at the moment.
+
+All throughout the stack we aim to leverage managed services and mature systems to accomplish tasks at hand. AWS offers the vast majority of infrastructure services and Docker the vast majority of runtime functionality.
 
 ### Easy to Maintain
 
-Platform updates are automatically applied with the `convox rack update` command. Updates are executed with CloudFormation, so you can be confident that they will be safely executed.
+Platform updates are automatically applied with the `convox rack update` command. U
+
+Updates are executed with CloudFormation, so you can be confident that they will be safely executed.
 
 Some updates are simple Rack API changes that will roll out in seconds.
 
@@ -34,13 +42,13 @@ Rack is open source and free (as in beer and in speech) to use. You can look at 
 
 ### Philosophy
 
-The Convox team and the Rack project have a strong philosophy about how to manage cloud services.
+The Convox team and the Rack project have a strong philosophy about how to manage cloud services. Some choices we frequently consider:
 
 * Open over Closed
 * Integration over Invention
 * Services over Software
-* Automation over an Ops Team
-* Shared expertise vs bespoke
+* Robots over Humans
+* Shared Expertise vs Bespoke
 * Porcelean over Plumbing
 
 ## Installation Quick Start
