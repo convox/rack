@@ -30,8 +30,8 @@ func Proxy(ws *websocket.Conn) *httperr.Error {
 	var wg sync.WaitGroup
 
 	wg.Add(2)
-	copyAsync(ws, conn, &wg)
-	copyAsync(conn, ws, &wg)
+	go copyAsync(ws, conn, &wg)
+	go copyAsync(conn, ws, &wg)
 	wg.Wait()
 
 	return nil
