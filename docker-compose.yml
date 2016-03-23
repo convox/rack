@@ -35,7 +35,6 @@ web:
     - 80:3000
     - 443:4443
   volumes:
-    - .:/go/src/github.com/convox/rack
     - /var/run/docker.sock:/var/run/docker.sock
 monitor:
   build: .
@@ -71,7 +70,6 @@ monitor:
     - LOG_GROUP
     - PROCESS=monitor
   volumes:
-    - .:/go/src/github.com/convox/rack
     - /var/run/docker.sock:/var/run/docker.sock
 registry:
   environment:
