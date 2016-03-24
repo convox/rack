@@ -59,7 +59,7 @@ func cmdPs(c *cli.Context) {
 		t := stdcli.NewTable("ID", "NAME", "RELEASE", "SIZE", "CPU", "MEM", "STARTED", "COMMAND")
 
 		for _, p := range ps {
-			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%d", p.Size), fmt.Sprintf("%0.2f%%", p.Cpu*100), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%d", p.Size), fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
 		}
 
 		t.Print()
@@ -100,7 +100,7 @@ func cmdPsInfo(c *cli.Context) {
 	fmt.Printf("Name     %s\n", p.Name)
 	fmt.Printf("Release  %s\n", p.Release)
 	fmt.Printf("Size     %d\n", p.Size)
-	fmt.Printf("CPU      %0.2f%%\n", p.Cpu*100)
+	fmt.Printf("CPU      %0.2f%%\n", p.Cpu)
 	fmt.Printf("Memory   %0.2f%%\n", p.Memory*100)
 	fmt.Printf("Started  %s\n", humanizeTime(p.Started))
 	fmt.Printf("Command  %s\n", p.Command)
