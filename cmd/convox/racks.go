@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
@@ -23,7 +25,11 @@ func cmdRacks(c *cli.Context) {
 
 	t := stdcli.NewTable("RACK", "STATUS")
 	for _, rack := range racks {
-		t.AddRow(rack.Name, rack.Status)
+		name := rack.Name
+		if rack.Organization != nil {
+			name = fmt.Sprintf("%s/%s", rack.Organization.Name, name)
+		}
+		t.AddRow(name, rack.Status)
 	}
 	t.Print()
 }
