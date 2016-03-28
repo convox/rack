@@ -8,8 +8,10 @@ import (
 )
 
 func RackList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	return RenderJson(rw, map[string]string{
-		"name":   os.Getenv("RACK"),
-		"status": "running",
+	return RenderJson(rw, []map[string]string{
+		map[string]string{
+			"name":   os.Getenv("RACK"),
+			"status": "running",
+		},
 	})
 }
