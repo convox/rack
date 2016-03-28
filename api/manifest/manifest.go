@@ -44,6 +44,11 @@ var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, colo
 
 type Manifest map[string]ManifestEntry
 
+type ManifestV2 struct {
+	Version  string
+	Services Manifest
+}
+
 type ManifestEntry struct {
 	Build       string      `yaml:"build,omitempty"`
 	Dockerfile  string      `yaml:"dockerfile,omitempty"`
@@ -102,12 +107,21 @@ func Read(dir, filename string) (*Manifest, error) {
 		return nil, fmt.Errorf("file not found: %s", filename)
 	}
 
+	var mv2 ManifestV2
 	var m Manifest
 
-	err = yaml.Unmarshal(data, &m)
-
+	err = yaml.Unmarshal(data, &mv2)
 	if err != nil {
 		return nil, err
+	}
+
+	if mv2.Version == "" {
+		err = yaml.Unmarshal(data, &m)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		m = mv2.Services
 	}
 
 	if denv := filepath.Join(dir, ".env"); exists(denv) {
