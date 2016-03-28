@@ -6,7 +6,7 @@ This guide documents how to:
 
 * Set up a sandbox AWS Rack to develop and test infrastructure template changes
 * Set up a laptop with a Docker VM to run, develop and test API changes locally
-* Run the Rack unit test suite on a laptop
+* Run the Rack unit test suite locally
 * Submit changes upstream
 * Run an AWS integration test suite locally or on a CI server
 * Release artifacts to enable `convox rack update`
@@ -15,7 +15,7 @@ This guide documents how to:
 
 Developing Rack will incur AWS costs. If this is an obstacle for you to contribute you can contact [support@convox.com](mailto:support@convox.com) to request sponsorship.
 
-Much of the technical design and implementation in Rack requires understanding of AWS, Docker, Golang, systems engineering and more. If you would like to better learn these systems to contribute, you can contact support@convox.com, join the [Public Slack](http://invite.convox.com/), or open up issues on [GitHub](http://github.com/convox/rack) to ask questions and/or request a mentor.
+Much of the technical design and implementation in Rack requires understanding of AWS, Docker, Golang, systems engineering and more. If you would like to better learn these systems to contribute, you can contact [support@convox.com](mailto:support@convox.com), join the [Public Slack](http://invite.convox.com/), or open up issues on [GitHub](http://github.com/convox/rack) to ask questions and/or request a mentor.
 
 ## Sandbox AWS Rack Install
 
@@ -27,11 +27,11 @@ This is easy to bootstrap with the Rack project itself:
 $ convox install --stack-name dev
 ```
 
-You can also use any existing Rack with the caveat that running a laptop Rack against it could have side effects like terminating instances.
+You can also use any existing Rack with the caveat that running a local Rack against it could have side effects like terminating instances.
 
 ## AWS Rack Ingress
 
-Parts of the API like `convox ps --stats` interact with the Docker daemon running on every AWS instance. To enable `convox ps --stats` to work from a laptop you will want to open up access to the instance Docker daemons:
+Parts of the API like `convox ps --stats` interact with the Docker daemon running on every AWS instance. To enable `convox ps --stats` to work locally you will want to open up access to the instance Docker daemons:
 
 * Open the [Security Group Management Console](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#SecurityGroups)
 * Select the Security Group with the Group Name like "dev-SecurityGroup-4PNOYR5HUH83" and the Description "Instances"
@@ -40,7 +40,7 @@ Parts of the API like `convox ps --stats` interact with the Docker daemon runnin
 * Add "2376" for Port Range, and select "My IP" for Source
 * Click the Save button
 
-Warning: Do not expose instance port 2376 to "Anywhere"! This will expose your Docker daemons to the whole Internet.
+**Warning: Do not expose instance port 2376 to "Anywhere"! This will expose your Docker daemons to the whole Internet.**
 
 ## Rack Golang Project
 
@@ -52,9 +52,9 @@ $ go get github.com/convox/rack/...
 
 After this, `which convox` should refer to `$GOPATH/bin/convox`.
 
-## Laptop Rack Environment
+## Local Rack Environment
 
-The laptop Rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop
+The local Rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop.
 
 ```
 $ cd $GOPATH/src/github.com/convox/rack
@@ -69,7 +69,7 @@ $ WEB_PID=$(convox api get /apps/$STACK_NAME/processes | jq -r '.[] | select(.na
 $ convox exec $WEB_PID env --app $STACK_NAME > .env
 ```
 
-Now you have a bunch of secrets that will let your laptop interact with AWS APIs:
+Now you have a bunch of secrets that will let you interact with AWS APIs from your laptop:
 
 ```
 $ cat .env
@@ -85,9 +85,9 @@ PASSWORD=45e0f109-3f56-4b30-9b5a-b0939b8a4c25
 ...
 ```
 
-## Laptop Rack Docker VM
+## Local Rack Docker VM
 
-A laptop Rack is started with `convox start` which requires a working Docker environment. To setup a Docker environment, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
+A local Rack is started with `convox start` which requires a working Docker environment. To setup a Docker environment, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
 
 ```
 $ docker-machine start default
@@ -129,9 +129,9 @@ $ echo $?
 0
 ```
 
-GitHub and Travis CI are configured to require that tests are passing before PR can be merged.
+GitHub and Travis CI are configured to require that tests are passing before a pull request can be merged.
 
-The most complex tests, such as `TestProcessesListWithDetached` setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represent a very powerful way to verify Convox behavior.
+The most complex tests, such as `TestProcessesListWithDetached` setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represents a very powerful way to verify Convox behavior.
 
 ## API Changes
 
@@ -160,7 +160,7 @@ Many API calls need to execute changes across subsystems. For example:
 Systems engineering best practices are encouraged:
 
 * Robust error handling
-* Logging that makes a developers life easier
+* Logging that makes a developer's life easier
 * Logging that can be turned into operational metrics (e.g. `count#push.retry=1)`
 * Code strategies that make it easy to simulate subsystem requests/responses in a test environment
 
@@ -177,12 +177,11 @@ Some general notes when making changes to the infrastructure templates:
 * Run `make -C api templates` to compile the templates and restart the webserver. The `templates.go` file updates should be checked in.
 * Run `make test` to exercise the app template regression tests. Changes to app.tmpl almost always need accompanying test changes.
 * Pay careful attention to both the update and rollback safety of changes. Rollbacks are extremely important for failure recovery.
-
-Convox uses [CloudFormation Custom Resources](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) by releasing `api/cmd/formation` as a Lambda handler that every Rack and App can use. This is very powerful, though often challenging to develop and debug.
+* Convox uses [CloudFormation Custom Resources](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) by releasing `api/cmd/formation` as a Lambda handler that every Rack and App can use to provision things that aren't supported by CloudFormation.
 
 ## Opening a Pull Request
 
-Rack follows the traditional [GitHub Flow](https://guides.github.com/introduction/flow/) where all changes start as a Pull Request.
+Rack follows the traditional [GitHub Flow](https://guides.github.com/introduction/flow/) where all changes start as a pull request.
 
 We encourage you to open a pull request for anything! For example:
 
