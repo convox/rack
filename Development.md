@@ -214,6 +214,37 @@ Convox coordinates this with the [convox/release](https://github.com/convox/rele
 
 This functionality needs to be merged into convox/rack and generalized to support registries and S3 buckets that are not owned by Convox. See [Issue #447](https://github.com/convox/rack/issues/477) for more details.
 
+To publish a release of both the API and CLI, issue Slack commands:
+
+```
+/release create
+rack release created: 20160328231208
+
+/release cli
+cli release created
+
+/release publish 20160328231208
+```
+
+All users will get this when they issue:
+
+```
+$ convox rack update
+```
+
+For testing, you often want to build from a branch and not publish it without additional testing. To release a branch, issue a Slack command:
+
+```
+/release create my-branch
+rack release created: 20160328231208-my-branch
+```
+
+A Rack can use this release by specifying a specific version:
+
+```
+$ convox rack update 20160328231208-my-branch
+```
+
 ## AWS Integration Test Suite
 
 Rack has a suite of integration tests that install, deploy apps, then tear down Racks on AWS, then collect lots of logs for analysis afterwareds. This is slow feedback (~45 minutes) but offers good guarantees of general release quality.
