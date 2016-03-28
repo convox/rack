@@ -27,12 +27,6 @@ This is easy to bootstrap with the Rack project itself:
 $ convox install --stack-name dev
 ```
 
-It can also be bootstrapped with no `convox` tools via the AWS CLI:
-
-```
-$ aws cloudformation create-stack --stack-name dev --template-body file://$(pwd)/api/dist/kernel.json
-```
-
 You can also use any existing Rack with the caveat that running a laptop Rack against it could have side effects like terminating instances.
 
 ## AWS Rack Ingress
@@ -90,8 +84,6 @@ CLUSTER=dev-Cluster-1E4XJ0PQWNAYS
 PASSWORD=45e0f109-3f56-4b30-9b5a-b0939b8a4c25
 ...
 ```
-
-Note: `convox install --development` is deprecated in favor of introspecting with `convox env`.
 
 ## Laptop Rack Docker VM
 
