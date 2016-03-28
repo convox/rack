@@ -62,7 +62,6 @@ func (c *Client) Get(path string, out interface{}) error {
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
-
 	if err != nil {
 		return err
 	}

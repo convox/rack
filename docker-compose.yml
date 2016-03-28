@@ -2,6 +2,7 @@ web:
   build: .
   command: api/bin/web
   environment:
+    - AUTOSCALE=false
     - DEVELOPMENT=true
     - AWS_REGION
     - AWS_ACCESS
@@ -41,7 +42,7 @@ monitor:
   command: api/bin/monitor
   environment:
     - DEVELOPMENT=true
-    - AUTOSCALE
+    - AUTOSCALE=false
     - AWS_REGION
     - AWS_ACCESS
     - AWS_SECRET
