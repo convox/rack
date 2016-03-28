@@ -4,9 +4,9 @@ Rack is open source with the goal of everyone to understand the platform, provid
 
 This guide documents how to:
 
-* Set up a sandbox development Rack to develop and test infrastructure template changes
-* Set up a local development VM to run, develop, and test API changes
-* Run the Rack unit test suite locally
+* Set up a sandbox AWS Rack to develop and test infrastructure template changes
+* Set up a laptop with a Docker VM to run, develop and test API changes locally
+* Run the Rack unit test suite on a laptop
 * Submit changes upstream
 * Run an AWS integration test suite locally or on a CI server
 * Release artifacts to enable `convox rack update`
@@ -17,7 +17,7 @@ Developing Rack will incur AWS costs. If this is an obstacle for you to contribu
 
 Much of the technical design and implementation in Rack requires understanding of AWS, Docker, Golang, systems engineering and more. If you would like to better learn these systems to contribute, you can contact support@convox.com, join the [Public Slack](http://invite.convox.com/), or open up issues on [GitHub](http://github.com/convox/rack) to ask questions and/or request a mentor.
 
-## Development Rack Install
+## Sandbox AWS Rack Install
 
 Rack consumes numerous AWS and Docker APIs. The easiest way to develop Rack is with real AWS access keys interacting with real AWS resources like a Dynamo Table, ECS Cluster, and CloudFormation Stack.
 
@@ -33,11 +33,11 @@ It can also be bootstrapped with no `convox` tools via the AWS CLI:
 $ aws cloudformation create-stack --stack-name dev --template-body file://$(pwd)/api/dist/kernel.json
 ```
 
-You can also use any existing Rack with the caveat that running a local Rack against it could have side effects like terminating instances.
+You can also use any existing Rack with the caveat that running a laptop Rack against it could have side effects like terminating instances.
 
-## Development Rack Ingress
+## AWS Rack Ingress
 
-If your changes also interact with Docker, you will want to open up access to the instance Docker daemons from your laptop.
+Parts of the API like `convox ps --stats` interact with the Docker daemon running on every AWS instance. To enable `convox ps --stats` to work from a laptop you will want to open up access to the instance Docker daemons:
 
 * Open the [Security Group Management Console](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#SecurityGroups)
 * Select the Security Group with the Group Name like "dev-SecurityGroup-4PNOYR5HUH83" and the Description "Instances"
@@ -58,17 +58,16 @@ $ go get github.com/convox/rack/...
 
 After this, `which convox` should refer to `$GOPATH/bin/convox`.
 
-## Development Rack Environment
+## Laptop Rack Environment
 
-The development Rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop
+The laptop Rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop
 
 ```
 $ cd $GOPATH/src/github.com/convox/rack
 
 # Introspect the dev rack to find the PID of the API web process
 
-$ STACK_NAME=dev
-$ convox login $DEV_RACK_HOSTNAME
+$ STACK_NAME=$(convox api get /system | jq -r .name)
 $ WEB_PID=$(convox api get /apps/$STACK_NAME/processes | jq -r '.[] | select(.name == "web") | .id' | head -1)
 
 # Introspect the API web process to get its environment
@@ -94,9 +93,9 @@ PASSWORD=45e0f109-3f56-4b30-9b5a-b0939b8a4c25
 
 Note: `convox install --development` is deprecated in favor of introspecting with `convox env`.
 
-## Development Rack Docker VM
+## Laptop Rack Docker VM
 
-A local development rack is setup with `convox start` which requires a working Docker environment. To setup a Docker environment, see the  [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
+A laptop Rack is started with `convox start` which requires a working Docker environment. To setup a Docker environment, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
 
 ```
 $ docker-machine start default
@@ -112,6 +111,7 @@ Now you can log into the development Rack API and interact with your Convox reso
 
 ```
 $ convox login $(docker-machine ip default)
+
 $ convox instances
 ID          AGENT  STATUS  STARTED      PS  CPU    MEM   
 i-6cf228f7  on     active  2 hours ago  4   0.00%  10.42%
@@ -139,19 +139,19 @@ $ echo $?
 
 GitHub and Travis CI are configured to require that tests are passing before PR can be merged.
 
-The most complex tests setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represent a very powerful way to verify Convox behavior.
+The most complex tests, such as `TestProcessesListWithDetached` setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represent a very powerful way to verify Convox behavior.
 
 ## API Changes
 
-A common thing to do is to fix a bug or make an enhancement to the Rack APIs. For example, maybe the `GET /system` endpoint would be more helpful if it included the ELB hostname, so you'd like to add this.
+A common thing to do is to fix a bug or make an enhancement to the Rack APIs. For example, maybe the `POST /apps/{app}/builds` endpoint would be more helpful if it accepted a GitLab URL to clone and build from, so you'd like to add this.
 
 The `convox/rack/api` package has a few key concepts:
 
-* Swagger Manifest (rack/api/manifest.yml). Defines all API endpoints and responses
-* Golang Client (rack/client). Bindings that talk to the HTTP API and returns Golang structs, slices and errors
+* Swagger Manifest (rack/api/manifest.yml). Defines all API endpoints and responses.
+* Golang Client (rack/client). Bindings that talk to the HTTP API and returns Golang structs, slices and errors.
 * CLI (rack/cmd/convox). High level tool that lets developers issue commands like `convox/deploy`.
-* Routes (rack/api/controllers/routes). A `gorilla/mux` configuration of request URL patterns, HTTP verbs, and handler functions
-* Controllers (rack/api/controllers). HTTP handlers for every route
+* Routes (rack/api/controllers/routes). A `gorilla/mux` configuration of request URL patterns, HTTP verbs, and handler functions.
+* Controllers (rack/api/controllers). HTTP handlers for every route.
 * Models (rack/api/models). Key primatives like "app", "service", "build", and "release" and corresponding logic to control AWS and Docker.
 
 It is common for API changes to require corresponding changes across a model, controller, swagger manifest, client and CLI.
@@ -178,11 +178,11 @@ Racks apps and services are created, updated and destroyed via automated means. 
 
 * Rack should have a new option to provision and use private subnets
 * An app load balancer should have a new option to configure Proxy Protocol
-* `convox service create elasticsearch` should be a thing and provision an ElasticSearch cluster
+* `convox services create elasticsearch` should provision an ElasticSearch cluster
 
 Some general notes when making changes to the infrastructure templates:
 
-* Run `make -C api templates` to compile the templates and restart the webserver. The `templates.go` file updates should be checked in
+* Run `make -C api templates` to compile the templates and restart the webserver. The `templates.go` file updates should be checked in.
 * Run `make test` to exercise the app template regression tests. Changes to app.tmpl almost always need accompanying test changes.
 * Pay careful attention to both the update and rollback safety of changes. Rollbacks are extremely important for failure recovery.
 
@@ -226,7 +226,7 @@ This functionality needs to be merged into convox/rack and generalized to suppor
 
 Rack has a suite of integration tests that install, deploy apps, then tear down Racks on AWS, then collect lots of logs for analysis afterwareds. This is slow feedback (~45 minutes) but offers good guarantees of general release quality.
 
-Currently it deploys 3 racks into 3 different regions and deploys, introspects, then deletes two apps on each rack.
+Currently it deploys 3 Racks into 3 different regions and deploys, introspects, then deletes two apps on each Rack.
 
 This is run on CircleCI which coordinates parallelizing the regions, collecting artifacts, and reporting results. An example test run can be reviewed [here](https://circleci.com/gh/convox/rack/667). You need to sign into CircleCI and have access to the Rack repo to review the artifacts.
 
