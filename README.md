@@ -18,7 +18,7 @@ Apps run as Docker containers on ECS with HTTP access through ELBs. This archite
 
 Container Logs are extracted from Docker with its native APIs and log drivers. Docker daemon options are minimally changed to avoid observed log rotation problems.
 
-Logs are stored in CloudWatch Logs for archival and search, and Kinesis for streaming. This is simple and cost effective for any volume of logs.
+Logs are stored in CloudWatch Logs for archival and search, and Kinesis for streaming. Lambda subscribers extract metrics and forward to 3rd party systems. This is simple and cost effective for any volume of logs.
 
 Complex and experimental things like overlay networking, persistent container volumes, and distributed file systems are simply not supported at the moment.
 
