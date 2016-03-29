@@ -238,6 +238,11 @@ func (a *App) Cleanup() error {
 		if ae, ok := err.(awserr.Error); ok {
 			if ae.Code() == "ValidationError" {
 				helpers.TrackEvent("kernel-app-delete-success", nil)
+				// Last ditch effort to remove the empty bucket CF leaves behind.
+				_, err := S3().DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(a.Outputs["Settings"])})
+				if err != nil {
+					fmt.Printf("error: %s\n", err)
+				}
 				return nil
 			}
 		}
