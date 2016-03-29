@@ -476,6 +476,10 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 	return &destBuild, nil
 }
 
+func (b *Build) Delete() error {
+	return fmt.Errorf("Can not delete active build")
+}
+
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
 	app, err := GetApp(b.App)
 
