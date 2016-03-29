@@ -25,32 +25,34 @@ var (
 )
 
 func init() {
+	createFlags := []cli.Flag{
+		appFlag,
+		cli.BoolFlag{
+			Name:  "no-cache",
+			Usage: "pull fresh image dependencies",
+		},
+		cli.BoolFlag{
+			Name:  "incremental",
+			Usage: "use incremental build",
+		},
+		cli.StringFlag{
+			Name:  "file, f",
+			Value: "docker-compose.yml",
+			Usage: "path to an alternate docker compose manifest file",
+		},
+		cli.StringFlag{
+			Name:  "description",
+			Value: "",
+			Usage: "description of the build",
+		},
+	}
+
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "build",
 		Description: "create a new build",
 		Usage:       "",
 		Action:      cmdBuildsCreate,
-		Flags: []cli.Flag{
-			appFlag,
-			cli.BoolFlag{
-				Name:  "no-cache",
-				Usage: "pull fresh image dependencies",
-			},
-			cli.BoolFlag{
-				Name:  "incremental",
-				Usage: "use incremental build",
-			},
-			cli.StringFlag{
-				Name:  "file, f",
-				Value: "docker-compose.yml",
-				Usage: "path to an alternate docker compose manifest file",
-			},
-			cli.StringFlag{
-				Name:  "description",
-				Value: "",
-				Usage: "description of the build",
-			},
-		},
+		Flags:       createFlags,
 	})
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "builds",
@@ -64,14 +66,7 @@ func init() {
 				Description: "create a new build",
 				Usage:       "",
 				Action:      cmdBuildsCreate,
-				Flags: []cli.Flag{
-					appFlag,
-					cli.StringFlag{
-						Name:  "file, f",
-						Value: "docker-compose.yml",
-						Usage: "a file to use in place of docker-compose.yml",
-					},
-				},
+				Flags:       createFlags,
 			},
 			{
 				Name:        "copy",
@@ -91,6 +86,13 @@ func init() {
 				Description: "print output for a build",
 				Usage:       "<ID>",
 				Action:      cmdBuildsInfo,
+				Flags:       []cli.Flag{appFlag},
+			},
+			{
+				Name:        "delete",
+				Description: "Archive a build and its artifacts",
+				Usage:       "<ID>",
+				Action:      cmdBuildsDelete,
 				Flags:       []cli.Flag{appFlag},
 			},
 		},
@@ -171,6 +173,31 @@ func cmdBuildsCreate(c *cli.Context) {
 	}
 
 	fmt.Printf("Release: %s\n", release)
+}
+
+func cmdBuildsDelete(c *cli.Context) {
+	_, app, err := stdcli.DirApp(c, ".")
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "delete")
+		return
+	}
+
+	build := c.Args()[0]
+
+	b, err := rackClient(c).DeleteBuild(app, build)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Deleted %s\n", b.Id)
 }
 
 func cmdBuildsInfo(c *cli.Context) {
