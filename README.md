@@ -45,7 +45,7 @@ Rack is open source and free (as in beer and in speech) to use. You can look at 
 The Convox team and the Rack project have a strong philosophy about how to manage cloud services. Some choices we frequently consider:
 
 * Open over Closed
-* Integration over Invention
+* [Integration over Invention](https://convox.com/blog/integration-over-invention/)
 * Services over Software
 * Robots over Humans
 * Shared Expertise vs Bespoke
