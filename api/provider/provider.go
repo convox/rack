@@ -17,6 +17,8 @@ type Provider interface {
 
 	InstanceList() (structs.Instances, error)
 
+	ImageDelete(urls []string) error
+
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
 }
@@ -50,6 +52,10 @@ func CapacityGet() (*structs.Capacity, error) {
 
 func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
+}
+
+func ImageDelete(urls []string) error {
+	return CurrentProvider.ImageDelete(urls)
 }
 
 func SystemGet() (*structs.System, error) {
