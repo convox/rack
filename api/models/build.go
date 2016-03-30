@@ -12,10 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/api/provider"
 )
 
 type Build struct {
@@ -477,7 +480,44 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 }
 
 func (b *Build) Delete() error {
+	// delete ECR images
+	// delete dynamo record for build?
+	// delete release records for build?
 	return fmt.Errorf("Can not delete active build")
+}
+
+// Images returns a list of fully qualified URLs for images for every process type
+// in the build manifest. These may point to the convox-hosted registry or ECR, e.g.
+// {convox-826133048.us-east-1.elb.amazonaws.com:5000/myapp-web:BSUSBFCUCSA} or
+// {826133048.dkr.ecr.us-east-1.amazonaws.com/myapp-zridvyqapp:web.BSUSBFCUCSA} respectively.
+func (b *Build) Images() ([]string, error) {
+	app, err := provider.AppGet(b.App)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var entries ManifestEntries
+
+	err = yaml.Unmarshal([]byte(b.Manifest), &entries)
+
+	if err != nil {
+		return nil, err
+	}
+
+	imgs := []string{}
+
+	for name, _ := range entries {
+		img := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), app.Name, name, b.Id)
+
+		if registryId := app.Outputs["RegistryId"]; registryId != "" {
+			img = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), app.Outputs["RegistryRepository"], name, b.Id)
+		}
+
+		imgs = append(imgs, img)
+	}
+
+	return imgs, nil
 }
 
 func (b *Build) execute(args []string, r io.Reader, ch chan error) error {
