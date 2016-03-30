@@ -9,6 +9,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 type Template struct {
@@ -27,6 +28,14 @@ func awsError(err error) string {
 	}
 
 	return ""
+}
+
+func coalesce(s *dynamodb.AttributeValue, def string) string {
+	if s != nil {
+		return *s.S
+	} else {
+		return def
+	}
 }
 
 func formationParameters(formation string) (map[string]TemplateParameter, error) {

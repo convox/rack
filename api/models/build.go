@@ -3,6 +3,7 @@ package models
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -479,19 +480,39 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 }
 
 func (b *Build) Delete() error {
-	// delete ECR images
-	imgs, err := b.Images()
+	// validate that build / release is not active
+	app, err := provider.AppGet(b.App)
 
 	if err != nil {
 		return err
 	}
 
+	rel, err := provider.ReleaseGet(app.Name, app.Release)
+
+	if err != nil {
+		return err
+	}
+
+	if rel.Build == b.Id {
+		return errors.New("cant delete build contained in active release")
+	}
+
+	// delete ECR images
+	imgs, err := b.Images()
+	if err != nil {
+		return err
+	}
+
 	err = provider.ImageDelete(imgs)
+	if err != nil {
+		return err
+	}
 
-	// delete dynamo record for build?
-	// delete release records for build?
+	// scan dynamo for all releases for this build
+	// delete all release records
 
-	return err
+	// delete build record
+	return nil
 }
 
 // Images returns a list of fully qualified URLs for images for every process type
