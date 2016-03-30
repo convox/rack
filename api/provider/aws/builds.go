@@ -3,6 +3,7 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 
 	"github.com/convox/rack/api/structs"
@@ -24,6 +26,11 @@ func buildsTable(app string) string {
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -41,7 +48,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 		return nil, fmt.Errorf("no such build: %s", id)
 	}
 
-	build := buildFromItem(res.Item)
+	build := p.buildFromItem(res.Item, a.Outputs["Settings"])
 
 	return build, nil
 }
@@ -133,27 +140,43 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
-func buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
+// buildFromItem populates a Build struct from a DynamoDB Item. It also populates build.Logs
+// from an S3 object if a bucket is passed in and a builds/B1234.log object exists.
+func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bucket string) *structs.Build {
+	id := coalesce(item["id"], "")
 	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
 
+	// if an app bucket was passed in, try to get logs from S3
 	logs := ""
-	// var err error
 
-	// TODO: restore build logs
-	// if item["logs"] == nil {
-	// 	logs, err = getS3BuildLogs(coalesce(item["app"], ""), coalesce(item["id"], ""))
+	if bucket != "" {
+		key := fmt.Sprintf("builds/%s.log", id)
 
-	// 	if err != nil {
-	// 		logs = ""
-	// 	}
-	// }
+		req := &s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		}
+
+		res, err := p.s3().GetObject(req)
+
+		if err != nil {
+			fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
+		} else {
+			body, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				fmt.Printf("aws buildFromItem ioutil.ReadAll err=%s\n", err)
+			} else {
+				logs = string(body)
+			}
+		}
+	}
 
 	return &structs.Build{
-		Id:          coalesce(item["id"], ""),
+		Id:          id,
 		App:         coalesce(item["app"], ""),
 		Description: coalesce(item["description"], ""),
-		Logs:        coalesce(item["logs"], logs),
+		Logs:        logs,
 		Manifest:    coalesce(item["manifest"], ""),
 		Release:     coalesce(item["release"], ""),
 		Status:      coalesce(item["status"], ""),
