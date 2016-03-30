@@ -5,12 +5,13 @@ import "github.com/convox/rack/api/structs"
 var TestProvider = &TestProviderRunner{}
 
 type TestProviderRunner struct {
+	App       structs.App
 	Instances structs.Instances
 	Capacity  structs.Capacity
 }
 
 func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
-	return nil, nil
+	return &p.App, nil
 }
 
 func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
