@@ -421,8 +421,16 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			Privileged: aws.Bool(privileged),
 		}
 
-		if command, ok := task["Command"].(string); ok && command != "" {
-			r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(command)}
+		switch commands := task["Command"].(type) {
+			case string:
+				if commands != "" {
+					r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(commands)}
+				}
+			case []string:
+				r.ContainerDefinitions[i].Command = make([]*string, len(commands))
+				for j, command := range commands {
+					r.ContainerDefinitions[i].Command[j] = aws.String(command)
+				}
 		}
 
 		// set Task environment from CF Tasks[].Environment key/values
