@@ -4,11 +4,11 @@
 
 Convox Rack is open source PaaS built on top of expert infrastructure automation and devops best practices.
 
-Rack gives you a simple developer focused API that lets you build, deploy, scale and manage apps on private infrastructure with ease.
+Rack gives you a simple developer-focused API that lets you build, deploy, scale and manage apps on private infrastructure with ease.
 
 ### Private and Secure
 
-Rack runs in an isolated VPC that only you and your team have access to. Application builds take place in a single-tenant build service and the resulting Docker images are stored in a private ECS Container Registry. Application secrets are stored in S3, encrypted with KMS, a hardware security module. Application logs are archived in CloudWatch LogsGroups.
+Rack runs in an isolated VPC that only you and your team have access to. Application builds take place in a single-tenant build service, and the resulting Docker images are stored in a private ECS Container Registry. Application secrets are stored in S3, encrypted with KMS, a hardware security module. Application logs are archived in CloudWatch LogsGroups.
 
 Your network is isolated, your platform is single-tenant, and your application data never leaves your AWS account.
 
