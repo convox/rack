@@ -9,6 +9,8 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
 )
@@ -21,6 +23,25 @@ func init() {
 func TestProcessesList(t *testing.T) {
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
+
+	// set current provider
+	testProvider := &provider.TestProviderRunner{
+		Instances: []structs.Instance{
+			structs.Instance{},
+			structs.Instance{},
+			structs.Instance{},
+		},
+	}
+	provider.CurrentProvider = testProvider
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	// setup expectations on current provider
+	testProvider.On("InstanceList").Return(testProvider.Instances, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),
@@ -69,6 +90,25 @@ func TestProcessesList(t *testing.T) {
 }
 
 func TestGetProcessesWithDeployments(t *testing.T) {
+	// set current provider
+	testProvider := &provider.TestProviderRunner{
+		Instances: []structs.Instance{
+			structs.Instance{},
+			structs.Instance{},
+			structs.Instance{},
+		},
+	}
+	provider.CurrentProvider = testProvider
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	// setup expectations on current provider
+	testProvider.On("InstanceList").Return(testProvider.Instances, nil)
+
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
@@ -124,6 +164,25 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 }
 
 func TestProcessesListWithAttached(t *testing.T) {
+	// set current provider
+	testProvider := &provider.TestProviderRunner{
+		Instances: []structs.Instance{
+			structs.Instance{},
+			structs.Instance{},
+			structs.Instance{},
+		},
+	}
+	provider.CurrentProvider = testProvider
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	// setup expectations on current provider
+	testProvider.On("InstanceList").Return(testProvider.Instances, nil)
+
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
@@ -171,6 +230,25 @@ func TestProcessesListWithAttached(t *testing.T) {
 }
 
 func TestProcessesListWithDetached(t *testing.T) {
+	// set current provider
+	testProvider := &provider.TestProviderRunner{
+		Instances: []structs.Instance{
+			structs.Instance{},
+			structs.Instance{},
+			structs.Instance{},
+		},
+	}
+	provider.CurrentProvider = testProvider
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	// setup expectations on current provider
+	testProvider.On("InstanceList").Return(testProvider.Instances, nil)
+
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
