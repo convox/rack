@@ -20,14 +20,27 @@ func init() {
 }
 
 func TestInstanceList(t *testing.T) {
+	// set current provider
+	testProvider := &provider.TestProviderRunner{
+		Instances: []structs.Instance{
+			structs.Instance{},
+			structs.Instance{},
+			structs.Instance{},
+		},
+	}
+	provider.CurrentProvider = testProvider
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	// setup expectations on current provider
+	testProvider.On("InstanceList").Return(testProvider.Instances, nil)
+
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
-
-	provider.TestProvider.Instances = structs.Instances{
-		structs.Instance{},
-		structs.Instance{},
-		structs.Instance{},
-	}
 
 	body := test.HTTPBody("GET", "http://convox/instances", nil)
 
@@ -41,6 +54,19 @@ func TestInstanceList(t *testing.T) {
 }
 
 func TestInstanceTerminate(t *testing.T) {
+	// set current provider
+	testProvider := &provider.TestProviderRunner{}
+	provider.CurrentProvider = testProvider
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	// setup expectations on current provider
+	testProvider.On("SystemGet").Return(nil, nil)
+
 	os.Setenv("RACK", "convox-test")
 
 	aws := test.StubAws(

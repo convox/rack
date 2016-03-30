@@ -71,14 +71,7 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such source app: %s", app)
-	}
-
 	b, err := provider.BuildDelete(app, build)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
