@@ -12,11 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/provider"
 )
@@ -481,9 +480,18 @@ func (srcBuild *Build) CopyTo(destApp App) (*Build, error) {
 
 func (b *Build) Delete() error {
 	// delete ECR images
+	imgs, err := b.Images()
+
+	if err != nil {
+		return err
+	}
+
+	err = provider.ImageDelete(imgs)
+
 	// delete dynamo record for build?
 	// delete release records for build?
-	return fmt.Errorf("Can not delete active build")
+
+	return err
 }
 
 // Images returns a list of fully qualified URLs for images for every process type

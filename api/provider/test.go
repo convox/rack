@@ -22,6 +22,10 @@ func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	return p.Instances, nil
 }
 
+func (p *TestProviderRunner) ImageDelete(urls []string) error {
+	return nil
+}
+
 func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
 	return nil, nil
 }

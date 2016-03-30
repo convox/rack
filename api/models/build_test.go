@@ -55,3 +55,24 @@ func TestBuildImagesECR(t *testing.T) {
 	assert.Equal(t, 1, len(imgs))
 	assert.Equal(t, "826133048.dkr.ecr.test.amazonaws.com/bar-zridvyqapp:web.BSUSBFCUCSA", imgs[0])
 }
+
+func TestBuildDelete(t *testing.T) {
+	provider.TestProvider.App = structs.App{
+		Name: "bar",
+		Outputs: map[string]string{
+			"RegistryId":         "826133048",
+			"RegistryRepository": "bar-zridvyqapp",
+		},
+	}
+
+	b := Build{
+		App: "bar",
+		Manifest: `web:
+  image: httpd
+`,
+		Id: "BSUSBFCUCSA",
+	}
+
+	err := b.Delete()
+	assert.Nil(t, err)
+}
