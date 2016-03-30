@@ -153,6 +153,27 @@ func TestManifestFixtureUnbound(t *testing.T) {
 	ManifestRandomPorts = true
 }
 
+func TestCommandString(t *testing.T) {
+	entry := ManifestEntry{
+		Command: "foo bar baz",
+	}
+	assert.EqualValues(t, "foo bar baz", entry.CommandString())
+	assert.EqualValues(t, []string{}, entry.CommandArray())
+}
+
+func TestCommandArray(t *testing.T) {
+	var commandSlice []string = []string{"foo", "bar", "baz"}
+	var interfaceSlice []interface{} = make([]interface{}, len(commandSlice))
+	for i, d := range commandSlice {
+	    interfaceSlice[i] = d
+	}
+	entry := ManifestEntry{
+		Command: interfaceSlice,
+	}
+	assert.EqualValues(t, "", entry.CommandString())
+	assert.EqualValues(t, []string{"foo", "bar", "baz"}, entry.CommandArray())
+}
+
 func TestCommandExecForm(t *testing.T) {
 	assertFixture(t, "command_exec_form", "")
 }
