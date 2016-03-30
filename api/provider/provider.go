@@ -19,6 +19,8 @@ type Provider interface {
 
 	ImageDelete(urls []string) error
 
+	ReleaseGet(app, id string) (*structs.Release, error)
+
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
 }
@@ -56,6 +58,10 @@ func InstanceList() (structs.Instances, error) {
 
 func ImageDelete(urls []string) error {
 	return CurrentProvider.ImageDelete(urls)
+}
+
+func ReleaseGet(app, id string) (*structs.Release, error) {
+	return CurrentProvider.ReleaseGet(app, id)
 }
 
 func SystemGet() (*structs.System, error) {
