@@ -59,20 +59,65 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 		return b, err
 	}
 
-	// validate that build / release is not active
 	a, err := p.AppGet(app)
 	if err != nil {
 		return b, err
 	}
 
-	r, err := p.ReleaseGet(a.Name, a.Release)
+	// scan dynamo for all releases for this build
+	res, err := p.dynamodb().Query(&dynamodb.QueryInput{
+		KeyConditionExpression: aws.String("app = :app"),
+		FilterExpression:       aws.String("build = :build"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":app":   &dynamodb.AttributeValue{S: aws.String(app)},
+			":build": &dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		IndexName: aws.String("app.created"),
+		TableName: aws.String(releasesTable(app)),
+	})
+
 	if err != nil {
-		return b, err
+		return nil, err
 	}
 
-	if r.Build == id {
-		return b, errors.New("cant delete build contained in active release")
+	// collect release IDs to delete
+	// and validate the build doesn't belong to the app's current release
+	wrs := []*dynamodb.WriteRequest{}
+	for _, item := range res.Items {
+		r := releaseFromItem(item)
+
+		if a.Release == r.Id {
+			return b, errors.New("cant delete build contained in active release")
+		}
+
+		wr := &dynamodb.WriteRequest{
+			DeleteRequest: &dynamodb.DeleteRequest{
+				Key: map[string]*dynamodb.AttributeValue{
+					"id": &dynamodb.AttributeValue{
+						S: aws.String(r.Id),
+					},
+				},
+			},
+		}
+
+		wrs = append(wrs, wr)
 	}
+
+	// delete all release items
+	// TODO: Move to ReleaseDelete and also clean up env, task definition, etc.
+	p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]*dynamodb.WriteRequest{
+			releasesTable(app): wrs,
+		},
+	})
+
+	// delete build item
+	p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		TableName: aws.String(buildsTable(app)),
+	})
 
 	// delete ECR images
 	err = p.deleteImages(a, b)
@@ -80,19 +125,15 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 		return b, err
 	}
 
-	// scan dynamo for all releases for this build
-	// delete all release records
-
-	// delete build record
-	return &structs.Build{}, errors.New("can not delete active build")
+	return b, nil
 }
 
 // deleteImages generates a list of fully qualified URLs for images for every process type
 // in the build manifest then deletes them.
-// Image URLs that point to the convox-hosted registry, e.g. convox-826133048.us-east-1.elb.amazonaws.com:5000/myapp-web:BSUSBFCUCSA,
-// are deleted with `docker rmi`.
 // Image URLs that point to ECR, e.g. 826133048.dkr.ecr.us-east-1.amazonaws.com/myapp-zridvyqapp:web.BSUSBFCUCSA,
-// are deleted with the ECR BatchDeleteImage API
+// are deleted with the ECR BatchDeleteImage API.
+// Image URLs that point to the convox-hosted registry, e.g. convox-826133048.us-east-1.elb.amazonaws.com:5000/myapp-web:BSUSBFCUCSA,
+// are not yet supported and return an error.
 func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	var entries ManifestEntries
 
@@ -100,6 +141,11 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 
 	if err != nil {
 		return err
+	}
+
+	// failed builds could have an empty manifest
+	if len(entries) == 0 {
+		return nil
 	}
 
 	urls := []string{}
