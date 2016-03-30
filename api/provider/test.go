@@ -6,6 +6,7 @@ var TestProvider = &TestProviderRunner{}
 
 type TestProviderRunner struct {
 	App       structs.App
+	Build     structs.Build
 	Capacity  structs.Capacity
 	Instances structs.Instances
 	Release   structs.Release
@@ -15,16 +16,20 @@ func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
 	return &p.App, nil
 }
 
+func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
+	return &p.Build, nil
+}
+
+func (p *TestProviderRunner) BuildDelete(app, id string) (*structs.Build, error) {
+	return &p.Build, nil
+}
+
 func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
 	return &p.Capacity, nil
 }
 
 func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	return p.Instances, nil
-}
-
-func (p *TestProviderRunner) ImageDelete(urls []string) error {
-	return nil
 }
 
 func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error) {
