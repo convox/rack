@@ -23,6 +23,7 @@ func (s *Service) CreatePapertrail() (*cloudformation.CreateStackInput, error) {
 	}
 
 	req := &cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.StackName()),
 		TemplateBody: aws.String(formation),
 	}
@@ -88,6 +89,7 @@ func (s *Service) UpdatePapertrail(arns map[string]string) error {
 
 	// Update stack with all linked ARNs and EventSourceMappings
 	_, err = UpdateStack(&cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(s.StackName()),
 		Parameters: []*cloudformation.Parameter{
 			&cloudformation.Parameter{
