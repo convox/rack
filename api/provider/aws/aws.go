@@ -83,5 +83,7 @@ func (p *AWSProvider) kinesis() *kinesis.Kinesis {
 }
 
 func (p *AWSProvider) s3() *s3.S3 {
-	return s3.New(session.New(), p.config())
+	c := p.config()
+	c.S3ForcePathStyle = aws.Bool(true)
+	return s3.New(session.New(), c)
 }
