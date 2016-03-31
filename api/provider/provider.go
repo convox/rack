@@ -13,9 +13,14 @@ var CurrentProvider Provider
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 
+	BuildGet(app, id string) (*structs.Build, error)
+	BuildDelete(app, id string) (*structs.Build, error)
+
 	CapacityGet() (*structs.Capacity, error)
 
 	InstanceList() (structs.Instances, error)
+
+	ReleaseGet(app, id string) (*structs.Release, error)
 
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
@@ -44,12 +49,24 @@ func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
 }
 
+func BuildGet(app, id string) (*structs.Build, error) {
+	return CurrentProvider.BuildGet(app, id)
+}
+
+func BuildDelete(app, id string) (*structs.Build, error) {
+	return CurrentProvider.BuildDelete(app, id)
+}
+
 func CapacityGet() (*structs.Capacity, error) {
 	return CurrentProvider.CapacityGet()
 }
 
 func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
+}
+
+func ReleaseGet(app, id string) (*structs.Release, error) {
+	return CurrentProvider.ReleaseGet(app, id)
 }
 
 func SystemGet() (*structs.System, error) {
