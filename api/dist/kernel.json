@@ -933,6 +933,9 @@
           "MaxBatchSize": "1",
           "MinInstancesInService": { "Ref": "InstanceCount" },
           "PauseTime" : "PT15M",
+          "SuspendProcesses": [
+            "ScheduledActions"
+          ],
           "WaitOnResourceSignals": "true"
         }
       }
