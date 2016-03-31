@@ -10,9 +10,25 @@ import (
 )
 
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
-	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(name),
-	})
+	var res *cloudformation.DescribeStacksOutput
+	var err error
+
+	if name == os.Getenv("RACK") {
+		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+			StackName: aws.String(name),
+		})
+	} else {
+		// try 'convox-myapp', and if not found try 'myapp'
+		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+			StackName: aws.String(os.Getenv("RACK") + "-" + name),
+		})
+
+		if awsError(err) == "ValidationError" {
+			res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(name),
+			})
+		}
+	}
 
 	if err != nil {
 		return nil, err
@@ -25,7 +41,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	tags := stackTags(res.Stacks[0])
 
 	if tags["Rack"] != "" && tags["Rack"] != os.Getenv("RACK") {
-		return nil, fmt.Errorf("no such app: %s", name)
+		return nil, fmt.Errorf("no such app on this rack: %s", name)
 	}
 
 	app := appFromStack(res.Stacks[0])
