@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"io"
+
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/mock"
 	"github.com/convox/rack/api/structs"
 )
@@ -21,12 +23,17 @@ func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
 	return &p.App, nil
 }
 
-func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
-	p.Called(app, id)
+func (p *TestProviderRunner) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
+	p.Called(app, src, manifest, description, cache)
 	return &p.Build, nil
 }
 
 func (p *TestProviderRunner) BuildDelete(app, id string) (*structs.Build, error) {
+	p.Called(app, id)
+	return &p.Build, nil
+}
+
+func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
 	p.Called(app, id)
 	return &p.Build, nil
 }
