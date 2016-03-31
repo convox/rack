@@ -3,6 +3,7 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -23,6 +24,11 @@ var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([
 
 func buildsTable(app string) string {
 	return os.Getenv("DYNAMO_BUILDS")
+}
+
+func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
+	fmt.Printf("AWS BuildCreateTar\n")
+	return &structs.Build{}, nil
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {

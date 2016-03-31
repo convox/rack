@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/convox/rack/api/provider/aws"
@@ -13,8 +14,10 @@ var CurrentProvider Provider
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 
-	BuildGet(app, id string) (*structs.Build, error)
+	// BuildCreateRepo(app, url, manifest, description string, cache bool)
+	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
+	BuildGet(app, id string) (*structs.Build, error)
 
 	CapacityGet() (*structs.Capacity, error)
 
@@ -49,12 +52,16 @@ func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
 }
 
-func BuildGet(app, id string) (*structs.Build, error) {
-	return CurrentProvider.BuildGet(app, id)
+func BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
+	return CurrentProvider.BuildCreateTar(app, src, manifest, description, cache)
 }
 
 func BuildDelete(app, id string) (*structs.Build, error) {
 	return CurrentProvider.BuildDelete(app, id)
+}
+
+func BuildGet(app, id string) (*structs.Build, error) {
+	return CurrentProvider.BuildGet(app, id)
 }
 
 func CapacityGet() (*structs.Capacity, error) {

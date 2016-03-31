@@ -80,6 +80,24 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+
+	source, _, err := r.FormFile("source")
+	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
+		helpers.TrackError("build", err, map[string]interface{}{"at": "FormFile"})
+		return httperr.Server(err)
+	}
+
+	if source != nil {
+		cache := !(r.FormValue("cache") == "false")
+		b, err := provider.BuildCreateTar(vars["app"], source, r.FormValue("manifest"), r.FormValue("description"), cache)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, b)
+	}
+
 	build := models.NewBuild(mux.Vars(r)["app"])
 	build.Description = r.FormValue("description")
 
@@ -96,13 +114,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	err := r.ParseMultipartForm(50 * 1024 * 1024)
-
-	if err != nil && err != http.ErrNotMultipart {
-		helpers.TrackError("build", err, map[string]interface{}{"at": "ParseMultipartForm"})
-		return httperr.Server(err)
-	}
-
 	err = build.Save()
 
 	if err != nil {
@@ -110,43 +121,9 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	resources, err := models.ListResources(os.Getenv("RACK"))
-
-	if err != nil {
-		helpers.TrackError("build", err, map[string]interface{}{"at": "models.ListResources"})
-		return httperr.Server(err)
-	}
-
 	ch := make(chan error)
 
-	source, _, err := r.FormFile("source")
-
-	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		helpers.TrackError("build", err, map[string]interface{}{"at": "FormFile"})
-		return httperr.Server(err)
-	}
-
 	cache := !(r.FormValue("cache") == "false")
-
-	if source != nil {
-		err = models.S3PutFile(resources["RegistryBucket"].Id, fmt.Sprintf("builds/%s.tgz", build.Id), source, false)
-
-		if err != nil {
-			helpers.TrackError("build", err, map[string]interface{}{"at": "models.S3PutFile"})
-			return httperr.Server(err)
-		}
-
-		go build.ExecuteLocal(source, cache, manifest, ch)
-
-		err = <-ch
-
-		if err != nil {
-			helpers.TrackError("build", err, map[string]interface{}{"at": "models.ExecuteLocal"})
-			return httperr.Server(err)
-		} else {
-			return RenderJson(rw, build)
-		}
-	}
 
 	if repo := r.FormValue("repo"); repo != "" {
 		go build.ExecuteRemote(repo, cache, manifest, ch)
