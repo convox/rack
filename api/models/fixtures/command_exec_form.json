@@ -1,13 +1,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankPostgresService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
-    "BlankWorkerService": {
+    "BlankMainService": {
       "Fn::Equals": [
         "",
         ""
@@ -95,12 +89,12 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresDesiredCount": {
+    "MainDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
     },
-    "PostgresMemory": {
+    "MainMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
@@ -143,16 +137,6 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
       "Type": "String"
-    },
-    "WorkerDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "Type": "Number"
-    },
-    "WorkerMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
     }
   },
   "Resources": {
@@ -242,7 +226,7 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "PostgresECSService": {
+    "MainECSService": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -252,7 +236,7 @@
           "Ref": "Cluster"
         },
         "DesiredCount": {
-          "Ref": "PostgresDesiredCount"
+          "Ref": "MainDesiredCount"
         },
         "LoadBalancers": [
           {
@@ -266,7 +250,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "postgres"
+              "main"
             ]
           ]
         },
@@ -280,13 +264,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "PostgresECSTaskDefinition"
+          "Ref": "MainECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "PostgresECSTaskDefinition": {
+    "MainECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -305,7 +289,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "postgres"
+              "main"
             ]
           ]
         },
@@ -321,8 +305,12 @@
         "Tasks": [
           {
             "Fn::If": [
-              "BlankPostgresService",
+              "BlankMainService",
               {
+                "Command": [
+                  "cmd1",
+                  "cmd2"
+                ],
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
@@ -330,15 +318,13 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "POSTGRES_PASSWORD": "password",
-                  "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
+                  "PROCESS": "main"
                 },
-                "Image": "mdillon/postgis",
+                "Image": "",
                 "Memory": {
-                  "Ref": "PostgresMemory"
+                  "Ref": "MainMemory"
                 },
-                "Name": "postgres",
+                "Name": "main",
                 "PortMappings": [
                   {
                     "Ref": "AWS::NoValue"
@@ -444,129 +430,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "WorkerECSService": {
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DesiredCount": {
-          "Ref": "WorkerDesiredCount"
-        },
-        "LoadBalancers": [
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "worker"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WorkerECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
-    },
-    "WorkerECSTaskDefinition": {
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Environment": {
-          "Ref": "Environment"
-        },
-        "Key": {
-          "Ref": "Key"
-        },
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "worker"
-            ]
-          ]
-        },
-        "Release": {
-          "Ref": "Release"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "Tasks": [
-          {
-            "Fn::If": [
-              "BlankWorkerService",
-              {
-                "Command": "bin/work",
-                "Environment": {
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "worker"
-                },
-                "Image": "",
-                "Memory": {
-                  "Ref": "WorkerMemory"
-                },
-                "Name": "worker",
-                "PortMappings": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "true",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ]
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
     }
   }
 }

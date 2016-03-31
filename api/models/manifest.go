@@ -290,21 +290,28 @@ func (me *ManifestEntry) BalancerResourceName() string {
 
 func (me *ManifestEntry) CommandString() string {
 	switch cmd := me.Command.(type) {
-	case nil:
-		return ""
 	case string:
 		return cmd
+	default:
+		return ""
+	}
+}
+
+func (me *ManifestEntry) CommandArray() []string {
+	switch cmd := me.Command.(type) {
+	case nil:
+		return []string{}
+	case string:
+		return []string{}
 	case []interface{}:
-		parts := make([]string, len(cmd))
-
+		commands := make([]string, len(cmd))
 		for i, c := range cmd {
-			parts[i] = c.(string)
+			commands[i] = c.(string)
 		}
-
-		return strings.Join(parts, " ")
+		return commands
 	default:
 		fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
-		return ""
+		return []string{}
 	}
 }
 

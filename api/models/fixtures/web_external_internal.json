@@ -797,7 +797,6 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
