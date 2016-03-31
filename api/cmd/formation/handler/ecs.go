@@ -421,15 +421,18 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			Privileged: aws.Bool(privileged),
 		}
 
+		// set Command from either -
+		// a single string (shell form) - ["sh", "-c", command]
+		// an array of strings (exec form) - ["cmd1", "cmd2"]
 		switch commands := task["Command"].(type) {
 			case string:
 				if commands != "" {
 					r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(commands)}
 				}
-			case []string:
+			case []interface{}:
 				r.ContainerDefinitions[i].Command = make([]*string, len(commands))
 				for j, command := range commands {
-					r.ContainerDefinitions[i].Command[j] = aws.String(command)
+					r.ContainerDefinitions[i].Command[j] = aws.String(command.(string))
 				}
 		}
 

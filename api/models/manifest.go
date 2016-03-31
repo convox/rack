@@ -304,14 +304,14 @@ func (me *ManifestEntry) CommandArray() []string {
 	case string:
 		return []string{}
 	case []interface{}:
-		words := make([]string, len(cmd))
+		commands := make([]string, len(cmd))
 		for i, c := range cmd {
-			words[i] = c.(string)
+			commands[i] = c.(string)
 		}
-		return words
+		return commands
 	default:
 		fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
-		return []string{""}
+		return []string{}
 	}
 }
 
