@@ -59,16 +59,26 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 	cmd := exec.Command("docker", args...)
 
 	out, err := cmd.CombinedOutput()
+	b.Logs = string(out)
 
 	if err != nil {
-		b.Status = "exec-failed"
-		b.Logs = string(out) + err.Error()
+		b.Status = "failed"
+		b.Logs += err.Error()
 
 		err = p.BuildSave(b, a.Outputs["Settings"])
 		if err != nil {
 			return b, err
 		}
 
+		return b, err
+	}
+
+	time.Sleep(2 * time.Second)
+
+	b.Status = "complete"
+
+	err = p.BuildSave(b, a.Outputs["Settings"])
+	if err != nil {
 		return b, err
 	}
 
