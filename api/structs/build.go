@@ -11,7 +11,9 @@ type Build struct {
 	Logs     string `json:"logs"`
 	Manifest string `json:"manifest"`
 	Release  string `json:"release"`
-	Status   string `json:"status"`
+
+	Status string `json:"status"`
+	Reason string `json:"reason"`
 
 	Description string `json:"description"`
 

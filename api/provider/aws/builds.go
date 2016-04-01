@@ -56,7 +56,13 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 		return b, err
 	}
 
+	env, err := p.buildEnv(a, b)
+	if err != nil {
+		return b, err
+	}
+
 	cmd := exec.Command("docker", args...)
+	cmd.Env = env
 
 	out, err := cmd.CombinedOutput()
 	b.Logs = string(out)
@@ -73,14 +79,14 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 		return b, err
 	}
 
-	time.Sleep(2 * time.Second)
+	// time.Sleep(2 * time.Second)
 
-	b.Status = "complete"
+	// b.Status = "complete"
 
-	err = p.BuildSave(b, a.Outputs["Settings"])
-	if err != nil {
-		return b, err
-	}
+	// err = p.BuildSave(b, a.Outputs["Settings"])
+	// if err != nil {
+	// 	return b, err
+	// }
 
 	//   read container stdout/stderr logs
 	//   wait for container to finish
@@ -255,6 +261,14 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, manifest strin
 		fmt.Sprintf("build-%s", b.Id),
 		"-v",
 		"/var/run/docker.sock:/var/run/docker.sock",
+		"-e",
+		"APP",
+		"-e",
+		"BUILD",
+		"-e",
+		"RACK_HOST",
+		"-e",
+		"RACK_PASSWORD",
 		os.Getenv("DOCKER_IMAGE_API"),
 		"build2",
 		"-id",
@@ -314,6 +328,17 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, manifest strin
 	}
 
 	return args, nil
+}
+
+func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build) ([]string, error) {
+	env := []string{
+		fmt.Sprintf("APP=%s", a.Name),
+		fmt.Sprintf("BUILD=%s", b.Id),
+		fmt.Sprintf("RACK_PASSWORD=%s", os.Getenv("PASSWORD")),
+		fmt.Sprintf("RACK_HOST=%s", os.Getenv("NOTIFICATION_HOST")),
+	}
+
+	return env, nil
 }
 
 // deleteImages generates a list of fully qualified URLs for images for every process type

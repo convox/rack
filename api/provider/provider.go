@@ -18,6 +18,7 @@ type Provider interface {
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildGet(app, id string) (*structs.Build, error)
+	BuildSave(*structs.Build, string) error
 
 	CapacityGet() (*structs.Capacity, error)
 
@@ -62,6 +63,10 @@ func BuildDelete(app, id string) (*structs.Build, error) {
 
 func BuildGet(app, id string) (*structs.Build, error) {
 	return CurrentProvider.BuildGet(app, id)
+}
+
+func BuildSave(b *structs.Build, logdir string) error {
+	return CurrentProvider.BuildSave(b, logdir)
 }
 
 func CapacityGet() (*structs.Capacity, error) {
