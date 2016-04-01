@@ -199,9 +199,12 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	b.Reason = r.FormValue("reason")
 	b.Status = r.FormValue("status")
 
-	err = provider.BuildSave(b, a.Outputs["Settings"])
-	if err != nil {
-		return httperr.Server(err)
+	// if build was successful create a release
+	if b.Status == "complete" && b.Manifest != "" {
+		_, err := provider.BuildRelease(b)
+		if err != nil {
+			return httperr.Server(err)
+		}
 	}
 
 	return RenderJson(rw, b)

@@ -12,3 +12,10 @@ type Release struct {
 }
 
 type Releases []Release
+
+func NewRelease(app string) *Release {
+	return &Release{
+		App: app,
+		Id:  generateId("R", 10),
+	}
+}

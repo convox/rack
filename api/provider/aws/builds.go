@@ -185,6 +185,39 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	return b, nil
 }
 
+func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
+	releases, err := p.ReleaseList(b.App)
+	if err != nil {
+		return nil, err
+	}
+
+	r := structs.NewRelease(b.App)
+	newId := r.Id
+
+	if len(releases) > 0 {
+		r = &releases[0]
+	}
+
+	r.Id = newId
+	r.Created = time.Time{}
+	r.Build = b.Id
+	r.Manifest = b.Manifest
+
+	a, err := p.AppGet(b.App)
+	if err != nil {
+		return r, err
+	}
+
+	err = p.ReleaseSave(r, a.Outputs["Settings"], a.Parameters["Key"])
+	if err != nil {
+		return r, err
+	}
+
+	b.Release = r.Id
+	err = p.BuildSave(b, a.Outputs["Settings"])
+	return r, err
+}
+
 func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
 	if b.Id == "" {
 		return fmt.Errorf("Id can not be blank")
