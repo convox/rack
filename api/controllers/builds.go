@@ -162,6 +162,34 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return httperr.Errorf(403, "no source or repo")
 }
 
+func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	a, err := provider.AppGet(app)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	b, err := provider.BuildGet(app, build)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	b.Ended = time.Now()
+	b.Manifest = r.FormValue("manifest")
+	b.Reason = r.FormValue("reason")
+	b.Status = r.FormValue("status")
+
+	err = provider.BuildSave(b, a.Outputs["Settings"])
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, b)
+}
+
 func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
