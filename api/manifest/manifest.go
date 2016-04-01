@@ -254,7 +254,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			if pullErr == nil {
 				break
 			}
-			log.Println("A pull error occurred...")
+			log.Printf("A pull error occurred for: %s\n", image)
 			log.Printf("Retrying in %d seconds...\n", backOff)
 			time.Sleep(time.Duration(backOff) * time.Second)
 			backOff = ((backOff + r1.Intn(10)) * (i + 1))
@@ -504,7 +504,7 @@ func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 			if pushErr == nil {
 				break
 			}
-			log.Println("A push error occurred...")
+			log.Printf("A push error occurred for %s/%s\n", app, name)
 			log.Printf("Retrying in %d seconds...\n", backOff)
 			time.Sleep(time.Duration(backOff) * time.Second)
 			backOff = ((backOff + r1.Intn(10)) * (i + 1))

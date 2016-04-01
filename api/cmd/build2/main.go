@@ -61,7 +61,7 @@ func main() {
 	handleErrors(m.Build(app, "src", cache))
 	handleErrors(m.Push(app, registryAddress, buildId, repository))
 
-	b, err := rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
+	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
 	handleError(err)
 }
 
