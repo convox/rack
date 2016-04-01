@@ -16,6 +16,7 @@ type TestProviderRunner struct {
 	Capacity  structs.Capacity
 	Instances structs.Instances
 	Release   structs.Release
+	Releases  structs.Releases
 }
 
 func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
@@ -38,6 +39,11 @@ func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
+func (p *TestProviderRunner) BuildRelease(b *structs.Build) (*structs.Release, error) {
+	p.Called(b)
+	return &p.Release, nil
+}
+
 func (p *TestProviderRunner) BuildSave(b *structs.Build, logdir string) error {
 	p.Called(b, logdir)
 	return nil
@@ -56,6 +62,16 @@ func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error) {
 	p.Called(app, id)
 	return &p.Release, nil
+}
+
+func (p *TestProviderRunner) ReleaseList(app string) (structs.Releases, error) {
+	p.Called(app)
+	return p.Releases, nil
+}
+
+func (p *TestProviderRunner) ReleaseSave(r *structs.Release, logdir, key string) error {
+	p.Called(r, logdir, key)
+	return nil
 }
 
 func (p *TestProviderRunner) SystemGet() (*structs.System, error) {

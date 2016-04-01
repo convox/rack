@@ -18,6 +18,7 @@ type Provider interface {
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildGet(app, id string) (*structs.Build, error)
+	BuildRelease(*structs.Build) (*structs.Release, error)
 	BuildSave(*structs.Build, string) error
 
 	CapacityGet() (*structs.Capacity, error)
@@ -25,6 +26,8 @@ type Provider interface {
 	InstanceList() (structs.Instances, error)
 
 	ReleaseGet(app, id string) (*structs.Release, error)
+	ReleaseList(app string) (structs.Releases, error)
+	ReleaseSave(*structs.Release, string, string) error
 
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
@@ -65,6 +68,10 @@ func BuildGet(app, id string) (*structs.Build, error) {
 	return CurrentProvider.BuildGet(app, id)
 }
 
+func BuildRelease(b *structs.Build) (*structs.Release, error) {
+	return CurrentProvider.BuildRelease(b)
+}
+
 func BuildSave(b *structs.Build, logdir string) error {
 	return CurrentProvider.BuildSave(b, logdir)
 }
@@ -79,6 +86,14 @@ func InstanceList() (structs.Instances, error) {
 
 func ReleaseGet(app, id string) (*structs.Release, error) {
 	return CurrentProvider.ReleaseGet(app, id)
+}
+
+func ReleaseList(app string) (structs.Releases, error) {
+	return CurrentProvider.ReleaseList(app)
+}
+
+func ReleaseSave(r *structs.Release, logdir, key string) error {
+	return CurrentProvider.ReleaseSave(r, logdir, key)
 }
 
 func SystemGet() (*structs.System, error) {
