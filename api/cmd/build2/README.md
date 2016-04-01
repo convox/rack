@@ -27,6 +27,7 @@ Environment:
 
 * APP - Name of the app we are building for
 * BUILD - Id of the build
+* DOCKER_AUTH - Json blob of private registry auth info
 * RACK_HOST - Hostname to call back on build success or failure
 * RACK_PASSWORD - Password to call back on build success or failure
 * REGISTRY_EMAIL - Credentials to `docker push`

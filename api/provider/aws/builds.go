@@ -31,71 +31,54 @@ func buildsTable(app string) string {
 }
 
 func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
-	fmt.Printf("AWS BuildCreateTar\n")
-
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
 
-	// create a build record in Dynamo
 	b := structs.NewBuild(app)
 	b.Description = description
 	err = p.BuildSave(b, a.Outputs["Settings"])
 
 	// save the tarball in s3?
+	// TODO: retry pushes w/ backoff
 
-	// background docker build container with right arguments; stdin IO, docker auth, ssh auth
-	//   docker run -i build
-	// 	   docker login
-	//     tar xfvz ; docker build ; docker push
-	//     TODO: retry pushes w/ backoff
+	args := p.buildArgs(a, b, "-")
 
-	args, err := p.buildArgs(a, b, manifest, cache)
-	if err != nil {
-		return b, err
-	}
-
-	env, err := p.buildEnv(a, b)
+	env, err := p.buildEnv(a, b, manifest, cache)
 	if err != nil {
 		return b, err
 	}
 
 	cmd := exec.Command("docker", args...)
 	cmd.Env = env
+	cmd.Stdin = src
 
-	out, err := cmd.CombinedOutput()
-	b.Logs = string(out)
+	// build create is now complete; background waiting for command to finish
+	// and saving command stdout/stderr logs and exit status
+	go func() {
+		out, err := cmd.CombinedOutput()
 
-	if err != nil {
-		b.Status = "failed"
-		b.Logs += err.Error()
+		// reload build item to get data from BuildUpdate callback
+		b, berr := p.BuildGet(app, b.Id)
+		if berr != nil {
+			fmt.Printf("TODO ROLLBAR: %+v\n", berr)
+			return
+		}
+
+		b.Logs = string(out)
+
+		if err != nil {
+			b.Status = "failed"
+		}
 
 		err = p.BuildSave(b, a.Outputs["Settings"])
 		if err != nil {
-			return b, err
+			fmt.Printf("TODO ROLLBAR: %+v\n", err)
+			return
 		}
+	}()
 
-		return b, err
-	}
-
-	// time.Sleep(2 * time.Second)
-
-	// b.Status = "complete"
-
-	// err = p.BuildSave(b, a.Outputs["Settings"])
-	// if err != nil {
-	// 	return b, err
-	// }
-
-	//   read container stdout/stderr logs
-	//   wait for container to finish
-	//   save logs in s3
-	//   introspect logs
-	//     extract errors
-	//     save build success/failure in dynamo
-	//     if success, extract manfiest for release
-	//     create release
 	return b, err
 }
 
@@ -253,28 +236,31 @@ func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
 	return err
 }
 
-func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, manifest string, cache bool) ([]string, error) {
-	args := []string{
+func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string) []string {
+	return []string{
 		"run",
 		"-i",
-		"--name",
-		fmt.Sprintf("build-%s", b.Id),
-		"-v",
-		"/var/run/docker.sock:/var/run/docker.sock",
-		"-e",
-		"APP",
-		"-e",
-		"BUILD",
-		"-e",
-		"RACK_HOST",
-		"-e",
-		"RACK_PASSWORD",
+		"--name", fmt.Sprintf("build-%s", b.Id),
+		"-v", "/var/run/docker.sock:/var/run/docker.sock",
+		"-e", "APP",
+		"-e", "BUILD",
+		"-e", "DOCKER_AUTH",
+		"-e", "RACK_HOST",
+		"-e", "RACK_PASSWORD",
+		"-e", "REGISTRY_EMAIL",
+		"-e", "REGISTRY_USERNAME",
+		"-e", "REGISTRY_PASSWORD",
+		"-e", "REGISTRY_ADDRESS",
+		"-e", "MANIFEST_PATH",
+		"-e", "REPOSITORY",
+		"-e", "NO_CACHE",
 		os.Getenv("DOCKER_IMAGE_API"),
 		"build2",
-		"-id",
-		b.Id,
+		source,
 	}
+}
 
+func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path string, cache bool) ([]string, error) {
 	// self-hosted registry auth
 	email := "user@convox.com"
 	username := "convox"
@@ -288,11 +274,11 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, manifest strin
 		})
 
 		if err != nil {
-			return args, err
+			return nil, err
 		}
 
 		if len(res.AuthorizationData) < 1 {
-			return args, fmt.Errorf("no authorization data")
+			return nil, fmt.Errorf("no authorization data")
 		}
 
 		endpoint := *res.AuthorizationData[0].ProxyEndpoint
@@ -300,7 +286,7 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, manifest strin
 		data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
 
 		if err != nil {
-			return args, err
+			return nil, err
 		}
 
 		parts := strings.SplitN(string(data), ":", 2)
@@ -310,32 +296,33 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, manifest strin
 		username = parts[0]
 	}
 
-	args = append(args, "-email", email)
-	args = append(args, "-username", username)
-	args = append(args, "-password", password)
-	args = append(args, "-address", address)
+	// // Private registry auth
+	// err = models.LoginPrivateRegistries()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if repository := a.Outputs["RegistryRepository"]; repository != "" {
-		args = append(args, "-flatten", repository)
+	dockercfg, err := ioutil.ReadFile("/root/.docker/config.json")
+	if err != nil {
+		return nil, err
 	}
 
-	if manifest != "" {
-		args = append(args, "-manifest", manifest)
-	}
-
-	if !cache {
-		args = append(args, "-no-cache")
-	}
-
-	return args, nil
-}
-
-func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build) ([]string, error) {
 	env := []string{
 		fmt.Sprintf("APP=%s", a.Name),
 		fmt.Sprintf("BUILD=%s", b.Id),
-		fmt.Sprintf("RACK_PASSWORD=%s", os.Getenv("PASSWORD")),
+		fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
+		fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
 		fmt.Sprintf("RACK_HOST=%s", os.Getenv("NOTIFICATION_HOST")),
+		fmt.Sprintf("RACK_PASSWORD=%s", os.Getenv("PASSWORD")),
+		fmt.Sprintf("REGISTRY_EMAIL=%s", email),
+		fmt.Sprintf("REGISTRY_USERNAME=%s", username),
+		fmt.Sprintf("REGISTRY_PASSWORD=%s", password),
+		fmt.Sprintf("REGISTRY_ADDRESS=%s", address),
+		fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
+	}
+
+	if cache == false {
+		env = append(env, "NO_CACHE=true")
 	}
 
 	return env, nil
