@@ -745,8 +745,6 @@ func (me ManifestEntry) Label(key string) string {
 				}
 			}
 		}
-	default:
-		fmt.Printf("unknown %+v\n", labels)
 	}
 
 	return ""
