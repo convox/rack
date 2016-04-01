@@ -46,6 +46,7 @@ type ManifestEntry struct {
 	Command     interface{} `yaml:"command,omitempty"`
 	Entrypoint  string      `yaml:"entrypoint,omitempty"`
 	Environment interface{} `yaml:"environment,omitempty"`
+	Labels      interface{} `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
@@ -682,12 +683,24 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
+	gateway, err := getDockerGateway()
+
+	if err != nil {
+		ch <- err
+		return
+	}
+
 	for _, port := range ports {
 		switch len(strings.Split(port, ":")) {
 		case 1:
-			args = append(args, "-p", fmt.Sprintf("%s:%s", port, port))
+			alt := randomPort()
+			args = append(args, "-p", fmt.Sprintf("%d:%s", alt, port))
+			go forwardPort(me.Protocol(port), port, fmt.Sprintf("%s:%d", gateway, alt), ch)
 		case 2:
-			args = append(args, "-p", port)
+			alt := randomPort()
+			dest := strings.Split(port, ":")[1]
+			args = append(args, "-p", fmt.Sprintf("%d:%s", alt, dest))
+			go forwardPort(me.Protocol(dest), strings.Split(port, ":")[0], fmt.Sprintf("%s:%d", gateway, alt), ch)
 		default:
 			ch <- fmt.Errorf("unknown port declaration: %s", port)
 			return
@@ -714,6 +727,39 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	}
 
 	ch <- runPrefix(prefix, "docker", args...)
+}
+
+func (me ManifestEntry) Label(key string) string {
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			if k.(string) == key {
+				return v.(string)
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+				if parts[0] == key {
+					return parts[1]
+				}
+			}
+		}
+	default:
+		fmt.Printf("unknown %+v\n", labels)
+	}
+
+	return ""
+}
+
+func (me ManifestEntry) Protocol(port string) string {
+	proto := "tcp"
+
+	if p := me.Label(fmt.Sprintf("com.convox.port.%s.protocol", port)); p != "" {
+		proto = p
+	}
+
+	return proto
 }
 
 func (me ManifestEntry) syncAdds(app, process string) error {
@@ -760,6 +806,11 @@ func exists(filename string) bool {
 	}
 
 	return true
+}
+
+func forwardPort(proto, from, to string, ch chan error) {
+	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, proto)
+	go cmd.Run()
 }
 
 func injectDockerfile(dir string) error {
@@ -861,6 +912,10 @@ func randomString(prefix string, size int) string {
 		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
 	}
 	return prefix + string(b)
+}
+
+func randomPort() int {
+	return rand.Intn(50000) + 10000
 }
 
 var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
