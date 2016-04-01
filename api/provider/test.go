@@ -38,6 +38,11 @@ func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
+func (p *TestProviderRunner) BuildSave(b *structs.Build, logdir string) error {
+	p.Called(b, logdir)
+	return nil
+}
+
 func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
 	p.Called()
 	return &p.Capacity, nil
