@@ -173,7 +173,7 @@
       "Type": "Number"
     },
     "PostgresMemory": {
-      "Default": "256",
+      "Default": "128",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
@@ -222,7 +222,7 @@
       "Type": "Number"
     },
     "WebMemory": {
-      "Default": "256",
+      "Default": "128",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
