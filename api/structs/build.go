@@ -1,6 +1,9 @@
 package structs
 
-import "time"
+import (
+	"math/rand"
+	"time"
+)
 
 type Build struct {
 	Id       string `json:"id"`
@@ -17,3 +20,21 @@ type Build struct {
 }
 
 type Builds []Build
+
+func NewBuild(app string) *Build {
+	return &Build{
+		App:    app,
+		Id:     generateId("B", 10),
+		Status: "created",
+	}
+}
+
+var idAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func generateId(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
+	}
+	return prefix + string(b)
+}
