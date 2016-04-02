@@ -822,8 +822,7 @@ func exists(filename string) bool {
 }
 
 func proxyPort(from, to string) {
-	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, "proxy")
-	go cmd.Run()
+	Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, "proxy").Run()
 }
 
 func injectDockerfile(dir string) error {
