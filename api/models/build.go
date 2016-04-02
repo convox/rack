@@ -38,35 +38,6 @@ func NewBuild(app string) Build {
 	}
 }
 
-func ListBuilds(app string) (Builds, error) {
-	req := &dynamodb.QueryInput{
-		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
-				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(app)}},
-				ComparisonOperator: aws.String("EQ"),
-			},
-		},
-		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(20),
-		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(buildsTable(app)),
-	}
-
-	res, err := DynamoDB().Query(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	builds := make(Builds, len(res.Items))
-
-	for i, item := range res.Items {
-		builds[i] = *buildFromItem(item)
-	}
-
-	return builds, nil
-}
-
 func GetBuild(app, id string) (*Build, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
