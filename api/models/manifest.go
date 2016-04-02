@@ -26,6 +26,7 @@ type ManifestEntry struct {
 	Env        []string                 `yaml:"environment"`
 	Exports    map[string]string        `yaml:"-"`
 	Image      string                   `yaml:"image"`
+	Labels     interface{}              `yaml:"labels"`
 	Links      []string                 `yaml:"links"`
 	LinkVars   map[string]template.HTML `yaml:"-"`
 	Ports      []string                 `yaml:"ports"`
@@ -306,6 +307,27 @@ func (me *ManifestEntry) CommandString() string {
 		fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
 		return ""
 	}
+}
+
+func (me ManifestEntry) Label(key string) string {
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			if k.(string) == key {
+				return v.(string)
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+				if parts[0] == key {
+					return parts[1]
+				}
+			}
+		}
+	}
+
+	return ""
 }
 
 func (me ManifestEntry) InternalPorts() []string {
