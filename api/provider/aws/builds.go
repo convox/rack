@@ -185,6 +185,39 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	return b, nil
 }
 
+func (p *AWSProvider) BuildList(app string) (structs.Builds, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &dynamodb.QueryInput{
+		KeyConditions: map[string]*dynamodb.Condition{
+			"app": &dynamodb.Condition{
+				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(app)}},
+				ComparisonOperator: aws.String("EQ"),
+			},
+		},
+		IndexName:        aws.String("app.created"),
+		Limit:            aws.Int64(20),
+		ScanIndexForward: aws.Bool(false),
+		TableName:        aws.String(buildsTable(app)),
+	}
+
+	res, err := p.dynamodb().Query(req)
+	if err != nil {
+		return nil, err
+	}
+
+	builds := make(structs.Builds, len(res.Items))
+
+	for i, item := range res.Items {
+		builds[i] = *p.buildFromItem(item, a.Outputs["Settings"])
+	}
+
+	return builds, nil
+}
+
 func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	releases, err := p.ReleaseList(b.App)
 	if err != nil {
@@ -332,12 +365,8 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		username = parts[0]
 	}
 
-	// // Private registry auth
-	// err = models.LoginPrivateRegistries()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
+	// TODO: The controller logged into private registries and app registry
+	// Seems like this method should be able to generate docker auth config on its own
 	dockercfg, err := ioutil.ReadFile("/root/.docker/config.json")
 	if err != nil {
 		return nil, err

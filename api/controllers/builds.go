@@ -23,13 +23,7 @@ import (
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	builds, err := models.ListBuilds(app)
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	_, err = models.GetApp(app)
+	builds, err := provider.BuildList(app)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)

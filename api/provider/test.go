@@ -13,6 +13,7 @@ type TestProviderRunner struct {
 	mock.Mock
 	App       structs.App
 	Build     structs.Build
+	Builds    structs.Builds
 	Capacity  structs.Capacity
 	Instances structs.Instances
 	Release   structs.Release
@@ -37,6 +38,11 @@ func (p *TestProviderRunner) BuildDelete(app, id string) (*structs.Build, error)
 func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
 	p.Called(app, id)
 	return &p.Build, nil
+}
+
+func (p *TestProviderRunner) BuildList(app string) (structs.Builds, error) {
+	p.Called(app)
+	return p.Builds, nil
 }
 
 func (p *TestProviderRunner) BuildRelease(b *structs.Build) (*structs.Release, error) {
