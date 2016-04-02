@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 
@@ -87,6 +89,7 @@ func handleErrors(errs []error) {
 
 // buildTar reads a .tgz from stdin, decompresses it, then builds images
 func extractTar() {
+	// make an empty source directory
 	cwd, err := os.Getwd()
 	handleError(err)
 	defer os.Chdir(cwd)
@@ -94,19 +97,71 @@ func extractTar() {
 	handleError(os.MkdirAll("src", 0755))
 	handleError(os.Chdir("src"))
 
-	cmd := exec.Command("tar", "xz")
+	cmd := exec.Command("tar", "xzv")
 	cmd.Stdin = os.Stdin
 	handleError(cmd.Run())
 }
 
 // buildGitURL takes a URL to a git repo with an optional "commit-ish" hash,
 // clones it, checks out the right commit-ish, then builds images
-func cloneGit(url string) {
+func cloneGit(s string) {
+	u, err := url.Parse(s)
+	handleError(err)
 
+	// if URL has a fragment, i.e. http://github.com/nzoschke/httpd.git#1a2b4aac045609f09de34294de61b45344f419de
+	// split it off and pass along http://github.com/nzoschke/httpd.git for `git clone`
+	commitish := u.Fragment
+	u.Fragment = ""
+	repo := u.String()
+
+	fmt.Printf("%q %q\n", repo, commitish)
+
+	// if URL is a ssh/git url, i.e. ssh://user:base64(privatekey)@server/project.git
+	// decode and write private key to disk and pass along user@service:project.git for `git clone`
+	if u.Scheme == "ssh" {
+		repo = fmt.Sprintf("%s@%s%s", u.User.Username(), u.Host, u.Path)
+
+		if pass, ok := u.User.Password(); ok {
+			key, err := base64.StdEncoding.DecodeString(pass)
+			handleError(err)
+
+			handleError(os.Mkdir("/root/.ssh", 0700))
+			handleError(ioutil.WriteFile("/root/.ssh/id_rsa", key, 0400))
+		}
+
+		// don't interactive prompt for known hosts and fingerprints
+		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
+	}
+
+	// handlError(writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil))
+	// fmt.Printf("GIT CLONE\n", u)
+
+	cmd := exec.Command("git", "clone", "--progress", "-v", repo, "src")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	handleError(cmd.Run())
+	// handleError(exec.Command("git", "clone", "--progress", "-v", repo, ".").Run())
+
+	if commitish != "" {
+		cwd, err := os.Getwd()
+		handleError(err)
+		defer os.Chdir(cwd)
+
+		handleError(os.Chdir("src"))
+
+		cmd := exec.Command("git", "checkout", commitish)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		handleError(cmd.Run())
+	}
+
+	// err = run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
 }
 
 func writeDockerAuth() {
 	auth := os.Getenv("DOCKER_AUTH")
-	handleError(os.MkdirAll("/root/.docker", 0700))
-	handleError(ioutil.WriteFile("/root/.docker/config.json", []byte(auth), 0400))
+	if auth != "" {
+		handleError(os.MkdirAll("/root/.docker", 0700))
+		handleError(ioutil.WriteFile("/root/.docker/config.json", []byte(auth), 0400))
+	}
 }

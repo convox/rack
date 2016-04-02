@@ -14,7 +14,7 @@ var CurrentProvider Provider
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 
-	// BuildCreateRepo(app, url, manifest, description string, cache bool)
+	BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildGet(app, id string) (*structs.Build, error)
@@ -55,6 +55,10 @@ func init() {
 
 func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
+}
+
+func BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
+	return CurrentProvider.BuildCreateRepo(app, url, manifest, description, cache)
 }
 
 func BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {

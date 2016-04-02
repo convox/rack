@@ -25,6 +25,11 @@ func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
 	return &p.App, nil
 }
 
+func (p *TestProviderRunner) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
+	p.Called(app, url, manifest, description, cache)
+	return &p.Build, nil
+}
+
 func (p *TestProviderRunner) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, src, manifest, description, cache)
 	return &p.Build, nil
