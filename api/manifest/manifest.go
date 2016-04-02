@@ -257,7 +257,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 				time.Sleep(time.Duration(backOff) * time.Second)
 				backOff = ((backOff + r1.Intn(10)) * (i))
 			}
-			pullErr := pullSync(image)
+			pullErr = pullSync(image)
 			if pullErr == nil {
 				break
 			}
