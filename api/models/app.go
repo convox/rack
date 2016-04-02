@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/client"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
@@ -204,14 +205,14 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
-	builds, err := ListBuilds(a.Name)
-
+	// FIXME: This only lists and cleans up the last 20 builds
+	builds, err := provider.BuildList(a.Name)
 	if err != nil {
 		return err
 	}
 
 	for _, build := range builds {
-		go cleanupBuild(build)
+		provider.BuildDelete(a.Name, build.Id)
 	}
 
 	releases, err := ListReleases(a.Name)
