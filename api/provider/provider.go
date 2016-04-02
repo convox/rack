@@ -18,6 +18,7 @@ type Provider interface {
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildGet(app, id string) (*structs.Build, error)
+	BuildList(app string) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)
 	BuildSave(*structs.Build, string) error
 
@@ -66,6 +67,10 @@ func BuildDelete(app, id string) (*structs.Build, error) {
 
 func BuildGet(app, id string) (*structs.Build, error) {
 	return CurrentProvider.BuildGet(app, id)
+}
+
+func BuildList(app string) (structs.Builds, error) {
+	return CurrentProvider.BuildList(app)
 }
 
 func BuildRelease(b *structs.Build) (*structs.Release, error) {
