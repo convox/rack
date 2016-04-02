@@ -38,7 +38,7 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 
 	b := structs.NewBuild(app)
 	b.Description = description
-	err = p.BuildSave(b, a.Outputs["Settings"])
+	err = p.BuildSave(b, "")
 
 	// save the tarball in s3?
 	// TODO: retry pushes w/ backoff
@@ -72,7 +72,7 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 			b.Status = "failed"
 		}
 
-		err = p.BuildSave(b, a.Outputs["Settings"])
+		err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
 		if err != nil {
 			fmt.Printf("TODO ROLLBAR: %+v\n", err)
 			return
@@ -214,10 +214,12 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	}
 
 	b.Release = r.Id
-	err = p.BuildSave(b, a.Outputs["Settings"])
+	err = p.BuildSave(b, "")
 	return r, err
 }
 
+// BuildSave creates or updates a build item in DynamoDB. It takes an optional
+// bucket argument, which if set indicates to PUT Log data into S3
 func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
 	if b.Id == "" {
 		return fmt.Errorf("Id can not be blank")
@@ -253,18 +255,19 @@ func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
 		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
 	}
 
-	_, err := p.s3().PutObject(&s3.PutObjectInput{
-		Body:          bytes.NewReader([]byte(b.Logs)),
-		Bucket:        aws.String(bucket),
-		ContentLength: aws.Int64(int64(len(b.Logs))),
-		Key:           aws.String(fmt.Sprintf("builds/%s.log", b.Id)),
-	})
-
-	if err != nil {
-		return err
+	if bucket != "" {
+		_, err := p.s3().PutObject(&s3.PutObjectInput{
+			Body:          bytes.NewReader([]byte(b.Logs)),
+			Bucket:        aws.String(bucket),
+			ContentLength: aws.Int64(int64(len(b.Logs))),
+			Key:           aws.String(fmt.Sprintf("builds/%s.log", b.Id)),
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = p.dynamodb().PutItem(req)
+	_, err := p.dynamodb().PutItem(req)
 
 	return err
 }

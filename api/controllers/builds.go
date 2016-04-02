@@ -184,11 +184,6 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	a, err := provider.AppGet(app)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
 	b, err := provider.BuildGet(app, build)
 	if err != nil {
 		return httperr.Server(err)
@@ -205,6 +200,8 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if err != nil {
 			return httperr.Server(err)
 		}
+	} else {
+		provider.BuildSave(b, "")
 	}
 
 	return RenderJson(rw, b)
