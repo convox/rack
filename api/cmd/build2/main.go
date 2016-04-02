@@ -106,8 +106,6 @@ func cloneGit(s string) {
 	u.Fragment = ""
 	repo := u.String()
 
-	fmt.Printf("%q %q\n", repo, commitish)
-
 	// if URL is a ssh/git url, i.e. ssh://user:base64(privatekey)@server/project.git
 	// decode and write private key to disk and pass along user@service:project.git for `git clone`
 	if u.Scheme == "ssh" {
