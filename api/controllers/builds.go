@@ -1,16 +1,13 @@
 package controllers
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
 	docker "github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
@@ -203,21 +200,14 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
+
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	_, err = models.GetBuild(app, build)
-
+	_, err := provider.BuildGet(app, build)
 	if err != nil {
 		return httperr.Server(err)
 	}
-
 	// default to local docker socket
 	host := "unix:///var/run/docker.sock"
 
@@ -251,8 +241,6 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 		}
 	}
 
-	fmt.Printf("host %+v\n", host)
-
 	// proxy to docker container logs
 	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
 	client, err := docker.NewClient(host)
@@ -261,11 +249,8 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	r, w := io.Pipe()
-
 	quit := make(chan bool)
 
-	go scanLines(r, ws)
 	go keepAlive(ws, quit)
 
 	err = client.Logs(docker.LogsOptions{
@@ -275,34 +260,13 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 		Stderr:       true,
 		Tail:         "all",
 		RawTerminal:  false,
-		OutputStream: w,
-		ErrorStream:  w,
+		OutputStream: ws,
+		ErrorStream:  ws,
 	})
 
 	quit <- true
 
 	return httperr.Server(err)
-}
-
-func scanLines(r io.Reader, ws *websocket.Conn) {
-	scanner := bufio.NewScanner(r)
-
-	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), "|", 2)
-
-		if len(parts) < 2 {
-			ws.Write([]byte(parts[0] + "\n"))
-			continue
-		}
-
-		switch parts[0] {
-		case "manifest":
-		case "error":
-			ws.Write([]byte(parts[1] + "\n"))
-		default:
-			ws.Write([]byte(parts[1] + "\n"))
-		}
-	}
 }
 
 func keepAlive(ws *websocket.Conn, quit chan bool) {
@@ -316,13 +280,5 @@ func keepAlive(ws *websocket.Conn, quit chan bool) {
 		case <-quit:
 			return
 		}
-	}
-}
-
-func logEvent(log *logger.Logger, build models.Build, step string, err error) {
-	if err != nil {
-		log.Log("state=error step=build.%s app=%q build=%q error=%q", step, build.App, build.Id, err)
-	} else {
-		log.Success("step=build.%s app=%q build=%q", step, build.App, build.Id)
 	}
 }
