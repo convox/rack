@@ -65,7 +65,6 @@ A few options of the build are controlled by a user. These arguments override de
 * MANIFEST_PATH - Optional path if not docker-compose.yml
 * NO_CACHE - Option to build without reusing cache
 
-
 ## Examples
 
     # rebuild the API image and build cmd
