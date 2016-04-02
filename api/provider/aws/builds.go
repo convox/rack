@@ -30,6 +30,30 @@ func buildsTable(app string) string {
 	return os.Getenv("DYNAMO_BUILDS")
 }
 
+func (p *AWSProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
+	dir, err := ioutil.TempDir("", "source")
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chmod(dir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.IndexDownload(&index, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	tgz, err := createTarball(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.BuildCreateTar(app, bytes.NewReader(tgz), manifest, description, cache)
+}
+
 func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -422,6 +446,59 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	}
 
 	return env, nil
+}
+
+func createTarball(base string) ([]byte, error) {
+	cwd, err := os.Getwd()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(base)
+
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"cz"}
+
+	// If .dockerignore exists, use it to exclude files from the tarball
+	if _, err = os.Stat(".dockerignore"); err == nil {
+		args = append(args, "--exclude-from", ".dockerignore")
+	}
+
+	args = append(args, ".")
+
+	cmd := exec.Command("tar", args...)
+
+	out, err := cmd.StdoutPipe()
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Start()
+
+	bytes, err := ioutil.ReadAll(out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(cwd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 // deleteImages generates a list of fully qualified URLs for images for every process type
