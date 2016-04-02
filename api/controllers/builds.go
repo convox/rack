@@ -76,31 +76,38 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 
+	cache := !(r.FormValue("cache") == "false")
+	manifest := r.FormValue("manifest")
+	description := r.FormValue("description")
+
+	repo := r.FormValue("repo")
+
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
 		helpers.TrackError("build", err, map[string]interface{}{"at": "FormFile"})
 		return httperr.Server(err)
 	}
 
+	// Log into private registries that we might pull from
+	// TODO: move to prodiver BuildCreate
+	err = models.LoginPrivateRegistries()
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	app, err := models.GetApp(vars["app"])
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	// Log into registry that we will push to
+	_, err = models.AppDockerLogin(*app)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	// if source file was posted, build from tar
 	if source != nil {
-		// Log into private registries that we might pull from
-		err := models.LoginPrivateRegistries()
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		app, err := models.GetApp(vars["app"])
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		// Log into registry that we will push to
-		_, err = models.AppDockerLogin(*app)
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		cache := !(r.FormValue("cache") == "false")
 		b, err := provider.BuildCreateTar(vars["app"], source, r.FormValue("manifest"), r.FormValue("description"), cache)
 		if err != nil {
 			return httperr.Server(err)
@@ -109,25 +116,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return RenderJson(rw, b)
 	}
 
-	if repo := r.FormValue("repo"); repo != "" {
-		// Log into private registries that we might pull from
-		err := models.LoginPrivateRegistries()
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		app, err := models.GetApp(vars["app"])
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		// Log into registry that we will push to
-		_, err = models.AppDockerLogin(*app)
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		cache := !(r.FormValue("cache") == "false")
+	if repo != "" {
 		b, err := provider.BuildCreateRepo(vars["app"], repo, r.FormValue("manifest"), r.FormValue("description"), cache)
 		if err != nil {
 			return httperr.Server(err)
@@ -136,10 +125,11 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return RenderJson(rw, b)
 	}
 
-	build := models.NewBuild(mux.Vars(r)["app"])
-	build.Description = r.FormValue("description")
+	// Legacy build path for index
+	// TODO: implement BuildCreateIndex or similar for incremental upload
 
-	manifest := r.FormValue("manifest") // empty value will default "docker-compose.yml" in cmd/build
+	build := models.NewBuild(mux.Vars(r)["app"])
+	build.Description = description
 
 	// use deprecated "config" param if set and "manifest" is not
 	if config := r.FormValue("config"); config != "" && manifest == "" {
@@ -160,21 +150,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	ch := make(chan error)
-
-	cache := !(r.FormValue("cache") == "false")
-
-	if repo := r.FormValue("repo"); repo != "" {
-		go build.ExecuteRemote(repo, cache, manifest, ch)
-
-		err = <-ch
-
-		if err != nil {
-			helpers.TrackError("build", err, map[string]interface{}{"at": "build.ExecuteRemote"})
-			return httperr.Server(err)
-		} else {
-			return RenderJson(rw, build)
-		}
-	}
 
 	if data := r.FormValue("index"); data != "" {
 		var index models.Index
