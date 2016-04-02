@@ -109,6 +109,33 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return RenderJson(rw, b)
 	}
 
+	if repo := r.FormValue("repo"); repo != "" {
+		// Log into private registries that we might pull from
+		err := models.LoginPrivateRegistries()
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		app, err := models.GetApp(vars["app"])
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		// Log into registry that we will push to
+		_, err = models.AppDockerLogin(*app)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		cache := !(r.FormValue("cache") == "false")
+		b, err := provider.BuildCreateRepo(vars["app"], repo, r.FormValue("manifest"), r.FormValue("description"), cache)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, b)
+	}
+
 	build := models.NewBuild(mux.Vars(r)["app"])
 	build.Description = r.FormValue("description")
 

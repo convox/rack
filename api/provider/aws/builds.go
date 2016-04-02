@@ -30,6 +30,32 @@ func buildsTable(app string) string {
 	return os.Getenv("DYNAMO_BUILDS")
 }
 
+func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	b := structs.NewBuild(app)
+	b.Description = description
+
+	err = p.BuildSave(b, "")
+	if err != nil {
+		return nil, err
+	}
+
+	args := p.buildArgs(a, b, url)
+
+	env, err := p.buildEnv(a, b, manifest, cache)
+	if err != nil {
+		return b, err
+	}
+
+	go p.BuildRun(a, b, args, env, nil)
+
+	return b, nil
+}
+
 func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -38,10 +64,13 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 
 	b := structs.NewBuild(app)
 	b.Description = description
-	err = p.BuildSave(b, "")
 
-	// save the tarball in s3?
-	// TODO: retry pushes w/ backoff
+	err = p.BuildSave(b, "")
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: save the tarball in s3?
 
 	args := p.buildArgs(a, b, "-")
 
@@ -50,36 +79,38 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 		return b, err
 	}
 
+	go p.BuildRun(a, b, args, env, src)
+
+	return b, nil
+}
+
+func (p *AWSProvider) BuildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) {
 	cmd := exec.Command("docker", args...)
 	cmd.Env = env
-	cmd.Stdin = src
+	cmd.Stdin = stdin
 
 	// build create is now complete; background waiting for command to finish
 	// and saving command stdout/stderr logs and exit status
-	go func() {
-		out, err := cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
 
-		// reload build item to get data from BuildUpdate callback
-		b, berr := p.BuildGet(app, b.Id)
-		if berr != nil {
-			fmt.Printf("TODO ROLLBAR: %+v\n", berr)
-			return
-		}
+	// reload build item to get data from BuildUpdate callback
+	b, berr := p.BuildGet(b.App, b.Id)
+	if berr != nil {
+		fmt.Printf("TODO ROLLBAR: %+v\n", berr)
+		return
+	}
 
-		b.Logs = string(out)
+	b.Logs = string(out)
 
-		if err != nil {
-			b.Status = "failed"
-		}
+	if err != nil {
+		b.Status = "failed"
+	}
 
-		err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
-		if err != nil {
-			fmt.Printf("TODO ROLLBAR: %+v\n", err)
-			return
-		}
-	}()
-
-	return b, err
+	err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
+	if err != nil {
+		fmt.Printf("TODO ROLLBAR: %+v\n", err)
+		return
+	}
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
