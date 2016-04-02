@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -694,21 +695,31 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		return
 	}
 
+	host := ""
+	container := ""
+
 	for _, port := range ports {
 		switch len(strings.Split(port, ":")) {
 		case 1:
-			alt := RandomPort()
-			args = append(args, "-p", fmt.Sprintf("%d:%s", alt, port))
-			go forwardPort(me.Protocol(port), port, fmt.Sprintf("%s:%d", gateway, alt), ch)
+			host = port
+			container = port
 		case 2:
-			alt := RandomPort()
-			dest := strings.Split(port, ":")[1]
-			args = append(args, "-p", fmt.Sprintf("%d:%s", alt, dest))
-			go forwardPort(me.Protocol(dest), strings.Split(port, ":")[0], fmt.Sprintf("%s:%d", gateway, alt), ch)
+			parts := strings.SplitN(port, ":", 2)
+			host = parts[0]
+			container = parts[1]
 		default:
 			ch <- fmt.Errorf("unknown port declaration: %s", port)
 			return
 		}
+
+		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
+		case "proxy":
+			rnd := RandomPort()
+			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd), ch)
+			host = strconv.Itoa(rnd)
+		}
+
+		args = append(args, "-p", fmt.Sprintf("%s:%s", host, container))
 	}
 
 	for _, volume := range me.Volumes {
@@ -810,8 +821,8 @@ func exists(filename string) bool {
 	return true
 }
 
-func forwardPort(proto, from, to string, ch chan error) {
-	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, proto)
+func proxyPort(from, to string, ch chan error) {
+	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, "proxy")
 	go cmd.Run()
 }
 
