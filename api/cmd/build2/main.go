@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/client"
@@ -87,23 +88,14 @@ func handleErrors(errs []error) {
 	}
 }
 
-// buildTar reads a .tgz from stdin, decompresses it, then builds images
+// extractTar makes a src directory, reads a .tgz from stdin and decompresses it into src
 func extractTar() {
-	// make an empty source directory
-	cwd, err := os.Getwd()
-	handleError(err)
-	defer os.Chdir(cwd)
-
 	handleError(os.MkdirAll("src", 0755))
-	handleError(os.Chdir("src"))
-
-	cmd := exec.Command("tar", "xzv")
-	cmd.Stdin = os.Stdin
-	handleError(cmd.Run())
+	run("src", "tar", "xzv")
 }
 
-// buildGitURL takes a URL to a git repo with an optional "commit-ish" hash,
-// clones it, checks out the right commit-ish, then builds images
+// cloneGit takes a URL to a git repo with an optional "commit-ish" hash,
+// clones it, checks out the right commit-ish, and restores original file creation time
 func cloneGit(s string) {
 	u, err := url.Parse(s)
 	handleError(err)
@@ -133,29 +125,51 @@ func cloneGit(s string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
 	}
 
-	// handlError(writeFile("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil))
-	// fmt.Printf("GIT CLONE\n", u)
+	writeAsset("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil)
 
-	cmd := exec.Command("git", "clone", "--progress", "-v", repo, "src")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	handleError(cmd.Run())
-	// handleError(exec.Command("git", "clone", "--progress", "-v", repo, ".").Run())
+	run(".", "git", "clone", "--progress", "-v", repo, "src")
 
 	if commitish != "" {
+		run("src", "git", "checkout", commitish)
+	}
+
+	run("src", "/usr/local/bin/git-restore-mtime", ".")
+}
+
+// run optionally changes into a directory then executes the command and args
+// connected to the OS stdin/stdout/stderr
+func run(dir string, name string, arg ...string) {
+	sarg := fmt.Sprintf("%v", arg)
+	fmt.Printf("RUNNING: %s %s\n", name, sarg[1:len(sarg)-1])
+
+	// optionally change directory and change back at the end of this func
+	if dir != "" || dir != "." {
 		cwd, err := os.Getwd()
 		handleError(err)
 		defer os.Chdir(cwd)
-
-		handleError(os.Chdir("src"))
-
-		cmd := exec.Command("git", "checkout", commitish)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		handleError(cmd.Run())
+		handleError(os.Chdir(dir))
 	}
 
-	// err = run("git", clone, "/usr/local/bin/git-restore-mtime", ".")
+	cmd := exec.Command(name, arg...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	handleError(cmd.Run())
+}
+
+func writeAsset(target, name string, perms os.FileMode, replacements map[string]string) {
+	data, err := Asset(fmt.Sprintf("data/%s", name))
+	handleError(err)
+
+	sdata := string(data)
+
+	if replacements != nil {
+		for key, val := range replacements {
+			sdata = strings.Replace(sdata, key, val, -1)
+		}
+	}
+
+	handleError(ioutil.WriteFile(target, []byte(sdata), perms))
 }
 
 func writeDockerAuth() {
