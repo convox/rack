@@ -18,6 +18,7 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 )
 
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -75,12 +76,14 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
+	app := vars["app"]
 
 	cache := !(r.FormValue("cache") == "false")
 	manifest := r.FormValue("manifest")
 	description := r.FormValue("description")
 
 	repo := r.FormValue("repo")
+	index := r.FormValue("index")
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
@@ -95,84 +98,41 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	app, err := models.GetApp(vars["app"])
+	a, err := models.GetApp(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	// Log into registry that we will push to
-	_, err = models.AppDockerLogin(*app)
+	_, err = models.AppDockerLogin(*a)
 	if err != nil {
 		return httperr.Server(err)
 	}
+
+	var b *structs.Build
 
 	// if source file was posted, build from tar
 	if source != nil {
-		b, err := provider.BuildCreateTar(vars["app"], source, r.FormValue("manifest"), r.FormValue("description"), cache)
+		b, err = provider.BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+	} else if repo != "" {
+		b, err = provider.BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
+	} else if index != "" {
+		var i structs.Index
+		err := json.Unmarshal([]byte(index), &i)
 		if err != nil {
 			return httperr.Server(err)
 		}
 
-		return RenderJson(rw, b)
+		b, err = provider.BuildCreateIndex(app, i, manifest, description, cache)
+	} else {
+		return httperr.Errorf(403, "no source, repo or index")
 	}
-
-	if repo != "" {
-		b, err := provider.BuildCreateRepo(vars["app"], repo, r.FormValue("manifest"), r.FormValue("description"), cache)
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		return RenderJson(rw, b)
-	}
-
-	// Legacy build path for index
-	// TODO: implement BuildCreateIndex or similar for incremental upload
-
-	build := models.NewBuild(mux.Vars(r)["app"])
-	build.Description = description
-
-	// use deprecated "config" param if set and "manifest" is not
-	if config := r.FormValue("config"); config != "" && manifest == "" {
-		manifest = config
-	}
-
-	if build.IsRunning() {
-		err := fmt.Errorf("Another build is currently running. Please try again later.")
-		helpers.TrackError("build", err, map[string]interface{}{"at": "build.IsRunning"})
-		return httperr.Server(err)
-	}
-
-	err = build.Save()
 
 	if err != nil {
-		helpers.TrackError("build", err, map[string]interface{}{"at": "build.Save"})
 		return httperr.Server(err)
 	}
 
-	ch := make(chan error)
-
-	if data := r.FormValue("index"); data != "" {
-		var index models.Index
-
-		err := json.Unmarshal([]byte(data), &index)
-
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		go build.ExecuteIndex(index, cache, manifest, ch)
-
-		err = <-ch
-
-		if err != nil {
-			helpers.TrackError("build", err, map[string]interface{}{"at": "build.ExecuteIndex"})
-			return httperr.Server(err)
-		} else {
-			return RenderJson(rw, build)
-		}
-	}
-
-	return httperr.Errorf(403, "no source or repo")
+	return RenderJson(rw, b)
 }
 
 func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {

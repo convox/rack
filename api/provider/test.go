@@ -25,6 +25,11 @@ func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
 	return &p.App, nil
 }
 
+func (p *TestProviderRunner) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
+	p.Called(app, index, manifest, description, cache)
+	return &p.Build, nil
+}
+
 func (p *TestProviderRunner) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, url, manifest, description, cache)
 	return &p.Build, nil
@@ -63,6 +68,21 @@ func (p *TestProviderRunner) BuildSave(b *structs.Build, logdir string) error {
 func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
 	p.Called()
 	return &p.Capacity, nil
+}
+
+func (p *TestProviderRunner) IndexDiff(i *structs.Index) ([]string, error) {
+	p.Called(i)
+	return []string{}, nil
+}
+
+func (p *TestProviderRunner) IndexDownload(i *structs.Index, dir string) error {
+	p.Called(i, dir)
+	return nil
+}
+
+func (p *TestProviderRunner) IndexUpload(hash string, data []byte) error {
+	p.Called(hash, data)
+	return nil
 }
 
 func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {

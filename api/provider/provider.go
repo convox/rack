@@ -14,6 +14,7 @@ var CurrentProvider Provider
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 
+	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
@@ -23,6 +24,10 @@ type Provider interface {
 	BuildSave(*structs.Build, string) error
 
 	CapacityGet() (*structs.Capacity, error)
+
+	IndexDiff(*structs.Index) ([]string, error)
+	IndexDownload(*structs.Index, string) error
+	IndexUpload(string, []byte) error
 
 	InstanceList() (structs.Instances, error)
 
@@ -57,6 +62,10 @@ func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
 }
 
+func BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
+	return CurrentProvider.BuildCreateIndex(app, index, manifest, description, cache)
+}
+
 func BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
 	return CurrentProvider.BuildCreateRepo(app, url, manifest, description, cache)
 }
@@ -87,6 +96,18 @@ func BuildSave(b *structs.Build, logdir string) error {
 
 func CapacityGet() (*structs.Capacity, error) {
 	return CurrentProvider.CapacityGet()
+}
+
+func IndexDiff(i *structs.Index) ([]string, error) {
+	return CurrentProvider.IndexDiff(i)
+}
+
+func IndexDownload(i *structs.Index, dir string) error {
+	return CurrentProvider.IndexDownload(i, dir)
+}
+
+func IndexUpload(hash string, data []byte) error {
+	return CurrentProvider.IndexUpload(hash, data)
 }
 
 func InstanceList() (structs.Instances, error) {
