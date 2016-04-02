@@ -35,6 +35,10 @@ var (
 	SignalWaiter = waitForSignal
 )
 
+var RandomPort = func() int {
+	return 10000 + rand.Intn(50000)
+}
+
 var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
 
 type Manifest map[string]ManifestEntry
@@ -693,11 +697,11 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	for _, port := range ports {
 		switch len(strings.Split(port, ":")) {
 		case 1:
-			alt := randomPort()
+			alt := RandomPort()
 			args = append(args, "-p", fmt.Sprintf("%d:%s", alt, port))
 			go forwardPort(me.Protocol(port), port, fmt.Sprintf("%s:%d", gateway, alt), ch)
 		case 2:
-			alt := randomPort()
+			alt := RandomPort()
 			dest := strings.Split(port, ":")[1]
 			args = append(args, "-p", fmt.Sprintf("%d:%s", alt, dest))
 			go forwardPort(me.Protocol(dest), strings.Split(port, ":")[0], fmt.Sprintf("%s:%d", gateway, alt), ch)
@@ -910,10 +914,6 @@ func randomString(prefix string, size int) string {
 		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
 	}
 	return prefix + string(b)
-}
-
-func randomPort() int {
-	return rand.Intn(50000) + 10000
 }
 
 var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
