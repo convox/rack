@@ -715,7 +715,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
 		case "proxy":
 			rnd := RandomPort()
-			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd), ch)
+			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd))
 			host = strconv.Itoa(rnd)
 		}
 
@@ -821,7 +821,7 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(from, to string, ch chan error) {
+func proxyPort(from, to string) {
 	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, "proxy")
 	go cmd.Run()
 }
