@@ -216,7 +216,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 				return []error{err}
 			}
 			if _, ok := builds[sym]; !ok {
-				builds[sym] = randomString("convox-start-", 10)
+				builds[sym] = randomString("convox-", 10)
 			}
 
 			tags[tag] = builds[sym]
