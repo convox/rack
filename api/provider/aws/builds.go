@@ -168,34 +168,6 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 	return b, nil
 }
 
-func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
-	req := &dynamodb.GetItemInput{
-		ConsistentRead: aws.Bool(true),
-		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
-		},
-		TableName: aws.String(buildsTable(app)),
-	}
-
-	res, err := p.dynamodb().GetItem(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Item == nil {
-		return nil, fmt.Errorf("no such build: %s", id)
-	}
-
-	build := p.buildFromItem(res.Item, a.Outputs["Settings"])
-
-	return build, nil
-}
-
 func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
@@ -269,6 +241,34 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	}
 
 	return b, nil
+}
+
+func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &dynamodb.GetItemInput{
+		ConsistentRead: aws.Bool(true),
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		TableName: aws.String(buildsTable(app)),
+	}
+
+	res, err := p.dynamodb().GetItem(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Item == nil {
+		return nil, fmt.Errorf("no such build: %s", id)
+	}
+
+	build := p.buildFromItem(res.Item, a.Outputs["Settings"])
+
+	return build, nil
 }
 
 func (p *AWSProvider) BuildList(app string) (structs.Builds, error) {
