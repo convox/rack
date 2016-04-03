@@ -162,40 +162,16 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
-	app := vars["app"]
+	srcApp := vars["app"]
 	build := vars["build"]
-
 	dest := r.FormValue("app")
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such source app: %s", app)
-	}
-
-	srcBuild, err := models.GetBuild(app, build)
-
-	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
-		return httperr.Errorf(404, err.Error())
-	}
-
+	b, err := provider.BuildCopy(srcApp, build, dest)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	destApp, err := models.GetApp(dest)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such destination app: %s", dest)
-	}
-
-	destBuild, err := srcBuild.CopyTo(*destApp)
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, destBuild)
+	return RenderJson(rw, b)
 }
 
 func BuildLogs(ws *websocket.Conn) *httperr.Error {

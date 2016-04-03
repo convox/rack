@@ -25,6 +25,11 @@ func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
 	return &p.App, nil
 }
 
+func (p *TestProviderRunner) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
+	p.Called(srcApp, id, destApp)
+	return &p.Build, nil
+}
+
 func (p *TestProviderRunner) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, index, manifest, description, cache)
 	return &p.Build, nil
