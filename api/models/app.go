@@ -790,14 +790,6 @@ func cleanupBucketObject(bucket, key, version string) {
 	}
 }
 
-func cleanupBuild(build Build) {
-	err := build.Cleanup()
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	}
-}
-
 func cleanupRelease(release Release) {
 	err := release.Cleanup()
 
