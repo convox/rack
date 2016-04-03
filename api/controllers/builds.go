@@ -22,11 +22,9 @@ func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
 	builds, err := provider.BuildList(app)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -39,18 +37,13 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.GetApp(app)
-
+	b, err := provider.BuildGet(app, build)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
-
-	b, err := provider.BuildGet(app, build)
-
 	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
 		return httperr.Errorf(404, err.Error())
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
