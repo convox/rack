@@ -95,6 +95,11 @@ func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	return p.Instances, nil
 }
 
+func (p *TestProviderRunner) ReleaseDelete(app, id string) (*structs.Release, error) {
+	p.Called(app, id)
+	return &p.Release, nil
+}
+
 func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error) {
 	p.Called(app, id)
 	return &p.Release, nil
@@ -103,6 +108,11 @@ func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error
 func (p *TestProviderRunner) ReleaseList(app string) (structs.Releases, error) {
 	p.Called(app)
 	return p.Releases, nil
+}
+
+func (p *TestProviderRunner) ReleasePromote(app, id string) (*structs.Release, error) {
+	p.Called(app, id)
+	return &p.Release, nil
 }
 
 func (p *TestProviderRunner) ReleaseSave(r *structs.Release, logdir, key string) error {

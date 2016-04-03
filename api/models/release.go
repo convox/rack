@@ -34,37 +34,6 @@ func NewRelease(app string) Release {
 	}
 }
 
-func ListReleases(app string) (Releases, error) {
-	req := &dynamodb.QueryInput{
-		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
-				AttributeValueList: []*dynamodb.AttributeValue{
-					&dynamodb.AttributeValue{S: aws.String(app)},
-				},
-				ComparisonOperator: aws.String("EQ"),
-			},
-		},
-		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(20),
-		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(releasesTable(app)),
-	}
-
-	res, err := DynamoDB().Query(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	releases := make(Releases, len(res.Items))
-
-	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
-	}
-
-	return releases, nil
-}
-
 func GetRelease(app, id string) (*Release, error) {
 	if id == "" {
 		return nil, fmt.Errorf("no release id")
@@ -91,23 +60,6 @@ func GetRelease(app, id string) (*Release, error) {
 	release := releaseFromItem(res.Item)
 
 	return release, nil
-}
-
-func (r *Release) Cleanup() error {
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return err
-	}
-
-	// delete env
-	err = s3Delete(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *Release) Save() error {

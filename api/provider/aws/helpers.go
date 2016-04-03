@@ -150,6 +150,17 @@ func (p *AWSProvider) s3Get(bucket, key string) ([]byte, error) {
 	return ioutil.ReadAll(res.Body)
 }
 
+func (p *AWSProvider) s3Delete(bucket, key string) error {
+	req := &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	_, err := p.s3().DeleteObject(req)
+
+	return err
+}
+
 func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error {
 	req := &s3.PutObjectInput{
 		Body:          bytes.NewReader(data),
