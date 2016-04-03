@@ -30,6 +30,10 @@ func buildsTable(app string) string {
 	return os.Getenv("DYNAMO_BUILDS")
 }
 
+func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
+	return &structs.Build{}, fmt.Errorf("Can not copy")
+}
+
 func (p *AWSProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
 	dir, err := ioutil.TempDir("", "source")
 	if err != nil {
@@ -75,7 +79,7 @@ func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, ca
 		return b, err
 	}
 
-	go p.BuildRun(a, b, args, env, nil)
+	go p.buildRun(a, b, args, env, nil)
 
 	return b, nil
 }
@@ -103,38 +107,9 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 		return b, err
 	}
 
-	go p.BuildRun(a, b, args, env, src)
+	go p.buildRun(a, b, args, env, src)
 
 	return b, nil
-}
-
-func (p *AWSProvider) BuildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) {
-	cmd := exec.Command("docker", args...)
-	cmd.Env = env
-	cmd.Stdin = stdin
-
-	// build create is now complete; background waiting for command to finish
-	// and saving command stdout/stderr logs and exit status
-	out, err := cmd.CombinedOutput()
-
-	// reload build item to get data from BuildUpdate callback
-	b, berr := p.BuildGet(b.App, b.Id)
-	if berr != nil {
-		fmt.Printf("TODO ROLLBAR: %+v\n", berr)
-		return
-	}
-
-	b.Logs = string(out)
-
-	if err != nil {
-		b.Status = "failed"
-	}
-
-	err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
-	if err != nil {
-		fmt.Printf("TODO ROLLBAR: %+v\n", err)
-		return
-	}
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
@@ -448,6 +423,80 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	return env, nil
 }
 
+// buildFromItem populates a Build struct from a DynamoDB Item. It also populates build.Logs
+// from an S3 object if a bucket is passed in and a builds/B1234.log object exists.
+func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bucket string) *structs.Build {
+	id := coalesce(item["id"], "")
+	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
+	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
+
+	// if an app bucket was passed in, try to get logs from S3
+	logs := ""
+
+	if bucket != "" {
+		key := fmt.Sprintf("builds/%s.log", id)
+
+		req := &s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		}
+
+		res, err := p.s3().GetObject(req)
+
+		if err != nil {
+			fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
+		} else {
+			body, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				fmt.Printf("aws buildFromItem ioutil.ReadAll err=%s\n", err)
+			} else {
+				logs = string(body)
+			}
+		}
+	}
+
+	return &structs.Build{
+		Id:          id,
+		App:         coalesce(item["app"], ""),
+		Description: coalesce(item["description"], ""),
+		Logs:        logs,
+		Manifest:    coalesce(item["manifest"], ""),
+		Release:     coalesce(item["release"], ""),
+		Status:      coalesce(item["status"], ""),
+		Started:     started,
+		Ended:       ended,
+	}
+}
+
+func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) {
+	cmd := exec.Command("docker", args...)
+	cmd.Env = env
+	cmd.Stdin = stdin
+
+	// build create is now complete; background waiting for command to finish
+	// and saving command stdout/stderr logs and exit status
+	out, err := cmd.CombinedOutput()
+
+	// reload build item to get data from BuildUpdate callback
+	b, berr := p.BuildGet(b.App, b.Id)
+	if berr != nil {
+		fmt.Printf("TODO ROLLBAR: %+v\n", berr)
+		return
+	}
+
+	b.Logs = string(out)
+
+	if err != nil {
+		b.Status = "failed"
+	}
+
+	err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
+	if err != nil {
+		fmt.Printf("TODO ROLLBAR: %+v\n", err)
+		return
+	}
+}
+
 func createTarball(base string) ([]byte, error) {
 	cwd, err := os.Getwd()
 
@@ -557,49 +606,4 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	})
 
 	return err
-}
-
-// buildFromItem populates a Build struct from a DynamoDB Item. It also populates build.Logs
-// from an S3 object if a bucket is passed in and a builds/B1234.log object exists.
-func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bucket string) *structs.Build {
-	id := coalesce(item["id"], "")
-	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
-	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
-
-	// if an app bucket was passed in, try to get logs from S3
-	logs := ""
-
-	if bucket != "" {
-		key := fmt.Sprintf("builds/%s.log", id)
-
-		req := &s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		}
-
-		res, err := p.s3().GetObject(req)
-
-		if err != nil {
-			fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
-		} else {
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				fmt.Printf("aws buildFromItem ioutil.ReadAll err=%s\n", err)
-			} else {
-				logs = string(body)
-			}
-		}
-	}
-
-	return &structs.Build{
-		Id:          id,
-		App:         coalesce(item["app"], ""),
-		Description: coalesce(item["description"], ""),
-		Logs:        logs,
-		Manifest:    coalesce(item["manifest"], ""),
-		Release:     coalesce(item["release"], ""),
-		Status:      coalesce(item["status"], ""),
-		Started:     started,
-		Ended:       ended,
-	}
 }

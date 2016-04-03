@@ -14,6 +14,7 @@ var CurrentProvider Provider
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 
+	BuildCopy(srcApp, id, destApp string) (*structs.Build, error)
 	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
@@ -60,6 +61,10 @@ func init() {
 
 func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
+}
+
+func BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
+	return CurrentProvider.BuildCopy(srcApp, id, destApp)
 }
 
 func BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
