@@ -22,10 +22,8 @@ import (
 
 var (
 	IndexOperationConcurrency = 128
-)
 
-func init() {
-	createFlags := []cli.Flag{
+	buildCreateFlags = []cli.Flag{
 		appFlag,
 		cli.BoolFlag{
 			Name:  "no-cache",
@@ -46,13 +44,15 @@ func init() {
 			Usage: "description of the build",
 		},
 	}
+)
 
+func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "build",
 		Description: "create a new build",
 		Usage:       "",
 		Action:      cmdBuildsCreate,
-		Flags:       createFlags,
+		Flags:       buildCreateFlags,
 	})
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "builds",
@@ -66,7 +66,7 @@ func init() {
 				Description: "create a new build",
 				Usage:       "",
 				Action:      cmdBuildsCreate,
-				Flags:       createFlags,
+				Flags:       buildCreateFlags,
 			},
 			{
 				Name:        "copy",
@@ -244,7 +244,6 @@ func cmdBuildsCopy(c *cli.Context) {
 	fmt.Print("Copying build... ")
 
 	b, err := rackClient(c).CopyBuild(app, build, destApp)
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -252,11 +251,17 @@ func cmdBuildsCopy(c *cli.Context) {
 
 	fmt.Println("OK")
 
-	if b.Release != "" {
-		if c.Bool("promote") {
-			fmt.Printf("Promoting %s... ", b.Release)
+	releaseId, err := finishBuild(c, destApp, b)
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
-			_, err = rackClient(c).PromoteRelease(destApp, b.Release)
+	if releaseId != "" {
+		if c.Bool("promote") {
+			fmt.Printf("Promoting %s %s... ", destApp, releaseId)
+
+			_, err = rackClient(c).PromoteRelease(destApp, releaseId)
 
 			if err != nil {
 				stdcli.Error(err)
@@ -265,7 +270,7 @@ func cmdBuildsCopy(c *cli.Context) {
 
 			fmt.Println("OK")
 		} else {
-			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", b.Release, destApp)
+			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseId, destApp)
 		}
 	}
 }
