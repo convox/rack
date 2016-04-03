@@ -205,7 +205,8 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
-	// FIXME: This only lists and cleans up the last 20 builds
+	// FIXME: BuildList and ReleaseList only lists and cleans up the last 20 builds/releases
+	// FIXME: Should the delete calls happen in a goroutine?
 	builds, err := provider.BuildList(a.Name)
 	if err != nil {
 		return err
@@ -215,14 +216,13 @@ func (a *App) Cleanup() error {
 		provider.BuildDelete(a.Name, build.Id)
 	}
 
-	releases, err := ListReleases(a.Name)
-
+	releases, err := provider.ReleaseList(a.Name)
 	if err != nil {
 		return err
 	}
 
 	for _, release := range releases {
-		go cleanupRelease(release)
+		provider.ReleaseDelete(a.Name, release.Id)
 	}
 
 	// monitor and stack deletion state for up to 10 minutes
@@ -361,9 +361,9 @@ func (a *App) ForkRelease() (*Release, error) {
 	return release, nil
 }
 
+// FIXME: Port to provider interface
 func (a *App) LatestRelease() (*Release, error) {
-	releases, err := ListReleases(a.Name)
-
+	releases, err := provider.ReleaseList(a.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +372,16 @@ func (a *App) LatestRelease() (*Release, error) {
 		return nil, nil
 	}
 
-	return &releases[0], nil
+	r := releases[0]
+
+	return &Release{
+		Id:       r.Id,
+		App:      r.App,
+		Build:    r.Build,
+		Env:      r.Env,
+		Manifest: r.Manifest,
+		Created:  r.Created,
+	}, nil
 }
 
 func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWriter) error {
@@ -784,14 +793,6 @@ func cleanupBucketObject(bucket, key, version string) {
 	}
 
 	_, err := S3().DeleteObject(req)
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	}
-}
-
-func cleanupRelease(release Release) {
-	err := release.Cleanup()
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)

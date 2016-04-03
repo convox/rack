@@ -32,8 +32,10 @@ type Provider interface {
 
 	InstanceList() (structs.Instances, error)
 
+	ReleaseDelete(app, id string) (*structs.Release, error)
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string) (structs.Releases, error)
+	ReleasePromote(app, id string) (*structs.Release, error)
 	ReleaseSave(*structs.Release, string, string) error
 
 	SystemGet() (*structs.System, error)
@@ -119,12 +121,20 @@ func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
 }
 
+func ReleaseDelete(app, id string) (*structs.Release, error) {
+	return CurrentProvider.ReleaseDelete(app, id)
+}
+
 func ReleaseGet(app, id string) (*structs.Release, error) {
 	return CurrentProvider.ReleaseGet(app, id)
 }
 
 func ReleaseList(app string) (structs.Releases, error) {
 	return CurrentProvider.ReleaseList(app)
+}
+
+func ReleasePromote(app, id string) (*structs.Release, error) {
+	return CurrentProvider.ReleasePromote(app, id)
 }
 
 func ReleaseSave(r *structs.Release, logdir, key string) error {

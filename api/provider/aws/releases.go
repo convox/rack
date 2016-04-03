@@ -17,6 +17,22 @@ func releasesTable(app string) string {
 	return os.Getenv("DYNAMO_RELEASES")
 }
 
+func (p *AWSProvider) ReleaseDelete(app, id string) (*structs.Release, error) {
+	r, err := p.ReleaseGet(app, id)
+	if err != nil {
+		return r, err
+	}
+
+	a, err := p.AppGet(app)
+	if err != nil {
+		return r, err
+	}
+
+	err = p.s3Delete(a.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
+
+	return r, err
+}
+
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
@@ -69,6 +85,15 @@ func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
 	}
 
 	return releases, nil
+}
+
+func (p *AWSProvider) ReleasePromote(app, id string) (*structs.Release, error) {
+	_, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	return &structs.Release{}, fmt.Errorf("promote not yet implemented for AWS provider")
 }
 
 func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error {
