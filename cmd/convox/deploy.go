@@ -13,27 +13,7 @@ func init() {
 		Description: "deploy an app to AWS",
 		Usage:       "<directory>",
 		Action:      cmdDeploy,
-		Flags: []cli.Flag{
-			appFlag,
-			cli.BoolFlag{
-				Name:  "no-cache",
-				Usage: "pull fresh image dependencies",
-			},
-			cli.BoolFlag{
-				Name:  "incremental",
-				Usage: "use incremental build",
-			},
-			cli.StringFlag{
-				Name:  "file, f",
-				Value: "docker-compose.yml",
-				Usage: "location of docker-compose.yml",
-			},
-			cli.StringFlag{
-				Name:  "description",
-				Value: "",
-				Usage: "description of the build",
-			},
-		},
+		Flags:       buildCreateFlags,
 	})
 }
 

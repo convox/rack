@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -19,10 +20,9 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 
+	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/api/structs"
 )
-
-type ManifestEntries map[string]interface{}
 
 var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
 
@@ -31,7 +31,63 @@ func buildsTable(app string) string {
 }
 
 func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
-	return &structs.Build{}, fmt.Errorf("Can not copy")
+	srcA, err := p.AppGet(srcApp)
+	if err != nil {
+		return nil, err
+	}
+
+	srcB, err := p.BuildGet(srcApp, id)
+	if err != nil {
+		return nil, err
+	}
+
+	destA, err := p.AppGet(destApp)
+	if err != nil {
+		return nil, err
+	}
+
+	// make a .tgz file that is the source build manifest
+	// with build directives removed, and image directives pointing to
+	// fully qualified URLs of source build images
+	var m manifest.Manifest
+	err = yaml.Unmarshal([]byte(srcB.Manifest), &m)
+	if err != nil {
+		return nil, err
+	}
+
+	for name, entry := range m {
+		entry.Build = ""
+		entry.Image = registryTag(srcA, name, srcB.Id)
+		m[name] = entry
+	}
+
+	data, err := m.Raw()
+	if err != nil {
+		return nil, err
+	}
+
+	dir, err := ioutil.TempDir("", "source")
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chmod(dir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dir, "docker-compose.yml"), data, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	tgz, err := createTarball(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build .tgz in context of destApp
+	return p.BuildCreateTar(destA.Name, bytes.NewReader(tgz), "docker-compose.yml", fmt.Sprintf("Copy of %s %s", srcA.Name, srcB.Id), false)
 }
 
 func (p *AWSProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
@@ -557,29 +613,22 @@ func createTarball(base string) ([]byte, error) {
 // Image URLs that point to the convox-hosted registry, e.g. convox-826133048.us-east-1.elb.amazonaws.com:5000/myapp-web:BSUSBFCUCSA,
 // are not yet supported and return an error.
 func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
-	var entries ManifestEntries
+	var m manifest.Manifest
 
-	err := yaml.Unmarshal([]byte(b.Manifest), &entries)
-
+	err := yaml.Unmarshal([]byte(b.Manifest), &m)
 	if err != nil {
 		return err
 	}
 
 	// failed builds could have an empty manifest
-	if len(entries) == 0 {
+	if len(m) == 0 {
 		return nil
 	}
 
 	urls := []string{}
 
-	for name, _ := range entries {
-		img := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, name, b.Id)
-
-		if registryId := a.Outputs["RegistryId"]; registryId != "" {
-			img = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"], name, b.Id)
-		}
-
-		urls = append(urls, img)
+	for name, _ := range m {
+		urls = append(urls, registryTag(a, name, b.Id))
 	}
 
 	imageIds := []*ecr.ImageIdentifier{}
@@ -606,4 +655,14 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	})
 
 	return err
+}
+
+func registryTag(a *structs.App, serviceName, buildId string) string {
+	tag := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, serviceName, buildId)
+
+	if registryId := a.Outputs["RegistryId"]; registryId != "" {
+		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"], serviceName, buildId)
+	}
+
+	return tag
 }
