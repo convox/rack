@@ -335,7 +335,7 @@
               {
                 "Protocol": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" },
                 "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                "InstanceProtocol": "{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }",
+                "InstanceProtocol": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" },
                 "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }
               },
               { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",

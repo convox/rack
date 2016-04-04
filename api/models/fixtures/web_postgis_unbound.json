@@ -261,6 +261,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort443Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort443ProxyProtocol": {
       "AllowedValues": [
         "Yes",
@@ -291,6 +300,15 @@
     },
     "WebPort80Host": {
       "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort80Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
       "Description": "",
       "Type": "String"
     },
@@ -357,11 +375,15 @@
                 "InstancePort": {
                   "Ref": "WebPort80Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WebPort80Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WebPort80Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WebPort80Protocol"
+                }
               },
               {
                 "Fn::If": [
@@ -403,11 +425,15 @@
                 "InstancePort": {
                   "Ref": "WebPort443Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WebPort443Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WebPort443Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WebPort443Protocol"
+                }
               },
               {
                 "Fn::If": [

@@ -220,6 +220,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort3000Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort3000ProxyProtocol": {
       "AllowedValues": [
         "Yes",
@@ -283,11 +292,15 @@
                 "InstancePort": {
                   "Ref": "WebPort3000Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WebPort3000Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WebPort3000Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WebPort3000Protocol"
+                }
               },
               {
                 "Fn::If": [
