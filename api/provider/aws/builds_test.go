@@ -46,6 +46,37 @@ func TestBuildGet(t *testing.T) {
 	}, b)
 }
 
+func TestBuildList(t *testing.T) {
+	aws := StubAwsProvider(
+		describeStacksCycle,
+		queryCycle,
+		getObjectCycle,
+	)
+	defer aws.Close()
+
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need to set current provider back to a
+		//clean default one (I miss rspec before)
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
+	b, err := provider.BuildList("httpd")
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, structs.Builds{
+		structs.Build{
+			Id:       "BVZSXXWEIBT",
+			App:      "httpd",
+			Logs:     "RUNNING: docker pull httpd",
+			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
+			Release:  "RLLOVNNXWKR",
+			Status:   "complete",
+			Started:  time.Unix(1459444265, 29372915).UTC(),
+			Ended:    time.Unix(1459444334, 284503073).UTC(),
+		},
+	}, b)
+}
+
 var describeStacksCycle = awsutil.Cycle{
 	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{200, `<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -218,5 +249,17 @@ var getObjectCycle = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `RUNNING: docker pull httpd`,
+	},
+}
+
+var queryCycle = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.Query",
+		Body:       `{"IndexName":"app.created","KeyConditions":{"app":{"AttributeValueList":[{"S":"httpd"}],"ComparisonOperator":"EQ"}},"Limit":20,"ScanIndexForward":false,"TableName":"convox-builds"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"Count":1,"Items":[{"id":{"S":"BVZSXXWEIBT"},"manifest":{"S":"web:\n  image: httpd\n  ports:\n  - 80:80\n"},"ended":{"S":"20160331.171214.284503073"},"release":{"S":"RLLOVNNXWKR"},"app":{"S":"httpd"},"created":{"S":"20160331.171105.029372915"},"status":{"S":"complete"}}],"ScannedCount":1}`,
 	},
 }
