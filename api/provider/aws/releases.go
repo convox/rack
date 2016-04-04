@@ -34,12 +34,17 @@ func (p *AWSProvider) ReleaseDelete(app, id string) (*structs.Release, error) {
 }
 
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(releasesTable(app)),
+		TableName: aws.String(releasesTable(a.Name)),
 	}
 
 	res, err := p.dynamodb().GetItem(req)
@@ -58,11 +63,16 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 }
 
 func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
 				AttributeValueList: []*dynamodb.AttributeValue{
-					&dynamodb.AttributeValue{S: aws.String(app)},
+					&dynamodb.AttributeValue{S: aws.String(a.Name)},
 				},
 				ComparisonOperator: aws.String("EQ"),
 			},
@@ -70,7 +80,7 @@ func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Int64(20),
 		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(releasesTable(app)),
+		TableName:        aws.String(releasesTable(a.Name)),
 	}
 
 	res, err := p.dynamodb().Query(req)

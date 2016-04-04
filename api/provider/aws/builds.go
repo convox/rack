@@ -254,7 +254,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(app)),
+		TableName: aws.String(buildsTable(a.Name)),
 	}
 
 	res, err := p.dynamodb().GetItem(req)
@@ -280,14 +280,14 @@ func (p *AWSProvider) BuildList(app string) (structs.Builds, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
 			"app": &dynamodb.Condition{
-				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(app)}},
+				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(a.Name)}},
 				ComparisonOperator: aws.String("EQ"),
 			},
 		},
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Int64(20),
 		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(buildsTable(app)),
+		TableName:        aws.String(buildsTable(a.Name)),
 	}
 
 	res, err := p.dynamodb().Query(req)
