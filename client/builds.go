@@ -132,3 +132,11 @@ func (c *Client) CopyBuild(app, id, destApp string) (*Build, error) {
 
 	return &build, nil
 }
+
+func (c *Client) DeleteBuild(app, id string) (*Build, error) {
+	var build Build
+
+	err := c.Delete(fmt.Sprintf("/apps/%s/builds/%s", app, id), &build)
+
+	return &build, err
+}

@@ -51,6 +51,10 @@ func awsConfig() *aws.Config {
 		config.Region = aws.String(r)
 	}
 
+	if os.Getenv("DEBUG") != "" {
+		config.WithLogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	return config
 }
 

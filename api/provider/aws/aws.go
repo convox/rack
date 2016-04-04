@@ -55,6 +55,10 @@ func (p *AWSProvider) config() *aws.Config {
 		config.Region = aws.String(r)
 	}
 
+	if os.Getenv("DEBUG") != "" {
+		config.WithLogLevel(aws.LogDebugWithHTTPBody)
+	}
+
 	return config
 }
 
@@ -82,6 +86,10 @@ func (p *AWSProvider) kinesis() *kinesis.Kinesis {
 	return kinesis.New(session.New(), p.config())
 }
 
+// s3 returns an S3 client configured to use the path style
+// (http://s3.amazonaws.com/johnsmith.net/homepage.html) vs virtual
+// hosted style (http://johnsmith.net.s3.amazonaws.com/homepage.html)
+// since path style is easier to test.
 func (p *AWSProvider) s3() *s3.S3 {
-	return s3.New(session.New(), p.config())
+	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
 }
