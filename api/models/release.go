@@ -219,6 +219,25 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
+	manifest, err := LoadManifest(r.Manifest, app)
+
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range manifest {
+		for _, mapping := range entry.PortMappings() {
+			proxyParam := fmt.Sprintf("%sPort%sProxyProtocol", UpperName(entry.Name), mapping.Balancer)
+
+			switch entry.Label(fmt.Sprintf("com.convox.port.%s.protocol", mapping.Container)) {
+			case "proxy":
+				app.Parameters[proxyParam] = "Yes"
+			default:
+				app.Parameters[proxyParam] = "No"
+			}
+		}
+	}
+
 	params := []*cloudformation.Parameter{}
 
 	for key, value := range app.Parameters {

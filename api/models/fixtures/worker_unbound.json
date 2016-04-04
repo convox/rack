@@ -323,7 +323,6 @@
             "Fn::If": [
               "BlankPostgresService",
               {
-                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"
