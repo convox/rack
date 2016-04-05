@@ -45,6 +45,7 @@ func Error(log *logger.Logger, err error) {
 	if rollbar.Token != "" {
 		extraData := map[string]string{
 			"AWS_REGION": os.Getenv("AWS_REGION"),
+			"CLIENT_ID":  os.Getenv("CLIENT_ID"),
 			"RACK":       os.Getenv("RACK"),
 			"RELEASE":    os.Getenv("RELEASE"),
 			"VPC":        os.Getenv("VPC"),
