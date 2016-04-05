@@ -858,6 +858,7 @@
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
             "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
+            "echo 'exclude=kernel*' >> /etc/yum.conf",
             "yum -y update",
             "yum -y install aws-cfn-bootstrap",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
@@ -932,6 +933,9 @@
           "MaxBatchSize": "1",
           "MinInstancesInService": { "Ref": "InstanceCount" },
           "PauseTime" : "PT15M",
+          "SuspendProcesses": [
+            "ScheduledActions"
+          ],
           "WaitOnResourceSignals": "true"
         }
       }
