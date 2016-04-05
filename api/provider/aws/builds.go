@@ -458,12 +458,20 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		return nil, err
 	}
 
+	// Introspect Docker network for callback host
+	out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
+	if err != nil {
+		return nil, err
+	}
+
+	host := strings.TrimSpace(string(out))
+
 	env := []string{
 		fmt.Sprintf("APP=%s", a.Name),
 		fmt.Sprintf("BUILD=%s", b.Id),
 		fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
 		fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
-		fmt.Sprintf("RACK_HOST=%s", os.Getenv("NOTIFICATION_HOST")),
+		fmt.Sprintf("RACK_HOST=%s", host),
 		fmt.Sprintf("RACK_PASSWORD=%s", os.Getenv("PASSWORD")),
 		fmt.Sprintf("REGISTRY_EMAIL=%s", email),
 		fmt.Sprintf("REGISTRY_USERNAME=%s", username),
