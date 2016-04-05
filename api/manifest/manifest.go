@@ -762,13 +762,31 @@ func (me ManifestEntry) Label(key string) string {
 	switch labels := me.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
-			if k.(string) == key {
-				return v.(string)
+			ks, ok := k.(string)
+
+			if !ok {
+				return ""
+			}
+
+			vs, ok := v.(string)
+
+			if !ok {
+				return ""
+			}
+
+			if ks == key {
+				return vs
 			}
 		}
 	case []interface{}:
 		for _, label := range labels {
-			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+			ls, ok := label.(string)
+
+			if !ok {
+				return ""
+			}
+
+			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
 				if parts[0] == key {
 					return parts[1]
 				}
