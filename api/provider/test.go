@@ -95,6 +95,11 @@ func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	return p.Instances, nil
 }
 
+func (p *TestProviderRunner) Notify(n *structs.Notification) error {
+	p.Called(n)
+	return nil
+}
+
 func (p *TestProviderRunner) ReleaseDelete(app, id string) (*structs.Release, error) {
 	p.Called(app, id)
 	return &p.Release, nil

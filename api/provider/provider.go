@@ -32,6 +32,8 @@ type Provider interface {
 
 	InstanceList() (structs.Instances, error)
 
+	Notify(*structs.Notification) error
+
 	ReleaseDelete(app, id string) (*structs.Release, error)
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string) (structs.Releases, error)
@@ -119,6 +121,10 @@ func IndexUpload(hash string, data []byte) error {
 
 func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
+}
+
+func Notify(n *structs.Notification) error {
+	return CurrentProvider.Notify(n)
 }
 
 func ReleaseDelete(app, id string) (*structs.Release, error) {

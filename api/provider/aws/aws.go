@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
 )
 
 var (
@@ -92,4 +93,8 @@ func (p *AWSProvider) kinesis() *kinesis.Kinesis {
 // since path style is easier to test.
 func (p *AWSProvider) s3() *s3.S3 {
 	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
+}
+
+func (p *AWSProvider) sns() *sns.SNS {
+	return sns.New(session.New(), p.config())
 }
