@@ -37,6 +37,10 @@ var (
 	SignalWaiter = waitForSignal
 )
 
+var (
+	special = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
+)
+
 var RandomPort = func() int {
 	return 10000 + rand.Intn(50000)
 }
@@ -194,7 +198,7 @@ func pullSync(image string) error {
 }
 
 func pushSync(local, remote string) error {
-	err := run("docker", "tag", "-f", local, remote)
+	err := run("docker", "tag", local, remote)
 
 	if err != nil {
 		return err
@@ -304,7 +308,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	for _, to := range mk {
 		from := tags[to]
 		// for to, from := range tags {
-		err := run("docker", "tag", "-f", from, to)
+		err := run("docker", "tag", from, to)
 
 		if err != nil {
 			return []error{err}
@@ -763,6 +767,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
 		case "proxy":
 			rnd := RandomPort()
+			fmt.Println(prefix, special(fmt.Sprintf("proxy protocol enabled for %s:%s", host, container)))
 			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd))
 			host = strconv.Itoa(rnd)
 		}
