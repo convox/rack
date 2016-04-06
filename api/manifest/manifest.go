@@ -199,7 +199,7 @@ func pullSync(image string) error {
 }
 
 func pushSync(local, remote string) error {
-	err := run("docker", "tag", local, remote)
+	err := run("docker", "tag", "-f", local, remote)
 
 	if err != nil {
 		return err
@@ -309,7 +309,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	for _, to := range mk {
 		from := tags[to]
 		// for to, from := range tags {
-		err := run("docker", "tag", from, to)
+		err := run("docker", "tag", "-f", from, to)
 
 		if err != nil {
 			return []error{err}
