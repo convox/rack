@@ -39,6 +39,7 @@ var (
 
 var (
 	special = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
+	command = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
 
 var RandomPort = func() int {
@@ -949,7 +950,7 @@ func run(executable string, args ...string) error {
 }
 
 func runPrefix(prefix, executable string, args ...string) error {
-	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
+	fmt.Println(prefix, command(fmt.Sprintf("%s %s", executable, strings.Join(args, " "))))
 
 	cmd := Execer(executable, args...)
 
