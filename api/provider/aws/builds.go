@@ -336,15 +336,13 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	err = p.BuildSave(b, "")
 
 	if err == nil {
-		p.Notify(&structs.Notification{
-			Event: "release",
-			Step:  "create",
-			Properties: map[string]interface{}{
+		p.EventSend(&structs.Event{
+			Action: "release:create",
+			Data: map[string]string{
 				"app": r.App,
 				"id":  r.Id,
 			},
-			State: "success",
-		})
+		}, nil)
 	}
 
 	return r, err
@@ -550,15 +548,13 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 	cmd.Env = env
 	cmd.Stdin = stdin
 
-	p.Notify(&structs.Notification{
-		Event: "build",
-		Step:  "create",
-		Properties: map[string]interface{}{
+	p.EventSend(&structs.Event{
+		Action: "build:create",
+		Data: map[string]string{
 			"app": b.App,
 			"id":  b.Id,
 		},
-		State: "success",
-	})
+	}, nil)
 
 	// build create is now complete; background waiting for command to finish
 	// and saving command stdout/stderr logs and exit status
@@ -576,16 +572,13 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 	if err != nil {
 		b.Status = "failed"
 
-		p.Notify(&structs.Notification{
-			Event: "build",
-			Step:  "create",
-			Properties: map[string]interface{}{
+		p.EventSend(&structs.Event{
+			Action: "build:create",
+			Data: map[string]string{
 				"app": b.App,
 				"id":  b.Id,
 			},
-			State: "error",
-			Error: err,
-		})
+		}, err)
 	}
 
 	err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
