@@ -63,6 +63,8 @@ func TrackEvent(event string, params map[string]interface{}) {
 	}
 
 	params["client_id"] = os.Getenv("CLIENT_ID")
+	params["rack"] = os.Getenv("RACK")
+	params["release"] = os.Getenv("RELEASE")
 
 	userId := RackId()
 
