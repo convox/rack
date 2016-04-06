@@ -26,13 +26,13 @@ type Provider interface {
 
 	CapacityGet() (*structs.Capacity, error)
 
+	EventSend(*structs.Event, error) error
+
 	IndexDiff(*structs.Index) ([]string, error)
 	IndexDownload(*structs.Index, string) error
 	IndexUpload(string, []byte) error
 
 	InstanceList() (structs.Instances, error)
-
-	Notify(*structs.Notification) error
 
 	ReleaseDelete(app, id string) (*structs.Release, error)
 	ReleaseGet(app, id string) (*structs.Release, error)
@@ -107,6 +107,10 @@ func CapacityGet() (*structs.Capacity, error) {
 	return CurrentProvider.CapacityGet()
 }
 
+func EventSend(e *structs.Event, err error) error {
+	return CurrentProvider.EventSend(e, err)
+}
+
 func IndexDiff(i *structs.Index) ([]string, error) {
 	return CurrentProvider.IndexDiff(i)
 }
@@ -121,10 +125,6 @@ func IndexUpload(hash string, data []byte) error {
 
 func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
-}
-
-func Notify(n *structs.Notification) error {
-	return CurrentProvider.Notify(n)
 }
 
 func ReleaseDelete(app, id string) (*structs.Release, error) {

@@ -75,6 +75,11 @@ func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
 	return &p.Capacity, nil
 }
 
+func (p *TestProviderRunner) EventSend(e *structs.Event, err error) error {
+	p.Called(e, err)
+	return nil
+}
+
 func (p *TestProviderRunner) IndexDiff(i *structs.Index) ([]string, error) {
 	p.Called(i)
 	return []string{}, nil
@@ -93,11 +98,6 @@ func (p *TestProviderRunner) IndexUpload(hash string, data []byte) error {
 func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
 	p.Called()
 	return p.Instances, nil
-}
-
-func (p *TestProviderRunner) Notify(n *structs.Notification) error {
-	p.Called(n)
-	return nil
 }
 
 func (p *TestProviderRunner) ReleaseDelete(app, id string) (*structs.Release, error) {
