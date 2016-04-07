@@ -70,7 +70,7 @@
             "Enabled" : true,
             "EventSourceArn" : "{{ $v }}",
             "FunctionName" : { "Fn::GetAtt" : ["PapertrailLogger", "Arn"] },
-            "StartingPosition" : "TRIM_HORIZON"
+            "StartingPosition" : "LATEST"
           }
         },
       {{ end }}
