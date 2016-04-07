@@ -101,8 +101,15 @@ func EC2AvailabilityZonesCreate(req Request) (string, map[string]string, error) 
 }
 
 func EC2AvailabilityZonesUpdate(req Request) (string, map[string]string, error) {
+	azs := strings.Split(req.PhysicalResourceId, ",")
+
+	outputs := make(map[string]string)
+	for i, az := range azs {
+		outputs["AvailabilityZone"+strconv.Itoa(i)] = az
+	}
+
 	// nop
-	return req.PhysicalResourceId, nil, nil
+	return req.PhysicalResourceId, outputs, nil
 }
 
 func EC2AvailabilityZonesDelete(req Request) (string, map[string]string, error) {
