@@ -22,7 +22,7 @@ type Provider interface {
 	BuildGet(app, id string) (*structs.Build, error)
 	BuildList(app string) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)
-	BuildSave(*structs.Build, string) error
+	BuildSave(*structs.Build) error
 
 	CapacityGet() (*structs.Capacity, error)
 
@@ -99,8 +99,8 @@ func BuildRelease(b *structs.Build) (*structs.Release, error) {
 	return CurrentProvider.BuildRelease(b)
 }
 
-func BuildSave(b *structs.Build, logdir string) error {
-	return CurrentProvider.BuildSave(b, logdir)
+func BuildSave(b *structs.Build) error {
+	return CurrentProvider.BuildSave(b)
 }
 
 func CapacityGet() (*structs.Capacity, error) {

@@ -125,7 +125,7 @@ func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, ca
 	b := structs.NewBuild(app)
 	b.Description = description
 
-	err = p.BuildSave(b, "")
+	err = p.BuildSave(b)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 	b := structs.NewBuild(app)
 	b.Description = description
 
-	err = p.BuildSave(b, "")
+	err = p.BuildSave(b)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +335,7 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	}
 
 	b.Release = r.Id
-	err = p.BuildSave(b, "")
+	err = p.BuildSave(b)
 
 	if err == nil {
 		p.EventSend(&structs.Event{
@@ -352,7 +352,12 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 
 // BuildSave creates or updates a build item in DynamoDB. It takes an optional
 // bucket argument, which if set indicates to PUT Log data into S3
-func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
+func (p *AWSProvider) BuildSave(b *structs.Build) error {
+	a, err := p.AppGet(b.App)
+	if err != nil {
+		return err
+	}
+
 	if b.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -387,10 +392,10 @@ func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
 		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
 	}
 
-	if bucket != "" {
+	if b.Logs != "" {
 		_, err := p.s3().PutObject(&s3.PutObjectInput{
 			Body:          bytes.NewReader([]byte(b.Logs)),
-			Bucket:        aws.String(bucket),
+			Bucket:        aws.String(a.Outputs["Settings"]),
 			ContentLength: aws.Int64(int64(len(b.Logs))),
 			Key:           aws.String(fmt.Sprintf("builds/%s.log", b.Id)),
 		})
@@ -399,7 +404,7 @@ func (p *AWSProvider) BuildSave(b *structs.Build, bucket string) error {
 		}
 	}
 
-	_, err := p.dynamodb().PutItem(req)
+	_, err = p.dynamodb().PutItem(req)
 
 	return err
 }
@@ -614,7 +619,7 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 	}
 
 	// save final build logs / status
-	err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
+	err = p.BuildSave(b)
 	if err != nil {
 		fmt.Printf("TODO ROLLBAR: %+v\n", err)
 		return
