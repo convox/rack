@@ -421,7 +421,7 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string)
 		"-e", "REPOSITORY",
 		"-e", "NO_CACHE",
 		os.Getenv("DOCKER_IMAGE_API"),
-		"build2",
+		"build",
 		source,
 	}
 }
