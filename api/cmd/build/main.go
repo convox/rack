@@ -41,7 +41,7 @@ func init() {
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Println("usage: build2 <src>")
+		fmt.Println("usage: build <src>")
 		os.Exit(1)
 	}
 

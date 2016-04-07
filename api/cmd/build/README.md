@@ -1,4 +1,4 @@
-# build2
+# build
 
 Build, tag and push Docker images from an app's source.
 
@@ -12,8 +12,8 @@ or cloning the app source.
 ## Usage
 
 ```
-$ tar cz | build2 -
-$ build2 github.com/convox-examples/sinatra.git
+$ tar cz | build -
+$ build github.com/convox-examples/sinatra.git
 ```
 
 ## Docker Run Flags
@@ -78,4 +78,4 @@ A few options of the build are controlled by a user. These arguments override de
 
     $ cd httpd
     $ tar cz . | docker run -i -v /var/run/docker.sock:/var/run/docker.sock rack/api \
-      build2 httpd -
+      build httpd -
