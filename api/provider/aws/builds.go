@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/base64"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 
@@ -519,7 +521,9 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bu
 		res, err := p.s3().GetObject(req)
 
 		if err != nil {
-			fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
+			if awsError(err) != "NoSuchKey" {
+				fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
+			}
 		} else {
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
@@ -547,7 +551,15 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 	cmd := exec.Command("docker", args...)
 	cmd.Env = env
 	cmd.Stdin = stdin
+	cmd.Stderr = cmd.Stdout // redirect cmd stderr to stdout
 
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Printf("TODO ROLLBAR: %+v\n", err)
+		return
+	}
+
+	// build create is now complete!
 	p.EventSend(&structs.Event{
 		Action: "build:create",
 		Data: map[string]string{
@@ -556,9 +568,28 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 		},
 	}, nil)
 
-	// build create is now complete; background waiting for command to finish
-	// and saving command stdout/stderr logs and exit status
-	out, err := cmd.CombinedOutput()
+	// start build command, scan all output, and wait for a return code
+	cerr := cmd.Start()
+
+	out := ""
+	scanner := bufio.NewScanner(stdout)
+
+	for scanner.Scan() {
+		text := scanner.Text()
+		out += text + "\n"
+
+		p.kinesis().PutRecord(&kinesis.PutRecordInput{
+			Data:         []byte(text),
+			PartitionKey: aws.String(string(time.Now().UnixNano())),
+			StreamName:   aws.String(a.Outputs["Kinesis"]),
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		fmt.Printf("TODO ROLLBAR: %+v\n", err)
+	}
+
+	werr := cmd.Wait()
 
 	// reload build item to get data from BuildUpdate callback
 	b, berr := p.BuildGet(b.App, b.Id)
@@ -569,7 +600,8 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 
 	b.Logs = string(out)
 
-	if err != nil {
+	// if Start or Wait (return code) are errors, consider the build failed
+	if cerr != nil || werr != nil {
 		b.Status = "failed"
 
 		p.EventSend(&structs.Event{
@@ -581,6 +613,7 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 		}, err)
 	}
 
+	// save final build logs / status
 	err = p.BuildSave(b, a.Outputs["Settings"]) // PUT logs in S3
 	if err != nil {
 		fmt.Printf("TODO ROLLBAR: %+v\n", err)
