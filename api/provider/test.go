@@ -65,8 +65,8 @@ func (p *TestProviderRunner) BuildRelease(b *structs.Build) (*structs.Release, e
 	return &p.Release, nil
 }
 
-func (p *TestProviderRunner) BuildSave(b *structs.Build, logdir string) error {
-	p.Called(b, logdir)
+func (p *TestProviderRunner) BuildSave(b *structs.Build) error {
+	p.Called(b)
 	return nil
 }
 

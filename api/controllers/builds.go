@@ -147,7 +147,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 	} else {
-		provider.BuildSave(b, "")
+		provider.BuildSave(b)
 	}
 
 	return RenderJson(rw, b)
