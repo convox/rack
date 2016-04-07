@@ -320,7 +320,7 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
-		fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
+		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
 
 		if err != nil {
 			return m, fmt.Errorf("could not inspect %q", imageName)
