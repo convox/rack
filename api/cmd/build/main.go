@@ -91,7 +91,7 @@ func handleErrors(errs []error) {
 // extractTar makes a src directory, reads a .tgz from stdin and decompresses it into src
 func extractTar() {
 	handleError(os.MkdirAll("src", 0755))
-	run("src", "tar", "xzv")
+	run("src", "tar", "xz")
 }
 
 // cloneGit takes a URL to a git repo with an optional "commit-ish" hash,
