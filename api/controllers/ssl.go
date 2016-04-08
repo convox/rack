@@ -111,6 +111,10 @@ func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "port must be numeric")
 	}
 
+	if (arn != "") && !validateARNFormat(arn) {
+		return httperr.Errorf(403, "arn must follow the AWS ARN format")
+	}
+
 	ssl, err := models.UpdateSSL(a, process, portn, arn, body, key, chain)
 
 	if awsError(err) == "ValidationError" {
