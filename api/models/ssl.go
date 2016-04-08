@@ -29,7 +29,7 @@ type SSL struct {
 
 type SSLs []SSL
 
-func CreateSSL(app, process string, port int, arn string, body, key string, chain string, secure bool) (*SSL, error) {
+func CreateSSL(app, process string, port int, arn, body, key, chain string, secure bool) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -235,7 +235,7 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
-func UpdateSSL(app, process string, port int, arn string, body, key string, chain string) (*SSL, error) {
+func UpdateSSL(app, process string, port int, arn, body, key, chain string) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
