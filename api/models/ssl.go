@@ -235,7 +235,7 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
-func UpdateSSL(app, process string, port int, body, key string, chain string) (*SSL, error) {
+func UpdateSSL(app, process string, port int, arn string, body, key string, chain string) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -263,12 +263,15 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, fmt.Errorf("Balancer ouptut not found. Please redeploy your app and try again.")
 	}
 
-	// upload new cert
-	arn, err := uploadCert(a, process, port, body, key, chain)
+	if arn == "" {
+		// upload new cert
+		arn, err = uploadCert(a, process, port, body, key, chain)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
+	// Check that the arn is valid?
 
 	// update cloudformation
 	req := &cloudformation.UpdateStackInput{
