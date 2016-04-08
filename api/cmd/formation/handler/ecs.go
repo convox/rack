@@ -89,7 +89,7 @@ func ECSClusterCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECSClusterUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, fmt.Errorf("could not update")
+	return req.PhysicalResourceId, nil, nil
 }
 
 func ECSClusterDelete(req Request) (string, map[string]string, error) {
@@ -425,15 +425,15 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 		// a single string (shell form) - ["sh", "-c", command]
 		// an array of strings (exec form) - ["cmd1", "cmd2"]
 		switch commands := task["Command"].(type) {
-			case string:
-				if commands != "" {
-					r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(commands)}
-				}
-			case []interface{}:
-				r.ContainerDefinitions[i].Command = make([]*string, len(commands))
-				for j, command := range commands {
-					r.ContainerDefinitions[i].Command[j] = aws.String(command.(string))
-				}
+		case string:
+			if commands != "" {
+				r.ContainerDefinitions[i].Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(commands)}
+			}
+		case []interface{}:
+			r.ContainerDefinitions[i].Command = make([]*string, len(commands))
+			for j, command := range commands {
+				r.ContainerDefinitions[i].Command[j] = aws.String(command.(string))
+			}
 		}
 
 		// set Task environment from CF Tasks[].Environment key/values
