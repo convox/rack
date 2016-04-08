@@ -15,8 +15,9 @@ type SSL struct {
 
 type SSLs []SSL
 
-func (c *Client) CreateSSL(app, process, port, body, key string, chain string, secure bool) (*SSL, error) {
+func (c *Client) CreateSSL(app, process, port, arn, body, key, chain string, secure bool) (*SSL, error) {
 	params := Params{
+		"arn":     arn,
 		"body":    body,
 		"chain":   chain,
 		"key":     key,
@@ -60,8 +61,9 @@ func (c *Client) ListSSL(app string) (*SSLs, error) {
 	return &ssls, nil
 }
 
-func (c *Client) UpdateSSL(app, process, port, body, key string, chain string) (*SSL, error) {
+func (c *Client) UpdateSSL(app, process, port, arn, body, key, chain string) (*SSL, error) {
 	params := Params{
+		"arn":     arn,
 		"body":    body,
 		"chain":   chain,
 		"key":     key,
