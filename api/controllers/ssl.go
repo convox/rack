@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
 	"github.com/convox/rack/api/httperr"
@@ -43,6 +44,10 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	if err != nil {
 		return httperr.Errorf(403, "port must be numeric")
+	}
+
+	if (arn != "") && !validateARNFormat(arn) {
+		return httperr.Errorf(403, "arn must follow the AWS ARN format")
 	}
 
 	ssl, err := models.CreateSSL(a, process, portn, arn, body, key, chain, (secure == "true"))
@@ -117,4 +122,8 @@ func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, ssl)
+}
+
+func validateARNFormat(arn string) bool {
+	return strings.HasPrefix(strings.ToLower(arn), "arn:")
 }
