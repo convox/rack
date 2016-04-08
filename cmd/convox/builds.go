@@ -290,20 +290,22 @@ func executeBuild(c *cli.Context, source, app, manifest, description string) (st
 func createIndex(dir string) (client.Index, error) {
 	index := client.Index{}
 
-	ignore, err := readDockerIgnore(dir)
+	err := warnUnignoredEnv(dir)
+	if err != nil {
+		return nil, err
+	}
 
+	ignore, err := readDockerIgnore(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	resolved, err := filepath.EvalSymlinks(dir)
-
 	if err != nil {
 		return nil, err
 	}
 
 	err = filepath.Walk(resolved, indexWalker(resolved, index, ignore))
-
 	if err != nil {
 		return nil, err
 	}
@@ -509,13 +511,17 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 }
 
 func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (string, error) {
-	dir, err := filepath.Abs(dir)
-
+	err := warnUnignoredEnv(dir)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Print("Creating tarball... ")
+	dir, err = filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("Creating tarball... ")
 
 	tar, err := createTarball(dir)
 
@@ -527,7 +533,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 
 	cache := !c.Bool("no-cache")
 
-	fmt.Print("Uploading... ")
+	fmt.Println("Uploading... ")
 
 	build, err := rackClient(c).CreateBuildSource(app, tar, cache, manifest, description)
 
@@ -648,4 +654,43 @@ func waitForBuild(c *cli.Context, app, id string) (string, error) {
 	}
 
 	return "", fmt.Errorf("can't get here")
+}
+
+func warnUnignoredEnv(dir string) error {
+	hasDockerIgnore := false
+	hasDotEnv := false
+	warn := false
+
+	if _, err := os.Stat(".env"); err == nil {
+		hasDotEnv = true
+	}
+
+	if _, err := os.Stat(".dockerignore"); err == nil {
+		hasDockerIgnore = true
+	}
+
+	if !hasDockerIgnore && hasDotEnv {
+		warn = true
+	} else if hasDockerIgnore && hasDotEnv {
+		lines, err := readDockerIgnore(dir)
+		if err != nil {
+			return err
+		}
+
+		if len(lines) == 0 {
+			warn = true
+		} else {
+			warn = true
+			for _, line := range lines {
+				if line == ".env" {
+					warn = false
+					break
+				}
+			}
+		}
+	}
+	if warn {
+		fmt.Println("WARNING: You have a .env file that is not in your .dockerignore, you may be leaking secrets")
+	}
+	return nil
 }
