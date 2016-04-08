@@ -51,7 +51,18 @@ func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECRRepositoryUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, nil
+	phys, ok := req.ResourceProperties["PhysicalResourceId"].(string)
+
+	if !ok {
+		return req.PhysicalResourceId, nil, fmt.Errorf("invalid update")
+	}
+
+	outputs := map[string]string{
+		"RegistryId":     strings.Split(phys, ":")[4],
+		"RepositoryName": strings.Split(phys, "/")[1],
+	}
+
+	return req.PhysicalResourceId, outputs, nil
 }
 
 func ECRRepositoryDelete(req Request) (string, map[string]string, error) {
