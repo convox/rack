@@ -494,13 +494,17 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		return nil, err
 	}
 
-	// Introspect Docker network for callback host
-	out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
-	if err != nil {
-		return nil, err
-	}
+	// Determin callback host. Local Rack should use a variant of localhost
+	host := os.Getenv("NOTIFICATION_HOST")
 
-	host := strings.TrimSpace(string(out))
+	if os.Getenv("DEVELOPMENT") == "true" {
+		out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
+		if err != nil {
+			return nil, err
+		}
+
+		host = strings.TrimSpace(string(out))
+	}
 
 	env := []string{
 		fmt.Sprintf("APP=%s", a.Name),
