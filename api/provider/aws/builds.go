@@ -22,6 +22,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
 
+	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/api/structs"
 )
@@ -137,9 +138,18 @@ func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, ca
 		return b, err
 	}
 
-	go p.buildRun(a, b, args, env, nil)
+	err = p.buildRun(a, b, args, env, nil)
 
-	return b, nil
+	// build create is now complete or failed
+	p.EventSend(&structs.Event{
+		Action: "build:create",
+		Data: map[string]string{
+			"app": b.App,
+			"id":  b.Id,
+		},
+	}, err)
+
+	return b, err
 }
 
 func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
@@ -165,9 +175,17 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 		return b, err
 	}
 
-	go p.buildRun(a, b, args, env, src)
+	err = p.buildRun(a, b, args, env, src)
 
-	return b, nil
+	p.EventSend(&structs.Event{
+		Action: "build:create",
+		Data: map[string]string{
+			"app": b.App,
+			"id":  b.Id,
+		},
+	}, err)
+
+	return b, err
 }
 
 func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
@@ -552,7 +570,7 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bu
 	}
 }
 
-func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) {
+func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) error {
 	cmd := exec.Command("docker", args...)
 	cmd.Env = env
 	cmd.Stdin = stdin
@@ -560,22 +578,24 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Printf("TODO ROLLBAR: %+v\n", err)
-		return
+		helpers.Error(nil, err) // send internal error to rollbar
+		return err
 	}
 
-	// build create is now complete!
-	p.EventSend(&structs.Event{
-		Action: "build:create",
-		Data: map[string]string{
-			"app": b.App,
-			"id":  b.Id,
-		},
-	}, nil)
+	// start build command
+	err = cmd.Start()
+	if err != nil {
+		helpers.Error(nil, err) // send internal error to rollbar
+		return err
+	}
 
-	// start build command, scan all output, and wait for a return code
-	cerr := cmd.Start()
+	go p.buildWait(a, b, cmd, stdout)
 
+	return nil
+}
+
+func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
+	// scan all output
 	out := ""
 	scanner := bufio.NewScanner(stdout)
 
@@ -590,38 +610,29 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 		})
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
-		fmt.Printf("TODO ROLLBAR: %+v\n", err)
+		helpers.Error(nil, err) // send internal error to rollbar
 	}
 
+	// and wait for a return code
 	werr := cmd.Wait()
 
 	// reload build item to get data from BuildUpdate callback
-	b, berr := p.BuildGet(b.App, b.Id)
-	if berr != nil {
-		fmt.Printf("TODO ROLLBAR: %+v\n", berr)
+	b, err := p.BuildGet(b.App, b.Id)
+	if err != nil {
+		helpers.Error(nil, err) // send internal error to rollbar
 		return
 	}
 
-	b.Logs = string(out)
-
-	// if Start or Wait (return code) are errors, consider the build failed
-	if cerr != nil || werr != nil {
+	// Wait / return code are errors, consider the build failed
+	if werr != nil {
 		b.Status = "failed"
-
-		p.EventSend(&structs.Event{
-			Action: "build:create",
-			Data: map[string]string{
-				"app": b.App,
-				"id":  b.Id,
-			},
-		}, err)
 	}
 
 	// save final build logs / status
+	b.Logs = string(out)
 	err = p.BuildSave(b)
 	if err != nil {
-		fmt.Printf("TODO ROLLBAR: %+v\n", err)
+		helpers.Error(nil, err) // send internal error to rollbar
 		return
 	}
 }
