@@ -45,6 +45,7 @@ func Error(log *logger.Logger, err error) {
 	if rollbar.Token != "" {
 		extraData := map[string]string{
 			"AWS_REGION": os.Getenv("AWS_REGION"),
+			"CLIENT_ID":  os.Getenv("CLIENT_ID"),
 			"RACK":       os.Getenv("RACK"),
 			"RELEASE":    os.Getenv("RELEASE"),
 			"VPC":        os.Getenv("VPC"),
@@ -62,6 +63,8 @@ func TrackEvent(event string, params map[string]interface{}) {
 	}
 
 	params["client_id"] = os.Getenv("CLIENT_ID")
+	params["rack"] = os.Getenv("RACK")
+	params["release"] = os.Getenv("RELEASE")
 
 	userId := RackId()
 

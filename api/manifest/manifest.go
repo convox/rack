@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net"
 	"net/url"
@@ -262,11 +263,28 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 		}
 	}
 
-	for _, image := range pulls {
-		err := pullSync(image)
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
 
-		if err != nil {
-			return []error{err}
+	for _, image := range pulls {
+		var pullErr error
+		var backOff = 1
+
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A pull error occurred for: %s\n", image)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pullErr = pullSync(image)
+			if pullErr == nil {
+				break
+			}
+		}
+
+		if pullErr != nil {
+			return []error{pullErr}
 		}
 	}
 
@@ -499,10 +517,26 @@ func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
 		}
 
-		err := pushSync(local, remote)
+		var pushErr error
+		var backOff = 1
+		s1 := rand.NewSource(time.Now().UnixNano())
+		r1 := rand.New(s1)
 
-		if err != nil {
-			return []error{err}
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A push error occurred for %s/%s\n", app, name)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pushErr = pushSync(local, remote)
+			if pushErr == nil {
+				break
+			}
+		}
+
+		if pushErr != nil {
+			return []error{pushErr}
 		}
 	}
 
