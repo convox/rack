@@ -460,7 +460,7 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	return nil
 }
 
-func (a *App) RunAttached(process, command string, height, width int, rw io.ReadWriter) error {
+func (a *App) RunAttached(process, command, releaseId string, height, width int, rw io.ReadWriter) error {
 	resources, err := a.Resources()
 
 	if err != nil {
@@ -489,7 +489,11 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
-	release, err := GetRelease(a.Name, a.Release)
+	if len(releaseId) == 0 {
+		releaseId = a.Release
+	}
+
+	release, err := GetRelease(a.Name, releaseId)
 
 	if err != nil {
 		return err
@@ -658,7 +662,7 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 	return nil
 }
 
-func (a *App) RunDetached(process, command string) error {
+func (a *App) RunDetached(process, command, releaseId string) error {
 	resources, err := a.Resources()
 
 	if err != nil {

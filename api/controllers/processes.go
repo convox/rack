@@ -115,6 +115,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 	app := vars["app"]
 	process := vars["process"]
 	command := GetForm(r, "command")
+	release := GetForm(r, "release")
 
 	a, err := models.GetApp(app)
 
@@ -122,7 +123,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
-	err = a.RunDetached(process, command)
+	err = a.RunDetached(process, command, release)
 
 	if err != nil {
 		return httperr.Server(err)
@@ -138,6 +139,7 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	app := vars["app"]
 	process := vars["process"]
 	command := header.Get("Command")
+	release := header.Get("Release")
 	height, _ := strconv.Atoi(header.Get("Height"))
 	width, _ := strconv.Atoi(header.Get("Width"))
 
@@ -151,7 +153,7 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	return httperr.Server(a.RunAttached(process, command, height, width, ws))
+	return httperr.Server(a.RunAttached(process, command, release, height, width, ws))
 }
 
 func ProcessStop(rw http.ResponseWriter, r *http.Request) *httperr.Error {
