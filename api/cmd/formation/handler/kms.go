@@ -43,7 +43,7 @@ func KMSKeyCreate(req Request) (string, map[string]string, error) {
 }
 
 func KMSKeyUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, fmt.Errorf("could not update")
+	return req.PhysicalResourceId, nil, nil
 }
 
 func KMSKeyDelete(req Request) (string, map[string]string, error) {
