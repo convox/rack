@@ -29,6 +29,7 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	a := mux.Vars(r)["app"]
 	process := GetForm(r, "process")
 	port := GetForm(r, "port")
+	arn := GetForm(r, "arn")
 	chain := GetForm(r, "chain")
 	body := GetForm(r, "body")
 	key := GetForm(r, "key")
@@ -44,7 +45,7 @@ func SSLCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "port must be numeric")
 	}
 
-	ssl, err := models.CreateSSL(a, process, portn, body, key, chain, (secure == "true"))
+	ssl, err := models.CreateSSL(a, process, portn, arn, body, key, chain, (secure == "true"))
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "%s", err)
