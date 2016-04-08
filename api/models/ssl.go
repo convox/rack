@@ -29,7 +29,7 @@ type SSL struct {
 
 type SSLs []SSL
 
-func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+func CreateSSL(app, process string, port int, arn string, body, key string, chain string, secure bool) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -72,11 +72,14 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
-	arn, err := uploadCert(a, process, port, body, key, chain)
+	if arn == "" {
+		arn, err = uploadCert(a, process, port, body, key, chain)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
+	// Check that the arn is valid?
 
 	tmpl, err := release.Formation()
 
