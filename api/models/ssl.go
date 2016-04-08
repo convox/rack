@@ -79,7 +79,6 @@ func CreateSSL(app, process string, port int, arn, body, key, chain string, secu
 			return nil, err
 		}
 	}
-	// Check that the arn is valid?
 
 	tmpl, err := release.Formation()
 
@@ -271,7 +270,6 @@ func UpdateSSL(app, process string, port int, arn, body, key, chain string) (*SS
 			return nil, err
 		}
 	}
-	// Check that the arn is valid?
 
 	// update cloudformation
 	req := &cloudformation.UpdateStackInput{
