@@ -131,7 +131,7 @@ func EC2NatGatewayCreate(req Request) (string, map[string]string, error) {
 }
 
 func EC2NatGatewayUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, fmt.Errorf("could not update")
+	return req.PhysicalResourceId, nil, nil
 }
 
 func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
