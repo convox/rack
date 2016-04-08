@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -35,9 +36,18 @@ var (
 	SignalWaiter = waitForSignal
 )
 
+var RandomPort = func() int {
+	return 10000 + rand.Intn(50000)
+}
+
 var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, color.FgMagenta, color.FgBlue}
 
 type Manifest map[string]ManifestEntry
+
+type ManifestV2 struct {
+	Version  string
+	Services Manifest
+}
 
 type ManifestEntry struct {
 	Build       string      `yaml:"build,omitempty"`
@@ -46,6 +56,7 @@ type ManifestEntry struct {
 	Command     interface{} `yaml:"command,omitempty"`
 	Entrypoint  string      `yaml:"entrypoint,omitempty"`
 	Environment interface{} `yaml:"environment,omitempty"`
+	Labels      interface{} `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
@@ -96,12 +107,21 @@ func Read(dir, filename string) (*Manifest, error) {
 		return nil, fmt.Errorf("file not found: %s", filename)
 	}
 
+	var mv2 ManifestV2
 	var m Manifest
 
-	err = yaml.Unmarshal(data, &m)
-
+	err = yaml.Unmarshal(data, &mv2)
 	if err != nil {
 		return nil, err
+	}
+
+	if mv2.Version == "" {
+		err = yaml.Unmarshal(data, &m)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		m = mv2.Services
 	}
 
 	if denv := filepath.Join(dir, ".env"); exists(denv) {
@@ -211,7 +231,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 				return []error{err}
 			}
 			if _, ok := builds[sym]; !ok {
-				builds[sym] = randomString("convox-start-", 10)
+				builds[sym] = randomString("convox-", 10)
 			}
 
 			tags[tag] = builds[sym]
@@ -682,16 +702,38 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
+	gateway, err := getDockerGateway()
+
+	if err != nil {
+		ch <- err
+		return
+	}
+
+	host := ""
+	container := ""
+
 	for _, port := range ports {
 		switch len(strings.Split(port, ":")) {
 		case 1:
-			args = append(args, "-p", fmt.Sprintf("%s:%s", port, port))
+			host = port
+			container = port
 		case 2:
-			args = append(args, "-p", port)
+			parts := strings.SplitN(port, ":", 2)
+			host = parts[0]
+			container = parts[1]
 		default:
 			ch <- fmt.Errorf("unknown port declaration: %s", port)
 			return
 		}
+
+		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
+		case "proxy":
+			rnd := RandomPort()
+			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd))
+			host = strconv.Itoa(rnd)
+		}
+
+		args = append(args, "-p", fmt.Sprintf("%s:%s", host, container))
 	}
 
 	for _, volume := range me.Volumes {
@@ -714,6 +756,37 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	}
 
 	ch <- runPrefix(prefix, "docker", args...)
+}
+
+func (me ManifestEntry) Label(key string) string {
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			if k.(string) == key {
+				return v.(string)
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+				if parts[0] == key {
+					return parts[1]
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+func (me ManifestEntry) Protocol(port string) string {
+	proto := "tcp"
+
+	if p := me.Label(fmt.Sprintf("com.convox.port.%s.protocol", port)); p != "" {
+		proto = p
+	}
+
+	return proto
 }
 
 func (me ManifestEntry) syncAdds(app, process string) error {
@@ -760,6 +833,10 @@ func exists(filename string) bool {
 	}
 
 	return true
+}
+
+func proxyPort(from, to string) {
+	Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, "proxy").Run()
 }
 
 func injectDockerfile(dir string) error {

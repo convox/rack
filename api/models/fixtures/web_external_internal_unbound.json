@@ -247,6 +247,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort3001Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort3001ProxyProtocol": {
       "AllowedValues": [
         "Yes",
@@ -277,6 +286,15 @@
     },
     "WebPort80Host": {
       "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "WebPort80Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
       "Description": "",
       "Type": "String"
     },
@@ -343,11 +361,15 @@
                 "InstancePort": {
                   "Ref": "WebPort80Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WebPort80Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WebPort80Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WebPort80Protocol"
+                }
               },
               {
                 "Fn::If": [
@@ -389,11 +411,15 @@
                 "InstancePort": {
                   "Ref": "WebPort3001Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WebPort3001Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WebPort3001Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WebPort3001Protocol"
+                }
               },
               {
                 "Fn::If": [
@@ -830,7 +856,6 @@
             "Fn::If": [
               "BlankWebService",
               {
-                "Command": "",
                 "Environment": {
                   "KINESIS": {
                     "Ref": "Kinesis"

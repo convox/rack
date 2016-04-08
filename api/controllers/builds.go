@@ -17,6 +17,7 @@ import (
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 )
 
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -52,12 +53,25 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
-	b, err := models.GetBuild(app, build)
+	b, err := provider.BuildGet(app, build)
 
 	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
 		return httperr.Errorf(404, err.Error())
 	}
 
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, b)
+}
+
+func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	b, err := provider.BuildDelete(app, build)
 	if err != nil {
 		return httperr.Server(err)
 	}

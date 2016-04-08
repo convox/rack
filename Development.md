@@ -94,7 +94,7 @@ $ docker-machine start default
 $ eval $(docker-machine env default)
 
 $ convox start
-RUNNING: docker build -t convox-start-icytafnqqb /Users/noah/go/src/github.com/convox/rack
+RUNNING: docker build -t convox-icytafnqqb /Users/noah/go/src/github.com/convox/rack
 web      | running: docker run -i --name rack-web...
 web      | [negroni] listening on :3000
 ```

@@ -26,6 +26,7 @@ type ManifestEntry struct {
 	Env        []string                 `yaml:"environment"`
 	Exports    map[string]string        `yaml:"-"`
 	Image      string                   `yaml:"image"`
+	Labels     interface{}              `yaml:"labels"`
 	Links      []string                 `yaml:"links"`
 	LinkVars   map[string]template.HTML `yaml:"-"`
 	Ports      []string                 `yaml:"ports"`
@@ -290,22 +291,50 @@ func (me *ManifestEntry) BalancerResourceName() string {
 
 func (me *ManifestEntry) CommandString() string {
 	switch cmd := me.Command.(type) {
-	case nil:
-		return ""
 	case string:
 		return cmd
-	case []interface{}:
-		parts := make([]string, len(cmd))
-
-		for i, c := range cmd {
-			parts[i] = c.(string)
-		}
-
-		return strings.Join(parts, " ")
 	default:
-		fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
 		return ""
 	}
+}
+
+func (me *ManifestEntry) CommandArray() []string {
+	switch cmd := me.Command.(type) {
+	case nil:
+		return []string{}
+	case string:
+		return []string{}
+	case []interface{}:
+		commands := make([]string, len(cmd))
+		for i, c := range cmd {
+			commands[i] = c.(string)
+		}
+		return commands
+	default:
+		fmt.Fprintf(os.Stderr, "unexpected type for command: %T\n", cmd)
+		return []string{}
+	}
+}
+
+func (me ManifestEntry) Label(key string) string {
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			if k.(string) == key {
+				return v.(string)
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+				if parts[0] == key {
+					return parts[1]
+				}
+			}
+		}
+	}
+
+	return ""
 }
 
 func (me ManifestEntry) InternalPorts() []string {

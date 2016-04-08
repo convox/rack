@@ -11,6 +11,9 @@ release:
 	jq '.Parameters.Version.Default |= "$(VERSION)"' api/dist/kernel.json > kernel.json
 	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 
+templates:
+	make -C api templates
+
 test-deps:
 	go get -t -u ./...
 
@@ -20,4 +23,5 @@ test:
 	env PROVIDER=test go test -v -cover ./...
 
 vendor:
+	godep restore
 	godep save -r ./...

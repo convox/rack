@@ -239,6 +239,15 @@
       "Description": "",
       "Type": "String"
     },
+    "WebPort80Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
+      "Description": "",
+      "Type": "String"
+    },
     "WebPort80ProxyProtocol": {
       "AllowedValues": [
         "Yes",
@@ -279,6 +288,15 @@
     },
     "WorkerPort80Host": {
       "Default": "5001",
+      "Description": "",
+      "Type": "String"
+    },
+    "WorkerPort80Protocol": {
+      "AllowedValues": [
+        "HTTP",
+        "TCP"
+      ],
+      "Default": "TCP",
       "Description": "",
       "Type": "String"
     },
@@ -345,11 +363,15 @@
                 "InstancePort": {
                   "Ref": "WebPort80Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WebPort80Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WebPort80Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WebPort80Protocol"
+                }
               },
               {
                 "Fn::If": [
@@ -505,11 +527,15 @@
                 "InstancePort": {
                   "Ref": "WorkerPort80Host"
                 },
-                "InstanceProtocol": "TCP",
+                "InstanceProtocol": {
+                  "Ref": "WorkerPort80Protocol"
+                },
                 "LoadBalancerPort": {
                   "Ref": "WorkerPort80Balancer"
                 },
-                "Protocol": "TCP"
+                "Protocol": {
+                  "Ref": "WorkerPort80Protocol"
+                }
               },
               {
                 "Fn::If": [

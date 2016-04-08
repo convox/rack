@@ -13,14 +13,14 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-43043329" },
-      "us-west-1": { "Ami": "ami-a77b0ac7" },
-      "us-west-2": { "Ami": "ami-02a24162" },
-      "eu-west-1": { "Ami": "ami-76e95b05" },
-      "eu-central-1": { "Ami": "ami-96b6adfa" },
-      "ap-northeast-1": { "Ami": "ami-18d8de76" },
-      "ap-southeast-1": { "Ami": "ami-9f60aefc" },
-      "ap-southeast-2": { "Ami": "ami-75a38416" }
+      "us-east-1": { "Ami": "ami-33b48a59" },
+      "us-west-1": { "Ami": "ami-26f78746" },
+      "us-west-2": { "Ami": "ami-65866a05" },
+      "eu-west-1": { "Ami": "ami-77ab1504" },
+      "eu-central-1": { "Ami": "ami-341efb5b" },
+      "ap-northeast-1": { "Ami": "ami-b3afa2dd" },
+      "ap-southeast-1": { "Ami": "ami-0cb0786f" },
+      "ap-southeast-2": { "Ami": "ami-cf6342ac" }
     }
   },
   "Outputs": {
@@ -858,6 +858,7 @@
           { "Fn::Join": [ "\n", [
             "#!/bin/bash",
             "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
+            "echo 'exclude=kernel*' >> /etc/yum.conf",
             "yum -y update",
             "yum -y install aws-cfn-bootstrap",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
@@ -932,6 +933,9 @@
           "MaxBatchSize": "1",
           "MinInstancesInService": { "Ref": "InstanceCount" },
           "PauseTime" : "PT15M",
+          "SuspendProcesses": [
+            "ScheduledActions"
+          ],
           "WaitOnResourceSignals": "true"
         }
       }

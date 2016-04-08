@@ -101,8 +101,15 @@ func EC2AvailabilityZonesCreate(req Request) (string, map[string]string, error) 
 }
 
 func EC2AvailabilityZonesUpdate(req Request) (string, map[string]string, error) {
+	azs := strings.Split(req.PhysicalResourceId, ",")
+
+	outputs := make(map[string]string)
+	for i, az := range azs {
+		outputs["AvailabilityZone"+strconv.Itoa(i)] = az
+	}
+
 	// nop
-	return req.PhysicalResourceId, nil, nil
+	return req.PhysicalResourceId, outputs, nil
 }
 
 func EC2AvailabilityZonesDelete(req Request) (string, map[string]string, error) {
@@ -124,7 +131,7 @@ func EC2NatGatewayCreate(req Request) (string, map[string]string, error) {
 }
 
 func EC2NatGatewayUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, fmt.Errorf("could not update")
+	return req.PhysicalResourceId, nil, nil
 }
 
 func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
