@@ -224,7 +224,6 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
-	dockerfiles := map[string]string{}
 
 	for name, entry := range *m {
 		tag := fmt.Sprintf("%s/%s", app, name)
@@ -238,21 +237,22 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			}
 
 			sym, err := filepath.EvalSymlinks(abs)
-
 			if err != nil {
 				return []error{err}
 			}
+
+			df := "Dockerfile"
+			if entry.Dockerfile != "" {
+				df = entry.Dockerfile
+			}
+
+			sym = filepath.Join(sym, df)
+
 			if _, ok := builds[sym]; !ok {
 				builds[sym] = randomString("convox-", 10)
 			}
 
 			tags[tag] = builds[sym]
-
-			// Dockerfile can only be specified if Build is also specified
-			if entry.Dockerfile != "" {
-				dockerfiles[sym] = entry.Dockerfile
-			}
-
 		case entry.Image != "":
 			err := Execer("docker", "inspect", entry.Image).Run()
 
@@ -266,8 +266,9 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 
 	errors := []error{}
 
-	for source, tag := range builds {
-		err := buildSync(source, tag, cache, dockerfiles[source])
+	for path, tag := range builds {
+		source, dockerfile := filepath.Split(path)
+		err := buildSync(source, tag, cache, dockerfile)
 
 		if err != nil {
 			return []error{err}
