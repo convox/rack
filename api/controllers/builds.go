@@ -135,10 +135,22 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	b.Ended = time.Now()
-	b.Manifest = r.FormValue("manifest")
-	b.Reason = r.FormValue("reason")
-	b.Status = r.FormValue("status")
+	if d := r.FormValue("description"); d != "" {
+		b.Description = d
+	}
+
+	if m := r.FormValue("manifest"); m != "" {
+		b.Manifest = m
+	}
+
+	if r := r.FormValue("reason"); r != "" {
+		b.Reason = r
+	}
+
+	if s := r.FormValue("status"); s != "" {
+		b.Status = s
+		b.Ended = time.Now()
+	}
 
 	// if build was successful create a release
 	if b.Status == "complete" && b.Manifest != "" {
@@ -146,8 +158,11 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if err != nil {
 			return httperr.Server(err)
 		}
-	} else {
-		provider.BuildSave(b)
+	}
+
+	err = provider.BuildSave(b)
+	if err != nil {
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, b)
