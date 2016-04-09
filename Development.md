@@ -27,6 +27,12 @@ This is easy to bootstrap with the Rack project itself:
 $ convox install --stack-name dev
 ```
 
+You can also install a Rack with the CloudFormation template on master or with your own changes by:
+
+```
+$ TEMPLATE_FILE=api/dist/kernel.json convox install --stack-name=convox-dev
+```
+
 You can also use any existing Rack with the caveat that running a local Rack against it could have side effects like terminating instances.
 
 ## AWS Rack Ingress
