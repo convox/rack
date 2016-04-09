@@ -29,7 +29,7 @@ type SSL struct {
 
 type SSLs []SSL
 
-func CreateSSL(app, process string, port int, body, key string, chain string, secure bool) (*SSL, error) {
+func CreateSSL(app, process string, port int, arn, body, key, chain string, secure bool) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -72,10 +72,12 @@ func CreateSSL(app, process string, port int, body, key string, chain string, se
 		return nil, fmt.Errorf("process does not expose port: %d", port)
 	}
 
-	arn, err := uploadCert(a, process, port, body, key, chain)
+	if arn == "" {
+		arn, err = uploadCert(a, process, port, body, key, chain)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tmpl, err := release.Formation()
@@ -232,7 +234,7 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
-func UpdateSSL(app, process string, port int, body, key string, chain string) (*SSL, error) {
+func UpdateSSL(app, process string, port int, arn, body, key, chain string) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -260,11 +262,13 @@ func UpdateSSL(app, process string, port int, body, key string, chain string) (*
 		return nil, fmt.Errorf("Balancer ouptut not found. Please redeploy your app and try again.")
 	}
 
-	// upload new cert
-	arn, err := uploadCert(a, process, port, body, key, chain)
+	if arn == "" {
+		// upload new cert
+		arn, err = uploadCert(a, process, port, body, key, chain)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// update cloudformation

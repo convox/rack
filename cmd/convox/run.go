@@ -24,6 +24,10 @@ func init() {
 				Name:  "detach",
 				Usage: "run in the background",
 			},
+			cli.StringFlag{
+				Name:  "release, r",
+				Usage: "Release Name. Defaults to current release.",
+			},
 		},
 	})
 }
@@ -50,7 +54,9 @@ func cmdRun(c *cli.Context) {
 
 	args := strings.Join(c.Args()[1:], " ")
 
-	code, err := runAttached(c, app, ps, args)
+	release := c.String("release")
+
+	code, err := runAttached(c, app, ps, args, release)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -82,9 +88,11 @@ func cmdRunDetached(c *cli.Context) {
 		command = strings.Join(args, " ")
 	}
 
+	release := c.String("release")
+
 	fmt.Printf("Running `%s` on %s... ", command, ps)
 
-	err = rackClient(c).RunProcessDetached(app, ps, command)
+	err = rackClient(c).RunProcessDetached(app, ps, command, release)
 
 	if err != nil {
 		stdcli.Error(err)
@@ -94,7 +102,7 @@ func cmdRunDetached(c *cli.Context) {
 	fmt.Println("OK")
 }
 
-func runAttached(c *cli.Context, app string, ps string, args string) (int, error) {
+func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 	fd := os.Stdin.Fd()
 
 	if terminal.IsTerminal(int(fd)) {
@@ -113,7 +121,7 @@ func runAttached(c *cli.Context, app string, ps string, args string) (int, error
 		return -1, err
 	}
 
-	code, err := rackClient(c).RunProcessAttached(app, ps, args, h, w, os.Stdin, os.Stdout)
+	code, err := rackClient(c).RunProcessAttached(app, ps, args, release, h, w, os.Stdin, os.Stdout)
 
 	if err != nil {
 		return -1, err

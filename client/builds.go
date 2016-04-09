@@ -140,3 +140,21 @@ func (c *Client) DeleteBuild(app, id string) (*Build, error) {
 
 	return &build, err
 }
+
+func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, error) {
+	params := Params{
+		"manifest": manifest,
+		"status":   status,
+		"reason":   reason,
+	}
+
+	var build Build
+
+	err := c.Put(fmt.Sprintf("/apps/%s/builds/%s", app, id), params, &build)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &build, nil
+}

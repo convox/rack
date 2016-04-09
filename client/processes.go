@@ -79,7 +79,7 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 	return code, nil
 }
 
-func (c *Client) RunProcessAttached(app, process, command string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
+func (c *Client) RunProcessAttached(app, process, command, release string, height, width int, in io.Reader, out io.WriteCloser) (int, error) {
 	r, w := io.Pipe()
 
 	defer r.Close()
@@ -91,6 +91,7 @@ func (c *Client) RunProcessAttached(app, process, command string, height, width 
 
 	headers := map[string]string{
 		"Command": command,
+		"Release": release,
 		"Height":  strconv.Itoa(height),
 		"Width":   strconv.Itoa(width),
 	}
@@ -106,11 +107,12 @@ func (c *Client) RunProcessAttached(app, process, command string, height, width 
 	return code, nil
 }
 
-func (c *Client) RunProcessDetached(app, process, command string) error {
+func (c *Client) RunProcessDetached(app, process, command, release string) error {
 	var success interface{}
 
 	params := map[string]string{
 		"command": command,
+		"release": release,
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), params, &success)

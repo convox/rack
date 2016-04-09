@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net"
 	"net/url"
@@ -34,6 +35,11 @@ var (
 	Stderr       = io.Writer(os.Stderr)
 	Execer       = exec.Command
 	SignalWaiter = waitForSignal
+)
+
+var (
+	special = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
+	command = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
 
 var RandomPort = func() int {
@@ -262,11 +268,28 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 		}
 	}
 
-	for _, image := range pulls {
-		err := pullSync(image)
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
 
-		if err != nil {
-			return []error{err}
+	for _, image := range pulls {
+		var pullErr error
+		var backOff = 1
+
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A pull error occurred for: %s\n", image)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pullErr = pullSync(image)
+			if pullErr == nil {
+				break
+			}
+		}
+
+		if pullErr != nil {
+			return []error{pullErr}
 		}
 	}
 
@@ -499,10 +522,26 @@ func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
 		}
 
-		err := pushSync(local, remote)
+		var pushErr error
+		var backOff = 1
+		s1 := rand.NewSource(time.Now().UnixNano())
+		r1 := rand.New(s1)
 
-		if err != nil {
-			return []error{err}
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A push error occurred for %s/%s\n", app, name)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pushErr = pushSync(local, remote)
+			if pushErr == nil {
+				break
+			}
+		}
+
+		if pushErr != nil {
+			return []error{pushErr}
 		}
 	}
 
@@ -729,6 +768,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
 		case "proxy":
 			rnd := RandomPort()
+			fmt.Println(prefix, special(fmt.Sprintf("proxy protocol enabled for %s:%s", host, container)))
 			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd))
 			host = strconv.Itoa(rnd)
 		}
@@ -762,13 +802,31 @@ func (me ManifestEntry) Label(key string) string {
 	switch labels := me.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
-			if k.(string) == key {
-				return v.(string)
+			ks, ok := k.(string)
+
+			if !ok {
+				return ""
+			}
+
+			vs, ok := v.(string)
+
+			if !ok {
+				return ""
+			}
+
+			if ks == key {
+				return vs
 			}
 		}
 	case []interface{}:
 		for _, label := range labels {
-			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+			ls, ok := label.(string)
+
+			if !ok {
+				return ""
+			}
+
+			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
 				if parts[0] == key {
 					return parts[1]
 				}
@@ -892,7 +950,7 @@ func run(executable string, args ...string) error {
 }
 
 func runPrefix(prefix, executable string, args ...string) error {
-	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
+	fmt.Println(prefix, command(fmt.Sprintf("%s %s", executable, strings.Join(args, " "))))
 
 	cmd := Execer(executable, args...)
 

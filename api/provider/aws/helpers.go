@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
 )
 
 type Template struct {
@@ -114,6 +116,66 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	}
 
 	return tags
+}
+
+func (p *AWSProvider) s3Exists(bucket, key string) (bool, error) {
+	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		if aerr, ok := err.(awserr.RequestFailure); ok && aerr.StatusCode() == 404 {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (p *AWSProvider) s3Get(bucket, key string) ([]byte, error) {
+	req := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	res, err := p.s3().GetObject(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(res.Body)
+}
+
+func (p *AWSProvider) s3Delete(bucket, key string) error {
+	req := &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	_, err := p.s3().DeleteObject(req)
+
+	return err
+}
+
+func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error {
+	req := &s3.PutObjectInput{
+		Body:          bytes.NewReader(data),
+		Bucket:        aws.String(bucket),
+		ContentLength: aws.Int64(int64(len(data))),
+		Key:           aws.String(key),
+	}
+
+	if public {
+		req.ACL = aws.String("public-read")
+	}
+
+	_, err := p.s3().PutObject(req)
+
+	return err
 }
 
 func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[string]string) error {

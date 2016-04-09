@@ -54,7 +54,7 @@ func Notify(name, status string, data map[string]string) error {
 		return err
 	}
 
-	log.At("Notfiy").Log("message-id=%q", *resp.MessageId)
+	log.At("Notify").Log("message-id=%q", *resp.MessageId)
 
 	return nil
 }
