@@ -35,6 +35,8 @@ var (
 	Stderr       = io.Writer(os.Stderr)
 	Execer       = exec.Command
 	SignalWaiter = waitForSignal
+
+	regexValidProcessName = regexp.MustCompile(`\A[a-zA-Z0-9][-a-zA-Z0-9]{0,29}\z`) // 'web', '1', 'web-1' valid; '-', 'web_1' invalid
 )
 
 var (
@@ -157,6 +159,10 @@ func Read(dir, filename string) (*Manifest, error) {
 	}
 
 	for name, entry := range m {
+		if !regexValidProcessName.MatchString(name) {
+			return &m, fmt.Errorf("process name %q is invalid. It should contain only alphanumeric characters and dashes.", name)
+		}
+
 		for i, volume := range entry.Volumes {
 			parts := strings.Split(volume, ":")
 
