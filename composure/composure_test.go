@@ -12,6 +12,53 @@ func TestNil(t *testing.T) {
 	assert.Nil(t, nil)
 }
 
+// TestArchive asserts the order of interface calls to:
+//  Read a project and manifest from an app directory
+//  Pull, build and tag images
+//  Tag, and push images to a remote registry and repository
+func TestArchive(t *testing.T) {
+	// set current provider
+	testProvider := &provider.TestProviderRunner{}
+	provider.CurrentProvider = testProvider
+
+	// Build() with a project directory and docker-compose.yml manifest
+	testProvider.On("ManifestRun", ".", "docker-compose.yml")
+	testProvider.On("ProjectName", ".").Return("myapp", nil)
+	testProvider.On("ManifestLoad", ".", "docker-compose.yml").Return(&structs.Manifest{
+		"web": structs.ManifestEntry{
+			Image: "httpd",
+		},
+		"worker": structs.ManifestEntry{
+			Build:      ".",
+			Dockerfile: "Dockerfile",
+		},
+		"worker2": structs.ManifestEntry{
+			Build:      ".",
+			Dockerfile: "Dockerfile-worker2",
+		},
+	}, nil)
+
+	// pull, build and tag all images
+	testProvider.On("ManifestBuild", ".", "docker-compose.yml").Return(map[string]string{}, nil)
+	testProvider.On("ImagePull", "httpd").Return(nil)
+	testProvider.On("ImageTag", "httpd", "myapp/web").Return(nil)
+
+	testProvider.On("ImageBuild", ".", "Dockerfile", "convox-xvlbzgbaic").Return(nil)
+	testProvider.On("ImageTag", "convox-xvlbzgbaic", "myapp/worker").Return(nil)
+
+	testProvider.On("ImageBuild", ".", "Dockerfile-worker2", "convox-mrajwwhthc").Return(nil)
+	testProvider.On("ImageTag", "convox-mrajwwhthc", "myapp/worker2").Return(nil)
+
+	// push all images
+	testProvider.On("ManifestPush", ".", "docker-compose.yml", "132866487567.dkr.ecr.us-east-1.amazonaws.com", "convox-myapp-owdnefujkr").Return(nil)
+	testProvider.On("ImagePush", "myapp/web", "132866487567.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-owdnefujkr:web").Return(nil)
+	testProvider.On("ImagePush", "myapp/worker", "132866487567.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-owdnefujkr:worker").Return(nil)
+	testProvider.On("ImagePush", "myapp/worker2", "132866487567.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-owdnefujkr:worker2").Return(nil)
+
+	err := Archive(".", "docker-compose.yml", "132866487567.dkr.ecr.us-east-1.amazonaws.com", "convox-myapp-owdnefujkr")
+	assert.Nil(t, err)
+}
+
 // TestStart asserts the order of interface calls to:
 //  Read a project and manifest from an app directory
 //  Pull, build and tag images
@@ -47,14 +94,15 @@ func TestStart(t *testing.T) {
 	}, nil)
 
 	// pull, build and tag all images
+	testProvider.On("ManifestBuild", ".", "docker-compose.yml").Return(map[string]string{}, nil)
 	testProvider.On("ImagePull", "httpd").Return(nil)
 	testProvider.On("ImageTag", "httpd", "myapp/web").Return(nil)
 
 	testProvider.On("ImagePull", "convox/redis").Return(nil)
 	testProvider.On("ImageTag", "convox/redis", "myapp/redis").Return(nil)
 
-	testProvider.On("ImageBuild", ".", "Dockerfile-worker", "convox-xvlbzgbaic").Return(nil)
-	testProvider.On("ImageTag", "convox-xvlbzgbaic", "myapp/worker").Return(nil)
+	testProvider.On("ImageBuild", ".", "Dockerfile-worker", "convox-tcuaxhxkqf").Return(nil)
+	testProvider.On("ImageTag", "convox-tcuaxhxkqf", "myapp/worker").Return(nil)
 
 	// introspect runtime options
 	testProvider.On("NetworkInspect").Return("172.17.0.1", nil)

@@ -29,6 +29,11 @@ func (p *TestProviderRunner) ImagePull(name string) error {
 	return nil
 }
 
+func (p *TestProviderRunner) ImagePush(name, url string) error {
+	p.Called(name, url)
+	return nil
+}
+
 func (p *TestProviderRunner) ImageTag(name, tag string) error {
 	p.Called(name, tag)
 	return nil
@@ -39,26 +44,22 @@ func (p *TestProviderRunner) NetworkInspect() (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-func (p *TestProviderRunner) ManifestLoad(path, manifestfile string) (*structs.Manifest, error) {
-	args := p.Called(path, manifestfile)
-	return args.Get(0).(*structs.Manifest), args.Error(1)
-}
-
-func (p *TestProviderRunner) ManifestRun(path, manifestfile string) error {
+func (p *TestProviderRunner) ManifestBuild(path, manifestfile string) (map[string]string, error) {
 	p.Called(path, manifestfile)
+
+	nameTags := map[string]string{}
 
 	projectName, err := p.ProjectName(path)
 	if err != nil {
-		return err
+		return nameTags, err
 	}
 
 	m, err := p.ManifestLoad(path, manifestfile)
 	if err != nil {
-		return err
+		return nameTags, err
 	}
 
 	// pull, build and tag images
-	nameTags := map[string]string{}
 	for serviceName, entry := range *m {
 		tag := fmt.Sprintf("%s/%s", projectName, serviceName)
 		nameTags[serviceName] = tag
@@ -76,6 +77,50 @@ func (p *TestProviderRunner) ManifestRun(path, manifestfile string) error {
 			p.ImageBuild(path, df, tmpTag)
 			p.ImageTag(tmpTag, tag)
 		}
+	}
+
+	return nameTags, nil
+}
+
+func (p *TestProviderRunner) ManifestLoad(path, manifestfile string) (*structs.Manifest, error) {
+	args := p.Called(path, manifestfile)
+	return args.Get(0).(*structs.Manifest), args.Error(1)
+}
+
+func (p *TestProviderRunner) ManifestPush(path, manifestfile, registry, repository string) error {
+	args := p.Called(path, manifestfile, registry, repository)
+
+	nameTags, err := p.ManifestBuild(path, manifestfile)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range nameTags {
+		err := p.ImagePush(v, fmt.Sprintf("%s/%s:%s", registry, repository, k))
+		if err != nil {
+			return err
+		}
+	}
+
+	return args.Error(0)
+}
+
+func (p *TestProviderRunner) ManifestRun(path, manifestfile string) error {
+	p.Called(path, manifestfile)
+
+	projectName, err := p.ProjectName(path)
+	if err != nil {
+		return err
+	}
+
+	m, err := p.ManifestLoad(path, manifestfile)
+	if err != nil {
+		return err
+	}
+
+	nameTags, err := p.ManifestBuild(path, manifestfile)
+	if err != nil {
+		return err
 	}
 
 	// introspect environment for containers that are linked to

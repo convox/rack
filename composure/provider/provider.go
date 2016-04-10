@@ -14,11 +14,14 @@ type Provider interface {
 	ImageBuild(string, string, string) error
 	ImageInspect(string) (map[string]string, error)
 	ImagePull(string) error
+	ImagePush(string, string) error
 	ImageTag(string, string) error
 
 	NetworkInspect() (string, error)
 
+	ManifestBuild(string, string) (map[string]string, error)
 	ManifestLoad(string, string) (*structs.Manifest, error)
+	ManifestPush(string, string, string, string) error
 	ManifestRun(string, string) error
 
 	ProcessRun(string, []string, string, []string, map[string]string) error
@@ -57,6 +60,10 @@ func ImagePull(name string) error {
 	return CurrentProvider.ImagePull(name)
 }
 
+func ImagePush(name string, url string) error {
+	return CurrentProvider.ImagePush(name, url)
+}
+
 func ImageTag(name, tag string) error {
 	return CurrentProvider.ImageTag(name, tag)
 }
@@ -65,8 +72,16 @@ func NetworkInspect() (string, error) {
 	return CurrentProvider.NetworkInspect()
 }
 
+func ManifestBuild(path, manifestfile string) (map[string]string, error) {
+	return CurrentProvider.ManifestBuild(path, manifestfile)
+}
+
 func ManifestLoad(path, manifestfile string) (*structs.Manifest, error) {
 	return CurrentProvider.ManifestLoad(path, manifestfile)
+}
+
+func ManifestPush(path, manifestfile, registry, repository string) error {
+	return CurrentProvider.ManifestPush(path, manifestfile, registry, repository)
 }
 
 func ManifestRun(path, manifestfile string) error {
