@@ -1,6 +1,10 @@
 machine:
   environment:
     INSTALL_DIR: /home/ubuntu/.go_workspace/src/github.com/convox/rack
+  post:
+    - sudo rm -rf /usr/local/go
+    - curl https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz -O
+    - sudo tar -C /usr/local -xzf go1.6.linux-amd64.tar.gz
 
 dependencies:
   pre:
