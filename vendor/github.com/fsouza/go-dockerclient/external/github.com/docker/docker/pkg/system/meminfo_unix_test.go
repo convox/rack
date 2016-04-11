@@ -1,10 +1,12 @@
+// +build linux freebsd
+
 package system
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/units"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/go-units"
 )
 
 // TestMemInfo tests parseMemInfo with a static meminfo string

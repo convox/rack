@@ -1,6 +1,4 @@
-// Package ulimit provides structure and helper function to parse and represent
-// resource limits (Rlimit and Ulimit, its human friendly version).
-package ulimit
+package units
 
 import (
 	"fmt"
@@ -64,8 +62,8 @@ var ulimitNameMapping = map[string]int{
 	"stack":      rlimitStack,
 }
 
-// Parse parses and returns a Ulimit from the specified string.
-func Parse(val string) (*Ulimit, error) {
+// ParseUlimit parses and returns a Ulimit from the specified string.
+func ParseUlimit(val string) (*Ulimit, error) {
 	parts := strings.SplitN(val, "=", 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid ulimit argument: %s", val)
@@ -75,25 +73,34 @@ func Parse(val string) (*Ulimit, error) {
 		return nil, fmt.Errorf("invalid ulimit type: %s", parts[0])
 	}
 
-	limitVals := strings.SplitN(parts[1], ":", 2)
-	if len(limitVals) > 2 {
+	var (
+		soft int64
+		hard = &soft // default to soft in case no hard was set
+		temp int64
+		err  error
+	)
+	switch limitVals := strings.Split(parts[1], ":"); len(limitVals) {
+	case 2:
+		temp, err = strconv.ParseInt(limitVals[1], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		hard = &temp
+		fallthrough
+	case 1:
+		soft, err = strconv.ParseInt(limitVals[0], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	default:
 		return nil, fmt.Errorf("too many limit value arguments - %s, can only have up to two, `soft[:hard]`", parts[1])
 	}
 
-	soft, err := strconv.ParseInt(limitVals[0], 10, 64)
-	if err != nil {
-		return nil, err
+	if soft > *hard {
+		return nil, fmt.Errorf("ulimit soft limit must be less than or equal to hard limit: %d > %d", soft, *hard)
 	}
 
-	hard := soft // in case no hard was set
-	if len(limitVals) == 2 {
-		hard, err = strconv.ParseInt(limitVals[1], 10, 64)
-	}
-	if soft > hard {
-		return nil, fmt.Errorf("ulimit soft limit must be less than or equal to hard limit: %d > %d", soft, hard)
-	}
-
-	return &Ulimit{Name: parts[0], Soft: soft, Hard: hard}, nil
+	return &Ulimit{Name: parts[0], Soft: soft, Hard: *hard}, nil
 }
 
 // GetRlimit returns the RLimit corresponding to Ulimit.
