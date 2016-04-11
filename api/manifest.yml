@@ -191,6 +191,48 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+    put:
+      description: Update build status
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: build
+        description: build id
+        type: string
+        in: path
+        required: true
+      - name: description
+        description: build description
+        type: string
+        in: formData
+        required: false
+      - name: manifest
+        description: release manifest extracted during build
+        type: string
+        in: formData
+        required: false
+      - name: reason
+        description: reason with status "failed"
+        type: string
+        in: formData
+        required: false
+      - name: status
+        description: final build status "complete" or "failed"
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: build
+          schema:
+            $ref: '#/definitions/build'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /apps/{app}/environment:
     get:
       description: List environment for an app

@@ -35,6 +35,8 @@ var (
 	Stderr       = io.Writer(os.Stderr)
 	Execer       = exec.Command
 	SignalWaiter = waitForSignal
+
+	regexValidProcessName = regexp.MustCompile(`\A[a-zA-Z0-9][-a-zA-Z0-9]{0,29}\z`) // 'web', '1', 'web-1' valid; '-', 'web_1' invalid
 )
 
 var (
@@ -157,6 +159,10 @@ func Read(dir, filename string) (*Manifest, error) {
 	}
 
 	for name, entry := range m {
+		if !regexValidProcessName.MatchString(name) {
+			return &m, fmt.Errorf("process name %q is invalid. It should contain only alphanumeric characters and dashes.", name)
+		}
+
 		for i, volume := range entry.Volumes {
 			parts := strings.Split(volume, ":")
 
@@ -218,7 +224,6 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
-	dockerfiles := map[string]string{}
 
 	for name, entry := range *m {
 		tag := fmt.Sprintf("%s/%s", app, name)
@@ -232,21 +237,22 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			}
 
 			sym, err := filepath.EvalSymlinks(abs)
-
 			if err != nil {
 				return []error{err}
 			}
+
+			df := "Dockerfile"
+			if entry.Dockerfile != "" {
+				df = entry.Dockerfile
+			}
+
+			sym = filepath.Join(sym, df)
+
 			if _, ok := builds[sym]; !ok {
 				builds[sym] = randomString("convox-", 10)
 			}
 
 			tags[tag] = builds[sym]
-
-			// Dockerfile can only be specified if Build is also specified
-			if entry.Dockerfile != "" {
-				dockerfiles[sym] = entry.Dockerfile
-			}
-
 		case entry.Image != "":
 			err := Execer("docker", "inspect", entry.Image).Run()
 
@@ -260,8 +266,9 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 
 	errors := []error{}
 
-	for source, tag := range builds {
-		err := buildSync(source, tag, cache, dockerfiles[source])
+	for path, tag := range builds {
+		source, dockerfile := filepath.Split(path)
+		err := buildSync(source, tag, cache, dockerfile)
 
 		if err != nil {
 			return []error{err}
