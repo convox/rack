@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/require"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testClient(t *testing.T, serverUrl string) *Client {

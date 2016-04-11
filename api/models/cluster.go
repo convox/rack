@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/ddollar/logger"
 )
 
 type ECSServices []*ecs.Service

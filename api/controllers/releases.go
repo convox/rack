@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
+	"github.com/gorilla/mux"
 )
 
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {

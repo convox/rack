@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/negroni"
 )
 
 type timer interface {

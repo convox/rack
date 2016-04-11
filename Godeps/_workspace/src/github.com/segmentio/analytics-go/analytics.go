@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/jehiah/go-strftime"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/xtgo/uuid"
+	"github.com/jehiah/go-strftime"
+	"github.com/xtgo/uuid"
 )
 
 // Version of the client.

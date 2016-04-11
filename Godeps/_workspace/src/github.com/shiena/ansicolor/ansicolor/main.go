@@ -18,7 +18,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/shiena/ansicolor"
+	"github.com/shiena/ansicolor"
 )
 
 func main() {

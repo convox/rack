@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/mattn/go-isatty"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/shiena/ansicolor"
+	"github.com/mattn/go-isatty"
+	"github.com/shiena/ansicolor"
 )
 
 // NoColor defines if the output is colorized or not. It's dynamically set to

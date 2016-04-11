@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
 // UseServiceDefaultRetries instructs the config to use the service's own default

@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aryann/difflib"
+	"github.com/aryann/difflib"
 	"html"
 	"html/template"
 	"io/ioutil"

@@ -8,8 +8,8 @@ import (
 
 	"github.com/convox/rack/api/negroni-logrus"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/negroni"
 )
 
 var quiet bool

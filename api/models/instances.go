@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"golang.org/x/crypto/ssh"
 )
 
 func InstanceKeyroll() error {

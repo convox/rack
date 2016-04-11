@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/require"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLinks(t *testing.T) {

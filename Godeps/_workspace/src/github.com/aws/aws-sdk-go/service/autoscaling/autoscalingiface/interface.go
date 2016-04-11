@@ -4,8 +4,8 @@
 package autoscalingiface
 
 import (
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 )
 
 // AutoScalingAPI is the interface type for autoscaling.AutoScaling.

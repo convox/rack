@@ -1,6 +1,6 @@
 package main
 
-import "github.com/convox/rack/Godeps/_workspace/src/github.com/segmentio/analytics-go"
+import "github.com/segmentio/analytics-go"
 import "time"
 
 func main() {

@@ -24,9 +24,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fatih/color"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	yaml "github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/fatih/color"
+	"github.com/fsouza/go-dockerclient"
+	yaml "gopkg.in/yaml.v2"
 )
 
 //NOTE: these vars allow us to control other shell-outs during testing
