@@ -1,11 +1,10 @@
-FROM gliderlabs/alpine:3.3
+FROM gliderlabs/alpine:edge
 
-RUN apk-install docker git go haproxy openssh python
+RUN apk-install docker git go haproxy openssh openssl python
+RUN apk-install gcc libc-dev libtool libgcc
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
-
-RUN apk-install gcc libc-dev libtool libgcc
 
 RUN go get github.com/ddollar/init
 RUN go get github.com/ddollar/rerun
