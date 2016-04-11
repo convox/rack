@@ -105,6 +105,8 @@ func cmdRunDetached(c *cli.Context) {
 func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 	fd := os.Stdin.Fd()
 
+	var w, h int
+
 	if terminal.IsTerminal(int(fd)) {
 		stdinState, err := terminal.GetState(int(fd))
 
@@ -113,12 +115,12 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 		}
 
 		defer terminal.Restore(int(fd), stdinState)
-	}
 
-	w, h, err := terminal.GetSize(int(fd))
+		w, h, err = terminal.GetSize(int(fd))
 
-	if err != nil {
-		return -1, err
+		if err != nil {
+			return -1, err
+		}
 	}
 
 	code, err := rackClient(c).RunProcessAttached(app, ps, args, release, h, w, os.Stdin, os.Stdout)
