@@ -108,8 +108,6 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 	var w, h int
 
 	if terminal.IsTerminal(int(fd)) {
-		fmt.Println("isterm")
-
 		stdinState, err := terminal.GetState(int(fd))
 
 		if err != nil {
