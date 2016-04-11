@@ -1,7 +1,6 @@
 FROM gliderlabs/alpine:edge
 
 RUN apk-install docker git go haproxy openssh openssl python
-RUN apk-install gcc libc-dev libtool libgcc
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
