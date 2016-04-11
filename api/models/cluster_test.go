@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ecs"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func getClusterServices() (models.ECSServices, error) {

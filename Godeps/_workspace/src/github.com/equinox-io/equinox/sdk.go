@@ -17,9 +17,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/equinox-io/equinox/internal/go-update"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/equinox-io/equinox/internal/osext"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/equinox-io/equinox/proto"
+	"github.com/equinox-io/equinox/internal/go-update"
+	"github.com/equinox-io/equinox/internal/osext"
+	"github.com/equinox-io/equinox/proto"
 )
 
 const protocolVersion = "1"

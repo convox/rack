@@ -11,7 +11,7 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient/external/github.com/gorilla/context"
+	"github.com/fsouza/go-dockerclient/external/github.com/gorilla/context"
 )
 
 // NewRouter returns a new router instance.

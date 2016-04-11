@@ -3,12 +3,12 @@
 package cloudwatch
 
 import (
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/client"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/client/metadata"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/query"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/signer/v4"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/client/metadata"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
+	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // This is the Amazon CloudWatch API Reference. This guide provides detailed

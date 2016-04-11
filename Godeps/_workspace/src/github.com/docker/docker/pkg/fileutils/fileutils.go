@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 )
 
 // exclusion return true if the specified pattern is an exclusion

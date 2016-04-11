@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 )
 
 var log = logrus.New()

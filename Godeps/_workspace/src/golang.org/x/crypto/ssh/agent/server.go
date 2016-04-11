@@ -12,7 +12,7 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh"
 )
 
 // Server wraps an Agent and uses it to implement the agent side of

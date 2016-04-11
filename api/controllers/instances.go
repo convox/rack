@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
+	"github.com/gorilla/mux"
+	"golang.org/x/net/websocket"
 )
 
 func init() {

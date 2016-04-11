@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 )
 
 type Instance struct {

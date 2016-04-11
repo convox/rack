@@ -3,7 +3,7 @@
 package elb
 
 import (
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/waiter"
+	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
 func (c *ELB) WaitUntilAnyInstanceInService(input *DescribeInstanceHealthInput) error {

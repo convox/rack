@@ -10,7 +10,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh"
 )
 
 // RequestAgentForwarding sets up agent forwarding for the session.

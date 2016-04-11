@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/codegangsta/negroni"
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/helpers"
 	negronilogrus "github.com/convox/rack/api/negroni-logrus"
+	"github.com/ddollar/logger"
 )
 
 func development(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

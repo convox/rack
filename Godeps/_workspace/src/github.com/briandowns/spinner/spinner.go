@@ -22,7 +22,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fatih/color"
+	"github.com/fatih/color"
 )
 
 // CharSets contains the available character sets

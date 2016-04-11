@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/convox/release/version"
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
+	"github.com/convox/release/version"
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
