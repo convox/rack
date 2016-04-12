@@ -1,10 +1,6 @@
-FROM gliderlabs/alpine:3.3
+FROM golang:1.6-alpine
 
-RUN apk-install docker git go haproxy openssh openssl python
-
-ENV GO15VENDOREXPERIMENT=1
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:$PATH
+RUN apk update && apk add docker git haproxy openssh openssl python
 
 RUN go get github.com/ddollar/init
 RUN go get github.com/ddollar/rerun
