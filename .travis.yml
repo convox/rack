@@ -8,7 +8,7 @@ language: go
 go:
 - 1.5
 before_install:
-- go get -u github.com/convox/release/version
+- go get -u github.com/convox/version
 script:
 - make test
 notifications:

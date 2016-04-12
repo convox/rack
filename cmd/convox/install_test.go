@@ -7,7 +7,7 @@ import (
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
-	"github.com/convox/release/version"
+	"github.com/convox/version"
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {

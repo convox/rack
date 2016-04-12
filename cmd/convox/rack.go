@@ -9,7 +9,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/release/version"
+	"github.com/convox/version"
 )
 
 func init() {

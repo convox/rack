@@ -6,7 +6,7 @@ import (
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
-	"github.com/convox/release/version"
+	"github.com/convox/version"
 	"github.com/stretchr/testify/require"
 )
 
