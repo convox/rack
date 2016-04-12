@@ -1,7 +1,8 @@
-FROM gliderlabs/alpine:edge
+FROM gliderlabs/alpine:3.3
 
 RUN apk-install docker git go haproxy openssh openssl python
 
+ENV GO15VENDOREXPERIMENT=1
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
 
