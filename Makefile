@@ -20,8 +20,4 @@ test-deps:
 test:
 	docker info >/dev/null
 	go get -t ./...
-	env PROVIDER=test go test -v -cover ./...
-
-vendor:
-	godep restore
-	godep save -r ./...
+	env PROVIDER=test go test -cover -v $$(go list ./... | grep -v /vendor/)

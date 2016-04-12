@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/cheggaaa/pb"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/builder/dockerignore"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/docker/docker/pkg/fileutils"
+	"github.com/cheggaaa/pb"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
 )
 
 var (

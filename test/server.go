@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func Server(t *testing.T, stubs ...Http) *httptest.Server {

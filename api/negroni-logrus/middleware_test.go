@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/negroni"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
