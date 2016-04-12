@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"

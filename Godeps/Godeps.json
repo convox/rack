@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/convox/rack",
-	"GoVersion": "go1.5.2",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v62",
 	"Packages": [
 		"./..."
 	],
@@ -225,6 +226,7 @@
 		},
 		{
 			"ImportPath": "github.com/cheggaaa/pb",
+			"Comment": "go1.0-68-g4788033",
 			"Rev": "4788033326290f47bb40c29942fa8e919e2ee597"
 		},
 		{
@@ -245,6 +247,98 @@
 		{
 			"ImportPath": "github.com/convox/logger",
 			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awsutil",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/client",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/client/metadata",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/corehandlers",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/defaults",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/ec2metadata",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/request",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/endpoints",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/query",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/query/queryutil",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/rest",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/restxml",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/signer/v4",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/private/waiter",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/go-ini/ini",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
+		},
+		{
+			"ImportPath": "github.com/convox/release/Godeps/_workspace/src/github.com/jmespath/go-jmespath",
+			"Rev": "fd6a17bd4f8ae9ef19ee8e8fe466c90af2cdb885"
 		},
 		{
 			"ImportPath": "github.com/convox/release/version",
@@ -303,82 +397,66 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/opts",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/homedir",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/ioutils",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/parsers",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/pools",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/promise",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/stdcopy",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/ulimit",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/units",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/volume",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient/external/github.com/opencontainers/runc/libcontainer/user",
-			"Comment": "0.2.1-714-gc9ad0ce",
 			"Rev": "c9ad0ce23f68428421adfc6ced9e6123f54788a5"
 		},
 		{
@@ -451,6 +529,10 @@
 		{
 			"ImportPath": "github.com/xtgo/uuid",
 			"Rev": "a0b114877d4caeffbd7f87e3757c17fce570fea7"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/curve25519",
+			"Rev": "5dc8cb4b8a8eb076cbb5a06bc3b8682c15bdbbd3"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/nacl/secretbox",

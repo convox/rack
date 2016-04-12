@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 )
-import "github.com/convox/rack/Godeps/_workspace/src/github.com/convox/logger"
+import "github.com/convox/logger"
 
 type Cache map[string]map[string]*CacheItem
 

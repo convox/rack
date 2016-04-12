@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/crypt"
 )
 

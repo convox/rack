@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"golang.org/x/net/websocket"
 )
 
 var MinimumServerVersion = "20151023042141"

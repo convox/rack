@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
