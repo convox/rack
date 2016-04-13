@@ -3,8 +3,8 @@ package provider
 import (
 	"io"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/mock"
 	"github.com/convox/rack/api/structs"
+	"github.com/stretchr/testify/mock"
 )
 
 var TestProvider = &TestProviderRunner{}

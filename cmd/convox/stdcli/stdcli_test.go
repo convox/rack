@@ -3,8 +3,8 @@ package stdcli_test
 import (
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseOptions(t *testing.T) {

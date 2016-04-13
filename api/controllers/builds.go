@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	docker "github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/gorilla/mux"
+	"golang.org/x/net/websocket"
 )
 
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
