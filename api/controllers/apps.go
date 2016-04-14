@@ -8,6 +8,8 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -107,27 +109,16 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func AppLogs(ws *websocket.Conn) *httperr.Error {
 	app := mux.Vars(ws.Request())["app"]
+	header := ws.Request().Header
 
-	a, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
+	err := provider.LogStream(app, ws, structs.LogStreamOptions{
+		Source: header.Get("Source"),
+	})
 	if err != nil {
+		if strings.HasSuffix(err.Error(), "write: broken pipe") {
+			return nil
+		}
 		return httperr.Server(err)
 	}
-
-	logs := make(chan []byte)
-	done := make(chan bool)
-
-	a.SubscribeLogs(logs, done)
-
-	go signalWsClose(ws, done)
-
-	for data := range logs {
-		ws.Write(data)
-	}
-
 	return nil
 }
