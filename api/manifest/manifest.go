@@ -774,7 +774,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 			return
 		}
 
-		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
+		switch me.Label(fmt.Sprintf("convox.port.%s.protocol", container)) {
 		case "proxy":
 			rnd := RandomPort()
 			fmt.Println(prefix, special(fmt.Sprintf("proxy protocol enabled for %s:%s", host, container)))

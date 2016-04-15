@@ -181,7 +181,7 @@ func (r *Release) Promote() error {
 		for _, mapping := range entry.PortMappings() {
 			proxyParam := fmt.Sprintf("%sPort%sProxyProtocol", UpperName(entry.Name), mapping.Balancer)
 
-			switch entry.Label(fmt.Sprintf("com.convox.port.%s.protocol", mapping.Container)) {
+			switch entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)) {
 			case "proxy":
 				app.Parameters[proxyParam] = "Yes"
 			default:
