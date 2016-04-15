@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -28,7 +28,7 @@ func init() {
 			{
 				Name:        "create",
 				Description: "create a new SSL listener",
-				Usage:       "<process:port> <foo.pub> <foo.key>",
+				Usage:       "<process:port> [<foo.pub> <foo.key>|<arn>]",
 				Action:      cmdSSLCreate,
 				Flags: []cli.Flag{
 					appFlag,
@@ -58,7 +58,7 @@ func init() {
 			{
 				Name:        "update",
 				Description: "upload a replacement ssl certificate",
-				Usage:       "<process:port> <foo.pub> <foo.key>",
+				Usage:       "<process:port> [<foo.pub> <foo.key>|<arn>]",
 				Action:      cmdSSLUpdate,
 				Flags: []cli.Flag{
 					appFlag,
@@ -96,6 +96,7 @@ func cmdSSLCreate(c *cli.Context) {
 
 	var pub []byte
 	var key []byte
+	var arn string
 
 	switch len(c.Args()) {
 	case 1:
@@ -130,6 +131,8 @@ func cmdSSLCreate(c *cli.Context) {
 			stdcli.Usage(c, "create")
 			return
 		}
+	case 2:
+		arn = c.Args()[1]
 	case 3:
 		pub, err = ioutil.ReadFile(c.Args()[1])
 
@@ -164,7 +167,7 @@ func cmdSSLCreate(c *cli.Context) {
 
 	fmt.Printf("Creating SSL listener %s... ", target)
 
-	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], string(pub), string(key), chain, c.Bool("secure"))
+	_, err = rackClient(c).CreateSSL(app, parts[0], parts[1], arn, string(pub), string(key), chain, c.Bool("secure"))
 
 	if err != nil {
 		stdcli.Error(err)
@@ -256,18 +259,27 @@ func cmdSSLUpdate(c *cli.Context) {
 
 	var pub []byte
 	var key []byte
+	var arn string
 
-	pub, err = ioutil.ReadFile(c.Args()[1])
+	switch len(c.Args()) {
+	case 2:
+		arn = c.Args()[1]
+	case 3:
+		pub, err = ioutil.ReadFile(c.Args()[1])
 
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
 
-	key, err = ioutil.ReadFile(c.Args()[2])
+		key, err = ioutil.ReadFile(c.Args()[2])
 
-	if err != nil {
-		stdcli.Error(err)
+		if err != nil {
+			stdcli.Error(err)
+			return
+		}
+	default:
+		stdcli.Usage(c, "update")
 		return
 	}
 
@@ -286,7 +298,7 @@ func cmdSSLUpdate(c *cli.Context) {
 
 	fmt.Printf("Updating SSL listener %s... ", target)
 
-	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], string(pub), string(key), chain)
+	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], arn, string(pub), string(key), chain)
 
 	if err != nil {
 		stdcli.Error(err)

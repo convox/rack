@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net"
 	"net/url"
@@ -23,9 +24,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fatih/color"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
-	yaml "github.com/convox/rack/Godeps/_workspace/src/gopkg.in/yaml.v2"
+	"github.com/fatih/color"
+	"github.com/fsouza/go-dockerclient"
+	yaml "gopkg.in/yaml.v2"
 )
 
 //NOTE: these vars allow us to control other shell-outs during testing
@@ -34,6 +35,15 @@ var (
 	Stderr       = io.Writer(os.Stderr)
 	Execer       = exec.Command
 	SignalWaiter = waitForSignal
+
+	regexValidProcessName = regexp.MustCompile(`\A[a-zA-Z0-9][-a-zA-Z0-9]{0,29}\z`) // 'web', '1', 'web-1' valid; '-', 'web_1' invalid
+)
+
+var (
+	special = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
+	command = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
+	warning = color.New(color.FgYellow).Add(color.Bold).SprintFunc()
+	system  = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
 
 var RandomPort = func() int {
@@ -151,6 +161,10 @@ func Read(dir, filename string) (*Manifest, error) {
 	}
 
 	for name, entry := range m {
+		if !regexValidProcessName.MatchString(name) {
+			return &m, fmt.Errorf("process name %q is invalid. It should contain only alphanumeric characters and dashes.", name)
+		}
+
 		for i, volume := range entry.Volumes {
 			parts := strings.Split(volume, ":")
 
@@ -212,7 +226,6 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	builds := map[string]string{}
 	pulls := []string{}
 	tags := map[string]string{}
-	dockerfiles := map[string]string{}
 
 	for name, entry := range *m {
 		tag := fmt.Sprintf("%s/%s", app, name)
@@ -226,21 +239,22 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 			}
 
 			sym, err := filepath.EvalSymlinks(abs)
-
 			if err != nil {
 				return []error{err}
 			}
+
+			df := "Dockerfile"
+			if entry.Dockerfile != "" {
+				df = entry.Dockerfile
+			}
+
+			sym = filepath.Join(sym, df)
+
 			if _, ok := builds[sym]; !ok {
 				builds[sym] = randomString("convox-", 10)
 			}
 
 			tags[tag] = builds[sym]
-
-			// Dockerfile can only be specified if Build is also specified
-			if entry.Dockerfile != "" {
-				dockerfiles[sym] = entry.Dockerfile
-			}
-
 		case entry.Image != "":
 			err := Execer("docker", "inspect", entry.Image).Run()
 
@@ -254,19 +268,37 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 
 	errors := []error{}
 
-	for source, tag := range builds {
-		err := buildSync(source, tag, cache, dockerfiles[source])
+	for path, tag := range builds {
+		source, dockerfile := filepath.Split(path)
+		err := buildSync(source, tag, cache, dockerfile)
 
 		if err != nil {
 			return []error{err}
 		}
 	}
 
-	for _, image := range pulls {
-		err := pullSync(image)
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
 
-		if err != nil {
-			return []error{err}
+	for _, image := range pulls {
+		var pullErr error
+		var backOff = 1
+
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A pull error occurred for: %s\n", image)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pullErr = pullSync(image)
+			if pullErr == nil {
+				break
+			}
+		}
+
+		if pullErr != nil {
+			return []error{pullErr}
 		}
 	}
 
@@ -499,10 +531,26 @@ func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
 		}
 
-		err := pushSync(local, remote)
+		var pushErr error
+		var backOff = 1
+		s1 := rand.NewSource(time.Now().UnixNano())
+		r1 := rand.New(s1)
 
-		if err != nil {
-			return []error{err}
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A push error occurred for %s/%s\n", app, name)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pushErr = pushSync(local, remote)
+			if pushErr == nil {
+				break
+			}
+		}
+
+		if pushErr != nil {
+			return []error{pushErr}
 		}
 	}
 
@@ -729,6 +777,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		switch me.Label(fmt.Sprintf("com.convox.port.%s.protocol", container)) {
 		case "proxy":
 			rnd := RandomPort()
+			fmt.Println(prefix, special(fmt.Sprintf("proxy protocol enabled for %s:%s", host, container)))
 			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd))
 			host = strconv.Itoa(rnd)
 		}
@@ -737,6 +786,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	}
 
 	for _, volume := range me.Volumes {
+		warnIfRoot(volume)
 		args = append(args, "-v", volume)
 	}
 
@@ -762,13 +812,31 @@ func (me ManifestEntry) Label(key string) string {
 	switch labels := me.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
-			if k.(string) == key {
-				return v.(string)
+			ks, ok := k.(string)
+
+			if !ok {
+				return ""
+			}
+
+			vs, ok := v.(string)
+
+			if !ok {
+				return ""
+			}
+
+			if ks == key {
+				return vs
 			}
 		}
 	case []interface{}:
 		for _, label := range labels {
-			if parts := strings.SplitN(label.(string), "=", 2); len(parts) == 2 {
+			ls, ok := label.(string)
+
+			if !ok {
+				return ""
+			}
+
+			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
 				if parts[0] == key {
 					return parts[1]
 				}
@@ -892,7 +960,7 @@ func run(executable string, args ...string) error {
 }
 
 func runPrefix(prefix, executable string, args ...string) error {
-	fmt.Printf("%s running: %s %s\n", prefix, executable, strings.Join(args, " "))
+	fmt.Println(prefix, command(fmt.Sprintf("%s %s", executable, strings.Join(args, " "))))
 
 	cmd := Execer(executable, args...)
 
@@ -1195,7 +1263,7 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 
 		lock.Lock()
 
-		fmt.Printf("%s syncing %d files\n", prefix, len(adds))
+		fmt.Printf(system("%s syncing %d files\n"), prefix, len(adds))
 
 		for _, sync := range syncs {
 			var buf bytes.Buffer
@@ -1427,4 +1495,15 @@ func (m *Manifest) processSync(local string, syncs []Sync) error {
 	}
 
 	return nil
+}
+
+func warnIfRoot(volume string) {
+	resv, _ := filepath.EvalSymlinks(volume)
+	absv, _ := filepath.Abs(resv)
+	wd, _ := os.Getwd()
+
+	if absv == wd {
+		fmt.Println(warning("WARNING: Detected application directory mounted as volume"))
+		fmt.Println(warning("convox start will automatically synchronize any files referenced by ADD or COPY statements"))
+	}
 }

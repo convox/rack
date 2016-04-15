@@ -8,7 +8,7 @@ import (
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -32,7 +32,7 @@ func TestAppGet(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, &structs.App{
 		Name:    "httpd",
-		Release: "RLLOVNNXWKR",
+		Release: "RVFETUHHKKD",
 		Status:  "running",
 		Outputs: map[string]string{
 			"BalancerWebHost":       "httpd-web-7E5UPCM-1241527783.us-east-1.elb.amazonaws.com",
@@ -46,7 +46,7 @@ func TestAppGet(t *testing.T) {
 		},
 		Parameters: map[string]string{
 			"WebMemory":              "256",
-			"Release":                "RLLOVNNXWKR",
+			"Release":                "RVFETUHHKKD",
 			"Subnets":                "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
 			"Private":                "Yes",
 			"WebPort80ProxyProtocol": "No",
@@ -57,7 +57,7 @@ func TestAppGet(t *testing.T) {
 			"Repository":           "",
 			"WebPort80Balancer":    "80",
 			"SubnetsPrivate":       "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f",
-			"Environment":          "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RLLOVNNXWKR/env",
+			"Environment":          "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env",
 			"WebPort80Certificate": "",
 			"WebPort80Host":        "56694",
 			"WebDesiredCount":      "1",

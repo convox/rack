@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")

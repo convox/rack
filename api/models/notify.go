@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/sns"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/ddollar/logger"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/rack/client"
+	"github.com/ddollar/logger"
 )
 
 var PauseNotifications = false
@@ -54,7 +54,7 @@ func Notify(name, status string, data map[string]string) error {
 		return err
 	}
 
-	log.At("Notfiy").Log("message-id=%q", *resp.MessageId)
+	log.At("Notify").Log("message-id=%q", *resp.MessageId)
 
 	return nil
 }

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 

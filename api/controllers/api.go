@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/convox/rack/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/convox/rack/Godeps/_workspace/src/golang.org/x/net/websocket"
+	log "github.com/Sirupsen/logrus"
 	"github.com/convox/rack/api/httperr"
+	"golang.org/x/net/websocket"
 )
 
 var RequestTimeout time.Duration = 3600 * time.Second

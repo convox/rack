@@ -1,32 +1,23 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/gorilla/mux"
 )
 
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	app := vars["app"]
+	app := mux.Vars(r)["app"]
 
-	_, err := models.GetApp(app)
-
+	releases, err := provider.ReleaseList(app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	releases, err := models.ListReleases(app)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -34,30 +25,23 @@ func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, releases)
 }
 
-func ReleaseShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
+func ReleaseGet(rw http.ResponseWriter, req *http.Request) *httperr.Error {
+	vars := mux.Vars(req)
 	app := vars["app"]
 	release := vars["release"]
 
-	_, err := models.GetApp(app)
-
+	r, err := provider.ReleaseGet(app, release)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
-
-	rr, err := models.GetRelease(app, release)
-
 	if err != nil && strings.HasPrefix(err.Error(), "no such release") {
-		return httperr.Errorf(404, "no such release: %s", release)
+		return httperr.Errorf(404, err.Error())
 	}
-
-	fmt.Printf("err %+v\n", err)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	return RenderJson(rw, rr)
+	return RenderJson(rw, r)
 }
 
 func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {

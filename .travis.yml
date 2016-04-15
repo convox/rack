@@ -6,9 +6,9 @@ branches:
   - "/^\\d{14}/"
 language: go
 go:
-- 1.5
+- 1.6
 before_install:
-- go get -u github.com/convox/release/version
+- go get -u github.com/convox/version
 script:
 - make test
 notifications:

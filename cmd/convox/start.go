@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
@@ -30,7 +30,7 @@ func init() {
 				Name:  "no-cache",
 				Usage: "pull fresh image dependencies",
 			},
-			cli.BoolFlag{
+			cli.BoolTFlag{
 				Name:  "sync",
 				Usage: "synchronize local file changes into the running containers",
 			},
@@ -119,7 +119,7 @@ func cmdStart(c *cli.Context) {
 		ch <- m.Run(app, cache)
 	}()
 
-	if c.Bool("sync") || stdcli.ReadSetting("sync") == "true" {
+	if c.Bool("sync") && stdcli.ReadSetting("sync") != "false" {
 		m.Sync(app)
 	}
 

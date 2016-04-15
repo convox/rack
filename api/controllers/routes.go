@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 )
 
 func HandlerFunc(w http.ResponseWriter, req *http.Request) {
@@ -21,6 +21,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/builds", api("build.list", BuildList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/builds", api("build.create", BuildCreate)).Methods("POST")
 	router.HandleFunc("/apps/{app}/builds/{build}", api("build.get", BuildGet)).Methods("GET")
+	router.HandleFunc("/apps/{app}/builds/{build}", api("build.update", BuildUpdate)).Methods("PUT")
 	router.HandleFunc("/apps/{app}/builds/{build}", api("build.delete", BuildDelete)).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/builds/{build}/copy", api("build.copy", BuildCopy)).Methods("POST")
 	router.HandleFunc("/apps/{app}/environment", api("environment.list", EnvironmentList)).Methods("GET")
@@ -35,7 +36,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/apps/{app}/processes/{process}", api("process.stop", ProcessStop)).Methods("DELETE")
 	router.HandleFunc("/apps/{app}/processes/{process}/run", api("process.run.detach", ProcessRunDetached)).Methods("POST")
 	router.HandleFunc("/apps/{app}/releases", api("release.list", ReleaseList)).Methods("GET")
-	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", ReleaseShow)).Methods("GET")
+	router.HandleFunc("/apps/{app}/releases/{release}", api("release.get", ReleaseGet)).Methods("GET")
 	router.HandleFunc("/apps/{app}/releases/{release}/promote", api("release.promote", ReleasePromote)).Methods("POST")
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.list", SSLList)).Methods("GET")
 	router.HandleFunc("/apps/{app}/ssl", api("ssl.create", SSLCreate)).Methods("POST")

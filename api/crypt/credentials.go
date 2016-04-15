@@ -1,10 +1,10 @@
 package crypt
 
 import (
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/session"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/kms"
 )
 
 type Credentials struct {

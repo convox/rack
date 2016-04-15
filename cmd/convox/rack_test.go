@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/convox/release/version"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/stretchr/testify/require"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
+	"github.com/convox/version"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRackUpdateStable(t *testing.T) {

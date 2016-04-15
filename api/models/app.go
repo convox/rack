@@ -11,15 +11,16 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/client"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecr"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/s3"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/fsouza/go-dockerclient"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/fsouza/go-dockerclient"
 )
 
 var CustomTopic = os.Getenv("CUSTOM_TOPIC")
@@ -204,24 +205,24 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
-	builds, err := ListBuilds(a.Name)
-
+	// FIXME: BuildList and ReleaseList only lists and cleans up the last 20 builds/releases
+	// FIXME: Should the delete calls happen in a goroutine?
+	builds, err := provider.BuildList(a.Name)
 	if err != nil {
 		return err
 	}
 
 	for _, build := range builds {
-		go cleanupBuild(build)
+		provider.BuildDelete(a.Name, build.Id)
 	}
 
-	releases, err := ListReleases(a.Name)
-
+	releases, err := provider.ReleaseList(a.Name)
 	if err != nil {
 		return err
 	}
 
 	for _, release := range releases {
-		go cleanupRelease(release)
+		provider.ReleaseDelete(a.Name, release.Id)
 	}
 
 	// monitor and stack deletion state for up to 10 minutes
@@ -360,9 +361,9 @@ func (a *App) ForkRelease() (*Release, error) {
 	return release, nil
 }
 
+// FIXME: Port to provider interface
 func (a *App) LatestRelease() (*Release, error) {
-	releases, err := ListReleases(a.Name)
-
+	releases, err := provider.ReleaseList(a.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +372,16 @@ func (a *App) LatestRelease() (*Release, error) {
 		return nil, nil
 	}
 
-	return &releases[0], nil
+	r := releases[0]
+
+	return &Release{
+		Id:       r.Id,
+		App:      r.App,
+		Build:    r.Build,
+		Env:      r.Env,
+		Manifest: r.Manifest,
+		Created:  r.Created,
+	}, nil
 }
 
 func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWriter) error {
@@ -460,7 +470,7 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	return nil
 }
 
-func (a *App) RunAttached(process, command string, height, width int, rw io.ReadWriter) error {
+func (a *App) RunAttached(process, command, releaseId string, height, width int, rw io.ReadWriter) error {
 	resources, err := a.Resources()
 
 	if err != nil {
@@ -489,7 +499,11 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
-	release, err := GetRelease(a.Name, a.Release)
+	if len(releaseId) == 0 {
+		releaseId = a.Release
+	}
+
+	release, err := GetRelease(a.Name, releaseId)
 
 	if err != nil {
 		return err
@@ -658,7 +672,7 @@ func (a *App) RunAttached(process, command string, height, width int, rw io.Read
 	return nil
 }
 
-func (a *App) RunDetached(process, command string) error {
+func (a *App) RunDetached(process, command, releaseId string) error {
 	resources, err := a.Resources()
 
 	if err != nil {
@@ -783,22 +797,6 @@ func cleanupBucketObject(bucket, key, version string) {
 	}
 
 	_, err := S3().DeleteObject(req)
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	}
-}
-
-func cleanupBuild(build Build) {
-	err := build.Cleanup()
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	}
-}
-
-func cleanupRelease(release Release) {
-	err := release.Cleanup()
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)

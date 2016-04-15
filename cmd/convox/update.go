@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/codegangsta/cli"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/equinox-io/equinox"
+	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/equinox-io/equinox"
 )
 
 func init() {

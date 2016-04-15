@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/aws"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/convox/rack/Godeps/_workspace/src/github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/api/crypt"
 )
 
@@ -32,37 +32,6 @@ func NewRelease(app string) Release {
 		Id:  generateId("R", 10),
 		App: app,
 	}
-}
-
-func ListReleases(app string) (Releases, error) {
-	req := &dynamodb.QueryInput{
-		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
-				AttributeValueList: []*dynamodb.AttributeValue{
-					&dynamodb.AttributeValue{S: aws.String(app)},
-				},
-				ComparisonOperator: aws.String("EQ"),
-			},
-		},
-		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(20),
-		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(releasesTable(app)),
-	}
-
-	res, err := DynamoDB().Query(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	releases := make(Releases, len(res.Items))
-
-	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
-	}
-
-	return releases, nil
 }
 
 func GetRelease(app, id string) (*Release, error) {
@@ -91,23 +60,6 @@ func GetRelease(app, id string) (*Release, error) {
 	release := releaseFromItem(res.Item)
 
 	return release, nil
-}
-
-func (r *Release) Cleanup() error {
-	app, err := GetApp(r.App)
-
-	if err != nil {
-		return err
-	}
-
-	// delete env
-	err = s3Delete(app.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *Release) Save() error {
@@ -368,7 +320,7 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
-		fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
+		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
 
 		if err != nil {
 			return m, fmt.Errorf("could not inspect %q", imageName)
