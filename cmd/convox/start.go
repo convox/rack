@@ -119,7 +119,7 @@ func cmdStart(c *cli.Context) {
 		ch <- m.Run(app, cache)
 	}()
 
-	if c.Bool("sync") && !(stdcli.ReadSetting("sync") == "false") {
+	if c.Bool("sync") && stdcli.ReadSetting("sync") != "false" {
 		m.Sync(app)
 	}
 
