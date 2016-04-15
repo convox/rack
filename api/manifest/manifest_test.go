@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fatih/color"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -18,6 +19,11 @@ type Cases []struct {
 }
 
 const defaultManifestFile = "docker-compose.yml"
+
+func init() {
+	// default color to off during tests
+	color.NoColor = true
+}
 
 func TestBuild(t *testing.T) {
 	t.Skip("skipping until i can figure out regex")
