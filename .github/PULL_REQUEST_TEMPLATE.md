@@ -1,12 +1,12 @@
 ## Release Playbook
 - [ ] Rebase against master
-- [ ] Pass checks
 - [ ] Release branch ()
 - [ ] Pass CI ()
 - [ ] Code review
 - [ ] Merge into master
 - [ ] Release master ()
 - [ ] Pass CI ()
-- [ ] Update dev and testing racks
+- [ ] Update staging rack
+- [ ] Edit release record in GitHub
 - [ ] Publish release
 - [ ] Release CLI
