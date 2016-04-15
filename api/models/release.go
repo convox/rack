@@ -181,8 +181,11 @@ func (r *Release) Promote() error {
 		for _, mapping := range entry.PortMappings() {
 			proxyParam := fmt.Sprintf("%sPort%sProxyProtocol", UpperName(entry.Name), mapping.Balancer)
 
-			if entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)) == "proxy" {
+			switch entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)) {
+			case "proxy":
 				app.Parameters[proxyParam] = "Yes"
+			default:
+				app.Parameters[proxyParam] = "No"
 			}
 		}
 	}
