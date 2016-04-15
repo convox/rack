@@ -526,7 +526,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 		return "", err
 	}
 
-	fmt.Println("Creating tarball... ")
+	fmt.Print("Creating tarball... ")
 
 	tar, err := createTarball(dir)
 
@@ -538,7 +538,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 
 	cache := !c.Bool("no-cache")
 
-	fmt.Println("Uploading... ")
+	fmt.Print("Uploading... ")
 
 	build, err := rackClient(c).CreateBuildSource(app, tar, cache, manifest, description)
 
