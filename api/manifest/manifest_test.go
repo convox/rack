@@ -3,7 +3,6 @@ package manifest
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fatih/color"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -19,6 +19,11 @@ type Cases []struct {
 }
 
 const defaultManifestFile = "docker-compose.yml"
+
+func init() {
+	// default color to off during tests
+	color.NoColor = true
+}
 
 func TestBuild(t *testing.T) {
 	t.Skip("skipping until i can figure out regex")
@@ -131,7 +136,7 @@ func TestRun(t *testing.T) {
 	stdout, stderr := testRun(m, "compose")
 
 	cases := Cases{
-		{stdout, fmt.Sprintf("\x1b[36mpostgres |\x1b[0m docker run -i --name compose-postgres -p 5432:5432 compose/postgres\n\x1b[33mweb      |\x1b[0m docker run -i --name compose-web -e POSTGRES_HOST=1.1.1.1 -e POSTGRES_PASSWORD= -e POSTGRES_PATH= -e POSTGRES_PORT=5432 -e POSTGRES_SCHEME=tcp -e POSTGRES_URL=tcp://1.1.1.1:5432 -e POSTGRES_USERNAME= -p 5000:3000 -v %s:/app compose/web\n", destDir)},
+		{stdout, "\x1b[36mpostgres |\x1b[0m docker run -i --name compose-postgres -p 5432:5432 compose/postgres\n\x1b[33mweb      |\x1b[0m docker run -i --name compose-web -e POSTGRES_HOST=1.1.1.1 -e POSTGRES_PASSWORD= -e POSTGRES_PATH= -e POSTGRES_PORT=5432 -e POSTGRES_SCHEME=tcp -e POSTGRES_URL=tcp://1.1.1.1:5432 -e POSTGRES_USERNAME= -p 5000:3000 compose/web\n"},
 		{stderr, ""},
 	}
 
@@ -156,8 +161,6 @@ func TestGenerateDockerCompose(t *testing.T) {
     - postgres
   ports:
     - 5000:3000
-  volumes:
-    - .:/app
 postgres:
   image: convox/postgres
   ports:

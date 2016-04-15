@@ -42,6 +42,8 @@ var (
 var (
 	special = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
 	command = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
+	warning = color.New(color.FgYellow).Add(color.Bold).SprintFunc()
+	system  = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
 
 var RandomPort = func() int {
@@ -784,6 +786,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 	}
 
 	for _, volume := range me.Volumes {
+		warnIfRoot(volume)
 		args = append(args, "-v", volume)
 	}
 
@@ -1260,7 +1263,7 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 
 		lock.Lock()
 
-		fmt.Printf("%s syncing %d files\n", prefix, len(adds))
+		fmt.Printf(system("%s syncing %d files\n"), prefix, len(adds))
 
 		for _, sync := range syncs {
 			var buf bytes.Buffer
@@ -1492,4 +1495,15 @@ func (m *Manifest) processSync(local string, syncs []Sync) error {
 	}
 
 	return nil
+}
+
+func warnIfRoot(volume string) {
+	resv, _ := filepath.EvalSymlinks(volume)
+	absv, _ := filepath.Abs(resv)
+	wd, _ := os.Getwd()
+
+	if absv == wd {
+		fmt.Println(warning("WARNING: Detected application directory mounted as volume"))
+		fmt.Println(warning("convox start will automatically synchronize any files referenced by ADD or COPY statements"))
+	}
 }
