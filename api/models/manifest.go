@@ -389,6 +389,14 @@ func (me ManifestEntry) ContainerPorts() []string {
 func (me ManifestEntry) EnvMap() map[string]string {
 	envs := map[string]string{}
 
+	// expose app and rack metadata to the container environment
+	// user supplied environment, either in the manifest or with `convox env set` will override
+	if me.app != nil {
+		envs["APP"] = me.app.Name
+	}
+	envs["RACK"] = os.Getenv("RACK")
+	envs["AWS_REGION"] = os.Getenv("AWS_REGION")
+
 	for _, env := range me.Env {
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) == 2 {
