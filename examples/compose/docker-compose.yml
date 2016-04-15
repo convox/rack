@@ -4,8 +4,6 @@ web:
     - postgres
   ports:
     - 5000:3000
-  volumes:
-    - .:/app
 postgres:
   image: convox/postgres
   ports:
