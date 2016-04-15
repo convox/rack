@@ -5,7 +5,6 @@ export CIRCLE_ARTIFACTS=${CIRCLE_ARTIFACTS:-/tmp}
 export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
-export TEMPLATE_FILE=api/dist/kernel.json
 
 case $CIRCLE_NODE_INDEX in
   1)
