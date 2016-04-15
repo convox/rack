@@ -83,7 +83,7 @@
     "NotificationTopic": {
       "Condition": "Development",
       "Value" : { "Ref": "NotificationTopic" }
-		},
+    },
     "Password": {
       "Condition": "Development",
       "Value": { "Ref": "Password" }
@@ -455,10 +455,10 @@
     },
     "NotificationTopic": {
       "Type": "AWS::SNS::Topic",
-			"Properties": {
-				"TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
-			}
-		},
+      "Properties": {
+        "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-notifications"]] }
+      }
+    },
     "CustomTopic": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -938,6 +938,160 @@
           ],
           "WaitOnResourceSignals": "true"
         }
+      }
+    },
+    "InstancesLifecycle": {
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "DefaultResult": "CONTINUE",
+        "HeartbeatTimeout": "60",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
+        "NotificationTargetARN": { "Ref": "InstancesLifecycleTopic" },
+        "RoleARN": { "Fn::GetAtt": [ "InstancesLifecycleRole", "Arn" ] }
+      }
+    },
+    "InstancesLifecycleRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "autoscaling.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "InstancesLifecycleRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sns:Publish"
+                  ],
+                  "Resource": { "Ref": "InstancesLifecycleTopic" }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "InstancesLifecycleTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": [ { "Endpoint": { "Fn::GetAtt": [ "InstancesLifecycleHandler", "Arn" ] }, "Protocol": "lambda" } ],
+        "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-lifecycle"]] }
+      }
+    },
+    "InstancesLifecycleHandler": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile":  { "Fn::Join": ["\n", [
+            "var AWS = require('aws-sdk');",
+            "var util = require('util');",
+            "exports.handler = function(input, context) {",
+            "  try {",
+            "    var as = new AWS.AutoScaling();",
+            "    var elb = new AWS.ELB();",
+            "    setTimeout(function() {",
+            "      for (var i in input.Records) {",
+            "        var message = JSON.parse(input.Records[i].Sns.Message);",
+            "        as.completeLifecycleAction({AutoScalingGroupName:message.AutoScalingGroupName,InstanceId:message.EC2InstanceId,LifecycleActionResult:'CONTINUE',LifecycleActionToken:message.LifecycleActionToken,LifecycleHookName:message.LifecycleHookName}, function(err, data) {",
+            "          console.log('completeLifecycleAction', 'err', err, 'data', data);",
+            "        });",
+            "      }",
+            "    }, 5000);",
+            "    for (var i in input.Records) {",
+            "      var message = JSON.parse(input.Records[i].Sns.Message);",
+            "      console.log('message', message);",
+            "      if (message.LifecycleTransition == 'autoscaling:EC2_INSTANCE_TERMINATING') {",
+            "        elb.describeLoadBalancers({}, function(err, data) {",
+            "          for (var j in data.LoadBalancerDescriptions) {",
+            "            var elbName = data.LoadBalancerDescriptions[j].LoadBalancerName;",
+            "            elb.describeTags({LoadBalancerNames:[elbName]}, function(err, data) {",
+            "              console.log('describeTags', 'err', err, 'data', data, 'tags', tags);",
+            "              var tags = {};",
+            "              for (var k in data.TagDescriptions[0].Tags) {",
+            "                tags[data.TagDescriptions[0].Tags[k].Key] = data.TagDescriptions[0].Tags[k].Value;",
+            "              }",
+            { "Fn::Join": [ "", [ "              if (tags.Rack == '", { "Ref": "AWS::StackName" }, "') {" ] ] },
+            "                elb.deregisterInstancesFromLoadBalancer({LoadBalancerName:elbName,Instances:[{InstanceId:message.EC2InstanceId}]}, function(err, data) {",
+            "                  console.log('deregisterInstancesFromLoadBalancer', 'err', err, 'data', data);",
+            "                });",
+            "              }",
+            "            });",
+            "          }",
+            "        });",
+            "      }",
+            "    }",
+            "  } catch (err) {",
+            "    context.fail(err);",
+            "  }",
+            "};"
+          ]]}
+        },
+        "Handler": "index.handler",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
+        "Runtime": "nodejs",
+        "Timeout": "10"
+      }
+    },
+    "InstancesLifecycleHandlerPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": { "Fn::GetAtt": [ "InstancesLifecycleHandler", "Arn" ] },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": { "Ref": "InstancesLifecycleTopic" }
+      }
+    },
+    "InstancesLifecycleHandlerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "InstancesLifecycleHandlerRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "autoscaling:CompleteLifecycleAction",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:DescribeLoadBalancers",
+                    "elasticloadbalancing:DescribeTags",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "RegistryBucket": {
