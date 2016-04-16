@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"io"
 	"time"
 
@@ -15,65 +16,76 @@ func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamO
 		return err
 	}
 
-	startTime := time.Now().Add(-2*time.Minute).UnixNano() / int64(time.Millisecond) // number of milliseconds since Jan 1, 1970 00:00:00 UTC for 1 minute ago
+	startTime := aws.Int64(time.Now().Add(-2*time.Minute).UnixNano() / int64(time.Millisecond)) // number of milliseconds since Jan 1, 1970 00:00:00 UTC for 1 minute ago
+	nextToken := aws.String("")
 
 	for {
 		req := &cloudwatchlogs.FilterLogEventsInput{
 			Interleaved:  aws.Bool(true),
 			LogGroupName: aws.String(a.Outputs["LogGroup"]),
-			StartTime:    aws.Int64(startTime),
+			StartTime:    startTime,
 		}
 
-		resp, err := p.cloudwatchlogs().FilterLogEvents(req)
+		startTime, nextToken, err = p.writeLogEvents(req, w)
 		if err != nil {
 			return err
 		}
-
-		err = writeEvents(w, resp.Events, &startTime)
-		if err != nil {
-			return err
-		}
-
-		nextToken := resp.NextToken
 
 		for nextToken != nil {
 			req.NextToken = nextToken
 
-			resp, err := p.cloudwatchlogs().FilterLogEvents(req)
+			startTime, nextToken, err = p.writeLogEvents(req, w)
 			if err != nil {
 				return err
 			}
-
-			err = writeEvents(w, resp.Events, &startTime)
-			if err != nil {
-				return err
-			}
-
-			nextToken = resp.NextToken
 		}
 
-		_, err = w.Write([]byte{}) // keepalive
+		// assert that websocket is still alive
+		_, err = w.Write([]byte{})
 		if err != nil {
 			return err
 		}
 
-		time.Sleep(20 * time.Millisecond)
+		// According to http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/cloudwatch_limits.html
+		// the maximum rate of a GetLogEvents request is 10 requests per second per AWS account.
+		// Aim for 5 reqs / sec so two clients can tail.
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	return nil
 }
 
-func writeEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent, ts *int64) error {
-	for _, e := range events {
-		if *e.Timestamp > *ts {
+func (p *AWSProvider) writeLogEvents(req *cloudwatchlogs.FilterLogEventsInput, w io.Writer) (*int64, *string, error) {
+	resp, err := p.cloudwatchlogs().FilterLogEvents(req)
+	if code := awsError(err); code == "ThrottlingException" {
+		// Backoff but don't return an error
+		fmt.Printf("logs writeLogEvents err=%q\n", code)
+		time.Sleep(1 * time.Second)
+		return req.StartTime, req.NextToken, nil
+	}
+	if err != nil {
+		fmt.Printf("logs writeLogEvents err=%q\n", err)
+		return req.StartTime, req.NextToken, err
+	}
+
+	ts := req.StartTime
+
+	for _, e := range resp.Events {
+		if *e.Timestamp >= *ts {
 			*ts = *e.Timestamp + int64(1)
 		}
 
-		_, err := w.Write([]byte(*e.Message + "\n"))
+		sec := *e.Timestamp / 1000
+		nsec := *e.Timestamp - (sec * 1000)
+		t := time.Unix(sec, nsec)
+
+		line := fmt.Sprintf("%s %s\n", t.Format(time.RFC3339), *e.Message)
+		_, err := w.Write([]byte(line))
 		if err != nil {
-			return err
+			return ts, req.NextToken, err
 		}
 	}
 
-	return nil
+	// return latest timestamp and NextToken seen in the response
+	return ts, resp.NextToken, nil
 }
