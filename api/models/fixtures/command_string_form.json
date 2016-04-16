@@ -309,13 +309,16 @@
               {
                 "Command": "cmd1 cmd2",
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "main"
+                  "PROCESS": "main",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

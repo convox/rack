@@ -132,6 +132,7 @@ func TestManifestInvalid(t *testing.T) {
 }
 
 func TestManifestFixtures(t *testing.T) {
+	os.Setenv("AWS_REGION", "us-test-2")
 	ManifestRandomPorts = false
 	assertFixture(t, "multi_balancer", "web")
 	assertFixture(t, "web_external_internal", "")
@@ -144,6 +145,7 @@ func TestManifestFixtures(t *testing.T) {
 
 // test unbound apps with old balancer names and primary process logic
 func TestManifestFixtureUnbound(t *testing.T) {
+	os.Setenv("AWS_REGION", "us-test-2")
 	ManifestRandomPorts = false
 	assertFixtureUnbound(t, "multi_balancer", "web")
 	assertFixtureUnbound(t, "web_external_internal", "")
