@@ -1,5 +1,9 @@
 package structs
 
+import "time"
+
 type LogStreamOptions struct {
-	Source string
+	Filter string        `json:"filter"`
+	Follow bool          `json:"follow"`
+	Since  time.Duration `json:"since"`
 }

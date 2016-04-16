@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
@@ -111,8 +112,20 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 	app := mux.Vars(ws.Request())["app"]
 	header := ws.Request().Header
 
-	err := provider.LogStream(app, ws, structs.LogStreamOptions{
-		Source: header.Get("Source"),
+	follow := true
+	if header.Get("Follow") == "false" {
+		follow = false
+	}
+
+	since, err := time.ParseDuration(header.Get("Since"))
+	if err != nil {
+		return httperr.Errorf(403, "Invalid duration %s", header.Get("Since"))
+	}
+
+	err = provider.LogStream(app, ws, structs.LogStreamOptions{
+		Filter: header.Get("Filter"),
+		Follow: follow,
+		Since:  since,
 	})
 	if err != nil {
 		if strings.HasSuffix(err.Error(), "write: broken pipe") {

@@ -16,7 +16,12 @@ func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamO
 		return err
 	}
 
-	startTime := aws.Int64(time.Now().Add(-2*time.Minute).UnixNano() / int64(time.Millisecond)) // number of milliseconds since Jan 1, 1970 00:00:00 UTC for 1 minute ago
+	since := 2 * time.Minute
+	if opts.Since.Nanoseconds() > 0 {
+		since = opts.Since
+	}
+
+	startTime := aws.Int64(time.Now().Add(-since).UnixNano() / int64(time.Millisecond)) // number of milliseconds since Jan 1, 1970 00:00:00 UTC
 	nextToken := aws.String("")
 
 	for {
@@ -24,6 +29,10 @@ func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamO
 			Interleaved:  aws.Bool(true),
 			LogGroupName: aws.String(a.Outputs["LogGroup"]),
 			StartTime:    startTime,
+		}
+
+		if opts.Filter != "" {
+			req.FilterPattern = aws.String(opts.Filter)
 		}
 
 		startTime, nextToken, err = p.writeLogEvents(req, w)
@@ -44,6 +53,10 @@ func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamO
 		_, err = w.Write([]byte{})
 		if err != nil {
 			return err
+		}
+
+		if !opts.Follow {
+			return nil
 		}
 
 		// According to http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/cloudwatch_limits.html
