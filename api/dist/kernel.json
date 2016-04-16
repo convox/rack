@@ -856,33 +856,48 @@
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "UserData": { "Fn::Base64":
           { "Fn::Join": [ "\n", [
-            "#!/bin/bash",
-            "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
-            "echo 'exclude=kernel*' >> /etc/yum.conf",
-            "yum -y update",
-            "yum -y install aws-cfn-bootstrap",
-            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
-            "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
-            { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
-            ] },
-            { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
-              "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
-            ] },
-            "service docker restart",
-            "mkdir -p /etc/convox",
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id" ] ] },
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
-            "curl -s https://convox.s3.amazonaws.com/agent/0.68/convox.conf > /etc/init/convox.conf",
-            "start convox",
-            { "Ref": "InstanceBootCommand" },
-            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
-            "sleep 30",
-            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
+            "#cloud-config",
+            "repo_upgrade: all",
+            "packages:",
+            "- aws-cfn-bootstrap",
+            "swap:",
+            "  filename: /swapfile",
+            "  size: 5000000000",
+            "write_files:",
+            "- path: /opt/convox/runcmd.sh",
+            "  permissions: '0755'",
+            "  content: |",
+            { "Fn::Join" : [ "\n      ", [
+              "      #!/bin/bash",
+              { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
+              "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
+              { "Fn::If": [ "BlankCertificate",
+                { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
+                { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
+              ] },
+              { "Fn::If": [ "BlankCertificate",
+                { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
+                "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
+              ] },
+              "mkdir -p /etc/convox",
+              { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
+              { "Fn::Join": [ "", [ "echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id" ] ] },
+              { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
+              { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
+              "curl -s https://convox.s3.amazonaws.com/agent/0.68/convox.conf > /etc/init/convox.conf"
+            ] ] },
+            "- path: /var/lib/cloud/scripts/per-once/convox.sh",
+            "  permissions: '0755'",
+            "  content: |",
+            { "Fn::Join" : [ "\n      ", [
+              "      #!/bin/bash",
+              { "Ref": "InstanceBootCommand" },
+              { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
+              "sleep 30",
+              { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
+            ] ] },
+            "runcmd:",
+            "- [ cloud-init-per, once, convox_runcmd, /opt/convox/runcmd.sh ]"
           ] ] }
         }
       }
