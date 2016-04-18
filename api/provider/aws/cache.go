@@ -30,6 +30,26 @@ func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) 
 	return res, nil
 }
 
+func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+	res, ok := cache.Get("describeStackEvents", input.StackName).(*cloudformation.DescribeStackEventsOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.cloudformation().DescribeStackEvents(input)
+	if err != nil {
+		return nil, err
+	}
+
+	err = cache.Set("describeStackEvents", input.StackName, res, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
 	res, ok := cache.Get("listContainerInstances", input).(*ecs.ListContainerInstancesOutput)
 

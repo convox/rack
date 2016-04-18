@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -38,6 +40,27 @@ func coalesce(s *dynamodb.AttributeValue, def string) string {
 	} else {
 		return def
 	}
+}
+
+func buildTemplate(name, section string, data interface{}) (string, error) {
+	d, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(d))
+	if err != nil {
+		return "", err
+	}
+
+	var formation bytes.Buffer
+
+	err = tmpl.Execute(&formation, data)
+	if err != nil {
+		return "", err
+	}
+
+	return formation.String(), nil
 }
 
 func formationParameters(formation string) (map[string]TemplateParameter, error) {
@@ -235,4 +258,42 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	_, err = p.updateStack(req)
 
 	return err
+}
+
+func templateHelpers() template.FuncMap {
+	return template.FuncMap{
+		"upper": func(s string) string {
+			return UpperName(s)
+		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+	}
+}
+
+func UpperName(name string) string {
+	// myapp -> Myapp; my-app -> MyApp
+	us := strings.ToUpper(name[0:1]) + name[1:]
+
+	for {
+		i := strings.Index(us, "-")
+
+		if i == -1 {
+			break
+		}
+
+		s := us[0:i]
+
+		if len(us) > i+1 {
+			s += strings.ToUpper(us[i+1 : i+2])
+		}
+
+		if len(us) > i+2 {
+			s += us[i+2:]
+		}
+
+		us = s
+	}
+
+	return us
 }

@@ -43,6 +43,7 @@ type Provider interface {
 	ReleaseSave(*structs.Release, string, string) error
 
 	ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error)
+	ServiceGet(name string) (*structs.Service, error)
 
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
@@ -157,6 +158,10 @@ func ReleaseSave(r *structs.Release, logdir, key string) error {
 
 func ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
 	return CurrentProvider.ServiceCreate(name, kind, params)
+}
+
+func ServiceGet(name string) (*structs.Service, error) {
+	return CurrentProvider.ServiceGet(name)
 }
 
 func SystemGet() (*structs.System, error) {
