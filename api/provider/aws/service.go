@@ -66,6 +66,27 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	return s, err
 }
 
+func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
+	s, err := p.ServiceGet(name)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(serviceStackName(s)),
+	})
+
+	p.EventSend(&structs.Event{
+		Action: "service:delete",
+		Data: map[string]string{
+			"name": s.Name,
+			"type": s.Type,
+		},
+	}, err)
+
+	return s, err
+}
+
 func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
@@ -160,8 +181,8 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 }
 
 func serviceStackName(s *structs.Service) string {
-	// Tags are present but "Name" tag is not so we have an existing service with no rack name prefix
-	if s.Tags != nil && s.Tags["Name"] != "" {
+	// Tags are present but "Name" tag is not so we have an "unbound" service with no rack name prefix
+	if s.Tags != nil && s.Tags["Name"] == "" {
 		return s.Name
 	}
 
