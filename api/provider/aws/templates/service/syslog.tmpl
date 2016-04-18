@@ -1,0 +1,195 @@
+{{ define "service" }}
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Outputs": {
+    "Url": {
+      "Value": {
+        "Ref": "Url"
+      }
+    }
+  },
+  "Parameters": {
+    "LogGroup": {
+      "Description": "CloudWatch Log Group to subscribe to",
+      "Type": "String"
+    },
+    "Url": {
+      "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Function": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": "lambda/syslog.zip"
+        },
+        "Description": {
+          "Ref": "Url"
+        },
+        "FunctionName": {
+          "Ref": "AWS::StackName"
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "Role",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": "25"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "Permission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "Principal": {
+          "Fn::Join": [
+            ".",
+            [
+              "logs",
+              {
+                "Ref": "AWS::Region"
+              },
+              "amazonaws.com"
+            ]
+          ]
+        },
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        },
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:logs:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":log-group:",
+              {
+                "Ref": "LogGroup"
+              },
+              ":*"
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Permission"
+    },
+    "Role": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "cloudwatch:PutMetricData",
+                    "lambda:InvokeFunction"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                },
+                {
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Action": [
+                    "cloudformation:DescribeStacks"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:cloudformation:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":stack/",
+                        {
+                          "Ref": "AWS::StackName"
+                        },
+                        "/*"
+                      ]
+                    ]
+                  }
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "LambdaCloudFormationCloudWatch"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "SubscriptionFilter": {
+      "DependsOn": [
+        "Permission"
+      ],
+      "Properties": {
+        "DestinationArn": {
+          "Fn::GetAtt": [
+            "Function",
+            "Arn"
+          ]
+        },
+        "FilterPattern": "",
+        "LogGroupName": {
+          "Ref": "LogGroup"
+        }
+      },
+      "Type": "AWS::Logs::SubscriptionFilter"
+    }
+  }
+}
+{{ end }}
