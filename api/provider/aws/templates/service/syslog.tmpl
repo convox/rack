@@ -9,16 +9,76 @@
     }
   },
   "Parameters": {
-    "LogGroup": {
-      "Description": "CloudWatch Log Group to subscribe to",
-      "Type": "String"
-    },
     "Url": {
       "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
       "Type": "String"
     }
   },
   "Resources": {
+    {{ range $k, $app := .apps }}
+      "{{ upper $app.Name }}Permission": {
+        "Properties": {
+          "Action": "lambda:InvokeFunction",
+          "FunctionName": {
+            "Ref": "Function"
+          },
+          "Principal": {
+            "Fn::Join": [
+              ".",
+              [
+                "logs",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "amazonaws.com"
+              ]
+            ]
+          },
+          "SourceAccount": {
+            "Ref": "AWS::AccountId"
+          },
+          "SourceArn": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:logs:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":",
+                {
+                  "Ref": "AWS::AccountId"
+                },
+                ":log-group:",
+                {
+                  "Ref": {{ $app.Outputs.LogGroup }}
+                },
+                ":*"
+              ]
+            ]
+          }
+        },
+        "Type": "AWS::Lambda::Permission"
+      },
+      "{{ upper $app.Name }}SubscriptionFilter": {
+        "DependsOn": [
+          "Permission"
+        ],
+        "Properties": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "Function",
+              "Arn"
+            ]
+          },
+          "FilterPattern": "",
+          "LogGroupName": {
+            "Ref": {{ $app.Outputs.LogGroup }}
+          }
+        },
+        "Type": "AWS::Logs::SubscriptionFilter"
+      },
+    {{ end }}
     "Function": {
       "Properties": {
         "Code": {
@@ -52,50 +112,6 @@
         "Timeout": "25"
       },
       "Type": "AWS::Lambda::Function"
-    },
-    "Permission": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Ref": "Function"
-        },
-        "Principal": {
-          "Fn::Join": [
-            ".",
-            [
-              "logs",
-              {
-                "Ref": "AWS::Region"
-              },
-              "amazonaws.com"
-            ]
-          ]
-        },
-        "SourceAccount": {
-          "Ref": "AWS::AccountId"
-        },
-        "SourceArn": {
-          "Fn::Join": [
-            "",
-            [
-              "arn:aws:logs:",
-              {
-                "Ref": "AWS::Region"
-              },
-              ":",
-              {
-                "Ref": "AWS::AccountId"
-              },
-              ":log-group:",
-              {
-                "Ref": "LogGroup"
-              },
-              ":*"
-            ]
-          ]
-        }
-      },
-      "Type": "AWS::Lambda::Permission"
     },
     "Role": {
       "Properties": {
@@ -171,24 +187,6 @@
         ]
       },
       "Type": "AWS::IAM::Role"
-    },
-    "SubscriptionFilter": {
-      "DependsOn": [
-        "Permission"
-      ],
-      "Properties": {
-        "DestinationArn": {
-          "Fn::GetAtt": [
-            "Function",
-            "Arn"
-          ]
-        },
-        "FilterPattern": "",
-        "LogGroupName": {
-          "Ref": "LogGroup"
-        }
-      },
-      "Type": "AWS::Logs::SubscriptionFilter"
     }
   }
 }
