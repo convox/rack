@@ -121,11 +121,11 @@
         "Properties": {
           "Code": {
             "ZipFile":  { "Fn::Join": ["\n", [
-              "var AWS = require("aws-sdk");",
+              "var AWS = require('aws-sdk');",
               "var cloudwatchevents = new AWS.CloudWatchEvents();",
               "exports.handler = function(event, context) {",
                 "var params = {",
-                  "Name: event.Name,"
+                  "Name: event.Name,",
                   "ScheduleExpression: event.ScheduleExpression,",
                   "State: 'ENABLED'",
                 "};",
@@ -133,10 +133,11 @@
                   "if (err) console.log(err, err.stack);",
                   "else     console.log(data);",
                 "});",
-              "};" ] ] }
+              "};" ] ] 
             }
           }
         }
+      },
       {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
       {{ template "process-resources" . }}
@@ -318,31 +319,6 @@
   {{ end }}
 {{ end }}
 
-{{ define "cronjob-resources" }}
-  {{ range .CronJobs }}
-    "{{ .ShortName }}Cron": {
-      "Type": "AWS::Lambda::Function",
-      "Properties": {
-        "FunctionName": "{{ .LongName }}Cron"
-        "Handler": "index.handler",
-        "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Code": {
-          "S3Bucket": { "Ref": "Settings" },
-          "S3Key": "cronjobs/{{ .ShortName }}.zip"
-        }
-      }
-    }
-  {{ end }}
-  "{{ .ShortName }}Rule": {
-    "Type": "Custom::CloudWatch::Rule",
-    "Properties": {
-      "ServiceToken": { "Fn::GetAtt": [ "CloudWatchScheduledEventCreateFunction", "Arn" ] },
-      "Name": "{{ .LongName }}Schedule",
-      "ScheduleExpression": "{{ .Schedule }}" 
-    }
-  },
-{{ end }}
-
 {{ define "balancer-resources" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
@@ -428,6 +404,31 @@
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName }},
         "SecurityGroups": [ { "Ref": "{{ .ResourceName }}SecurityGroup" } ]
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "cronjob-resources" }}
+  {{ range .CronJobs }}
+    "{{ .ShortName }}Cron": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "{{ .LongName }}Cron",
+        "Handler": "index.handler",
+        "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
+        "Code": {
+          "S3Bucket": { "Ref": "Settings" },
+          "S3Key": "cronjobs/{{ .ShortName }}.zip"
+        }
+      }
+    },
+    "{{ .ShortName }}Rule": {
+      "Type": "Custom::CloudWatch::Rule",
+      "Properties": {
+        "ServiceToken": { "Fn::GetAtt": [ "CloudWatchScheduledEventCreateFunction", "Arn" ] },
+        "Name": "{{ .LongName }}Schedule",
+        "ScheduleExpression": "{{ .Schedule }}"
       }
     },
   {{ end }}

@@ -1,7 +1,9 @@
 package models
 
 import (
+	"archive/zip"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -31,4 +33,48 @@ func (cr *CronJob) ShortName() string {
 func (cr *CronJob) LongName() string {
 	app := cr.ManifestEntry.app
 	return fmt.Sprintf("%s-%s%s", app.StackName, app.Name, cr.ShortName())
+}
+
+func (cr *CronJob) UploadLambdaFunction() error {
+	data, err := buildTemplate("cronjob.js", "cronjob", cr)
+
+	if err != nil {
+		return err
+	}
+
+	// zip it
+	zipfile, err := os.Create(fmt.Sprintf("/tmp/%s.zip", cr.ShortName))
+
+	if err != nil {
+		return err
+	}
+
+	w := zip.NewWriter(zipfile)
+
+	f, err := w.Create(fmt.Sprintf("%s.js", cr.ShortName))
+
+	if err != nil {
+		return err
+	}
+
+	_, err = f.Write([]byte(data))
+
+	if err != nil {
+		return err
+	}
+
+	err = w.Close()
+
+	if err != nil {
+		return err
+	}
+
+	// upload it to S3
+	err = S3PutFile(cr.ManifestEntry.app.Outputs["Settings"], fmt.Sprintf("cronjobs/%s.zip", cr.ShortName), zipfile, false)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
