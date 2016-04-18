@@ -858,6 +858,8 @@
           { "Fn::Join": [ "\n", [
             "#cloud-config",
             "repo_upgrade: all",
+            "repo_upgrade_exclude:",
+            "- kernel*",
             "packages:",
             "- aws-cfn-bootstrap",
             "swap:",
