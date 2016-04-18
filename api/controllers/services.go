@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 	"github.com/gorilla/mux"
 )
 
@@ -53,6 +54,16 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "name")
 	kind := params["type"]
 	delete(params, "type")
+
+	// new services should use the provider interfaces
+	if kind == "syslog" {
+		s, err := provider.ServiceCreate(name, kind, params)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, s)
+	}
 
 	// Early check for unbound service only.
 	service, err := models.GetServiceUnbound(name)
