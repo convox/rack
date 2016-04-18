@@ -34,6 +34,40 @@ func awsError(err error) string {
 	return ""
 }
 
+func camelize(dasherized string) string {
+	tokens := strings.Split(dasherized, "-")
+
+	for i, token := range tokens {
+		switch token {
+		case "az":
+			tokens[i] = "AZ"
+		default:
+			tokens[i] = strings.Title(token)
+		}
+	}
+
+	return strings.Join(tokens, "")
+}
+
+func cfParams(source map[string]string) map[string]string {
+	params := make(map[string]string)
+
+	for key, value := range source {
+		var val string
+		switch value {
+		case "":
+			val = "false"
+		case "true":
+			val = "true"
+		default:
+			val = value
+		}
+		params[camelize(key)] = val
+	}
+
+	return params
+}
+
 func coalesce(s *dynamodb.AttributeValue, def string) string {
 	if s != nil {
 		return *s.S
@@ -67,7 +101,6 @@ func formationParameters(formation string) (map[string]TemplateParameter, error)
 	var t Template
 
 	err := json.Unmarshal([]byte(formation), &t)
-
 	if err != nil {
 		return nil, err
 	}

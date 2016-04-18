@@ -16,8 +16,9 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	}
 
 	s := &structs.Service{
-		Name: name,
-		Type: kind,
+		Name:       name,
+		Parameters: cfParams(params),
+		Type:       kind,
 	}
 
 	var req *cloudformation.CreateStackInput
@@ -114,7 +115,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 }
 
 func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) {
-	formation, err := buildTemplate(fmt.Sprintf("service/%s", s.Type), "service", nil)
+	formation, err := serviceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err
 	}
