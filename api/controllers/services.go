@@ -109,23 +109,29 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such service: %s", service)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	err = s.Delete()
+	// new services should use the provider interfaces
+	if s.Type == "syslog" {
+		s, err := provider.ServiceDelete(service)
+		if err != nil {
+			return httperr.Server(err)
+		}
 
+		return RenderJson(rw, s)
+	}
+
+	err = s.Delete()
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	s, err = models.GetService(service)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
