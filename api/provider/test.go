@@ -18,6 +18,7 @@ type TestProviderRunner struct {
 	Instances structs.Instances
 	Release   structs.Release
 	Releases  structs.Releases
+	Service   structs.Service
 }
 
 func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
@@ -128,6 +129,11 @@ func (p *TestProviderRunner) ReleasePromote(app, id string) (*structs.Release, e
 func (p *TestProviderRunner) ReleaseSave(r *structs.Release, logdir, key string) error {
 	p.Called(r, logdir, key)
 	return nil
+}
+
+func (p *TestProviderRunner) ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
+	p.Called(name, kind, params)
+	return &p.Service, nil
 }
 
 func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
