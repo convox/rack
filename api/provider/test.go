@@ -136,6 +136,11 @@ func (p *TestProviderRunner) ServiceCreate(name, kind string, params map[string]
 	return &p.Service, nil
 }
 
+func (p *TestProviderRunner) ServiceGet(name string) (*structs.Service, error) {
+	p.Called(name)
+	return &p.Service, nil
+}
+
 func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
 	p.Called()
 	return nil, nil
