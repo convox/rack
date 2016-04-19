@@ -4,9 +4,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
-// StaticProviderName provides a name of Static provider
-const StaticProviderName = "StaticProvider"
-
 var (
 	// ErrStaticCredentialsEmpty is emitted when static credentials are empty.
 	//
@@ -33,10 +30,9 @@ func NewStaticCredentials(id, secret, token string) *Credentials {
 // Retrieve returns the credentials or error if the credentials are invalid.
 func (s *StaticProvider) Retrieve() (Value, error) {
 	if s.AccessKeyID == "" || s.SecretAccessKey == "" {
-		return Value{ProviderName: StaticProviderName}, ErrStaticCredentialsEmpty
+		return Value{}, ErrStaticCredentialsEmpty
 	}
 
-	s.Value.ProviderName = StaticProviderName
 	return s.Value, nil
 }
 
