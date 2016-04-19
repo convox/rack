@@ -2,6 +2,11 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Outputs": {
+    {{ range $k, $app := .Apps }}
+      "{{ upper $app.Name }}Link": {
+        "Value": "{{ $app.Outputs.LogGroup }}"
+      },
+    {{ end }}
     "Url": {
       "Value": {
         "Ref": "Url"
@@ -15,7 +20,7 @@
     }
   },
   "Resources": {
-    {{ range $k, $app := .apps }}
+    {{ range $k, $app := .Apps }}
       "{{ upper $app.Name }}Permission": {
         "Properties": {
           "Action": "lambda:InvokeFunction",
@@ -49,11 +54,7 @@
                 {
                   "Ref": "AWS::AccountId"
                 },
-                ":log-group:",
-                {
-                  "Ref": {{ $app.Outputs.LogGroup }}
-                },
-                ":*"
+                ":log-group:{{ $app.Outputs.LogGroup }}:*"
               ]
             ]
           }
@@ -62,7 +63,7 @@
       },
       "{{ upper $app.Name }}SubscriptionFilter": {
         "DependsOn": [
-          "Permission"
+          "{{ upper $app.Name }}Permission"
         ],
         "Properties": {
           "DestinationArn": {
@@ -72,9 +73,7 @@
             ]
           },
           "FilterPattern": "",
-          "LogGroupName": {
-            "Ref": {{ $app.Outputs.LogGroup }}
-          }
+          "LogGroupName": "{{ $app.Outputs.LogGroup }}"
         },
         "Type": "AWS::Logs::SubscriptionFilter"
       },
