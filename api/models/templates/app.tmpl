@@ -386,14 +386,6 @@
 
 {{ define "cronjob-resources" }}
   {{ range .CronJobs }}
-    "{{ .ShortName }}Rule": {
-      "Type": "Custom::CloudWatchEventsRule",
-      "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-        "Name": "{{ .LongName }}Schedule",
-        "ScheduleExpression": "{{ .Schedule }}"
-      }
-    },
     "{{ .ShortName }}Cron": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -405,6 +397,17 @@
           "S3Bucket": { "Ref": "Settings" },
           "S3Key": "cronjobs/{{ .ShortName }}.zip"
         }
+      }
+    },
+    "{{ .ShortName }}Rule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "{{ .LongName }}Schedule",
+        "ScheduleExpression": "{{ .Schedule }}",
+        "Targets": [{
+          "Arn": { "Fn::GetAtt": [ "{{ .ShortName }}Cron", "Arn" ] },
+          "Id": "{{ .LongName }}Target"
+        }]
       }
     },
   {{ end }}

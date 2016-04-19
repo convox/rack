@@ -42,10 +42,10 @@ exports.handler = (event, context) => {
         });
     });
 
-    req.on("error", () => {
+    req.on("error", (error) => {
       console.log('Error:', error);
       context.done();
-    }
+    });
 
     req.write(postData);
     req.end();
