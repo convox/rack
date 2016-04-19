@@ -5,9 +5,12 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -107,27 +110,33 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func AppLogs(ws *websocket.Conn) *httperr.Error {
 	app := mux.Vars(ws.Request())["app"]
+	header := ws.Request().Header
 
-	a, err := models.GetApp(app)
+	var err error
 
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
+	follow := true
+	if header.Get("Follow") == "false" {
+		follow = false
 	}
 
+	since := 2 * time.Minute
+	if s := header.Get("Since"); s != "" {
+		since, err = time.ParseDuration(s)
+		if err != nil {
+			return httperr.Errorf(403, "Invalid duration %s", s)
+		}
+	}
+
+	err = provider.LogStream(app, ws, structs.LogStreamOptions{
+		Filter: header.Get("Filter"),
+		Follow: follow,
+		Since:  since,
+	})
 	if err != nil {
+		if strings.HasSuffix(err.Error(), "write: broken pipe") {
+			return nil
+		}
 		return httperr.Server(err)
 	}
-
-	logs := make(chan []byte)
-	done := make(chan bool)
-
-	a.SubscribeLogs(logs, done)
-
-	go signalWsClose(ws, done)
-
-	for data := range logs {
-		ws.Write(data)
-	}
-
 	return nil
 }
