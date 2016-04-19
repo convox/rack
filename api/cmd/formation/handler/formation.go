@@ -164,8 +164,6 @@ func HandleRequest(freq Request) error {
 	var physical string
 
 	switch freq.ResourceType {
-	case "Custom::CloudWatchEventsRule(freq)":
-		physical, outputs, err = HandleCloudWatchEventsRule(freq)
 	case "Custom::EC2AvailabilityZones":
 		physical, outputs, err = HandleEC2AvailabilityZones(freq)
 	case "Custom::EC2NatGateway":
