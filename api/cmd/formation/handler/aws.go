@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -47,13 +46,6 @@ func Region(req *Request) *string {
 
 func CloudFormation(req Request) *cloudformation.CloudFormation {
 	return cloudformation.New(session.New(), &aws.Config{
-		Credentials: Credentials(&req),
-		Region:      Region(&req),
-	})
-}
-
-func CloudWatchEvents(req Request) *cloudwatchevents.CloudWatchEvents {
-	return cloudwatchevents.New(session.New(), &aws.Config{
 		Credentials: Credentials(&req),
 		Region:      Region(&req),
 	})
