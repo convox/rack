@@ -390,7 +390,7 @@
 {{ define "cronjob-resources" }}
   {{ range .CronJobs }}
     "{{ .ShortName }}Rule": {
-      "Type": "Custom::CloudWatchRule",
+      "Type": "Custom::CloudWatchEventsRule",
       "Properties": {
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Name": "{{ .LongName }}Schedule",
