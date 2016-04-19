@@ -32,18 +32,24 @@ func (cr *CronJob) ShortName() string {
 
 func (cr *CronJob) LongName() string {
 	app := cr.ManifestEntry.app
-	return fmt.Sprintf("%s-%s%s", app.StackName, app.Name, cr.ShortName())
+	return fmt.Sprintf("%s-%s%s", app.StackName(), app.Name, cr.ShortName())
 }
 
 func (cr *CronJob) UploadLambdaFunction() error {
-	data, err := buildTemplate("cronjob.js", "cronjob", cr)
+	input := map[string]interface{}{
+		"CronJob":   cr,
+		"Dashboard": os.Getenv("NOTIFICATION_HOST"),
+		"Password":  os.Getenv("PASSWORD"),
+	}
+
+	data, err := buildTemplate("cronjob.js", "cronjob", input)
 
 	if err != nil {
 		return err
 	}
 
 	// zip it
-	zipfile, err := os.Create(fmt.Sprintf("/tmp/%s.zip", cr.ShortName))
+	zipfile, err := os.Create(fmt.Sprintf("/tmp/%s.zip", cr.ShortName()))
 
 	if err != nil {
 		return err
@@ -51,7 +57,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 
 	w := zip.NewWriter(zipfile)
 
-	f, err := w.Create(fmt.Sprintf("%s.js", cr.ShortName))
+	f, err := w.Create(fmt.Sprintf("%s.js", cr.ShortName()))
 
 	if err != nil {
 		return err
@@ -70,7 +76,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 	}
 
 	// upload it to S3
-	err = S3PutFile(cr.ManifestEntry.app.Outputs["Settings"], fmt.Sprintf("cronjobs/%s.zip", cr.ShortName), zipfile, false)
+	err = S3PutFile(cr.ManifestEntry.app.Outputs["Settings"], fmt.Sprintf("cronjobs/%s.zip", cr.ShortName()), zipfile, false)
 
 	if err != nil {
 		return err
