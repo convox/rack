@@ -20,7 +20,7 @@ func NewCronJobFromLabel(key, value string) CronJob {
 	tokens := strings.Fields(value)
 	cronjob := CronJob{
 		Name:     name,
-		Schedule: fmt.Sprintf("cron(%s)", strings.Join(tokens[0:5], " ")),
+		Schedule: fmt.Sprintf("cron(%s)", strings.Join(tokens[0:6], " ")),
 		Command:  strings.Join(tokens[6:], " "),
 	}
 	return cronjob
@@ -42,6 +42,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 		"Password":  os.Getenv("PASSWORD"),
 	}
 
+	// build cron lambda JS
 	data, err := buildTemplate("cronjob.js", "cronjob", input)
 
 	if err != nil {
@@ -57,7 +58,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 
 	w := zip.NewWriter(zipfile)
 
-	f, err := w.Create(fmt.Sprintf("%s.js", cr.ShortName()))
+	f, err := w.Create("index.js")
 
 	if err != nil {
 		return err
