@@ -112,14 +112,19 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 	app := mux.Vars(ws.Request())["app"]
 	header := ws.Request().Header
 
+	var err error
+
 	follow := true
 	if header.Get("Follow") == "false" {
 		follow = false
 	}
 
-	since, err := time.ParseDuration(header.Get("Since"))
-	if err != nil {
-		return httperr.Errorf(403, "Invalid duration %s", header.Get("Since"))
+	since := 2 * time.Minute
+	if s := header.Get("Since"); s != "" {
+		since, err = time.ParseDuration(s)
+		if err != nil {
+			return httperr.Errorf(403, "Invalid duration %s", s)
+		}
 	}
 
 	err = provider.LogStream(app, ws, structs.LogStreamOptions{
