@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -110,29 +111,44 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 		return nil, fmt.Errorf("could not load stack for service: %s", name)
 	}
 
-	svc := serviceFromStack(res.Stacks[0])
+	s := serviceFromStack(res.Stacks[0])
 
-	if svc.Tags["Rack"] != "" && svc.Tags["Rack"] != os.Getenv("RACK") {
+	if s.Tags["Rack"] != "" && s.Tags["Rack"] != os.Getenv("RACK") {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
 	}
 
-	if svc.Status == "failed" {
+	if s.Status == "failed" {
 		eres, err := p.describeStackEvents(&cloudformation.DescribeStackEventsInput{
 			StackName: aws.String(*res.Stacks[0].StackName),
 		})
 		if err != nil {
-			return &svc, err
+			return &s, err
 		}
 
 		for _, event := range eres.StackEvents {
 			if *event.ResourceStatus == cloudformation.ResourceStatusCreateFailed {
-				svc.StatusReason = *event.ResourceStatusReason
+				s.StatusReason = *event.ResourceStatusReason
 				break
 			}
 		}
 	}
 
-	return &svc, nil
+	// Populate linked apps
+	for k, _ := range s.Outputs {
+		if strings.HasSuffix(k, "Link") {
+			n := DashName(k)
+			app := n[:len(n)-5]
+
+			a, err := p.AppGet(app)
+			if err != nil {
+				return &s, err
+			}
+
+			s.Apps = append(s.Apps, *a)
+		}
+	}
+
+	return &s, nil
 }
 
 func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, error) {
@@ -219,6 +235,85 @@ func (p *AWSProvider) ServiceLinkSubscribe(a *structs.App, s *structs.Service) e
 	return err
 }
 
+func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := p.ServiceGet(name)
+	if err != nil {
+		return nil, err
+	}
+
+	// already linked
+	linked := false
+	for _, linkedApp := range s.Apps {
+		if a.Name == linkedApp.Name {
+			break
+		}
+	}
+
+	if !linked {
+		return nil, fmt.Errorf("Service %s is not linked to app %s", s.Name, a.Name)
+	}
+
+	// Update Service and/or App stacks
+	switch s.Type {
+	case "syslog":
+		err = p.ServiceUnlinkSubscribe(a, s) // Update service to forget about App
+	case "s3", "sns", "sqs":
+		err = p.ServiceUnlinkSet(a, s) // Updates app without S3_URL
+	case "postgres":
+		err = p.ServiceUnlinkReplace(a, s) // Updates app without POSTGRES_URL and PostgresCount=1
+	default:
+		err = fmt.Errorf("Service type %s does not have a unlink strategy", s.Type)
+	}
+
+	return s, err
+}
+
+func (p *AWSProvider) ServiceUnlinkReplace(a *structs.App, s *structs.Service) error {
+	return fmt.Errorf("Un-replacing a process with a service is not yet implemented.")
+}
+
+func (p *AWSProvider) ServiceUnlinkSet(a *structs.App, s *structs.Service) error {
+	return fmt.Errorf("Un-setting an environment variable for a service is not yet implemented.")
+}
+
+func (p *AWSProvider) ServiceUnlinkSubscribe(a *structs.App, s *structs.Service) error {
+	// delete from links
+	apps := structs.Apps{}
+	for _, linkedApp := range s.Apps {
+		if a.Name != linkedApp.Name {
+			apps = append(apps, linkedApp)
+		}
+	}
+
+	s.Apps = apps
+
+	formation, err := serviceFormation(s.Type, s)
+	if err != nil {
+		return err
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(serviceStackName(s)),
+		TemplateBody: aws.String(formation),
+	}
+
+	for key, value := range s.Parameters {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
+	}
+
+	_, err = p.cloudformation().UpdateStack(req)
+	return err
+}
+
 func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) {
 	formation, err := serviceFormation(s.Type, nil)
 	if err != nil {
@@ -245,6 +340,7 @@ func serviceFormation(kind string, data interface{}) (string, error) {
 
 func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 	name := *stack.StackName
+	params := stackParameters(stack)
 	tags := stackTags(stack)
 	if value, ok := tags["Name"]; ok {
 		// StackName probably includes the Rack prefix, prefer Name tag.
@@ -253,12 +349,19 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 
 	exports := make(map[string]string)
 
+	if humanStatus(*stack.StackStatus) == "running" {
+		switch tags["Service"] {
+		case "syslog":
+			exports["URL"] = params["Url"]
+		}
+	}
+
 	return structs.Service{
 		Name:       name,
 		Type:       tags["Service"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
-		Parameters: stackParameters(stack),
+		Parameters: params,
 		Tags:       tags,
 		Exports:    exports,
 	}

@@ -46,6 +46,7 @@ type Provider interface {
 	ServiceDelete(name string) (*structs.Service, error)
 	ServiceGet(name string) (*structs.Service, error)
 	ServiceLink(name, app, process string) (*structs.Service, error)
+	ServiceUnlink(name, app, process string) (*structs.Service, error)
 
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
@@ -172,6 +173,10 @@ func ServiceGet(name string) (*structs.Service, error) {
 
 func ServiceLink(name, app, process string) (*structs.Service, error) {
 	return CurrentProvider.ServiceLink(name, app, process)
+}
+
+func ServiceUnlink(name, app, process string) (*structs.Service, error) {
+	return CurrentProvider.ServiceUnlink(name, app, process)
 }
 
 func SystemGet() (*structs.System, error) {

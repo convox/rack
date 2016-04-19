@@ -25,13 +25,21 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such service: %s", service)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
+	}
+
+	// new services should use the provider interfaces
+	if s.Type == "syslog" {
+		s, err := provider.ServiceGet(service)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, s)
 	}
 
 	return RenderJson(rw, s)
