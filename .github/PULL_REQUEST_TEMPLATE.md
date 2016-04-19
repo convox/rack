@@ -7,6 +7,6 @@
 - [ ] Release master ()
 - [ ] Pass CI ()
 - [ ] Update staging rack
-- [ ] Edit release record in GitHub
+- [ ] Edit Rack release record and/or update [docs](https://github.com/convox/convox.github.io)
 - [ ] Publish release
 - [ ] Release CLI
