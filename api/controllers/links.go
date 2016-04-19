@@ -64,17 +64,25 @@ func LinkDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such service: %s", service)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	if s.Status != "running" {
 		return httperr.Errorf(403, "can not unlink service with status: %s", s.Status)
+	}
+
+	// new services should use the provider interfaces
+	if s.Type == "syslog" {
+		s, err := provider.ServiceUnlink(service, app, GetForm(r, "process"))
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, s)
 	}
 
 	if s.Type != "papertrail" {

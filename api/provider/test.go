@@ -151,6 +151,11 @@ func (p *TestProviderRunner) ServiceLink(name, app, process string) (*structs.Se
 	return &p.Service, nil
 }
 
+func (p *TestProviderRunner) ServiceUnlink(name, app, process string) (*structs.Service, error) {
+	p.Called(name, app, process)
+	return &p.Service, nil
+}
+
 func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
 	p.Called()
 	return nil, nil
