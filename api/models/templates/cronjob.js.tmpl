@@ -1,0 +1,52 @@
+'use strict';
+let https = require('https');
+
+var options = {
+    host: '{{ .Dashboard }}',
+    port: 443,
+    path: '/apps/sinatra/processes/web/run',
+    method: 'POST',
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'curl/'
+
+    },
+    auth: 'convox:{{ .Password }}'
+};
+
+var querystring = require('querystring');
+var postData = querystring.stringify({
+  'command' : '{{ .CronJob.Command }}'
+});
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+exports.handler = (event, context) => {
+    console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+
+    if ((event.RequestType == "Delete") || (event.RequestType == "Update")) {
+        context.done();
+        return;
+    }
+
+    const req = https.request(options, (res) => {
+        let body = '';
+        console.log('Status:', res.statusCode);
+        console.log('Headers:', JSON.stringify(res.headers));
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+            console.log(body);
+            context.done();
+        });
+    });
+
+    req.on("error", () => {
+      console.log('Error:', error);
+      context.done();
+    }
+
+    req.write(postData);
+    req.end();
+};
