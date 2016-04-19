@@ -135,6 +135,90 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	return &svc, nil
 }
 
+func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := p.ServiceGet(name)
+	if err != nil {
+		return nil, err
+	}
+
+	// already linked
+	for _, linkedApp := range s.Apps {
+		if a.Name == linkedApp.Name {
+			return nil, fmt.Errorf("Service %s is already linked to app %s", s.Name, a.Name)
+		}
+	}
+
+	// can't link
+	switch s.Type {
+	case "syslog":
+		// noop
+	default:
+		return nil, fmt.Errorf("Service type %s can not be linked", s.Type)
+	}
+
+	// can't link to process or process does not exist
+	if process != "" {
+		switch s.Type {
+		default:
+			return nil, fmt.Errorf("Service type %s can not replace a process", s.Type)
+		}
+
+		// TODO: Port Resource and Resources and validate that UpperName(process)+"ECSTaskDefinition" exists
+	}
+
+	// Update Service and/or App stacks
+	switch s.Type {
+	case "syslog":
+		err = p.ServiceLinkSubscribe(a, s) // Update service to know about App
+	case "s3", "sns", "sqs":
+		err = p.ServiceLinkSet(a, s) // Updates app with S3_URL
+	case "postgres":
+		err = p.ServiceLinkReplace(a, s) // Updates app with POSTGRES_URL and PostgresCount=0
+	default:
+		err = fmt.Errorf("Service type %s does not have a link strategy", s.Type)
+	}
+
+	return s, err
+}
+
+func (p *AWSProvider) ServiceLinkReplace(a *structs.App, s *structs.Service) error {
+	return fmt.Errorf("Replacing a process with a service is not yet implemented.")
+}
+
+func (p *AWSProvider) ServiceLinkSet(a *structs.App, s *structs.Service) error {
+	return fmt.Errorf("Setting an environment variable for a service is not yet implemented.")
+}
+
+func (p *AWSProvider) ServiceLinkSubscribe(a *structs.App, s *structs.Service) error {
+	s.Apps = append(s.Apps, *a)
+
+	formation, err := serviceFormation(s.Type, s)
+	if err != nil {
+		return err
+	}
+
+	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(serviceStackName(s)),
+		TemplateBody: aws.String(formation),
+	}
+
+	for key, value := range s.Parameters {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(value),
+		})
+	}
+
+	_, err = p.cloudformation().UpdateStack(req)
+	return err
+}
+
 func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) {
 	formation, err := serviceFormation(s.Type, nil)
 	if err != nil {

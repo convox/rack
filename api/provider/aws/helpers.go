@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -302,6 +303,14 @@ func templateHelpers() template.FuncMap {
 			return template.HTML(fmt.Sprintf("%q", s))
 		},
 	}
+}
+
+func DashName(name string) string {
+	// Myapp -> myapp; MyApp -> my-app
+	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
+
+	k := re.ReplaceAllString(name, "${1}-${2}")
+	return strings.ToLower(k)
 }
 
 func UpperName(name string) string {
