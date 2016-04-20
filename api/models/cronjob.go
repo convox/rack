@@ -44,6 +44,19 @@ func (cr *CronJob) LongName() string {
 }
 
 func (cr *CronJob) UploadLambdaFunction() error {
+	bucket := cr.ManifestEntry.app.Outputs["Settings"]
+	path := "functions/cron.zip"
+
+	exists, err := s3Exists(bucket, path)
+
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return nil
+	}
+
 	input := map[string]interface{}{
 		"CronJob": cr,
 		"Rack":    os.Getenv("RACK"),
@@ -84,7 +97,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 	}
 
 	// upload it to S3
-	err = S3PutFile(cr.ManifestEntry.app.Outputs["Settings"], "/functions/cron.zip", zipfile, false)
+	err = S3PutFile(bucket, path, zipfile, false)
 
 	if err != nil {
 		return err
