@@ -34,7 +34,7 @@ Some updates are simple Rack API changes that will roll out in seconds.
 
 Some updates are base security updates like a new AMI, Linux Kernel, or Docker engine. These are rolled out one instance at a time and are guaranteed to not cause application downtime.
 
-Some updates are infrastructure migrations. For example, ECR is still in limited availability, not yet available in eu-west-1. When it does become available there, a future `convox rack update` will safely migrate your EU clouds over to it.
+Some updates are infrastructure migrations. For example, ECR is still in limited availability. When it does become available, a future `convox rack update` will safely migrate your clouds over to it.
 
 ### Open Source
 
