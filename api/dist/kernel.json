@@ -5,6 +5,7 @@
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
+    "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -884,7 +885,10 @@
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
               "curl -s https://convox.s3.amazonaws.com/agent/0.68/convox.conf > /etc/init/convox.conf",
-              { "Ref": "InstanceBootCommand" },
+              { "Fn::If": [ "BlankInstanceBootCommand",
+                "true",
+                { "Ref": "InstanceBootCommand" }
+              ] },
               ")"
             ] ] },
             "runcmd:",
