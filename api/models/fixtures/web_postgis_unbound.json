@@ -757,6 +757,8 @@
               "BlankPostgresService",
               {
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
@@ -765,7 +767,8 @@
                   },
                   "POSTGRES_PASSWORD": "password",
                   "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
+                  "PROCESS": "postgres",
+                  "RACK": "convox-test"
                 },
                 "Image": "mdillon/postgis",
                 "Memory": {
@@ -985,13 +988,16 @@
               "BlankWebService",
               {
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "web",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {
