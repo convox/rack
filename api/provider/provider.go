@@ -42,6 +42,12 @@ type Provider interface {
 	ReleasePromote(app, id string) (*structs.Release, error)
 	ReleaseSave(*structs.Release, string, string) error
 
+	ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error)
+	ServiceDelete(name string) (*structs.Service, error)
+	ServiceGet(name string) (*structs.Service, error)
+	ServiceLink(name, app, process string) (*structs.Service, error)
+	ServiceUnlink(name, app, process string) (*structs.Service, error)
+
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error
 }
@@ -151,6 +157,26 @@ func ReleasePromote(app, id string) (*structs.Release, error) {
 
 func ReleaseSave(r *structs.Release, logdir, key string) error {
 	return CurrentProvider.ReleaseSave(r, logdir, key)
+}
+
+func ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
+	return CurrentProvider.ServiceCreate(name, kind, params)
+}
+
+func ServiceDelete(name string) (*structs.Service, error) {
+	return CurrentProvider.ServiceDelete(name)
+}
+
+func ServiceGet(name string) (*structs.Service, error) {
+	return CurrentProvider.ServiceGet(name)
+}
+
+func ServiceLink(name, app, process string) (*structs.Service, error) {
+	return CurrentProvider.ServiceLink(name, app, process)
+}
+
+func ServiceUnlink(name, app, process string) (*structs.Service, error) {
+	return CurrentProvider.ServiceUnlink(name, app, process)
 }
 
 func SystemGet() (*structs.System, error) {

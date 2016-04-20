@@ -1,20 +1,36 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankWebPort3001Certificate": {
+    "BalancerWebPort3001Proxy": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort3001Certificate"
+          "Ref": "WebPort3001Proxy"
         },
-        ""
+        "Yes"
       ]
     },
-    "BlankWebPort80Certificate": {
+    "BalancerWebPort3001Secure": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Certificate"
+          "Ref": "WebPort3001Secure"
         },
-        ""
+        "Yes"
+      ]
+    },
+    "BalancerWebPort80Proxy": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Proxy"
+        },
+        "Yes"
+      ]
+    },
+    "BalancerWebPort80Secure": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort80Secure"
+        },
+        "Yes"
       ]
     },
     "BlankWebService": {
@@ -27,22 +43,6 @@
       "Fn::Equals": [
         {
           "Ref": "Private"
-        },
-        "Yes"
-      ]
-    },
-    "ProxyProtocolWebPort3001": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3001ProxyProtocol"
-        },
-        "Yes"
-      ]
-    },
-    "ProxyProtocolWebPort80": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80ProxyProtocol"
         },
         "Yes"
       ]
@@ -66,22 +66,30 @@
           ]
         }
       ]
-    },
-    "SecureWebPort3001": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3001Secure"
-        },
-        "Yes"
-      ]
-    },
-    "SecureWebPort80": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Secure"
-        },
-        "Yes"
-      ]
+    }
+  },
+  "Mappings": {
+    "PortProtocol": {
+      "http": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTP",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "https": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTPS",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "tcp": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "TCP",
+        "SecureInstanceProtocol": "SSL"
+      },
+      "tls": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "SSL",
+        "SecureInstanceProtocol": "SSL"
+      }
     }
   },
   "Outputs": {
@@ -249,14 +257,16 @@
     },
     "WebPort3001Protocol": {
       "AllowedValues": [
-        "HTTP",
-        "TCP"
+        "http",
+        "https",
+        "tcp",
+        "tls"
       ],
-      "Default": "TCP",
+      "Default": "tls",
       "Description": "",
       "Type": "String"
     },
-    "WebPort3001ProxyProtocol": {
+    "WebPort3001Proxy": {
       "AllowedValues": [
         "Yes",
         "No"
@@ -291,14 +301,16 @@
     },
     "WebPort80Protocol": {
       "AllowedValues": [
-        "HTTP",
-        "TCP"
+        "http",
+        "https",
+        "tcp",
+        "tls"
       ],
-      "Default": "TCP",
+      "Default": "tls",
       "Description": "",
       "Type": "String"
     },
-    "WebPort80ProxyProtocol": {
+    "WebPort80Proxy": {
       "AllowedValues": [
         "Yes",
         "No"
@@ -356,101 +368,127 @@
         "Listeners": [
           {
             "Fn::If": [
-              "BlankWebPort80Certificate",
+              "BalancerWebPort80Secure",
               {
                 "InstancePort": {
                   "Ref": "WebPort80Host"
                 },
                 "InstanceProtocol": {
-                  "Ref": "WebPort80Protocol"
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort80Protocol"
+                    },
+                    "SecureInstanceProtocol"
+                  ]
                 },
                 "LoadBalancerPort": {
                   "Ref": "WebPort80Balancer"
                 },
                 "Protocol": {
-                  "Ref": "WebPort80Protocol"
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort80Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "WebPort80Certificate"
                 }
               },
               {
-                "Fn::If": [
-                  "SecureWebPort80",
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort80Host"
+                "InstancePort": {
+                  "Ref": "WebPort80Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort80Protocol"
                     },
-                    "InstanceProtocol": "SSL",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort80Balancer"
+                    "InstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "WebPort80Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort80Protocol"
                     },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort80Certificate"
-                    }
-                  },
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort80Host"
-                    },
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort80Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort80Certificate"
-                    }
-                  }
-                ]
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "WebPort80Certificate"
+                }
               }
             ]
           },
           {
             "Fn::If": [
-              "BlankWebPort3001Certificate",
+              "BalancerWebPort3001Secure",
               {
                 "InstancePort": {
                   "Ref": "WebPort3001Host"
                 },
                 "InstanceProtocol": {
-                  "Ref": "WebPort3001Protocol"
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3001Protocol"
+                    },
+                    "SecureInstanceProtocol"
+                  ]
                 },
                 "LoadBalancerPort": {
                   "Ref": "WebPort3001Balancer"
                 },
                 "Protocol": {
-                  "Ref": "WebPort3001Protocol"
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3001Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "WebPort3001Certificate"
                 }
               },
               {
-                "Fn::If": [
-                  "SecureWebPort3001",
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort3001Host"
+                "InstancePort": {
+                  "Ref": "WebPort3001Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3001Protocol"
                     },
-                    "InstanceProtocol": "SSL",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort3001Balancer"
+                    "InstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "WebPort3001Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3001Protocol"
                     },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort3001Certificate"
-                    }
-                  },
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort3001Host"
-                    },
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort3001Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort3001Certificate"
-                    }
-                  }
-                ]
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "WebPort3001Certificate"
+                }
               }
             ]
           },
@@ -473,7 +511,7 @@
         "Policies": [
           {
             "Fn::If": [
-              "ProxyProtocolWebPort80",
+              "BalancerWebPort80Proxy",
               {
                 "Attributes": [
                   {
@@ -496,7 +534,7 @@
           },
           {
             "Fn::If": [
-              "ProxyProtocolWebPort3001",
+              "BalancerWebPort3001Proxy",
               {
                 "Attributes": [
                   {

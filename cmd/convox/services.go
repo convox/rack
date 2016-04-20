@@ -62,7 +62,7 @@ func init() {
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
-				Description:     "create a new service",
+				Description:     "create a new service.",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
 				SkipFlagParsing: true,
@@ -82,20 +82,20 @@ func init() {
 			},
 			{
 				Name:        "info",
-				Description: "info about a service",
+				Description: "info about a service.",
 				Usage:       "<name>",
 				Action:      cmdServiceInfo,
 			},
 			{
 				Name:        "link",
-				Description: "create a link between a service and an app",
+				Description: "create a link between a service and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag},
 			},
 			{
 				Name:        "unlink",
-				Description: "Delete a link between a service and an app",
+				Description: "delete a link between a service and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag},

@@ -552,6 +552,54 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+  /apps/{app}/ssl:
+    get:
+      description: List SSL listeners for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: ssls
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ssl'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
+  /apps/{app}/ssl/{process}/{port}:
+    put:
+      description: List SSL listeners for an app
+      parameters:
+      - name: app
+        description: app name
+        type: string
+        in: path
+        required: true
+      - name: process
+        description: process name
+        type: string
+        in: path
+        required: true
+      - name: port
+        description: port number
+        type: integer
+        in: path
+        required: true
+      responses:
+        200:
+          description: ssl
+          schema:
+            $ref: '#/definitions/ssl'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /auth:
     get:
       description: authenticate password
@@ -865,6 +913,18 @@ definitions:
         type: string
       url:
         type: string
+  ssl:
+    properties:
+      domain:
+        type: string
+      expiration:
+        type: string
+      port:
+        type: integer
+      process:
+        type: string
+      secure:
+        type: boolean
   success:
     properties:
       success:

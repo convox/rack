@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 	"github.com/gorilla/mux"
 )
 
@@ -24,13 +25,21 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such service: %s", service)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
+	}
+
+	// new services should use the provider interfaces
+	if s.Type == "syslog" {
+		s, err := provider.ServiceGet(service)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, s)
 	}
 
 	return RenderJson(rw, s)
@@ -53,6 +62,16 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "name")
 	kind := params["type"]
 	delete(params, "type")
+
+	// new services should use the provider interfaces
+	if kind == "syslog" {
+		s, err := provider.ServiceCreate(name, kind, params)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, s)
+	}
 
 	// Early check for unbound service only.
 	service, err := models.GetServiceUnbound(name)
@@ -98,23 +117,29 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := models.GetService(service)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such service: %s", service)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	err = s.Delete()
+	// new services should use the provider interfaces
+	if s.Type == "syslog" {
+		s, err := provider.ServiceDelete(service)
+		if err != nil {
+			return httperr.Server(err)
+		}
 
+		return RenderJson(rw, s)
+	}
+
+	err = s.Delete()
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	s, err = models.GetService(service)
-
 	if err != nil {
 		return httperr.Server(err)
 	}

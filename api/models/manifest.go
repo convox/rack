@@ -96,6 +96,10 @@ func LoadManifest(data string, app *App) (Manifest, error) {
 	return manifest, nil
 }
 
+func (m Manifest) Rack() string {
+	return os.Getenv("RACK")
+}
+
 func (m Manifest) BalancerResourceName(process string) string {
 	for _, b := range m.Balancers() {
 		if b.Entry.Name == process {
@@ -139,6 +143,63 @@ func (m Manifest) Balancers() []ManifestBalancer {
 	}
 
 	return balancers
+}
+
+func (m Manifest) CronJobs() []CronJob {
+	cronjobs := []CronJob{}
+
+	for _, entry := range m {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for key, value := range labels {
+			cronjob := NewCronJobFromLabel(key, value)
+			cronjob.ManifestEntry = &entry
+			cronjobs = append(cronjobs, cronjob)
+		}
+	}
+	return cronjobs
+}
+
+func (m Manifest) AppName() string {
+	return m[0].app.Name
+}
+
+func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
+	returnLabels := make(map[string]string)
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			ks, ok := k.(string)
+
+			if !ok {
+				continue
+			}
+
+			vs, ok := v.(string)
+
+			if !ok {
+				continue
+			}
+
+			if strings.HasPrefix(ks, "convox.cron") {
+				returnLabels[ks] = vs
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			ls, ok := label.(string)
+
+			if !ok {
+				continue
+			}
+
+			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
+				if strings.HasPrefix(parts[0], "convox.cron") {
+					returnLabels[parts[0]] = parts[1]
+				}
+			}
+		}
+	}
+	return returnLabels
 }
 
 func (m Manifest) Formation() (string, error) {
