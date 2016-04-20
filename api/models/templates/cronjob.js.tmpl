@@ -1,18 +1,11 @@
 'use strict';
 let https = require('https');
 
-var options = {
-    host: '{{ .Dashboard }}',
-    port: 443,
-    path: '/apps/sinatra/processes/web/run',
-    method: 'POST',
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'curl/'
+var aws = require('aws-sdk');
+var cloudformation = new aws.CloudFormation();
 
-    },
-    auth: 'convox:{{ .Password }}'
+var params = {
+    StackName: '{{ .Rack }}';
 };
 
 var querystring = require('querystring');
@@ -30,23 +23,59 @@ exports.handler = (event, context) => {
         return;
     }
 
-    const req = https.request(options, (res) => {
-        let body = '';
-        console.log('Status:', res.statusCode);
-        console.log('Headers:', JSON.stringify(res.headers));
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => body += chunk);
-        res.on('end', () => {
-            console.log(body);
-            context.done();
-        });
-    });
+    cloudformation.describeStacks(params, (err, data) => {
+        if (err) {
+            console.log(err);
+        } else {
+            var dashboard;
+            var password;
+            var outputs = data.Stacks[0].Outputs;
+            var parameters = data.Stacks[0].Parameters;
 
-    req.on("error", (error) => {
-      console.log('Error:', error);
-      context.done();
-    });
+            for(var i=0; i&lt;outputs.length; i++) {
+                if (outputs[i].OutputKey == 'Dashboard') {
+                    dashboard = outputs[i].OutputValue;
+                }
+            }
 
-    req.write(postData);
-    req.end();
+            for(i=0; i&lt;parameters.length; i++) {
+                if (parameters[i].ParameterKey == 'Password') {
+                    password = parameters[i].ParameterValue;
+                }
+            }
+
+            var options = {
+                host: dashboard,
+                port: 443,
+                path: '/apps/sinatra/processes/web/run',
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': 'curl/'
+                },
+                auth: 'convox:' + password
+            };
+
+            const req = https.request(options, (res) => {
+                let body = '';
+                console.log('Status:', res.statusCode);
+                console.log('Headers:', JSON.stringify(res.headers));
+                res.setEncoding('utf8');
+                res.on('data', (chunk) => body += chunk);
+                res.on('end', () => {
+                    console.log(body);
+                    context.done();
+                });
+            });
+
+            req.on("error", (error) => {
+                console.log('Error:', error);
+                context.fail(error);
+            });
+
+            req.write(postData);
+            req.end();
+        }
+    });
 };

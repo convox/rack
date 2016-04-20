@@ -37,9 +37,8 @@ func (cr *CronJob) LongName() string {
 
 func (cr *CronJob) UploadLambdaFunction() error {
 	input := map[string]interface{}{
-		"CronJob":   cr,
-		"Dashboard": os.Getenv("NOTIFICATION_HOST"),
-		"Password":  os.Getenv("PASSWORD"),
+		"CronJob": cr,
+		"Rack":    os.Getenv("RACK"),
 	}
 
 	// build cron lambda JS
