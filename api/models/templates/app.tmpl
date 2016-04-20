@@ -389,7 +389,7 @@
     "CronFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "FunctionName": "{{ .StackName }}-{{ .AppName }}-cron",
+        "FunctionName": "{{ .Rack }}-{{ .AppName }}-cron",
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs",
