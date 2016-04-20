@@ -26,6 +26,14 @@ func NewCronJobFromLabel(key, value string) CronJob {
 	return cronjob
 }
 
+func (cr *CronJob) AppName() string {
+	return cr.ManifestEntry.app.Name
+}
+
+func (cr *CronJob) Process() string {
+	return cr.ManifestEntry.Name
+}
+
 func (cr *CronJob) ShortName() string {
 	return fmt.Sprintf("%s%s", cr.ManifestEntry.Name, cr.Name)
 }

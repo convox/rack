@@ -410,7 +410,8 @@
         "ScheduleExpression": "{{ .Schedule }}",
         "Targets": [{
           "Arn": { "Fn::GetAtt": [ "{{ .ShortName }}Cron", "Arn" ] },
-          "Id": "{{ .LongName }}Target"
+          "Id": "{{ .LongName }}Target",
+          "Input": "{\"app\": \"{{ .AppName }}\", \"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
         }]
       }
     },

@@ -3,25 +3,17 @@ let https = require('https');
 
 var aws = require('aws-sdk');
 var cloudformation = new aws.CloudFormation();
+var querystring = require('querystring');
 
 var params = {
-    StackName: '{{ .Rack }}';
+    StackName: '{{ .Rack }}'
 };
 
-var querystring = require('querystring');
-var postData = querystring.stringify({
-  'command' : '{{ .CronJob.Command }}'
-});
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 exports.handler = (event, context) => {
     console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
-
-    if ((event.RequestType == "Delete") || (event.RequestType == "Update")) {
-        context.done();
-        return;
-    }
 
     cloudformation.describeStacks(params, (err, data) => {
         if (err) {
@@ -32,13 +24,13 @@ exports.handler = (event, context) => {
             var outputs = data.Stacks[0].Outputs;
             var parameters = data.Stacks[0].Parameters;
 
-            for(var i=0; i&lt;outputs.length; i++) {
+            for(var i=0; outputs.length>i; i++) {
                 if (outputs[i].OutputKey == 'Dashboard') {
                     dashboard = outputs[i].OutputValue;
                 }
             }
 
-            for(i=0; i&lt;parameters.length; i++) {
+            for(i=0; parameters.length>i; i++) {
                 if (parameters[i].ParameterKey == 'Password') {
                     password = parameters[i].ParameterValue;
                 }
@@ -47,7 +39,7 @@ exports.handler = (event, context) => {
             var options = {
                 host: dashboard,
                 port: 443,
-                path: '/apps/sinatra/processes/web/run',
+                path: '/apps/' + event.app + '/processes/' + event.process + '/run',
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -72,6 +64,10 @@ exports.handler = (event, context) => {
             req.on("error", (error) => {
                 console.log('Error:', error);
                 context.fail(error);
+            });
+
+            var postData = querystring.stringify({
+              'command' : event.command
             });
 
             req.write(postData);
