@@ -57,7 +57,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 	}
 
 	// zip it
-	zipfile, err := os.Create(fmt.Sprintf("/tmp/%s.zip", cr.ShortName()))
+	zipfile, err := os.Create("/tmp/cron.zip")
 
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (cr *CronJob) UploadLambdaFunction() error {
 	}
 
 	// upload it to S3
-	err = S3PutFile(cr.ManifestEntry.app.Outputs["Settings"], fmt.Sprintf("cronjobs/%s.zip", cr.ShortName()), zipfile, false)
+	err = S3PutFile(cr.ManifestEntry.app.Outputs["Settings"], "/functions/cron.zip", zipfile, false)
 
 	if err != nil {
 		return err

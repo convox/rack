@@ -155,6 +155,14 @@ func (m Manifest) CronJobs() []CronJob {
 	return cronjobs
 }
 
+func (m Manifest) StackName() string {
+	return os.Getenv("RACK")
+}
+
+func (m Manifest) AppName() string {
+	return m[0].app.Name
+}
+
 func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
 	switch labels := me.Labels.(type) {
