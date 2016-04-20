@@ -775,10 +775,16 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 
 		switch proto := me.Label(fmt.Sprintf("convox.port.%s.protocol", host)); proto {
-		case "https", "tcp-proxy", "tls-proxy":
+		case "https", "tls":
+			proxy := false
+
+			if me.Label(fmt.Sprintf("convox.port.%s.proxy")) == "true" {
+				proxy = true
+			}
+
 			rnd := RandomPort()
 			fmt.Println(prefix, special(fmt.Sprintf("https proxy enabled for %s:%s", host, container)))
-			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd))
+			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd), proxy)
 			host = strconv.Itoa(rnd)
 		}
 
@@ -903,8 +909,14 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(protocol, from, to string) {
-	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol)
+func proxyPort(protocol, from, to string, proxy bool) {
+	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol}
+
+	if proxy {
+		args = append(args, "proxy")
+	}
+
+	cmd := Execer("docker", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
