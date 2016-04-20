@@ -1,45 +1,23 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerWebPort443Proxy": {
+    "BalancerMainPort443Proxy": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort443Proxy"
+          "Ref": "MainPort443Proxy"
         },
         "Yes"
       ]
     },
-    "BalancerWebPort443Secure": {
+    "BalancerMainPort443Secure": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort443Secure"
+          "Ref": "MainPort443Secure"
         },
         "Yes"
       ]
     },
-    "BalancerWebPort80Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerWebPort80Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Secure"
-        },
-        "Yes"
-      ]
-    },
-    "BlankPostgresService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
-    "BlankWebService": {
+    "BlankMainService": {
       "Fn::Equals": [
         "",
         ""
@@ -99,10 +77,10 @@
     }
   },
   "Outputs": {
-    "BalancerWebHost": {
+    "BalancerMainHost": {
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWeb",
+          "BalancerMain",
           "DNSName"
         ]
       }
@@ -116,6 +94,14 @@
       "Value": {
         "Ref": "LogGroup"
       }
+    },
+    "MainPort443Balancer": {
+      "Value": {
+        "Ref": "MainPort443Balancer"
+      }
+    },
+    "MainPort443BalancerName": {
+      "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
       "Condition": "RegionHasRegistry",
@@ -135,42 +121,6 @@
     "Settings": {
       "Value": {
         "Ref": "Settings"
-      }
-    },
-    "WebPort443Balancer": {
-      "Value": {
-        "Ref": "WebPort443Balancer"
-      }
-    },
-    "WebPort443BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "web"
-          ]
-        ]
-      }
-    },
-    "WebPort80Balancer": {
-      "Value": {
-        "Ref": "WebPort80Balancer"
-      }
-    },
-    "WebPort80BalancerName": {
-      "Value": {
-        "Fn::Join": [
-          "-",
-          [
-            {
-              "Ref": "AWS::StackName"
-            },
-            "web"
-          ]
-        ]
       }
     }
   },
@@ -195,15 +145,61 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresDesiredCount": {
+    "MainDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "Type": "Number"
     },
-    "PostgresMemory": {
+    "MainMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
+    },
+    "MainPort443Balancer": {
+      "Default": "443",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort443Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort443Protocol": {
+      "AllowedValues": [
+        "http",
+        "https",
+        "tcp",
+        "tls",
+        "tcp+proxy",
+        "tls+proxy"
+      ],
+      "Default": "tls",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort443Proxy": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort443Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
     },
     "Private": {
       "AllowedValues": [
@@ -243,114 +239,12 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
       "Type": "String"
-    },
-    "WebDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "Type": "Number"
-    },
-    "WebMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
-    },
-    "WebPort443Balancer": {
-      "Default": "443",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls",
-        "tcp+proxy",
-        "tls+proxy"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort443Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Balancer": {
-      "Default": "80",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls",
-        "tcp+proxy",
-        "tls+proxy"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
-    "BalancerWeb": {
+    "BalancerMain": {
       "DependsOn": [
-        "BalancerWebSecurityGroup"
+        "BalancerMainSecurityGroup"
       ],
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -370,7 +264,7 @@
               [
                 "TCP",
                 {
-                  "Ref": "WebPort80Host"
+                  "Ref": "MainPort443Host"
                 }
               ]
             ]
@@ -386,126 +280,63 @@
         "Listeners": [
           {
             "Fn::If": [
-              "BalancerWebPort80Secure",
+              "BalancerMainPort443Secure",
               {
                 "InstancePort": {
-                  "Ref": "WebPort80Host"
+                  "Ref": "MainPort443Host"
                 },
                 "InstanceProtocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "WebPort80Protocol"
+                      "Ref": "MainPort443Protocol"
                     },
                     "SecureInstanceProtocol"
                   ]
                 },
                 "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
+                  "Ref": "MainPort443Balancer"
                 },
                 "Protocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "WebPort80Protocol"
+                      "Ref": "MainPort443Protocol"
                     },
                     "ListenerProtocol"
                   ]
                 },
                 "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
+                  "Ref": "MainPort443Certificate"
                 }
               },
               {
                 "InstancePort": {
-                  "Ref": "WebPort80Host"
+                  "Ref": "MainPort443Host"
                 },
                 "InstanceProtocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "WebPort80Protocol"
+                      "Ref": "MainPort443Protocol"
                     },
                     "InstanceProtocol"
                   ]
                 },
                 "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
+                  "Ref": "MainPort443Balancer"
                 },
                 "Protocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "WebPort80Protocol"
+                      "Ref": "MainPort443Protocol"
                     },
                     "ListenerProtocol"
                   ]
                 },
                 "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BalancerWebPort443Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort443Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort443Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort443Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort443Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort443Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort443Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort443Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort443Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort443Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort443Certificate"
+                  "Ref": "MainPort443Certificate"
                 }
               }
             ]
@@ -514,21 +345,11 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
+        "LoadBalancerName": "httpd-main-KQSNMIK",
         "Policies": [
           {
             "Fn::If": [
-              "BalancerWebPort80Proxy",
+              "BalancerMainPort443Proxy",
               {
                 "Attributes": [
                   {
@@ -538,30 +359,7 @@
                 ],
                 "InstancePorts": [
                   {
-                    "Ref": "WebPort80Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BalancerWebPort443Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "WebPort443Host"
+                    "Ref": "MainPort443Host"
                   }
                 ],
                 "PolicyName": "EnableProxyProtocol",
@@ -578,7 +376,7 @@
         ],
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebSecurityGroup"
+            "Ref": "BalancerMainSecurityGroup"
           }
         ],
         "Subnets": {
@@ -587,7 +385,7 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebSecurityGroup": {
+    "BalancerMainSecurityGroup": {
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -604,21 +402,11 @@
           {
             "CidrIp": "0.0.0.0/0",
             "FromPort": {
-              "Ref": "WebPort80Balancer"
+              "Ref": "MainPort443Balancer"
             },
             "IpProtocol": "tcp",
             "ToPort": {
-              "Ref": "WebPort80Balancer"
-            }
-          },
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "WebPort443Balancer"
-            },
-            "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "WebPort443Balancer"
+              "Ref": "MainPort443Balancer"
             }
           },
           {
@@ -717,8 +505,9 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "PostgresECSService": {
+    "MainECSService": {
       "DependsOn": [
+        "BalancerMain",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -727,9 +516,21 @@
           "Ref": "Cluster"
         },
         "DesiredCount": {
-          "Ref": "PostgresDesiredCount"
+          "Ref": "MainDesiredCount"
         },
         "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerMain"
+                },
+                "main",
+                "5000"
+              ]
+            ]
+          },
           {
             "Ref": "AWS::NoValue"
           }
@@ -741,7 +542,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "postgres"
+              "main"
             ]
           ]
         },
@@ -755,13 +556,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "PostgresECSTaskDefinition"
+          "Ref": "MainECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "PostgresECSTaskDefinition": {
+    "MainECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -780,7 +581,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "postgres"
+              "main"
             ]
           ]
         },
@@ -796,7 +597,7 @@
         "Tasks": [
           {
             "Fn::If": [
-              "BlankPostgresService",
+              "BlankMainService",
               {
                 "Environment": {
                   "APP": "httpd",
@@ -807,17 +608,26 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "POSTGRES_PASSWORD": "password",
-                  "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres",
+                  "PROCESS": "main",
                   "RACK": "convox-test"
                 },
-                "Image": "mdillon/postgis",
+                "Image": "",
                 "Memory": {
-                  "Ref": "PostgresMemory"
+                  "Ref": "MainMemory"
                 },
-                "Name": "postgres",
+                "Name": "main",
                 "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "MainPort443Host"
+                        },
+                        "5000"
+                      ]
+                    ]
+                  },
                   {
                     "Ref": "AWS::NoValue"
                   }
@@ -922,178 +732,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
-      "DependsOn": [
-        "BalancerWeb",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DesiredCount": {
-          "Ref": "WebDesiredCount"
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3001"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
-    },
-    "WebECSTaskDefinition": {
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Environment": {
-          "Ref": "Environment"
-        },
-        "Key": {
-          "Ref": "Key"
-        },
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Release": {
-          "Ref": "Release"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "Tasks": [
-          {
-            "Fn::If": [
-              "BlankWebService",
-              {
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "Image": "",
-                "Memory": {
-                  "Ref": "WebMemory"
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort443Host"
-                        },
-                        "3001"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ]
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
     }
   }
 }

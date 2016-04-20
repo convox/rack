@@ -1,17 +1,25 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BalancerWebPort3000Proxy": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000Proxy"
+        },
+        "Yes"
+      ]
+    },
+    "BalancerWebPort3000Secure": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebPort3000Secure"
+        },
+        "Yes"
+      ]
+    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
-        ""
-      ]
-    },
-    "BlankWebPort3000Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3000Certificate"
-        },
         ""
       ]
     },
@@ -25,14 +33,6 @@
       "Fn::Equals": [
         {
           "Ref": "Private"
-        },
-        "Yes"
-      ]
-    },
-    "ProxyProtocolWebPort3000": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3000ProxyProtocol"
         },
         "Yes"
       ]
@@ -56,14 +56,30 @@
           ]
         }
       ]
-    },
-    "SecureWebPort3000": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3000Secure"
-        },
-        "Yes"
-      ]
+    }
+  },
+  "Mappings": {
+    "PortProtocol": {
+      "http": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTP",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "https": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTPS",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "tcp": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "TCP",
+        "SecureInstanceProtocol": "SSL"
+      },
+      "tls": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "SSL",
+        "SecureInstanceProtocol": "SSL"
+      }
     }
   },
   "Outputs": {
@@ -211,14 +227,18 @@
     },
     "WebPort3000Protocol": {
       "AllowedValues": [
-        "HTTP",
-        "TCP"
+        "http",
+        "https",
+        "tcp",
+        "tls",
+        "tcp+proxy",
+        "tls+proxy"
       ],
-      "Default": "TCP",
+      "Default": "tls",
       "Description": "",
       "Type": "String"
     },
-    "WebPort3000ProxyProtocol": {
+    "WebPort3000Proxy": {
       "AllowedValues": [
         "Yes",
         "No"
@@ -276,51 +296,64 @@
         "Listeners": [
           {
             "Fn::If": [
-              "BlankWebPort3000Certificate",
+              "BalancerWebPort3000Secure",
               {
                 "InstancePort": {
                   "Ref": "WebPort3000Host"
                 },
                 "InstanceProtocol": {
-                  "Ref": "WebPort3000Protocol"
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3000Protocol"
+                    },
+                    "SecureInstanceProtocol"
+                  ]
                 },
                 "LoadBalancerPort": {
                   "Ref": "WebPort3000Balancer"
                 },
                 "Protocol": {
-                  "Ref": "WebPort3000Protocol"
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3000Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "WebPort3000Certificate"
                 }
               },
               {
-                "Fn::If": [
-                  "SecureWebPort3000",
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort3000Host"
+                "InstancePort": {
+                  "Ref": "WebPort3000Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3000Protocol"
                     },
-                    "InstanceProtocol": "SSL",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort3000Balancer"
+                    "InstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "WebPort3000Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "WebPort3000Protocol"
                     },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort3000Certificate"
-                    }
-                  },
-                  {
-                    "InstancePort": {
-                      "Ref": "WebPort3000Host"
-                    },
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": {
-                      "Ref": "WebPort3000Balancer"
-                    },
-                    "Protocol": "SSL",
-                    "SSLCertificateId": {
-                      "Ref": "WebPort3000Certificate"
-                    }
-                  }
-                ]
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "WebPort3000Certificate"
+                }
               }
             ]
           },
@@ -332,7 +365,7 @@
         "Policies": [
           {
             "Fn::If": [
-              "ProxyProtocolWebPort3000",
+              "BalancerWebPort3000Proxy",
               {
                 "Attributes": [
                   {

@@ -68,6 +68,14 @@
         "Description" : "VPC for this app"
       }
     },
+    "Mappings": {
+      "PortProtocol": {
+        "http": { "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
+        "https": { "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
+        "tcp": { "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
+        "tls": { "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
+      }
+    },
     "Resources": {
       "CustomTopicRole": {
         "Type": "AWS::IAM::Role",
@@ -220,9 +228,12 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     {{ range .PortMappings }}
-      "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }, "" ] },
-      "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure" }, "Yes" ] },
-      "ProxyProtocol{{ upper $balancer.ProcessName }}Port{{ .Balancer }}": { "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}ProxyProtocol" }, "Yes" ] },
+      "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
+        "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
+      },
+      "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
+        "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure" }, "Yes" ]
+      },
     {{ end }}
   {{ end }}
 {{ end }}
@@ -252,17 +263,17 @@
         "Description" : "",
         "AllowedValues": [ "Yes", "No" ]
       },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}ProxyProtocol": {
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol": {
+        "Type" : "String",
+        "Default" : "tls",
+        "Description" : "",
+        "AllowedValues": [ "http", "https", "tcp", "tls" ]
+      },
+      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",
         "AllowedValues": [ "Yes", "No" ]
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol": {
-        "Type" : "String",
-        "Default" : "TCP",
-        "Description" : "",
-        "AllowedValues": [ "HTTP", "TCP" ]
       },
     {{ end }}
   {{ end }}
@@ -331,36 +342,28 @@
         },
         "Listeners": [
           {{ range .PortMappings }}
-            { "Fn::If": [ "Blank{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
+            { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure",
               {
-                "Protocol": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" },
+                "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "ListenerProtocol" ] },
                 "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                "InstanceProtocol": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" },
-                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }
+                "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "SecureInstanceProtocol" ] },
+                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+                "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
               },
-              { "Fn::If": [ "Secure{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",
-                {
-                  "Protocol": "SSL",
-                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                  "InstanceProtocol": "SSL",
-                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
-                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
-                },
-                {
-                  "Protocol": "SSL",
-                  "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                  "InstanceProtocol": "TCP",
-                  "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
-                  "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
-                }
-              ] }
+              {
+                "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "ListenerProtocol" ] },
+                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
+                "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "InstanceProtocol" ] },
+                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+                "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
+              }
             ] },
           {{ end }}
           { "Ref": "AWS::NoValue" }
         ],
         "Policies": [
           {{ range .PortMappings }}
-            { "Fn::If": [ "ProxyProtocol{{ upper $balancer.ProcessName }}Port{{ .Balancer }}",
+            { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy",
               {
                 "PolicyName": "EnableProxyProtocol",
                 "PolicyType": "ProxyProtocolPolicyType",

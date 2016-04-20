@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/crypt"
 )
 
@@ -179,13 +180,63 @@ func (r *Release) Promote() error {
 
 	for _, entry := range manifest {
 		for _, mapping := range entry.PortMappings() {
-			proxyParam := fmt.Sprintf("%sPort%sProxyProtocol", UpperName(entry.Name), mapping.Balancer)
+			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
+			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
+			proxyParam := fmt.Sprintf("%sPort%sProxy", UpperName(entry.Name), mapping.Balancer)
+			secureParam := fmt.Sprintf("%sPort%sSecure", UpperName(entry.Name), mapping.Balancer)
 
-			switch entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)) {
-			case "proxy":
+			app.Parameters[protoParam] = entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer))
+
+			// default protocol is tcp, or tls if they have a certificate set
+			if app.Parameters[protoParam] == "" {
+				if app.Parameters[certParam] == "" {
+					app.Parameters[protoParam] = "tcp"
+				} else {
+					app.Parameters[protoParam] = "tls"
+				}
+			}
+
+			if entry.Label(fmt.Sprintf("convox.port.%s.proxy", mapping.Balancer)) == "true" {
 				app.Parameters[proxyParam] = "Yes"
-			default:
+			} else {
 				app.Parameters[proxyParam] = "No"
+			}
+
+			// only change the secure parameter if a label is set for backwards compat
+			switch entry.Label(fmt.Sprintf("convox.port.%s.secure", mapping.Balancer)) {
+			case "true":
+				app.Parameters[secureParam] = "Yes"
+			case "false":
+				app.Parameters[secureParam] = "No"
+			}
+
+			switch app.Parameters[protoParam] {
+			case "https", "tls":
+				if app.Parameters[certParam] == "" {
+					timestamp := time.Now().Format("20060102150405")
+					name := fmt.Sprintf("%s%s%s-%s", UpperName(app.StackName()), UpperName(entry.Name), mapping.Balancer, timestamp)
+
+					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
+
+					if err != nil {
+						return err
+					}
+
+					input := &iam.UploadServerCertificateInput{
+						CertificateBody:       aws.String(string(body)),
+						PrivateKey:            aws.String(string(key)),
+						ServerCertificateName: aws.String(name),
+					}
+
+					// upload certificate
+					res, err := IAM().UploadServerCertificate(input)
+
+					if err != nil {
+						return err
+					}
+
+					app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+				}
 			}
 		}
 	}
