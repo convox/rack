@@ -883,12 +883,12 @@
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
               "curl -s https://convox.s3.amazonaws.com/agent/0.67/convox.conf > /etc/init/convox.conf",
+              { "Ref": "InstanceBootCommand" },
               ")"
             ] ] },
             "runcmd:",
             { "Fn::Join" : [ " ; ", [
               "- /usr/bin/cloud-init-per once convox_runcmd false || ( true",
-              { "Ref": "InstanceBootCommand" },
               { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
               "sleep 30",
               { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
