@@ -408,7 +408,7 @@
     "{{ .ShortName }}Rule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "Name": "{{ .LongName }}Schedule",
+        "Name": "{{ .LongName }}-schedule",
         "ScheduleExpression": "{{ .Schedule }}",
         "Targets": [{
           "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
