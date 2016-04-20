@@ -96,6 +96,10 @@ func LoadManifest(data string, app *App) (Manifest, error) {
 	return manifest, nil
 }
 
+func (m Manifest) Rack() string {
+	return os.Getenv("RACK")
+}
+
 func (m Manifest) BalancerResourceName(process string) string {
 	for _, b := range m.Balancers() {
 		if b.Entry.Name == process {

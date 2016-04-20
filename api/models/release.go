@@ -241,16 +241,6 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	// Upload zipped Lambda function for cron jobs
-	cronjobs := manifest.CronJobs()
-	if len(cronjobs) > 0 {
-		cronjobs[0].UploadLambdaFunction()
-
-		if err != nil {
-			return err
-		}
-	}
-
 	params := []*cloudformation.Parameter{}
 
 	for key, value := range app.Parameters {

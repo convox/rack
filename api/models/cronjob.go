@@ -1,9 +1,7 @@
 package models
 
 import (
-	"archive/zip"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -41,67 +39,4 @@ func (cr *CronJob) ShortName() string {
 func (cr *CronJob) LongName() string {
 	app := cr.ManifestEntry.app
 	return fmt.Sprintf("%s-%s-%s", app.StackName(), cr.Process(), cr.Name)
-}
-
-func (cr *CronJob) UploadLambdaFunction() error {
-	bucket := cr.ManifestEntry.app.Outputs["Settings"]
-	path := "functions/cron.zip"
-
-	exists, err := s3Exists(bucket, path)
-
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		return nil
-	}
-
-	input := map[string]interface{}{
-		"CronJob": cr,
-		"Rack":    os.Getenv("RACK"),
-	}
-
-	// build cron lambda JS
-	data, err := buildTemplate("cronjob.js", "cronjob", input)
-
-	if err != nil {
-		return err
-	}
-
-	// zip it
-	zipfile, err := os.Create("/tmp/cron.zip")
-
-	if err != nil {
-		return err
-	}
-
-	w := zip.NewWriter(zipfile)
-
-	f, err := w.Create("index.js")
-
-	if err != nil {
-		return err
-	}
-
-	_, err = f.Write([]byte(data))
-
-	if err != nil {
-		return err
-	}
-
-	err = w.Close()
-
-	if err != nil {
-		return err
-	}
-
-	// upload it to S3
-	err = S3PutFile(bucket, path, zipfile, false)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
