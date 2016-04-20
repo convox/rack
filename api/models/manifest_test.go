@@ -41,6 +41,7 @@ func Diff(t *testing.T, name, s1, s2 string) {
 
 	if len(diffs) > 0 {
 		t.Errorf("Unexpected results for %s:\n%s", name, strings.Join(diffs, "\n"))
+		fmt.Println(s2)
 	}
 }
 
@@ -140,6 +141,7 @@ func TestManifestFixtures(t *testing.T) {
 	assertFixture(t, "web_postgis_internal", "")
 	assertFixture(t, "worker", "")
 	assertFixture(t, "complex_environment", "")
+	assertFixture(t, "balancer_labels", "")
 	ManifestRandomPorts = true
 }
 

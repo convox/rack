@@ -1,0 +1,8 @@
+main:
+  build: .
+  labels:
+    - convox.port.443.protocol=tls
+    - convox.port.443.proxy=true
+    - convox.port.443.secure=true
+  ports:
+    - 443:5000
