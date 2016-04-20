@@ -267,7 +267,7 @@
         "Type" : "String",
         "Default" : "tls",
         "Description" : "",
-        "AllowedValues": [ "http", "https", "tcp", "tls", "tcp+proxy", "tls+proxy" ]
+        "AllowedValues": [ "http", "https", "tcp", "tls" ]
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
         "Type" : "String",
