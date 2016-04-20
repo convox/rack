@@ -783,7 +783,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 			}
 
 			rnd := RandomPort()
-			fmt.Println(prefix, special(fmt.Sprintf("https proxy enabled for %s:%s", host, container)))
+			fmt.Println(prefix, special(fmt.Sprintf("%s proxy enabled for %s:%s", proto, host, container)))
 			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd), proxy)
 			host = strconv.Itoa(rnd)
 		}
