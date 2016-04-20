@@ -8,7 +8,6 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/websocket"
 )
 
 func ServiceList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -167,29 +166,6 @@ func ServiceUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, s)
-}
-
-func ServiceLogs(ws *websocket.Conn) *httperr.Error {
-	service := mux.Vars(ws.Request())["service"]
-
-	s, err := models.GetService(service)
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	logs := make(chan []byte)
-	done := make(chan bool)
-
-	s.SubscribeLogs(logs, done)
-
-	go signalWsClose(ws, done)
-
-	for data := range logs {
-		ws.Write(data)
-	}
-
-	return nil
 }
 
 func convoxifyCloudformationError(msg string) string {

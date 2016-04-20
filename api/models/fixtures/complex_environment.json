@@ -309,6 +309,8 @@
               {
                 "Command": "bin/eat",
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "DRINK": "top \"o\" the mornin",
                   "FOOD": "pb\u0026j",
                   "KINESIS": {
@@ -317,7 +319,8 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "main"
+                  "PROCESS": "main",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

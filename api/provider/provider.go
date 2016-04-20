@@ -34,6 +34,8 @@ type Provider interface {
 
 	InstanceList() (structs.Instances, error)
 
+	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
+
 	ReleaseDelete(app, id string) (*structs.Release, error)
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string) (structs.Releases, error)
@@ -125,6 +127,10 @@ func IndexUpload(hash string, data []byte) error {
 
 func InstanceList() (structs.Instances, error) {
 	return CurrentProvider.InstanceList()
+}
+
+func LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
+	return CurrentProvider.LogStream(app, w, opts)
 }
 
 func ReleaseDelete(app, id string) (*structs.Release, error) {
