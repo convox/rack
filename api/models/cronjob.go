@@ -35,12 +35,12 @@ func (cr *CronJob) Process() string {
 }
 
 func (cr *CronJob) ShortName() string {
-	return fmt.Sprintf("%s%s", cr.ManifestEntry.Name, cr.Name)
+	return fmt.Sprintf("%s%s", strings.Title(cr.ManifestEntry.Name), strings.Title(cr.Name))
 }
 
 func (cr *CronJob) LongName() string {
 	app := cr.ManifestEntry.app
-	return fmt.Sprintf("%s-%s%s", app.StackName(), app.Name, cr.ShortName())
+	return fmt.Sprintf("%s-%s-%s", app.StackName(), cr.Process(), cr.Name)
 }
 
 func (cr *CronJob) UploadLambdaFunction() error {
