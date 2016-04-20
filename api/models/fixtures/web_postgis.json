@@ -254,9 +254,7 @@
         "http",
         "https",
         "tcp",
-        "tls",
-        "tcp+proxy",
-        "tls+proxy"
+        "tls"
       ],
       "Default": "tls",
       "Description": "",
@@ -300,9 +298,7 @@
         "http",
         "https",
         "tcp",
-        "tls",
-        "tcp+proxy",
-        "tls+proxy"
+        "tls"
       ],
       "Default": "tls",
       "Description": "",
