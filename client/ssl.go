@@ -15,40 +15,6 @@ type SSL struct {
 
 type SSLs []SSL
 
-func (c *Client) CreateSSL(app, process, port, arn, body, key, chain string, secure bool) (*SSL, error) {
-	params := Params{
-		"arn":     arn,
-		"body":    body,
-		"chain":   chain,
-		"key":     key,
-		"port":    port,
-		"process": process,
-		"secure":  fmt.Sprintf("%t", secure),
-	}
-
-	var ssl SSL
-
-	err := c.Post(fmt.Sprintf("/apps/%s/ssl", app), params, &ssl)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &ssl, nil
-}
-
-func (c *Client) DeleteSSL(app, process, port string) (*SSL, error) {
-	var ssl SSL
-
-	err := c.Delete(fmt.Sprintf("/apps/%s/ssl/%s/%s", app, process, port), &ssl)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &ssl, nil
-}
-
 func (c *Client) ListSSL(app string) (*SSLs, error) {
 	var ssls SSLs
 
@@ -63,17 +29,15 @@ func (c *Client) ListSSL(app string) (*SSLs, error) {
 
 func (c *Client) UpdateSSL(app, process, port, arn, body, key, chain string) (*SSL, error) {
 	params := Params{
-		"arn":     arn,
-		"body":    body,
-		"chain":   chain,
-		"key":     key,
-		"port":    port,
-		"process": process,
+		"arn":   arn,
+		"body":  body,
+		"chain": chain,
+		"key":   key,
 	}
 
 	var ssl SSL
 
-	err := c.Put(fmt.Sprintf("/apps/%s/ssl", app), params, &ssl)
+	err := c.Put(fmt.Sprintf("/apps/%s/ssl/%s/%s", app, process, port), params, &ssl)
 
 	if err != nil {
 		return nil, err

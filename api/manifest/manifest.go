@@ -774,11 +774,11 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 			return
 		}
 
-		switch me.Label(fmt.Sprintf("convox.port.%s.protocol", container)) {
-		case "proxy":
+		switch proto := me.Label(fmt.Sprintf("convox.port.%s.protocol", host)); proto {
+		case "https", "tcp-proxy", "tls-proxy":
 			rnd := RandomPort()
-			fmt.Println(prefix, special(fmt.Sprintf("proxy protocol enabled for %s:%s", host, container)))
-			go proxyPort(host, fmt.Sprintf("%s:%d", gateway, rnd))
+			fmt.Println(prefix, special(fmt.Sprintf("https proxy enabled for %s:%s", host, container)))
+			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd))
 			host = strconv.Itoa(rnd)
 		}
 
@@ -903,8 +903,11 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(from, to string) {
-	Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, "proxy").Run()
+func proxyPort(protocol, from, to string) {
+	cmd := Execer("docker", "run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 }
 
 func injectDockerfile(dir string) error {
