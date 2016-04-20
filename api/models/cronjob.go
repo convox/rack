@@ -20,8 +20,8 @@ func NewCronJobFromLabel(key, value string) CronJob {
 	tokens := strings.Fields(value)
 	cronjob := CronJob{
 		Name:     name,
-		Schedule: fmt.Sprintf("cron(%s)", strings.Join(tokens[0:6], " ")),
-		Command:  strings.Join(tokens[6:], " "),
+		Schedule: fmt.Sprintf("cron(%s *)", strings.Join(tokens[0:5], " ")),
+		Command:  strings.Join(tokens[5:], " "),
 	}
 	return cronjob
 }
