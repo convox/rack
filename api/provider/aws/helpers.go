@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -32,6 +35,40 @@ func awsError(err error) string {
 	return ""
 }
 
+func camelize(dasherized string) string {
+	tokens := strings.Split(dasherized, "-")
+
+	for i, token := range tokens {
+		switch token {
+		case "az":
+			tokens[i] = "AZ"
+		default:
+			tokens[i] = strings.Title(token)
+		}
+	}
+
+	return strings.Join(tokens, "")
+}
+
+func cfParams(source map[string]string) map[string]string {
+	params := make(map[string]string)
+
+	for key, value := range source {
+		var val string
+		switch value {
+		case "":
+			val = "false"
+		case "true":
+			val = "true"
+		default:
+			val = value
+		}
+		params[camelize(key)] = val
+	}
+
+	return params
+}
+
 func coalesce(s *dynamodb.AttributeValue, def string) string {
 	if s != nil {
 		return *s.S
@@ -40,11 +77,31 @@ func coalesce(s *dynamodb.AttributeValue, def string) string {
 	}
 }
 
+func buildTemplate(name, section string, data interface{}) (string, error) {
+	d, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(d))
+	if err != nil {
+		return "", err
+	}
+
+	var formation bytes.Buffer
+
+	err = tmpl.Execute(&formation, data)
+	if err != nil {
+		return "", err
+	}
+
+	return formation.String(), nil
+}
+
 func formationParameters(formation string) (map[string]TemplateParameter, error) {
 	var t Template
 
 	err := json.Unmarshal([]byte(formation), &t)
-
 	if err != nil {
 		return nil, err
 	}
@@ -235,4 +292,50 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	_, err = p.updateStack(req)
 
 	return err
+}
+
+func templateHelpers() template.FuncMap {
+	return template.FuncMap{
+		"upper": func(s string) string {
+			return UpperName(s)
+		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+	}
+}
+
+func DashName(name string) string {
+	// Myapp -> myapp; MyApp -> my-app
+	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
+
+	k := re.ReplaceAllString(name, "${1}-${2}")
+	return strings.ToLower(k)
+}
+
+func UpperName(name string) string {
+	// myapp -> Myapp; my-app -> MyApp
+	us := strings.ToUpper(name[0:1]) + name[1:]
+
+	for {
+		i := strings.Index(us, "-")
+
+		if i == -1 {
+			break
+		}
+
+		s := us[0:i]
+
+		if len(us) > i+1 {
+			s += strings.ToUpper(us[i+1 : i+2])
+		}
+
+		if len(us) > i+2 {
+			s += us[i+2:]
+		}
+
+		us = s
+	}
+
+	return us
 }
