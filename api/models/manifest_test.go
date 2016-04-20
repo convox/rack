@@ -41,7 +41,6 @@ func Diff(t *testing.T, name, s1, s2 string) {
 
 	if len(diffs) > 0 {
 		t.Errorf("Unexpected results for %s:\n%s", name, strings.Join(diffs, "\n"))
-		fmt.Println(s2)
 	}
 }
 
