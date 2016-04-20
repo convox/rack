@@ -159,10 +159,6 @@ func (m Manifest) CronJobs() []CronJob {
 	return cronjobs
 }
 
-func (m Manifest) StackName() string {
-	return os.Getenv("RACK")
-}
-
 func (m Manifest) AppName() string {
 	return m[0].app.Name
 }
