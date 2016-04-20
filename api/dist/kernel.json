@@ -865,12 +865,9 @@
             "swap:",
             "  filename: /swapfile",
             "  size: 5000000000",
-            "write_files:",
-            "- path: /opt/convox/runcmd.sh",
-            "  permissions: '0755'",
-            "  content: |",
-            { "Fn::Join" : [ "\n      ", [
-              "      #!/bin/bash",
+            "bootcmd:",
+            { "Fn::Join" : [ " ; ", [
+              "- /usr/bin/cloud-init-per once convox_bootcmd false || ( true",
               { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
               "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
               { "Fn::If": [ "BlankCertificate",
@@ -885,20 +882,18 @@
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
               { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
-              "curl -s https://convox.s3.amazonaws.com/agent/0.67/convox.conf > /etc/init/convox.conf"
+              "curl -s https://convox.s3.amazonaws.com/agent/0.67/convox.conf > /etc/init/convox.conf",
+              ")"
             ] ] },
-            "- path: /var/lib/cloud/scripts/per-once/convox.sh",
-            "  permissions: '0755'",
-            "  content: |",
-            { "Fn::Join" : [ "\n      ", [
-              "      #!/bin/bash",
+            "runcmd:",
+            { "Fn::Join" : [ " ; ", [
+              "- /usr/bin/cloud-init-per once convox_runcmd false || ( true",
               { "Ref": "InstanceBootCommand" },
               { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
               "sleep 30",
-              { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
-            ] ] },
-            "runcmd:",
-            "- [ cloud-init-per, once, convox_runcmd, /opt/convox/runcmd.sh ]"
+              { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
+              ")"
+            ] ] }
           ] ] }
         }
       }
