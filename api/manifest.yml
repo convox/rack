@@ -649,6 +649,24 @@ paths:
           description: invalid certificate
           schema:
             $ref: '#/definitions/error'
+  /certificates/generate:
+    post:
+      description: Request a certificate
+      parameters:
+      - name: domains
+        description: public key
+        type: array
+        items:
+          type: string
+      responses:
+        200:
+          description: certificate
+          schema:
+            $ref: '#/definitions/certificate'
+        403:
+          description: invalid domains
+          schema:
+            $ref: '#/definitions/error'
   /certificates/{id}:
     delete:
       description: Remove a certificate
