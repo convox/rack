@@ -147,6 +147,18 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 			parts := strings.Split(*cert.CertificateArn, "-")
 
 			if parts[len(parts)-1] == uuid {
+				res, err := ACM().DescribeCertificate(&acm.DescribeCertificateInput{
+					CertificateArn: cert.CertificateArn,
+				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				if *res.Certificate.Status == "PENDING_VALIDATION" {
+					return nil, fmt.Errorf("%s is still pending validation", id)
+				}
+
 				arn = *cert.CertificateArn
 				break
 			}
