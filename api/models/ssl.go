@@ -20,11 +20,12 @@ import (
 )
 
 type SSL struct {
-	Expiration time.Time `json:"expiration"`
-	Domain     string    `json:"domain"`
-	Process    string    `json:"process"`
-	Port       int       `json:"port"`
-	Secure     bool      `json:"secure"`
+	Certificate string    `json:"certificate"`
+	Expiration  time.Time `json:"expiration"`
+	Domain      string    `json:"domain"`
+	Process     string    `json:"process"`
+	Port        int       `json:"port"`
+	Secure      bool      `json:"secure"`
 }
 
 type SSLs []SSL
@@ -68,11 +69,12 @@ func ListSSLs(a string) (SSLs, error) {
 			secure := app.Parameters[fmt.Sprintf("%sPort%sSecure", matches[1], matches[2])] == "Yes"
 
 			ssls = append(ssls, SSL{
-				Domain:     c.Subject.CommonName,
-				Expiration: *resp.ServerCertificate.ServerCertificateMetadata.Expiration,
-				Port:       port,
-				Process:    DashName(matches[1]),
-				Secure:     secure,
+				Certificate: *resp.ServerCertificate.ServerCertificateMetadata.ServerCertificateName,
+				Domain:      c.Subject.CommonName,
+				Expiration:  *resp.ServerCertificate.ServerCertificateMetadata.Expiration,
+				Port:        port,
+				Process:     DashName(matches[1]),
+				Secure:      secure,
 			})
 		}
 	}
@@ -80,7 +82,7 @@ func ListSSLs(a string) (SSLs, error) {
 	return ssls, nil
 }
 
-func UpdateSSL(app, process string, port int, arn, body, key, chain string) (*SSL, error) {
+func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 	a, err := GetApp(app)
 
 	if err != nil {
@@ -92,29 +94,19 @@ func UpdateSSL(app, process string, port int, arn, body, key, chain string) (*SS
 		return nil, fmt.Errorf("can not update app with status: %s", a.Status)
 	}
 
-	// store old cert name
-	oldCertName := certName(app, process, port)
-
-	// validate process exists
-	if oldCertName == "" {
-		return nil, fmt.Errorf("no certificate configured for %s port %d", process, port)
-	}
-
 	outputs := a.Outputs
-
 	balancer := outputs[fmt.Sprintf("%sPort%dBalancerName", UpperName(process), port)]
 
 	if balancer == "" {
-		return nil, fmt.Errorf("Balancer ouptut not found. Please redeploy your app and try again.")
+		return nil, fmt.Errorf("Process and port combination unknown")
 	}
 
-	if arn == "" {
-		// upload new cert
-		arn, err = uploadCert(a, process, port, body, key, chain)
+	res, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+		ServerCertificateName: aws.String(id),
+	})
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	// update cloudformation
@@ -125,8 +117,7 @@ func UpdateSSL(app, process string, port int, arn, body, key, chain string) (*SS
 	}
 
 	params := a.Parameters
-
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = arn
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = *res.ServerCertificate.ServerCertificateMetadata.Arn
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
