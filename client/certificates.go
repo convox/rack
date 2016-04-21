@@ -17,9 +17,9 @@ func (c *Client) CreateCertificate(pub, key, chain string) (*Certificate, error)
 	var cert Certificate
 
 	params := Params{
-		"pub":   pub,
-		"key":   key,
-		"chain": chain,
+		"public":  pub,
+		"private": key,
+		"chain":   chain,
 	}
 
 	err := c.Post("/certificates", params, &cert)

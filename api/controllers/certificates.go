@@ -9,8 +9,8 @@ import (
 )
 
 func CertificateCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	pub := r.FormValue("pub")
-	key := r.FormValue("key")
+	pub := r.FormValue("public")
+	key := r.FormValue("private")
 	chain := r.FormValue("chain")
 
 	cert, err := provider.CertificateCreate(pub, key, chain)
