@@ -2,6 +2,7 @@ package aws
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,6 +38,8 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 		helpers.Error(log, err) // report internal errors to Rollbar
 		return err
 	}
+
+	fmt.Printf("aws EventSend msg=%q\n", msg)
 
 	// Publish Event to SNS
 	resp, err := p.sns().Publish(&sns.PublishInput{
