@@ -80,7 +80,7 @@ func cmdSSLUpdate(c *cli.Context) {
 		return
 	}
 
-	fmt.Printf("Updating SSL certificate... ")
+	fmt.Printf("Updating certificate... ")
 
 	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], c.Args()[1])
 
