@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/structs"
 )
@@ -73,6 +74,42 @@ func (p *AWSProvider) CertificateDelete(id string) error {
 	return err
 }
 
+func (p *AWSProvider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+	if len(domains) < 1 {
+		return nil, fmt.Errorf("must specify at least one domain")
+	}
+
+	alts := []*string{}
+
+	for _, domain := range domains[1:] {
+		alts = append(alts, aws.String(domain))
+	}
+
+	req := &acm.RequestCertificateInput{
+		DomainName: aws.String(domains[0]),
+	}
+
+	if len(alts) > 0 {
+		req.SubjectAlternativeNames = alts
+	}
+
+	res, err := p.acm().RequestCertificate(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(*res.CertificateArn, "-")
+	id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
+
+	cert := structs.Certificate{
+		Id:     id,
+		Domain: domains[0],
+	}
+
+	return &cert, nil
+}
+
 func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 	res, err := p.iam().ListServerCertificates(nil)
 
@@ -99,11 +136,45 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 
 		c, err := x509.ParseCertificate(pem.Bytes)
 
+		if err != nil {
+			return nil, err
+		}
+
 		certs = append(certs, structs.Certificate{
 			Id:         *cert.ServerCertificateName,
 			Domain:     c.Subject.CommonName,
 			Expiration: *cert.Expiration,
 		})
+	}
+
+	ares, err := p.acm().ListCertificates(nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cert := range ares.CertificateSummaryList {
+		parts := strings.Split(*cert.CertificateArn, "-")
+		id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
+
+		c := structs.Certificate{
+			Id:     id,
+			Domain: *cert.DomainName,
+		}
+
+		res, err := p.acm().DescribeCertificate(&acm.DescribeCertificateInput{
+			CertificateArn: cert.CertificateArn,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		if res.Certificate.NotAfter != nil {
+			c.Expiration = *res.Certificate.NotAfter
+		}
+
+		certs = append(certs, c)
 	}
 
 	return certs, nil

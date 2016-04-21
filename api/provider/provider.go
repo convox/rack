@@ -28,6 +28,7 @@ type Provider interface {
 
 	CertificateCreate(pub, key, chain string) (*structs.Certificate, error)
 	CertificateDelete(id string) error
+	CertificateGenerate(domains []string) (*structs.Certificate, error)
 	CertificateList() (structs.Certificates, error)
 
 	EventSend(*structs.Event, error) error
@@ -125,6 +126,10 @@ func CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
 
 func CertificateDelete(id string) error {
 	return CurrentProvider.CertificateDelete(id)
+}
+
+func CertificateGenerate(domains []string) (*structs.Certificate, error) {
+	return CurrentProvider.CertificateGenerate(domains)
 }
 
 func CertificateList() (structs.Certificates, error) {

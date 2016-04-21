@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -33,6 +34,22 @@ func (c *Client) CreateCertificate(pub, key, chain string) (*Certificate, error)
 
 func (c *Client) DeleteCertificate(id string) error {
 	return c.Delete(fmt.Sprintf("/certificates/%s", id), nil)
+}
+
+func (c *Client) GenerateCertificate(domains []string) (*Certificate, error) {
+	var cert Certificate
+
+	params := Params{
+		"domains": strings.Join(domains, ","),
+	}
+
+	err := c.Post("/certificates/generate", params, &cert)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
 }
 
 func (c *Client) ListCertificates() (Certificates, error) {

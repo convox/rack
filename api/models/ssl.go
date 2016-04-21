@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
@@ -55,27 +56,57 @@ func ListSSLs(a string) (SSLs, error) {
 				return nil, err
 			}
 
-			resp, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
-				ServerCertificateName: aws.String(certName(app.StackName(), matches[1], port)),
-			})
-
-			if err != nil {
-				return nil, err
-			}
-
-			pemBlock, _ := pem.Decode([]byte(*resp.ServerCertificate.CertificateBody))
-			c, err := x509.ParseCertificate(pemBlock.Bytes)
-
 			secure := app.Parameters[fmt.Sprintf("%sPort%sSecure", matches[1], matches[2])] == "Yes"
 
-			ssls = append(ssls, SSL{
-				Certificate: *resp.ServerCertificate.ServerCertificateMetadata.ServerCertificateName,
-				Domain:      c.Subject.CommonName,
-				Expiration:  *resp.ServerCertificate.ServerCertificateMetadata.Expiration,
-				Port:        port,
-				Process:     DashName(matches[1]),
-				Secure:      secure,
-			})
+			switch prefix := v[8:11]; prefix {
+			case "acm":
+				res, err := ACM().DescribeCertificate(&acm.DescribeCertificateInput{
+					CertificateArn: aws.String(v),
+				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				parts := strings.Split(v, "-")
+				id := fmt.Sprintf("acm-%s", parts[len(parts)-1])
+
+				ssls = append(ssls, SSL{
+					Certificate: id,
+					Domain:      *res.Certificate.DomainName,
+					Expiration:  *res.Certificate.NotAfter,
+					Port:        port,
+					Process:     DashName(matches[1]),
+					Secure:      secure,
+				})
+			case "iam":
+				res, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+					ServerCertificateName: aws.String(certName(app.StackName(), matches[1], port)),
+				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				pemBlock, _ := pem.Decode([]byte(*res.ServerCertificate.CertificateBody))
+
+				c, err := x509.ParseCertificate(pemBlock.Bytes)
+
+				if err != nil {
+					return nil, err
+				}
+
+				ssls = append(ssls, SSL{
+					Certificate: *res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName,
+					Domain:      c.Subject.CommonName,
+					Expiration:  *res.ServerCertificate.ServerCertificateMetadata.Expiration,
+					Port:        port,
+					Process:     DashName(matches[1]),
+					Secure:      secure,
+				})
+			default:
+				return nil, fmt.Errorf("unknown arn prefix: %s", prefix)
+			}
 		}
 	}
 
@@ -101,12 +132,35 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 		return nil, fmt.Errorf("Process and port combination unknown")
 	}
 
-	res, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
-		ServerCertificateName: aws.String(id),
-	})
+	arn := ""
 
-	if err != nil {
-		return nil, err
+	if strings.HasPrefix(id, "acm-") {
+		uuid := id[4:]
+
+		res, err := ACM().ListCertificates(nil)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, cert := range res.CertificateSummaryList {
+			parts := strings.Split(*cert.CertificateArn, "-")
+
+			if parts[len(parts)-1] == uuid {
+				arn = *cert.CertificateArn
+				break
+			}
+		}
+	} else {
+		res, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+			ServerCertificateName: aws.String(id),
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		arn = *res.ServerCertificate.ServerCertificateMetadata.Arn
 	}
 
 	// update cloudformation
@@ -117,7 +171,7 @@ func UpdateSSL(app, process string, port int, id string) (*SSL, error) {
 	}
 
 	params := a.Parameters
-	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = *res.ServerCertificate.ServerCertificateMetadata.Arn
+	params[fmt.Sprintf("%sPort%dCertificate", UpperName(process), port)] = arn
 
 	for key, val := range params {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
