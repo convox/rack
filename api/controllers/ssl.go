@@ -3,7 +3,6 @@ package controllers
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
@@ -31,10 +30,7 @@ func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	a := vars["app"]
 	process := vars["process"]
 	port := vars["port"]
-	arn := GetForm(r, "arn")
-	chain := GetForm(r, "chain")
-	body := GetForm(r, "body")
-	key := GetForm(r, "key")
+	id := GetForm(r, "id")
 
 	if process == "" {
 		return httperr.Errorf(403, "must specify a process")
@@ -46,11 +42,7 @@ func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "port must be numeric")
 	}
 
-	if (arn != "") && !validateARNFormat(arn) {
-		return httperr.Errorf(403, "arn must follow the AWS ARN format")
-	}
-
-	ssl, err := models.UpdateSSL(a, process, portn, arn, body, key, chain)
+	ssl, err := models.UpdateSSL(a, process, portn, id)
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "%s", err)
@@ -61,8 +53,4 @@ func SSLUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, ssl)
-}
-
-func validateARNFormat(arn string) bool {
-	return strings.HasPrefix(strings.ToLower(arn), "arn:")
 }

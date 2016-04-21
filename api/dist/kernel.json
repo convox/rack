@@ -29,6 +29,10 @@
       "Condition": "Development",
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
+    "AwsAccount": {
+      "Condition": "Development",
+      "Value": { "Ref": "AWS::AccountId" }
+    },
     "AwsRegion": {
       "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
@@ -1413,6 +1417,7 @@
             "Command": "api/bin/web",
             "CPU": "128",
             "Environment": {
+              "AWS_ACCOUNT": { "Ref": "AWS::AccountId" },
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },

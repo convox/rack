@@ -915,6 +915,8 @@ definitions:
         type: string
   ssl:
     properties:
+      certificate:
+        type: string
       domain:
         type: string
       expiration:

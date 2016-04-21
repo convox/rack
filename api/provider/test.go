@@ -11,14 +11,16 @@ var TestProvider = &TestProviderRunner{}
 
 type TestProviderRunner struct {
 	mock.Mock
-	App       structs.App
-	Build     structs.Build
-	Builds    structs.Builds
-	Capacity  structs.Capacity
-	Instances structs.Instances
-	Release   structs.Release
-	Releases  structs.Releases
-	Service   structs.Service
+	App          structs.App
+	Build        structs.Build
+	Builds       structs.Builds
+	Capacity     structs.Capacity
+	Certificate  structs.Certificate
+	Certificates structs.Certificates
+	Instances    structs.Instances
+	Release      structs.Release
+	Releases     structs.Releases
+	Service      structs.Service
 }
 
 func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
@@ -74,6 +76,21 @@ func (p *TestProviderRunner) BuildSave(b *structs.Build) error {
 func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
 	p.Called()
 	return &p.Capacity, nil
+}
+
+func (p *TestProviderRunner) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
+	p.Called(pub, key, chain)
+	return &p.Certificate, nil
+}
+
+func (p *TestProviderRunner) CertificateDelete(id string) error {
+	p.Called(id)
+	return nil
+}
+
+func (p *TestProviderRunner) CertificateList() (structs.Certificates, error) {
+	p.Called()
+	return p.Certificates, nil
 }
 
 func (p *TestProviderRunner) EventSend(e *structs.Event, err error) error {

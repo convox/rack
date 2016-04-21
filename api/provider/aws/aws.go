@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -86,6 +87,10 @@ func (p *AWSProvider) ecr() *ecr.ECR {
 
 func (p *AWSProvider) ecs() *ecs.ECS {
 	return ecs.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) iam() *iam.IAM {
+	return iam.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) kinesis() *kinesis.Kinesis {
