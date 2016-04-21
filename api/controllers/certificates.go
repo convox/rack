@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/provider"
@@ -34,12 +36,26 @@ func CertificateDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderSuccess(rw)
 }
 
+func CertificateGenerate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	domains := strings.Split(r.FormValue("domains"), ",")
+
+	cert, err := provider.CertificateGenerate(domains)
+
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, cert)
+}
+
 func CertificateList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	certs, err := provider.CertificateList()
 
 	if err != nil {
 		return httperr.Server(err)
 	}
+
+	sort.Sort(certs)
 
 	return RenderJson(rw, certs)
 }

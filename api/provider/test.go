@@ -88,6 +88,11 @@ func (p *TestProviderRunner) CertificateDelete(id string) error {
 	return nil
 }
 
+func (p *TestProviderRunner) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+	p.Called(domains)
+	return &p.Certificate, nil
+}
+
 func (p *TestProviderRunner) CertificateList() (structs.Certificates, error) {
 	p.Called()
 	return p.Certificates, nil

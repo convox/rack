@@ -32,6 +32,12 @@ func init() {
 				Usage:       "<id>",
 				Action:      cmdCertsDelete,
 			},
+			{
+				Name:        "generate",
+				Description: "generate a certificate",
+				Usage:       "<domain> [domain...]",
+				Action:      cmdCertsGenerate,
+			},
 		},
 	})
 }
@@ -114,4 +120,22 @@ func cmdCertsDelete(c *cli.Context) {
 	}
 
 	fmt.Println("OK")
+}
+
+func cmdCertsGenerate(c *cli.Context) {
+	if len(c.Args()) < 1 {
+		stdcli.Usage(c, "generate")
+		return
+	}
+
+	fmt.Printf("Requesting certificate... ")
+
+	cert, err := rackClient(c).GenerateCertificate(c.Args())
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("OK, %s\n", cert.Id)
 }

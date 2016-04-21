@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -63,6 +64,10 @@ func (p *AWSProvider) config() *aws.Config {
 	}
 
 	return config
+}
+
+func (p *AWSProvider) acm() *acm.ACM {
+	return acm.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
