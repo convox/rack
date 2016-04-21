@@ -29,8 +29,9 @@ const (
 var ignoredHeaders = rules{
 	blacklist{
 		mapRule{
-			"Authorization": struct{}{},
-			"User-Agent":    struct{}{},
+			"Authorization":  struct{}{},
+			"Content-Length": struct{}{},
+			"User-Agent":     struct{}{},
 		},
 	},
 }
@@ -153,7 +154,6 @@ func Sign(req *request.Request) {
 	}
 
 	req.Error = s.sign()
-	req.Time = s.Time
 	req.SignedHeaderVals = s.signedHeaderVals
 }
 
@@ -163,12 +163,11 @@ func (v4 *signer) sign() error {
 	}
 
 	if v4.isRequestSigned() {
-		if !v4.Credentials.IsExpired() && time.Now().Before(v4.Time.Add(10*time.Minute)) {
+		if !v4.Credentials.IsExpired() {
 			// If the request is already signed, and the credentials have not
-			// expired, and the request is not too old ignore the signing request.
+			// expired yet ignore the signing request.
 			return nil
 		}
-		v4.Time = time.Now()
 
 		// The credentials have expired for this request. The current signing
 		// is invalid, and needs to be request because the request will fail.
