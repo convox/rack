@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -42,6 +43,8 @@ func Notify(name, status string, data map[string]string) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("models EventSend msg=%q\n", message)
 
 	params := &sns.PublishInput{
 		Message:   aws.String(string(message)), // Required

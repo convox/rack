@@ -612,6 +612,79 @@ paths:
           description: invalid password
           schema:
             type: string
+  /certificates:
+    get:
+      description: List certificates
+      responses:
+        200:
+          description: certificate list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/certificate'
+    post:
+      description: Upload a certificate
+      parameters:
+      - name: public
+        description: public key
+        type: string
+        in: formData
+        required: true
+      - name: private
+        description: private key
+        type: string
+        in: formData
+        required: true
+      - name: chain
+        description: intermediate chain
+        type: string
+        in: formData
+        required: false
+      responses:
+        200:
+          description: certificate
+          schema:
+            $ref: '#/definitions/certificate'
+        403:
+          description: invalid certificate
+          schema:
+            $ref: '#/definitions/error'
+  /certificates/generate:
+    post:
+      description: Request a certificate
+      parameters:
+      - name: domains
+        description: public key
+        type: array
+        items:
+          type: string
+      responses:
+        200:
+          description: certificate
+          schema:
+            $ref: '#/definitions/certificate'
+        403:
+          description: invalid domains
+          schema:
+            $ref: '#/definitions/error'
+  /certificates/{id}:
+    delete:
+      description: Remove a certificate
+      parameters:
+      - name: id
+        description: certificate id
+        type: string
+        in: path
+        required: true
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+        404:
+          description: not found
+          schema:
+            $ref: '#/definitions/error'
   /instances:
     get:
       description: List instances.
@@ -825,6 +898,13 @@ definitions:
         type: integer
       process-width:
         type: integer
+  certificate:
+      domain:
+        type: string
+      expiration:
+        type: date
+      id:
+        type: string
   error:
     properties:
       error:
@@ -915,6 +995,8 @@ definitions:
         type: string
   ssl:
     properties:
+      certificate:
+        type: string
       domain:
         type: string
       expiration:

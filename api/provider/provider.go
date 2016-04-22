@@ -26,6 +26,11 @@ type Provider interface {
 
 	CapacityGet() (*structs.Capacity, error)
 
+	CertificateCreate(pub, key, chain string) (*structs.Certificate, error)
+	CertificateDelete(id string) error
+	CertificateGenerate(domains []string) (*structs.Certificate, error)
+	CertificateList() (structs.Certificates, error)
+
 	EventSend(*structs.Event, error) error
 
 	IndexDiff(*structs.Index) ([]string, error)
@@ -113,6 +118,22 @@ func BuildSave(b *structs.Build) error {
 
 func CapacityGet() (*structs.Capacity, error) {
 	return CurrentProvider.CapacityGet()
+}
+
+func CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
+	return CurrentProvider.CertificateCreate(pub, key, chain)
+}
+
+func CertificateDelete(id string) error {
+	return CurrentProvider.CertificateDelete(id)
+}
+
+func CertificateGenerate(domains []string) (*structs.Certificate, error) {
+	return CurrentProvider.CertificateGenerate(domains)
+}
+
+func CertificateList() (structs.Certificates, error) {
+	return CurrentProvider.CertificateList()
 }
 
 func EventSend(e *structs.Event, err error) error {

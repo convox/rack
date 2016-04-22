@@ -6,11 +6,12 @@ import (
 )
 
 type SSL struct {
-	Domain     string    `json:"domain"`
-	Expiration time.Time `json:"expiration"`
-	Port       int       `json:"port"`
-	Process    string    `json:"process"`
-	Secure     bool      `json:"secure"`
+	Certificate string    `json:"certificate"`
+	Domain      string    `json:"domain"`
+	Expiration  time.Time `json:"expiration"`
+	Port        int       `json:"port"`
+	Process     string    `json:"process"`
+	Secure      bool      `json:"secure"`
 }
 
 type SSLs []SSL
@@ -27,12 +28,9 @@ func (c *Client) ListSSL(app string) (*SSLs, error) {
 	return &ssls, nil
 }
 
-func (c *Client) UpdateSSL(app, process, port, arn, body, key, chain string) (*SSL, error) {
+func (c *Client) UpdateSSL(app, process, port, id string) (*SSL, error) {
 	params := Params{
-		"arn":   arn,
-		"body":  body,
-		"chain": chain,
-		"key":   key,
+		"id": id,
 	}
 
 	var ssl SSL

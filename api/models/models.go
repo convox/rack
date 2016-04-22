@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -56,6 +57,10 @@ func awsConfig() *aws.Config {
 	}
 
 	return config
+}
+
+func ACM() *acm.ACM {
+	return acm.New(session.New(), awsConfig())
 }
 
 func AutoScaling() *autoscaling.AutoScaling {
