@@ -851,13 +851,22 @@
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
-        "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvdcz",
-          "Ebs": {
-            "VolumeSize": { "Ref": "VolumeSize" },
-            "VolumeType":"gp2"
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "VolumeSize": 5,
+              "VolumeType":"gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/xvdcz",
+            "Ebs": {
+              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeType":"gp2"
+            }
           }
-        }],
+        ],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
@@ -873,9 +882,11 @@
             "- kernel*",
             "packages:",
             "- aws-cfn-bootstrap",
-            "swap:",
-            "  filename: /swapfile",
-            "  size: 5000000000",
+            "fs_setup:",
+            "    - device: /dev/xvdb",
+            "      filesystem: swap",
+            "mounts:",
+            "    - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']",
             "bootcmd:",
             { "Fn::Join" : [ " ; ", [
               "- /usr/bin/cloud-init-per once convox_bootcmd false || ( true",
