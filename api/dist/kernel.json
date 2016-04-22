@@ -6,6 +6,7 @@
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
+    "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -196,7 +197,12 @@
     },
     "InstanceBootCommand": {
       "Type": "String",
-      "Description": "A single line of extra shell script to run as UserData during instance boot.",
+      "Description": "A single line of extra shell script to run as UserData early during instance boot.",
+      "Default": ""
+    },
+    "InstanceRunCommand": {
+      "Type": "String",
+      "Description": "A single line of extra shell script to run as UserData late during instance boot.",
       "Default": ""
     },
     "InstanceCount": {
@@ -898,6 +904,10 @@
             "runcmd:",
             { "Fn::Join" : [ " ; ", [
               "- /usr/bin/cloud-init-per once convox_runcmd false || ( true",
+              { "Fn::If": [ "BlankInstanceBootCommand",
+                "true",
+                { "Ref": "InstanceRunCommand" }
+              ] },
               { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
               "sleep 30",
               { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
