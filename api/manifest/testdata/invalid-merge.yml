@@ -1,0 +1,7 @@
+web:
+  environment: &env
+    - FOO=bar
+    - BAZ=qux
+worker:
+  environment:
+    << *env
