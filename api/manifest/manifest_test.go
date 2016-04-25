@@ -8,9 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	"github.com/fatih/color"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -222,6 +225,55 @@ worker:
 	}
 
 	_assert(t, cases)
+}
+
+func TestInvalidYaml(t *testing.T) {
+	m, err := Read("testdata", "invalid-merge.yml")
+	// TODO: this should actually be an error
+	require.NoError(t, err, "Unexpected error reading YAML testdata")
+
+	t.Log((*m)["web"].Environment)
+	t.Log((*m)["worker"].Environment)
+}
+
+func TestArrayMergeYaml(t *testing.T) {
+	m, err := Read("testdata", "array-merge.yml")
+	require.NoError(t, err, "Unexpected error reading YAML testdata")
+
+	expected := []interface{}{"FOO=bar", "BAZ=qux"}
+	assert.Equal(t, expected, (*m)["main"].Environment)
+	assert.Equal(t, expected, (*m)["worker"].Environment)
+}
+
+func TestMapMergeYaml(t *testing.T) {
+	m, err := Read("testdata", "map-merge.yml")
+	require.NoError(t, err, "Unexpected error reading YAML testdata")
+
+	expected := map[interface{}]interface{}{"FOO": "bar", "BAZ": "qux"}
+	assert.Equal(t, expected, (*m)["main"].Environment)
+	assert.Equal(t, expected, (*m)["worker"].Environment)
+}
+
+func TestEnvMapToSlice(t *testing.T) {
+	m, err := Read("testdata", "map.yml")
+	require.NoError(t, err, "Unexpected error reading YAML testdata")
+
+	expected := map[interface{}]interface{}{"FOO": "bar", "BAZ": "qux"}
+	assert.Equal(t, expected, (*m)["main"].Environment)
+
+	data, err := m.Raw()
+	require.NoError(t, err)
+
+	// models/manifest.go expects a slice of strings
+	var entries map[string]struct {
+		Env []string `yaml:"environment"`
+	}
+	err = yaml.Unmarshal(data, &entries)
+	require.NoError(t, err, "Error reading exported YAML")
+
+	env := (*m)["main"].Environment.([]string)
+	sort.Strings(env)
+	assert.EqualValues(t, []string{"BAZ=qux", "FOO=bar"}, env)
 }
 
 func mkBuildDir(t *testing.T, srcDir string) string {

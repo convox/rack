@@ -557,8 +557,19 @@ func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 	return []error{}
 }
 
+// Raw marshals a manifest into YAML
 func (m *Manifest) Raw() ([]byte, error) {
-	return yaml.Marshal(m)
+	// force environment sections into arrays if they are maps
+	mf := *m
+	for k := range mf {
+		me := mf[k]
+		env := me.EnvironmentArray()
+		if len(env) > 0 {
+			me.Environment = env
+			mf[k] = me
+		}
+	}
+	return yaml.Marshal(&mf)
 }
 
 func (m *Manifest) Run(app string, cache bool) []error {

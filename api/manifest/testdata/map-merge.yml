@@ -1,0 +1,13 @@
+main:
+  build: .
+  ports:
+    - 80:5000
+  command: go-wrapper run
+  environment: &env
+    FOO: bar
+    BAZ: qux
+worker:
+  build: .
+  command: go-wrapper run
+  environment:
+    <<: *env
