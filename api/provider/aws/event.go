@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -27,6 +28,7 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 	log := logger.New("ns=kernel")
 
 	e.Status = "success"
+	e.Timestamp = time.Now().UTC()
 
 	if err != nil {
 		e.Data["message"] = err.Error()

@@ -165,6 +165,16 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	if b.Status == "failed" {
+		provider.EventSend(&structs.Event{
+			Action: "build:create",
+			Data: map[string]string{
+				"app": b.App,
+				"id":  b.Id,
+			},
+		}, fmt.Errorf(b.Reason))
+	}
+
 	return RenderJson(rw, b)
 }
 
