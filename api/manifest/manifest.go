@@ -565,7 +565,7 @@ func (m *Manifest) Raw() ([]byte, error) {
 		me := mf[k]
 		env := me.EnvironmentArray()
 		if len(env) > 0 {
-			me.Environment = interface{}(env)
+			me.Environment = env
 			mf[k] = me
 		}
 	}

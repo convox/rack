@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	"github.com/fatih/color"
@@ -270,7 +271,9 @@ func TestEnvMapToSlice(t *testing.T) {
 	err = yaml.Unmarshal(data, &entries)
 	require.NoError(t, err, "Error reading exported YAML")
 
-	assert.EqualValues(t, []string{"FOO=bar", "BAZ=qux"}, (*m)["main"].Environment)
+	env := (*m)["main"].Environment.([]string)
+	sort.Strings(env)
+	assert.EqualValues(t, []string{"BAZ=qux", "FOO=bar"}, env)
 }
 
 func mkBuildDir(t *testing.T, srcDir string) string {
