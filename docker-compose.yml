@@ -4,7 +4,6 @@ web:
   environment:
     - AUTOSCALE=false
     - DEVELOPMENT=true
-    - AWS_ACCOUNT
     - AWS_REGION
     - AWS_ACCESS
     - AWS_SECRET
