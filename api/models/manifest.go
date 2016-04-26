@@ -23,7 +23,7 @@ type ManifestEntry struct {
 
 	Build      string                   `yaml:"build"`
 	Command    interface{}              `yaml:"command"`
-	Env        []string                 `yaml:"environment"`
+	Env        MapOrEqualSlice          `yaml:"environment"`
 	Exports    map[string]string        `yaml:"-"`
 	Image      string                   `yaml:"image"`
 	Labels     interface{}              `yaml:"labels"`
@@ -531,4 +531,70 @@ func (me ManifestEntry) RegistryImage(app *App, buildId string) string {
 	}
 
 	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), app.Name, me.Name, buildId)
+}
+
+type MapOrEqualSlice []string
+
+// UnmarshalYAML implements the Unmarshaller interface.
+func (s *MapOrEqualSlice) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value interface{}
+	err := unmarshal(&value)
+	if err != nil {
+		return err
+	}
+
+	parts, err := unmarshalToStringOrSepMapParts(value, "=")
+	if err != nil {
+		return err
+	}
+	*s = parts
+	return nil
+}
+
+// the following code is from libcompose/yaml/types_yaml (Apache License)
+func unmarshalToStringOrSepMapParts(value interface{}, key string) ([]string, error) {
+	switch value := value.(type) {
+	case []interface{}:
+		return toStrings(value)
+	case map[interface{}]interface{}:
+		return toSepMapParts(value, key)
+	default:
+		return nil, fmt.Errorf("Failed to unmarshal Map or Slice: %#v", value)
+	}
+}
+
+// the following code is from libcompose/yaml/types_yaml (Apache License)
+func toSepMapParts(value map[interface{}]interface{}, sep string) ([]string, error) {
+	if len(value) == 0 {
+		return nil, nil
+	}
+	parts := make([]string, 0, len(value))
+	for k, v := range value {
+		if sk, ok := k.(string); ok {
+			if sv, ok := v.(string); ok {
+				parts = append(parts, sk+sep+sv)
+			} else {
+				return nil, fmt.Errorf("Cannot unmarshal '%v' of type %T into a string value", v, v)
+			}
+		} else {
+			return nil, fmt.Errorf("Cannot unmarshal '%v' of type %T into a string value", k, k)
+		}
+	}
+	return parts, nil
+}
+
+// the following code is from libcompose/yaml/types_yaml (Apache License)
+func toStrings(s []interface{}) ([]string, error) {
+	if len(s) == 0 {
+		return nil, nil
+	}
+	r := make([]string, len(s))
+	for k, v := range s {
+		if sv, ok := v.(string); ok {
+			r[k] = sv
+		} else {
+			return nil, fmt.Errorf("Cannot unmarshal '%v' of type %T into a string value", v, v)
+		}
+	}
+	return r, nil
 }

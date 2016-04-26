@@ -141,6 +141,7 @@ func TestManifestFixtures(t *testing.T) {
 	assertFixture(t, "worker", "")
 	assertFixture(t, "complex_environment", "")
 	assertFixture(t, "balancer_labels", "")
+	assertFixture(t, "environment_map", "")
 	ManifestRandomPorts = true
 }
 
