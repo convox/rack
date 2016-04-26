@@ -443,7 +443,7 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 				scheme, userInfo, host, port, path)
 
 			prefix := strings.ToUpper(link) + "_"
-
+			prefix = strings.Replace(prefix, "-", "_", -1)
 			entry.LinkVars[prefix+"HOST"] = template.HTML(host)
 			entry.LinkVars[prefix+"SCHEME"] = template.HTML(fmt.Sprintf("%q", scheme))
 			entry.LinkVars[prefix+"PORT"] = template.HTML(fmt.Sprintf("%q", port))
