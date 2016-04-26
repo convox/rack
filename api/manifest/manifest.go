@@ -779,7 +779,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		case "https", "tls":
 			proxy := false
 
-			if me.Label(fmt.Sprintf("convox.port.%s.proxy")) == "true" {
+			if me.Label(fmt.Sprintf("convox.port.%s.proxy", host)) == "true" {
 				proxy = true
 			}
 
