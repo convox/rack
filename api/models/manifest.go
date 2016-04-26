@@ -180,7 +180,7 @@ func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 				continue
 			}
 
-			if strings.HasPrefix(ks, "convox.cron") {
+			if strings.HasPrefix(ks, prefix) {
 				returnLabels[ks] = vs
 			}
 		}
@@ -193,7 +193,7 @@ func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 			}
 
 			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
-				if strings.HasPrefix(parts[0], "convox.cron") {
+				if strings.HasPrefix(parts[0], prefix) {
 					returnLabels[parts[0]] = parts[1]
 				}
 			}
