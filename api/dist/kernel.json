@@ -862,7 +862,6 @@
             "yum -y update",
             "yum -y install aws-cfn-bootstrap",
             "echo -e '/var/log/docker {\n  rotate 7\n  daily\n  nocompress\n  copytruncate\n}\n' >> /etc/logrotate.d/docker",
-            "echo -e '/var/lib/docker/containers/*/*.log {\n  rotate 7\n  daily\n  nocompress\n  copytruncate\n  missingok\n}\n' >> /etc/logrotate.d/docker",
             { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
             "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
             { "Fn::If": [ "BlankCertificate",
