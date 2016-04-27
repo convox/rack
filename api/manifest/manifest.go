@@ -430,6 +430,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]s
 		}
 
 		prefix := strings.ToUpper(link) + "_"
+		prefix = strings.Replace(prefix, "-", "_", -1)
 		linkVars[prefix+"URL"] = linkUrl.String()
 		linkVars[prefix+"HOST"] = host
 		linkVars[prefix+"SCHEME"] = scheme
@@ -778,7 +779,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		case "https", "tls":
 			proxy := false
 
-			if me.Label(fmt.Sprintf("convox.port.%s.proxy")) == "true" {
+			if me.Label(fmt.Sprintf("convox.port.%s.proxy", host)) == "true" {
 				proxy = true
 			}
 
