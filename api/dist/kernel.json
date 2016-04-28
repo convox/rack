@@ -888,6 +888,7 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
+            "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             { "Fn::If": [ "BlankCertificate",
