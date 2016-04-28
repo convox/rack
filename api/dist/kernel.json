@@ -6,6 +6,7 @@
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
+    "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -192,7 +193,12 @@
     },
     "InstanceBootCommand": {
       "Type": "String",
-      "Description": "A single line of extra shell script to run as UserData during instance boot.",
+      "Description": "A single line of shell script to run as CloudInit command early during instance boot.",
+      "Default": ""
+    },
+    "InstanceRunCommand": {
+      "Type": "String",
+      "Description": "A single line of shell script to run as CloudInit command late during instance boot.",
       "Default": ""
     },
     "InstanceCount": {
@@ -892,7 +898,12 @@
               ] ] }
             ] },
             "runcmd:\n",
-            "  - sleep 30\n",
+            { "Fn::If": [ "BlankInstanceRunCommand",
+              "  - sleep 30\n",
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceRunCommand" }, "\n"
+              ] ] }
+            ] },
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
           ] ] }
         }
