@@ -274,6 +274,11 @@
       "Description": "Private Subnet 2 CIDR Block",
       "Type": "String"
     },
+    "SwapSize": {
+      "Type": "Number",
+      "Description": "Default swap volume size in GB",
+      "Default": "5"
+    },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
       "MinLength" : "1",
@@ -847,13 +852,22 @@
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
-        "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvdcz",
-          "Ebs": {
-            "VolumeSize": { "Ref": "VolumeSize" },
-            "VolumeType":"gp2"
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sdb",
+            "Ebs": {
+              "VolumeSize": { "Ref": "SwapSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/xvdcz",
+            "Ebs": {
+              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeType":"gp2"
+            }
           }
-        }],
+        ],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
@@ -869,10 +883,11 @@
             "  - kernel*\n",
             "packages:\n",
             "  - aws-cfn-bootstrap\n",
-            "swap:\n",
-            "  filename: /swapfile\n",
-            "  size: 5000000000\n",
+            "mounts:\n",
+            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
             "bootcmd:\n",
+            "  - mkswap /dev/xvdb\n",
+            "  - swapon /dev/xvdb\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             { "Fn::If": [ "BlankCertificate",
