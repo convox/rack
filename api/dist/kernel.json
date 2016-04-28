@@ -907,6 +907,7 @@
             "  - echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis\n",
             "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
             "  - curl -s https://convox.s3.amazonaws.com/agent/0.68/convox.conf > /etc/init/convox.conf\n",
+            "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
               { "Fn::Join": [ "", [
