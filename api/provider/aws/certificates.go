@@ -147,6 +147,28 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 		})
 	}
 
+	// only fetch ACM certificates in regions that support it
+	switch os.Getenv("AWS_REGION") {
+	case "us-east-1":
+		c, err := p.certificateListACM()
+
+		if err != nil {
+			return nil, err
+		}
+
+		certs = append(certs, c...)
+	}
+
+	return certs, nil
+}
+
+type CfsslCertificateBundle struct {
+	Bundle string `json:"bundle"`
+}
+
+func (p *AWSProvider) certificateListACM() (structs.Certificates, error) {
+	certs := structs.Certificates{}
+
 	ares, err := p.acm().ListCertificates(nil)
 
 	if err != nil {
@@ -178,10 +200,6 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 	}
 
 	return certs, nil
-}
-
-type CfsslCertificateBundle struct {
-	Bundle string `json:"bundle"`
 }
 
 // use cfssl bundle to generate the certificate chain
