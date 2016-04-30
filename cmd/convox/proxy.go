@@ -69,17 +69,17 @@ func cmdProxy(c *cli.Context) {
 			return
 		}
 
-		go proxy(port, host, hostport, rackClient(c))
+		go proxy("127.0.0.1", port, host, hostport, rackClient(c))
 	}
 
 	// block forever
 	select {}
 }
 
-func proxy(port int, host string, hostport int, client *client.Client) {
-	fmt.Printf("proxying localhost:%d to %s:%d\n", port, host, hostport)
+func proxy(localhost string, localport int, remotehost string, remoteport int, client *client.Client) {
+	fmt.Printf("proxying %s:%d to %s:%d\n", localhost, localport, remotehost, remoteport)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	listener, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", localhost, localport))
 
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
@@ -98,10 +98,10 @@ func proxy(port int, host string, hostport int, client *client.Client) {
 
 		defer conn.Close()
 
-		fmt.Printf("connect: %d\n", port)
+		fmt.Printf("connect: %d\n", localport)
 
 		go func() {
-			err := client.Proxy(host, hostport, conn)
+			err := client.Proxy(remotehost, remoteport, conn)
 
 			if err != nil {
 				fmt.Printf("error: %s\n", err)

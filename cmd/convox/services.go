@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"net"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -99,6 +102,19 @@ func init() {
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag},
+			},
+			{
+				Name:        "proxy",
+				Description: "proxy ports from localhost to connect to a service",
+				Usage:       "<name>",
+				Action:      cmdServiceProxy,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "listen, l",
+						Value: "",
+						Usage: "[[addr:]port]",
+					},
+				},
 			},
 		},
 	})
@@ -319,4 +335,72 @@ func cmdLinkDelete(c *cli.Context) {
 	}
 
 	fmt.Printf("Unlinked %s from %s\n", name, app)
+}
+
+func cmdServiceProxy(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "info")
+		return
+	}
+
+	name := c.Args()[0]
+
+	service, err := rackClient(c).GetService(name)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	export, ok := service.Exports["URL"]
+
+	if !ok {
+		stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
+		return
+	}
+
+	u, err := url.Parse(export)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	remotehost, remoteport, err := net.SplitHostPort(u.Host)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	localhost := "127.0.0.1"
+	localport := remoteport
+
+	if listen := c.String("listen"); listen != "" {
+		parts := strings.Split(listen, ":")
+
+		switch len(parts) {
+		case 1:
+			localport = parts[0]
+		case 2:
+			localhost = parts[0]
+			localport = parts[1]
+		}
+	}
+
+	lp, err := strconv.Atoi(localport)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	rp, err := strconv.Atoi(remoteport)
+
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	proxy(localhost, lp, remotehost, rp, rackClient(c))
 }
