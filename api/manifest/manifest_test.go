@@ -32,7 +32,7 @@ func TestBuild(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	_, _ = Init(destDir)
+	Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
 
 	stdout, stderr := testBuild(m, "compose")
@@ -53,7 +53,7 @@ func TestPortsWanted(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	_, _ = Init(destDir)
+	Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
 	ps := m.PortsWanted()
 
@@ -106,7 +106,7 @@ func TestRun(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/compose")
 	defer os.RemoveAll(destDir)
 
-	_, _ = Init(destDir)
+	Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
 
 	commands := []TestCommand{
@@ -146,63 +146,11 @@ func TestRun(t *testing.T) {
 	_assert(t, cases)
 }
 
-func TestGenerateDockerCompose(t *testing.T) {
-	destDir := mkBuildDir(t, "../../examples/compose")
-	defer os.RemoveAll(destDir)
-
-	_, _ = Init(destDir)
-	m, _ := Read(destDir, defaultManifestFile)
-
-	Execer = func(bin string, args ...string) *exec.Cmd {
-		return exec.Command("true")
-	}
-
-	cases := Cases{
-		{readFile(t, destDir, "docker-compose.yml"), `web:
-  build: .
-  links:
-    - postgres
-  ports:
-    - 5000:3000
-postgres:
-  image: convox/postgres
-  ports:
-    - 5432
-`},
-		{[]string{"postgres", "web"}, m.runOrder()},
-	}
-
-	_assert(t, cases)
-}
-
-func TestGenerateDockerfile(t *testing.T) {
-	destDir := mkBuildDir(t, "../../examples/dockerfile")
-	defer os.RemoveAll(destDir)
-
-	_, _ = Init(destDir)
-	m, _ := Read(destDir, defaultManifestFile)
-
-	Execer = func(bin string, args ...string) *exec.Cmd {
-		return exec.Command("true")
-	}
-
-	cases := Cases{
-		{readFile(t, destDir, "docker-compose.yml"), `main:
-  build: .
-  ports:
-  - 5000:3000
-`},
-		{[]string{"main"}, m.runOrder()},
-	}
-
-	_assert(t, cases)
-}
-
 func TestGenerateProcfile(t *testing.T) {
 	destDir := mkBuildDir(t, "../../examples/procfile")
 	defer os.RemoveAll(destDir)
 
-	_, _ = Init(destDir)
+	Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
 
 	Execer = func(bin string, args ...string) *exec.Cmd {
@@ -213,13 +161,15 @@ func TestGenerateProcfile(t *testing.T) {
 		{readFile(t, destDir, "docker-compose.yml"), `web:
   build: .
   command: ruby web.rb
+  labels:
+  - convox.port.443.protocol=tls
+  - convox.port.443.proxy=true
   ports:
-  - 5000:3000
+  - 80:4000
+  - 443:4001
 worker:
   build: .
   command: ruby worker.rb
-  ports:
-  - 5100:3000
 `},
 		{[]string{"web", "worker"}, m.runOrder()},
 	}
