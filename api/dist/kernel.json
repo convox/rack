@@ -5,6 +5,8 @@
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankCertificate": { "Fn::Equals": [ { "Ref": "Certificate" }, "" ] },
     "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
+    "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
+    "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
@@ -13,14 +15,14 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-33b48a59" },
-      "us-west-1": { "Ami": "ami-26f78746" },
-      "us-west-2": { "Ami": "ami-65866a05" },
-      "eu-west-1": { "Ami": "ami-77ab1504" },
-      "eu-central-1": { "Ami": "ami-341efb5b" },
-      "ap-northeast-1": { "Ami": "ami-b3afa2dd" },
-      "ap-southeast-1": { "Ami": "ami-0cb0786f" },
-      "ap-southeast-2": { "Ami": "ami-cf6342ac" }
+      "us-east-1": { "Ami": "ami-67a3a90d" },
+      "us-west-1": { "Ami": "ami-b7d5a8d7" },
+      "us-west-2": { "Ami": "ami-c7a451a7" },
+      "eu-west-1": { "Ami": "ami-9c9819ef" },
+      "eu-central-1": { "Ami": "ami-9aeb0af5" },
+      "ap-northeast-1": { "Ami": "ami-7e4a5b10" },
+      "ap-southeast-1": { "Ami": "ami-be63a9dd" },
+      "ap-southeast-2": { "Ami": "ami-b8cbe8db" }
     }
   },
   "Outputs": {
@@ -191,7 +193,12 @@
     },
     "InstanceBootCommand": {
       "Type": "String",
-      "Description": "A single line of extra shell script to run as UserData during instance boot.",
+      "Description": "A single line of shell script to run as CloudInit command early during instance boot.",
+      "Default": ""
+    },
+    "InstanceRunCommand": {
+      "Type": "String",
+      "Description": "A single line of shell script to run as CloudInit command late during instance boot.",
       "Default": ""
     },
     "InstanceCount": {
@@ -266,6 +273,11 @@
       "Default": "10.0.6.0/24",
       "Description": "Private Subnet 2 CIDR Block",
       "Type": "String"
+    },
+    "SwapSize": {
+      "Type": "Number",
+      "Description": "Default swap volume size in GB",
+      "Default": "5"
     },
     "Version": {
       "Description": "(REQUIRED) Convox release version",
@@ -840,13 +852,22 @@
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": true,
-        "BlockDeviceMappings": [{
-          "DeviceName": "/dev/xvdcz",
-          "Ebs": {
-            "VolumeSize": { "Ref": "VolumeSize" },
-            "VolumeType":"gp2"
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sdb",
+            "Ebs": {
+              "VolumeSize": { "Ref": "SwapSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/xvdcz",
+            "Ebs": {
+              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeType":"gp2"
+            }
           }
-        }],
+        ],
         "IamInstanceProfile": { "Ref": "InstanceProfile" },
         "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
         "InstanceMonitoring": true,
@@ -855,34 +876,52 @@
         "PlacementTenancy" : { "Ref": "Tenancy" },
         "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
         "UserData": { "Fn::Base64":
-          { "Fn::Join": [ "\n", [
-            "#!/bin/bash",
-            "fallocate -l 5G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile",
-            "echo 'exclude=kernel*' >> /etc/yum.conf",
-            "yum -y update",
-            "yum -y install aws-cfn-bootstrap",
-            { "Fn::Join": [ "", [ "echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config" ] ] },
-            "echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config",
+          { "Fn::Join": [ "", [
+            "#cloud-config\n",
+            "repo_upgrade: all\n",
+            "repo_upgrade_exclude:\n",
+            "  - kernel*\n",
+            "packages:\n",
+            "  - aws-cfn-bootstrap\n",
+            "mounts:\n",
+            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+            "bootcmd:\n",
+            "  - mkswap /dev/xvdb\n",
+            "  - swapon /dev/xvdb\n",
+            "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
+            "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
             { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] },
-              { "Fn::Join": [ "", [ "echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config" ] ] }
+              { "Fn::Join": [ "", [
+                "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config\n",
+                "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n"
+              ] ] },
+              { "Fn::Join": [ "", [
+                "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Ref": "RegistryHost" }, { "Ref": "RegistryPort" } ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config\n",
+                "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n"
+              ] ] }
             ] },
-            { "Fn::If": [ "BlankCertificate",
-              { "Fn::Join": [ "", [ "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker" ] ] },
-              "echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock  --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker"
+            "  - mkdir -p /etc/convox\n",
+            "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
+            "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
+            "  - echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis\n",
+            "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
+            "  - curl -s https://convox.s3.amazonaws.com/agent/0.68/convox.conf > /etc/init/convox.conf\n",
+            "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            { "Fn::If": [ "BlankInstanceBootCommand",
+              { "Ref": "AWS::NoValue" },
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceBootCommand" }, "\n"
+              ] ] }
             ] },
-            "service docker restart",
-            "mkdir -p /etc/convox",
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region" ] ] },
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id" ] ] },
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis" ] ] },
-            { "Fn::Join": [ "", [ "echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group" ] ] },
-            "curl -s https://convox.s3.amazonaws.com/agent/0.68/convox.conf > /etc/init/convox.conf",
-            "start convox",
-            { "Ref": "InstanceBootCommand" },
-            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-init", "-s", { "Ref": "AWS::StackName" }, "-r", "Instances", "--region", {"Ref":"AWS::Region"} ] ] },
-            "sleep 30",
-            { "Fn::Join": [ " ", [ "/opt/aws/bin/cfn-signal", "--stack", { "Ref": "AWS::StackName" }, "--resource", "Instances", "--region", {"Ref":"AWS::Region"} ] ] }
+            "runcmd:\n",
+            { "Fn::If": [ "BlankInstanceRunCommand",
+              "  - sleep 30\n",
+              { "Fn::Join": [ "", [
+              "  - ", { "Ref": "InstanceRunCommand" }, "\n"
+              ] ] }
+            ] },
+            "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
           ] ] }
         }
       }
