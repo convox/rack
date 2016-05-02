@@ -32,12 +32,6 @@ func init() {
 			},
 		},
 	})
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "init",
-		Description: "initialize an app for local development",
-		Usage:       "[directory]",
-		Action:      cmdInit,
-	})
 }
 
 func cmdStart(c *cli.Context) {
@@ -66,12 +60,11 @@ func cmdStart(c *cli.Context) {
 
 	m, err := manifest.Read(dir, file)
 	if err != nil {
-		changes, err := manifest.Init(dir)
+		err := initApplication(dir)
+
 		if err != nil {
 			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
-
-		fmt.Printf("Generated: %s\n", strings.Join(changes, ", "))
 
 		m, err = manifest.Read(dir, file)
 		if err != nil {
@@ -127,26 +120,63 @@ func cmdInit(c *cli.Context) {
 		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
-	wd := "."
+	err = run("docker", "--tlsverify=false", "run", "-i", "-v", "/var/run/docker.sock:/var/run/docker.sock", "-v", fmt.Sprintf("%s:/source", abs), "convox/build", app, "/source")
 
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, _, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
-	changed, err := manifest.Init(dir)
+	return nil
+}
+
+func run(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+
+	stdout, err := cmd.StdoutPipe()
+
 	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		return err
 	}
 
-	if len(changed) > 0 {
-		fmt.Printf("Generated: %s\n", strings.Join(changed, ", "))
+	stderr, err := cmd.StderrPipe()
+
+	if err != nil {
+		return err
 	}
 
-	stdcli.QOSEventSend("cli-init", distinctId, ep)
+	cmd.Start()
+
+	scanner := bufio.NewScanner(stdout)
+
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), "|", 2)
+
+		if len(parts) == 2 {
+			switch parts[0] {
+			case "build", "compose":
+				fmt.Println(parts[1])
+			case "manifest":
+			default:
+				fmt.Println(scanner.Text())
+			}
+		}
+	}
+
+	s, err := ioutil.ReadAll(stderr)
+
+	if err != nil {
+		return err
+	}
+
+	err = cmd.Wait()
+
+	if stdcli.Debug() {
+		fmt.Fprintf(os.Stderr, "DEBUG: exec: '%v', '%v', '%v', '%v'\n", command, args, err, string(s))
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
