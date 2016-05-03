@@ -54,11 +54,11 @@ var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, colo
 
 type Manifest map[string]ManifestEntry
 
-type Networks map[string]InternalNetworks
+type Networks map[string]InternalNetwork
 
-type InternalNetworks map[string]ExternalNetworks
+type InternalNetwork map[string]ExternalNetwork
 
-type ExternalNetworks Network
+type ExternalNetwork Network
 
 type Network struct {
 	Name string
@@ -425,7 +425,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool, app string) (
 		procName := fmt.Sprintf("%s-%s", app, link)
 		// we don't create a balancer without a port,
 		// so we don't create a link url either
-		port := resolveOtherPort(link, linkEntry)
+		port := resolveContainerPort(link, linkEntry)
 		if port == "" {
 			continue
 		}
@@ -1230,7 +1230,7 @@ func getLinkEntryEnv(linkEntry ManifestEntry, cache bool) (map[string]string, er
 // throws error for no ports
 // uses first port in the list otherwise
 // uses exposed side of p1:p2 port mappings (p1)
-func resolveOtherPort(name string, linkEntry ManifestEntry) string {
+func resolveContainerPort(name string, linkEntry ManifestEntry) string {
 	var port string
 	switch t := linkEntry.Ports.(type) {
 	case []string:
