@@ -136,7 +136,7 @@ func TestRun(t *testing.T) {
 	stdout, stderr := testRun(m, "compose")
 
 	cases := Cases{
-		{stdout, "\x1b[36mpostgres |\x1b[0m docker run -i --name compose-postgres -p 5432:5432 compose/postgres\n\x1b[33mweb      |\x1b[0m docker run -i --name compose-web -e POSTGRES_HOST=1.1.1.1 -e POSTGRES_PASSWORD= -e POSTGRES_PATH= -e POSTGRES_PORT=5432 -e POSTGRES_SCHEME=tcp -e POSTGRES_URL=tcp://1.1.1.1:5432 -e POSTGRES_USERNAME= -p 5000:3000 compose/web\n"},
+		{stdout, "\x1b[36mpostgres |\x1b[0m docker run -i --name compose-postgres -p 5432:5432 compose/postgres\n\x1b[33mweb      |\x1b[0m docker run -i --name compose-web -e POSTGRES_HOST=compose-postgres -e POSTGRES_PASSWORD= -e POSTGRES_PATH= -e POSTGRES_PORT=5432 -e POSTGRES_SCHEME=tcp -e POSTGRES_URL=tcp://compose-postgres:5432 -e POSTGRES_USERNAME= -p 5000:3000 compose/web\n"},
 		{stderr, ""},
 	}
 
