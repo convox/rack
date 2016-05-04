@@ -592,8 +592,9 @@ func (m *Manifest) Run(app string, cache bool) []error {
 	}()
 
 	for i, name := range m.runOrder() {
-		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch)
-		time.Sleep(100 * time.Millisecond)
+		sch := make(chan error)
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch, sch)
+		<-sch // block until started successfully
 	}
 
 	errors := []error{}
@@ -726,7 +727,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error, sch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -845,7 +846,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		args = append(args, cmd...)
 	}
 
-	ch <- runPrefix(prefix, "docker", args...)
+	ch <- runPrefix(prefix, sch, "docker", args...)
 }
 
 func (me ManifestEntry) Label(key string) string {
@@ -1008,7 +1009,7 @@ func run(executable string, args ...string) error {
 	return cmd.Run()
 }
 
-func runPrefix(prefix, executable string, args ...string) error {
+func runPrefix(prefix string, sch chan error, executable string, args ...string) error {
 	fmt.Println(prefix, command(fmt.Sprintf("%s %s", executable, strings.Join(args, " "))))
 
 	cmd := Execer(executable, args...)
@@ -1030,6 +1031,8 @@ func runPrefix(prefix, executable string, args ...string) error {
 	if err != nil {
 		return err
 	}
+
+	sch <- nil // signal that start worked
 
 	ch := make(chan error)
 
