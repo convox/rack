@@ -1243,12 +1243,16 @@ func resolveContainerPort(name string, linkEntry ManifestEntry) string {
 		if len(t) < 1 {
 			return ""
 		}
-
 		port = fmt.Sprintf("%v", t[0])
 	}
 
-	port = strings.Split(port, ":")[1]
-	return port
+	ports := strings.Split(port, ":")
+
+	if len(ports) == 1 {
+		return ports[0]
+	}
+
+	return ports[1]
 }
 
 // gets ip address for docker gateway for network lookup
