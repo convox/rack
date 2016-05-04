@@ -94,7 +94,7 @@ func cmdStart(c *cli.Context) {
 		return
 	}
 
-	missing, err := m.MissingEnvironment(cache)
+	missing, err := m.MissingEnvironment(cache, app)
 
 	if err != nil {
 		stdcli.Error(err)

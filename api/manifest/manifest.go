@@ -54,8 +54,19 @@ var Colors = []color.Attribute{color.FgCyan, color.FgYellow, color.FgGreen, colo
 
 type Manifest map[string]ManifestEntry
 
+type Networks map[string]InternalNetwork
+
+type InternalNetwork map[string]ExternalNetwork
+
+type ExternalNetwork Network
+
+type Network struct {
+	Name string
+}
+
 type ManifestV2 struct {
 	Version  string
+	Networks Networks
 	Services Manifest
 }
 
@@ -68,6 +79,7 @@ type ManifestEntry struct {
 	Environment interface{} `yaml:"environment,omitempty"`
 	Labels      interface{} `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
+	Networks    Networks    `yaml:"networks,omitempty"`
 	Ports       interface{} `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
@@ -119,6 +131,7 @@ func Read(dir, filename string) (*Manifest, error) {
 
 	var mv2 ManifestV2
 	var m Manifest
+	var n Networks
 
 	err = yaml.Unmarshal(data, &mv2)
 	if err != nil {
@@ -132,6 +145,7 @@ func Read(dir, filename string) (*Manifest, error) {
 		}
 	} else {
 		m = mv2.Services
+		n = mv2.Networks
 	}
 
 	if denv := filepath.Join(dir, ".env"); exists(denv) {
@@ -177,6 +191,7 @@ func Read(dir, filename string) (*Manifest, error) {
 			entry.Volumes[i] = strings.Join(parts, ":")
 		}
 
+		entry.Networks = n
 		m[name] = entry
 	}
 
@@ -328,10 +343,10 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	return []error{}
 }
 
-func (me *ManifestEntry) ResolvedEnvironment(m *Manifest, cache bool) ([]string, error) {
+func (me *ManifestEntry) ResolvedEnvironment(m *Manifest, cache bool, app string) ([]string, error) {
 	r := []string{}
 
-	linkedVars, err := me.ResolvedLinkVars(m, cache)
+	linkedVars, err := me.ResolvedLinkVars(m, cache, app)
 	if err != nil {
 		return r, err
 	}
@@ -382,7 +397,7 @@ func (me *ManifestEntry) EnvironmentArray() []string {
 // NOTE: this is the simpler approach:
 //       build up the ENV from the declared links
 //       assuming local dev is done on DOCKER_HOST
-func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]string, error) {
+func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool, app string) (map[string]string, error) {
 	linkVars := make(map[string]string)
 
 	if m == nil {
@@ -407,21 +422,17 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]s
 			scheme = "tcp"
 		}
 
-		host, err := getDockerGateway()
-		if err != nil {
-			return linkVars, err
-		}
-
+		procName := fmt.Sprintf("%s-%s", app, link)
 		// we don't create a balancer without a port,
 		// so we don't create a link url either
-		port := resolveOtherPort(link, linkEntry)
+		port := resolveContainerPort(link, linkEntry)
 		if port == "" {
 			continue
 		}
 
 		linkUrl := url.URL{
 			Scheme: scheme,
-			Host:   host + ":" + port,
+			Host:   procName + ":" + port,
 			Path:   linkEntryEnv["LINK_PATH"],
 		}
 
@@ -432,7 +443,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]s
 		prefix := strings.ToUpper(link) + "_"
 		prefix = strings.Replace(prefix, "-", "_", -1)
 		linkVars[prefix+"URL"] = linkUrl.String()
-		linkVars[prefix+"HOST"] = host
+		linkVars[prefix+"HOST"] = procName
 		linkVars[prefix+"SCHEME"] = scheme
 		linkVars[prefix+"PORT"] = port
 		linkVars[prefix+"USERNAME"] = linkEntryEnv["LINK_USERNAME"]
@@ -443,7 +454,7 @@ func (me *ManifestEntry) ResolvedLinkVars(m *Manifest, cache bool) (map[string]s
 	return linkVars, nil
 }
 
-func (m *Manifest) MissingEnvironment(cache bool) ([]string, error) {
+func (m *Manifest) MissingEnvironment(cache bool, app string) ([]string, error) {
 	existing := map[string]bool{}
 	missingh := map[string]bool{}
 	missing := []string{}
@@ -457,7 +468,7 @@ func (m *Manifest) MissingEnvironment(cache bool) ([]string, error) {
 	}
 
 	for _, entry := range *m {
-		resolved, err := entry.ResolvedEnvironment(m, cache)
+		resolved, err := entry.ResolvedEnvironment(m, cache, app)
 		if err != nil {
 			return missing, err
 		}
@@ -581,8 +592,9 @@ func (m *Manifest) Run(app string, cache bool) []error {
 	}()
 
 	for i, name := range m.runOrder() {
-		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch)
-		time.Sleep(100 * time.Millisecond)
+		sch := make(chan error)
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch, sch)
+		<-sch // block until started successfully
 	}
 
 	errors := []error{}
@@ -715,7 +727,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error, sch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -723,7 +735,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 
 	args := []string{"run", "-i", "--name", name}
 
-	resolved, err := me.ResolvedEnvironment(m, cache)
+	resolved, err := me.ResolvedEnvironment(m, cache, app)
 
 	if err != nil {
 		ch <- err
@@ -801,6 +813,28 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		args = append(args, "--entrypoint", me.Entrypoint)
 	}
 
+	if me.Networks != nil {
+		for _, n := range me.Networks {
+			for _, in := range n {
+				args = append(args, "--net", in.Name)
+			}
+		}
+	}
+
+	// add link container hostnames to the /etc/hosts of each run
+	for _, link := range me.Links {
+		host := containerName(app, link)
+
+		ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).CombinedOutput()
+
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		args = append(args, fmt.Sprintf(`--add-host=%s:%s`, host, strings.TrimSpace(string(ip))))
+	}
+
 	args = append(args, tag)
 
 	switch cmd := me.Command.(type) {
@@ -812,7 +846,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		args = append(args, cmd...)
 	}
 
-	ch <- runPrefix(prefix, "docker", args...)
+	ch <- runPrefix(prefix, sch, "docker", args...)
 }
 
 func (me ManifestEntry) Label(key string) string {
@@ -975,7 +1009,7 @@ func run(executable string, args ...string) error {
 	return cmd.Run()
 }
 
-func runPrefix(prefix, executable string, args ...string) error {
+func runPrefix(prefix string, sch chan error, executable string, args ...string) error {
 	fmt.Println(prefix, command(fmt.Sprintf("%s %s", executable, strings.Join(args, " "))))
 
 	cmd := Execer(executable, args...)
@@ -997,6 +1031,8 @@ func runPrefix(prefix, executable string, args ...string) error {
 	if err != nil {
 		return err
 	}
+
+	sch <- nil // signal that start worked
 
 	ch := make(chan error)
 
@@ -1211,7 +1247,7 @@ func getLinkEntryEnv(linkEntry ManifestEntry, cache bool) (map[string]string, er
 // throws error for no ports
 // uses first port in the list otherwise
 // uses exposed side of p1:p2 port mappings (p1)
-func resolveOtherPort(name string, linkEntry ManifestEntry) string {
+func resolveContainerPort(name string, linkEntry ManifestEntry) string {
 	var port string
 	switch t := linkEntry.Ports.(type) {
 	case []string:
@@ -1219,17 +1255,21 @@ func resolveOtherPort(name string, linkEntry ManifestEntry) string {
 			return ""
 		}
 
-		port = t[0]
+		port = t[1]
 	case []interface{}:
 		if len(t) < 1 {
 			return ""
 		}
-
 		port = fmt.Sprintf("%v", t[0])
 	}
 
-	port = strings.Split(port, ":")[0]
-	return port
+	ports := strings.Split(port, ":")
+
+	if len(ports) == 1 {
+		return ports[0]
+	}
+
+	return ports[1]
 }
 
 // gets ip address for docker gateway for network lookup
