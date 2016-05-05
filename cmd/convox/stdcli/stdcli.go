@@ -77,6 +77,8 @@ Options:
 func New() *cli.App {
 	app := cli.NewApp()
 
+	app.EnableBashCompletion = true
+
 	app.Name = Binary
 	app.Commands = Commands
 
