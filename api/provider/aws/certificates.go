@@ -224,6 +224,12 @@ func resolveCertificateChain(body string) (string, error) {
 		return "", nil
 	}
 
+	// return if this is a cloudflare origin cert
+	ou := crt.Issuer.OrganizationalUnit
+	if len(ou) == 1 && ou[0] == "CloudFlare Origin SSL Certificate Authority" {
+		return "", nil
+	}
+
 	cmd := exec.Command("cfssl", "bundle", "-cert", "-")
 
 	stdin, err := cmd.StdinPipe()
