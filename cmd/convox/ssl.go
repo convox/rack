@@ -43,10 +43,15 @@ func cmdSSLList(c *cli.Context) {
 
 	if len(c.Args()) > 0 {
 		stdcli.Error(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
+		return
+	}
+
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
 	}
 
 	ssls, err := rackClient(c).ListSSL(app)
-
 	if err != nil {
 		stdcli.Error(err)
 		return

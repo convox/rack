@@ -12,16 +12,11 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
-var appFlag = cli.StringFlag{
-	Name:  "app, a",
-	Usage: "App name. Inferred from current directory if not specified.",
-}
-
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "env",
 		Description: "manage an app's environment variables",
-		Usage:       "[get|set|unset]",
+		Usage:       "",
 		Action:      cmdEnvList,
 		Flags:       []cli.Flag{appFlag},
 		Subcommands: []cli.Command{
@@ -64,7 +59,6 @@ func init() {
 
 func cmdEnvList(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -72,6 +66,12 @@ func cmdEnvList(c *cli.Context) {
 
 	if len(c.Args()) > 0 {
 		stdcli.Error(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
+		return
+	}
+
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
 	}
 
 	env, err := rackClient(c).GetEnvironment(app)
@@ -96,7 +96,6 @@ func cmdEnvList(c *cli.Context) {
 
 func cmdEnvGet(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -126,7 +125,6 @@ func cmdEnvGet(c *cli.Context) {
 
 func cmdEnvSet(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -198,7 +196,6 @@ func cmdEnvSet(c *cli.Context) {
 
 func cmdEnvUnset(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return

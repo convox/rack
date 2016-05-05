@@ -51,9 +51,18 @@ func init() {
 
 func cmdReleases(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
+		return
+	}
+
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox registries info`?"))
+		return
+	}
+
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
 		return
 	}
 

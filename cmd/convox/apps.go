@@ -55,8 +55,17 @@ func init() {
 }
 
 func cmdApps(c *cli.Context) {
-	apps, err := rackClient(c).GetApps()
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox apps` does not take arguments. Perhaps you meant `convox apps create`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	apps, err := rackClient(c).GetApps()
 	if err != nil {
 		stdcli.Error(err)
 		return

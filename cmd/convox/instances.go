@@ -43,8 +43,17 @@ func init() {
 }
 
 func cmdInstancesList(c *cli.Context) {
-	instances, err := rackClient(c).GetInstances()
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox instances` does not take arguments. Perhaps you meant `convox instances ssh`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	instances, err := rackClient(c).GetInstances()
 	if err != nil {
 		stdcli.Error(err)
 		return

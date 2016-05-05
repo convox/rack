@@ -73,8 +73,17 @@ func init() {
 }
 
 func cmdRack(c *cli.Context) {
-	system, err := rackClient(c).GetSystem()
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox rack` does not take arguments. Perhaps you meant `convox rack update`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		stdcli.Error(err)
 		return

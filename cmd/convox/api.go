@@ -32,6 +32,12 @@ func init() {
 }
 
 func cmdApi(c *cli.Context) {
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox api` does not take arguments. Perhaps you meant `convox api get`?"))
+		return
+	}
+
+	stdcli.Usage(c, "")
 }
 
 func cmdApiGet(c *cli.Context) {

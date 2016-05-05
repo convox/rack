@@ -30,7 +30,6 @@ func init() {
 
 func cmdScale(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return

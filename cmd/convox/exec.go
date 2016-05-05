@@ -26,7 +26,6 @@ func cmdExec(c *cli.Context) {
 	defer terminal.Restore(int(fd), stdinState)
 
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
