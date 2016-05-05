@@ -121,26 +121,30 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 		res, err := p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
 			ServerCertificateName: cert.ServerCertificateName,
 		})
-
 		if err != nil {
 			return nil, err
 		}
 
 		pem, _ := pem.Decode([]byte(*res.ServerCertificate.CertificateBody))
-
 		if err != nil {
 			return nil, err
 		}
 
 		c, err := x509.ParseCertificate(pem.Bytes)
-
 		if err != nil {
 			return nil, err
 		}
 
+		domain := c.Subject.CommonName
+		ou := c.Issuer.OrganizationalUnit
+
+		if len(ou) == 1 && ou[0] == "CloudFlare Origin SSL Certificate Authority" {
+			domain = strings.Join(c.DNSNames, ",")
+		}
+
 		certs = append(certs, structs.Certificate{
 			Id:         *cert.ServerCertificateName,
-			Domain:     c.Subject.CommonName,
+			Domain:     domain,
 			Expiration: *cert.Expiration,
 		})
 	}
