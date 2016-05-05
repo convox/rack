@@ -60,6 +60,18 @@ Options:
    {{end}}{{ end }}
 `, Binary, Binary, Binary)
 
+	cli.SubcommandHelpTemplate = `{{.Name}}: {{.Usage}}
+
+Usage:
+  {{.Name}} <command> [args...]
+
+Subcommands: ({{.Name}} help <subcommand>)
+  {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
+  {{end}}{{if .Flags}}
+Options:
+  {{range .Flags}}{{.}}
+  {{end}}{{end}}
+`
 }
 
 func New() *cli.App {
