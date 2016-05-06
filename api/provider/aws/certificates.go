@@ -137,16 +137,9 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 			return nil, err
 		}
 
-		domain := c.Subject.CommonName
-		ou := c.Issuer.OrganizationalUnit
-
-		if len(ou) == 1 && ou[0] == "CloudFlare Origin SSL Certificate Authority" {
-			domain = strings.Join(c.DNSNames, ",")
-		}
-
 		certs = append(certs, structs.Certificate{
 			Id:         *cert.ServerCertificateName,
-			Domain:     domain,
+			Domain:     c.Subject.CommonName,
 			Expiration: *cert.Expiration,
 		})
 	}
