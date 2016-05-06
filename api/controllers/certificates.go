@@ -7,7 +7,6 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/provider"
-	"github.com/convox/rack/api/provider/aws"
 	"github.com/gorilla/mux"
 )
 
@@ -18,11 +17,7 @@ func CertificateCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	cert, err := provider.CertificateCreate(pub, key, chain)
 	if err != nil {
-		if ae, ok := err.(aws.CfsslError); ok {
-			return httperr.Errorf(403, ae.Message)
-		} else {
-			return httperr.Server(err)
-		}
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, cert)

@@ -25,7 +25,9 @@ func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certif
 	if chain == "" {
 		ch, err := resolveCertificateChain(pub)
 		if err != nil {
-			return nil, err
+			if _, ok := err.(CfsslError); !ok { // error is not an expected cfssl error
+				return nil, err
+			}
 		}
 
 		chain = ch
@@ -225,12 +227,6 @@ func resolveCertificateChain(body string) (string, error) {
 	// return if this is a self-signed cert
 	// a cert is self-signed if the issuer and subject are the same
 	if string(crt.RawIssuer) == string(crt.RawSubject) {
-		return "", nil
-	}
-
-	// return if this is a cloudflare origin cert
-	ou := crt.Issuer.OrganizationalUnit
-	if len(ou) == 1 && ou[0] == "CloudFlare Origin SSL Certificate Authority" {
 		return "", nil
 	}
 
