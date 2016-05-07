@@ -36,14 +36,22 @@ func init() {
 
 func cmdSSLList(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	ssls, err := rackClient(c).ListSSL(app)
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	ssls, err := rackClient(c).ListSSL(app)
 	if err != nil {
 		stdcli.Error(err)
 		return

@@ -16,7 +16,6 @@ func CertificateCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	chain := r.FormValue("chain")
 
 	cert, err := provider.CertificateCreate(pub, key, chain)
-
 	if err != nil {
 		return httperr.Server(err)
 	}

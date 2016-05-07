@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -35,14 +36,17 @@ func init() {
 
 func cmdLogsStream(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	err = rackClient(c).StreamAppLogs(app, c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox logs` does not take arguments. Perhaps you meant `convox logs`?"))
+		return
+	}
 
+	err = rackClient(c).StreamAppLogs(app, c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
 	if err != nil {
 		stdcli.Error(err)
 		return

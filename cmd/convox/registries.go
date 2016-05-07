@@ -74,8 +74,17 @@ func cmdRegistryAdd(c *cli.Context) {
 }
 
 func cmdRegistryList(c *cli.Context) {
-	registries, err := rackClient(c).ListRegistries()
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox registries` does not take arguments. Perhaps you meant `convox registries add`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	registries, err := rackClient(c).ListRegistries()
 	if err != nil {
 		stdcli.Error(err)
 		return

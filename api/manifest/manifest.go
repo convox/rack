@@ -819,20 +819,20 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 				args = append(args, "--net", in.Name)
 			}
 		}
-	}
+	} else {
+		// add link container hostnames to the /etc/hosts of each run
+		for _, link := range me.Links {
+			host := containerName(app, link)
 
-	// add link container hostnames to the /etc/hosts of each run
-	for _, link := range me.Links {
-		host := containerName(app, link)
+			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).CombinedOutput()
 
-		ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).CombinedOutput()
+			if err != nil {
+				ch <- err
+				return
+			}
 
-		if err != nil {
-			ch <- err
-			return
+			args = append(args, fmt.Sprintf(`--add-host=%s:%s`, host, strings.TrimSpace(string(ip))))
 		}
-
-		args = append(args, fmt.Sprintf(`--add-host=%s:%s`, host, strings.TrimSpace(string(ip))))
 	}
 
 	args = append(args, tag)

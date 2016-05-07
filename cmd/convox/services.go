@@ -121,8 +121,17 @@ func init() {
 }
 
 func cmdServices(c *cli.Context) {
-	services, err := rackClient(c).GetServices()
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	services, err := rackClient(c).GetServices()
 	if err != nil {
 		stdcli.Error(err)
 		return

@@ -101,14 +101,22 @@ func init() {
 
 func cmdBuilds(c *cli.Context) {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	builds, err := rackClient(c).GetBuilds(app)
+	if len(c.Args()) > 0 {
+		stdcli.Error(fmt.Errorf("`convox builds` does not take arguments. Perhaps you meant `convox builds create`?"))
+		return
+	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return
+	}
+
+	builds, err := rackClient(c).GetBuilds(app)
 	if err != nil {
 		stdcli.Error(err)
 		return

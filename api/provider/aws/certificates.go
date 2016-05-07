@@ -24,16 +24,16 @@ func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certif
 
 	if chain == "" {
 		ch, err := resolveCertificateChain(pub)
-
 		if err != nil {
-			return nil, err
+			if _, ok := err.(CfsslError); !ok { // error is not an expected cfssl error
+				return nil, err
+			}
 		}
 
 		chain = ch
 	}
 
 	c, err := x509.ParseCertificate(end.Bytes)
-
 	if err != nil {
 		return nil, err
 	}
@@ -123,19 +123,16 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 		res, err := p.iam().GetServerCertificate(&iam.GetServerCertificateInput{
 			ServerCertificateName: cert.ServerCertificateName,
 		})
-
 		if err != nil {
 			return nil, err
 		}
 
 		pem, _ := pem.Decode([]byte(*res.ServerCertificate.CertificateBody))
-
 		if err != nil {
 			return nil, err
 		}
 
 		c, err := x509.ParseCertificate(pem.Bytes)
-
 		if err != nil {
 			return nil, err
 		}
@@ -164,6 +161,15 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 
 type CfsslCertificateBundle struct {
 	Bundle string `json:"bundle"`
+}
+
+type CfsslError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e CfsslError) Error() string {
+	return e.Message
 }
 
 func (p *AWSProvider) certificateListACM() (structs.Certificates, error) {
@@ -207,7 +213,6 @@ func (p *AWSProvider) certificateListACM() (structs.Certificates, error) {
 func resolveCertificateChain(body string) (string, error) {
 	bl, _ := pem.Decode([]byte(body))
 	crt, err := x509.ParseCertificate(bl.Bytes)
-
 	if err != nil {
 		return "", err
 	}
@@ -220,22 +225,22 @@ func resolveCertificateChain(body string) (string, error) {
 
 	cmd := exec.Command("cfssl", "bundle", "-cert", "-")
 
-	cmd.Stderr = os.Stderr
-
 	stdin, err := cmd.StdinPipe()
-
 	if err != nil {
 		return "", err
 	}
 
 	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
 
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return "", err
 	}
 
 	err = cmd.Start()
-
 	if err != nil {
 		return "", err
 	}
@@ -244,21 +249,40 @@ func resolveCertificateChain(body string) (string, error) {
 	stdin.Close()
 
 	data, err := ioutil.ReadAll(stdout)
-
 	if err != nil {
 		return "", err
+	}
+
+	edata, err := ioutil.ReadAll(stderr)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("cfssl stderr=%q\n", edata)
+
+	// try to coerce last line of stderr into a friendly error message
+	if len(data) == 0 && len(edata) > 0 {
+		lines := strings.Split(strings.TrimSpace(string(edata)), "\n")
+		l := lines[len(lines)-1]
+
+		var e CfsslError
+
+		err = json.Unmarshal([]byte(l), &e)
+		if err != nil {
+			return "", err
+		}
+
+		return "", e
 	}
 
 	var bundle CfsslCertificateBundle
 
 	err = json.Unmarshal(data, &bundle)
-
 	if err != nil {
 		return "", err
 	}
 
 	err = cmd.Wait()
-
 	if err != nil {
 		return "", err
 	}
@@ -277,7 +301,6 @@ func resolveCertificateChain(body string) (string, error) {
 		raw = rest
 
 		cert, err := x509.ParseCertificate(block.Bytes)
-
 		if err != nil {
 			return "", nil
 		}
@@ -289,7 +312,6 @@ func resolveCertificateChain(body string) (string, error) {
 
 	for i := 1; i < len(certs); i++ {
 		err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: certs[i].Raw})
-
 		if err != nil {
 			return "", err
 		}
