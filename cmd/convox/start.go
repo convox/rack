@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/api/manifest"
@@ -40,6 +41,8 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) {
+	started := time.Now()
+
 	distinctId, err := currentId()
 	if err != nil {
 		stdcli.ErrorEvent("start", distinctId, err)
@@ -113,10 +116,12 @@ func cmdStart(c *cli.Context) {
 
 	<-ch
 
-	stdcli.SuccessEvent("start", distinctId)
+	stdcli.SuccessEvent("start", distinctId, started)
 }
 
 func cmdInit(c *cli.Context) {
+	started := time.Now()
+
 	distinctId, err := currentId()
 	if err != nil {
 		stdcli.ErrorEvent("start", distinctId, err)
@@ -143,5 +148,5 @@ func cmdInit(c *cli.Context) {
 		fmt.Printf("Generated: %s\n", strings.Join(changed, ", "))
 	}
 
-	stdcli.SuccessEvent("init", distinctId)
+	stdcli.SuccessEvent("init", distinctId, started)
 }

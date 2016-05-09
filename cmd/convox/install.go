@@ -199,6 +199,8 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
+	started := time.Now()
+
 	region := c.String("region")
 
 	if !lambdaRegions[region] {
@@ -411,10 +413,12 @@ func cmdInstall(c *cli.Context) {
 		fmt.Println("Success, try `convox apps`")
 	}
 
-	stdcli.SuccessEvent("install", distinctId)
+	stdcli.SuccessEvent("install", distinctId, started)
 }
 
 func cmdUninstall(c *cli.Context) {
+	started := time.Now()
+
 	distinctId, err := currentId()
 	if err != nil {
 		stdcli.ErrorEvent("uninstall", distinctId, err)
@@ -520,7 +524,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Successfully uninstalled.")
 
-	stdcli.SuccessEvent("uninstall", distinctId)
+	stdcli.SuccessEvent("uninstall", distinctId, started)
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {

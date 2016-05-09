@@ -195,7 +195,7 @@ func ErrorEvent(source, id string, e error) {
 	Exiter(1)
 }
 
-func SuccessEvent(source, id string) {
+func SuccessEvent(source, id string, started time.Time) {
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
@@ -204,6 +204,9 @@ func SuccessEvent(source, id string) {
 	err := segment.Track(&analytics.Track{
 		Event:  source,
 		UserId: id,
+		Properties: map[string]interface{}{
+			"elapsed": float64(time.Now().Sub(started).Nanoseconds()) / 1000000,
+		},
 	})
 	if err != nil {
 		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
