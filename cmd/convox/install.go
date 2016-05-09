@@ -236,17 +236,16 @@ func cmdInstall(c *cli.Context) {
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
-	creds, err := readCredentials(c)
-
 	if err != nil {
-		handleError("install", distinctId, err)
-		return
+		stdcli.ErrorEvent("install", distinctId, err)
 	}
 
+	creds, err := readCredentials(c)
+	if err != nil {
+		stdcli.ErrorEvent("install", distinctId, err)
+	}
 	if creds == nil {
-		err = fmt.Errorf("error reading credentials")
-		handleError("install", distinctId, err)
-		return
+		stdcli.ErrorEvent("install", distinctId, fmt.Errorf("error reading credentials"))
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -258,10 +257,8 @@ func cmdInstall(c *cli.Context) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
 		email, err := reader.ReadString('\n')
-
 		if err != nil {
-			handleError("install", distinctId, err)
-			return
+			stdcli.ErrorEvent("install", distinctId, err)
 		}
 
 		if strings.TrimSpace(email) != "" {
@@ -302,17 +299,13 @@ func cmdInstall(c *cli.Context) {
 	subnetPrivate2CIDR := c.String("subnet-private2-cidr")
 
 	versions, err := version.All()
-
 	if err != nil {
-		handleError("install", distinctId, err)
-		return
+		stdcli.ErrorEvent("install", distinctId, fmt.Errorf("error reading credentials"))
 	}
 
 	version, err := versions.Resolve(c.String("version"))
-
 	if err != nil {
-		handleError("install", distinctId, err)
-		return
+		stdcli.ErrorEvent("install", distinctId, fmt.Errorf("error reading credentials"))
 	}
 
 	versionName := version.Version
@@ -365,9 +358,8 @@ func cmdInstall(c *cli.Context) {
 
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
 		dat, err := ioutil.ReadFile(tf)
-
 		if err != nil {
-			handleError("install", distinctId, err)
+			stdcli.ErrorEvent("install", distinctId, fmt.Errorf("error reading credentials"))
 		}
 
 		req.TemplateURL = nil
@@ -375,6 +367,15 @@ func cmdInstall(c *cli.Context) {
 	}
 
 	res, err := CloudFormation.CreateStack(req)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "AlreadyExistsException" {
+				stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
+			}
+		}
+
+		stdcli.ErrorEvent("install", distinctId, err)
+	}
 
 	// NOTE: we start making lots of network requests here
 	//			 so we're just going to return for testability
@@ -383,25 +384,9 @@ func cmdInstall(c *cli.Context) {
 		return
 	}
 
-	if err != nil {
-		sendMixpanelEvent(fmt.Sprintf("convox-install-error"), err.Error())
-
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "AlreadyExistsException" {
-				stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
-			}
-		}
-
-		stdcli.Error(err)
-	}
-
-	sendMixpanelEvent("convox-install-start", "")
-
 	host, err := waitForCompletion(*res.StackId, CloudFormation, false)
-
 	if err != nil {
-		handleError("install", distinctId, err)
-		return
+		stdcli.ErrorEvent("install", distinctId, err)
 	}
 
 	if privateApi == "Yes" {
@@ -413,22 +398,32 @@ func cmdInstall(c *cli.Context) {
 
 		fmt.Println("Logging in...")
 
-		addLogin(host, password)
-		switchHost(host)
+		err := addLogin(host, password)
+		if err != nil {
+			stdcli.ErrorEvent("install", distinctId, err)
+		}
+
+		err = switchHost(host)
+		if err != nil {
+			stdcli.ErrorEvent("install", distinctId, err)
+		}
 
 		fmt.Println("Success, try `convox apps`")
 	}
 
-	sendMixpanelEvent("convox-install-success", "")
+	stdcli.SuccessEvent("install", distinctId)
 }
 
 func cmdUninstall(c *cli.Context) {
+	distinctId, err := currentId()
+	if err != nil {
+		stdcli.ErrorEvent("uninstall", distinctId, err)
+	}
+
 	if !c.Bool("force") {
 		apps, err := rackClient(c).GetApps()
-
 		if err != nil {
-			stdcli.Error(err)
-			return
+			stdcli.ErrorEvent("uninstall", distinctId, err)
 		}
 
 		if len(apps) != 0 {
@@ -436,10 +431,8 @@ func cmdUninstall(c *cli.Context) {
 		}
 
 		services, err := rackClient(c).GetServices()
-
 		if err != nil {
-			stdcli.Error(err)
-			return
+			stdcli.ErrorEvent("uninstall", distinctId, err)
 		}
 
 		if len(services) != 0 {
@@ -451,13 +444,10 @@ func cmdUninstall(c *cli.Context) {
 
 	creds, err := readCredentials(c)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		stdcli.ErrorEvent("uninstall", distinctId, err)
 	}
-
 	if creds == nil {
-		stdcli.Error(fmt.Errorf("error reading credentials"))
-		return
+		stdcli.ErrorEvent("uninstall", distinctId, fmt.Errorf("error reading credentials"))
 	}
 
 	region := c.String("region")
@@ -475,24 +465,19 @@ func cmdUninstall(c *cli.Context) {
 		}
 	}()
 
-	distinctId := randomString(10)
-
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
 
 	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
 	})
-
 	if err != nil {
-		sendMixpanelEvent(fmt.Sprintf("convox-uninstall-error"), err.Error())
-
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "ValidationError" {
 				stdcli.Error(fmt.Errorf("Stack %q does not exist.", stackName))
 			}
 		}
 
-		stdcli.Error(err)
+		stdcli.ErrorEvent("uninstall", distinctId, err)
 	}
 
 	stackId := *res.Stacks[0].StackId
@@ -500,33 +485,23 @@ func cmdUninstall(c *cli.Context) {
 	_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: aws.String(stackId),
 	})
-
 	if err != nil {
-		handleError("uninstall", distinctId, err)
-		return
+		stdcli.ErrorEvent("uninstall", distinctId, err)
 	}
 
-	sendMixpanelEvent("convox-uninstall-start", "")
-
 	_, err = waitForCompletion(stackId, CloudFormation, true)
-
 	if err != nil {
-		sendMixpanelEvent("convox-uninstall-retry", "")
-
+		// retry deleting stack once more to automate around transient errors
 		_, err = CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
 			StackName: aws.String(stackId),
 		})
-
 		if err != nil {
-			handleError("uninstall", distinctId, err)
-			return
+			stdcli.ErrorEvent("uninstall", distinctId, err)
 		}
 
 		_, err = waitForCompletion(stackId, CloudFormation, true)
-
 		if err != nil {
-			handleError("uninstall", distinctId, err)
-			return
+			stdcli.ErrorEvent("uninstall", distinctId, err)
 		}
 	}
 
@@ -545,7 +520,7 @@ func cmdUninstall(c *cli.Context) {
 
 	fmt.Println("Successfully uninstalled.")
 
-	sendMixpanelEvent("convox-uninstall-success", "")
+	stdcli.SuccessEvent("uninstall", distinctId)
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {
@@ -790,11 +765,6 @@ func waitForAvailability(url string) {
 			return
 		}
 	}
-}
-
-func handleError(command string, distinctId string, err error) {
-	sendMixpanelEvent(fmt.Sprintf("convox-%s-error", command), err.Error())
-	stdcli.Error(err)
 }
 
 var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
