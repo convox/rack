@@ -334,14 +334,13 @@ func currentId() (string, error) {
 
 	if !exists(config) {
 		err := os.MkdirAll(ConfigRoot, 0700)
-
 		if err != nil {
 			return "", err
 		}
 
 		id := randomString(20)
-		err = ioutil.WriteFile(config, []byte(id), 0600)
 
+		err = ioutil.WriteFile(config, []byte(id), 0600)
 		if err != nil {
 			return "", err
 		}
@@ -350,7 +349,6 @@ func currentId() (string, error) {
 	}
 
 	data, err := ioutil.ReadFile(config)
-
 	if err != nil {
 		return "", err
 	}

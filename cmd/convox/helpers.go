@@ -1,9 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -32,29 +29,6 @@ func humanizeBool(b bool) string {
 		return "true"
 	} else {
 		return "false"
-	}
-}
-
-func sendMixpanelEvent(event, message string) {
-	if os.Getenv("DEVELOPMENT") == "Yes" {
-		return // don't log dev events
-	}
-	id, err := currentId()
-
-	if err != nil {
-		// TODO log this error somewhere
-		return
-	}
-
-	token := "43fb68427548c5e99978a598a9b14e55"
-
-	m := fmt.Sprintf(`{"event": %q, "properties": {"client_id": %q, "distinct_id": %q, "message": %q, "token": %q, "client_version": %q}}`, event, id, id, message, token, Version)
-	encMessage := base64.StdEncoding.EncodeToString([]byte(m))
-
-	_, err = http.Get(fmt.Sprintf("http://api.mixpanel.com/track/?data=%s", encMessage))
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
 }
 

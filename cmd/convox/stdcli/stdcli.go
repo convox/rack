@@ -12,6 +12,8 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/codegangsta/cli"
+	"github.com/segmentio/analytics-go"
+	"github.com/stvp/rollbar"
 )
 
 var (
@@ -162,6 +164,60 @@ func WriteSetting(setting, value string) error {
 func Error(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	Exiter(1)
+}
+
+func ErrorEvent(source, id string, e error) {
+	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
+	rollbar.Environment = id
+
+	segment := analytics.New("KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i")
+
+	err := segment.Track(&analytics.Track{
+		Event:  source,
+		UserId: id,
+		Properties: map[string]interface{}{
+			"error": e.Error(),
+		},
+	})
+	if err != nil {
+		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
+	}
+
+	err = segment.Close()
+	if err != nil {
+		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
+	}
+
+	rollbar.Error(rollbar.ERR, e, &rollbar.Field{"id", id})
+	rollbar.Wait()
+
+	fmt.Fprintf(os.Stderr, "ERROR: %s\n", e)
+	Exiter(1)
+}
+
+func SuccessEvent(source, id string, started time.Time) {
+	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
+	rollbar.Environment = id
+
+	segment := analytics.New("KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i")
+
+	err := segment.Track(&analytics.Track{
+		Event:  source,
+		UserId: id,
+		Properties: map[string]interface{}{
+			"elapsed": float64(time.Now().Sub(started).Nanoseconds()) / 1000000,
+		},
+	})
+	if err != nil {
+		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
+	}
+
+	err = segment.Close()
+	if err != nil {
+		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
+	}
+
+	rollbar.Wait()
 }
 
 func Usage(c *cli.Context, name string) {
