@@ -587,7 +587,6 @@ func (m *Manifest) Run(app string, cache bool) []error {
 			for _, name := range order {
 				Execer("docker", "kill", containerName(app, name)).Run()
 			}
-			os.Exit(0)
 		}
 	}()
 
