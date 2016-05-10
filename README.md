@@ -38,7 +38,7 @@ Some updates are infrastructure migrations. For example, ECR is still in limited
 
 ### Open Source
 
-Rack is open source and free (as in beer and in speech) to use. You can look at the source code to audit how it configures your AWS account. You you fork it and modify. You can contribute your ideas and patches back to the project so we can all share.
+Rack is open source and free (as in beer and in speech) to use. You can look at the source code to audit how it configures your AWS account. You fork it and modify. You can contribute your ideas and patches back to the project so we can all share.
 
 ### Philosophy
 
