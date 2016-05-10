@@ -1,0 +1,121 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
+    "Parameters": {
+      "AllocatedStorage": {
+        "Type" : "Number",
+        "Default" : "10",
+        "Description" : "Allocated storage size (GB)"
+      },
+      "Database": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Default database name"
+      },
+      "InstanceType": {
+        "Type" : "String",
+        "Default" : "db.r3.large",
+        "Description" : "Instance class for database nodes"
+      },
+      "MultiAZ": {
+        "Type" : "String",
+        "Default" : "false",
+        "Description" : "Multiple availability zone"
+      },
+      "Password": {
+        "Type" : "String",
+        "Description" : "Server password"
+      },
+      "Private": {
+        "Type": "String",
+        "Description": "Create in private subnets",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
+      "Subnets": {
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Description": "VPC subnets"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets"
+      },
+      "Username": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Server username"
+      },
+      "Vpc": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "VPC"
+      }
+    },
+    "Outputs": {
+      "Port3306TcpAddr": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Address" ] } },
+      "Port3306TcpPort": { "Value": { "Fn::GetAtt": [ "Instance", "Endpoint.Port" ] } },
+      "EnvMysqlDatabase": { "Value": { "Ref": "Database" } },
+      "EnvMysqlPassword": { "Value": { "Ref": "Password" } },
+      "EnvMysqlUsername": { "Value": { "Ref": "Username" } }
+    },
+    "Resources": {
+      "SecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "aurora service",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": "10.0.0.0/16" }
+          ],
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "SubnetGroup": {
+        "Type": "AWS::RDS::DBSubnetGroup",
+        "Properties": {
+          "DBSubnetGroupDescription": "aurora service",
+          "SubnetIds": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] }
+        }
+      },
+      "ClusterParameterGroup": {
+        "Type": "AWS::RDS::DBClusterParameterGroup",
+        "Properties" : {
+          "Description" : "aurora cluster",
+          "Family" : { "Ref": "AWS::StackName" }
+        }
+      },
+      "Cluster": {
+        "Type" : "AWS::RDS::DBCluster",
+        "Properties" : {
+          "MasterUsername" : { "Ref" : "Username" },
+          "MasterUserPassword" : { "Ref" : "Password" },
+          "Engine" : "aurora",
+          "DBSubnetGroupName" : { "Ref" : "SubnetGroup" },
+          "DBClusterParameterGroupName" : { "Ref" : "ClusterParameterGroup" }
+        }
+      },
+      "Instance": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+          "AllocatedStorage": { "Ref": "AllocatedStorage" },
+          "DBInstanceClass": { "Ref": "InstanceType" },
+          "DBInstanceIdentifier": { "Ref": "AWS::StackName" },
+          "DBName": { "Ref": "Database" },
+          "DBSubnetGroupName": { "Ref": "SubnetGroup" },
+          "Engine": "aurora",
+          "EngineVersion": "5.6.10a",
+          "DBClusterIdentifier" : { "Ref" : "Cluster" },
+          "MultiAZ": { "Ref": "MultiAZ" },
+          "Port": "3306",
+          "PubliclyAccessible": "false",
+          "VPCSecurityGroups": [ { "Ref": "SecurityGroup" } ]
+        }
+      }
+    }
+  }
+{{ end }}
