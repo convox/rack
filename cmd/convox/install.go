@@ -242,14 +242,6 @@ func cmdInstall(c *cli.Context) {
 		stdcli.ErrorEvent("cli-install", distinctId, err)
 	}
 
-	creds, err := readCredentials(c)
-	if err != nil {
-		stdcli.ErrorEvent("cli-install", distinctId, err)
-	}
-	if creds == nil {
-		stdcli.ErrorEvent("cli-install", distinctId, fmt.Errorf("error reading credentials"))
-	}
-
 	reader := bufio.NewReader(os.Stdin)
 
 	if email := c.String("email"); email != "" {
@@ -267,6 +259,14 @@ func cmdInstall(c *cli.Context) {
 			distinctId = email
 			updateId(email)
 		}
+	}
+
+	creds, err := readCredentials(c)
+	if err != nil {
+		stdcli.ErrorEvent("cli-install", distinctId, err)
+	}
+	if creds == nil {
+		stdcli.ErrorEvent("cli-install", distinctId, fmt.Errorf("error reading credentials"))
 	}
 
 	development := "No"
