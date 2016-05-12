@@ -199,7 +199,7 @@ func init() {
 }
 
 func cmdInstall(c *cli.Context) {
-	ep := stdcli.EventProperties{Start: time.Now()}
+	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
 	region := c.String("region")
 
@@ -239,7 +239,7 @@ func cmdInstall(c *cli.Context) {
 
 	distinctId, err := currentId()
 	if err != nil {
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -252,7 +252,7 @@ func cmdInstall(c *cli.Context) {
 
 		email, err := reader.ReadString('\n')
 		if err != nil {
-			stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		if strings.TrimSpace(email) != "" {
@@ -263,10 +263,10 @@ func cmdInstall(c *cli.Context) {
 
 	creds, err := readCredentials(c)
 	if err != nil {
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 	if creds == nil {
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: fmt.Errorf("error reading credentials")})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
 	}
 
 	development := "No"
@@ -302,12 +302,12 @@ func cmdInstall(c *cli.Context) {
 
 	versions, err := version.All()
 	if err != nil {
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: fmt.Errorf("error getting versions")})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
 	}
 
 	version, err := versions.Resolve(c.String("version"))
 	if err != nil {
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: fmt.Errorf("error resolving version")})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
 	}
 
 	versionName := version.Version
@@ -361,7 +361,7 @@ func cmdInstall(c *cli.Context) {
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
 		dat, err := ioutil.ReadFile(tf)
 		if err != nil {
-			stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: fmt.Errorf("error reading template file")})
+			stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
 		}
 
 		req.TemplateURL = nil
@@ -376,7 +376,7 @@ func cmdInstall(c *cli.Context) {
 			}
 		}
 
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	// NOTE: we start making lots of network requests here
@@ -388,7 +388,7 @@ func cmdInstall(c *cli.Context) {
 
 	host, err := waitForCompletion(*res.StackId, CloudFormation, false)
 	if err != nil {
-		stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	if privateApi == "Yes" {
@@ -402,32 +402,32 @@ func cmdInstall(c *cli.Context) {
 
 		err := addLogin(host, password)
 		if err != nil {
-			stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		err = switchHost(host)
 		if err != nil {
-			stdcli.EventSend("cli-install", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		fmt.Println("Success, try `convox apps`")
 	}
 
-	stdcli.EventSend("cli-install", distinctId, ep)
+	stdcli.QOSEventSend("cli-install", distinctId, ep)
 }
 
 func cmdUninstall(c *cli.Context) {
-	ep := stdcli.EventProperties{Start: time.Now()}
+	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
 	distinctId, err := currentId()
 	if err != nil {
-		stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	if !c.Bool("force") {
 		apps, err := rackClient(c).GetApps()
 		if err != nil {
-			stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		if len(apps) != 0 {
@@ -436,7 +436,7 @@ func cmdUninstall(c *cli.Context) {
 
 		services, err := rackClient(c).GetServices()
 		if err != nil {
-			stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		if len(services) != 0 {
@@ -448,10 +448,10 @@ func cmdUninstall(c *cli.Context) {
 
 	creds, err := readCredentials(c)
 	if err != nil {
-		stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 	if creds == nil {
-		stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: fmt.Errorf("error reading credentials")})
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
 	}
 
 	region := c.String("region")
@@ -481,7 +481,7 @@ func cmdUninstall(c *cli.Context) {
 			}
 		}
 
-		stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	stackId := *res.Stacks[0].StackId
@@ -490,7 +490,7 @@ func cmdUninstall(c *cli.Context) {
 		StackName: aws.String(stackId),
 	})
 	if err != nil {
-		stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	_, err = waitForCompletion(stackId, CloudFormation, true)
@@ -500,12 +500,12 @@ func cmdUninstall(c *cli.Context) {
 			StackName: aws.String(stackId),
 		})
 		if err != nil {
-			stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		_, err = waitForCompletion(stackId, CloudFormation, true)
 		if err != nil {
-			stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 	}
 
@@ -520,18 +520,18 @@ func cmdUninstall(c *cli.Context) {
 	if configuredHost, _ := currentHost(); configuredHost == host {
 		err = removeHost()
 		if err != nil {
-			stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 	}
 
 	err = removeLogin(host)
 	if err != nil {
-		stdcli.EventSend("cli-uninstall", distinctId, stdcli.EventProperties{Error: err})
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	fmt.Println("Successfully uninstalled.")
 
-	stdcli.EventSend("cli-uninstall", distinctId, ep)
+	stdcli.QOSEventSend("cli-uninstall", distinctId, ep)
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {

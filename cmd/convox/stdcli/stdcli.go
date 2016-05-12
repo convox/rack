@@ -166,16 +166,15 @@ func Error(err error) {
 	Exiter(1)
 }
 
-type EventProperties struct {
+type QOSEventProperties struct {
 	Error error
 	Start time.Time
 }
 
-// EventSend sends an internal CLI event to segment for
-// quality-of-service purposes.
-// If the event is an error, it also sends the error to rollbar,
-// then displays the error to the user and exits non-zero.
-func EventSend(system, id string, ep EventProperties) {
+// QOSEventSend sends an internal CLI event to segment for quality-of-service purposes.
+// If the event is an error it also sends the error to rollbar, then displays the
+// error to the user and exits non-zero.
+func QOSEventSend(system, id string, ep QOSEventProperties) {
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
