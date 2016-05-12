@@ -209,7 +209,7 @@ func EventSend(system, id string, ep EventProperties) {
 	rollbar.Wait()
 
 	if ep.Error != nil {
-		fmt.Fprint(os.Stderr, "ERROR: %s\n", ep.Error)
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", ep.Error)
 		Exiter(1)
 	}
 }
