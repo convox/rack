@@ -45,7 +45,7 @@ func cmdStart(c *cli.Context) {
 
 	distinctId, err := currentId()
 	if err != nil {
-		stdcli.EventSendError("cli-start", distinctId, err)
+		stdcli.EventSend("cli-start", distinctId, stdcli.EventProperties{Error: err})
 	}
 
 	cache := !c.Bool("no-cache")
@@ -68,20 +68,20 @@ func cmdStart(c *cli.Context) {
 	if err != nil {
 		changes, err := manifest.Init(dir)
 		if err != nil {
-			stdcli.EventSendError("cli-start", distinctId, err)
+			stdcli.EventSend("cli-start", distinctId, stdcli.EventProperties{Error: err})
 		}
 
 		fmt.Printf("Generated: %s\n", strings.Join(changes, ", "))
 
 		m, err = manifest.Read(dir, file)
 		if err != nil {
-			stdcli.EventSendError("cli-start", distinctId, err)
+			stdcli.EventSend("cli-start", distinctId, stdcli.EventProperties{Error: err})
 		}
 	}
 
 	conflicts, err := m.PortConflicts()
 	if err != nil {
-		stdcli.EventSendError("cli-start", distinctId, err)
+		stdcli.EventSend("cli-start", distinctId, stdcli.EventProperties{Error: err})
 	}
 
 	if len(conflicts) > 0 {
@@ -91,7 +91,7 @@ func cmdStart(c *cli.Context) {
 
 	missing, err := m.MissingEnvironment(cache, app)
 	if err != nil {
-		stdcli.EventSendError("cli-start", distinctId, err)
+		stdcli.EventSend("cli-start", distinctId, stdcli.EventProperties{Error: err})
 	}
 
 	if len(missing) > 0 {
@@ -101,7 +101,7 @@ func cmdStart(c *cli.Context) {
 
 	errors := m.Build(app, dir, cache)
 	if len(errors) != 0 {
-		stdcli.EventSendError("cli-start", distinctId, errors[0])
+		stdcli.EventSend("cli-start", distinctId, stdcli.EventProperties{Error: errors[0]})
 	}
 
 	ch := make(chan []error)
@@ -124,7 +124,7 @@ func cmdInit(c *cli.Context) {
 
 	distinctId, err := currentId()
 	if err != nil {
-		stdcli.EventSendError("cli-start", distinctId, err)
+		stdcli.EventSend("cli-init", distinctId, stdcli.EventProperties{Error: err})
 	}
 
 	wd := "."
@@ -141,7 +141,7 @@ func cmdInit(c *cli.Context) {
 
 	changed, err := manifest.Init(dir)
 	if err != nil {
-		stdcli.EventSendError("cli-init", distinctId, err)
+		stdcli.EventSend("cli-init", distinctId, stdcli.EventProperties{Error: err})
 	}
 
 	if len(changed) > 0 {

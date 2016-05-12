@@ -214,10 +214,6 @@ func EventSend(system, id string, ep EventProperties) {
 	}
 }
 
-func EventSendError(system, id string, e error) {
-	EventSend(system, id, EventProperties{Error: e})
-}
-
 func Usage(c *cli.Context, name string) {
 	cli.ShowCommandHelp(c, name)
 	Exiter(129)
