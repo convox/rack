@@ -170,7 +170,7 @@ func ErrorEvent(source, id string, e error) {
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
-	segment := analytics.New("KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i")
+	segment := analytics.New("JcNCirASuqEvuWhL8K87JTsUkhY68jvX")
 
 	err := segment.Track(&analytics.Track{
 		Event:  source,
@@ -199,7 +199,7 @@ func SuccessEvent(source, id string, started time.Time) {
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
-	segment := analytics.New("KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i")
+	segment := analytics.New("JcNCirASuqEvuWhL8K87JTsUkhY68jvX")
 
 	err := segment.Track(&analytics.Track{
 		Event:  source,
