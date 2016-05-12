@@ -46,14 +46,12 @@ var Banner = `
 const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
 your AWS account. These credentials will only be used to communicate between this
 installer running on your computer and the AWS API.
-`
 
-const InstallMessage = `We recommend that you create a new set of credentials exclusively for this install process.
+We recommend that you create a new set of credentials exclusively for this
+install/uninstall process and then delete them once the installer has completed.
 
 To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
-
-const UninstallMessage = `Use the same AWS credentials you had while installing the Convox platform into your AWS account.`
 
 var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
@@ -808,14 +806,6 @@ func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 	if creds.Access == "" || creds.Secret == "" {
 		fmt.Println(CredentialsMessage)
 		reader := bufio.NewReader(os.Stdin)
-		operation := c.Command.FullName()
-
-		switch operation {
-		case "install":
-			fmt.Println(InstallMessage)
-		case "uninstall":
-			fmt.Println(UninstallMessage)
-		}
 
 		switch {
 		case creds.Access == "" && creds.Secret == "":
