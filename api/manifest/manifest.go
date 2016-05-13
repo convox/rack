@@ -886,7 +886,7 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 	}
 
 	for _, line := range strings.Split(string(data), "\n") {
-		parts := strings.Split(strings.TrimSpace(line), " ")
+		parts := strings.Fields(line)
 
 		if len(parts) < 1 {
 			continue
