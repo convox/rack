@@ -14,7 +14,7 @@ Your network is isolated, your platform is single-tenant, and your application d
 
 ### Simple and Reliable
 
-Apps run as Docker containers on ECS with HTTP access through ELBs. This architecture is modern, simple and provably reliable and scalable.
+Apps run as Docker containers on ECS with HTTP access through ELBs. This architecture is modern, simple, provably reliable and scalable.
 
 Container Logs are extracted from Docker with its native APIs and log drivers. Docker daemon options are minimally changed to avoid observed log rotation problems.
 
