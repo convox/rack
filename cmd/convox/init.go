@@ -95,6 +95,7 @@ type ManifestEntry struct {
 	Command string   `yaml:"command,omitempty"`
 	Labels  []string `yaml:"labels,omitempty"`
 	Ports   []string `yaml:"ports,omitempty"`
+	Volumes []string `yaml:"volumes,omitempty"`
 }
 
 type Manifest map[string]ManifestEntry
@@ -122,6 +123,8 @@ func generateManifest(dir string, def string) error {
 
 				me.Ports = append(me.Ports, "80:4000")
 				me.Ports = append(me.Ports, "443:4001")
+
+				me.Volumes = append(me.Volumes, ".:/app")
 			}
 
 			m[e.Name] = me

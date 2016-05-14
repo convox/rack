@@ -6,3 +6,5 @@ web:
   ports:
     - 80:4000
     - 443:4001
+  volumes:
+    -  .:/app

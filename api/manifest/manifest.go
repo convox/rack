@@ -1422,15 +1422,15 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	wd, err := os.Getwd()
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	defer os.Chdir(wd)
-	
+
 	os.Chdir(dir)
-	
+
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
 		return nil
@@ -1477,6 +1477,10 @@ func generateManifest(dir string, def string) error {
 				me.Ports = []string{
 					"80:4000",
 					"443:4001",
+				}
+
+				me.Volumes = []string{
+					".:/app",
 				}
 			}
 
