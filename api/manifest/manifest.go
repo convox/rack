@@ -24,6 +24,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/convox/rack/cmd/convox/templates"
 	"github.com/fatih/color"
 	"github.com/fsouza/go-dockerclient"
 	yaml "gopkg.in/yaml.v2"
@@ -89,37 +90,8 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func Init(dir string) (changed []string, err error) {
-	wd, err := os.Getwd()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer os.Chdir(wd)
-
-	err = os.Chdir(dir)
-
-	if err != nil {
-		return nil, err
-	}
-
-	switch {
-	case exists(filepath.Join(dir, "docker-compose.yml")):
-		fmt.Println("Manifest already exists")
-	case exists(filepath.Join(dir, "Dockerfile")):
-		changed, err = initDockerfile(dir)
-	case exists(filepath.Join(dir, "Procfile")):
-		changed, err = initProcfile(dir)
-	default:
-		changed, err = initDefault(dir)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return changed, nil
+func Init(dir string) error {
+	return initApplication(dir)
 }
 
 func Read(dir, filename string) (*Manifest, error) {
@@ -956,31 +928,6 @@ func proxyPort(protocol, from, to string, proxy bool) {
 	cmd.Run()
 }
 
-func injectDockerfile(dir string) error {
-	detect := ""
-
-	switch {
-	case exists(filepath.Join(dir, ".meteor")):
-		detect = "meteor"
-	case exists(filepath.Join(dir, "package.json")):
-		detect = "node"
-	case exists(filepath.Join(dir, "config/application.rb")):
-		detect = "rails"
-	case exists(filepath.Join(dir, "Gemfile.lock")):
-		detect = "ruby"
-	default:
-		detect = "unknown"
-	}
-
-	data, err := Asset(fmt.Sprintf("data/Dockerfile.%s", detect))
-
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(filepath.Join(dir, "Dockerfile"), data, 0644)
-}
-
 func query(executable string, args ...string) ([]byte, error) {
 	return Execer(executable, args...).CombinedOutput()
 }
@@ -1057,115 +1004,6 @@ func randomString(prefix string, size int) string {
 		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
 	}
 	return prefix + string(b)
-}
-
-var exposeEntryRegexp = regexp.MustCompile(`^EXPOSE\s+(\d+)`)
-
-func initDockerfile(dir string) ([]string, error) {
-	entry := ManifestEntry{
-		Build: ".",
-		Ports: []string{},
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(dir, "Dockerfile"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-
-	current := 5000
-
-	for scanner.Scan() {
-		parts := exposeEntryRegexp.FindStringSubmatch(scanner.Text())
-
-		if len(parts) > 1 {
-			entry.Ports = append(entry.Ports.([]string), fmt.Sprintf("%d:%s", current, strings.Split(parts[1], "/")[0]))
-			current += 100
-		}
-	}
-
-	manifest := &Manifest{"main": entry}
-
-	err = manifest.Write(filepath.Join(dir, "docker-compose.yml"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	return []string{"docker-compose.yml"}, nil
-}
-
-var procfileEntryRegexp = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
-
-func initProcfile(dir string) ([]string, error) {
-	m := Manifest{}
-
-	err := injectDockerfile(dir)
-
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(dir, "Procfile"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-
-	current := 5000
-
-	for scanner.Scan() {
-		parts := procfileEntryRegexp.FindStringSubmatch(scanner.Text())
-
-		if len(parts) > 0 {
-			m[parts[1]] = ManifestEntry{
-				Build:   ".",
-				Command: parts[2],
-				Ports:   []string{fmt.Sprintf("%d:3000", current)},
-			}
-
-			current += 100
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	err = m.Write(filepath.Join(dir, "docker-compose.yml"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	return []string{"Dockerfile", "docker-compose.yml"}, nil
-}
-
-func initDefault(dir string) ([]string, error) {
-	m := Manifest{}
-
-	err := injectDockerfile(dir)
-
-	if err != nil {
-		return nil, err
-	}
-
-	m["main"] = ManifestEntry{
-		Build: ".",
-		Ports: []string{"5000:3000"},
-	}
-
-	err = m.Write(filepath.Join(dir, "docker-compose.yml"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	return []string{"Dockerfile", "docker-compose.yml"}, nil
 }
 
 func dockerHost() (host string) {
@@ -1561,4 +1399,172 @@ func warnIfRoot(volume string) {
 		fmt.Println(warning("WARNING: Detected application directory mounted as volume"))
 		fmt.Println(warning("convox start will automatically synchronize any files referenced by ADD or COPY statements"))
 	}
+}
+
+// init
+
+func detectApplication(dir string) string {
+	switch {
+	// case exists(filepath.Join(dir, ".meteor")):
+	//   return "meteor"
+	// case exists(filepath.Join(dir, "package.json")):
+	//   return "node"
+	case exists(filepath.Join(dir, "config/application.rb")):
+		return "rails"
+	case exists(filepath.Join(dir, "config.ru")):
+		return "sinatra"
+	case exists(filepath.Join(dir, "Gemfile.lock")):
+		return "ruby"
+	}
+
+	return "unknown"
+}
+
+func initApplication(dir string) error {
+	wd, err := os.Getwd()
+	
+	if err != nil {
+		return err
+	}
+	
+	defer os.Chdir(wd)
+	
+	os.Chdir(dir)
+	
+	// TODO parse the Dockerfile and build a docker-compose.yml
+	if exists("Dockerfile") || exists("docker-compose.yml") {
+		return nil
+	}
+
+	kind := detectApplication(dir)
+
+	fmt.Printf("Initializing %s\n", kind)
+
+	if err := writeAsset("Dockerfile", fmt.Sprintf("init/%s/Dockerfile", kind)); err != nil {
+		return err
+	}
+
+	if err := generateManifest(dir, fmt.Sprintf("init/%s/docker-compose.yml", kind)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateManifest(dir string, def string) error {
+	if exists("Procfile") {
+		pf, err := readProcfile("Procfile")
+
+		if err != nil {
+			return err
+		}
+
+		m := Manifest{}
+
+		for _, e := range pf {
+			me := ManifestEntry{
+				Build:   ".",
+				Command: e.Command,
+			}
+
+			switch e.Name {
+			case "web":
+				me.Labels = []string{
+					"convox.port.443.protocol=tls",
+					"convox.port.443.proxy=true",
+				}
+
+				me.Ports = []string{
+					"80:4000",
+					"443:4001",
+				}
+			}
+
+			m[e.Name] = me
+		}
+
+		data, err := yaml.Marshal(m)
+
+		if err != nil {
+			return err
+		}
+
+		// write the generated docker-compose.yml and return
+		return writeFile("docker-compose.yml", data, 0644)
+	}
+
+	// write the default if we get here
+	return writeAsset("docker-compose.yml", def)
+}
+
+type ProcfileEntry struct {
+	Name    string
+	Command string
+}
+
+type Procfile []ProcfileEntry
+
+var reProcfile = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
+
+func readProcfile(path string) (Procfile, error) {
+	data, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pf := Procfile{}
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+
+	for scanner.Scan() {
+		parts := reProcfile.FindStringSubmatch(scanner.Text())
+
+		if len(parts) == 3 {
+			pf = append(pf, ProcfileEntry{
+				Name:    parts[1],
+				Command: parts[2],
+			})
+		}
+	}
+
+	return pf, nil
+}
+
+func writeFile(path string, data []byte, mode os.FileMode) error {
+	fmt.Printf("Writing %s... ", path)
+
+	if exists(path) {
+		fmt.Println("EXISTS")
+		return nil
+	}
+
+	// make the containing directory
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(path, data, mode); err != nil {
+		return err
+	}
+
+	fmt.Println("OK")
+
+	return nil
+}
+
+func writeAsset(path, template string) error {
+	data, err := templates.Asset(template)
+
+	if err != nil {
+		return err
+	}
+
+	info, err := templates.AssetInfo(template)
+
+	if err != nil {
+		return err
+	}
+
+	return writeFile(path, data, info.Mode())
 }

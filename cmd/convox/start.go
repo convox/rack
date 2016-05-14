@@ -32,12 +32,6 @@ func init() {
 			},
 		},
 	})
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "init",
-		Description: "initialize an app for local development",
-		Usage:       "[directory]",
-		Action:      cmdInit,
-	})
 }
 
 func cmdStart(c *cli.Context) {
@@ -66,12 +60,11 @@ func cmdStart(c *cli.Context) {
 
 	m, err := manifest.Read(dir, file)
 	if err != nil {
-		changes, err := manifest.Init(dir)
+		err := manifest.Init(dir)
+
 		if err != nil {
 			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
-
-		fmt.Printf("Generated: %s\n", strings.Join(changes, ", "))
 
 		m, err = manifest.Read(dir, file)
 		if err != nil {
@@ -117,36 +110,4 @@ func cmdStart(c *cli.Context) {
 	<-ch
 
 	stdcli.QOSEventSend("cli-start", distinctId, ep)
-}
-
-func cmdInit(c *cli.Context) {
-	ep := stdcli.QOSEventProperties{Start: time.Now()}
-
-	distinctId, err := currentId()
-	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
-
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, _, err := stdcli.DirApp(c, wd)
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	changed, err := manifest.Init(dir)
-	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
-
-	if len(changed) > 0 {
-		fmt.Printf("Generated: %s\n", strings.Join(changed, ", "))
-	}
-
-	stdcli.QOSEventSend("cli-init", distinctId, ep)
 }

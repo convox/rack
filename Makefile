@@ -1,4 +1,4 @@
-.PHONY: all test
+.PHONY: all templates test test-deps vendor
 
 all: test
 
@@ -13,6 +13,7 @@ release:
 
 templates:
 	make -C api templates
+	make -C cmd/convox templates
 
 test-deps:
 	go get -t -u ./...

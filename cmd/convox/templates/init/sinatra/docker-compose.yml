@@ -1,0 +1,8 @@
+web:
+  build: .
+  labels:
+    - convox.port.443.protocol=tls
+    - convox.port.443.proxy=true
+  ports:
+    - 80:4000
+    - 443:4001
