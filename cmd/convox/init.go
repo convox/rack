@@ -95,6 +95,10 @@ func initApplication(dir string) error {
 		if err := writeAsset("config/initializers/convox.rb", fmt.Sprintf("init/%s/config/initializers/convox.rb", kind)); err != nil {
 			return err
 		}
+
+		if err := writeAsset(".dockerignore", fmt.Sprintf("init/%s/.dockerignore", kind)); err != nil {
+			return err
+		}
 	}
 
 	return nil
