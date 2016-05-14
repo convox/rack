@@ -1452,6 +1452,10 @@ func initApplication(dir string) error {
 		if err := writeAsset("bin/web", fmt.Sprintf("init/%s/bin/web", kind)); err != nil {
 			return err
 		}
+
+		if err := writeAsset("config/initializers/convox.rb", fmt.Sprintf("init/%s/config/initializers/convox.rb", kind)); err != nil {
+			return err
+		}
 	}
 
 	return nil
