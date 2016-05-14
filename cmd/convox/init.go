@@ -87,6 +87,12 @@ func initApplication(dir string) error {
 		return err
 	}
 
+	if kind == "rails" {
+		if err := writeAsset("bin/web", fmt.Sprintf("init/%s/bin/web", kind)); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
