@@ -1422,15 +1422,15 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	wd, err := os.Getwd()
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	defer os.Chdir(wd)
-	
+
 	os.Chdir(dir)
-	
+
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
 		return nil
@@ -1446,6 +1446,20 @@ func initApplication(dir string) error {
 
 	if err := generateManifest(dir, fmt.Sprintf("init/%s/docker-compose.yml", kind)); err != nil {
 		return err
+	}
+
+	if kind == "rails" {
+		if err := writeAsset("bin/web", fmt.Sprintf("init/%s/bin/web", kind)); err != nil {
+			return err
+		}
+
+		if err := writeAsset("config/initializers/convox.rb", fmt.Sprintf("init/%s/config/initializers/convox.rb", kind)); err != nil {
+			return err
+		}
+
+		if err := writeAsset(".dockerignore", fmt.Sprintf("init/%s/.dockerignore", kind)); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1477,6 +1491,10 @@ func generateManifest(dir string, def string) error {
 				me.Ports = []string{
 					"80:4000",
 					"443:4001",
+				}
+
+				me.Volumes = []string{
+					".:/app",
 				}
 			}
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# delete old server.pid
+rm -f /app/tmp/pids/server.pid
+
+# start up nginx in the background
+nginx &
+
+# start rails listening on 0.0.0.0:$PORT
+rails server -b 0.0.0.0 -p $PORT

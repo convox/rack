@@ -87,6 +87,20 @@ func initApplication(dir string) error {
 		return err
 	}
 
+	if kind == "rails" {
+		if err := writeAsset("bin/web", fmt.Sprintf("init/%s/bin/web", kind)); err != nil {
+			return err
+		}
+
+		if err := writeAsset("config/initializers/convox.rb", fmt.Sprintf("init/%s/config/initializers/convox.rb", kind)); err != nil {
+			return err
+		}
+
+		if err := writeAsset(".dockerignore", fmt.Sprintf("init/%s/.dockerignore", kind)); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -95,6 +109,7 @@ type ManifestEntry struct {
 	Command string   `yaml:"command,omitempty"`
 	Labels  []string `yaml:"labels,omitempty"`
 	Ports   []string `yaml:"ports,omitempty"`
+	Volumes []string `yaml:"volumes,omitempty"`
 }
 
 type Manifest map[string]ManifestEntry
@@ -122,6 +137,8 @@ func generateManifest(dir string, def string) error {
 
 				me.Ports = append(me.Ports, "80:4000")
 				me.Ports = append(me.Ports, "443:4001")
+
+				me.Volumes = append(me.Volumes, ".:/app")
 			}
 
 			m[e.Name] = me
