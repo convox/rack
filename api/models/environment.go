@@ -40,6 +40,10 @@ func GetEnvironment(app string) (Environment, error) {
 		return nil, err
 	}
 
+	if a.Status == "creating" {
+		return nil, fmt.Errorf("app is still being created: %s", app)
+	}
+
 	data, err := s3Get(a.Outputs["Settings"], "env")
 
 	if err != nil {

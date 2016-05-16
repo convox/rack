@@ -1,4 +1,4 @@
-.PHONY: all build data install release test vendor
+.PHONY: all build data install release templates test vendor
 
 all: build
 
@@ -11,6 +11,9 @@ install:
 
 release:
 	equinox release --config=.equinox.yaml --version=$(shell convox/convox --version | cut -d' ' -f3) .
+
+templates:
+	go-bindata -pkg=templates -prefix=templates/ -o=templates/templates.go templates/...
 
 test:
 	go get -t ./...
