@@ -32,20 +32,14 @@ func init() {
 			},
 		},
 	})
-	stdcli.RegisterCommand(cli.Command{
-		Name:        "init",
-		Description: "initialize an app for local development",
-		Usage:       "[directory]",
-		Action:      cmdInit,
-	})
 }
 
 func cmdStart(c *cli.Context) {
-	started := time.Now()
+	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
 	distinctId, err := currentId()
 	if err != nil {
-		stdcli.ErrorEvent("cli-start", distinctId, err)
+		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	cache := !c.Bool("no-cache")
@@ -66,22 +60,21 @@ func cmdStart(c *cli.Context) {
 
 	m, err := manifest.Read(dir, file)
 	if err != nil {
-		changes, err := manifest.Init(dir)
-		if err != nil {
-			stdcli.ErrorEvent("cli-start", distinctId, err)
-		}
+		err := manifest.Init(dir)
 
-		fmt.Printf("Generated: %s\n", strings.Join(changes, ", "))
+		if err != nil {
+			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+		}
 
 		m, err = manifest.Read(dir, file)
 		if err != nil {
-			stdcli.ErrorEvent("cli-start", distinctId, err)
+			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 	}
 
 	conflicts, err := m.PortConflicts()
 	if err != nil {
-		stdcli.ErrorEvent("cli-start", distinctId, err)
+		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	if len(conflicts) > 0 {
@@ -91,7 +84,7 @@ func cmdStart(c *cli.Context) {
 
 	missing, err := m.MissingEnvironment(cache, app)
 	if err != nil {
-		stdcli.ErrorEvent("cli-start", distinctId, err)
+		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	if len(missing) > 0 {
@@ -101,7 +94,7 @@ func cmdStart(c *cli.Context) {
 
 	errors := m.Build(app, dir, cache)
 	if len(errors) != 0 {
-		stdcli.ErrorEvent("cli-start", distinctId, errors[0])
+		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: errors[0]})
 	}
 
 	ch := make(chan []error)
@@ -116,37 +109,5 @@ func cmdStart(c *cli.Context) {
 
 	<-ch
 
-	stdcli.SuccessEvent("cli-start", distinctId, started)
-}
-
-func cmdInit(c *cli.Context) {
-	started := time.Now()
-
-	distinctId, err := currentId()
-	if err != nil {
-		stdcli.ErrorEvent("cli-start", distinctId, err)
-	}
-
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, _, err := stdcli.DirApp(c, wd)
-	if err != nil {
-		stdcli.Error(err)
-		return
-	}
-
-	changed, err := manifest.Init(dir)
-	if err != nil {
-		stdcli.ErrorEvent("cli-init", distinctId, err)
-	}
-
-	if len(changed) > 0 {
-		fmt.Printf("Generated: %s\n", strings.Join(changed, ", "))
-	}
-
-	stdcli.SuccessEvent("cli-init", distinctId, started)
+	stdcli.QOSEventSend("cli-start", distinctId, ep)
 }

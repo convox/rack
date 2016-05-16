@@ -51,6 +51,11 @@ func cmdRun(c *cli.Context) {
 	}
 
 	ps := c.Args()[0]
+	err = validateProcessId(c, app, ps)
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	args := strings.Join(c.Args()[1:], " ")
 
@@ -80,6 +85,11 @@ func cmdRunDetached(c *cli.Context) {
 	}
 
 	ps := c.Args()[0]
+	err = validateProcessId(c, app, ps)
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
 
 	command := ""
 
@@ -130,6 +140,22 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 	}
 
 	return code, nil
+}
+func validateProcessId(c *cli.Context, app, ps string) error {
+
+	processes, err := rackClient(c).GetProcesses(app, false)
+
+	if err != nil {
+		return err
+	}
+
+	for _, p := range processes {
+		if ps == p.Name {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Unknown process name: %s", ps)
 }
 
 var CodeRemoverRegex = regexp.MustCompile(`\x1b\[.n`)

@@ -166,47 +166,35 @@ func Error(err error) {
 	Exiter(1)
 }
 
-func ErrorEvent(source, id string, e error) {
-	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
-	rollbar.Environment = id
-
-	segment := analytics.New("KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i")
-
-	err := segment.Track(&analytics.Track{
-		Event:  source,
-		UserId: id,
-		Properties: map[string]interface{}{
-			"error": e.Error(),
-		},
-	})
-	if err != nil {
-		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
-	}
-
-	err = segment.Close()
-	if err != nil {
-		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
-	}
-
-	rollbar.Error(rollbar.ERR, e, &rollbar.Field{"id", id})
-	rollbar.Wait()
-
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", e)
-	Exiter(1)
+type QOSEventProperties struct {
+	Error error
+	Start time.Time
 }
 
-func SuccessEvent(source, id string, started time.Time) {
+// QOSEventSend sends an internal CLI event to segment for quality-of-service purposes.
+// If the event is an error it also sends the error to rollbar, then displays the
+// error to the user and exits non-zero.
+func QOSEventSend(system, id string, ep QOSEventProperties) {
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
-	segment := analytics.New("KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i")
+	segment := analytics.New("JcNCirASuqEvuWhL8K87JTsUkhY68jvX")
+
+	props := map[string]interface{}{}
+
+	if ep.Error != nil {
+		props["error"] = ep.Error.Error()
+		rollbar.Error(rollbar.ERR, ep.Error, &rollbar.Field{"id", id})
+	}
+
+	if !ep.Start.IsZero() {
+		props["elapsed"] = float64(time.Now().Sub(ep.Start).Nanoseconds()) / 1000000
+	}
 
 	err := segment.Track(&analytics.Track{
-		Event:  source,
-		UserId: id,
-		Properties: map[string]interface{}{
-			"elapsed": float64(time.Now().Sub(started).Nanoseconds()) / 1000000,
-		},
+		Event:      system,
+		UserId:     id,
+		Properties: props,
 	})
 	if err != nil {
 		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
@@ -218,6 +206,11 @@ func SuccessEvent(source, id string, started time.Time) {
 	}
 
 	rollbar.Wait()
+
+	if ep.Error != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", ep.Error)
+		Exiter(1)
+	}
 }
 
 func Usage(c *cli.Context, name string) {
