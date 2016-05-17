@@ -50,6 +50,10 @@ func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
 
+	if name == os.Getenv("RACK") {
+		return httperr.Errorf(403, "application name cannot match rack name (%s). Please choose a different name for your app.", name)
+	}
+
 	// Early check for unbound app only.
 	if app, err := models.GetAppUnbound(name); err == nil {
 		return httperr.Errorf(403, "there is already a legacy app named %s (%s). We recommend you delete this app and create it again.", name, app.Status)
