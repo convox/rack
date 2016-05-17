@@ -915,6 +915,9 @@ func proxyPort(protocol, from, to, link string, proxy bool) {
 		args = append(args, "proxy")
 	}
 
+	// wait for main container to come up
+	time.Sleep(1 * time.Second)
+
 	cmd := Execer("docker", args...)
 	// cmd.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
