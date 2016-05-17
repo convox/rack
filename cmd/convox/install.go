@@ -814,22 +814,22 @@ func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 		fmt.Println(CredentialsMessage)
 		reader := bufio.NewReader(os.Stdin)
 
-		switch {
-		case creds.Access == "" && creds.Secret == "":
-			fallthrough
-		case creds.Access == "":
+		if creds.Access == "" {
 			fmt.Print("AWS Access Key ID: ")
 			creds.Access, err = reader.ReadString('\n')
 			if err != nil {
 				return creds, err
 			}
-		case creds.Secret == "":
+		}
+
+		if creds.Secret == "" {
 			fmt.Print("AWS Secret Access Key: ")
 			creds.Secret, err = reader.ReadString('\n')
 			if err != nil {
 				return creds, err
 			}
 		}
+
 		fmt.Println("")
 	}
 
