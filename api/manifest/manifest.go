@@ -734,13 +734,6 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
-	gateway, err := getDockerGateway()
-
-	if err != nil {
-		ch <- err
-		return
-	}
-
 	host := ""
 	container := ""
 
@@ -768,7 +761,7 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 
 			rnd := RandomPort()
 			fmt.Println(prefix, special(fmt.Sprintf("%s proxy enabled for %s:%s", proto, host, container)))
-			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd), proxy)
+			go proxyPort(proto, host, container, name, proxy)
 			host = strconv.Itoa(rnd)
 		}
 
@@ -915,16 +908,16 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(protocol, from, to string, proxy bool) {
-	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol}
+func proxyPort(protocol, from, to, link string, proxy bool) {
+	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "--link", fmt.Sprintf("%s:host", link), "convox/proxy", from, to, protocol}
 
 	if proxy {
 		args = append(args, "proxy")
 	}
 
 	cmd := Execer("docker", args...)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	cmd.Run()
 }
 
@@ -1422,15 +1415,15 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	wd, err := os.Getwd()
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	defer os.Chdir(wd)
-	
+
 	os.Chdir(dir)
-	
+
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
 		return nil
