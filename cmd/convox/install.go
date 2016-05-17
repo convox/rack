@@ -43,16 +43,15 @@ var Banner = `
 
 `
 
-var CredentialsMessage = `This installer needs AWS credentials to install the Convox platform into
-your AWS account. These credentials will only be used to communicate
-between this installer running on your computer and the AWS API.
+const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
+your AWS account. These credentials will only be used to communicate between this
+installer running on your computer and the AWS API.
 
 We recommend that you create a new set of credentials exclusively for this
-install process and then delete them once the installer has completed.
+install/uninstall process and then delete them once the installer has completed.
 
 To generate a new set of AWS credentials go to:
-https://docs.convox.com/creating-an-iam-user
-`
+https://docs.convox.com/creating-an-iam-user`
 
 var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
@@ -812,24 +811,23 @@ func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 	}
 
 	if creds.Access == "" || creds.Secret == "" {
+		fmt.Println(CredentialsMessage)
 		reader := bufio.NewReader(os.Stdin)
 
-		fmt.Println(CredentialsMessage)
-
-		fmt.Print("AWS Access Key ID: ")
-
-		creds.Access, err = reader.ReadString('\n')
-
-		if err != nil {
-			return creds, err
+		if creds.Access == "" {
+			fmt.Print("AWS Access Key ID: ")
+			creds.Access, err = reader.ReadString('\n')
+			if err != nil {
+				return creds, err
+			}
 		}
 
-		fmt.Print("AWS Secret Access Key: ")
-
-		creds.Secret, err = reader.ReadString('\n')
-
-		if err != nil {
-			return creds, err
+		if creds.Secret == "" {
+			fmt.Print("AWS Secret Access Key: ")
+			creds.Secret, err = reader.ReadString('\n')
+			if err != nil {
+				return creds, err
+			}
 		}
 
 		fmt.Println("")
