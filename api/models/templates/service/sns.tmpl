@@ -89,7 +89,7 @@
         "Value": { "Ref": "AccessKey" }
       },
       "SecretAccessKey": {
-        "Value": { "Fn::Base64": { "Fn::GetAtt": ["AccessKey", "SecretAccessKey"] } }
+        "Value": { "Fn::GetAtt": ["AccessKey", "SecretAccessKey"] }
       }
     }
   }
