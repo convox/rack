@@ -916,8 +916,8 @@ func proxyPort(protocol, from, to, link string, proxy bool) {
 	}
 
 	cmd := Execer("docker", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 	cmd.Run()
 }
 
