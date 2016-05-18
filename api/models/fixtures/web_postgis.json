@@ -165,6 +165,16 @@
       "Description": "CPU shares of each process",
       "Type": "Number"
     },
+    "DeploymentMaximum": {
+      "Default": "200",
+      "Description": "Maximum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
+    "DeploymentMinimum": {
+      "Default": "100",
+      "Description": "Minimum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
     "Environment": {
       "Default": "",
       "Description": "",
@@ -692,6 +702,12 @@
         "Cluster": {
           "Ref": "Cluster"
         },
+        "DeploymentMaximumPercent": {
+          "Ref": "DeploymentMaximum"
+        },
+        "DeploymentMinimumPercent": {
+          "Ref": "DeploymentMinimum"
+        },
         "DesiredCount": {
           "Ref": "PostgresDesiredCount"
         },
@@ -898,6 +914,12 @@
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
+        },
+        "DeploymentMaximumPercent": {
+          "Ref": "DeploymentMaximum"
+        },
+        "DeploymentMinimumPercent": {
+          "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
           "Ref": "WebDesiredCount"
