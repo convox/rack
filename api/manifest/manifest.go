@@ -734,13 +734,6 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
-	gateway, err := getDockerGateway()
-
-	if err != nil {
-		ch <- err
-		return
-	}
-
 	host := ""
 	container := ""
 
@@ -761,14 +754,19 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		switch proto := me.Label(fmt.Sprintf("convox.port.%s.protocol", host)); proto {
 		case "https", "tls":
 			proxy := false
+			secure := false
 
 			if me.Label(fmt.Sprintf("convox.port.%s.proxy", host)) == "true" {
 				proxy = true
 			}
 
+			if me.Label(fmt.Sprintf("convox.port.%s.secure", host)) == "true" {
+				secure = true
+			}
+
 			rnd := RandomPort()
 			fmt.Println(prefix, special(fmt.Sprintf("%s proxy enabled for %s:%s", proto, host, container)))
-			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd), proxy)
+			go proxyPort(proto, host, container, name, proxy, secure)
 			host = strconv.Itoa(rnd)
 		}
 
@@ -915,12 +913,19 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(protocol, from, to string, proxy bool) {
-	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol}
+func proxyPort(protocol, from, to, link string, proxy, secure bool) {
+	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "--link", fmt.Sprintf("%s:host", link), "convox/proxy", from, to, protocol}
 
 	if proxy {
 		args = append(args, "proxy")
 	}
+
+	if secure {
+		args = append(args, "secure")
+	}
+
+	// wait for main container to come up
+	time.Sleep(1 * time.Second)
 
 	cmd := Execer("docker", args...)
 	// cmd.Stdout = os.Stdout
@@ -1422,15 +1427,15 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	wd, err := os.Getwd()
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	defer os.Chdir(wd)
-	
+
 	os.Chdir(dir)
-	
+
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
 		return nil
