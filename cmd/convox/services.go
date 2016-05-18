@@ -19,6 +19,10 @@ type ServiceType struct {
 func init() {
 	types := []ServiceType{
 		ServiceType{
+			"aurora",
+			"[--allocated-storage=10] [--instance-type=db.r3.large] [--multi-az] [--private]",
+		},
+		ServiceType{
 			"mysql",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
