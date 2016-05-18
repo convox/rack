@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -315,6 +316,18 @@ func (p *AWSProvider) ServiceUnlinkSubscribe(a *structs.App, s *structs.Service)
 }
 
 func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) {
+	u, err := url.Parse(s.Parameters["Url"])
+	if err != nil {
+		return nil, err
+	}
+
+	switch u.Scheme {
+	case "udp", "tcp", "tcp+tls":
+		// proceed
+	default:
+		return nil, fmt.Errorf("Invalid url scheme `%s`. Allowed schemes are `udp`, `tcp`, `tcp+tls`.", u.Scheme)
+	}
+
 	formation, err := serviceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err

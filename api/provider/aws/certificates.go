@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -144,17 +143,13 @@ func (p *AWSProvider) CertificateList() (structs.Certificates, error) {
 		})
 	}
 
-	// only fetch ACM certificates in regions that support it
-	switch os.Getenv("AWS_REGION") {
-	case "us-east-1":
-		c, err := p.certificateListACM()
+	c, err := p.certificateListACM()
 
-		if err != nil {
-			return nil, err
-		}
-
-		certs = append(certs, c...)
+	if err != nil {
+		return nil, err
 	}
+
+	certs = append(certs, c...)
 
 	return certs, nil
 }

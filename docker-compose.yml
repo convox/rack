@@ -10,7 +10,7 @@ web:
     - CLIENT_ID=dev@convox.com
     - CLUSTER
     - CUSTOM_TOPIC
-    - DEBUG
+    - DEBUG=
     - DOCKER_IMAGE_API=rack/web
     - DYNAMO_BUILDS
     - DYNAMO_RELEASES
@@ -50,7 +50,7 @@ monitor:
     - CLIENT_ID=dev@convox.com
     - CLUSTER
     - CUSTOM_TOPIC
-    - DEBUG
+    - DEBUG=
     - DOCKER_IMAGE_API=rack/web
     - DYNAMO_BUILDS
     - DYNAMO_RELEASES

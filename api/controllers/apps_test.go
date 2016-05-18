@@ -130,6 +130,17 @@ func TestAppCreateWithAlreadyExistsUnbound(t *testing.T) {
 	assert.Equal(t, "{\"error\":\"there is already a legacy app named application (running). We recommend you delete this app and create it again.\"}", body)
 }
 
+func TestAppCreateWithRackName(t *testing.T) {
+	aws := test.StubAws(
+		test.DescribeAppStackCycle("foobar"),
+	)
+	defer aws.Close()
+
+	val := url.Values{"name": []string{"convox-test"}}
+	body := test.AssertStatus(t, 403, "POST", "http://convox/apps", val)
+	assert.Equal(t, "{\"error\":\"application name cannot match rack name (convox-test). Please choose a different name for your app.\"}", body)
+}
+
 // TODO: test bucket cleanup. this is handled via goroutines.
 /* NOTE: the S3 stuff fucks up b.c the client ries to prepend the
 bucket name to the ephermeral host, so you get `app-XXX.127.0.0.1`
