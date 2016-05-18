@@ -1,0 +1,8 @@
+/.bundle
+/.convox
+/.env
+/.git
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/log/*
+/tmp

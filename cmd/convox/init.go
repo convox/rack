@@ -87,6 +87,10 @@ func initApplication(dir string) error {
 		return err
 	}
 
+	if err := writeAsset(".dockerignore", fmt.Sprintf("init/%s/.dockerignore", kind)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
