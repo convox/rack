@@ -49,21 +49,6 @@ RUNNING: docker tag -f xvlbzgbaic compose/web
 	_assert(t, cases)
 }
 
-func TestPortsWanted(t *testing.T) {
-	destDir := mkBuildDir(t, "../../examples/compose")
-	defer os.RemoveAll(destDir)
-
-	Init(destDir)
-	m, _ := Read(destDir, defaultManifestFile)
-	ps := m.PortsWanted()
-
-	cases := Cases{
-		{ps, []string{"5000"}},
-	}
-
-	_assert(t, cases)
-}
-
 func TestRunOrder(t *testing.T) {
 	var m Manifest
 	data := []byte(`web:
@@ -235,7 +220,7 @@ func testBuild(m *Manifest, app string) (string, string) {
 }
 
 func testRun(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, func() { m.Run(app, true) })
+	return testRunner(m, app, func() { m.Run(app, true, []string{}) })
 }
 
 func testRunner(m *Manifest, app string, fn runnerFn) (string, string) {

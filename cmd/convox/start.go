@@ -22,6 +22,14 @@ func init() {
 				Value: "docker-compose.yml",
 				Usage: "path to an alternate docker compose manifest file",
 			},
+			cli.StringSliceFlag{
+				Name:  "link",
+				Usage: "link another instance of convox start",
+			},
+			cli.StringFlag{
+				Name:  "name",
+				Usage: "set the name of this convox start instance for use with --link",
+			},
 			cli.BoolFlag{
 				Name:  "no-cache",
 				Usage: "pull fresh image dependencies",
@@ -43,6 +51,7 @@ func cmdStart(c *cli.Context) {
 	}
 
 	cache := !c.Bool("no-cache")
+	links := c.StringSlice("link")
 
 	wd := "."
 
@@ -54,6 +63,10 @@ func cmdStart(c *cli.Context) {
 	if err != nil {
 		stdcli.Error(err)
 		return
+	}
+
+	if name := c.String("name"); name != "" {
+		app = name
 	}
 
 	file := c.String("file")
@@ -70,16 +83,6 @@ func cmdStart(c *cli.Context) {
 		if err != nil {
 			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
-	}
-
-	conflicts, err := m.PortConflicts()
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
-
-	if len(conflicts) > 0 {
-		stdcli.Error(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
-		return
 	}
 
 	missing, err := m.MissingEnvironment(cache, app)
@@ -100,7 +103,7 @@ func cmdStart(c *cli.Context) {
 	ch := make(chan []error)
 
 	go func() {
-		ch <- m.Run(app, cache)
+		ch <- m.Run(app, cache, links)
 	}()
 
 	if c.Bool("sync") && stdcli.ReadSetting("sync") != "false" {

@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -463,45 +462,6 @@ func (m *Manifest) MissingEnvironment(cache bool, app string) ([]string, error) 
 	return missing, nil
 }
 
-func (m *Manifest) PortConflicts() ([]string, error) {
-	wanted := m.PortsWanted()
-
-	conflicts := make([]string, 0)
-
-	host := dockerHost()
-
-	for _, p := range wanted {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, p), 200*time.Millisecond)
-
-		if err == nil {
-			conflicts = append(conflicts, p)
-			defer conn.Close()
-		}
-	}
-
-	return conflicts, nil
-}
-
-func (m *Manifest) PortsWanted() []string {
-	ports := make([]string, 0)
-
-	for _, entry := range *m {
-		if pp, ok := entry.Ports.([]interface{}); ok {
-			for _, port := range pp {
-				if p, ok := port.(string); ok {
-					parts := strings.SplitN(p, ":", 2)
-
-					if len(parts) == 2 {
-						ports = append(ports, parts[0])
-					}
-				}
-			}
-		}
-	}
-
-	return ports
-}
-
 func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 	if tag == "" {
 		tag = "latest"
@@ -545,7 +505,7 @@ func (m *Manifest) Raw() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Run(app string, cache bool) []error {
+func (m *Manifest) Run(app string, cache bool, links []string) []error {
 	ch := make(chan error)
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
@@ -562,10 +522,18 @@ func (m *Manifest) Run(app string, cache bool) []error {
 		}
 	}()
 
+	Execer("docker", "network", "create", "convox").Run()
+
 	for i, name := range m.runOrder() {
 		sch := make(chan error)
-		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch, sch)
-		<-sch // block until started successfully
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, links, ch, sch)
+		select {
+		case <-sch:
+			continue
+		case err := <-ch:
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			return []error{err}
+		}
 	}
 
 	errors := []error{}
@@ -698,7 +666,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error, sch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, links []string, ch chan error, sch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -723,22 +691,18 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 
 	ports := []string{}
 
-	switch t := me.Ports.(type) {
-	case []string:
-		for _, port := range t {
-			ports = append(ports, port)
+	// only map ports if we're not linking
+	if len(links) == 0 {
+		switch t := me.Ports.(type) {
+		case []string:
+			for _, port := range t {
+				ports = append(ports, port)
+			}
+		case []interface{}:
+			for _, port := range t {
+				ports = append(ports, fmt.Sprintf("%v", port))
+			}
 		}
-	case []interface{}:
-		for _, port := range t {
-			ports = append(ports, fmt.Sprintf("%v", port))
-		}
-	}
-
-	gateway, err := getDockerGateway()
-
-	if err != nil {
-		ch <- err
-		return
 	}
 
 	host := ""
@@ -761,14 +725,19 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		switch proto := me.Label(fmt.Sprintf("convox.port.%s.protocol", host)); proto {
 		case "https", "tls":
 			proxy := false
+			secure := false
 
 			if me.Label(fmt.Sprintf("convox.port.%s.proxy", host)) == "true" {
 				proxy = true
 			}
 
+			if me.Label(fmt.Sprintf("convox.port.%s.secure", host)) == "true" {
+				secure = true
+			}
+
 			rnd := RandomPort()
 			fmt.Println(prefix, special(fmt.Sprintf("%s proxy enabled for %s:%s", proto, host, container)))
-			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd), proxy)
+			go proxyPort(proto, host, container, name, proxy, secure)
 			host = strconv.Itoa(rnd)
 		}
 
@@ -805,6 +774,75 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 			args = append(args, fmt.Sprintf(`--add-host=%s:%s`, host, strings.TrimSpace(string(ip))))
 		}
 	}
+
+	// handle cross-start linking
+	args = append(args, "--net=convox")
+
+	for _, link := range links {
+		data, err := Execer("docker", "ps", "--filter", fmt.Sprintf("label=convox.app=%s", link), "--format", "{{.ID}}").CombinedOutput()
+
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		containers := []string{}
+
+		for _, c := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+			if c != "" {
+				containers = append(containers, c)
+			}
+		}
+
+		if len(containers) == 0 {
+			fmt.Println("YEP")
+			ch <- fmt.Errorf("could not find running app named: %s", link)
+			return
+		}
+
+		for _, c := range containers {
+			data, err := Execer("docker", "inspect", c).CombinedOutput()
+
+			if err != nil {
+				ch <- err
+				return
+			}
+
+			var inspect []struct {
+				Config struct {
+					Labels map[string]string
+				}
+				NetworkSettings struct {
+					Networks map[string]struct {
+						IPAddress string
+					}
+				}
+			}
+
+			err = json.Unmarshal(data, &inspect)
+
+			if err != nil {
+				ch <- err
+				return
+			}
+
+			if len(inspect) < 1 {
+				ch <- fmt.Errorf("could not inspect linked app's container: %s", c)
+				return
+			}
+
+			app := inspect[0].Config.Labels["convox.app"]
+			process := inspect[0].Config.Labels["convox.process"]
+			ip := inspect[0].NetworkSettings.Networks["convox"].IPAddress
+			ev := fmt.Sprintf("%s_%s_HOST", strings.Replace(strings.ToUpper(app), "-", "_", -1), strings.Replace(strings.ToUpper(process), "-", "_", -1))
+
+			args = append(args, "-e", fmt.Sprintf("%s=%s", ev, ip))
+		}
+	}
+
+	// label with the app name
+	args = append(args, "--label", fmt.Sprintf("convox.app=%s", app))
+	args = append(args, "--label", fmt.Sprintf("convox.process=%s", process))
 
 	args = append(args, tag)
 
@@ -915,12 +953,19 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(protocol, from, to string, proxy bool) {
-	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol}
+func proxyPort(protocol, from, to, link string, proxy, secure bool) {
+	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "--link", fmt.Sprintf("%s:host", link), "convox/proxy", from, to, protocol}
 
 	if proxy {
 		args = append(args, "proxy")
 	}
+
+	if secure {
+		args = append(args, "secure")
+	}
+
+	// wait for main container to come up
+	time.Sleep(1 * time.Second)
 
 	cmd := Execer("docker", args...)
 	// cmd.Stdout = os.Stdout
@@ -1422,15 +1467,15 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	wd, err := os.Getwd()
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	defer os.Chdir(wd)
-	
+
 	os.Chdir(dir)
-	
+
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
 		return nil
