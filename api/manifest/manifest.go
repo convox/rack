@@ -463,8 +463,8 @@ func (m *Manifest) MissingEnvironment(cache bool, app string) ([]string, error) 
 	return missing, nil
 }
 
-func (m *Manifest) PortConflicts() ([]string, error) {
-	wanted := m.PortsWanted()
+func (m *Manifest) PortConflicts(shift int) ([]string, error) {
+	wanted := m.PortsWanted(shift)
 
 	conflicts := make([]string, 0)
 
@@ -482,7 +482,7 @@ func (m *Manifest) PortConflicts() ([]string, error) {
 	return conflicts, nil
 }
 
-func (m *Manifest) PortsWanted() []string {
+func (m *Manifest) PortsWanted(shift int) []string {
 	ports := make([]string, 0)
 
 	for _, entry := range *m {
@@ -492,7 +492,8 @@ func (m *Manifest) PortsWanted() []string {
 					parts := strings.SplitN(p, ":", 2)
 
 					if len(parts) == 2 {
-						ports = append(ports, parts[0])
+						pi, _ := strconv.Atoi(parts[0])
+						ports = append(ports, fmt.Sprintf("%d", pi+shift))
 					}
 				}
 			}
@@ -545,7 +546,7 @@ func (m *Manifest) Raw() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Run(app string, cache bool) []error {
+func (m *Manifest) Run(app string, cache bool, shift int) []error {
 	ch := make(chan error)
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
@@ -564,7 +565,7 @@ func (m *Manifest) Run(app string, cache bool) []error {
 
 	for i, name := range m.runOrder() {
 		sch := make(chan error)
-		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch, sch)
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, shift, ch, sch)
 		<-sch // block until started successfully
 	}
 
@@ -698,7 +699,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error, sch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, shift int, ch chan error, sch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -734,13 +735,6 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
-	gateway, err := getDockerGateway()
-
-	if err != nil {
-		ch <- err
-		return
-	}
-
 	host := ""
 	container := ""
 
@@ -758,17 +752,31 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 			return
 		}
 
+		hosti, err := strconv.Atoi(host)
+
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		host = fmt.Sprintf("%d", hosti+shift)
+
 		switch proto := me.Label(fmt.Sprintf("convox.port.%s.protocol", host)); proto {
 		case "https", "tls":
 			proxy := false
+			secure := false
 
 			if me.Label(fmt.Sprintf("convox.port.%s.proxy", host)) == "true" {
 				proxy = true
 			}
 
+			if me.Label(fmt.Sprintf("convox.port.%s.secure", host)) == "true" {
+				secure = true
+			}
+
 			rnd := RandomPort()
 			fmt.Println(prefix, special(fmt.Sprintf("%s proxy enabled for %s:%s", proto, host, container)))
-			go proxyPort(proto, host, fmt.Sprintf("%s:%d", gateway, rnd), proxy)
+			go proxyPort(proto, host, container, name, proxy, secure)
 			host = strconv.Itoa(rnd)
 		}
 
@@ -915,12 +923,19 @@ func exists(filename string) bool {
 	return true
 }
 
-func proxyPort(protocol, from, to string, proxy bool) {
-	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "convox/proxy", from, to, protocol}
+func proxyPort(protocol, from, to, link string, proxy, secure bool) {
+	args := []string{"run", "-p", fmt.Sprintf("%s:%s", from, from), "--link", fmt.Sprintf("%s:host", link), "convox/proxy", from, to, protocol}
 
 	if proxy {
 		args = append(args, "proxy")
 	}
+
+	if secure {
+		args = append(args, "secure")
+	}
+
+	// wait for main container to come up
+	time.Sleep(1 * time.Second)
 
 	cmd := Execer("docker", args...)
 	// cmd.Stdout = os.Stdout
@@ -1422,15 +1437,15 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	wd, err := os.Getwd()
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	defer os.Chdir(wd)
-	
+
 	os.Chdir(dir)
-	
+
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
 		return nil
