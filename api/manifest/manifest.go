@@ -564,8 +564,14 @@ func (m *Manifest) Run(app string, cache bool) []error {
 
 	for i, name := range m.runOrder() {
 		sch := make(chan error)
-		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, ch, sch)
-		<-sch // block until started successfully
+		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, links, ch, sch)
+		select {
+		case <-sch:
+			continue
+		case err := <-ch:
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			return []error{err}
+		}
 	}
 
 	errors := []error{}
