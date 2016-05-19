@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -461,45 +460,6 @@ func (m *Manifest) MissingEnvironment(cache bool, app string) ([]string, error) 
 	sort.Strings(missing)
 
 	return missing, nil
-}
-
-func (m *Manifest) PortConflicts() ([]string, error) {
-	wanted := m.PortsWanted()
-
-	conflicts := make([]string, 0)
-
-	host := dockerHost()
-
-	for _, p := range wanted {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", host, p), 200*time.Millisecond)
-
-		if err == nil {
-			conflicts = append(conflicts, p)
-			defer conn.Close()
-		}
-	}
-
-	return conflicts, nil
-}
-
-func (m *Manifest) PortsWanted() []string {
-	ports := make([]string, 0)
-
-	for _, entry := range *m {
-		if pp, ok := entry.Ports.([]interface{}); ok {
-			for _, port := range pp {
-				if p, ok := port.(string); ok {
-					parts := strings.SplitN(p, ":", 2)
-
-					if len(parts) == 2 {
-						ports = append(ports, parts[0])
-					}
-				}
-			}
-		}
-	}
-
-	return ports
 }
 
 func (m *Manifest) Push(app, registry, tag string, flatten string) []error {

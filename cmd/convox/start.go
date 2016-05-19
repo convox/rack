@@ -72,16 +72,6 @@ func cmdStart(c *cli.Context) {
 		}
 	}
 
-	conflicts, err := m.PortConflicts()
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
-
-	if len(conflicts) > 0 {
-		stdcli.Error(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
-		return
-	}
-
 	missing, err := m.MissingEnvironment(cache, app)
 	if err != nil {
 		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
