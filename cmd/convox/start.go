@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +27,10 @@ func init() {
 			cli.BoolFlag{
 				Name:  "no-cache",
 				Usage: "pull fresh image dependencies",
+			},
+			cli.IntFlag{
+				Name:  "shift",
+				Usage: "Shift allocated port numbers by the given amount",
 			},
 			cli.BoolTFlag{
 				Name:  "sync",
@@ -52,6 +56,21 @@ func cmdStart(c *cli.Context) {
 	}
 
 	cache := !c.Bool("no-cache")
+
+	shift := 0
+
+	if ss := stdcli.ReadSetting("shift"); ss != "" {
+		shift, err = strconv.Atoi(ss)
+
+		if err != nil {
+			stdcli.Error(fmt.Errorf(".convox/shift must contain a number"))
+			return
+		}
+	}
+
+	if si := c.Int("shift"); si > 0 {
+		shift = si
+	}
 
 	wd := "."
 
@@ -81,7 +100,7 @@ func cmdStart(c *cli.Context) {
 		}
 	}
 
-	conflicts, err := m.PortConflicts()
+	conflicts, err := m.PortConflicts(shift)
 	if err != nil {
 		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
@@ -109,7 +128,7 @@ func cmdStart(c *cli.Context) {
 	ch := make(chan []error)
 
 	go func() {
-		ch <- m.Run(app, cache)
+		ch <- m.Run(app, cache, shift)
 	}()
 
 	if c.Bool("sync") && stdcli.ReadSetting("sync") != "false" {
