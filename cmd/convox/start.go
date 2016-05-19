@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -47,8 +47,9 @@ func cmdStart(c *cli.Context) {
 	dockerTest := exec.Command("docker", "images")
 	err = dockerTest.Run()
 	if err != nil {
-		derr := errors.New("could not connect to docker daemon, is it installed and running?")
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: derr})
+		stdcli.QOSEventSend("cli-start", distinctId, ep)
+		fmt.Println("ERROR: could not connect to docker daemon, is it installed and running?")
+		os.Exit(1)
 	}
 
 	cache := !c.Bool("no-cache")
