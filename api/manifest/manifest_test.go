@@ -55,7 +55,7 @@ func TestPortsWanted(t *testing.T) {
 
 	Init(destDir)
 	m, _ := Read(destDir, defaultManifestFile)
-	ps := m.PortsWanted()
+	ps := m.PortsWanted(0)
 
 	cases := Cases{
 		{ps, []string{"5000"}},
@@ -235,7 +235,7 @@ func testBuild(m *Manifest, app string) (string, string) {
 }
 
 func testRun(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, func() { m.Run(app, true) })
+	return testRunner(m, app, func() { m.Run(app, true, 0) })
 }
 
 func testRunner(m *Manifest, app string, fn runnerFn) (string, string) {
