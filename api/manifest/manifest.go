@@ -522,6 +522,8 @@ func (m *Manifest) Run(app string, cache bool, links []string) []error {
 		}
 	}()
 
+	Execer("docker", "network", "create", "convox").Run()
+
 	for i, name := range m.runOrder() {
 		sch := make(chan error)
 		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, links, ch, sch)
