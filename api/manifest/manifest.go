@@ -505,7 +505,7 @@ func (m *Manifest) Raw() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Run(app string, cache bool) []error {
+func (m *Manifest) Run(app string, cache bool, links []string) []error {
 	ch := make(chan error)
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
@@ -664,7 +664,7 @@ func containerName(app, process string) string {
 	return fmt.Sprintf("%s-%s", app, process)
 }
 
-func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, ch chan error, sch chan error) {
+func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache bool, links []string, ch chan error, sch chan error) {
 	tag := fmt.Sprintf("%s/%s", app, process)
 	name := containerName(app, process)
 
@@ -689,14 +689,17 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 
 	ports := []string{}
 
-	switch t := me.Ports.(type) {
-	case []string:
-		for _, port := range t {
-			ports = append(ports, port)
-		}
-	case []interface{}:
-		for _, port := range t {
-			ports = append(ports, fmt.Sprintf("%v", port))
+	// only map ports if we're not linking
+	if len(links) == 0 {
+		switch t := me.Ports.(type) {
+		case []string:
+			for _, port := range t {
+				ports = append(ports, port)
+			}
+		case []interface{}:
+			for _, port := range t {
+				ports = append(ports, fmt.Sprintf("%v", port))
+			}
 		}
 	}
 
@@ -769,6 +772,75 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 			args = append(args, fmt.Sprintf(`--add-host=%s:%s`, host, strings.TrimSpace(string(ip))))
 		}
 	}
+
+	// handle cross-start linking
+	args = append(args, "--net=convox")
+
+	for _, link := range links {
+		data, err := Execer("docker", "ps", "--filter", fmt.Sprintf("label=convox.app=%s", link), "--format", "{{.ID}}").CombinedOutput()
+
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		containers := []string{}
+
+		for _, c := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+			if c != "" {
+				containers = append(containers, c)
+			}
+		}
+
+		if len(containers) == 0 {
+			fmt.Println("YEP")
+			ch <- fmt.Errorf("could not find running app named: %s", link)
+			return
+		}
+
+		for _, c := range containers {
+			data, err := Execer("docker", "inspect", c).CombinedOutput()
+
+			if err != nil {
+				ch <- err
+				return
+			}
+
+			var inspect []struct {
+				Config struct {
+					Labels map[string]string
+				}
+				NetworkSettings struct {
+					Networks map[string]struct {
+						IPAddress string
+					}
+				}
+			}
+
+			err = json.Unmarshal(data, &inspect)
+
+			if err != nil {
+				ch <- err
+				return
+			}
+
+			if len(inspect) < 1 {
+				ch <- fmt.Errorf("could not inspect linked app's container: %s", c)
+				return
+			}
+
+			app := inspect[0].Config.Labels["convox.app"]
+			process := inspect[0].Config.Labels["convox.process"]
+			ip := inspect[0].NetworkSettings.Networks["convox"].IPAddress
+			ev := fmt.Sprintf("%s_%s_HOST", strings.Replace(strings.ToUpper(app), "-", "_", -1), strings.Replace(strings.ToUpper(process), "-", "_", -1))
+
+			args = append(args, "-e", fmt.Sprintf("%s=%s", ev, ip))
+		}
+	}
+
+	// label with the app name
+	args = append(args, "--label", fmt.Sprintf("convox.app=%s", app))
+	args = append(args, "--label", fmt.Sprintf("convox.process=%s", process))
 
 	args = append(args, tag)
 
