@@ -135,6 +135,16 @@
       "Description": "CPU shares of each process",
       "Type": "Number"
     },
+    "DeploymentMaximum": {
+      "Default": "200",
+      "Description": "Maximum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
+    "DeploymentMinimum": {
+      "Default": "100",
+      "Description": "Minimum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
     "Environment": {
       "Default": "",
       "Description": "",
@@ -512,6 +522,12 @@
       "Properties": {
         "Cluster": {
           "Ref": "Cluster"
+        },
+        "DeploymentMaximumPercent": {
+          "Ref": "DeploymentMaximum"
+        },
+        "DeploymentMinimumPercent": {
+          "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
           "Ref": "MainDesiredCount"
