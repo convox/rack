@@ -93,7 +93,7 @@ PASSWORD=45e0f109-3f56-4b30-9b5a-b0939b8a4c25
 
 ## Local Rack Docker VM
 
-A local Rack is started with `convox start` which requires a working Docker environment. To setup a Docker environment, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
+A local Rack is started with `convox start` which requires a working Docker machine environment. To setup a Docker environment by creating a Docker machine, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
 
 ```
 $ docker-machine start default
@@ -111,10 +111,10 @@ Now you can log into the development Rack API and interact with your Convox reso
 $ convox login $(docker-machine ip default)
 
 $ convox instances
-ID          AGENT  STATUS  STARTED      PS  CPU    MEM   
+ID          AGENT  STATUS  STARTED      PS  CPU    MEM
 i-6cf228f7  on     active  2 hours ago  4   0.00%  10.42%
-i-146c2f97  on     active  2 hours ago  1   0.00%  3.21% 
-i-c7de605c  on     active  2 hours ago  0   0.00%  0.00% 
+i-146c2f97  on     active  2 hours ago  1   0.00%  3.21%
+i-c7de605c  on     active  2 hours ago  0   0.00%  0.00%
 ```
 
 ## Golang Unit Test Suite
