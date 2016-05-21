@@ -76,7 +76,7 @@ func templates_service_syslog_tmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "templates/service/syslog.tmpl", size: 4758, mode: os.FileMode(420), modTime: time.Unix(1461183606, 0)}
+	info := bindata_file_info{name: "templates/service/syslog.tmpl", size: 4758, mode: os.FileMode(420), modTime: time.Unix(1463789829, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }

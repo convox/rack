@@ -21,6 +21,16 @@
         "Default": "200",
         "Description": "CPU shares of each process"
       },
+      "DeploymentMaximum": {
+        "Type": "Number",
+        "Default": "200",
+        "Description": "Maximum percentage of processes to keep running while deploying"
+      },
+      "DeploymentMinimum": {
+        "Type": "Number",
+        "Default": "100",
+        "Description": "Minimum percentage of processes to keep running while deploying"
+      },
       "Environment": {
         "Type": "String",
         "Default": "",
@@ -213,6 +223,8 @@
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
           "Role": { "Ref": "ServiceRole" },
+          "DeploymentMinimumPercent": { "Ref": "DeploymentMinimum" },
+          "DeploymentMaximumPercent": { "Ref": "DeploymentMaximum" },
           "LoadBalancers": [
             {{ range $e.PortMappings }}
               { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },

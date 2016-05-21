@@ -83,46 +83,6 @@ func assertFixture(t *testing.T, name string, primary string) {
 	Diff(t, name, string(data), formation)
 }
 
-func assertFixtureUnbound(t *testing.T, name string, primary string) {
-	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
-	require.Nil(t, err)
-
-	app := &App{
-		Name: "httpd",
-		Tags: map[string]string{
-			"Type":   "app",
-			"System": "convox",
-			"Rack":   "convox-test",
-		},
-	}
-	manifest, err := LoadManifest(string(data), app)
-
-	if err != nil {
-		fmt.Printf("ERROR: %+v\n", err)
-	}
-
-	require.Nil(t, err)
-
-	for i, _ := range manifest {
-		if manifest[i].Name == primary {
-			manifest[i].primary = true
-		}
-	}
-
-	formation, err := manifest.Formation()
-
-	if err != nil {
-		fmt.Printf("ERROR: %+v\n", err)
-	}
-
-	require.Nil(t, err)
-
-	data, err = ioutil.ReadFile(fmt.Sprintf("fixtures/%s_unbound.json", name))
-	require.Nil(t, err)
-
-	Diff(t, name, string(data), formation)
-}
-
 func TestManifestInvalid(t *testing.T) {
 	manifest, err := LoadManifest("invalid-manifest", nil)
 
@@ -142,18 +102,6 @@ func TestManifestFixtures(t *testing.T) {
 	assertFixture(t, "complex_environment", "")
 	assertFixture(t, "balancer_labels", "")
 	assertFixture(t, "environment_map", "")
-	ManifestRandomPorts = true
-}
-
-// test unbound apps with old balancer names and primary process logic
-func TestManifestFixtureUnbound(t *testing.T) {
-	os.Setenv("AWS_REGION", "us-test-2")
-	ManifestRandomPorts = false
-	assertFixtureUnbound(t, "multi_balancer", "web")
-	assertFixtureUnbound(t, "web_external_internal", "")
-	assertFixtureUnbound(t, "web_postgis", "")
-	assertFixtureUnbound(t, "web_postgis_internal", "")
-	assertFixtureUnbound(t, "worker", "")
 	ManifestRandomPorts = true
 }
 
@@ -249,35 +197,4 @@ func TestLoadBalancerNameUniquePerRack(t *testing.T) {
 
 	os.Setenv("RACK", "production")
 	assert.EqualValues(t, `"foo-web-7MS5NPT-i"`, mb.LoadBalancerName())
-}
-
-func TestLoadBalancerNameUnbound(t *testing.T) {
-	// an app stack with Tags but no "Name" tag is an unbound/legacy app
-	mb := ManifestBalancer{
-		Entry: ManifestEntry{
-			app: &App{
-				Name: "foo",
-				Tags: map[string]string{
-					"Rack":   "convox",
-					"System": "convox",
-					"Type":   "app",
-				},
-			},
-			Name:    "web",
-			primary: true,
-		},
-	}
-
-	// legacy naming for backwards compatibility
-	assert.Equal(t, `{ "Ref": "AWS::StackName" }`, string(mb.LoadBalancerName()))
-
-	// known bug in primary / internal naming
-	mb.Public = false
-	assert.Equal(t, `{ "Ref": "AWS::StackName" }`, string(mb.LoadBalancerName()))
-
-	mb.Entry.primary = false
-	assert.Equal(t, `{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web", "i" ] ] }`, string(mb.LoadBalancerName()))
-
-	mb.Public = true
-	assert.Equal(t, `{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] }`, string(mb.LoadBalancerName()))
 }
