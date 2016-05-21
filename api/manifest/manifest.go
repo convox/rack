@@ -735,6 +735,17 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 		}
 	}
 
+	if s := me.Label("convox.start.shift"); s != "" {
+		si, err := strconv.Atoi(s)
+
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		shift = si
+	}
+
 	host := ""
 	container := ""
 

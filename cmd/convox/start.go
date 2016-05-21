@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -58,15 +57,6 @@ func cmdStart(c *cli.Context) {
 	cache := !c.Bool("no-cache")
 
 	shift := 0
-
-	if ss := stdcli.ReadSetting("shift"); ss != "" {
-		shift, err = strconv.Atoi(ss)
-
-		if err != nil {
-			stdcli.Error(fmt.Errorf(".convox/shift must contain a number"))
-			return
-		}
-	}
 
 	if si := c.Int("shift"); si > 0 {
 		shift = si
