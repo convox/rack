@@ -234,6 +234,12 @@ func cmdInstall(c *cli.Context) {
 		}
 	}
 
+	numInstances := c.Int("instance-count")
+	instanceCount := fmt.Sprintf("%d", numInstances)
+	if numInstances < 2 {
+		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
+	}
+
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
@@ -311,12 +317,6 @@ func cmdInstall(c *cli.Context) {
 
 	versionName := version.Version
 	formationUrl := fmt.Sprintf(FormationUrl, versionName)
-
-	numInstances := c.Int("instance-count")
-	instanceCount := fmt.Sprintf("%d", numInstances)
-        if numInstances < 2 {
-		stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("instance-count must be greater than 1")})
-        }
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
