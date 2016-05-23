@@ -204,6 +204,7 @@
     "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
+      "MinValue": "2",
       "Type": "Number"
     },
     "InstanceType": {
