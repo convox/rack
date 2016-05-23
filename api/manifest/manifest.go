@@ -599,16 +599,10 @@ func (m *Manifest) sync(app, process string) error {
 		return err
 	}
 
-	err = (*m)[process].syncBack(app, process)
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (me ManifestEntry) syncBack(app, process string) error {
+func (me ManifestEntry) copyChangesBinaryToContainer(app, process string) error {
 	// only sync containers with a build directive
 	if me.Build == "" {
 		return nil
@@ -943,6 +937,12 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 	// only sync containers with a build directive
 	if me.Build == "" {
 		return nil
+	}
+
+	err := me.copyChangesBinaryToContainer(app, process)
+
+	if err != nil {
+		return err
 	}
 
 	dockerfile := filepath.Join(me.Build, "Dockerfile")
