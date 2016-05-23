@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -40,8 +45,8 @@ func cmdUninstall(c *cli.Context) error {
 		return nil
 	}
 
-	region := c.Args()[0]
-	stackName := c.Args()[1]
+	stackName := c.Args()[0]
+	region := c.Args()[1]
 
 	credentialsFile := ""
 	if len(c.Args()) == 3 {
@@ -56,6 +61,21 @@ func cmdUninstall(c *cli.Context) error {
 	}
 	if creds == nil {
 		return stdcli.ExitError(fmt.Errorf("error reading credentials"))
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	if !c.Bool("force") && terminal.IsTerminal(int(os.Stdin.Fd())) {
+		fmt.Printf("Confirm stack name to delete: ")
+
+		n, err := reader.ReadString('\n')
+		if err != nil {
+			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+		}
+
+		if strings.TrimSpace(n) != stackName {
+			stdcli.Error(fmt.Errorf("Name does not match. Aborting uninstall."))
+		}
 	}
 
 	fmt.Println("")
