@@ -14,14 +14,12 @@ func init() {
 		Usage:       "<process> [--count=2] [--memory=512]",
 		Action:      cmdScale,
 		Flags: []cli.Flag{appFlag,
-			cli.StringFlag{
+			cli.IntFlag{
 				Name:  "count",
-				Value: "",
 				Usage: "Number of processes to keep running for specified process type.",
 			},
-			cli.StringFlag{
+			cli.IntFlag{
 				Name:  "memory",
-				Value: "",
 				Usage: "Amount of memory, in MB, available to specified process type.",
 			},
 		},
@@ -35,15 +33,30 @@ func cmdScale(c *cli.Context) {
 		return
 	}
 
-	count := c.String("count")
-	memory := c.String("memory")
+	// initialize to invalid values that indicate no change
+	count := -1
+	memory := -1
 
-	if len(c.Args()) == 0 && count == "" && memory == "" {
-		displayFormation(c, app)
-		return
+	if c.IsSet("count") {
+		count = c.Int("count")
 	}
 
-	if len(c.Args()) != 1 || (count == "" && memory == "") {
+	if c.IsSet("memory") {
+		memory = c.Int("memory")
+	}
+
+	// validate single process type argument
+	switch len(c.Args()) {
+	case 0:
+		displayFormation(c, app)
+		return
+	case 1:
+		if count == -1 && memory == -1 {
+			displayFormation(c, app)
+			return
+		}
+		// fall through to scale API call
+	default:
 		stdcli.Usage(c, "scale")
 		return
 	}
@@ -51,7 +64,6 @@ func cmdScale(c *cli.Context) {
 	process := c.Args()[0]
 
 	err = rackClient(c).SetFormation(app, process, count, memory)
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -62,14 +74,12 @@ func cmdScale(c *cli.Context) {
 
 func displayFormation(c *cli.Context, app string) {
 	formation, err := rackClient(c).ListFormation(app)
-
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
 	pss, err := rackClient(c).GetProcesses(app, false)
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -90,5 +100,4 @@ func displayFormation(c *cli.Context, app string) {
 	}
 
 	t.Print()
-
 }
