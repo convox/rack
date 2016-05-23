@@ -113,13 +113,8 @@ func (c *Client) ScaleSystem(count int, typ string) (*System, error) {
 
 	params := Params{}
 
-	if count > 0 {
-		params["count"] = strconv.Itoa(count)
-	}
-
-	if typ != "" {
-		params["type"] = typ
-	}
+	params["count"] = strconv.Itoa(count)
+	params["type"] = typ
 
 	err := c.Put("/system", params, &system)
 

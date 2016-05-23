@@ -80,7 +80,7 @@ func init() {
 			cli.IntFlag{
 				Name:  "instance-count",
 				Value: 3,
-				Usage: "number of EC2 instances",
+				Usage: "number of EC2 instances (must be greater than 1)",
 			},
 			cli.StringFlag{
 				Name:  "instance-type",
@@ -234,6 +234,12 @@ func cmdInstall(c *cli.Context) {
 		}
 	}
 
+	numInstances := c.Int("instance-count")
+	instanceCount := fmt.Sprintf("%d", numInstances)
+	if numInstances < 2 {
+		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
+	}
+
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
@@ -311,8 +317,6 @@ func cmdInstall(c *cli.Context) {
 
 	versionName := version.Version
 	formationUrl := fmt.Sprintf(FormationUrl, versionName)
-
-	instanceCount := fmt.Sprintf("%d", c.Int("instance-count"))
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
 

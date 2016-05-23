@@ -201,7 +201,8 @@ func cmdRackUpdate(c *cli.Context) {
 }
 
 func cmdRackScale(c *cli.Context) {
-	count := 0
+	// initialize to invalid values that indicate no change
+	count := -1
 	typ := ""
 
 	if c.IsSet("count") {
@@ -212,23 +213,30 @@ func cmdRackScale(c *cli.Context) {
 		typ = c.String("type")
 	}
 
-	system, err := rackClient(c).ScaleSystem(count, typ)
+	// validate no argument
+	switch len(c.Args()) {
+	case 0:
+		if count == -1 && typ == "" {
+			displaySystem(c)
+			return
+		}
+		// fall through to scale API call
+	default:
+		stdcli.Usage(c, "scale")
+		return
+	}
 
+	_, err := rackClient(c).ScaleSystem(count, typ)
 	if err != nil {
 		stdcli.Error(err)
 		return
 	}
 
-	fmt.Printf("Name     %s\n", system.Name)
-	fmt.Printf("Status   %s\n", system.Status)
-	fmt.Printf("Version  %s\n", system.Version)
-	fmt.Printf("Count    %d\n", system.Count)
-	fmt.Printf("Type     %s\n", system.Type)
+	displaySystem(c)
 }
 
 func cmdRackReleases(c *cli.Context) {
 	system, err := rackClient(c).GetSystem()
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -273,6 +281,20 @@ func cmdRackReleases(c *cli.Context) {
 		fmt.Println()
 		fmt.Printf("New version available: %s\n", next)
 	}
+}
+
+func displaySystem(c *cli.Context) {
+	system, err := rackClient(c).GetSystem()
+	if err != nil {
+		stdcli.Error(err)
+		return
+	}
+
+	fmt.Printf("Name     %s\n", system.Name)
+	fmt.Printf("Status   %s\n", system.Status)
+	fmt.Printf("Version  %s\n", system.Version)
+	fmt.Printf("Count    %d\n", system.Count)
+	fmt.Printf("Type     %s\n", system.Type)
 }
 
 func latestVersion() (string, error) {
