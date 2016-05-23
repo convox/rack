@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
 )

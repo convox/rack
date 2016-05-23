@@ -1,6 +1,6 @@
 package main
 
-import "github.com/codegangsta/cli"
+import "gopkg.in/urfave/cli.v1"
 
 var appFlag = cli.StringFlag{
 	Name:  "app, a",
