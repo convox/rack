@@ -51,26 +51,34 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	if count := GetForm(r, "count"); count != "" {
 		count, err := strconv.Atoi(count)
-
 		if err != nil {
-			return httperr.Server(err)
+			return httperr.Errorf(403, "count must be an integer")
 		}
 
-		rack.Count = count
+		// -1 is an invalid value that indicates no change
+		if count != -1 {
+			if count <= 1 {
+				return httperr.Errorf(403, "count must be greater than 1")
+			}
 
-		notifyData["count"] = strconv.Itoa(count)
+			rack.Count = count
+
+			notifyData["count"] = strconv.Itoa(count)
+		}
 	}
 
 	if t := GetForm(r, "type"); t != "" {
 		rack.Type = t
-
 		notifyData["type"] = t
 	}
 
 	if version := GetForm(r, "version"); version != "" {
 		rack.Version = version
-
 		notifyData["version"] = version
+	}
+
+	if len(notifyData) == 0 {
+		return httperr.Errorf(403, "no rack updates specified")
 	}
 
 	err = provider.SystemSave(*rack)

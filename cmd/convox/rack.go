@@ -201,7 +201,8 @@ func cmdRackUpdate(c *cli.Context) {
 }
 
 func cmdRackScale(c *cli.Context) {
-	count := 0
+	// initialize to invalid values that indicate no change
+	count := -1
 	typ := ""
 
 	if c.IsSet("count") {
