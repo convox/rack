@@ -116,15 +116,13 @@ func cmdStart(c *cli.Context) {
 		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: errors[0]})
 	}
 
+	sync := c.Bool("sync") && (stdcli.ReadSetting("sync") != "false")
+
 	ch := make(chan []error)
 
 	go func() {
-		ch <- m.Run(app, cache, shift)
+		ch <- m.Run(app, cache, sync, shift)
 	}()
-
-	if c.Bool("sync") && stdcli.ReadSetting("sync") != "false" {
-		m.Sync(app)
-	}
 
 	<-ch
 
