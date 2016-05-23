@@ -235,7 +235,12 @@ func cmdInstall(c *cli.Context) error {
 		}
 	}
 
-	creds, err := readCredentials(c)
+	credentialsFile := ""
+	if len(c.Args()) >= 1 {
+		credentialsFile = c.Args()[0]
+	}
+
+	creds, err := readCredentials(credentialsFile)
 	if err != nil {
 		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
@@ -468,7 +473,6 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 var events = map[string]bool{}
 
 func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) error {
-
 	res, err := CloudFormation.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 		StackName: aws.String(stack),
 	})
@@ -641,7 +645,7 @@ func randomString(size int) string {
 	return string(b)
 }
 
-func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
+func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	// read credentials from ENV
 	creds = &AwsCredentials{
 		Access:  os.Getenv("AWS_ACCESS_KEY_ID"),
@@ -650,8 +654,7 @@ func readCredentials(c *cli.Context) (creds *AwsCredentials, err error) {
 	}
 
 	var inputCreds *AwsCredentials
-	if len(c.Args()) > 0 {
-		fileName := c.Args()[0]
+	if fileName != "" {
 		inputCreds, err = readCredentialsFromFile(fileName)
 	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
 		inputCreds, err = readCredentialsFromSTDIN()

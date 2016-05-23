@@ -16,24 +16,12 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "uninstall",
 		Description: "uninstall convox from an aws account",
-		Usage:       "[credentials.csv]",
+		Usage:       "<stack-name> <region> [credentials.csv]",
 		Action:      cmdUninstall,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "force",
-				Usage: "uninstall even if apps exist",
-			},
-			cli.StringFlag{
-				Name:   "region",
-				Value:  "us-east-1",
-				Usage:  "aws region to uninstall from",
-				EnvVar: "AWS_REGION",
-			},
-			cli.StringFlag{
-				Name:   "stack-name",
-				EnvVar: "STACK_NAME",
-				Value:  "convox",
-				Usage:  "name of the convox stack",
+				Usage: "uninstall without verification prompt",
 			},
 		},
 	})
@@ -47,38 +35,28 @@ func cmdUninstall(c *cli.Context) error {
 		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
-	if !c.Bool("force") {
-		apps, err := rackClient(c).GetApps()
-		if err != nil {
-			return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
-		}
+	if len(c.Args()) != 2 && len(c.Args()) != 3 {
+		stdcli.Usage(c, "uninstall")
+		return nil
+	}
 
-		if len(apps) != 0 {
-			return stdcli.ExitError(fmt.Errorf("Please delete all apps before uninstalling."))
-		}
+	region := c.Args()[0]
+	stackName := c.Args()[1]
 
-		services, err := rackClient(c).GetServices()
-		if err != nil {
-			return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
-		}
-
-		if len(services) != 0 {
-			return stdcli.ExitError(fmt.Errorf("Please delete all services before uninstalling."))
-		}
+	credentialsFile := ""
+	if len(c.Args()) == 3 {
+		credentialsFile = c.Args()[3]
 	}
 
 	fmt.Println(Banner)
 
-	creds, err := readCredentials(c)
+	creds, err := readCredentials(credentialsFile)
 	if err != nil {
 		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 	if creds == nil {
-		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
+		return stdcli.ExitError(fmt.Errorf("error reading credentials"))
 	}
-
-	region := c.String("region")
-	stackName := c.String("stack-name")
 
 	fmt.Println("")
 
