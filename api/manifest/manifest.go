@@ -24,6 +24,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/convox/rack/cmd/convox/changes"
 	"github.com/convox/rack/cmd/convox/templates"
 	"github.com/fatih/color"
 	"github.com/fsouza/go-dockerclient"
@@ -546,7 +547,7 @@ func (m *Manifest) Raw() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Run(app string, cache bool, shift int) []error {
+func (m *Manifest) Run(app string, cache, sync bool, shift int) []error {
 	ch := make(chan error)
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, os.Interrupt, os.Kill)
@@ -567,6 +568,14 @@ func (m *Manifest) Run(app string, cache bool, shift int) []error {
 		sch := make(chan error)
 		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, shift, ch, sch)
 		<-sch // block until started successfully
+		if sync {
+			time.Sleep(1 * time.Second)
+			m.sync(app, name)
+		}
+	}
+
+	if sync {
+		go m.syncFiles()
 	}
 
 	errors := []error{}
@@ -583,16 +592,58 @@ func (m *Manifest) Run(app string, cache bool, shift int) []error {
 	return errors
 }
 
-func (m *Manifest) Sync(app string) error {
-	for _, name := range m.runOrder() {
-		err := (*m)[name].syncAdds(app, name)
+func (m *Manifest) sync(app, process string) error {
+	err := (*m)[process].syncAdds(app, process)
 
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
-	go m.syncFiles()
+	err = (*m)[process].syncBack(app, process)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (me ManifestEntry) syncBack(app, process string) error {
+	// only sync containers with a build directive
+	if me.Build == "" {
+		return nil
+	}
+
+	dc, _ := docker.NewClientFromEnv()
+
+	var buf bytes.Buffer
+
+	tgz := tar.NewWriter(&buf)
+
+	data, err := changes.Asset("../changes/changes")
+
+	if err != nil {
+		return err
+	}
+
+	tgz.WriteHeader(&tar.Header{
+		Name: "changes",
+		Mode: 0755,
+		Size: int64(len(data)),
+	})
+
+	tgz.Write(data)
+
+	tgz.Close()
+
+	err = dc.UploadToContainer(containerName(app, process), docker.UploadToContainerOptions{
+		InputStream: &buf,
+		Path:        "/",
+	})
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
