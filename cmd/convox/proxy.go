@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -20,9 +20,10 @@ func init() {
 	})
 }
 
-func cmdProxy(c *cli.Context) {
+func cmdProxy(c *cli.Context) error {
 	if len(c.Args()) == 0 {
 		stdcli.Usage(c, "proxy")
+		return nil
 	}
 
 	for _, arg := range c.Args() {
@@ -36,10 +37,8 @@ func cmdProxy(c *cli.Context) {
 			host = parts[0]
 
 			p, err := strconv.Atoi(parts[1])
-
 			if err != nil {
-				stdcli.Error(err)
-				return
+				return stdcli.ExitError(err)
 			}
 
 			port = p
@@ -48,10 +47,8 @@ func cmdProxy(c *cli.Context) {
 			host = parts[1]
 
 			p, err := strconv.Atoi(parts[0])
-
 			if err != nil {
-				stdcli.Error(err)
-				return
+				return stdcli.ExitError(err)
 			}
 
 			port = p
@@ -59,14 +56,12 @@ func cmdProxy(c *cli.Context) {
 			p, err = strconv.Atoi(parts[2])
 
 			if err != nil {
-				stdcli.Error(err)
-				return
+				return stdcli.ExitError(err)
 			}
 
 			hostport = p
 		default:
-			stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
-			return
+			return stdcli.ExitError(fmt.Errorf("invalid argument: %s", arg))
 		}
 
 		go proxy("127.0.0.1", port, host, hostport, rackClient(c))
@@ -80,7 +75,6 @@ func proxy(localhost string, localport int, remotehost string, remoteport int, c
 	fmt.Printf("proxying %s:%d to %s:%d\n", localhost, localport, remotehost, remoteport)
 
 	listener, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", localhost, localport))
-
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 		return
@@ -90,7 +84,6 @@ func proxy(localhost string, localport int, remotehost string, remoteport int, c
 
 	for {
 		conn, err := listener.Accept()
-
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
 			return
@@ -102,7 +95,6 @@ func proxy(localhost string, localport int, remotehost string, remoteport int, c
 
 		go func() {
 			err := client.Proxy(remotehost, remoteport, conn)
-
 			if err != nil {
 				fmt.Printf("error: %s\n", err)
 				conn.Close()

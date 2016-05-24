@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/codegangsta/cli"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -166,6 +166,10 @@ func Error(err error) {
 	Exiter(1)
 }
 
+func ExitError(err error) error {
+	return cli.NewExitError(fmt.Sprintf("ERROR: %s", err.Error()), 1)
+}
+
 type QOSEventProperties struct {
 	Error error
 	Start time.Time
@@ -174,7 +178,7 @@ type QOSEventProperties struct {
 // QOSEventSend sends an internal CLI event to segment for quality-of-service purposes.
 // If the event is an error it also sends the error to rollbar, then displays the
 // error to the user and exits non-zero.
-func QOSEventSend(system, id string, ep QOSEventProperties) {
+func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
@@ -208,9 +212,9 @@ func QOSEventSend(system, id string, ep QOSEventProperties) {
 	rollbar.Wait()
 
 	if ep.Error != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", ep.Error)
-		Exiter(1)
+		return ExitError(ep.Error)
 	}
+	return nil
 }
 
 func Usage(c *cli.Context, name string) {

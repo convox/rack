@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -31,19 +31,19 @@ func init() {
 	})
 }
 
-func cmdApi(c *cli.Context) {
+func cmdApi(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox api` does not take arguments. Perhaps you meant `convox api get`?"))
-		return
+		return cli.NewExitError("ERROR: `convox api` does not take arguments. Perhaps you meant `convox api get`?", 1)
 	}
 
 	stdcli.Usage(c, "")
+	return nil
 }
 
-func cmdApiGet(c *cli.Context) {
+func cmdApiGet(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "get")
-		return
+		return nil
 	}
 
 	path := c.Args()[0]
@@ -51,24 +51,23 @@ func cmdApiGet(c *cli.Context) {
 	var object interface{}
 
 	err := rackClient(c).Get(path, &object)
-
 	if err != nil {
-		stdcli.Error(err)
+		return cli.NewExitError(err.Error(), 1)
 	}
 
 	data, err := json.MarshalIndent(object, "", "  ")
-
 	if err != nil {
-		stdcli.Error(err)
+		return cli.NewExitError(err.Error(), 1)
 	}
 
 	fmt.Println(string(data))
+	return nil
 }
 
-func cmdApiDelete(c *cli.Context) {
+func cmdApiDelete(c *cli.Context) error {
 	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "get")
-		return
+		stdcli.Usage(c, "delete")
+		return nil
 	}
 
 	path := c.Args()[0]
@@ -76,16 +75,15 @@ func cmdApiDelete(c *cli.Context) {
 	var object interface{}
 
 	err := rackClient(c).Delete(path, &object)
-
 	if err != nil {
-		stdcli.Error(err)
+		return cli.NewExitError(err.Error(), 1)
 	}
 
 	data, err := json.MarshalIndent(object, "", "  ")
-
 	if err != nil {
-		stdcli.Error(err)
+		return cli.NewExitError(err.Error(), 1)
 	}
 
 	fmt.Println(string(data))
+	return nil
 }

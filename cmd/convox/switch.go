@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -16,19 +16,18 @@ func init() {
 	})
 }
 
-func cmdSwitch(c *cli.Context) {
+func cmdSwitch(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "switch")
-		return
+		return nil
 	}
 
 	rackName := c.Args()[0]
 
 	res, err := rackClient(c).Switch(rackName)
-
 	if err != nil {
 		cmdLogin(c)
-		return
+		return nil
 	}
 
 	switch {
@@ -37,4 +36,5 @@ func cmdSwitch(c *cli.Context) {
 	case res["source"] == "grid":
 		fmt.Println(res["message"])
 	}
+	return nil
 }

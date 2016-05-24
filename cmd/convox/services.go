@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type ServiceType struct {
@@ -120,21 +120,19 @@ func init() {
 	})
 }
 
-func cmdServices(c *cli.Context) {
+func cmdServices(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	services, err := rackClient(c).GetServices()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("NAME", "TYPE", "STATUS")
@@ -144,26 +142,27 @@ func cmdServices(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdServiceCreate(c *cli.Context) {
+func cmdServiceCreate(c *cli.Context) error {
 	// ensure type included
 	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "create")
-		return
+		return nil
 	}
 
 	// ensure everything after type is a flag
 	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
 		stdcli.Usage(c, "create")
-		return
+		return nil
 	}
 
 	t := c.Args()[0]
 
 	if t == "help" {
 		stdcli.Usage(c, "create")
-		return
+		return nil
 	}
 
 	options := stdcli.ParseOpts(c.Args()[1:])
@@ -189,20 +188,19 @@ func cmdServiceCreate(c *cli.Context) {
 	fmt.Printf(")... ")
 
 	_, err := rackClient(c).CreateService(t, options)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("CREATING")
+	return nil
 }
 
-func cmdServiceUpdate(c *cli.Context) {
+func cmdServiceUpdate(c *cli.Context) error {
 	// ensure name included
 	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "update")
-		return
+		return nil
 	}
 
 	name := c.Args()[0]
@@ -210,7 +208,7 @@ func cmdServiceUpdate(c *cli.Context) {
 	// ensure everything after type is a flag
 	if len(c.Args()) > 1 && !strings.HasPrefix(c.Args()[1], "--") {
 		stdcli.Usage(c, "update")
-		return
+		return nil
 	}
 
 	options := stdcli.ParseOpts(c.Args()[1:])
@@ -227,25 +225,24 @@ func cmdServiceUpdate(c *cli.Context) {
 
 	if len(optionsList) == 0 {
 		stdcli.Usage(c, "update")
-		return
+		return nil
 	}
 
 	fmt.Printf("Updating %s (%s)...", name, strings.Join(optionsList, " "))
 
 	_, err := rackClient(c).UpdateService(name, options)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("UPDATING")
+	return nil
 }
 
-func cmdServiceDelete(c *cli.Context) {
+func cmdServiceDelete(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "delete")
-		return
+		return nil
 	}
 
 	name := c.Args()[0]
@@ -253,28 +250,25 @@ func cmdServiceDelete(c *cli.Context) {
 	fmt.Printf("Deleting %s... ", name)
 
 	_, err := rackClient(c).DeleteService(name)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("DELETING")
+	return nil
 }
 
-func cmdServiceInfo(c *cli.Context) {
+func cmdServiceInfo(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "info")
-		return
+		return nil
 	}
 
 	name := c.Args()[0]
 
 	service, err := rackClient(c).GetService(name)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Name    %s\n", service.Name)
@@ -294,92 +288,80 @@ func cmdServiceInfo(c *cli.Context) {
 		// NOTE: this branch is deprecated
 		fmt.Printf("URL     %s\n", service.URL)
 	}
+
+	return nil
 }
 
-func cmdLinkCreate(c *cli.Context) {
+func cmdLinkCreate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "link")
-		return
+		return nil
 	}
 
 	name := c.Args()[0]
 
 	_, err = rackClient(c).CreateLink(app, name)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Linked %s to %s\n", name, app)
+	return nil
 }
 
-func cmdLinkDelete(c *cli.Context) {
+func cmdLinkDelete(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "unlink")
-		return
+		return nil
 	}
 
 	name := c.Args()[0]
 
 	_, err = rackClient(c).DeleteLink(app, name)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Unlinked %s from %s\n", name, app)
+	return nil
 }
 
-func cmdServiceProxy(c *cli.Context) {
+func cmdServiceProxy(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "info")
-		return
+		return nil
 	}
 
 	name := c.Args()[0]
 
 	service, err := rackClient(c).GetService(name)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	export, ok := service.Exports["URL"]
-
 	if !ok {
-		stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
-		return
+		return stdcli.ExitError(fmt.Errorf("%s does not expose a URL", name))
 	}
 
 	u, err := url.Parse(export)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	remotehost, remoteport, err := net.SplitHostPort(u.Host)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	localhost := "127.0.0.1"
@@ -398,18 +380,15 @@ func cmdServiceProxy(c *cli.Context) {
 	}
 
 	lp, err := strconv.Atoi(localport)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	rp, err := strconv.Atoi(remoteport)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	proxy(localhost, lp, remotehost, rp, rackClient(c))
+	return nil
 }

@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -42,21 +42,19 @@ func init() {
 	})
 }
 
-func cmdInstancesList(c *cli.Context) {
+func cmdInstancesList(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox instances` does not take arguments. Perhaps you meant `convox instances ssh`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox instances` does not take arguments. Perhaps you meant `convox instances ssh`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	instances, err := rackClient(c).GetInstances()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("ID", "AGENT", "STATUS", "STARTED", "PS", "CPU", "MEM")
@@ -73,54 +71,53 @@ func cmdInstancesList(c *cli.Context) {
 			fmt.Sprintf("%0.2f%%", i.Cpu*100),
 			fmt.Sprintf("%0.2f%%", i.Memory*100))
 	}
+
 	t.Print()
+	return nil
 }
 
-func cmdInstancesKeyroll(c *cli.Context) {
+func cmdInstancesKeyroll(c *cli.Context) error {
 	err := rackClient(c).InstanceKeyroll()
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("Rebooting instances")
+	return nil
 }
 
-func cmdInstancesTerminate(c *cli.Context) {
+func cmdInstancesTerminate(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "terminate")
-		return
+		return nil
 	}
 
 	id := c.Args()[0]
-	err := rackClient(c).TerminateInstance(id)
 
+	err := rackClient(c).TerminateInstance(id)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Successfully sent terminate to instance %q\n", id)
+	return nil
 }
 
-func cmdInstancesSSH(c *cli.Context) {
+func cmdInstancesSSH(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "ssh")
-		return
+		return nil
 	}
 
 	id := c.Args()[0]
 	cmd := strings.Join(c.Args()[1:], " ")
 
 	code, err := sshWithRestore(c, id, cmd)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
-	os.Exit(code)
+	return cli.NewExitError("", code)
 }
 
 func sshWithRestore(c *cli.Context, id, cmd string) (int, error) {
