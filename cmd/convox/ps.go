@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -40,19 +40,15 @@ func init() {
 	})
 }
 
-func cmdPs(c *cli.Context) {
+func cmdPs(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	ps, err := rackClient(c).GetProcesses(app, c.Bool("stats"))
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if c.Bool("stats") {
@@ -72,19 +68,19 @@ func cmdPs(c *cli.Context) {
 
 		t.Print()
 	}
+
+	return nil
 }
 
-func cmdPsInfo(c *cli.Context) {
+func cmdPsInfo(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "info")
-		return
+		return nil
 	}
 
 	id := c.Args()[0]
@@ -92,8 +88,7 @@ func cmdPsInfo(c *cli.Context) {
 	p, err := rackClient(c).GetProcess(app, id)
 
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Id       %s\n", p.Id)
@@ -104,19 +99,19 @@ func cmdPsInfo(c *cli.Context) {
 	fmt.Printf("Memory   %0.2f%%\n", p.Memory*100)
 	fmt.Printf("Started  %s\n", humanizeTime(p.Started))
 	fmt.Printf("Command  %s\n", p.Command)
+
+	return nil
 }
 
-func cmdPsStop(c *cli.Context) {
+func cmdPsStop(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "stop")
-		return
+		return nil
 	}
 
 	id := c.Args()[0]
@@ -124,13 +119,12 @@ func cmdPsStop(c *cli.Context) {
 	fmt.Printf("Stopping %s... ", id)
 
 	_, err = rackClient(c).StopProcess(app, id)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
+	return nil
 }
 
 func prettyId(p client.Process) string {

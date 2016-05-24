@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -32,29 +32,25 @@ func init() {
 	})
 }
 
-func cmdRun(c *cli.Context) {
+func cmdRun(c *cli.Context) error {
 	if c.Bool("detach") {
-		cmdRunDetached(c)
-		return
+		return cmdRunDetached(c)
 	}
 
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) < 2 {
 		stdcli.Usage(c, "run")
-		return
+		return nil
 	}
 
 	ps := c.Args()[0]
 	err = validateProcessId(c, app, ps)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	args := strings.Join(c.Args()[1:], " ")
@@ -62,33 +58,28 @@ func cmdRun(c *cli.Context) {
 	release := c.String("release")
 
 	code, err := runAttached(c, app, ps, args, release)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
-	os.Exit(code)
+	return cli.NewExitError("", code)
 }
 
-func cmdRunDetached(c *cli.Context) {
+func cmdRunDetached(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "run")
-		return
+		return nil
 	}
 
 	ps := c.Args()[0]
 	err = validateProcessId(c, app, ps)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	command := ""
@@ -103,13 +94,12 @@ func cmdRunDetached(c *cli.Context) {
 	fmt.Printf("Running `%s` on %s... ", command, ps)
 
 	err = rackClient(c).RunProcessDetached(app, ps, command, release)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	fmt.Println("OK")
+	return nil
 }
 
 func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
@@ -119,7 +109,6 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 
 	if terminal.IsTerminal(int(fd)) {
 		stdinState, err := terminal.GetState(int(fd))
-
 		if err != nil {
 			return -1, err
 		}
@@ -127,14 +116,12 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 		defer terminal.Restore(int(fd), stdinState)
 
 		w, h, err = terminal.GetSize(int(fd))
-
 		if err != nil {
 			return -1, err
 		}
 	}
 
 	code, err := rackClient(c).RunProcessAttached(app, ps, args, release, h, w, os.Stdin, os.Stdout)
-
 	if err != nil {
 		return -1, err
 	}

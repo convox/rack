@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/equinox-io/equinox"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -28,10 +28,10 @@ tYsnnPefR196tYvG62trcNZXF3qw2UCDkc9eWMnloiTVsKfEuUy3TTU3KxwOzD38
 -----END ECDSA PUBLIC KEY-----
 `)
 
-func cmdUpdate(c *cli.Context) {
+func cmdUpdate(c *cli.Context) error {
 	client, err := updateClient()
 	if err != nil {
-		stdcli.Error(err)
+		return stdcli.ExitError(err)
 	}
 
 	stdcli.Spinner.Prefix = "Updating: "
@@ -43,8 +43,7 @@ func cmdUpdate(c *cli.Context) {
 		HTTPClient:     client,
 	}
 	if err := opts.SetPublicKeyPEM(publicKey); err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	// check for update
@@ -52,26 +51,24 @@ func cmdUpdate(c *cli.Context) {
 	switch {
 	case err == equinox.NotAvailableErr:
 		fmt.Println("\x08\x08Already up to date")
-		return
+		return nil
 	case err != nil:
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	// apply update
 	err = r.Apply()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	stdcli.Spinner.Stop()
 	fmt.Printf("\x08\x08OK, %s\n", r.ReleaseVersion)
+	return nil
 }
 
 func updateClient() (*http.Client, error) {
 	root, err := Asset("data/root.pem")
-
 	if err != nil {
 		return nil, err
 	}

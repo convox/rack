@@ -6,8 +6,8 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -20,38 +20,36 @@ func init() {
 	})
 }
 
-func cmdExec(c *cli.Context) {
+func cmdExec(c *cli.Context) error {
 	fd := os.Stdin.Fd()
 	stdinState, err := terminal.GetState(int(fd))
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
 	defer terminal.Restore(int(fd), stdinState)
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) < 2 {
 		stdcli.Usage(c, "exec")
-		return
+		return nil
 	}
 
 	w, h, err := terminal.GetSize(int(fd))
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	ps := c.Args()[0]
 
 	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, h, w)
 	terminal.Restore(int(fd), stdinState)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
-	os.Exit(code)
+	return cli.NewExitError("", code)
 }

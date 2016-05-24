@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -40,19 +40,18 @@ func init() {
 	})
 }
 
-func cmdStart(c *cli.Context) {
+func cmdStart(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
 	distinctId, err := currentId()
 	if err != nil {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	dockerTest := exec.Command("docker", "images")
 	err = dockerTest.Run()
 	if err != nil {
-		stdcli.Error(errors.New("could not connect to docker daemon, is it installed and running?"))
-		return
+		return stdcli.ExitError(errors.New("could not connect to docker daemon, is it installed and running?"))
 	}
 
 	cache := !c.Bool("no-cache")
@@ -71,8 +70,7 @@ func cmdStart(c *cli.Context) {
 
 	dir, app, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	file := c.String("file")
@@ -80,25 +78,23 @@ func cmdStart(c *cli.Context) {
 	m, err := manifest.Read(dir, file)
 	if err != nil {
 		err := manifest.Init(dir)
-
 		if err != nil {
-			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+			return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
 		m, err = manifest.Read(dir, file)
 		if err != nil {
-			stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+			return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 	}
 
 	conflicts, err := m.PortConflicts(shift)
 	if err != nil {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	if len(conflicts) > 0 {
-		stdcli.Error(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
-		return
+		return stdcli.ExitError(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
 	}
 
 	missing, err := m.MissingEnvironment(cache, app)
@@ -107,13 +103,12 @@ func cmdStart(c *cli.Context) {
 	}
 
 	if len(missing) > 0 {
-		stdcli.Error(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
-		return
+		return stdcli.ExitError(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
 	}
 
 	errors := m.Build(app, dir, cache)
 	if len(errors) != 0 {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: errors[0]})
+		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: errors[0]})
 	}
 
 	ch := make(chan []error)
@@ -128,5 +123,5 @@ func cmdStart(c *cli.Context) {
 
 	<-ch
 
-	stdcli.QOSEventSend("cli-start", distinctId, ep)
+	return stdcli.QOSEventSend("cli-start", distinctId, ep)
 }

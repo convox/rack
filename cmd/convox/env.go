@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -57,28 +57,24 @@ func init() {
 	})
 }
 
-func cmdEnvList(c *cli.Context) {
+func cmdEnvList(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	env, err := rackClient(c).GetEnvironment(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	keys := []string{}
@@ -92,49 +88,44 @@ func cmdEnvList(c *cli.Context) {
 	for _, key := range keys {
 		fmt.Printf("%s=%s\n", key, env[key])
 	}
+
+	return nil
 }
 
-func cmdEnvGet(c *cli.Context) {
+func cmdEnvGet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) == 0 {
-		stdcli.Error(errors.New("No variable specified"))
-		return
+		return stdcli.ExitError(errors.New("No variable specified"))
 	}
 
 	if len(c.Args()) > 1 {
-		stdcli.Error(errors.New("Only 1 variable can be retrieved at a time"))
-		return
+		return stdcli.ExitError(errors.New("Only 1 variable can be retrieved at a time"))
 	}
 
 	variable := c.Args()[0]
 
 	env, err := rackClient(c).GetEnvironment(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println(env[variable])
+	return nil
 }
 
-func cmdEnvSet(c *cli.Context) {
+func cmdEnvSet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	env, err := rackClient(c).GetEnvironment(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	data := ""
@@ -144,18 +135,14 @@ func cmdEnvSet(c *cli.Context) {
 	}
 
 	stat, err := os.Stdin.Stat()
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		in, err := ioutil.ReadAll(os.Stdin)
-
 		if err != nil {
-			stdcli.Error(err)
-			return
+			return stdcli.ExitError(err)
 		}
 
 		data += string(in)
@@ -168,10 +155,8 @@ func cmdEnvSet(c *cli.Context) {
 	fmt.Print("Updating environment... ")
 
 	_, releaseId, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
@@ -181,10 +166,8 @@ func cmdEnvSet(c *cli.Context) {
 			fmt.Printf("Promoting %s... ", releaseId)
 
 			_, err = rackClient(c).PromoteRelease(app, releaseId)
-
 			if err != nil {
-				stdcli.Error(err)
-				return
+				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
@@ -192,23 +175,22 @@ func cmdEnvSet(c *cli.Context) {
 			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseId)
 		}
 	}
+
+	return nil
 }
 
-func cmdEnvUnset(c *cli.Context) {
+func cmdEnvUnset(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) == 0 {
-		stdcli.Error(errors.New("No variable specified"))
-		return
+		return stdcli.ExitError(errors.New("No variable specified"))
 	}
 
 	if len(c.Args()) > 1 {
-		stdcli.Error(errors.New("Only 1 variable can be unset at a time"))
-		return
+		return stdcli.ExitError(errors.New("Only 1 variable can be unset at a time"))
 	}
 
 	key := c.Args()[0]
@@ -216,10 +198,8 @@ func cmdEnvUnset(c *cli.Context) {
 	fmt.Print("Updating environment... ")
 
 	_, releaseId, err := rackClient(c).DeleteEnvironment(app, key)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
@@ -229,10 +209,8 @@ func cmdEnvUnset(c *cli.Context) {
 			fmt.Printf("Promoting %s... ", releaseId)
 
 			_, err = rackClient(c).PromoteRelease(app, releaseId)
-
 			if err != nil {
-				stdcli.Error(err)
-				return
+				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
@@ -240,4 +218,6 @@ func cmdEnvUnset(c *cli.Context) {
 			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseId)
 		}
 	}
+
+	return nil
 }

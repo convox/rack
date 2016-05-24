@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -54,21 +54,19 @@ func init() {
 	})
 }
 
-func cmdApps(c *cli.Context) {
+func cmdApps(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox apps` does not take arguments. Perhaps you meant `convox apps create`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox apps` does not take arguments. Perhaps you meant `convox apps create`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	apps, err := rackClient(c).GetApps()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("APP", "STATUS")
@@ -78,14 +76,13 @@ func cmdApps(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdAppCreate(c *cli.Context) {
+func cmdAppCreate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) > 0 {
@@ -93,26 +90,24 @@ func cmdAppCreate(c *cli.Context) {
 	}
 
 	if app == "" {
-		stdcli.Error(fmt.Errorf("must specify an app name"))
-		return
+		return stdcli.ExitError(fmt.Errorf("must specify an app name"))
 	}
 
 	fmt.Printf("Creating app %s... ", app)
 
 	_, err = rackClient(c).CreateApp(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("CREATING")
+	return nil
 }
 
-func cmdAppDelete(c *cli.Context) {
+func cmdAppDelete(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "delete")
-		return
+		return nil
 	}
 
 	app := c.Args()[0]
@@ -120,37 +115,32 @@ func cmdAppDelete(c *cli.Context) {
 	fmt.Printf("Deleting %s... ", app)
 
 	_, err := rackClient(c).DeleteApp(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("DELETING")
+	return nil
 }
 
-func cmdAppInfo(c *cli.Context) {
-	var app string
-	var err error
+func cmdAppInfo(c *cli.Context) error {
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
 
 	if len(c.Args()) > 0 {
 		app = c.Args()[0]
-	} else {
-		_, app, err = stdcli.DirApp(c, ".")
 	}
 
 	a, err := rackClient(c).GetApp(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	formation, err := rackClient(c).ListFormation(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	ps := make([]string, len(formation))
@@ -171,21 +161,18 @@ func cmdAppInfo(c *cli.Context) {
 	fmt.Printf("Release    %s\n", stdcli.Default(a.Release, "(none)"))
 	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(ps, " "), "(none)"))
 	fmt.Printf("Endpoints  %s\n", strings.Join(endpoints, "\n           "))
+	return nil
 }
 
-func cmdAppParams(c *cli.Context) {
+func cmdAppParams(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	params, err := rackClient(c).ListParameters(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	keys := []string{}
@@ -203,14 +190,13 @@ func cmdAppParams(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdAppParamsSet(c *cli.Context) {
+func cmdAppParamsSet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	params := map[string]string{}
@@ -219,8 +205,7 @@ func cmdAppParamsSet(c *cli.Context) {
 		parts := strings.SplitN(arg, "=", 2)
 
 		if len(parts) != 2 {
-			stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
-			return
+			return stdcli.ExitError(fmt.Errorf("invalid argument: %s", arg))
 		}
 
 		params[parts[0]] = parts[1]
@@ -229,11 +214,10 @@ func cmdAppParamsSet(c *cli.Context) {
 	fmt.Print("Updating parameters... ")
 
 	err = rackClient(c).SetParameters(app, params)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
+	return nil
 }

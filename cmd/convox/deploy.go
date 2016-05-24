@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -17,7 +17,7 @@ func init() {
 	})
 }
 
-func cmdDeploy(c *cli.Context) {
+func cmdDeploy(c *cli.Context) error {
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -25,51 +25,42 @@ func cmdDeploy(c *cli.Context) {
 	}
 
 	dir, app, err := stdcli.DirApp(c, wd)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Deploying %s\n", app)
 
 	a, err := rackClient(c).GetApp(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	switch a.Status {
 	case "creating":
-		stdcli.Error(fmt.Errorf("app is still creating: %s", app))
-		return
+		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
 	case "running", "updating":
 	default:
-		stdcli.Error(fmt.Errorf("unable to build app: %s", app))
-		return
+		return stdcli.ExitError(fmt.Errorf("unable to build app: %s", app))
 	}
 
 	// build
 	release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"))
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if release == "" {
-		return
+		return nil
 	}
 
 	fmt.Printf("Promoting %s... ", release)
 
 	_, err = rackClient(c).PromoteRelease(app, release)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("UPDATING")
+	return nil
 }

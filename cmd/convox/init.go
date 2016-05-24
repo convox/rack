@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/cmd/convox/templates"
+	"gopkg.in/urfave/cli.v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,7 +24,7 @@ func init() {
 	})
 }
 
-func cmdInit(c *cli.Context) {
+func cmdInit(c *cli.Context) error {
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -32,24 +32,21 @@ func cmdInit(c *cli.Context) {
 	}
 
 	dir, _, err := stdcli.DirApp(c, wd)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
-		stdcli.Error(fmt.Errorf("Can not initialize a project that already contains a Dockerfile or docker-compose.yml"))
-		return
+		return stdcli.ExitError(fmt.Errorf("Can not initialize a project that already contains a Dockerfile or docker-compose.yml"))
 	}
 
 	err = initApplication(dir)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
+
+	return nil
 }
 
 func detectApplication(dir string) string {

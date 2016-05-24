@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -42,21 +42,19 @@ func init() {
 	})
 }
 
-func cmdCertsList(c *cli.Context) {
+func cmdCertsList(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox certs` does not take arguments. Perhaps you meant `convox certs generate`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox certs` does not take arguments. Perhaps you meant `convox certs generate`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	certs, err := rackClient(c).ListCertificates()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("ID", "DOMAIN", "EXPIRES")
@@ -66,36 +64,31 @@ func cmdCertsList(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdCertsCreate(c *cli.Context) {
+func cmdCertsCreate(c *cli.Context) error {
 	if len(c.Args()) < 2 {
 		stdcli.Usage(c, "create")
-		return
+		return nil
 	}
 
 	pub, err := ioutil.ReadFile(c.Args()[0])
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	key, err := ioutil.ReadFile(c.Args()[1])
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	chain := ""
 
 	if chainFile := c.String("chain"); chainFile != "" {
 		data, err := ioutil.ReadFile(chainFile)
-
 		if err != nil {
-			stdcli.Error(err)
-			return
+			return stdcli.ExitError(err)
 		}
 
 		chain = string(data)
@@ -104,47 +97,44 @@ func cmdCertsCreate(c *cli.Context) {
 	fmt.Printf("Uploading certificate... ")
 
 	cert, err := rackClient(c).CreateCertificate(string(pub), string(key), chain)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("OK, %s\n", cert.Id)
+	return nil
 }
 
-func cmdCertsDelete(c *cli.Context) {
+func cmdCertsDelete(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "delete")
-		return
+		return nil
 	}
 
 	fmt.Printf("Removing certificate... ")
 
 	err := rackClient(c).DeleteCertificate(c.Args()[0])
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
+	return nil
 }
 
-func cmdCertsGenerate(c *cli.Context) {
+func cmdCertsGenerate(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "generate")
-		return
+		return nil
 	}
 
 	fmt.Printf("Requesting certificate... ")
 
 	cert, err := rackClient(c).GenerateCertificate(c.Args())
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("OK, %s\n", cert.Id)
+	return nil
 }

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type Release struct {
@@ -49,35 +49,29 @@ func init() {
 	})
 }
 
-func cmdReleases(c *cli.Context) {
+func cmdReleases(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox registries info`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox registries info`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	a, err := rackClient(c).GetApp(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	releases, err := rackClient(c).GetReleases(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("ID", "CREATED", "STATUS")
@@ -93,28 +87,25 @@ func cmdReleases(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdReleaseInfo(c *cli.Context) {
+func cmdReleaseInfo(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "release info")
-		return
+		return nil
 	}
 
 	release := c.Args()[0]
 
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	r, err := rackClient(c).GetRelease(app, release)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Id       %s\n", r.Id)
@@ -123,31 +114,29 @@ func cmdReleaseInfo(c *cli.Context) {
 	fmt.Printf("Env      ")
 
 	fmt.Println(strings.Replace(r.Env, "\n", "\n         ", -1))
+	return nil
 }
 
-func cmdReleasePromote(c *cli.Context) {
+func cmdReleasePromote(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "release promote")
-		return
+		return nil
 	}
 
 	release := c.Args()[0]
 
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Promoting %s... ", release)
 
 	_, err = rackClient(c).PromoteRelease(app, release)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("UPDATING")
+	return nil
 }

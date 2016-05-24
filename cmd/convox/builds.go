@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/pkg/fileutils"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -99,27 +99,24 @@ func init() {
 	})
 }
 
-func cmdBuilds(c *cli.Context) {
+func cmdBuilds(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox builds` does not take arguments. Perhaps you meant `convox builds create`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox builds` does not take arguments. Perhaps you meant `convox builds create`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	builds, err := rackClient(c).GetBuilds(app)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED", "DESC")
@@ -136,9 +133,10 @@ func cmdBuilds(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdBuildsCreate(c *cli.Context) {
+func cmdBuildsCreate(c *cli.Context) error {
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -146,27 +144,21 @@ func cmdBuildsCreate(c *cli.Context) {
 	}
 
 	dir, app, err := stdcli.DirApp(c, wd)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	a, err := rackClient(c).GetApp(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	switch a.Status {
 	case "creating":
-		stdcli.Error(fmt.Errorf("app is still creating: %s", app))
-		return
+		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
 	case "running", "updating":
 	default:
-		stdcli.Error(fmt.Errorf("unable to build app: %s", app))
-		return
+		return stdcli.ExitError(fmt.Errorf("unable to build app: %s", app))
 	}
 
 	if len(c.Args()) > 0 {
@@ -174,76 +166,67 @@ func cmdBuildsCreate(c *cli.Context) {
 	}
 
 	release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"))
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Release: %s\n", release)
+	return nil
 }
 
-func cmdBuildsDelete(c *cli.Context) {
+func cmdBuildsDelete(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "delete")
-		return
+		return nil
 	}
 
 	build := c.Args()[0]
 
 	b, err := rackClient(c).DeleteBuild(app, build)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Deleted %s\n", b.Id)
+	return nil
 }
 
-func cmdBuildsInfo(c *cli.Context) {
+func cmdBuildsInfo(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "info")
-		return
+		return nil
 	}
 
 	build := c.Args()[0]
 
 	b, err := rackClient(c).GetBuild(app, build)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println(b.Logs)
+	return nil
 }
 
-func cmdBuildsCopy(c *cli.Context) {
+func cmdBuildsCopy(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) != 2 {
 		stdcli.Usage(c, "copy")
-		return
+		return nil
 	}
 
 	build := c.Args()[0]
@@ -253,16 +236,14 @@ func cmdBuildsCopy(c *cli.Context) {
 
 	b, err := rackClient(c).CopyBuild(app, build, destApp)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
 
 	releaseId, err := finishBuild(c, destApp, b)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if releaseId != "" {
@@ -270,10 +251,8 @@ func cmdBuildsCopy(c *cli.Context) {
 			fmt.Printf("Promoting %s %s... ", destApp, releaseId)
 
 			_, err = rackClient(c).PromoteRelease(destApp, releaseId)
-
 			if err != nil {
-				stdcli.Error(err)
-				return
+				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
@@ -281,6 +260,8 @@ func cmdBuildsCopy(c *cli.Context) {
 			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseId, destApp)
 		}
 	}
+
+	return nil
 }
 
 func executeBuild(c *cli.Context, source, app, manifest, description string) (string, error) {
