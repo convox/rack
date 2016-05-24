@@ -39,8 +39,8 @@ func cmdInit(c *cli.Context) {
 	}
 
 	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("Dockerfile") || exists("docker-compose.yml") {
-		stdcli.Error(fmt.Errorf("Can not initialize a project that already contains a Dockerfile or docker-compose.yml"))
+	if exists("docker-compose.yml") {
+		stdcli.Error(fmt.Errorf("Cannot initialize a project that already contains a Dockerfile or docker-compose.yml"))
 		return
 	}
 
@@ -71,7 +71,7 @@ func detectApplication(dir string) string {
 
 func initApplication(dir string) error {
 	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("Dockerfile") || exists("docker-compose.yml") {
+	if exists("docker-compose.yml") {
 		return nil
 	}
 
