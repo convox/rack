@@ -45,8 +45,8 @@ func cmdInit(c *cli.Context) error {
 	}
 
 	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("Dockerfile") || exists("docker-compose.yml") {
-		return stdcli.ExitError(fmt.Errorf("Can not initialize a project that already contains a Dockerfile or docker-compose.yml"))
+	if exists("docker-compose.yml") {
+		return stdcli.ExitError(fmt.Errorf("Cannot initialize a project that already contains a docker-compose.yml"))
 	}
 
 	err = initApplication(dir)
