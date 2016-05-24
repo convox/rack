@@ -576,6 +576,7 @@ func (m *Manifest) Run(app string, cache, sync bool, shift int) []error {
 
 	if sync {
 		go m.syncFiles()
+		go m.syncBack()
 	}
 
 	errors := []error{}
@@ -1376,6 +1377,121 @@ func registerSync(container, local, remote string) error {
 	})
 
 	return nil
+}
+
+func (m *Manifest) syncBack() error {
+	containers := map[string][]string{}
+
+	// Group sync directories by container
+	for _, sync := range syncs {
+		containers[sync.Container] = append(containers[sync.Container], sync.Remote)
+	}
+
+	fmt.Printf("containers = %+v\n", containers)
+
+	dc, _ := docker.NewClientFromEnv()
+
+	for container, dirs := range containers {
+		fmt.Printf("container = %+v\n", container)
+
+		exec, err := dc.CreateExec(docker.CreateExecOptions{
+			AttachStdin:  false,
+			AttachStdout: true,
+			AttachStderr: true,
+			Cmd:          append([]string{"/changes"}, dirs...),
+			Container:    container,
+		})
+
+		if err != nil {
+			fmt.Printf("err = %+v\n", err)
+			return err
+		}
+
+		r, w := io.Pipe()
+
+		go m.scanRemoteChanges(container, r)
+		go m.processRemoteChanges(container)
+
+		err = dc.StartExec(exec.ID, docker.StartExecOptions{
+			Tty:          true,
+			RawTerminal:  true,
+			OutputStream: w,
+			ErrorStream:  w,
+		})
+
+		fmt.Println("terminated")
+
+		if err != nil {
+			fmt.Printf("err = %+v\n", err)
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+var (
+	remoteAdds       = map[string]string{}
+	remoteRemoves    = map[string]string{}
+	remoteAddLock    sync.Mutex
+	remoteRemoveLock sync.Mutex
+)
+
+func (m *Manifest) scanRemoteChanges(container string, r io.Reader) {
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		parts := strings.Split(scanner.Text(), "|")
+
+		if len(parts) == 3 {
+			fmt.Printf("syncs = %+v\n", syncs)
+
+			switch parts[0] {
+			case "add":
+				for _, sync := range syncs {
+					if sync.Remote == parts[1] {
+						remoteAddLock.Lock()
+						remoteAdds[filepath.Join(sync.Local, parts[2])] = filepath.Join(parts[1], parts[2])
+						remoteAddLock.Unlock()
+					}
+				}
+			case "remove":
+				remoteRemoveLock.Lock()
+				file := "foo"
+				remoteRemoves[file] = ""
+				remoteRemoveLock.Unlock()
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("scanner error")
+	}
+}
+
+func (m *Manifest) processRemoteChanges(container string) {
+	for {
+		remoteAddLock.Lock()
+
+		for local, remote := range remoteAdds {
+			fmt.Printf("add %s %s\n", local, remote)
+			delete(remoteAdds, local)
+		}
+
+		remoteAddLock.Unlock()
+
+		remoteRemoveLock.Lock()
+
+		for local, remote := range remoteRemoves {
+			fmt.Printf("remove %s %s\n", local, remote)
+			delete(remoteRemoves, local)
+		}
+
+		remoteRemoveLock.Unlock()
+
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (m *Manifest) syncFiles() error {

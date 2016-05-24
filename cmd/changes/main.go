@@ -71,7 +71,7 @@ func watchForChanges(dir string) {
 
 			e, ok := files[dir][path]
 
-			if !ok || e.Before(info.ModTime()) {
+			if !ok || e.Before(info.ModTime()) && !info.IsDir() {
 				rel, _ := filepath.Rel(dir, path)
 				files[dir][path] = info.ModTime()
 				fmt.Printf("add|%s|%s\n", dir, rel)
