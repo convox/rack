@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -25,6 +26,14 @@ func init() {
 }
 
 func cmdInit(c *cli.Context) {
+	ep := stdcli.QOSEventProperties{Start: time.Now()}
+
+	distinctId, err := currentId()
+
+	if err != nil {
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+	}
+
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -35,6 +44,7 @@ func cmdInit(c *cli.Context) {
 
 	if err != nil {
 		stdcli.Error(err)
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 		return
 	}
 
@@ -48,8 +58,11 @@ func cmdInit(c *cli.Context) {
 
 	if err != nil {
 		stdcli.Error(err)
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 		return
 	}
+
+	stdcli.QOSEventSend("cli-init", distinctId, ep)
 }
 
 func detectApplication(dir string) string {
