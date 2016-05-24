@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/cmd/convox/templates"
@@ -25,6 +26,13 @@ func init() {
 }
 
 func cmdInit(c *cli.Context) error {
+	ep := stdcli.QOSEventProperties{Start: time.Now()}
+
+	distinctId, err := currentId()
+	if err != nil {
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+	}
+
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -33,7 +41,7 @@ func cmdInit(c *cli.Context) error {
 
 	dir, _, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	// TODO parse the Dockerfile and build a docker-compose.yml
@@ -43,10 +51,10 @@ func cmdInit(c *cli.Context) error {
 
 	err = initApplication(dir)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
-	return nil
+	return stdcli.QOSEventSend("cli-init", distinctId, ep)
 }
 
 func detectApplication(dir string) string {
