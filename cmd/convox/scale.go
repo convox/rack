@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -26,11 +26,10 @@ func init() {
 	})
 }
 
-func cmdScale(c *cli.Context) {
+func cmdScale(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	// initialize to invalid values that indicate no change
@@ -49,40 +48,41 @@ func cmdScale(c *cli.Context) {
 	switch len(c.Args()) {
 	case 0:
 		displayFormation(c, app)
-		return
+		return nil
 	case 1:
 		if count == -1 && memory == -1 {
 			displayFormation(c, app)
-			return
+			return nil
 		}
 		// fall through to scale API call
 	default:
 		stdcli.Usage(c, "scale")
-		return
+		return nil
 	}
 
 	process := c.Args()[0]
 
 	err = rackClient(c).SetFormation(app, process, count, memory)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
-	displayFormation(c, app)
+	err = displayFormation(c, app)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+	return nil
 }
 
-func displayFormation(c *cli.Context, app string) {
+func displayFormation(c *cli.Context, app string) error {
 	formation, err := rackClient(c).ListFormation(app)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	pss, err := rackClient(c).GetProcesses(app, false)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	running := map[string]int{}
@@ -100,4 +100,5 @@ func displayFormation(c *cli.Context, app string) {
 	}
 
 	t.Print()
+	return nil
 }

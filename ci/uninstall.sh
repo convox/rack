@@ -21,4 +21,4 @@ case $CIRCLE_NODE_INDEX in
 	;;
 esac
 
-convox uninstall --force
+convox uninstall $STACK_NAME $AWS_REGION --force

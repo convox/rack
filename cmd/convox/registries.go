@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -44,10 +44,10 @@ func init() {
 	})
 }
 
-func cmdRegistryAdd(c *cli.Context) {
+func cmdRegistryAdd(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "add")
-		return
+		return nil
 	}
 
 	server := c.Args()[0]
@@ -64,30 +64,27 @@ func cmdRegistryAdd(c *cli.Context) {
 	}
 
 	_, err := rackClient(c).AddRegistry(server, username, password, email)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("Done.")
+	return nil
 }
 
-func cmdRegistryList(c *cli.Context) {
+func cmdRegistryList(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox registries` does not take arguments. Perhaps you meant `convox registries add`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox registries` does not take arguments. Perhaps you meant `convox registries add`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	registries, err := rackClient(c).ListRegistries()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("SERVER")
@@ -97,22 +94,22 @@ func cmdRegistryList(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdRegistryRemove(c *cli.Context) {
+func cmdRegistryRemove(c *cli.Context) error {
 	if len(c.Args()) < 1 {
 		stdcli.Usage(c, "remove")
-		return
+		return nil
 	}
 
 	server := c.Args()[0]
 
 	_, err := rackClient(c).RemoveRegistry(server)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("Done.")
+	return nil
 }

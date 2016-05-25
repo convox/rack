@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -72,21 +72,19 @@ func init() {
 	})
 }
 
-func cmdRack(c *cli.Context) {
+func cmdRack(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox rack` does not take arguments. Perhaps you meant `convox rack update`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox rack` does not take arguments. Perhaps you meant `convox rack update`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Name     %s\n", system.Name)
@@ -95,21 +93,18 @@ func cmdRack(c *cli.Context) {
 	fmt.Printf("Region   %s\n", system.Region)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+	return nil
 }
 
-func cmdRackParams(c *cli.Context) {
+func cmdRackParams(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	params, err := rackClient(c).ListParameters(system.Name)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	keys := []string{}
@@ -127,14 +122,13 @@ func cmdRackParams(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdRackParamsSet(c *cli.Context) {
+func cmdRackParamsSet(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	params := map[string]string{}
@@ -143,8 +137,7 @@ func cmdRackParamsSet(c *cli.Context) {
 		parts := strings.SplitN(arg, "=", 2)
 
 		if len(parts) != 2 {
-			stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
-			return
+			return stdcli.ExitError(fmt.Errorf("invalid argument: %s", arg))
 		}
 
 		params[parts[0]] = parts[1]
@@ -153,21 +146,18 @@ func cmdRackParamsSet(c *cli.Context) {
 	fmt.Print("Updating parameters... ")
 
 	err = rackClient(c).SetParameters(system.Name, params)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
+	return nil
 }
 
-func cmdRackUpdate(c *cli.Context) {
+func cmdRackUpdate(c *cli.Context) error {
 	versions, err := version.All()
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	specified := "stable"
@@ -177,17 +167,13 @@ func cmdRackUpdate(c *cli.Context) {
 	}
 
 	version, err := versions.Resolve(specified)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	system, err := rackClient(c).UpdateSystem(version.Version)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Printf("Name     %s\n", system.Name)
@@ -198,9 +184,10 @@ func cmdRackUpdate(c *cli.Context) {
 
 	fmt.Println()
 	fmt.Printf("Updating to version: %s\n", version.Version)
+	return nil
 }
 
-func cmdRackScale(c *cli.Context) {
+func cmdRackScale(c *cli.Context) error {
 	// initialize to invalid values that indicate no change
 	count := -1
 	typ := ""
@@ -218,37 +205,34 @@ func cmdRackScale(c *cli.Context) {
 	case 0:
 		if count == -1 && typ == "" {
 			displaySystem(c)
-			return
+			return nil
 		}
 		// fall through to scale API call
 	default:
 		stdcli.Usage(c, "scale")
-		return
+		return nil
 	}
 
 	_, err := rackClient(c).ScaleSystem(count, typ)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	displaySystem(c)
+	return nil
 }
 
-func cmdRackReleases(c *cli.Context) {
+func cmdRackReleases(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	pendingVersion := system.Version
 
 	releases, err := rackClient(c).GetSystemReleases()
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("VERSION", "UPDATED", "STATUS")
@@ -271,9 +255,8 @@ func cmdRackReleases(c *cli.Context) {
 	t.Print()
 
 	next, err := version.Next(system.Version)
-
 	if err != nil {
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if next > pendingVersion {
@@ -281,6 +264,8 @@ func cmdRackReleases(c *cli.Context) {
 		fmt.Println()
 		fmt.Printf("New version available: %s\n", next)
 	}
+
+	return nil
 }
 
 func displaySystem(c *cli.Context) {
