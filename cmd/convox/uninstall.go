@@ -31,6 +31,7 @@ type Stack struct {
 	Type      string
 
 	Buckets []string
+	Events  map[string]string
 	Outputs map[string]string
 }
 
@@ -346,12 +347,15 @@ func deleteStacks(stackType, rackName, distinctId string, CF *cloudformation.Clo
 				case "CREATE_COMPLETE", "ROLLBACK_COMPLETE", "UPDATE_COMPLETE", "UPDATE_ROLLBACK_COMPLETE":
 					deleteStack(s, distinctId, CF)
 				case "CREATE_FAILED", "DELETE_FAILED", "ROLLBACK_FAILED", "UPDATE_ROLLBACK_FAILED":
+					for id, reason := range s.Events {
+						fmt.Printf("Failed: %s: %s\n", id, reason)
+						// TODO: report failed event?
+					}
 					deleteStack(s, distinctId, CF)
-					// TODO: report event?
 				case "DELETE_IN_PROGRESS":
 					displayProgress(s.StackName, CF, true)
 				default:
-					// noop
+					displayProgress(s.StackName, CF, true)
 				}
 			}
 		}
@@ -378,6 +382,7 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 	services := []Stack{}
 
 	for _, stack := range res.Stacks {
+		events := map[string]string{}
 		outputs := map[string]string{}
 		tags := map[string]string{}
 
@@ -409,6 +414,19 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 			}
 		}
 
+		eres, err := CF.DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+			StackName: stack.StackId,
+		})
+		if err != nil {
+			return Stacks{}, err
+		}
+
+		for _, event := range eres.StackEvents {
+			if strings.HasSuffix(*event.ResourceStatus, "FAILED") {
+				events[*event.LogicalResourceId] = *event.ResourceStatusReason
+			}
+		}
+
 		s := Stack{
 			Name:      name,
 			StackName: *stack.StackName,
@@ -416,6 +434,7 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 			Type:      tags["Type"],
 
 			Buckets: buckets,
+			Events:  events,
 			Outputs: outputs,
 		}
 
