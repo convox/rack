@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -28,6 +30,7 @@ type Stack struct {
 	Status    string
 	Type      string
 
+	Buckets []string
 	Outputs map[string]string
 }
 
@@ -78,6 +81,7 @@ func cmdUninstall(c *cli.Context) error {
 	}
 
 	CF := cloudformation.New(session.New(), awsConfig(region, creds))
+	S3 := s3.New(session.New(), awsConfig(region, creds))
 
 	stacks, err := describeRackStacks(rackName, distinctId, CF)
 	if err != nil {
@@ -148,6 +152,7 @@ func cmdUninstall(c *cli.Context) error {
 
 	success := true
 
+	// Delete all Service, App and Rack stacks
 	err = deleteStacks("service", rackName, distinctId, CF)
 	if err != nil {
 		success = false
@@ -163,6 +168,26 @@ func cmdUninstall(c *cli.Context) error {
 		success = false
 	}
 
+	// Delete all S3 buckets
+	wg := new(sync.WaitGroup)
+
+	for _, s := range stacks.Apps {
+		for _, b := range s.Buckets {
+			wg.Add(1)
+			go deleteBucket(b, wg, S3)
+		}
+	}
+
+	for _, s := range stacks.Rack {
+		for _, b := range s.Buckets {
+			wg.Add(1)
+			go deleteBucket(b, wg, S3)
+		}
+	}
+
+	wg.Wait()
+
+	// Clean up ~/.convox
 	host := stacks.Rack[0].Outputs["Dashboard"]
 
 	if configuredHost, _ := currentHost(); configuredHost == host {
@@ -187,6 +212,98 @@ func cmdUninstall(c *cli.Context) error {
 }
 
 var deleteAttempts = map[string]int{}
+
+type Obj struct {
+	key, id string
+}
+
+func deleteBucket(bucket string, wg *sync.WaitGroup, S3 *s3.S3) error {
+	keyMarkers := []Obj{}
+	versionIdMarkers := []Obj{}
+
+	nextKeyMarker := aws.String("")
+	nextVersionIdMarker := aws.String("")
+
+	req := &s3.ListObjectVersionsInput{
+		Bucket: aws.String(bucket),
+	}
+
+	res, err := S3.ListObjectVersions(req)
+	if err != nil {
+		wg.Done()
+		return err
+	}
+
+	for _, d := range res.DeleteMarkers {
+		keyMarkers = append(keyMarkers, Obj{key: *d.Key, id: *d.VersionId})
+	}
+
+	for _, v := range res.Versions {
+		versionIdMarkers = append(versionIdMarkers, Obj{key: *v.Key, id: *v.VersionId})
+	}
+
+	nextKeyMarker = res.NextKeyMarker
+	nextVersionIdMarker = res.NextVersionIdMarker
+
+	for nextKeyMarker != nil && nextVersionIdMarker != nil {
+		req.KeyMarker = nextKeyMarker
+		req.VersionIdMarker = nextVersionIdMarker
+
+		res, err := S3.ListObjectVersions(req)
+		if err != nil {
+			wg.Done()
+			return err
+		}
+
+		for _, d := range res.DeleteMarkers {
+			keyMarkers = append(keyMarkers, Obj{key: *d.Key, id: *d.VersionId})
+		}
+
+		for _, v := range res.Versions {
+			versionIdMarkers = append(versionIdMarkers, Obj{key: *v.Key, id: *v.VersionId})
+		}
+
+		nextKeyMarker = res.NextKeyMarker
+		nextVersionIdMarker = res.NextVersionIdMarker
+	}
+
+	owg := new(sync.WaitGroup)
+	owg.Add(len(keyMarkers))
+	owg.Add(len(versionIdMarkers))
+	go deleteObjects(bucket, keyMarkers, owg, S3)
+	go deleteObjects(bucket, versionIdMarkers, owg, S3)
+	owg.Wait()
+
+	wg.Done()
+	return nil
+}
+
+func deleteObjects(bucket string, objs []Obj, wg *sync.WaitGroup, S3 *s3.S3) {
+	maxLen := 1000
+
+	for i := 0; i < len(objs); i += maxLen {
+		high := i + maxLen
+		if high > len(objs) {
+			high = len(objs)
+		}
+
+		objects := []*s3.ObjectIdentifier{}
+		for _, obj := range objs[i:high] {
+			objects = append(objects, &s3.ObjectIdentifier{Key: aws.String(obj.key), VersionId: aws.String(obj.id)})
+		}
+
+		S3.DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: aws.String(bucket),
+			Delete: &s3.Delete{
+				Objects: objects,
+			},
+		})
+
+		wg.Add(-len(objects))
+	}
+
+	return
+}
 
 func deleteStack(s Stack, distinctId string, CF *cloudformation.CloudFormation) error {
 	deleteAttempts[s.StackName] += 1
@@ -274,12 +391,28 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 			name = *stack.StackName
 		}
 
+		buckets := []string{}
+
+		rres, err := CF.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+			StackName: stack.StackName,
+		})
+		if err != nil {
+			return Stacks{}, err
+		}
+
+		for _, resource := range rres.StackResources {
+			if *resource.ResourceType == "AWS::S3::Bucket" {
+				buckets = append(buckets, *resource.PhysicalResourceId)
+			}
+		}
+
 		s := Stack{
 			Name:      name,
 			StackName: *stack.StackName,
 			Status:    *stack.StackStatus,
 			Type:      tags["Type"],
 
+			Buckets: buckets,
 			Outputs: outputs,
 		}
 
