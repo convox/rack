@@ -278,11 +278,21 @@ func deleteBucket(bucket string, wg *sync.WaitGroup, S3 *s3.S3) error {
 	go deleteObjects(bucket, versionIdMarkers, owg, S3)
 	owg.Wait()
 
+	fmt.Printf("Deleting S3 Bucket %s...\n", bucket)
+	_, err = S3.DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		fmt.Printf("Failed: %s\n", err)
+	}
+
 	wg.Done()
 	return nil
 }
 
 func deleteObjects(bucket string, objs []Obj, wg *sync.WaitGroup, S3 *s3.S3) {
+	fmt.Printf("Emptying S3 Bucket %s...\n", bucket)
+
 	maxLen := 1000
 
 	for i := 0; i < len(objs); i += maxLen {
@@ -296,12 +306,15 @@ func deleteObjects(bucket string, objs []Obj, wg *sync.WaitGroup, S3 *s3.S3) {
 			objects = append(objects, &s3.ObjectIdentifier{Key: aws.String(obj.key), VersionId: aws.String(obj.id)})
 		}
 
-		S3.DeleteObjects(&s3.DeleteObjectsInput{
+		_, err := S3.DeleteObjects(&s3.DeleteObjectsInput{
 			Bucket: aws.String(bucket),
 			Delete: &s3.Delete{
 				Objects: objects,
 			},
 		})
+		if err != nil {
+			fmt.Printf("Failed: %s\n", err)
+		}
 
 		wg.Add(-len(objects))
 	}
