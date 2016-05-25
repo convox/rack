@@ -117,16 +117,20 @@ func cmdUninstall(c *cli.Context) error {
 	// prompt to confirm rack name
 	reader := bufio.NewReader(os.Stdin)
 
-	if !c.Bool("force") && terminal.IsTerminal(int(os.Stdin.Fd())) {
-		fmt.Printf("Delete everything? y/N: ")
+	if !c.Bool("force") {
+		if terminal.IsTerminal(int(os.Stdin.Fd())) {
+			fmt.Printf("Delete everything? y/N: ")
 
-		confirm, err := reader.ReadString('\n')
-		if err != nil {
-			return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
-		}
+			confirm, err := reader.ReadString('\n')
+			if err != nil {
+				return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+			}
 
-		if strings.TrimSpace(confirm) != "y" {
-			return stdcli.ExitError(fmt.Errorf("Aborting uninstall."))
+			if strings.TrimSpace(confirm) != "y" {
+				return stdcli.ExitError(fmt.Errorf("Aborting uninstall."))
+			}
+		} else {
+			return stdcli.ExitError(fmt.Errorf("Aborting uninstall. Use the --force for non-interactive uninstall."))
 		}
 	}
 
