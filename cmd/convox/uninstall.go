@@ -215,8 +215,6 @@ func cmdUninstall(c *cli.Context) error {
 	return stdcli.QOSEventSend("cli-uninstall", distinctId, ep)
 }
 
-var deleteAttempts = map[string]int{}
-
 type Obj struct {
 	key, id string
 }
@@ -323,6 +321,8 @@ func deleteObjects(bucket string, objs []Obj, wg *sync.WaitGroup, S3 *s3.S3) {
 	return
 }
 
+var deleteAttempts = map[string]int{}
+
 func deleteStack(s Stack, distinctId string, CF *cloudformation.CloudFormation) error {
 	deleteAttempts[s.StackName] += 1
 	switch deleteAttempts[s.StackName] {
@@ -354,7 +354,7 @@ func deleteStacks(stackType, rackName, distinctId string, CF *cloudformation.Clo
 		}
 
 		for _, s := range toDelete {
-			if deleteAttempts[s.StackName] >= 2 {
+			if deleteAttempts[s.StackName] >= 3 { // after the 3rd delete, stop monitoring progress
 				skipped = append(skipped, s.StackName)
 			} else {
 				switch s.Status {
