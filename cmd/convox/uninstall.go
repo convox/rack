@@ -271,6 +271,8 @@ func deleteBucket(bucket string, wg *sync.WaitGroup, S3 *s3.S3) error {
 		nextVersionIdMarker = res.NextVersionIdMarker
 	}
 
+	fmt.Printf("Emptying S3 Bucket %s...\n", bucket)
+
 	owg := new(sync.WaitGroup)
 	owg.Add(len(keyMarkers))
 	owg.Add(len(versionIdMarkers))
@@ -279,6 +281,7 @@ func deleteBucket(bucket string, wg *sync.WaitGroup, S3 *s3.S3) error {
 	owg.Wait()
 
 	fmt.Printf("Deleting S3 Bucket %s...\n", bucket)
+
 	_, err = S3.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucket),
 	})
@@ -291,8 +294,6 @@ func deleteBucket(bucket string, wg *sync.WaitGroup, S3 *s3.S3) error {
 }
 
 func deleteObjects(bucket string, objs []Obj, wg *sync.WaitGroup, S3 *s3.S3) {
-	fmt.Printf("Emptying S3 Bucket %s...\n", bucket)
-
 	maxLen := 1000
 
 	for i := 0; i < len(objs); i += maxLen {
