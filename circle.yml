@@ -22,8 +22,6 @@ test:
   post:
     - ci/report.sh:
         parallel: true
-    - ci/delete-all-apps.sh:
-        parallel: true
     - ci/uninstall.sh:
         parallel: true
     - ci/cleanup.sh:

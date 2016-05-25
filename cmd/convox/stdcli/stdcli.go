@@ -43,9 +43,9 @@ Usage:
 
 Subcommands: ({{.Name}} help <subcommand>)
   {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
-  {{end}}{{if .Flags}}
+  {{end}}{{if .VisibleFlags}}
 Options:
-  {{range .Flags}}{{.}}
+  {{range .VisibleFlags}}{{.}}
   {{end}}{{end}}
 `
 
@@ -56,9 +56,9 @@ Usage:
 {{if .Subcommands}}
 Subcommands: (%s {{.FullName}} help <subcommand>)
   {{range .Subcommands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
-  {{end}}{{end}}{{if .Flags}}
+  {{end}}{{end}}{{if .VisibleFlags}}
 Options:
-   {{range .Flags}}{{.}}
+   {{range .VisibleFlags}}{{.}}
    {{end}}{{ end }}
 `, Binary, Binary, Binary)
 
@@ -69,9 +69,9 @@ Usage:
 
 Subcommands: ({{.Name}} help <subcommand>)
   {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
-  {{end}}{{if .Flags}}
+  {{end}}{{if .VisibleFlags}}
 Options:
-  {{range .Flags}}{{.}}
+  {{range .VisibleFlags}}{{.}}
   {{end}}{{end}}
 `
 }
