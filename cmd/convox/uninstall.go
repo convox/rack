@@ -155,16 +155,19 @@ func cmdUninstall(c *cli.Context) error {
 	// Delete all Service, App and Rack stacks
 	err = deleteStacks("service", rackName, distinctId, CF)
 	if err != nil {
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
 	}
 
 	err = deleteStacks("app", rackName, distinctId, CF)
 	if err != nil {
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
 	}
 
 	err = deleteStacks("rack", rackName, distinctId, CF)
 	if err != nil {
+		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		success = false
 	}
 
@@ -394,7 +397,7 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 		buckets := []string{}
 
 		rres, err := CF.DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-			StackName: stack.StackName,
+			StackName: stack.StackId,
 		})
 		if err != nil {
 			return Stacks{}, err
