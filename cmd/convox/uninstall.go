@@ -77,17 +77,19 @@ func cmdUninstall(c *cli.Context) error {
 		return stdcli.ExitError(fmt.Errorf("error reading credentials"))
 	}
 
-	stacks, err := describeRackStacks(rackName, region, creds, distinctId)
+	CF := cloudformation.New(session.New(), awsConfig(region, creds))
+
+	stacks, err := describeRackStacks(rackName, distinctId, CF)
 	if err != nil {
-		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	// verify that rack was detected
 	if len(stacks.Rack) == 0 || stacks.Rack[0].StackName != rackName {
-		stdcli.Error(fmt.Errorf("Can not find rack named %s.", rackName))
+		return stdcli.ExitError(fmt.Errorf("Can not find rack named %s.", rackName))
 	}
 
-	fmt.Println("Resources to uninstall:\n")
+	fmt.Println("Resources to delete:\n")
 
 	// display all the services, apps, then rack
 	t := stdcli.NewTable("STACK", "TYPE", "STATUS")
@@ -108,7 +110,7 @@ func cmdUninstall(c *cli.Context) error {
 	// verify that no stack is being updated
 	for _, s := range stacks.all() {
 		if strings.HasSuffix(s.Status, "IN_PROGRESS") {
-			stdcli.Error(fmt.Errorf("Can not uninstall while %s is updating.", s.StackName))
+			return stdcli.ExitError(fmt.Errorf("Can not uninstall while %s is updating.", s.StackName))
 		}
 	}
 
@@ -116,15 +118,15 @@ func cmdUninstall(c *cli.Context) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	if !c.Bool("force") && terminal.IsTerminal(int(os.Stdin.Fd())) {
-		fmt.Printf("Confirm rack name to delete all the stacks, apps and rack. WARNING, this is irreversable: ")
+		fmt.Printf("Delete everything? y/N: ")
 
-		n, err := reader.ReadString('\n')
+		confirm, err := reader.ReadString('\n')
 		if err != nil {
-			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+			return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 
-		if strings.TrimSpace(n) != rackName {
-			stdcli.Error(fmt.Errorf("Name does not match. Aborting uninstall."))
+		if strings.TrimSpace(confirm) != "y" {
+			return stdcli.ExitError(fmt.Errorf("Aborting uninstall."))
 		}
 	}
 
@@ -142,25 +144,19 @@ func cmdUninstall(c *cli.Context) error {
 
 	success := true
 
-	err = deleteStacks("service", rackName, region, creds, distinctId)
+	err = deleteStacks("service", rackName, distinctId, CF)
 	if err != nil {
 		success = false
 	}
 
-	err = deleteStacks("app", rackName, region, creds, distinctId)
+	err = deleteStacks("app", rackName, distinctId, CF)
 	if err != nil {
 		success = false
 	}
 
-	err = deleteStacks("rack", rackName, region, creds, distinctId)
+	err = deleteStacks("rack", rackName, distinctId, CF)
 	if err != nil {
 		success = false
-	}
-
-	if success {
-		fmt.Println("Successfully uninstalled.")
-	} else {
-		stdcli.Error(fmt.Errorf("stack deletion failed, contact support@convox.com for assistance"))
 	}
 
 	host := stacks.Rack[0].Outputs["Dashboard"]
@@ -168,35 +164,44 @@ func cmdUninstall(c *cli.Context) error {
 	if configuredHost, _ := currentHost(); configuredHost == host {
 		err = removeHost()
 		if err != nil {
-			stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+			return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 		}
 	}
 
 	err = removeLogin(host)
 	if err != nil {
-		stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
-	fmt.Println("Successfully uninstalled.")
+	if success {
+		fmt.Println("Successfully uninstalled.")
+	} else {
+		return stdcli.ExitError(fmt.Errorf("Uninstall encountered some errors, contact support@convox.com for assistance"))
+	}
 
 	return stdcli.QOSEventSend("cli-uninstall", distinctId, ep)
 }
 
-func deleteStack(stackName, region string, creds *AwsCredentials, distinctId string) error {
-	fmt.Printf("Deleting %s...\n", stackName)
+var deleteAttempts = map[string]int{}
 
-	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
-	_, err := CloudFormation.DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(stackName),
+func deleteStack(s Stack, distinctId string, CF *cloudformation.CloudFormation) error {
+	deleteAttempts[s.StackName] += 1
+	switch deleteAttempts[s.StackName] {
+	case 1:
+		fmt.Printf("Deleting %s...\n", s.Name)
+	default:
+		fmt.Printf("Retrying deleting %s...\n", s.Name)
+	}
+
+	_, err := CF.DeleteStack(&cloudformation.DeleteStackInput{
+		StackName: aws.String(s.StackName),
 	})
 	return err
 }
 
-func deleteStacks(stackType, rackName, region string, creds *AwsCredentials, distinctId string) error {
-	deleteAttempts := map[string]int{}
-
+func deleteStacks(stackType, rackName, distinctId string, CF *cloudformation.CloudFormation) error {
 	for {
-		stacks, err := describeRackStacks(rackName, region, creds, distinctId)
+		stacks, err := describeRackStacks(rackName, distinctId, CF)
 		if err != nil {
 			return err
 		}
@@ -215,14 +220,12 @@ func deleteStacks(stackType, rackName, region string, creds *AwsCredentials, dis
 			} else {
 				switch s.Status {
 				case "CREATE_COMPLETE", "ROLLBACK_COMPLETE", "UPDATE_COMPLETE", "UPDATE_ROLLBACK_COMPLETE":
-					deleteAttempts[s.StackName] += 1
-					deleteStack(s.StackName, region, creds, distinctId)
+					deleteStack(s, distinctId, CF)
 				case "CREATE_FAILED", "DELETE_FAILED", "ROLLBACK_FAILED", "UPDATE_ROLLBACK_FAILED":
-					deleteAttempts[s.StackName] += 1
-					deleteStack(s.StackName, region, creds, distinctId)
-					// todo: report event?
+					deleteStack(s, distinctId, CF)
+					// TODO: report event?
 				case "DELETE_IN_PROGRESS":
-					// noop
+					displayProgress(s.StackName, CF, true)
 				default:
 					// noop
 				}
@@ -240,9 +243,8 @@ func deleteStacks(stackType, rackName, region string, creds *AwsCredentials, dis
 }
 
 // describeRackStacks uses credentials to describe CF service, app and rack stacks that belong to the rack name and region
-func describeRackStacks(rackName, region string, creds *AwsCredentials, distinctId string) (Stacks, error) {
-	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
-	res, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{})
+func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFormation) (Stacks, error) {
+	res, err := CF.DescribeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return Stacks{}, err
 	}
