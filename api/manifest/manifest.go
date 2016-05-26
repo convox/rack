@@ -576,6 +576,7 @@ func (m *Manifest) Run(app string, cache bool, shift int) []error {
 			if (err == nil) && (net.ParseIP(strings.TrimSpace(string(ip))) != nil) {
 				break
 			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
