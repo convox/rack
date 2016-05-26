@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/briandowns/spinner"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
