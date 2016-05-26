@@ -1457,8 +1457,7 @@ func initApplication(dir string) error {
 
 	os.Chdir(dir)
 
-	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("Dockerfile") || exists("docker-compose.yml") {
+	if exists("docker-compose.yml") {
 		return nil
 	}
 
@@ -1466,8 +1465,11 @@ func initApplication(dir string) error {
 
 	fmt.Printf("Initializing %s\n", kind)
 
-	if err := writeAsset("Dockerfile", fmt.Sprintf("init/%s/Dockerfile", kind)); err != nil {
-		return err
+	// TODO parse the Dockerfile and build a docker-compose.yml
+	if !exists("Dockerfile") {
+		if err := writeAsset("Dockerfile", fmt.Sprintf("init/%s/Dockerfile", kind)); err != nil {
+			return err
+		}
 	}
 
 	if err := generateManifest(dir, fmt.Sprintf("init/%s/docker-compose.yml", kind)); err != nil {

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -16,16 +16,14 @@ func init() {
 	})
 }
 
-func cmdRacks(c *cli.Context) {
+func cmdRacks(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox racks`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox racks`?"))
 	}
 
 	racks, err := rackClient(c).Racks()
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("RACK", "STATUS")
@@ -37,4 +35,5 @@ func cmdRacks(c *cli.Context) {
 		t.AddRow(name, rack.Status)
 	}
 	t.Print()
+	return nil
 }

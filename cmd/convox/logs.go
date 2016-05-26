@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -34,21 +34,19 @@ func init() {
 	})
 }
 
-func cmdLogsStream(c *cli.Context) {
+func cmdLogsStream(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox logs` does not take arguments. Perhaps you meant `convox logs`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox logs` does not take arguments. Perhaps you meant `convox logs`?"))
 	}
 
 	err = rackClient(c).StreamAppLogs(app, c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
+	return nil
 }

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -14,65 +14,75 @@ func init() {
 		Usage:       "<process> [--count=2] [--memory=512]",
 		Action:      cmdScale,
 		Flags: []cli.Flag{appFlag,
-			cli.StringFlag{
+			cli.IntFlag{
 				Name:  "count",
-				Value: "",
 				Usage: "Number of processes to keep running for specified process type.",
 			},
-			cli.StringFlag{
+			cli.IntFlag{
 				Name:  "memory",
-				Value: "",
 				Usage: "Amount of memory, in MB, available to specified process type.",
 			},
 		},
 	})
 }
 
-func cmdScale(c *cli.Context) {
+func cmdScale(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
-	count := c.String("count")
-	memory := c.String("memory")
+	// initialize to invalid values that indicate no change
+	count := -1
+	memory := -1
 
-	if len(c.Args()) == 0 && count == "" && memory == "" {
+	if c.IsSet("count") {
+		count = c.Int("count")
+	}
+
+	if c.IsSet("memory") {
+		memory = c.Int("memory")
+	}
+
+	// validate single process type argument
+	switch len(c.Args()) {
+	case 0:
 		displayFormation(c, app)
-		return
-	}
-
-	if len(c.Args()) != 1 || (count == "" && memory == "") {
+		return nil
+	case 1:
+		if count == -1 && memory == -1 {
+			displayFormation(c, app)
+			return nil
+		}
+		// fall through to scale API call
+	default:
 		stdcli.Usage(c, "scale")
-		return
+		return nil
 	}
 
 	process := c.Args()[0]
 
 	err = rackClient(c).SetFormation(app, process, count, memory)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
-	displayFormation(c, app)
+	err = displayFormation(c, app)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+	return nil
 }
 
-func displayFormation(c *cli.Context, app string) {
+func displayFormation(c *cli.Context, app string) error {
 	formation, err := rackClient(c).ListFormation(app)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	pss, err := rackClient(c).GetProcesses(app, false)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return err
 	}
 
 	running := map[string]int{}
@@ -90,5 +100,5 @@ func displayFormation(c *cli.Context, app string) {
 	}
 
 	t.Print()
-
+	return nil
 }
