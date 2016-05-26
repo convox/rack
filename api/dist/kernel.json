@@ -852,7 +852,7 @@
       "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": true,
+        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sdb",
