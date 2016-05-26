@@ -578,7 +578,7 @@ func (m *Manifest) Run(app string, cache, sync bool, shift int) []error {
 		// block until we can get the container IP
 		for {
 			host := containerName(app, name)
-			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).CombinedOutput()
+			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).Output()
 
 			// dont block in test mode
 			if os.Getenv("PROVIDER") == "test" {
