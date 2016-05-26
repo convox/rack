@@ -9,7 +9,6 @@ import (
 
 func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 	formation, err := s.Formation()
-
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +27,7 @@ func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 	s.Parameters["Subnets"] = os.Getenv("SUBNETS")
 	s.Parameters["SubnetsPrivate"] = subnetsPrivate
 	s.Parameters["Vpc"] = os.Getenv("VPC")
+	s.Parameters["VpcCidr"] = os.Getenv("VPCCIDR")
 
 	req := &cloudformation.CreateStackInput{
 		StackName:    aws.String(s.StackName()),
@@ -39,7 +39,6 @@ func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 
 func (s *Service) UpdateDatastore() (*cloudformation.UpdateStackInput, error) {
 	formation, err := s.Formation()
-
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +52,10 @@ func (s *Service) UpdateDatastore() (*cloudformation.UpdateStackInput, error) {
 		subnetsPrivate = os.Getenv("SUBNETS")
 	}
 
+	s.Parameters["Subnets"] = os.Getenv("SUBNETS")
 	s.Parameters["SubnetsPrivate"] = subnetsPrivate
+	s.Parameters["Vpc"] = os.Getenv("VPC")
+	s.Parameters["VpcCidr"] = os.Getenv("VPCCIDR")
 
 	req := &cloudformation.UpdateStackInput{
 		StackName:    aws.String(s.StackName()),
