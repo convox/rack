@@ -52,6 +52,10 @@
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
         "Description": "VPC"
+      },
+      "VpcCidr": {
+        "Description": "VPC CIDR Block",
+        "Type": "String"
       }
     },
     "Outputs": {
@@ -67,7 +71,7 @@
         "Properties": {
           "GroupDescription": "mysql service",
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": "10.0.0.0/16" }
+            { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Ref": "VpcCidr" } }
           ],
           "VpcId": { "Ref": "Vpc" }
         }
