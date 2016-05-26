@@ -567,6 +567,17 @@ func (m *Manifest) Run(app string, cache bool, shift int) []error {
 		sch := make(chan error)
 		go (*m)[name].runAsync(m, m.prefixForEntry(name, i), app, name, cache, shift, ch, sch)
 		<-sch // block until started successfully
+
+		// block until we can get the container IP
+		for {
+			host := containerName(app, name)
+			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).Output()
+
+			if (err == nil) && (net.ParseIP(strings.TrimSpace(string(ip))) != nil) {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 
 	errors := []error{}
