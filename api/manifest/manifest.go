@@ -571,7 +571,7 @@ func (m *Manifest) Run(app string, cache bool, shift int) []error {
 		// block until we can get the container IP
 		for {
 			host := containerName(app, name)
-			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).CombinedOutput()
+			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).Output()
 
 			if (err == nil) && (net.ParseIP(strings.TrimSpace(string(ip))) != nil) {
 				break
