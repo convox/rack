@@ -852,7 +852,7 @@
       "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "AssociatePublicIpAddress": true,
+        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sdb",
@@ -1474,7 +1474,8 @@
                 { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
                 ""
               ] },
-              "VPC": { "Ref": "Vpc" }
+              "VPC": { "Ref": "Vpc" },
+              "VPCCIDR": { "Ref": "VPCCIDR" }
             },
             "Image": { "Fn::If": [ "BlankDockerImageApi",
               { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
