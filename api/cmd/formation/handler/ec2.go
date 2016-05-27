@@ -130,8 +130,14 @@ func EC2NatGatewayCreate(req Request) (string, map[string]string, error) {
 	return *res.NatGateway.NatGatewayId, nil, nil
 }
 
+// Replace Nat Gateway. From the docs:
+// If the custom resource requires a replacement, the new custom resource must send a response
+// with the new physical ID. When AWS CloudFormation receives the response, it compares the
+// PhysicalResourceId between the old and new custom resources. If they are different, AWS
+// CloudFormation recognizes the update as a replacement and sends a delete request to the old resource
+// http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cfn-customresource.html
 func EC2NatGatewayUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, nil
+	return EC2NatGatewayCreate(req)
 }
 
 func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
@@ -184,7 +190,6 @@ func EC2RouteCreate(req Request) (string, map[string]string, error) {
 		NatGatewayId:         aws.String(req.ResourceProperties["NatGatewayId"].(string)),
 		RouteTableId:         aws.String(routeTableId),
 	})
-
 	if err != nil {
 		return "invalid", nil, err
 	}
@@ -206,7 +211,6 @@ func EC2RouteUpdate(req Request) (string, map[string]string, error) {
 		DestinationCidrBlock: aws.String(parts[1]),
 		RouteTableId:         aws.String(parts[0]),
 	})
-
 	if err != nil {
 		return req.PhysicalResourceId, nil, err
 	}
