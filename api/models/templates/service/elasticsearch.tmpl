@@ -1,0 +1,71 @@
+{{ define "service" }}
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
+    "Parameters": {
+      "AllocatedStorage": {
+        "Type" : "Number",
+        "Default" : "10",
+        "Description" : "Allocated storage size (GB)"
+      },
+      "Database": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Default database name"
+      },
+      "VolumeSize": {
+        "Type" : "String",
+        "Default" : "t2.micro.elasticsearch",
+        "Description" : "Size of elasticsearch document"
+      },
+      "MultiAZ": {
+        "Type" : "String",
+        "Default" : "false",
+        "Description" : "Multiple availability zone"
+      },
+      "Password": {
+        "Type" : "String",
+        "Description" : "Server password"
+      },
+      "Username": {
+        "Type" : "String",
+        "Default" : "app",
+        "Description" : "Server username"
+      }
+    },
+    "Outputs": {
+      "Port9200TcpAddr": { "Value": { "Fn::GetAtt": [ "Domain", "Endpoint.Address" ] } },
+      "Port9200TcpPort": { "Value": { "Fn::GetAtt": [ "Domain", "Endpoint.Port" ] } },
+      "EnvElasticsearchDatabase": { "Value": { "Ref": "Database" } }
+    },
+    "Resources": {
+      "Domain": {
+        "Type": "AWS::Elasticsearch::Domain",
+        "Properties": {
+          "AccessPolicies": {
+            "Version": "2016-05-15",
+            "Statement": [
+               {
+                 "Effect": "Allow",
+                 "Principal": {"AWS": "arn:aws:iam::123456789012:root" },
+                 "Action":"es:*",
+                 "Resource" : { "Fn::Join" : ["", ["arn:aws:es:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref" : "AWS::StackName"}]] }
+               }
+            ]
+          },
+          "EBSOptions": {
+            "VolumeSize": {"Ref": "VolumeType"}
+          }
+        }
+      },
+      "AccessKey": {
+        "Type": "AWS::IAM::AccessKey",
+        "Properties": {
+          "UserName": { "Ref": "User" }
+        }
+      }
+    }
+}
+{{ end }}

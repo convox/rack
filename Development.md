@@ -19,7 +19,9 @@ Much of the technical design and implementation in Rack requires understanding o
 
 ## Sandbox AWS Rack Install
 
-Rack consumes numerous AWS and Docker APIs. The easiest way to develop Rack is with real AWS access keys interacting with real AWS resources like a Dynamo Table, ECS Cluster, and CloudFormation Stack.
+Rack consumes numerous AWS and Docker APIs. The easiest way to develop Rack is
+with real AWS access keys interacting with real AWS resources like a Dynamo
+Table, ECS Cluster, and CloudFormation Stack.
 
 This is easy to bootstrap with the Rack project itself:
 
@@ -27,13 +29,15 @@ This is easy to bootstrap with the Rack project itself:
 $ convox install --stack-name dev
 ```
 
-You can also install a Rack with the CloudFormation template on master or with your own changes by:
+You can also install a Rack with the CloudFormation template on master or with
+your own changes by:
 
 ```
 $ TEMPLATE_FILE=api/dist/kernel.json convox install --stack-name=convox-dev
 ```
 
-You can also use any existing Rack with the caveat that running a local Rack against it could have side effects like terminating instances.
+You can also use any existing Rack with the caveat that running a local Rack
+against it could have side effects like terminating instances.
 
 ## AWS Rack Ingress
 
@@ -50,17 +54,19 @@ Parts of the API like `convox ps --stats` interact with the Docker daemon runnin
 
 ## Rack Golang Project
 
-Rack is written in Golang. To setup a Go environment, see the excellent [Getting Started](https://golang.org/doc/install) docs. You can then clone and build the project with the `go get` tool:
+Rack is written in Golang. To setup a Go environment, see the excellent
+[Getting Started](https://golang.org/doc/install) docs. You can then clone and
+build the project with the `go get` tool:
 
 ```
 $ go get github.com/convox/rack/...
 ```
 
-After this, `which convox` should refer to `$GOPATH/bin/convox`.
+After this, `which convox` should refer to `$GOPATH/bin/convox`. This path may be different if you have already installed the CLI.
 
 ## Local Rack Environment
 
-The local Rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop.
+The local rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop.
 
 ```
 $ cd $GOPATH/src/github.com/convox/rack
@@ -78,7 +84,7 @@ $ convox exec $WEB_PID env --app $STACK_NAME > .env
 Now you have a bunch of secrets that will let you interact with AWS APIs from your laptop:
 
 ```
-$ cat .env
+$ cat $GOPATH/src/github.com/convox/rack
 CLIENT_ID=noah@convox.com
 RACK=dev
 SUBNETS=subnet-13de3139,subnet-b5578fc3,subnet-21c13379
@@ -91,9 +97,11 @@ PASSWORD=45e0f109-3f56-4b30-9b5a-b0939b8a4c25
 ...
 ```
 
+These secrets can be used in your local rack docker vm for interfacing with AWS.
+
 ## Local Rack Docker VM
 
-A local Rack is started with `convox start` which requires a working Docker environment. To setup a Docker environment, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
+A local rack is started with `convox start` which requires a working Docker machine environment. To setup a Docker environment by creating a Docker machine, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
 
 ```
 $ docker-machine start default
@@ -111,10 +119,10 @@ Now you can log into the development Rack API and interact with your Convox reso
 $ convox login $(docker-machine ip default)
 
 $ convox instances
-ID          AGENT  STATUS  STARTED      PS  CPU    MEM   
+ID          AGENT  STATUS  STARTED      PS  CPU    MEM
 i-6cf228f7  on     active  2 hours ago  4   0.00%  10.42%
-i-146c2f97  on     active  2 hours ago  1   0.00%  3.21% 
-i-c7de605c  on     active  2 hours ago  0   0.00%  0.00% 
+i-146c2f97  on     active  2 hours ago  1   0.00%  3.21%
+i-c7de605c  on     active  2 hours ago  0   0.00%  0.00%
 ```
 
 ## Golang Unit Test Suite
@@ -135,7 +143,8 @@ $ echo $?
 0
 ```
 
-GitHub and Travis CI are configured to require that tests are passing before a pull request can be merged.
+GitHub and Travis CI are configured to require that tests are passing before a
+pull request can be merged.
 
 The most complex tests, such as `TestProcessesListWithDetached` setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represents a very powerful way to verify Convox behavior.
 

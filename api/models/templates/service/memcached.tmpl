@@ -1,0 +1,84 @@
+{{ define "service" }}
+  {
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+    },
+    "Parameters": {
+      "Database": {
+        "Type" : "String",
+        "Default" : "0",
+        "Description" : "Default database index"
+      },
+      "InstanceType": {
+        "Type": "String",
+        "Default": "cache.t2.micro",
+        "Description": "The type of instance to use"
+      },
+      "Private": {
+        "Type": "String",
+        "Description": "Create in private subnets",
+        "Default": "false",
+        "AllowedValues": [ "true", "false" ]
+      },
+      "NumCacheNodes": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The number of cache clusters for this replication group"
+      },
+      "Subnets": {
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Description": "VPC subnets"
+      },
+      "SubnetsPrivate": {
+        "Type" : "List<AWS::EC2::Subnet::Id>",
+        "Default" : "",
+        "Description" : "VPC private subnets"
+      },
+      "Vpc": {
+        "Type": "AWS::EC2::VPC::Id",
+        "Description": "VPC"
+      }
+    },
+    "Outputs": {
+      "Port11211TcpAddr": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
+      "Port11211TcpPort": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Port" ] } },
+      "EnvMemachedDatabase": { "Value": { "Ref": "Database" } }
+    },
+    "Resources": {
+      "SecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "memcached service",
+          "SecurityGroupIngress": [
+            { "IpProtocol": "tcp", "FromPort": "11211", "ToPort": "11211", "CidrIp": "10.0.0.0/16" }
+          ],
+          "VpcId": { "Ref": "Vpc" }
+        }
+      },
+      "CacheSubnetGroup": {
+        "Type": "AWS::ElastiCache::SubnetGroup",
+        "Properties": {
+          "Description": "Memcached subnet group",
+          "SubnetIds": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] }
+        }
+      },
+      "CacheCluster": {
+        "Type": "AWS::ElastiCache::CacheCluster",
+        "Properties": {
+          "AutoMinorVersionUpgrade": true,
+          "CacheNodeType": { "Ref": "InstanceType" },
+          "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
+          "Engine": "memcached",
+          "EngineVersion": "1.4.24",
+          "NumCacheNodes": { "Ref": "NumCacheNodes" },
+          "Port": "11211",
+          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+        }
+      }
+    }
+  }
+{{ end }}
