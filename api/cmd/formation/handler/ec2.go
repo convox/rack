@@ -198,34 +198,7 @@ func EC2RouteCreate(req Request) (string, map[string]string, error) {
 }
 
 func EC2RouteUpdate(req Request) (string, map[string]string, error) {
-	parts := strings.SplitN(req.PhysicalResourceId, "/", 2)
-
-	destinationCidrBlock := req.ResourceProperties["DestinationCidrBlock"].(string)
-	routeTableId := req.ResourceProperties["RouteTableId"].(string)
-
-	if parts[0] == routeTableId && parts[1] == destinationCidrBlock {
-		return req.PhysicalResourceId, nil, nil
-	}
-
-	_, err := EC2(req).DeleteRoute(&ec2.DeleteRouteInput{
-		DestinationCidrBlock: aws.String(parts[1]),
-		RouteTableId:         aws.String(parts[0]),
-	})
-	if err != nil {
-		return req.PhysicalResourceId, nil, err
-	}
-
-	_, err = EC2(req).CreateRoute(&ec2.CreateRouteInput{
-		DestinationCidrBlock: aws.String(destinationCidrBlock),
-		NatGatewayId:         aws.String(req.ResourceProperties["NatGatewayId"].(string)),
-		RouteTableId:         aws.String(routeTableId),
-	})
-
-	if err != nil {
-		return req.PhysicalResourceId, nil, err
-	}
-
-	return routeTableId + "/" + destinationCidrBlock, nil, nil
+	return EC2RouteCreate(req)
 }
 
 func EC2RouteDelete(req Request) (string, map[string]string, error) {
