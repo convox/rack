@@ -1495,9 +1495,9 @@ func (m *Manifest) scanRemoteChanges(container string, r io.Reader) {
 
 						blockRemoteAddsLock.Unlock()
 					case "delete":
-						remoteRemoveLock.Lock()
-						remoteRemoves[filepath.Join(sync.Local, parts[2])] = filepath.Join(parts[1], parts[2])
-						remoteRemoveLock.Unlock()
+						// remoteRemoveLock.Lock()
+						// remoteRemoves[filepath.Join(sync.Local, parts[2])] = filepath.Join(parts[1], parts[2])
+						// remoteRemoveLock.Unlock()
 					}
 				}
 			}
