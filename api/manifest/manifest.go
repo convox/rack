@@ -1611,16 +1611,21 @@ func (m *Manifest) downloadRemoteAdds(container string, adds map[string]string) 
 				blockLocalAdds[local] += 1
 				blockLocalAddsLock.Unlock()
 
-				fd, err := os.OpenFile(local, os.O_CREATE, os.FileMode(header.Mode))
+				fd, err := os.OpenFile(local, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
 
 				if err != nil {
 					fmt.Printf("err = %+v\n", err)
 					continue
 				}
 
-				io.Copy(fd, tr)
+				defer fd.Close()
 
-				fd.Close()
+				_, err = io.Copy(fd, tr)
+
+				if err != nil {
+					fmt.Printf("err = %+v\n", err)
+					continue
+				}
 			}
 		}
 	}
