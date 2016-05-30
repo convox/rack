@@ -66,7 +66,7 @@ func init() {
 	case "test":
 		CurrentProvider = TestProvider
 	default:
-		die(fmt.Errorf("PROVIDER must be one of (aws)"))
+		die(fmt.Errorf("PROVIDER must be one of (aws, test)"))
 	}
 
 	if err != nil {
