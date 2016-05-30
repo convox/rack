@@ -1,23 +1,25 @@
 sudo: required
+
 services:
   - docker
-env:  
-  global:
-    - DOCKER_VERSION=1.10.1-0~trusty
+
 branches:
   except:
     - "/^\\d{14}/"
+
 language: go
+
 go:
   - 1.6.1
+
 before_install:
   - go get -u github.com/convox/version
 
-  #list docker-engine versions
-  - apt-cache madison docker-engine
+script:
+  - make test
 
-  # upgrade docker-engine to specific version
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 
 notifications:
   slack:

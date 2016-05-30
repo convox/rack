@@ -1,17 +1,14 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"os/exec"
-	"strings"
-	"time"
+	"os"
+	"os/signal"
+	"path/filepath"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/fsouza/go-dockerclient"
+	"github.com/convox/rack/manifest"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -43,113 +40,54 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) error {
-	ep := stdcli.QOSEventProperties{Start: time.Now()}
+	// go handleResize()
 
-	distinctId, err := currentId()
-	if err != nil {
-		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
+	id, err := currentId()
+	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{Error: err})
 
-	dockerTest := exec.Command("docker", "images")
-	err = dockerTest.Run()
-	if err != nil {
-		return stdcli.ExitError(errors.New("could not connect to docker daemon, is it installed and running?"))
-	}
+	m, err := manifest.LoadFile(c.String("file"))
 
-	dockerVersionTest, err := docker.NewClientFromEnv()
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	minDockerVersion, err := docker.NewAPIVersion("1.9")
-	e, err := dockerVersionTest.Version()
-	if err != nil {
-		return stdcli.ExitError(err)
+	if shift := c.Int("shift"); shift > 0 {
+		m.Shift(shift)
 	}
 
-	currentVersionParts := strings.Split(e.Get("Version"), ".")
-	currentVersion, err := docker.NewAPIVersion(fmt.Sprintf("%s.%s", currentVersionParts[0], currentVersionParts[1]))
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
-		return stdcli.ExitError(errors.New("Your version of docker is out of date (min: 1.9)"))
-	}
-
-	cache := !c.Bool("no-cache")
-
-	shift := 0
-
-	if si := c.Int("shift"); si > 0 {
-		shift = si
-	}
-
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, app, err := stdcli.DirApp(c, wd)
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	file := c.String("file")
-
-	m, err := manifest.Read(dir, file)
-	if err != nil {
-		switch err.(type) {
-		case *manifest.YAMLError:
-			return stdcli.ExitError(fmt.Errorf(
-				"Invalid manifest (%s): %s", file, err.Error(),
-			))
-		default:
-			err := manifest.Init(dir)
-			if err != nil {
-				return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-			}
-
-			m, err = manifest.Read(dir, file)
-			if err != nil {
-				return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-			}
+	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
+		if err != nil {
+			stdcli.ExitError(err)
 		}
+
+		return stdcli.ExitError(fmt.Errorf("ports in use: %v", pcc))
 	}
 
-	conflicts, err := m.PortConflicts(shift)
+	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
+
 	if err != nil {
-		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.ExitError(err)
 	}
 
-	if len(conflicts) > 0 {
-		return stdcli.ExitError(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
+	r := m.Run(dir, app)
+
+	if err := r.Start(); err != nil {
+		fmt.Printf("err: %+v\n", err)
+		return err
 	}
 
-	missing, err := m.MissingEnvironment(cache, app)
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
+	fmt.Println("here")
 
-	if len(missing) > 0 {
-		return stdcli.ExitError(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
-	}
+	go handleInterrupt(r)
 
-	errors := m.Build(app, dir, cache)
-	if len(errors) != 0 {
-		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: errors[0]})
-	}
+	return r.Wait()
+}
 
-	sync := c.Bool("sync") && (stdcli.ReadSetting("sync") != "false")
-
-	ch := make(chan []error)
-
-	go func() {
-		ch <- m.Run(app, cache, sync, shift)
-	}()
-
+func handleInterrupt(run manifest.Run) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, os.Kill)
 	<-ch
-
-	return stdcli.QOSEventSend("cli-start", distinctId, ep)
+	fmt.Println("")
+	run.Stop()
+	os.Exit(0)
 }
