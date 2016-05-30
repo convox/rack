@@ -78,6 +78,19 @@ func cmdStart(c *cli.Context) error {
 	return run.Start()
 }
 
+<<<<<<< 39a4b57bd7b36e0ca48b341ccaa4887bb50a21c8
+	sync := c.Bool("sync") && (stdcli.ReadSetting("sync") != "false")
+
+	ch := make(chan []error)
+
+	go func() {
+		ch <- m.Run(app, cache, sync, shift)
+	}()
+
+	<-ch
+
+	return stdcli.QOSEventSend("cli-start", distinctId, ep)
+=======
 func resizeHandler() {
 	manifest.TerminalWidth, _, _ = terminal.GetSize(int(os.Stdin.Fd()))
 
@@ -88,4 +101,5 @@ func resizeHandler() {
 		<-sigch
 		manifest.TerminalWidth, _, _ = terminal.GetSize(int(os.Stdin.Fd()))
 	}
+>>>>>>> wip
 }
