@@ -1,0 +1,16 @@
+aaa:
+  image: test
+  links:
+    - bbb
+    - ccc
+bbb:
+  image: test
+  links:
+    - ddd
+ccc:
+  image: test
+  links:
+    - bbb
+    - ddd
+ddd:
+  image: test

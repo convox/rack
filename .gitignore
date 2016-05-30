@@ -1,3 +1,5 @@
 .env
+cmd/convox/convox
 cmd/changes/changes
+coverage.txt
 tags

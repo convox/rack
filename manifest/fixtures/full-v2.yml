@@ -1,0 +1,31 @@
+version: "2"
+services:
+  web:
+    build: .
+    command: bin/web
+    dockerfile: Dockerfile.dev
+    entrypoint: /sbin/init
+    environment:
+      - FOO=bar
+      - BAZ
+    labels:
+      - convox.foo=bar
+      - convox.baz=4
+    links:
+      - database
+    ports:
+      - 80:5000
+      - 443:5001
+    privileged: true
+    volumes:
+      - /var/db
+  database:
+    environment:
+      FOO: bar
+      BAZ: qux
+    image: convox/postgres
+    labels:
+      convox.aaa: 4
+      convox.ccc: ddd
+    ports:
+      - 5432
