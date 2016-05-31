@@ -177,6 +177,37 @@ worker:
 	_assert(t, cases)
 }
 
+func TestGenerateDockerfileProcfile(t *testing.T) {
+	destDir := mkBuildDir(t, "../../examples/dockerfile-procfile")
+	defer os.RemoveAll(destDir)
+
+	Init(destDir)
+	m, _ := Read(destDir, defaultManifestFile)
+
+	Execer = func(bin string, args ...string) *exec.Cmd {
+		return exec.Command("true")
+	}
+
+	cases := Cases{
+		{readFile(t, destDir, "docker-compose.yml"), `web:
+  build: .
+  command: ruby web.rb
+  labels:
+  - convox.port.443.protocol=tls
+  - convox.port.443.proxy=true
+  ports:
+  - 80:4000
+  - 443:4001
+worker:
+  build: .
+  command: ruby worker.rb
+`},
+		{[]string{"web", "worker"}, m.runOrder()},
+	}
+
+	_assert(t, cases)
+}
+
 func mkBuildDir(t *testing.T, srcDir string) string {
 	destDir, err := ioutil.TempDir("", "")
 
@@ -235,7 +266,7 @@ func testBuild(m *Manifest, app string) (string, string) {
 }
 
 func testRun(m *Manifest, app string) (string, string) {
-	return testRunner(m, app, func() { m.Run(app, true, 0) })
+	return testRunner(m, app, func() { m.Run(app, true, true, 0) })
 }
 
 func testRunner(m *Manifest, app string, fn runnerFn) (string, string) {

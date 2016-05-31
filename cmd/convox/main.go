@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var Version = "dev"
@@ -16,14 +16,12 @@ func init() {
 		fmt.Printf("client: %s\n", c.App.Version)
 
 		system, err := rackClient(c).GetSystem()
-
 		if err != nil {
 			stdcli.Error(err)
 			return
 		}
 
 		host, _, err := currentLogin()
-
 		if err != nil {
 			return
 		}
@@ -38,7 +36,6 @@ func main() {
 	app.Usage = "command-line application management"
 
 	err := app.Run(os.Args)
-
 	if err != nil {
 		os.Exit(1)
 	}
@@ -46,7 +43,6 @@ func main() {
 
 func rackClient(c *cli.Context) *client.Client {
 	host, password, err := currentLogin()
-
 	if err != nil {
 		stdcli.Error(err)
 		return nil

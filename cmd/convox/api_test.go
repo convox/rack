@@ -10,7 +10,6 @@ func TestApiGet(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "GET", Path: "/foo", Code: 200, Response: "bar"},
 	)
-
 	defer ts.Close()
 
 	test.Runs(t,

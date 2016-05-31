@@ -43,6 +43,10 @@
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
         "Description": "VPC"
+      },
+      "VpcCidr": {
+        "Description": "VPC CIDR Block",
+        "Type": "String"
       }
     },
     "Outputs": {
@@ -56,7 +60,7 @@
         "Properties": {
           "GroupDescription": "redis service",
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": "10.0.0.0/16" }
+            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Ref": "VpcCidr" } }
           ],
           "VpcId": { "Ref": "Vpc" }
         }

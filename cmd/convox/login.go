@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	homedir "github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh/terminal"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var ConfigRoot string
@@ -35,7 +35,6 @@ func init() {
 	})
 
 	home, err := homedir.Dir()
-
 	if err != nil {
 		stdcli.Error(err)
 		return
@@ -48,7 +47,6 @@ func init() {
 	}
 
 	stat, err := os.Stat(ConfigRoot)
-
 	if err != nil && !os.IsNotExist(err) {
 		stdcli.Error(err)
 		return
@@ -56,7 +54,6 @@ func init() {
 
 	if stat != nil && !stat.IsDir() {
 		err := upgradeConfig()
-
 		if err != nil {
 			stdcli.Error(err)
 			return
@@ -64,7 +61,7 @@ func init() {
 	}
 }
 
-func cmdLogin(c *cli.Context) {
+func cmdLogin(c *cli.Context) error {
 	var host string
 
 	if len(c.Args()) < 1 {
@@ -74,10 +71,8 @@ func cmdLogin(c *cli.Context) {
 	}
 
 	u, err := url.Parse(host)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if u.Host != "" {
@@ -107,28 +102,24 @@ func cmdLogin(c *cli.Context) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "401") {
-			stdcli.Error(fmt.Errorf("invalid login"))
+			return stdcli.ExitError(fmt.Errorf("invalid login"))
 		} else {
-			stdcli.Error(err)
+			return stdcli.ExitError(err)
 		}
-		return
 	}
 
 	err = addLogin(host, password)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	err = switchHost(host)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("Logged in successfully.")
+	return nil
 }
 
 func upgradeConfig() error {

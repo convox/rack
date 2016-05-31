@@ -58,6 +58,10 @@
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
         "Description": "VPC"
+      },
+      "VpcCidr": {
+        "Description": "VPC CIDR Block",
+        "Type": "String"
       }
     },
     "Outputs": {
@@ -73,7 +77,7 @@
         "Properties": {
           "GroupDescription": "postgres service",
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": "10.0.0.0/16" }
+            { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": { "Ref": "VpcCidr" } }
           ],
           "VpcId": { "Ref": "Vpc" }
         }

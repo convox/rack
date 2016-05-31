@@ -8,10 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/cmd/convox/templates"
+	"gopkg.in/urfave/cli.v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,7 +25,14 @@ func init() {
 	})
 }
 
-func cmdInit(c *cli.Context) {
+func cmdInit(c *cli.Context) error {
+	ep := stdcli.QOSEventProperties{Start: time.Now()}
+
+	distinctId, err := currentId()
+	if err != nil {
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+	}
+
 	wd := "."
 
 	if len(c.Args()) > 0 {
@@ -32,24 +40,21 @@ func cmdInit(c *cli.Context) {
 	}
 
 	dir, _, err := stdcli.DirApp(c, wd)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
 	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("Dockerfile") || exists("docker-compose.yml") {
-		stdcli.Error(fmt.Errorf("Can not initialize a project that already contains a Dockerfile or docker-compose.yml"))
-		return
+	if exists("docker-compose.yml") {
+		return stdcli.ExitError(fmt.Errorf("Cannot initialize a project that already contains a docker-compose.yml"))
 	}
 
 	err = initApplication(dir)
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
+
+	return stdcli.QOSEventSend("cli-init", distinctId, ep)
 }
 
 func detectApplication(dir string) string {

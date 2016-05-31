@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -34,27 +34,24 @@ func init() {
 	})
 }
 
-func cmdSSLList(c *cli.Context) {
+func cmdSSLList(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) > 0 {
-		stdcli.Error(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
-		return
+		return stdcli.ExitError(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
 	}
 
 	if c.Bool("help") {
 		stdcli.Usage(c, "")
-		return
+		return nil
 	}
 
 	ssls, err := rackClient(c).ListSSL(app)
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	t := stdcli.NewTable("TARGET", "CERTIFICATE", "DOMAIN", "EXPIRES")
@@ -64,19 +61,18 @@ func cmdSSLList(c *cli.Context) {
 	}
 
 	t.Print()
+	return nil
 }
 
-func cmdSSLUpdate(c *cli.Context) {
+func cmdSSLUpdate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	if len(c.Args()) < 2 {
 		stdcli.Usage(c, "update")
-		return
+		return nil
 	}
 
 	target := c.Args()[0]
@@ -84,18 +80,16 @@ func cmdSSLUpdate(c *cli.Context) {
 	parts := strings.Split(target, ":")
 
 	if len(parts) != 2 {
-		stdcli.Error(fmt.Errorf("target must be process:port"))
-		return
+		return stdcli.ExitError(fmt.Errorf("target must be process:port"))
 	}
 
 	fmt.Printf("Updating certificate... ")
 
 	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], c.Args()[1])
-
 	if err != nil {
-		stdcli.Error(err)
-		return
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
+	return nil
 }
