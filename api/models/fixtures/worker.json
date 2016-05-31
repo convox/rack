@@ -38,6 +38,14 @@
             },
             "us-west-2"
           ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-west-1"
+          ]
         }
       ]
     }
