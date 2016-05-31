@@ -27,7 +27,6 @@ func InstancesKeyroll(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	instances, err := provider.InstanceList()
-
 	if err != nil {
 		return httperr.Server(err)
 	}
