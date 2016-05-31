@@ -184,7 +184,7 @@ Some general notes when making changes to the infrastructure templates:
 * Run `make test` to exercise the app template regression tests. Changes to app.tmpl almost always need accompanying test changes.
 * Pay careful attention to both the update and rollback safety of changes. Rollbacks are extremely important for failure recovery.
 * Convox uses [CloudFormation Custom Resources](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) by releasing `api/cmd/formation` as a Lambda handler that every Rack and App can use to provision things that aren't supported by CloudFormation.
-* Run `make -C api/models/fixtures` to rebuild the test fixtures after you change manifests. Carefully inspect the diff to ensure only your desired changes are made.
+* Run `make fixtures` to rebuild the test fixtures after you change manifests. Carefully inspect the diff to ensure only your desired changes are made.
 
 ## Opening a Pull Request
 

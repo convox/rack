@@ -2,6 +2,11 @@
 
 all: test
 
+fixtures:
+	go install github.com/convox/rack/api/cmd/fixture
+	rm api/models/fixtures/*.json
+	make -C api/models/fixtures
+
 release:
 	cd api/cmd/formation && make release VERSION=$(VERSION)
 	docker build -t convox/api:$(VERSION) .
