@@ -29,6 +29,30 @@
         ""
       ]
     },
+    "DisabledPostgresDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "PostgresDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
+    "DisabledWebDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WebDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -92,6 +116,7 @@
   },
   "Outputs": {
     "BalancerWebHost": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWebInternal",
@@ -130,11 +155,13 @@
       }
     },
     "WebPort3000Balancer": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Ref": "WebPort3000Balancer"
       }
     },
     "WebPort3000BalancerName": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": "httpd-web-XHW5F4P-i"
     }
   },
@@ -172,6 +199,7 @@
     "PostgresDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "PostgresMemory": {
@@ -221,6 +249,7 @@
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "WebMemory": {
@@ -275,6 +304,7 @@
   },
   "Resources": {
     "BalancerWebInternal": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWebInternalSecurityGroup"
       ],
@@ -427,6 +457,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebInternalSecurityGroup": {
+      "Condition": "DisabledWebDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -547,6 +578,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "PostgresECSService": {
+      "Condition": "DisabledPostgresDesiredCount",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -759,6 +791,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWebInternal",
         "CustomTopic",
