@@ -7,6 +7,18 @@
         ""
       ]
     },
+    "DisabledMainDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "MainDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -126,6 +138,7 @@
     "MainDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "MainMemory": {
@@ -261,6 +274,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "MainECSService": {
+      "Condition": "DisabledMainDesiredCount",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
