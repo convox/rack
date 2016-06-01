@@ -35,13 +35,12 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	process := vars["process"]
 
 	_, err := models.GetApp(app)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	// initialize to invalid values that indicate no change
-	var count, memory int64 = -1, -1
+	var count, memory int64 = -2, -1
 
 	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
@@ -61,7 +60,6 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	err = models.SetFormation(app, process, count, memory)
-
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ValidationError" {
 			switch {
@@ -72,7 +70,6 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			}
 		}
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}

@@ -45,6 +45,30 @@
         ""
       ]
     },
+    "DisabledWebDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WebDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
+    "DisabledWorkerDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -100,6 +124,7 @@
   },
   "Outputs": {
     "BalancerWebHost": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWeb",
@@ -108,6 +133,7 @@
       }
     },
     "BalancerWorkerHost": {
+      "Condition": "DisabledWorkerDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWorker",
@@ -146,19 +172,23 @@
       }
     },
     "WebPort80Balancer": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": "httpd-web-XHW5F4P"
     },
     "WorkerPort80Balancer": {
+      "Condition": "DisabledWorkerDesiredCount",
       "Value": {
         "Ref": "WorkerPort80Balancer"
       }
     },
     "WorkerPort80BalancerName": {
+      "Condition": "DisabledWorkerDesiredCount",
       "Value": "httpd-worker-3XM5YXK"
     }
   },
@@ -235,6 +265,7 @@
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "WebMemory": {
@@ -289,6 +320,7 @@
     "WorkerDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "WorkerMemory": {
@@ -343,6 +375,7 @@
   },
   "Resources": {
     "BalancerWeb": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -486,6 +519,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebSecurityGroup": {
+      "Condition": "DisabledWebDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -520,6 +554,7 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "BalancerWorker": {
+      "Condition": "DisabledWorkerDesiredCount",
       "DependsOn": [
         "BalancerWorkerSecurityGroup"
       ],
@@ -663,6 +698,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWorkerSecurityGroup": {
+      "Condition": "DisabledWorkerDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -862,6 +898,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWeb",
         "CustomTopic",
@@ -1018,6 +1055,7 @@
       "Version": "1.0"
     },
     "WorkerECSService": {
+      "Condition": "DisabledWorkerDesiredCount",
       "DependsOn": [
         "BalancerWorker",
         "CustomTopic",

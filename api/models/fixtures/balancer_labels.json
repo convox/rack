@@ -23,6 +23,18 @@
         ""
       ]
     },
+    "DisabledMainDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "MainDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -78,6 +90,7 @@
   },
   "Outputs": {
     "BalancerMainHost": {
+      "Condition": "DisabledMainDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerMain",
@@ -96,11 +109,13 @@
       }
     },
     "MainPort443Balancer": {
+      "Condition": "DisabledMainDesiredCount",
       "Value": {
         "Ref": "MainPort443Balancer"
       }
     },
     "MainPort443BalancerName": {
+      "Condition": "DisabledMainDesiredCount",
       "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
@@ -158,6 +173,7 @@
     "MainDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "MainMemory": {
@@ -251,6 +267,7 @@
   },
   "Resources": {
     "BalancerMain": {
+      "Condition": "DisabledMainDesiredCount",
       "DependsOn": [
         "BalancerMainSecurityGroup"
       ],
@@ -394,6 +411,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerMainSecurityGroup": {
+      "Condition": "DisabledMainDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -514,6 +532,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "MainECSService": {
+      "Condition": "DisabledMainDesiredCount",
       "DependsOn": [
         "BalancerMain",
         "CustomTopic",

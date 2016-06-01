@@ -39,6 +39,18 @@
         ""
       ]
     },
+    "DisabledWebDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WebDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -94,6 +106,7 @@
   },
   "Outputs": {
     "BalancerWebHost": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWebInternal",
@@ -132,19 +145,23 @@
       }
     },
     "WebPort3001Balancer": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Ref": "WebPort3001Balancer"
       }
     },
     "WebPort3001BalancerName": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": "httpd-web-XHW5F4P-i"
     },
     "WebPort80Balancer": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": "httpd-web-XHW5F4P-i"
     }
   },
@@ -221,6 +238,7 @@
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "WebMemory": {
@@ -319,6 +337,7 @@
   },
   "Resources": {
     "BalancerWebInternal": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWebInternalSecurityGroup"
       ],
@@ -557,6 +576,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebInternalSecurityGroup": {
+      "Condition": "DisabledWebDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -766,6 +786,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWebInternal",
         "CustomTopic",
