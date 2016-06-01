@@ -79,39 +79,34 @@ func ListFormation(app string) (Formation, error) {
 // Expects -1 for count or memory to indicate no change, since count=0 is valid
 func SetFormation(app, process string, count, memory int64) error {
 	a, err := GetApp(app)
-
 	if err != nil {
 		return err
 	}
 
 	rel, err := GetRelease(a.Name, a.Release)
-
 	if err != nil {
 		return err
 	}
 
 	m, err := LoadManifest(rel.Manifest, a)
-
 	if err != nil {
 		return err
 	}
 
 	me := m.Entry(process)
-
 	if me == nil {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
 	capacity, err := provider.CapacityGet()
-
 	if err != nil {
 		return err
 	}
 
 	params := map[string]string{}
 
-	// if not -1, set new parameter values
-	if count >= 0 {
+	// if not -2, set new parameter values
+	if count > -2 {
 		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = fmt.Sprintf("%d", count)
 	}
 

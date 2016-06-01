@@ -33,7 +33,7 @@ func cmdScale(c *cli.Context) error {
 	}
 
 	// initialize to invalid values that indicate no change
-	count := -1
+	count := -2 // -1 is valid, indicates removing the process and ELB
 	memory := -1
 
 	if c.IsSet("count") {
@@ -50,7 +50,7 @@ func cmdScale(c *cli.Context) error {
 		displayFormation(c, app)
 		return nil
 	case 1:
-		if count == -1 && memory == -1 {
+		if count == -2 && memory == -1 {
 			displayFormation(c, app)
 			return nil
 		}
