@@ -45,6 +45,30 @@
         ""
       ]
     },
+    "DisabledRedisDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "RedisDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
+    "DisabledWebDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WebDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -69,6 +93,14 @@
               "Ref": "AWS::Region"
             },
             "us-west-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-west-1"
           ]
         }
       ]
@@ -100,6 +132,7 @@
   },
   "Outputs": {
     "BalancerRedisHost": {
+      "Condition": "DisabledRedisDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerRedisInternal",
@@ -108,6 +141,7 @@
       }
     },
     "BalancerWebHost": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWeb",
@@ -126,11 +160,13 @@
       }
     },
     "RedisPort6379Balancer": {
+      "Condition": "DisabledRedisDesiredCount",
       "Value": {
         "Ref": "RedisPort6379Balancer"
       }
     },
     "RedisPort6379BalancerName": {
+      "Condition": "DisabledRedisDesiredCount",
       "Value": "httpd-redis-NVCY43S-i"
     },
     "RegistryId": {
@@ -154,11 +190,13 @@
       }
     },
     "WebPort80Balancer": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
+      "Condition": "DisabledWebDesiredCount",
       "Value": "httpd-web-XHW5F4P"
     }
   },
@@ -205,6 +243,7 @@
     "RedisDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "RedisMemory": {
@@ -289,6 +328,7 @@
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "WebMemory": {
@@ -343,6 +383,7 @@
   },
   "Resources": {
     "BalancerRedisInternal": {
+      "Condition": "DisabledRedisDesiredCount",
       "DependsOn": [
         "BalancerRedisInternalSecurityGroup"
       ],
@@ -495,6 +536,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerRedisInternalSecurityGroup": {
+      "Condition": "DisabledRedisDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -529,6 +571,7 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "BalancerWeb": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -672,6 +715,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebSecurityGroup": {
+      "Condition": "DisabledWebDesiredCount",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -792,6 +836,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "RedisECSService": {
+      "Condition": "DisabledRedisDesiredCount",
       "DependsOn": [
         "BalancerRedisInternal",
         "CustomTopic",
@@ -1030,6 +1075,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
+      "Condition": "DisabledWebDesiredCount",
       "DependsOn": [
         "BalancerWeb",
         "CustomTopic",

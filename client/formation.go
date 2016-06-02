@@ -35,7 +35,6 @@ func (c *Client) SetFormation(app, process string, count, memory int) error {
 	params["memory"] = strconv.Itoa(memory)
 
 	err := c.Post(fmt.Sprintf("/apps/%s/formation/%s", app, process), params, &success)
-
 	if err != nil {
 		return err
 	}

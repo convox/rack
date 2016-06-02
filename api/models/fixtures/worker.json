@@ -13,6 +13,30 @@
         ""
       ]
     },
+    "DisabledPostgresDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "PostgresDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
+    "DisabledWorkerDesiredCount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerDesiredCount"
+            },
+            -1
+          ]
+        }
+      ]
+    },
     "Private": {
       "Fn::Equals": [
         {
@@ -37,6 +61,14 @@
               "Ref": "AWS::Region"
             },
             "us-west-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-west-1"
           ]
         }
       ]
@@ -132,6 +164,7 @@
     "PostgresDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "PostgresMemory": {
@@ -181,6 +214,7 @@
     "WorkerDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1,
       "Type": "Number"
     },
     "WorkerMemory": {
@@ -277,6 +311,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "PostgresECSService": {
+      "Condition": "DisabledPostgresDesiredCount",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -489,6 +524,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WorkerECSService": {
+      "Condition": "DisabledWorkerDesiredCount",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"

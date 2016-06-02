@@ -150,6 +150,7 @@
 {{ define "process-conditions" }}
   {{ range $k := .EntryNames }}
     "Blank{{ upper $k }}Service": { "Fn::Equals": [ "", "" ] },
+    "Disabled{{ upper $k }}DesiredCount": { "Fn::Not": [{ "Fn::Equals": [ {"Ref": "{{ upper $k }}DesiredCount" }, -1 ] }] },
   {{ end }}
 {{ end }}
 
@@ -163,7 +164,8 @@
     "{{ upper $e.Name }}DesiredCount": {
       "Type" : "Number",
       "Default" : "1",
-      "Description" : "The number of instantiations of the process to place and keep running on your cluster"
+      "Description" : "The number of instantiations of the process to place and keep running on your cluster",
+      "MinValue": -1
     },
   {{ end }}
 {{ end }}
@@ -207,6 +209,7 @@
         }
       },
       "{{ upper $e.Name }}ECSService": {
+        "Condition": "Disabled{{ upper $e.Name }}DesiredCount",
         "DependsOn": [
           {{ if $e.HasBalancer }}
             "{{ $manifest.BalancerResourceName $e.Name }}",
@@ -296,13 +299,16 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     "Balancer{{ upper .ProcessName }}Host": {
+      "Condition": "Disabled{{ upper .ProcessName }}DesiredCount",
       "Value": { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] }
     },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
+        "Condition": "Disabled{{ upper $balancer.ProcessName }}DesiredCount",
         "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
+        "Condition": "Disabled{{ upper $balancer.ProcessName }}DesiredCount",
         "Value": {{ $balancer.LoadBalancerName }}
       },
     {{ end }}
@@ -313,6 +319,7 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     "{{ .ResourceName }}SecurityGroup": {
+      "Condition": "Disabled{{ upper $balancer.ProcessName }}DesiredCount",
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
@@ -332,6 +339,7 @@
     },
     "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Condition": "Disabled{{ upper .ProcessName }}DesiredCount",
       "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
         {{ if eq .Scheme "internal" }}
@@ -521,7 +529,8 @@
   "RegionHasRegistry": {
       "Fn::Or": [
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
-        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]}
+        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
+        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
       ]
   },
 {{ end }}

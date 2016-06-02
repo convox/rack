@@ -19,7 +19,6 @@ func main() {
 	}
 
 	data, err := ioutil.ReadFile(os.Args[1])
-
 	if err != nil {
 		die(err)
 	}
@@ -35,13 +34,11 @@ func main() {
 	}
 
 	m, err := models.LoadManifest(string(data), app)
-
 	if err != nil {
 		die(err)
 	}
 
 	f, err := m.Formation()
-
 	if err != nil {
 		die(err)
 	}
