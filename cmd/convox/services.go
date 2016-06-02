@@ -23,10 +23,6 @@ func init() {
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
 		ServiceType{
-			"papertrail",
-			"--url=logs1.papertrailapp.com:11235",
-		},
-		ServiceType{
 			"postgres",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private]",
 		},
@@ -45,6 +41,10 @@ func init() {
 		ServiceType{
 			"sqs",
 			"",
+		},
+		ServiceType{
+			"syslog",
+			"--url=tcp+tls://logs1.papertrailapp.com:11235",
 		},
 		ServiceType{
 			"webhook",
