@@ -17,6 +17,7 @@ release:
 	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 
 templates:
+	go get -u github.com/jteeuwen/go-bindata/...
 	make -C api templates
 	make -C cmd/convox templates
 
