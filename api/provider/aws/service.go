@@ -254,6 +254,7 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	linked := false
 	for _, linkedApp := range s.Apps {
 		if a.Name == linkedApp.Name {
+			linked = true
 			break
 		}
 	}
