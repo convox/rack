@@ -892,6 +892,9 @@
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+            "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
+            "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
+            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
             { "Fn::If": [ "BlankCertificate",
               { "Fn::Join": [ "", [
                 "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config\n",
