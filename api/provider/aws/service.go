@@ -27,7 +27,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 
 	switch s.Type {
 	case "papertrail":
-		err = fmt.Errorf("papertrail is no longer supported. Create a `syslog` service instead.")
+		err = fmt.Errorf("papertrail is no longer supported. Create a `syslog` service instead")
 	case "syslog":
 		req, err = createSyslog(s)
 	default:
@@ -173,7 +173,7 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 	// can't link
 	switch s.Type {
 	case "papertrail":
-		return nil, fmt.Errorf("Papertrail linking is no longer supported. Delete the papertrail service and create a new `syslog` service instead.")
+		return nil, fmt.Errorf("Papertrail linking is no longer supported. Delete the papertrail service and create a new `syslog` service instead")
 	}
 
 	// can't link to process or process does not exist
@@ -201,11 +201,11 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 }
 
 func (p *AWSProvider) ServiceLinkReplace(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Replacing a process with a service is not yet implemented.")
+	return fmt.Errorf("Replacing a process with a service is not yet implemented")
 }
 
 func (p *AWSProvider) ServiceLinkSet(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Setting an environment variable for a service is not yet implemented.")
+	return fmt.Errorf("Setting an environment variable for a service is not yet implemented")
 }
 
 func (p *AWSProvider) ServiceLinkSubscribe(a *structs.App, s *structs.Service) error {
@@ -247,7 +247,7 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	// can't unlink
 	switch s.Type {
 	case "papertrail":
-		return nil, fmt.Errorf("Papertrail unlinking is no longer supported. Delete the papertrail service and create a new `syslog` service instead.")
+		return nil, fmt.Errorf("Papertrail unlinking is no longer supported. Delete the papertrail service and create a new `syslog` service instead")
 	}
 
 	// already linked
@@ -279,11 +279,11 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 }
 
 func (p *AWSProvider) ServiceUnlinkReplace(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Un-replacing a process with a service is not yet implemented.")
+	return fmt.Errorf("Un-replacing a process with a service is not yet implemented")
 }
 
 func (p *AWSProvider) ServiceUnlinkSet(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Un-setting an environment variable for a service is not yet implemented.")
+	return fmt.Errorf("Un-setting an environment variable for a service is not yet implemented")
 }
 
 func (p *AWSProvider) ServiceUnlinkSubscribe(a *structs.App, s *structs.Service) error {
@@ -329,7 +329,7 @@ func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) 
 	case "udp", "tcp", "tcp+tls":
 		// proceed
 	default:
-		return nil, fmt.Errorf("Invalid url scheme `%s`. Allowed schemes are `udp`, `tcp`, `tcp+tls`.", u.Scheme)
+		return nil, fmt.Errorf("Invalid url scheme `%s`. Allowed schemes are `udp`, `tcp`, `tcp+tls`", u.Scheme)
 	}
 
 	formation, err := serviceFormation(s.Type, nil)
