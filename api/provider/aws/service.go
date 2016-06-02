@@ -26,10 +26,13 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
+	case "papertrail":
+		err = fmt.Errorf("papertrail is no longer supported. Create a `syslog` service instead.")
 	case "syslog":
 		req, err = createSyslog(s)
+	default:
+		err = fmt.Errorf("Invalid service type: %s", s.Type)
 	}
-
 	if err != nil {
 		return s, err
 	}
@@ -97,17 +100,14 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(os.Getenv("RACK") + "-" + name),
 	})
-
 	if awsError(err) == "ValidationError" {
 		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(name),
 		})
 	}
-
 	if err != nil {
 		return nil, err
 	}
-
 	if len(res.Stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for service: %s", name)
 	}
@@ -172,10 +172,8 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 
 	// can't link
 	switch s.Type {
-	case "syslog":
-		// noop
-	default:
-		return nil, fmt.Errorf("Service type %s can not be linked", s.Type)
+	case "papertrail":
+		return nil, fmt.Errorf("Papertrail linking is no longer supported. Delete the papertrail service and create a new `syslog` service instead.")
 	}
 
 	// can't link to process or process does not exist
@@ -184,7 +182,6 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 		default:
 			return nil, fmt.Errorf("Service type %s can not replace a process", s.Type)
 		}
-
 		// TODO: Port Resource and Resources and validate that UpperName(process)+"ECSTaskDefinition" exists
 	}
 
@@ -245,6 +242,12 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	s, err := p.ServiceGet(name)
 	if err != nil {
 		return nil, err
+	}
+
+	// can't unlink
+	switch s.Type {
+	case "papertrail":
+		return nil, fmt.Errorf("Papertrail unlinking is no longer supported. Delete the papertrail service and create a new `syslog` service instead.")
 	}
 
 	// already linked

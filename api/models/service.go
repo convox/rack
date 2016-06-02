@@ -119,8 +119,6 @@ func (s *Service) Create() error {
 	var err error
 
 	switch s.Type {
-	case "papertrail":
-		req, err = s.CreatePapertrail()
 	case "webhook":
 		req, err = s.CreateWebhook()
 	case "s3":
@@ -195,8 +193,6 @@ func (s *Service) Update(changes map[string]string) error {
 	var err error
 
 	switch s.Type {
-	case "papertrail":
-		return fmt.Errorf("can not update papertrail")
 	case "webhook":
 		return fmt.Errorf("can not update webhook")
 	case "s3", "sns", "sqs":
