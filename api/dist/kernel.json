@@ -72,9 +72,6 @@
       "Condition": "Development",
       "Value": { "Ref": "EncryptionKey" }
     },
-    "Kinesis": {
-      "Value": { "Ref": "Kinesis" }
-    },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
     },
@@ -311,12 +308,6 @@
         "Description": "Convox Master Encryption",
         "KeyUsage": "ENCRYPT_DECRYPT"
       }
-    },
-    "Kinesis": {
-      "Properties": {
-        "ShardCount": 1
-      },
-      "Type": "AWS::Kinesis::Stream"
     },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
@@ -849,7 +840,7 @@
       }
     },
     "LaunchConfiguration": {
-      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "Kinesis", "LogGroup" ],
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
@@ -907,7 +898,6 @@
             "  - mkdir -p /etc/convox\n",
             "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
             "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
-            "  - echo \"", { "Ref": "Kinesis" }, "\" > /etc/convox/kinesis\n",
             "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
             "  - curl -s https://convox.s3.amazonaws.com/agent/0.69/convox.conf > /etc/init/convox.conf\n",
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
@@ -1449,7 +1439,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "ApiWebTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -1471,7 +1461,6 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
-              "KINESIS": { "Ref": "Kinesis" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
@@ -1519,7 +1508,6 @@
               "AWS_ACCESS": { "Ref": "RegistryAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
               "BUCKET": { "Ref": "RegistryBucket" },
-              "KINESIS": { "Ref": "Kinesis" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "PASSWORD": { "Ref": "Password" },
               "PROCESS": "registry",
@@ -1542,7 +1530,7 @@
       "Version": "1.0"
     },
     "ApiMonitorTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "Kinesis", "LogGroup", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1", "Subnet2", "Vpc" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -1565,7 +1553,6 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
-              "KINESIS": { "Ref": "Kinesis" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
