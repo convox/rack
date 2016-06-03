@@ -150,7 +150,7 @@
 {{ define "process-conditions" }}
   {{ range $k := .EntryNames }}
     "Blank{{ upper $k }}Service": { "Fn::Equals": [ "", "" ] },
-    "Enabled{{ upper $k }}DesiredCount": { "Fn::Not": [{ "Fn::Equals": [ {"Ref": "{{ upper $k }}DesiredCount" }, -1 ] }] },
+    "Enabled{{ upper $k }}": { "Fn::Not": [{ "Fn::Equals": [ {"Ref": "{{ upper $k }}DesiredCount" }, -1 ] }] },
   {{ end }}
 {{ end }}
 
@@ -209,7 +209,7 @@
         }
       },
       "{{ upper $e.Name }}ECSService": {
-        "Condition": "Enabled{{ upper $e.Name }}DesiredCount",
+        "Condition": "Enabled{{ upper $e.Name }}",
         "DependsOn": [
           {{ if $e.HasBalancer }}
             "{{ $manifest.BalancerResourceName $e.Name }}",
@@ -299,16 +299,16 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     "Balancer{{ upper .ProcessName }}Host": {
-      "Condition": "Enabled{{ upper .ProcessName }}DesiredCount",
+      "Condition": "Enabled{{ upper .ProcessName }}",
       "Value": { "Fn::GetAtt": [ "{{ .ResourceName }}", "DNSName" ] }
     },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
-        "Condition": "Enabled{{ upper $balancer.ProcessName }}DesiredCount",
+        "Condition": "Enabled{{ upper $balancer.ProcessName }}",
         "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
-        "Condition": "Enabled{{ upper $balancer.ProcessName }}DesiredCount",
+        "Condition": "Enabled{{ upper $balancer.ProcessName }}",
         "Value": {{ $balancer.LoadBalancerName }}
       },
     {{ end }}
@@ -319,7 +319,7 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     "{{ .ResourceName }}SecurityGroup": {
-      "Condition": "Enabled{{ upper $balancer.ProcessName }}DesiredCount",
+      "Condition": "Enabled{{ upper $balancer.ProcessName }}",
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
@@ -339,7 +339,7 @@
     },
     "{{ .ResourceName }}": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-      "Condition": "Enabled{{ upper .ProcessName }}DesiredCount",
+      "Condition": "Enabled{{ upper .ProcessName }}",
       "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
         {{ if eq .Scheme "internal" }}

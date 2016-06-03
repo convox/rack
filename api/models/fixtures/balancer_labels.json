@@ -23,7 +23,7 @@
         ""
       ]
     },
-    "DisabledMainDesiredCount": {
+    "EnabledMain": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -98,7 +98,7 @@
   },
   "Outputs": {
     "BalancerMainHost": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "Value": {
         "Fn::GetAtt": [
           "BalancerMain",
@@ -117,13 +117,13 @@
       }
     },
     "MainPort443Balancer": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "Value": {
         "Ref": "MainPort443Balancer"
       }
     },
     "MainPort443BalancerName": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
@@ -275,7 +275,7 @@
   },
   "Resources": {
     "BalancerMain": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "DependsOn": [
         "BalancerMainSecurityGroup"
       ],
@@ -419,7 +419,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerMainSecurityGroup": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -540,7 +540,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "MainECSService": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "DependsOn": [
         "BalancerMain",
         "CustomTopic",
