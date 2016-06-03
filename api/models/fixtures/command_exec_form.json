@@ -7,7 +7,7 @@
         ""
       ]
     },
-    "DisabledMainDesiredCount": {
+    "EnabledMain": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -282,7 +282,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "MainECSService": {
-      "Condition": "DisabledMainDesiredCount",
+      "Condition": "EnabledMain",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
