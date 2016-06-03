@@ -45,7 +45,7 @@
         ""
       ]
     },
-    "DisabledPostgresDesiredCount": {
+    "EnabledPostgres": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -57,7 +57,7 @@
         }
       ]
     },
-    "DisabledWebDesiredCount": {
+    "EnabledWeb": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -132,7 +132,7 @@
   },
   "Outputs": {
     "BalancerWebHost": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWeb",
@@ -171,23 +171,23 @@
       }
     },
     "WebPort443Balancer": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Ref": "WebPort443Balancer"
       }
     },
     "WebPort443BalancerName": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": "httpd-web-XHW5F4P"
     },
     "WebPort80Balancer": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": "httpd-web-XHW5F4P"
     }
   },
@@ -374,7 +374,7 @@
   },
   "Resources": {
     "BalancerWeb": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -604,7 +604,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebSecurityGroup": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -735,7 +735,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "PostgresECSService": {
-      "Condition": "DisabledPostgresDesiredCount",
+      "Condition": "EnabledPostgres",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -948,7 +948,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWeb",
         "CustomTopic",

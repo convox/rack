@@ -421,7 +421,7 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 				//return m, fmt.Errorf("Cannot discover balancer for link %q", link)
 				continue
 			}
-			host := fmt.Sprintf(`{ "Fn::If" : [ "Enabled%sDesiredCount", { "Fn::GetAtt" : [ "%s", "DNSName" ] }, "DISABLED" ] }`, UpperName(other.Name), mb.ResourceName())
+			host := fmt.Sprintf(`{ "Fn::If" : [ "Enabled%s", { "Fn::GetAtt" : [ "%s", "DNSName" ] }, "DISABLED" ] }`, UpperName(other.Name), mb.ResourceName())
 
 			if len(other.Ports) == 0 {
 				// commented out to be less strict, just don't create the link

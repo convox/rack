@@ -45,7 +45,7 @@
         ""
       ]
     },
-    "DisabledWebDesiredCount": {
+    "EnabledWeb": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -57,7 +57,7 @@
         }
       ]
     },
-    "DisabledWorkerDesiredCount": {
+    "EnabledWorker": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -132,7 +132,7 @@
   },
   "Outputs": {
     "BalancerWebHost": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWeb",
@@ -141,7 +141,7 @@
       }
     },
     "BalancerWorkerHost": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWorker",
@@ -180,23 +180,23 @@
       }
     },
     "WebPort80Balancer": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": "httpd-web-XHW5F4P"
     },
     "WorkerPort80Balancer": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "Value": {
         "Ref": "WorkerPort80Balancer"
       }
     },
     "WorkerPort80BalancerName": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "Value": "httpd-worker-3XM5YXK"
     }
   },
@@ -383,7 +383,7 @@
   },
   "Resources": {
     "BalancerWeb": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -527,7 +527,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebSecurityGroup": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -562,7 +562,7 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "BalancerWorker": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "DependsOn": [
         "BalancerWorkerSecurityGroup"
       ],
@@ -706,7 +706,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWorkerSecurityGroup": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -906,7 +906,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWeb",
         "CustomTopic",
@@ -1063,7 +1063,7 @@
       "Version": "1.0"
     },
     "WorkerECSService": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "DependsOn": [
         "BalancerWorker",
         "CustomTopic",

@@ -39,7 +39,7 @@
         ""
       ]
     },
-    "DisabledWebDesiredCount": {
+    "EnabledWeb": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -114,7 +114,7 @@
   },
   "Outputs": {
     "BalancerWebHost": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWebInternal",
@@ -153,23 +153,23 @@
       }
     },
     "WebPort3001Balancer": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Ref": "WebPort3001Balancer"
       }
     },
     "WebPort3001BalancerName": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": "httpd-web-XHW5F4P-i"
     },
     "WebPort80Balancer": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": "httpd-web-XHW5F4P-i"
     }
   },
@@ -345,7 +345,7 @@
   },
   "Resources": {
     "BalancerWebInternal": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWebInternalSecurityGroup"
       ],
@@ -584,7 +584,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebInternalSecurityGroup": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -794,7 +794,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWebInternal",
         "CustomTopic",

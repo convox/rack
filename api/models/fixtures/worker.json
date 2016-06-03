@@ -13,7 +13,7 @@
         ""
       ]
     },
-    "DisabledPostgresDesiredCount": {
+    "EnabledPostgres": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -25,7 +25,7 @@
         }
       ]
     },
-    "DisabledWorkerDesiredCount": {
+    "EnabledWorker": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -311,7 +311,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "PostgresECSService": {
-      "Condition": "DisabledPostgresDesiredCount",
+      "Condition": "EnabledPostgres",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -524,7 +524,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WorkerECSService": {
-      "Condition": "DisabledWorkerDesiredCount",
+      "Condition": "EnabledWorker",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"

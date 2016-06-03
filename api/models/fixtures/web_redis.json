@@ -45,7 +45,7 @@
         ""
       ]
     },
-    "DisabledRedisDesiredCount": {
+    "EnabledRedis": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -57,7 +57,7 @@
         }
       ]
     },
-    "DisabledWebDesiredCount": {
+    "EnabledWeb": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -132,7 +132,7 @@
   },
   "Outputs": {
     "BalancerRedisHost": {
-      "Condition": "DisabledRedisDesiredCount",
+      "Condition": "EnabledRedis",
       "Value": {
         "Fn::GetAtt": [
           "BalancerRedisInternal",
@@ -141,7 +141,7 @@
       }
     },
     "BalancerWebHost": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Fn::GetAtt": [
           "BalancerWeb",
@@ -160,13 +160,13 @@
       }
     },
     "RedisPort6379Balancer": {
-      "Condition": "DisabledRedisDesiredCount",
+      "Condition": "EnabledRedis",
       "Value": {
         "Ref": "RedisPort6379Balancer"
       }
     },
     "RedisPort6379BalancerName": {
-      "Condition": "DisabledRedisDesiredCount",
+      "Condition": "EnabledRedis",
       "Value": "httpd-redis-NVCY43S-i"
     },
     "RegistryId": {
@@ -190,13 +190,13 @@
       }
     },
     "WebPort80Balancer": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": {
         "Ref": "WebPort80Balancer"
       }
     },
     "WebPort80BalancerName": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Value": "httpd-web-XHW5F4P"
     }
   },
@@ -383,7 +383,7 @@
   },
   "Resources": {
     "BalancerRedisInternal": {
-      "Condition": "DisabledRedisDesiredCount",
+      "Condition": "EnabledRedis",
       "DependsOn": [
         "BalancerRedisInternalSecurityGroup"
       ],
@@ -536,7 +536,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerRedisInternalSecurityGroup": {
-      "Condition": "DisabledRedisDesiredCount",
+      "Condition": "EnabledRedis",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -571,7 +571,7 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "BalancerWeb": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWebSecurityGroup"
       ],
@@ -715,7 +715,7 @@
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
     "BalancerWebSecurityGroup": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -836,7 +836,7 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "RedisECSService": {
-      "Condition": "DisabledRedisDesiredCount",
+      "Condition": "EnabledRedis",
       "DependsOn": [
         "BalancerRedisInternal",
         "CustomTopic",
@@ -1075,7 +1075,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "WebECSService": {
-      "Condition": "DisabledWebDesiredCount",
+      "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWeb",
         "CustomTopic",
