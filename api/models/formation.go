@@ -21,7 +21,6 @@ type Formation []FormationEntry
 
 func ListFormation(app string) (Formation, error) {
 	a, err := GetApp(app)
-
 	if err != nil {
 		return nil, err
 	}
@@ -31,13 +30,11 @@ func ListFormation(app string) (Formation, error) {
 	}
 
 	release, err := GetRelease(a.Name, a.Release)
-
 	if err != nil {
 		return nil, err
 	}
 
 	manifest, err := LoadManifest(release.Manifest, a)
-
 	if err != nil {
 		return nil, err
 	}
