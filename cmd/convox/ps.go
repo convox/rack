@@ -46,6 +46,11 @@ func cmdPs(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	if c.Bool("help") {
+		stdcli.Usage(c, "")
+		return nil
+	}
+
 	ps, err := rackClient(c).GetProcesses(app, c.Bool("stats"))
 	if err != nil {
 		return stdcli.ExitError(err)
