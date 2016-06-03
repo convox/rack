@@ -30,6 +30,7 @@ web:
     - SUBNETS
     - SUBNETS_PRIVATE
     - VPC
+    - VPCCIDR
     - KINESIS
     - LOG_GROUP
     - PROCESS=web
