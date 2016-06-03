@@ -347,8 +347,13 @@ func cmdInstall(c *cli.Context) error {
 			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
 		}
 
+		t := new(bytes.Buffer)
+		if err := json.Compact(t, dat); err != nil {
+			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+		}
+
 		req.TemplateURL = nil
-		req.TemplateBody = aws.String(string(dat))
+		req.TemplateBody = aws.String(t.String())
 	}
 
 	res, err := CloudFormation.CreateStack(req)
