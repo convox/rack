@@ -19,7 +19,6 @@ func (c *Client) ListFormation(app string) (Formation, error) {
 	var formation Formation
 
 	err := c.Get(fmt.Sprintf("/apps/%s/formation", app), &formation)
-
 	if err != nil {
 		return nil, err
 	}

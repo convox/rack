@@ -129,15 +129,13 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 	return code, nil
 }
 func validateProcessId(c *cli.Context, app, ps string) error {
-
-	processes, err := rackClient(c).GetProcesses(app, false)
-
+	formation, err := rackClient(c).ListFormation(app)
 	if err != nil {
 		return err
 	}
 
-	for _, p := range processes {
-		if ps == p.Name {
+	for _, f := range formation {
+		if ps == f.Name {
 			return nil
 		}
 	}
