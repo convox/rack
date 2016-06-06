@@ -68,7 +68,7 @@ func cmdUninstall(c *cli.Context) error {
 
 	credentialsFile := ""
 	if len(c.Args()) == 3 {
-		credentialsFile = c.Args()[3]
+		credentialsFile = c.Args()[2]
 	}
 
 	fmt.Println(Banner)
