@@ -1387,9 +1387,9 @@
           "IndexName": "app.created",
           "KeySchema": [ { "AttributeName": "app", "KeyType": "HASH" }, { "AttributeName": "created", "KeyType": "RANGE" } ],
           "Projection": { "ProjectionType": "ALL" },
-          "ProvisionedThroughput": { "ReadCapacityUnits": "20", "WriteCapacityUnits": "20" }
+          "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
         }],
-        "ProvisionedThroughput": { "ReadCapacityUnits": "20", "WriteCapacityUnits": "20" }
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
       }
     },
     "DynamoReleases": {
@@ -1406,9 +1406,9 @@
           "IndexName": "app.created",
           "KeySchema": [ { "AttributeName": "app", "KeyType": "HASH" }, { "AttributeName": "created", "KeyType": "RANGE" } ],
           "Projection": { "ProjectionType": "ALL" },
-          "ProvisionedThroughput": { "ReadCapacityUnits": "20", "WriteCapacityUnits": "20" }
+          "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
         }],
-        "ProvisionedThroughput": { "ReadCapacityUnits": "20", "WriteCapacityUnits": "20" }
+        "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
       }
     },
     "Settings": {

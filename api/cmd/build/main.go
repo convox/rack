@@ -126,9 +126,11 @@ func cloneGit(s string) {
 	writeAsset("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil)
 
 	run(".", "git", "clone", "--progress", repo, "src")
+	run("src", "git", "submodule", "update", "--init", "--recursive")
 
 	if commitish != "" {
 		run("src", "git", "checkout", commitish)
+		run("src", "git", "submodule", "update", "--recursive")
 	}
 
 	run("src", "/usr/local/bin/git-restore-mtime", ".")
