@@ -47,14 +47,6 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	notifyData := map[string]string{}
 
 	if count := GetForm(r, "count"); count != "" {
-		stack, err := models.GetApp(rack.Name)
-		if err != nil {
-			return httperr.Errorf(404, "no such stack")
-		}
-
-		if stack.Parameters["Autoscale"] == "Yes" {
-			return httperr.Errorf(403, "count prohibited when Autoscaling is enabled")
-		}
 
 		count, err := strconv.Atoi(count)
 		if err != nil {
@@ -65,6 +57,15 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if count != -1 {
 			if count <= 1 {
 				return httperr.Errorf(403, "count must be greater than 1")
+			}
+
+			stack, err := provider.AppGet(rack.Name)
+			if err != nil {
+				return httperr.Errorf(404, "no such stack")
+			}
+
+			if stack.Parameters["Autoscale"] == "Yes" {
+				return httperr.Errorf(403, "count prohibited when autoscaling is enabled")
 			}
 
 			rack.Count = count
