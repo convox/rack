@@ -11,7 +11,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "scale",
 		Description: "scale an app's processes",
-		Usage:       "<process> [--count=2] [--memory=512]",
+		Usage:       "<process> [--count=2] [--memory=256] [--cpu=256]",
 		Action:      cmdScale,
 		Flags: []cli.Flag{appFlag,
 			cli.IntFlag{
@@ -21,6 +21,10 @@ func init() {
 			cli.IntFlag{
 				Name:  "memory",
 				Usage: "Amount of memory, in MB, available to specified process type.",
+			},
+			cli.IntFlag{
+				Name:  "cpu",
+				Usage: "CPU units available to specified process type.",
 			},
 		},
 	})
@@ -35,6 +39,7 @@ func cmdScale(c *cli.Context) error {
 	// initialize to invalid values that indicate no change
 	count := -2 // -1 is valid, indicates removing the process and ELB
 	memory := -1
+	cpu := -1
 
 	if c.IsSet("count") {
 		count = c.Int("count")
@@ -44,13 +49,17 @@ func cmdScale(c *cli.Context) error {
 		memory = c.Int("memory")
 	}
 
+	if c.IsSet("cpu") {
+		cpu = c.Int("cpu")
+	}
+
 	// validate single process type argument
 	switch len(c.Args()) {
 	case 0:
 		displayFormation(c, app)
 		return nil
 	case 1:
-		if count == -2 && memory == -1 {
+		if count == -2 && memory == -1 && cpu == -1 {
 			displayFormation(c, app)
 			return nil
 		}
@@ -62,7 +71,7 @@ func cmdScale(c *cli.Context) error {
 
 	process := c.Args()[0]
 
-	err = rackClient(c).SetFormation(app, process, count, memory)
+	err = rackClient(c).SetFormation(app, process, count, memory, cpu)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
@@ -93,10 +102,10 @@ func displayFormation(c *cli.Context, app string) error {
 		}
 	}
 
-	t := stdcli.NewTable("NAME", "DESIRED", "RUNNING", "MEMORY")
+	t := stdcli.NewTable("NAME", "DESIRED", "RUNNING", "MEMORY", "CPU")
 
 	for _, f := range formation {
-		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", running[f.Name]), fmt.Sprintf("%d", f.Memory))
+		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", running[f.Name]), fmt.Sprintf("%d", f.Memory), fmt.Sprintf("%d", f.Cpu))
 	}
 
 	t.Print()
