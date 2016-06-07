@@ -28,11 +28,9 @@ func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rack, err := provider.SystemGet()
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -42,7 +40,6 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rack, err := provider.SystemGet()
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -50,6 +47,15 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	notifyData := map[string]string{}
 
 	if count := GetForm(r, "count"); count != "" {
+		stack, err := models.GetApp(rack.Name)
+		if err != nil {
+			return httperr.Errorf(404, "no such stack")
+		}
+
+		if stack.Parameters["Autoscale"] == "Yes" {
+			return httperr.Errorf(403, "count prohibited when Autoscaling is enabled")
+		}
+
 		count, err := strconv.Atoi(count)
 		if err != nil {
 			return httperr.Errorf(403, "count must be an integer")
@@ -82,13 +88,11 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	err = provider.SystemSave(*rack)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	rack, err = provider.SystemGet()
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -100,7 +104,6 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	capacity, err := provider.CapacityGet()
-
 	if err != nil {
 		return httperr.Server(err)
 	}
