@@ -105,7 +105,7 @@ func displayFormation(c *cli.Context, app string) error {
 	t := stdcli.NewTable("NAME", "DESIRED", "RUNNING", "MEMORY", "CPU")
 
 	for _, f := range formation {
-		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", running[f.Name]), fmt.Sprintf("%d", f.Memory), fmt.Sprintf("%d", f.Cpu))
+		t.AddRow(f.Name, fmt.Sprintf("%d", f.Count), fmt.Sprintf("%d", running[f.Name]), fmt.Sprintf("%d", f.Memory), fmt.Sprintf("%d", f.CPU))
 	}
 
 	t.Print()

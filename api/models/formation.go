@@ -14,7 +14,7 @@ type FormationEntry struct {
 	Name     string `json:"name"`
 	Count    int    `json:"count"`
 	Memory   int    `json:"memory"`
-	Cpu      int    `json:"cpu"`
+	CPU      int    `json:"cpu"`
 	Ports    []int  `json:"ports"`
 }
 
@@ -68,7 +68,7 @@ func ListFormation(app string) (Formation, error) {
 			Name:     me.Name,
 			Count:    count,
 			Memory:   memory,
-			Cpu:      cpu,
+			CPU:      cpu,
 			Ports:    ports,
 		})
 	}
@@ -122,8 +122,8 @@ func SetFormation(app, process string, count, memory, cpu int64) error {
 	}
 
 	if cpu > 0 {
-		if cpu > capacity.InstanceCpu {
-			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCpu)
+		if cpu > capacity.InstanceCPU {
+			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
 		}
 
 		params[fmt.Sprintf("%sCpu", UpperName(process))] = fmt.Sprintf("%d", cpu)
