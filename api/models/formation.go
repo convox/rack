@@ -14,6 +14,7 @@ type FormationEntry struct {
 	Name     string `json:"name"`
 	Count    int    `json:"count"`
 	Memory   int    `json:"memory"`
+	CPU      int    `json:"cpu"`
 	Ports    []int  `json:"ports"`
 }
 
@@ -44,6 +45,7 @@ func ListFormation(app string) (Formation, error) {
 	for _, me := range manifest {
 		count, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
 		memory, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
+		cpu, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
 
 		re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, UpperName(me.Name)))
 
@@ -63,6 +65,7 @@ func ListFormation(app string) (Formation, error) {
 			Name:     me.Name,
 			Count:    count,
 			Memory:   memory,
+			CPU:      cpu,
 			Ports:    ports,
 		})
 	}
@@ -73,8 +76,8 @@ func ListFormation(app string) (Formation, error) {
 }
 
 // Update Process Parameters for Count and Memory
-// Expects -1 for count or memory to indicate no change, since count=0 is valid
-func SetFormation(app, process string, count, memory int64) error {
+// Expects -1 for memory and cpu and -2 for count to indicate no change, since count=0 is valid
+func SetFormation(app, process string, count, memory, cpu int64) error {
 	a, err := GetApp(app)
 	if err != nil {
 		return err
@@ -113,6 +116,14 @@ func SetFormation(app, process string, count, memory int64) error {
 		}
 
 		params[fmt.Sprintf("%sMemory", UpperName(process))] = fmt.Sprintf("%d", memory)
+	}
+
+	if cpu > 0 {
+		if cpu > capacity.InstanceCPU {
+			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
+		}
+
+		params[fmt.Sprintf("%sCpu", UpperName(process))] = fmt.Sprintf("%d", cpu)
 	}
 
 	NotifySuccess("release:scale", map[string]string{

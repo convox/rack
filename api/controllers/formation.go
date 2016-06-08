@@ -40,7 +40,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	// initialize to invalid values that indicate no change
-	var count, memory int64 = -2, -1
+	var count, memory, cpu int64 = -2, -1, -1
 
 	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
@@ -51,6 +51,14 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
+	if cc := GetForm(r, "cpu"); cc != "" {
+		c, err := strconv.ParseInt(cc, 10, 64)
+		if err != nil {
+			return httperr.Errorf(403, "cpu must be numeric")
+		}
+		cpu = c
+	}
+
 	if mm := GetForm(r, "memory"); mm != "" {
 		if m, err := strconv.ParseInt(mm, 10, 64); err != nil {
 			return httperr.Errorf(403, "memory must be numeric")
@@ -59,7 +67,7 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	err = models.SetFormation(app, process, count, memory)
+	err = models.SetFormation(app, process, count, memory, cpu)
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ValidationError" {
 			switch {

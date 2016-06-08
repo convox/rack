@@ -197,6 +197,10 @@ var describeStacksCycle = awsutil.Cycle{
           </member>
           <member>
             <ParameterValue>256</ParameterValue>
+            <ParameterKey>WebCpu</ParameterKey>
+          </member>
+          <member>
+            <ParameterValue>256</ParameterValue>
             <ParameterKey>WebMemory</ParameterKey>
           </member>
           <member>
@@ -238,10 +242,6 @@ var describeStacksCycle = awsutil.Cycle{
           <member>
             <ParameterValue>No</ParameterValue>
             <ParameterKey>WebPort80Secure</ParameterKey>
-          </member>
-          <member>
-            <ParameterValue>200</ParameterValue>
-            <ParameterKey>Cpu</ParameterKey>
           </member>
           <member>
             <ParameterValue>subnet-13de3139,subnet-b5578fc3,subnet-21c13379</ParameterValue>
