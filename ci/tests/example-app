@@ -21,7 +21,7 @@ wait_for_app_state() {
 
   sleep 10
 
-  while convox apps info --app $APP_NAME | grep -i $1; do
+  while convox apps info --app $APP_NAME | tee $CIRCLE_ARTIFACTS/$APP_NAME-info.log && grep -i $1 $CIRCLE_ARTIFACTS/$APP_NAME-info.log; do
     let c=c+1
     [ $c -gt 60 ] && exit 1
 
@@ -34,7 +34,7 @@ wait_for_app_deployment() {
 
   sleep 10
 
-  while convox ps --app $APP_NAME | grep -i PENDING; do
+  while convox ps --app $APP_NAME | tee $CIRCLE_ARTIFACTS/$APP_NAME-ps.log && grep -i PENDING $CIRCLE_ARTIFACTS/$APP_NAME-ps.log; do
     let c=c+1
     [ $c -gt 60 ] && exit 1
 
@@ -73,7 +73,8 @@ wait_for_app_deployment
 convox apps info --app $APP_NAME
 
 #note: would like to do something like: `convox apps endpoint web --port 80`
-url=http://$(convox apps info --app $APP_NAME | egrep -o "[^ ]*${EXAMPLE_NAME}.*.amazonaws.com:80")
+convox apps info --app $APP_NAME | tee $CIRCLE_ARTIFACTS/$APP_NAME-url.log
+url=http://$(egrep -o "[^ ]*${EXAMPLE_NAME}.*.amazonaws.com:80" $CIRCLE_ARTIFACTS/$APP_NAME-url.log)
 
 wait_for_app_response $url
 
@@ -87,4 +88,4 @@ wait_for_app_deployment
 
 convox ps --app $APP_NAME
 
-convox run --app $APP_NAME web echo "hello world" | tee -a $CIRCLE_ARTIFACTS/$APP_NAME-run.log && grep -i "hello world" $CIRCLE_ARTIFACTS/$APP_NAME-run.log
+convox run --app $APP_NAME web echo "hello world" | tee $CIRCLE_ARTIFACTS/$APP_NAME-run.log && grep -i "hello world" $CIRCLE_ARTIFACTS/$APP_NAME-run.log
