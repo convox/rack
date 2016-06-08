@@ -206,11 +206,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Cpu": {
-      "Default": "200",
-      "Description": "CPU shares of each process",
-      "Type": "Number"
-    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -270,6 +265,11 @@
       "MinLength": "1",
       "Type": "String"
     },
+    "WebCpu": {
+      "Default": "256",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
+    },
     "WebDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
@@ -324,6 +324,11 @@
       "Default": "No",
       "Description": "",
       "Type": "String"
+    },
+    "WorkerCpu": {
+      "Default": "256",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "WorkerDesiredCount": {
       "Default": "1",
@@ -1007,6 +1012,9 @@
               "BlankWebService",
               {
                 "Command": "bash -c 'bundle exec puma -C config/puma.rb'",
+                "Cpu": {
+                  "Ref": "WebCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",
@@ -1164,6 +1172,9 @@
               "BlankWorkerService",
               {
                 "Command": "bash -c \"bundle exec worker\"",
+                "Cpu": {
+                  "Ref": "WorkerCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",
