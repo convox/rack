@@ -87,4 +87,4 @@ wait_for_app_deployment
 
 convox ps --app $APP_NAME
 
-convox run --app $APP_NAME web echo "hello world" | grep "hello world"
+convox run --app $APP_NAME web echo "hello world" | tee -a $CIRCLE_ARTIFACTS/$APP_NAME-run.log && grep -i "hello world" $CIRCLE_ARTIFACTS/$APP_NAME-run.log
