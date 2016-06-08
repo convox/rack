@@ -52,7 +52,8 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if cc := GetForm(r, "cpu"); cc != "" {
-		if c, err := strconv.ParseInt(cc, 10, 64); err != nil {
+		c, err := strconv.ParseInt(cc, 10, 64)
+		if err != nil {
 			return httperr.Errorf(403, "cpu must be numeric")
 		}
 		cpu = c

@@ -10,6 +10,7 @@ type FormationEntry struct {
 	Name     string `json:"name"`
 	Count    int    `json:"count"`
 	Memory   int    `json:"memory"`
+	CPU      int    `json:"cpu"`
 	Ports    []int  `json:"ports"`
 }
 
@@ -27,12 +28,13 @@ func (c *Client) ListFormation(app string) (Formation, error) {
 	return formation, nil
 }
 
-func (c *Client) SetFormation(app, process string, count, memory int) error {
+func (c *Client) SetFormation(app, process string, count, memory, cpu int) error {
 	var success interface{}
 
 	params := map[string]string{}
 	params["count"] = strconv.Itoa(count)
 	params["memory"] = strconv.Itoa(memory)
+	params["cpu"] = strconv.Itoa(cpu)
 
 	err := c.Post(fmt.Sprintf("/apps/%s/formation/%s", app, process), params, &success)
 	if err != nil {
