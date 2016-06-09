@@ -204,6 +204,7 @@ func ListProcesses(app string) ([]*Process, error) {
 		}
 
 		if ci == nil {
+			// Error out if it didn't find an ecs instance? Maybe just continue?
 			return nil, fmt.Errorf("could not find ECS instance")
 		}
 
@@ -217,6 +218,7 @@ func ListProcesses(app string) ([]*Process, error) {
 		}
 
 		if ec2i == nil {
+			// Error out if it didn't find an ec2 instance? Maybe just continue?
 			return nil, fmt.Errorf("could not find EC2 instance")
 		}
 
@@ -247,15 +249,14 @@ func ListProcesses(app string) ([]*Process, error) {
 		select {
 		case ps := <-psch:
 			pss = append(pss, &ps)
-		case err := <-errch:
-			return nil, err
+		default:
+			// noop
 		}
 	}
 
 	pending, err := ListPendingProcesses(app)
-
 	if err != nil {
-		return nil, err
+		fmt.Printf("ns=kernel at=ListProcesses state=error message=\"unable to get pending processes: %s\"\n", err)
 	}
 
 	pss = append(pss, pending...)
@@ -263,7 +264,7 @@ func ListProcesses(app string) ([]*Process, error) {
 	oneoff, err := ListOneoffProcesses(app)
 
 	if err != nil {
-		return nil, err
+		fmt.Printf("ns=kernel at=ListProcesses state=error message=\"unable to get one-off processes: %s\"\n", err)
 	}
 
 	pss = append(pss, oneoff...)
@@ -271,8 +272,11 @@ func ListProcesses(app string) ([]*Process, error) {
 	return pss, nil
 }
 
-func ListPendingProcesses(app string) ([]*Process, error) {
-	pss := make([]*Process, 0)
+// ListPendingProcesses tries to get a list of all pending processes.
+// If unable to connect to a docker daemon, or error out for another reason, it will bypass that instance and continue to other daemons.
+func ListPendingProcesses(app string) (Processes, error) {
+	// In AWS ECS, pending processes would present themselves during a deployment.
+	pss := Processes{}
 
 	services, err := GetAppServices(app)
 
@@ -294,9 +298,9 @@ func ListPendingProcesses(app string) ([]*Process, error) {
 			tres, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 				TaskDefinition: d.TaskDefinition,
 			})
-
 			if err != nil {
-				return nil, err
+				fmt.Printf("ns=kernel at=ListPendingProcesses state=error message=\"%s\"\n", err)
+				continue
 			}
 
 			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
@@ -326,6 +330,8 @@ func ListPendingProcesses(app string) ([]*Process, error) {
 	return pss, nil
 }
 
+// ListOneoffProcesses tries to get a list of all one-off processes.
+// If unable to connect to a docker daemon, it will bypass (instead of erroring out) and continue to other daemons.
 func ListOneoffProcesses(app string) (Processes, error) {
 	instances, err := provider.InstanceList()
 
@@ -337,9 +343,9 @@ func ListOneoffProcesses(app string) (Processes, error) {
 
 	for _, instance := range instances {
 		d, err := instance.DockerClient()
-
 		if err != nil {
-			return nil, err
+			fmt.Printf("ns=kernel at=ListOneoffProcesses state=error message=\"%s\"\n", err)
+			continue
 		}
 
 		pss, err := d.ListContainers(docker.ListContainersOptions{
@@ -350,31 +356,32 @@ func ListOneoffProcesses(app string) (Processes, error) {
 				},
 			},
 		})
-
 		if err != nil {
-			return nil, err
+			fmt.Printf("ns=kernel at=ListOneoffProcesses state=error message=\"%s\"\n", err)
+			continue
 		}
 
 		for _, ps := range pss {
-
-			c, err := d.InspectContainer(ps.ID)
-
-			if err != nil {
-				return nil, err
-			}
-
-			procs = append(procs, &Process{
+			p := &Process{
 				Id:      ps.ID[0:12],
 				Command: ps.Command,
 				Host:    instance.Ip(),
 				Name:    ps.Labels["com.convox.rack.process"],
 				Release: ps.Labels["com.convox.rack.release"],
-				Size:    c.HostConfig.Memory,
 				Started: time.Unix(ps.Created, 0),
 
 				containerId: ps.ID,
 				taskArn:     "", // empty taskArn indicated Docker container, not ECS task
-			})
+			}
+
+			c, err := d.InspectContainer(ps.ID)
+			if err != nil {
+				fmt.Printf("ns=kernel at=ListOneoffProcesses state=error message=\"%s\"\n", err)
+			} else {
+				p.Size = c.HostConfig.Memory
+			}
+
+			procs = append(procs, p)
 		}
 	}
 
@@ -393,6 +400,16 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		Ports: []string{},
 		Size:  *cd.Memory,
 	}
+
+	// We'll use some ECS container definition's data before which might be replaced with docker information later (if available)
+	for _, port := range cd.PortMappings {
+		ps.Ports = append(ps.Ports, fmt.Sprintf("%d:%d", *port.HostPort, *port.ContainerPort))
+	}
+
+	for _, command := range cd.Command {
+		ps.Command += fmt.Sprintf(" %s", *command)
+	}
+	ps.Command = strings.TrimSpace(ps.Command)
 
 	for _, env := range cd.Environment {
 		if *env.Name == "RELEASE" {
@@ -422,9 +439,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	// In testing use the stub Docker server.
 	// In development, modify the security group for port 2376 and use the public IP
 	// In production, use the private IP
-
 	ip := *instance.PrivateIpAddress
-
 	if os.Getenv("DEVELOPMENT") == "true" {
 		ip = *instance.PublicIpAddress
 	}
@@ -432,9 +447,9 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	ps.Host = ip
 
 	d, err := ps.Docker()
-
 	if err != nil {
-		errch <- fmt.Errorf("could not communicate with docker")
+		fmt.Printf("ns=kernel at=processes.list state=error message=\"%s\"\n", err)
+		psch <- ps
 		return
 	}
 
@@ -448,7 +463,8 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	})
 
 	if err != nil {
-		errch <- err
+		fmt.Printf("ns=kernel at=processes.list state=error message=\"%s\"\n", err)
+		psch <- ps
 		return
 	}
 
@@ -531,15 +547,15 @@ func (p *Process) Docker() (*docker.Client, error) {
 	return Docker(fmt.Sprintf("http://%s:2376", p.Host))
 }
 
+// FetchStats attempts to gather stats from docker.
+// Does nothing if unable to connect to the daemon.
 func (p *Process) FetchStats() error {
 	d, err := p.Docker()
-
 	if err != nil {
-		if err == ErrPending {
-			return nil
+		if err != ErrPending {
+			fmt.Println(`ns=kernel at=FetchStats state=error message="could not communicate with docker"`)
 		}
-
-		return fmt.Errorf("could not communicate with docker")
+		return nil
 	}
 
 	stch := make(chan *docker.Stats)
@@ -564,13 +580,15 @@ func (p *Process) FetchStats() error {
 		fmt.Println("timeout closing stats") // TODO: track this ?
 	}
 
-	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
-	psys := stat.PreCPUStats.SystemCPUUsage
+	if stat != nil {
+		pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+		psys := stat.PreCPUStats.SystemCPUUsage
 
-	p.Cpu = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
+		p.Cpu = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
 
-	if stat.MemoryStats.Limit > 0 {
-		p.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
+		if stat.MemoryStats.Limit > 0 {
+			p.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
+		}
 	}
 
 	return nil
