@@ -37,16 +37,16 @@ You can also use any existing Rack with the caveat that running a local Rack aga
 
 ## AWS Rack Ingress
 
-Parts of the API like `convox ps --stats` interact with the Docker daemon running on every AWS instance. To enable `convox ps --stats` to work locally you will want to open up access to the instance Docker daemons:
+Parts of the API like `convox ps --stats` and `convox instances ssh` interact with the Docker daemon and other services running on various AWS instance. To enable these calls to work locally you will want to open up access to the instances:
 
 * Open the [Security Group Management Console](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#SecurityGroups)
 * Select the Security Group with the Group Name like "dev-SecurityGroup-4PNOYR5HUH83" and the Description "Instances"
 * Click the Inbound tab, then the Edit button, then the Add Rule button
 * Keep Custom TCP Rule and TCP protocol
-* Add "2376" for Port Range, and select "My IP" for Source
+* Add "0 - 65535" for Port Range, and select "My IP" for Source
 * Click the Save button
 
-**Warning: Do not expose instance port 2376 to "Anywhere"! This will expose your Docker daemons to the whole Internet.**
+**Warning: DO NOT expose the inbound rules to "Anywhere"! This will expose your instances (including the Docker daemons) to the whole Internet.**
 
 ## Rack Golang Project
 
@@ -113,8 +113,8 @@ $ convox login $(docker-machine ip default)
 $ convox instances
 ID          AGENT  STATUS  STARTED      PS  CPU    MEM   
 i-6cf228f7  on     active  2 hours ago  4   0.00%  10.42%
-i-146c2f97  on     active  2 hours ago  1   0.00%  3.21% 
-i-c7de605c  on     active  2 hours ago  0   0.00%  0.00% 
+i-146c2f97  on     active  2 hours ago  1   0.00%  3.21%
+i-c7de605c  on     active  2 hours ago  0   0.00%  0.00%
 ```
 
 ## Golang Unit Test Suite
