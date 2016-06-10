@@ -33,9 +33,25 @@
         "Yes"
       ]
     },
+    "BlankRedisCpu": {
+      "Fn::Equals": [
+        {
+          "Ref": "RedisCpu"
+        },
+        ""
+      ]
+    },
     "BlankRedisService": {
       "Fn::Equals": [
         "",
+        ""
+      ]
+    },
+    "BlankWebCpu": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebCpu"
+        },
         ""
       ]
     },
@@ -236,7 +252,7 @@
       "Type": "String"
     },
     "RedisCpu": {
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -326,7 +342,7 @@
       "Type": "String"
     },
     "WebCpu": {
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -942,7 +958,17 @@
               "BlankRedisService",
               {
                 "Cpu": {
-                  "Ref": "RedisCpu"
+                  "Fn::If": [
+                    {
+                      "Ref": "BlankRedisCpu"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    },
+                    {
+                      "Ref": "RedisCpu"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -1184,7 +1210,17 @@
               "BlankWebService",
               {
                 "Cpu": {
-                  "Ref": "WebCpu"
+                  "Fn::If": [
+                    {
+                      "Ref": "BlankWebCpu"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    },
+                    {
+                      "Ref": "WebCpu"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",

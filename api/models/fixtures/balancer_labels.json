@@ -17,6 +17,14 @@
         "Yes"
       ]
     },
+    "BlankMainCpu": {
+      "Fn::Equals": [
+        {
+          "Ref": "MainCpu"
+        },
+        ""
+      ]
+    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -174,7 +182,7 @@
       "Type": "String"
     },
     "MainCpu": {
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -641,7 +649,17 @@
               "BlankMainService",
               {
                 "Cpu": {
-                  "Ref": "MainCpu"
+                  "Fn::If": [
+                    {
+                      "Ref": "BlankMainCpu"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    },
+                    {
+                      "Ref": "MainCpu"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",

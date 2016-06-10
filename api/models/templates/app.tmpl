@@ -145,6 +145,7 @@
 {{ define "process-conditions" }}
   {{ range $k := .EntryNames }}
     "Blank{{ upper $k }}Service": { "Fn::Equals": [ "", "" ] },
+    "Blank{{ upper $k }}Cpu": { "Fn::Equals": [ { "Ref": "{{ upper $k }}Cpu" }, "" ] },
     "Disabled{{ upper $k }}DesiredCount": { "Fn::Not": [{ "Fn::Equals": [ {"Ref": "{{ upper $k }}DesiredCount" }, -1 ] }] },
   {{ end }}
 {{ end }}
@@ -153,7 +154,7 @@
   {{ range $e := . }}
     "{{ upper $e.Name }}Cpu": {
       "Type": "Number",
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve"
     },
     "{{ upper $e.Name }}Memory": {
@@ -620,7 +621,13 @@
     {{else if ne .CommandString ""}}
         "Command": {{ value .CommandString }},
     {{end}}
-    "Cpu": { "Ref": "{{ upper .Name }}Cpu" },
+    "Cpu": {
+      "Fn::If": [
+        { "Ref": "Blank{{ upper .Name }}Cpu" },
+        { "Ref": "AWS::NoValue" },
+        { "Ref": "{{ upper .Name }}Cpu" }
+      ]
+    },
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}

@@ -1,6 +1,14 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BlankMainCpu": {
+      "Fn::Equals": [
+        {
+          "Ref": "MainCpu"
+        },
+        ""
+      ]
+    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -139,7 +147,7 @@
       "Type": "String"
     },
     "MainCpu": {
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -371,7 +379,17 @@
               {
                 "Command": "bin/eat",
                 "Cpu": {
-                  "Ref": "MainCpu"
+                  "Fn::If": [
+                    {
+                      "Ref": "BlankMainCpu"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    },
+                    {
+                      "Ref": "MainCpu"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",

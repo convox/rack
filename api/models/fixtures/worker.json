@@ -1,9 +1,25 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BlankPostgresCpu": {
+      "Fn::Equals": [
+        {
+          "Ref": "PostgresCpu"
+        },
+        ""
+      ]
+    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
+        ""
+      ]
+    },
+    "BlankWorkerCpu": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerCpu"
+        },
         ""
       ]
     },
@@ -157,7 +173,7 @@
       "Type": "String"
     },
     "PostgresCpu": {
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -212,7 +228,7 @@
       "Type": "String"
     },
     "WorkerCpu": {
-      "Default": "256",
+      "Default": "",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -404,7 +420,17 @@
               "BlankPostgresService",
               {
                 "Cpu": {
-                  "Ref": "PostgresCpu"
+                  "Fn::If": [
+                    {
+                      "Ref": "BlankPostgresCpu"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    },
+                    {
+                      "Ref": "PostgresCpu"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -621,7 +647,17 @@
               {
                 "Command": "bin/work",
                 "Cpu": {
-                  "Ref": "WorkerCpu"
+                  "Fn::If": [
+                    {
+                      "Ref": "BlankWorkerCpu"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    },
+                    {
+                      "Ref": "WorkerCpu"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
