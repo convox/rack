@@ -47,7 +47,13 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if c, err := strconv.ParseInt(cc, 10, 64); err != nil {
 			return httperr.Errorf(403, "count must be numeric")
 		} else {
-			count = c
+			// critical fix: old clients default to count=-1 for "no change"
+			// assert a minimum client version before setting count=-1 which now deletes a service / ELB
+			if c == -1 && r.Header.Get("Version") < "20160602213113" {
+				count = -2
+			} else {
+				count = c
+			}
 		}
 	}
 
