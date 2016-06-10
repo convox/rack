@@ -293,10 +293,6 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 		return err
 	}
 
-	config.TlsConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
-
 	config.Header.Set("Version", c.Version)
 
 	userpass := fmt.Sprintf("convox:%s", c.Password)
@@ -308,8 +304,14 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 		config.Header.Add(k, v)
 	}
 
-	config.TlsConfig = &tls.Config{
-		InsecureSkipVerify: true,
+	if c.requiresVerification() {
+		config.TlsConfig = &tls.Config{
+			ServerName: c.Host,
+		}
+	} else {
+		config.TlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
 
 	var ws *websocket.Conn
@@ -344,14 +346,28 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 	return nil
 }
 
+func (c *Client) requiresVerification() bool {
+	return c.Host == "console.convox.com"
+}
+
 func (c *Client) client() *http.Client {
 	client := &http.Client{}
 
-	client.Transport = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		TLSClientConfig: &tls.Config{
+	var config *tls.Config
+
+	if c.requiresVerification() {
+		config = &tls.Config{
+			ServerName: c.Host,
+		}
+	} else {
+		config = &tls.Config{
 			InsecureSkipVerify: true,
-		},
+		}
+	}
+
+	client.Transport = &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: config,
 	}
 
 	return client
