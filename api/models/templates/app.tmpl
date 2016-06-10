@@ -145,7 +145,7 @@
 {{ define "process-conditions" }}
   {{ range $k := .EntryNames }}
     "Blank{{ upper $k }}Service": { "Fn::Equals": [ "", "" ] },
-    "Blank{{ upper $k }}Cpu": { "Fn::Equals": [ { "Ref": "{{ upper $k }}Cpu" }, "" ] },
+    "Blank{{ upper $k }}Cpu": { "Fn::Equals": [ { "Ref": "{{ upper $k }}Cpu" }, "-1" ] },
     "Disabled{{ upper $k }}DesiredCount": { "Fn::Not": [{ "Fn::Equals": [ {"Ref": "{{ upper $k }}DesiredCount" }, -1 ] }] },
   {{ end }}
 {{ end }}
@@ -154,7 +154,7 @@
   {{ range $e := . }}
     "{{ upper $e.Name }}Cpu": {
       "Type": "Number",
-      "Default": "",
+      "Default": "-1",
       "Description": "CPU units to reserve"
     },
     "{{ upper $e.Name }}Memory": {
