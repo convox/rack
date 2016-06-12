@@ -257,12 +257,20 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
-func (mb ManifestBalancer) FirstPort() string {
-	if ports := mb.PortMappings(); len(ports) > 0 {
-		return ports[0].Balancer
+func (mb ManifestBalancer) HealthCheckPort() (string, error) {
+	mappings := mb.PortMappings()
+	if port := mb.Entry.Label("convox.health_check.port"); port != "" {
+		for _, mapping := range mappings {
+			if mapping.Container == port {
+				return mapping.Balancer, nil
+			}
+		}
+		return "", fmt.Errorf("Failed to find matching port for health check port %#v", port)
+	} else if len(mappings) > 0 {
+		return mappings[0].Balancer, nil
 	}
 
-	return ""
+	return "", nil
 }
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {

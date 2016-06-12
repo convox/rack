@@ -178,7 +178,30 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	// map from convox labels to cf-formatted value
+	// it's just underscore => camelcase, but don't know if it's worth
+	// adding a dependency like https://gowalker.org/github.com/serenize/snaker
+	healthCheckOptions := [][]string{
+		// [label, cf param, default]
+		[]string{"protocol", "Protocol", "tcp"},
+		[]string{"path", "Path", ""},
+		[]string{"interval", "Interval", "5"},
+		[]string{"healthy_threshold", "HealthyThreshold", "2"},
+		[]string{"unhealthy_threshold", "UnhealthyThreshold", "2"},
+		[]string{"timeout", "Timeout", "3"},
+	}
+
 	for _, entry := range manifest {
+		entry_name := UpperName(entry.Name)
+		for _, option := range healthCheckOptions {
+			val := entry.Label(fmt.Sprintf("convox.health_check.%s", option[0]))
+			param := fmt.Sprintf("%sHealthCheck%s", entry_name, option[1])
+			app.Parameters[param] = val
+			if app.Parameters[param] == "" {
+				app.Parameters[param] = option[2]
+			}
+		}
+
 		for _, mapping := range entry.PortMappings() {
 			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)

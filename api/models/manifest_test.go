@@ -134,6 +134,38 @@ func TestCommandStringForm(t *testing.T) {
 	assertFixture(t, "command_string_form", "")
 }
 
+func TestHealthCheckPort(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be the first port
+	assert.EqualValues(t, balancer.HealthCheckPort(), "80")
+}
+
+func TestHealthCheckPortWithOverride(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+  labels:
+    - convox.health_check.port=3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be the first port
+	assert.EqualValues(t, balancer.HealthCheckPort(), "81")
+}
+
 func TestManifestRandomPorts(t *testing.T) {
 	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", nil)
 

@@ -75,21 +75,25 @@
   "Mappings": {
     "PortProtocol": {
       "http": {
+        "HealthCheckProtocol": "HTTP",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTP",
         "SecureInstanceProtocol": "HTTPS"
       },
       "https": {
+        "HealthCheckProtocol": "HTTPS",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTPS",
         "SecureInstanceProtocol": "HTTPS"
       },
       "tcp": {
+        "HealthCheckProtocol": "TCP",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "TCP",
         "SecureInstanceProtocol": "SSL"
       },
       "tls": {
+        "HealthCheckProtocol": "SSL",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
@@ -183,6 +187,31 @@
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "MinValue": -1,
       "Type": "Number"
+    },
+    "MainHealthCheckHealthyThreshold": {
+      "Type": "String"
+    },
+    "MainHealthCheckInterval": {
+      "Type": "String"
+    },
+    "MainHealthCheckPath": {
+      "Description": "Path used when health check protocol is http(s)",
+      "Type": "String"
+    },
+    "MainHealthCheckProtocol": {
+      "AllowedValues": [
+        "http",
+        "https",
+        "tcp",
+        "tls"
+      ],
+      "Type": "String"
+    },
+    "MainHealthCheckTimeout": {
+      "Type": "String"
+    },
+    "MainHealthCheckUnhealthyThreshold": {
+      "Type": "String"
     },
     "MainMemory": {
       "Default": "256",
@@ -289,21 +318,47 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
+          "HealthyThreshold": {
+            "Ref": "MainHealthCheckHealthyThreshold"
+          },
+          "Interval": {
+            "Ref": "MainHealthCheckInterval"
+          },
           "Target": {
             "Fn::Join": [
-              ":",
+              "",
               [
-                "TCP",
                 {
-                  "Ref": "MainPort443Host"
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          {
+                            "Ref": "MainHealthCheckProtocol"
+                          },
+                          "ListenerProtocol"
+                        ]
+                      },
+                      {
+                        "Ref": "MainPort443Host"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Ref": "MainHealthCheckPath"
                 }
               ]
             ]
           },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
+          "Timeout": {
+            "Ref": "MainHealthCheckTimeout"
+          },
+          "UnhealthyThreshold": {
+            "Ref": "MainHealthCheckUnhealthyThreshold"
+          }
         },
         "LBCookieStickinessPolicy": [
           {

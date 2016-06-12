@@ -109,21 +109,25 @@
   "Mappings": {
     "PortProtocol": {
       "http": {
+        "HealthCheckProtocol": "HTTP",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTP",
         "SecureInstanceProtocol": "HTTPS"
       },
       "https": {
+        "HealthCheckProtocol": "HTTPS",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTPS",
         "SecureInstanceProtocol": "HTTPS"
       },
       "tcp": {
+        "HealthCheckProtocol": "TCP",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "TCP",
         "SecureInstanceProtocol": "SSL"
       },
       "tls": {
+        "HealthCheckProtocol": "SSL",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
@@ -276,6 +280,31 @@
       "MinValue": -1,
       "Type": "Number"
     },
+    "WebHealthCheckHealthyThreshold": {
+      "Type": "String"
+    },
+    "WebHealthCheckInterval": {
+      "Type": "String"
+    },
+    "WebHealthCheckPath": {
+      "Description": "Path used when health check protocol is http(s)",
+      "Type": "String"
+    },
+    "WebHealthCheckProtocol": {
+      "AllowedValues": [
+        "http",
+        "https",
+        "tcp",
+        "tls"
+      ],
+      "Type": "String"
+    },
+    "WebHealthCheckTimeout": {
+      "Type": "String"
+    },
+    "WebHealthCheckUnhealthyThreshold": {
+      "Type": "String"
+    },
     "WebMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
@@ -330,6 +359,31 @@
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "MinValue": -1,
       "Type": "Number"
+    },
+    "WorkerHealthCheckHealthyThreshold": {
+      "Type": "String"
+    },
+    "WorkerHealthCheckInterval": {
+      "Type": "String"
+    },
+    "WorkerHealthCheckPath": {
+      "Description": "Path used when health check protocol is http(s)",
+      "Type": "String"
+    },
+    "WorkerHealthCheckProtocol": {
+      "AllowedValues": [
+        "http",
+        "https",
+        "tcp",
+        "tls"
+      ],
+      "Type": "String"
+    },
+    "WorkerHealthCheckTimeout": {
+      "Type": "String"
+    },
+    "WorkerHealthCheckUnhealthyThreshold": {
+      "Type": "String"
     },
     "WorkerMemory": {
       "Default": "256",
@@ -397,21 +451,47 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
+          "HealthyThreshold": {
+            "Ref": "WebHealthCheckHealthyThreshold"
+          },
+          "Interval": {
+            "Ref": "WebHealthCheckInterval"
+          },
           "Target": {
             "Fn::Join": [
-              ":",
+              "",
               [
-                "TCP",
                 {
-                  "Ref": "WebPort80Host"
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          {
+                            "Ref": "WebHealthCheckProtocol"
+                          },
+                          "ListenerProtocol"
+                        ]
+                      },
+                      {
+                        "Ref": "WebPort80Host"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Ref": "WebHealthCheckPath"
                 }
               ]
             ]
           },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
+          "Timeout": {
+            "Ref": "WebHealthCheckTimeout"
+          },
+          "UnhealthyThreshold": {
+            "Ref": "WebHealthCheckUnhealthyThreshold"
+          }
         },
         "LBCookieStickinessPolicy": [
           {
@@ -576,21 +656,47 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
+          "HealthyThreshold": {
+            "Ref": "WorkerHealthCheckHealthyThreshold"
+          },
+          "Interval": {
+            "Ref": "WorkerHealthCheckInterval"
+          },
           "Target": {
             "Fn::Join": [
-              ":",
+              "",
               [
-                "TCP",
                 {
-                  "Ref": "WorkerPort80Host"
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          {
+                            "Ref": "WorkerHealthCheckProtocol"
+                          },
+                          "ListenerProtocol"
+                        ]
+                      },
+                      {
+                        "Ref": "WorkerPort80Host"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Ref": "WorkerHealthCheckPath"
                 }
               ]
             ]
           },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
+          "Timeout": {
+            "Ref": "WorkerHealthCheckTimeout"
+          },
+          "UnhealthyThreshold": {
+            "Ref": "WorkerHealthCheckUnhealthyThreshold"
+          }
         },
         "LBCookieStickinessPolicy": [
           {

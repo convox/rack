@@ -80,10 +80,10 @@
     },
     "Mappings": {
       "PortProtocol": {
-        "http": { "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
-        "https": { "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
-        "tcp": { "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
-        "tls": { "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
+        "http": { "HealthCheckProtocol": "HTTP", "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
+        "https": { "HealthCheckProtocol": "HTTPS", "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
+        "tcp": { "HealthCheckProtocol": "TCP", "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
+        "tls": { "HealthCheckProtocol": "SSL", "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
       }
     },
     "Resources": {
@@ -257,6 +257,26 @@
 {{ define "balancer-params" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
+    "{{ upper $balancer.ProcessName }}HealthCheckHealthyThreshold": {
+      "Type": "String"
+    },
+    "{{ upper $balancer.ProcessName }}HealthCheckInterval": {
+      "Type": "String"
+    },
+    "{{ upper $balancer.ProcessName }}HealthCheckPath": {
+      "Type": "String",
+      "Description": "Path used when health check protocol is http(s)"
+    },
+    "{{ upper $balancer.ProcessName }}HealthCheckProtocol": {
+      "Type": "String",
+      "AllowedValues": [ "http", "https", "tcp", "tls" ]
+    },
+    "{{ upper $balancer.ProcessName }}HealthCheckTimeout": {
+      "Type": "String"
+    },
+    "{{ upper $balancer.ProcessName }}HealthCheckUnhealthyThreshold": {
+      "Type": "String"
+    },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Type" : "String",
@@ -354,12 +374,37 @@
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
+        {{ $balancer_health_check_prefix := printf "%sHealthCheck" (upper $balancer.ProcessName) }}
+        {{ $balancer_health_check_protocol := printf "%sProtocol" $balancer_health_check_prefix }}
+        {{ $balancer_health_check_path := printf "%sPath" $balancer_health_check_prefix }}
         "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": { "Fn::Join": [ ":", [ "TCP", { "Ref": "{{ upper .ProcessName }}Port{{ .FirstPort }}Host" } ] ] },
-          "Timeout": 3,
-          "UnhealthyThreshold": "2"
+          "HealthyThreshold": { "Ref": "{{ $balancer_health_check_prefix }}HealthyThreshold" },
+          "Interval": { "Ref": "{{ $balancer_health_check_prefix }}Interval" },
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          { "Ref": "{{ $balancer_health_check_protocol }}" },
+                          "ListenerProtocol"
+                        ]
+                      },
+                      { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthCheckPort }}Host" }
+                    ]
+                  ]
+                },
+                { "Ref": "{{ $balancer_health_check_prefix }}Path" }
+              ]
+            ]
+          },
+          "Timeout": { "Ref": "{{ $balancer_health_check_prefix }}Timeout" },
+          "UnhealthyThreshold": { "Ref": "{{ $balancer_health_check_prefix }}UnhealthyThreshold" }
         },
         "Listeners": [
           {{ range .PortMappings }}
