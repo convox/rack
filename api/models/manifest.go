@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"strconv"
 
 	"gopkg.in/yaml.v2"
 )
@@ -259,12 +260,41 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
-func (mb ManifestBalancer) FirstPort() string {
-	if ports := mb.PortMappings(); len(ports) > 0 {
-		return ports[0].Balancer
+// DefaultHealthTimeout The default health timeout when one is not specified
+func (mb ManifestBalancer) DefaultHealthTimeout() string {
+	return "3"
+}
+
+// HealthPort The balancer port that maps to the container port specified in manifest
+func (mb ManifestBalancer) HealthPort() (string, error) {
+	mappings := mb.PortMappings()
+	if port := mb.Entry.Label("convox.health.port"); port != "" {
+		for _, mapping := range mappings {
+			if mapping.Container == port {
+				return mapping.Balancer, nil
+			}
+		}
+		return "", fmt.Errorf("Failed to find matching port for health port %#v", port)
+	} else if len(mappings) > 0 {
+		return mappings[0].Balancer, nil
 	}
 
-	return ""
+	return "", nil
+}
+
+// HealthInterval The amount of time in between health checks. This is derived from the timeout value,
+// which must be less than the interval
+func (mb ManifestBalancer) HealthInterval() (string, error) {
+	// interval must be greater than timeout
+	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
+		timeoutInt, err := strconv.Atoi(timeout)
+		if err != nil {
+			return "", err
+		}
+		interval := strconv.Itoa(timeoutInt + 2)
+		return interval, nil
+	}
+	return "5", nil
 }
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
