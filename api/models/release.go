@@ -192,10 +192,10 @@ func (r *Release) Promote() error {
 	}
 
 	for _, entry := range manifest {
-		entry_name := UpperName(entry.Name)
+		entryName := UpperName(entry.Name)
 		for _, option := range healthCheckOptions {
 			val := entry.Label(fmt.Sprintf("convox.health_check.%s", option[0]))
-			param := fmt.Sprintf("%sHealthCheck%s", entry_name, option[1])
+			param := fmt.Sprintf("%sHealthCheck%s", entryName, option[1])
 			app.Parameters[param] = val
 			if app.Parameters[param] == "" {
 				app.Parameters[param] = option[2]
