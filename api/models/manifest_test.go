@@ -146,7 +146,8 @@ web:
 	balancer := manifest.Balancers()[0]
 
 	// Should be the first port
-	assert.EqualValues(t, balancer.HealthCheckPort(), "80")
+	port, err := balancer.HealthCheckPort()
+	assert.EqualValues(t, port, "80")
 }
 
 func TestHealthCheckPortWithOverride(t *testing.T) {
@@ -163,7 +164,8 @@ web:
 	balancer := manifest.Balancers()[0]
 
 	// Should be the first port
-	assert.EqualValues(t, balancer.HealthCheckPort(), "81")
+	port, err := balancer.HealthCheckPort()
+	assert.EqualValues(t, port, "81")
 }
 
 func TestManifestRandomPorts(t *testing.T) {
