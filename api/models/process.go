@@ -271,7 +271,7 @@ func ListProcesses(app string) ([]*Process, error) {
 }
 
 // ListPendingProcesses tries to get a list of all pending processes.
-// If unable to connect to a docker daemon, or error out for another reason, it will bypass that instance and continue to other daemons.
+// If unable to gather needed data it will continue to other processes.
 func ListPendingProcesses(app string) (Processes, error) {
 	// In AWS ECS, pending processes would present themselves during a deployment.
 	pss := Processes{}
