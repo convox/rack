@@ -18,7 +18,8 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 			StackName: aws.String(name),
 		})
 	} else {
-		// try 'convox-myapp', and if not found try 'myapp'
+
+		// try '$RACK-myapp', and if not found try 'myapp'
 		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(os.Getenv("RACK") + "-" + name),
 		})
@@ -42,6 +43,10 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 
 	if app.Tags["Rack"] != "" && app.Tags["Rack"] != os.Getenv("RACK") {
 		return nil, fmt.Errorf("no such app on this rack: %s", name)
+	} else if len(app.Tags) == 0 && name != os.Getenv("RACK") {
+		// This checks for a rack. An app with zero tags is a rack (this assumption should be addressed).
+		// Makes sure the name equals current rack name; otherwise error out.
+		return nil, fmt.Errorf("invalid rack: %s", name)
 	}
 
 	return &app, nil
