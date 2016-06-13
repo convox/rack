@@ -202,6 +202,13 @@ func (r *Release) Promote() error {
 			}
 		}
 
+		// ensure interval is greater than timeout
+		interval := app.Parameters[fmt.Sprintf("%sHealthCheckInterval", entryName)]
+		timeout := app.Parameters[fmt.Sprintf("%sHealthCheckTimeout", entryName)]
+		if interval <= timeout {
+			return fmt.Errorf("Health check interval %s must be greater than timeout %s", interval, timeout)
+		}
+
 		for _, mapping := range entry.PortMappings() {
 			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
