@@ -249,8 +249,6 @@ func ListProcesses(app string) ([]*Process, error) {
 		select {
 		case ps := <-psch:
 			pss = append(pss, &ps)
-		default:
-			// noop
 		}
 	}
 
