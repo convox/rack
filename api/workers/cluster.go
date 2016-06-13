@@ -31,6 +31,8 @@ type Instance struct {
 
 type Instances map[string]Instance
 
+var lastASGActivity = time.Now()
+
 func StartCluster() {
 	var log = logger.New("ns=cluster_monitor")
 
@@ -101,7 +103,6 @@ func (instances Instances) describeASG() error {
 			},
 		},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -113,6 +114,23 @@ func (instances Instances) describeASG() error {
 		instance.ASG = *i.LifecycleState == "InService"
 
 		instances[*i.InstanceId] = instance
+	}
+
+	// describe and log every recent ASG activity
+	dres, err := models.AutoScaling().DescribeScalingActivities(
+		&autoscaling.DescribeScalingActivitiesInput{
+			AutoScalingGroupName: aws.String(resources["Instances"].Id),
+		},
+	)
+	if err != nil {
+		return nil
+	}
+
+	for _, a := range dres.Activities {
+		if lastASGActivity.Before(*a.StartTime) {
+			fmt.Printf("who=\"EC2/ASG\" what=%q why=%q\n", *a.Description, *a.Cause)
+			lastASGActivity = *a.StartTime
+		}
 	}
 
 	return nil
