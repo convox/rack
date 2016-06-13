@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"time"
@@ -26,7 +27,6 @@ func autoscaleRack() {
 	log := logger.New("ns=workers.autoscale at=autoscaleRack")
 
 	capacity, err := provider.CapacityGet()
-
 	if err != nil {
 		log.Log("fn=models.GetSystemCapacity err=%q", err)
 		return
@@ -39,7 +39,6 @@ func autoscaleRack() {
 	}
 
 	system, err := provider.SystemGet()
-
 	if err != nil {
 		log.Log("fn=models.GetSystem err=%q", err)
 		return
@@ -69,9 +68,11 @@ func autoscaleRack() {
 	system.Count = instances
 
 	err = provider.SystemSave(*system)
-
 	if err != nil {
 		log.Log("fn=system.Save err=%q", err)
 		return
 	}
+
+	// log for humans
+	fmt.Printf("who=\"convox/monitor\" what=\"autoscaled instance count to %d\" why=\"a service wants %s processes behind a load balancer\"\n", system.Count)
 }
