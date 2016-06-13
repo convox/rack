@@ -204,7 +204,6 @@ func ListProcesses(app string) ([]*Process, error) {
 		}
 
 		if ci == nil {
-			// Error out if it didn't find an ecs instance? Maybe just continue?
 			return nil, fmt.Errorf("could not find ECS instance")
 		}
 
@@ -218,7 +217,6 @@ func ListProcesses(app string) ([]*Process, error) {
 		}
 
 		if ec2i == nil {
-			// Error out if it didn't find an ec2 instance? Maybe just continue?
 			return nil, fmt.Errorf("could not find EC2 instance")
 		}
 
@@ -243,7 +241,7 @@ func ListProcesses(app string) ([]*Process, error) {
 		}
 	}
 
-	pss := make([]*Process, 0)
+	pss := Processes{}
 
 	for i := 0; i < num; i++ {
 		select {
@@ -255,23 +253,21 @@ func ListProcesses(app string) ([]*Process, error) {
 	pending, err := ListPendingProcesses(app)
 	if err != nil {
 		fmt.Printf("ns=kernel at=ListProcesses state=error message=\"unable to get pending processes: %s\"\n", err)
+	} else {
+		pss = append(pss, pending...)
 	}
-
-	pss = append(pss, pending...)
 
 	oneoff, err := ListOneoffProcesses(app)
-
 	if err != nil {
 		fmt.Printf("ns=kernel at=ListProcesses state=error message=\"unable to get one-off processes: %s\"\n", err)
+	} else {
+		pss = append(pss, oneoff...)
 	}
-
-	pss = append(pss, oneoff...)
 
 	return pss, nil
 }
 
 // ListPendingProcesses tries to get a list of all pending processes.
-// If unable to gather needed data it will continue to other processes.
 func ListPendingProcesses(app string) (Processes, error) {
 	// In AWS ECS, pending processes would present themselves during a deployment.
 	pss := Processes{}
@@ -297,8 +293,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 				TaskDefinition: d.TaskDefinition,
 			})
 			if err != nil {
-				fmt.Printf("ns=kernel at=ListPendingProcesses state=error message=\"%s\"\n", err)
-				continue
+				return nil, err
 			}
 
 			if len(tres.TaskDefinition.ContainerDefinitions) == 0 {
@@ -446,7 +441,7 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 
 	d, err := ps.Docker()
 	if err != nil {
-		fmt.Printf("ns=kernel at=processes.list state=error message=\"%s\"\n", err)
+		fmt.Printf("ns=kernel at=fetchProcess state=error message=\"%s\"\n", err)
 		psch <- ps
 		return
 	}
@@ -461,13 +456,13 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 	})
 
 	if err != nil {
-		fmt.Printf("ns=kernel at=processes.list state=error message=\"%s\"\n", err)
+		fmt.Printf("ns=kernel at=fetchProcess state=error message=\"%s\"\n", err)
 		psch <- ps
 		return
 	}
 
 	if len(containers) != 1 {
-		fmt.Println(`ns=kernel at=processes.list state=error message="could not find container"`)
+		fmt.Println(`ns=kernel at=fetchProcess state=error message="could not find container"`)
 		psch <- ps
 		return
 	}
