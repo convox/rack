@@ -44,14 +44,12 @@ func StartCluster() {
 		instances := Instances{}
 
 		err := instances.describeASG()
-
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 
 		err = instances.describeECS()
-
 		if err != nil {
 			log.Error(err)
 			continue
@@ -60,7 +58,7 @@ func StartCluster() {
 		// TODO: Add an instances.testDocker() call to the mission critical path
 
 		// Test if ASG Instance is registered and connected in ECS cluster
-		for _, i := range instances {
+		for k, i := range instances {
 			if !i.ASG {
 				// TODO: Rogue instance?! Terminate?
 				continue
@@ -77,11 +75,15 @@ func StartCluster() {
 				)
 
 				i.Unhealthy = true
+				instances[k] = i
 
 				if err != nil {
 					log.Error(err)
 					continue
 				}
+
+				// log for humans
+				fmt.Printf("who=\"convox/monitor\" what=\"marked instance %s unhealthy\" why=\"ECS reported agent disconnected\"\n", i.Id)
 			}
 		}
 
