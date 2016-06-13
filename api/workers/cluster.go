@@ -12,10 +12,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/ddollar/logger"
-	"github.com/fsouza/go-dockerclient"
 )
 
 type Instance struct {
@@ -56,8 +54,6 @@ func StartCluster() {
 			log.Error(err)
 			continue
 		}
-
-		// TODO: Add an instances.testDocker() call to the mission critical path
 
 		// Test if ASG Instance is registered and connected in ECS cluster
 		for k, i := range instances {
@@ -197,79 +193,4 @@ func (instances Instances) log() string {
 		strings.Join(asgIds, ","),
 		strings.Join(unhealthyIds, ","),
 	)
-}
-
-func (instances Instances) testDocker() error {
-	for _, i := range instances {
-		instance := instances[i.Id]
-
-		res, err := models.EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-			Filters: []*ec2.Filter{
-				&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{&i.Id}},
-			},
-		})
-
-		if err != nil {
-			return err
-		}
-
-		if len(res.Reservations) != 1 || len(res.Reservations[0].Instances) != 1 {
-			return fmt.Errorf("could not describe container instance")
-		}
-
-		ip := *res.Reservations[0].Instances[0].PrivateIpAddress
-
-		if os.Getenv("DEVELOPMENT") == "true" {
-			ip = *res.Reservations[0].Instances[0].PublicIpAddress
-		}
-
-		d, err := docker.NewClient(fmt.Sprintf("http://%s:2376", ip))
-
-		if err != nil {
-			return err
-		}
-
-		err = d.PullImage(docker.PullImageOptions{
-			Repository: "busybox",
-		}, docker.AuthConfiguration{})
-
-		if err != nil {
-			return err
-		}
-
-		instance.Docker = true
-
-		dres, err := d.CreateContainer(docker.CreateContainerOptions{
-			Config: &docker.Config{
-				Cmd:   []string{"sh", "-c", `dmesg | grep "Remounting filesystem read-only"`},
-				Image: "busybox",
-			},
-		})
-
-		if err != nil {
-			return err
-		}
-
-		err = d.StartContainer(dres.ID, nil)
-
-		if err != nil {
-			return err
-		}
-
-		code, err := d.WaitContainer(dres.ID)
-
-		if err != nil {
-			return err
-		}
-
-		// grep exit status is 0 if any line was selected, 1 otherwise
-		// no "Remounting" selected is healthy
-		if code == 1 {
-			instance.Check = true
-		}
-
-		instances[i.Id] = instance
-	}
-
-	return nil
 }
