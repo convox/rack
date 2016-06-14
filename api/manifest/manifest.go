@@ -27,6 +27,8 @@ import (
 
 	"github.com/convox/rack/cmd/convox/changes"
 	"github.com/convox/rack/cmd/convox/templates"
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/fatih/color"
 	"github.com/fsouza/go-dockerclient"
 	yaml "gopkg.in/yaml.v2"
@@ -1227,13 +1229,27 @@ func getDockerGateway() (string, error) {
 
 type Files map[string]time.Time
 
-func watchWalker(files Files, local string, adds map[string]bool, lock sync.Mutex) filepath.WalkFunc {
+func watchWalker(files Files, local string, adds map[string]bool, lock sync.Mutex, basePath string, patterns []string, patDirs [][]string, exceptions bool) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
 
 		if info.IsDir() {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(basePath, path)
+		if err != nil {
+			return err
+		}
+
+		skip, err := fileutils.OptimizedMatches(relPath, patterns, patDirs)
+		if err != nil {
+			log.Printf("Error matching %s: %v", relPath, err)
+			return err
+		}
+		if skip {
 			return nil
 		}
 
@@ -1284,7 +1300,6 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 				}
 
 				rel, err := filepath.Rel(sync.Local, local)
-
 				if err != nil {
 					continue
 				}
@@ -1698,7 +1713,22 @@ func (m *Manifest) processSync(local string, syncs []Sync) error {
 	})
 
 	for {
-		err := filepath.Walk(local, watchWalker(files, local, adds, alock))
+		di, err := readDockerIgnore()
+		if err != nil {
+			return err
+		}
+
+		patterns, patDirs, exceptions, err := fileutils.CleanPatterns(di)
+		if err != nil {
+			return err
+		}
+
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+
+		err = filepath.Walk(local, watchWalker(files, local, adds, alock, cwd, patterns, patDirs, exceptions))
 		for _, sync := range syncs {
 			if err != nil {
 				fmt.Printf("err: %+v\n", err)
@@ -1911,4 +1941,24 @@ func writeAsset(path, template string) error {
 	}
 
 	return writeFile(path, data, info.Mode())
+}
+
+func readDockerIgnore() ([]string, error) {
+	fd, err := os.Open(".dockerignore")
+
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	ignore, err := dockerignore.ReadAll(fd)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ignore, nil
 }
