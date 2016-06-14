@@ -51,6 +51,8 @@ var (
 	system  = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
 
+// YAMLError is an error type to use when the user-supplied manifest YAML is not valid
+// This can be treated as a validation error, not an exception
 type YAMLError struct {
 	err error
 }
