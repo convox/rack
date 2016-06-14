@@ -98,7 +98,6 @@ func Init(dir string) error {
 
 func Read(dir, filename string) (*Manifest, error) {
 	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
-
 	if err != nil {
 		return nil, fmt.Errorf("file not found: %s", filename)
 	}
@@ -124,7 +123,6 @@ func Read(dir, filename string) (*Manifest, error) {
 
 	if denv := filepath.Join(dir, ".env"); exists(denv) {
 		data, err := ioutil.ReadFile(denv)
-
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +134,6 @@ func Read(dir, filename string) (*Manifest, error) {
 				parts := strings.SplitN(scanner.Text(), "=", 2)
 
 				err := os.Setenv(parts[0], parts[1])
-
 				if err != nil {
 					return nil, err
 				}
@@ -169,7 +166,36 @@ func Read(dir, filename string) (*Manifest, error) {
 		m[name] = entry
 	}
 
+	err = m.Validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return &m, nil
+}
+
+func (m Manifest) Validate() error {
+	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+
+	for _, entry := range map[string]ManifestEntry(m) {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for k, _ := range labels {
+			parts := strings.Split(k, ".")
+			if len(parts) != 3 {
+				return fmt.Errorf(
+					"Cron task is not valid (must be in format convox.cron.myjob)",
+				)
+			}
+			name := parts[2]
+			if !regexValidCronLabel.MatchString(name) {
+				return fmt.Errorf(
+					"Cron task %s is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)",
+					name,
+				)
+			}
+		}
+	}
+	return nil
 }
 
 func buildSync(source, tag string, cache bool, dockerfile string) error {
@@ -940,6 +966,45 @@ func (me ManifestEntry) Label(key string) string {
 	}
 
 	return ""
+}
+
+func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
+	returnLabels := make(map[string]string)
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			ks, ok := k.(string)
+
+			if !ok {
+				continue
+			}
+
+			vs, ok := v.(string)
+
+			if !ok {
+				continue
+			}
+
+			if strings.HasPrefix(ks, prefix) {
+				returnLabels[ks] = vs
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			ls, ok := label.(string)
+
+			if !ok {
+				continue
+			}
+
+			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
+				if strings.HasPrefix(parts[0], prefix) {
+					returnLabels[parts[0]] = parts[1]
+				}
+			}
+		}
+	}
+	return returnLabels
 }
 
 func (me ManifestEntry) Protocol(port string) string {
