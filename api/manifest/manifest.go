@@ -2011,17 +2011,14 @@ func writeAsset(path, template string) error {
 
 func readDockerIgnore() ([]string, error) {
 	fd, err := os.Open(".dockerignore")
-
 	if os.IsNotExist(err) {
 		return []string{}, nil
 	}
-
 	if err != nil {
 		return nil, err
 	}
 
 	ignore, err := dockerignore.ReadAll(fd)
-
 	if err != nil {
 		return nil, err
 	}
