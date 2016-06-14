@@ -8,16 +8,18 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"os/exec"
+	"path"
 	"path/filepath"
 	"time"
+
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/cheggaaa/pb"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -320,7 +322,6 @@ func indexWalker(root string, index client.Index, ignore []string) filepath.Walk
 		}
 
 		match, err := fileutils.Matches(rel, ignore)
-
 		if err != nil {
 			return err
 		}
@@ -330,7 +331,6 @@ func indexWalker(root string, index client.Index, ignore []string) filepath.Walk
 		}
 
 		data, err := ioutil.ReadFile(path)
-
 		if err != nil {
 			return err
 		}
@@ -518,7 +518,6 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 	fmt.Print("Creating tarball... ")
 
 	tar, err := createTarball(dir)
-
 	if err != nil {
 		return "", err
 	}
@@ -554,50 +553,66 @@ func executeBuildUrl(c *cli.Context, url, app, manifest, description string) (st
 
 func createTarball(base string) ([]byte, error) {
 	cwd, err := os.Getwd()
-
 	if err != nil {
 		return nil, err
 	}
 
 	err = os.Chdir(base)
-
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{"cz"}
+	var includes = []string{"."}
+	var excludes []string
 
-	// If .dockerignore exists, use it to exclude files from the tarball
-	if _, err = os.Stat(".dockerignore"); err == nil {
-		args = append(args, "--exclude-from", ".dockerignore")
+	dockerIgnorePath := path.Join(base, ".dockerignore")
+	dockerIgnore, err := os.Open(dockerIgnorePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		//There is no docker ignore
+		excludes = make([]string, 0)
+	} else {
+		excludes, err = dockerignore.ReadAll(dockerIgnore)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	args = append(args, ".")
+	// If .dockerignore mentions .dockerignore or the Dockerfile
+	// then make sure we send both files over to the daemon
+	// because Dockerfile is, obviously, needed no matter what, and
+	// .dockerignore is needed to know if either one needs to be
+	// removed.  The deamon will remove them for us, if needed, after it
+	// parses the Dockerfile.
+	keepThem1, _ := fileutils.Matches(".dockerignore", excludes)
+	keepThem2, _ := fileutils.Matches("Dockerfile", excludes)
+	if keepThem1 || keepThem2 {
+		includes = append(includes, ".dockerignore", "Dockerfile")
+	}
 
-	cmd := exec.Command("tar", args...)
+	// if err := builder.ValidateContextDirectory(contextDirectory, excludes); err != nil {
+	// 	return nil, fmt.Errorf("Error checking context is accessible: '%s'. Please check permissions and try again.", err)
+	// }
 
-	out, err := cmd.StdoutPipe()
+	options := &archive.TarOptions{
+		Compression:     archive.Gzip,
+		ExcludePatterns: excludes,
+		IncludeFiles:    includes,
+	}
 
+	out, err := archive.TarWithOptions(base, options)
 	if err != nil {
 		return nil, err
 	}
-
-	cmd.Start()
 
 	bytes, err := ioutil.ReadAll(out)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = cmd.Wait()
-
 	if err != nil {
 		return nil, err
 	}
 
 	err = os.Chdir(cwd)
-
 	if err != nil {
 		return nil, err
 	}
