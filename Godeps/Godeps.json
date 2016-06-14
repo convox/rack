@@ -291,9 +291,49 @@
 			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/pkg/archive",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/pkg/fileutils",
 			"Comment": "v1.4.1-10363-ga7fefcf",
 			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/idtools",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/ioutils",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/longpath",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/pools",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/promise",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/system",
+			"Comment": "v1.4.1-10363-ga7fefcf",
+			"Rev": "a7fefcf16cda4f91b9526b4db6d06ef12652f419"
+		},
+		{
+			"ImportPath": "github.com/docker/go-units",
+			"Comment": "v0.3.0",
+			"Rev": "5d2041e26a699eaca682e2ea41c8f891e1060444"
 		},
 		{
 			"ImportPath": "github.com/dustin/go-humanize",
@@ -486,6 +526,10 @@
 		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
 			"Rev": "5dc8cb4b8a8eb076cbb5a06bc3b8682c15bdbbd3"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "d9558e5c97f85372afee28cf2b6059d7d3818919"
 		},
 		{
 			"ImportPath": "golang.org/x/net/websocket",
