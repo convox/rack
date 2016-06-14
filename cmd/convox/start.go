@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -77,14 +78,21 @@ func cmdStart(c *cli.Context) error {
 
 	m, err := manifest.Read(dir, file)
 	if err != nil {
-		err := manifest.Init(dir)
-		if err != nil {
-			return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-		}
+		switch err.(type) {
+		case *manifest.YAMLError:
+			return stdcli.ExitError(fmt.Errorf(
+				"Invalid manifest (%s): %s", file, err.Error(),
+			))
+		default:
+			err := manifest.Init(dir)
+			if err != nil {
+				return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+			}
 
-		m, err = manifest.Read(dir, file)
-		if err != nil {
-			return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+			m, err = manifest.Read(dir, file)
+			if err != nil {
+				return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+			}
 		}
 	}
 
