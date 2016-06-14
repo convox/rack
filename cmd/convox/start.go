@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"gopkg.in/urfave/cli.v1"
-	"gopkg.in/yaml.v2"
 
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -80,8 +79,10 @@ func cmdStart(c *cli.Context) error {
 	m, err := manifest.Read(dir, file)
 	if err != nil {
 		switch err.(type) {
-		case *yaml.TypeError:
-			return stdcli.ExitError(err)
+		case *manifest.YAMLError:
+			return stdcli.ExitError(fmt.Errorf(
+				"Invalid manifest (%s): %s", file, err.Error(),
+			))
 		default:
 			err := manifest.Init(dir)
 			if err != nil {
