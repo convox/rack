@@ -49,6 +49,14 @@ var (
 	system  = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
 
+type YAMLError struct {
+	err error
+}
+
+func (y *YAMLError) Error() string {
+	return y.err.Error()
+}
+
 var RandomPort = func() int {
 	return 10000 + rand.Intn(50000)
 }
@@ -109,13 +117,13 @@ func Read(dir, filename string) (*Manifest, error) {
 
 	err = yaml.Unmarshal(data, &mv2)
 	if err != nil {
-		return nil, err
+		return nil, &YAMLError{err}
 	}
 
 	if mv2.Version == "" {
 		err = yaml.Unmarshal(data, &m)
 		if err != nil {
-			return nil, err
+			return nil, &YAMLError{err}
 		}
 	} else {
 		m = mv2.Services
