@@ -71,8 +71,15 @@ func GetApp(name string) (*App, error) {
 		app, err = getAppByStackName(name)
 	}
 
-	if app != nil && app.Tags["Rack"] != "" && app.Tags["Rack"] != os.Getenv("RACK") {
-		return nil, fmt.Errorf("no such app: %s", name)
+	if app != nil {
+		if app.Tags["Rack"] != "" && app.Tags["Rack"] != os.Getenv("RACK") {
+			return nil, fmt.Errorf("no such app: %s", name)
+
+		} else if len(app.Tags) == 0 && name != os.Getenv("RACK") {
+			// This checks for a rack. An app with zero tags is a rack (this assumption should be addressed).
+			// Makes sure the name equals current rack name; otherwise error out.
+			return nil, fmt.Errorf("invalid rack: %s", name)
+		}
 	}
 
 	return app, err

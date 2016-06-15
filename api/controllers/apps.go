@@ -17,7 +17,6 @@ import (
 
 func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	apps, err := models.ListApps()
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -30,8 +29,11 @@ func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	a, err := models.GetApp(mux.Vars(r)["app"])
+	if app == os.Getenv("RACK") {
+		return httperr.Errorf(404, "rack %s is not an app", app)
+	}
 
+	a, err := models.GetApp(app)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -49,7 +51,6 @@ func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
-
 	if name == os.Getenv("RACK") {
 		return httperr.Errorf(403, "application name cannot match rack name (%s). Please choose a different name for your app.", name)
 	}
@@ -65,7 +66,6 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	if awsError(err) == "AlreadyExistsException" {
 		app, err := models.GetApp(name)
-
 		if err != nil {
 			return httperr.Server(err)
 		}
@@ -78,7 +78,6 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	app, err = models.GetApp(name)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -90,7 +89,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := mux.Vars(r)["app"]
 
 	app, err := models.GetApp(name)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", name)
 	}
@@ -104,7 +102,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	err = app.Delete()
-
 	if err != nil {
 		return httperr.Server(err)
 	}
