@@ -33,25 +33,9 @@
         "Yes"
       ]
     },
-    "BlankWebCpu": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebCpu"
-        },
-        ""
-      ]
-    },
     "BlankWebService": {
       "Fn::Equals": [
         "",
-        ""
-      ]
-    },
-    "BlankWorkerCpu": {
-      "Fn::Equals": [
-        {
-          "Ref": "WorkerCpu"
-        },
         ""
       ]
     },
@@ -282,7 +266,7 @@
       "Type": "String"
     },
     "WebCpu": {
-      "Default": "",
+      "Default": "0",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -342,7 +326,7 @@
       "Type": "String"
     },
     "WorkerCpu": {
-      "Default": "",
+      "Default": "0",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -1029,17 +1013,7 @@
               {
                 "Command": "bash -c 'bundle exec puma -C config/puma.rb'",
                 "Cpu": {
-                  "Fn::If": [
-                    {
-                      "Ref": "BlankWebCpu"
-                    },
-                    {
-                      "Ref": "AWS::NoValue"
-                    },
-                    {
-                      "Ref": "WebCpu"
-                    }
-                  ]
+                  "Ref": "WebCpu"
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -1199,17 +1173,7 @@
               {
                 "Command": "bash -c \"bundle exec worker\"",
                 "Cpu": {
-                  "Fn::If": [
-                    {
-                      "Ref": "BlankWorkerCpu"
-                    },
-                    {
-                      "Ref": "AWS::NoValue"
-                    },
-                    {
-                      "Ref": "WorkerCpu"
-                    }
-                  ]
+                  "Ref": "WorkerCpu"
                 },
                 "Environment": {
                   "APP": "httpd",

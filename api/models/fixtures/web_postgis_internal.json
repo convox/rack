@@ -17,25 +17,9 @@
         "Yes"
       ]
     },
-    "BlankPostgresCpu": {
-      "Fn::Equals": [
-        {
-          "Ref": "PostgresCpu"
-        },
-        ""
-      ]
-    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
-        ""
-      ]
-    },
-    "BlankWebCpu": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebCpu"
-        },
         ""
       ]
     },
@@ -208,7 +192,7 @@
       "Type": "String"
     },
     "PostgresCpu": {
-      "Default": "",
+      "Default": "0",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -263,7 +247,7 @@
       "Type": "String"
     },
     "WebCpu": {
-      "Default": "",
+      "Default": "0",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -687,17 +671,7 @@
               "BlankPostgresService",
               {
                 "Cpu": {
-                  "Fn::If": [
-                    {
-                      "Ref": "BlankPostgresCpu"
-                    },
-                    {
-                      "Ref": "AWS::NoValue"
-                    },
-                    {
-                      "Ref": "PostgresCpu"
-                    }
-                  ]
+                  "Ref": "PostgresCpu"
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -926,17 +900,7 @@
               "BlankWebService",
               {
                 "Cpu": {
-                  "Fn::If": [
-                    {
-                      "Ref": "BlankWebCpu"
-                    },
-                    {
-                      "Ref": "AWS::NoValue"
-                    },
-                    {
-                      "Ref": "WebCpu"
-                    }
-                  ]
+                  "Ref": "WebCpu"
                 },
                 "Environment": {
                   "APP": "httpd",

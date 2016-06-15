@@ -1,14 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankMainCpu": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainCpu"
-        },
-        ""
-      ]
-    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -147,7 +139,7 @@
       "Type": "String"
     },
     "MainCpu": {
-      "Default": "",
+      "Default": "0",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -382,17 +374,7 @@
                   "cmd2"
                 ],
                 "Cpu": {
-                  "Fn::If": [
-                    {
-                      "Ref": "BlankMainCpu"
-                    },
-                    {
-                      "Ref": "AWS::NoValue"
-                    },
-                    {
-                      "Ref": "MainCpu"
-                    }
-                  ]
+                  "Ref": "MainCpu"
                 },
                 "Environment": {
                   "APP": "httpd",

@@ -33,14 +33,6 @@
         "Yes"
       ]
     },
-    "BlankWebCpu": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebCpu"
-        },
-        ""
-      ]
-    },
     "BlankWebService": {
       "Fn::Equals": [
         "",
@@ -247,7 +239,7 @@
       "Type": "String"
     },
     "WebCpu": {
-      "Default": "",
+      "Default": "0",
       "Description": "CPU units to reserve",
       "Type": "Number"
     },
@@ -915,17 +907,7 @@
               "BlankWebService",
               {
                 "Cpu": {
-                  "Fn::If": [
-                    {
-                      "Ref": "BlankWebCpu"
-                    },
-                    {
-                      "Ref": "AWS::NoValue"
-                    },
-                    {
-                      "Ref": "WebCpu"
-                    }
-                  ]
+                  "Ref": "WebCpu"
                 },
                 "Environment": {
                   "APP": "httpd",
