@@ -27,6 +27,8 @@ import (
 
 	"github.com/convox/rack/cmd/convox/changes"
 	"github.com/convox/rack/cmd/convox/templates"
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/fatih/color"
 	"github.com/fsouza/go-dockerclient"
 	yaml "gopkg.in/yaml.v2"
@@ -48,6 +50,16 @@ var (
 	warning = color.New(color.FgYellow).Add(color.Bold).SprintFunc()
 	system  = color.New(color.FgBlack).Add(color.Bold).SprintFunc()
 )
+
+// YAMLError is an error type to use when the user-supplied manifest YAML is not valid
+// This can be treated as a validation error, not an exception
+type YAMLError struct {
+	err error
+}
+
+func (y *YAMLError) Error() string {
+	return y.err.Error()
+}
 
 var RandomPort = func() int {
 	return 10000 + rand.Intn(50000)
@@ -98,7 +110,6 @@ func Init(dir string) error {
 
 func Read(dir, filename string) (*Manifest, error) {
 	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
-
 	if err != nil {
 		return nil, fmt.Errorf("file not found: %s", filename)
 	}
@@ -109,13 +120,13 @@ func Read(dir, filename string) (*Manifest, error) {
 
 	err = yaml.Unmarshal(data, &mv2)
 	if err != nil {
-		return nil, err
+		return nil, &YAMLError{err}
 	}
 
 	if mv2.Version == "" {
 		err = yaml.Unmarshal(data, &m)
 		if err != nil {
-			return nil, err
+			return nil, &YAMLError{err}
 		}
 	} else {
 		m = mv2.Services
@@ -124,7 +135,6 @@ func Read(dir, filename string) (*Manifest, error) {
 
 	if denv := filepath.Join(dir, ".env"); exists(denv) {
 		data, err := ioutil.ReadFile(denv)
-
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +146,6 @@ func Read(dir, filename string) (*Manifest, error) {
 				parts := strings.SplitN(scanner.Text(), "=", 2)
 
 				err := os.Setenv(parts[0], parts[1])
-
 				if err != nil {
 					return nil, err
 				}
@@ -169,7 +178,37 @@ func Read(dir, filename string) (*Manifest, error) {
 		m[name] = entry
 	}
 
+	err = m.Validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return &m, nil
+}
+
+// Validate convox-specific convox labels and values for every entry
+func (m Manifest) Validate() error {
+	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+
+	for _, entry := range map[string]ManifestEntry(m) {
+		labels := entry.labelsByPrefix("convox.cron")
+		for k := range labels {
+			parts := strings.Split(k, ".")
+			if len(parts) != 3 {
+				return fmt.Errorf(
+					"Cron task is not valid (must be in format convox.cron.myjob)",
+				)
+			}
+			name := parts[2]
+			if !regexValidCronLabel.MatchString(name) {
+				return fmt.Errorf(
+					"Cron task %s is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)",
+					name,
+				)
+			}
+		}
+	}
+	return nil
 }
 
 func buildSync(source, tag string, cache bool, dockerfile string) error {
@@ -942,6 +981,45 @@ func (me ManifestEntry) Label(key string) string {
 	return ""
 }
 
+func (me ManifestEntry) labelsByPrefix(prefix string) map[string]string {
+	returnLabels := make(map[string]string)
+	switch labels := me.Labels.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range labels {
+			ks, ok := k.(string)
+
+			if !ok {
+				continue
+			}
+
+			vs, ok := v.(string)
+
+			if !ok {
+				continue
+			}
+
+			if strings.HasPrefix(ks, prefix) {
+				returnLabels[ks] = vs
+			}
+		}
+	case []interface{}:
+		for _, label := range labels {
+			ls, ok := label.(string)
+
+			if !ok {
+				continue
+			}
+
+			if parts := strings.SplitN(ls, "=", 2); len(parts) == 2 {
+				if strings.HasPrefix(parts[0], prefix) {
+					returnLabels[parts[0]] = parts[1]
+				}
+			}
+		}
+	}
+	return returnLabels
+}
+
 func (me ManifestEntry) Protocol(port string) string {
 	proto := "tcp"
 
@@ -1219,13 +1297,27 @@ func getDockerGateway() (string, error) {
 
 type Files map[string]time.Time
 
-func watchWalker(files Files, local string, adds map[string]bool, lock sync.Mutex) filepath.WalkFunc {
+func watchWalker(files Files, local string, adds map[string]bool, lock sync.Mutex, basePath string, patterns []string, patDirs [][]string, exceptions bool) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
 
 		if info.IsDir() {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(basePath, path)
+		if err != nil {
+			return err
+		}
+
+		skip, err := fileutils.OptimizedMatches(relPath, patterns, patDirs)
+		if err != nil {
+			log.Printf("Error matching %s: %v", relPath, err)
+			return err
+		}
+		if skip {
 			return nil
 		}
 
@@ -1276,7 +1368,6 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 				}
 
 				rel, err := filepath.Rel(sync.Local, local)
-
 				if err != nil {
 					continue
 				}
@@ -1690,7 +1781,22 @@ func (m *Manifest) processSync(local string, syncs []Sync) error {
 	})
 
 	for {
-		err := filepath.Walk(local, watchWalker(files, local, adds, alock))
+		di, err := readDockerIgnore()
+		if err != nil {
+			return err
+		}
+
+		patterns, patDirs, exceptions, err := fileutils.CleanPatterns(di)
+		if err != nil {
+			return err
+		}
+
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+
+		err = filepath.Walk(local, watchWalker(files, local, adds, alock, cwd, patterns, patDirs, exceptions))
 		for _, sync := range syncs {
 			if err != nil {
 				fmt.Printf("err: %+v\n", err)
@@ -1903,4 +2009,21 @@ func writeAsset(path, template string) error {
 	}
 
 	return writeFile(path, data, info.Mode())
+}
+
+func readDockerIgnore() ([]string, error) {
+	fd, err := os.Open(".dockerignore")
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	ignore, err := dockerignore.ReadAll(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return ignore, nil
 }
