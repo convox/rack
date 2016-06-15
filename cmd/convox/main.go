@@ -56,9 +56,12 @@ func coalesce(ss ...string) string {
 }
 
 func currentRack(c *cli.Context) string {
-	cr, _ := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
+	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
+	if err != nil && !os.IsNotExist(err) {
+		stdcli.Error(err)
+	}
 
-	return coalesce(c.String("rack"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)), os.Getenv("CONVOX_RACK"))
+	return coalesce(c.String("rack"), os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
 }
 
 func rackClient(c *cli.Context) *client.Client {
