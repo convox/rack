@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/client"
@@ -67,23 +66,6 @@ func main() {
 
 	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
 	handleError(err)
-
-	bs, err := rackClient.GetBuildsWithLimit(os.Getenv("APP"), 150)
-	handleError(err)
-
-	if len(bs) >= 100 {
-		wg := new(sync.WaitGroup)
-		outDated := bs[100:]
-		for _, b := range outDated {
-			wg.Add(1)
-			go func(buildId string, wg *sync.WaitGroup) {
-				defer wg.Done()
-				_, err := rackClient.DeleteBuild(os.Getenv("APP"), buildId)
-				handleError(err)
-			}(b.Id, wg)
-		}
-		wg.Wait()
-	}
 }
 
 func handleError(err error) {
