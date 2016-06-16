@@ -17,6 +17,7 @@ func init() {
 		Action:      cmdLogsStream,
 		Flags: []cli.Flag{
 			appFlag,
+			rackFlag,
 			cli.StringFlag{
 				Name:  "filter",
 				Usage: "Only return logs that match a filter pattern. If not specified, return all logs.",

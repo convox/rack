@@ -13,7 +13,9 @@ func init() {
 		Description: "scale an app's processes",
 		Usage:       "<process> [--count=2] [--memory=512]",
 		Action:      cmdScale,
-		Flags: []cli.Flag{appFlag,
+		Flags: []cli.Flag{
+			appFlag,
+			rackFlag,
 			cli.IntFlag{
 				Name:  "count",
 				Usage: "Number of processes to keep running for specified process type.",

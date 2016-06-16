@@ -14,18 +14,21 @@ func init() {
 		Description: "api endpoint",
 		Usage:       "",
 		Action:      cmdApi,
+		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "get",
 				Description: "get an api endpoint",
 				Usage:       "<endpoint>",
 				Action:      cmdApiGet,
+				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "delete",
 				Description: "delete an api endpoint",
 				Usage:       "<endpoint>",
 				Action:      cmdApiDelete,
+				Flags:       []cli.Flag{rackFlag},
 			},
 		},
 	})

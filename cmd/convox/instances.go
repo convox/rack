@@ -18,24 +18,28 @@ func init() {
 		Description: "list your Convox rack's instances",
 		Usage:       "",
 		Action:      cmdInstancesList,
+		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "keyroll",
 				Description: "generate and replace the ec2 keypair used for SSH",
 				Usage:       "",
 				Action:      cmdInstancesKeyroll,
+				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "ssh",
 				Description:     "establish secure shell with EC2 instance",
 				Usage:           "<id> [command]",
 				Action:          cmdInstancesSSH,
+				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
 			},
 			{
 				Name:        "terminate",
 				Description: "terminate an EC2 instance",
 				Usage:       "<id>",
+				Flags:       []cli.Flag{rackFlag},
 				Action:      cmdInstancesTerminate,
 			},
 		},

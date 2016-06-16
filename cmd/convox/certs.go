@@ -13,6 +13,7 @@ func init() {
 		Name:        "certs",
 		Action:      cmdCertsList,
 		Description: "list certificates",
+		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "create",
@@ -20,6 +21,7 @@ func init() {
 				Usage:       "<cert.pub> <cert.key>",
 				Action:      cmdCertsCreate,
 				Flags: []cli.Flag{
+					rackFlag,
 					cli.StringFlag{
 						Name:  "chain",
 						Usage: "intermediate certificate chain",
@@ -31,12 +33,14 @@ func init() {
 				Description: "delete a certificate",
 				Usage:       "<id>",
 				Action:      cmdCertsDelete,
+				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "generate",
 				Description: "generate a certificate",
 				Usage:       "<domain> [domain...]",
 				Action:      cmdCertsGenerate,
+				Flags:       []cli.Flag{rackFlag},
 			},
 		},
 	})

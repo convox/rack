@@ -12,6 +12,7 @@ func init() {
 		Name:        "registries",
 		Action:      cmdRegistryList,
 		Description: "manage private registries",
+		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "add",
@@ -19,6 +20,7 @@ func init() {
 				Usage:       "[server]",
 				Action:      cmdRegistryAdd,
 				Flags: []cli.Flag{
+					rackFlag,
 					cli.StringFlag{
 						Name:  "email, e",
 						Usage: "Email for registry auth.",
@@ -39,6 +41,7 @@ func init() {
 				Description: "remove a registry",
 				Usage:       "[server]",
 				Action:      cmdRegistryRemove,
+				Flags:       []cli.Flag{rackFlag},
 			},
 		},
 	})
