@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +22,21 @@ import (
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	builds, err := provider.BuildList(app)
+	l := r.URL.Query().Get("limit")
+
+	var err error
+	var limit int
+
+	if l == "" {
+		limit = 20
+	} else {
+		limit, err = strconv.Atoi(l)
+		if err != nil {
+			return httperr.Errorf(400, err.Error())
+		}
+	}
+
+	builds, err := provider.BuildList(app, int64(limit))
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}

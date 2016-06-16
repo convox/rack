@@ -35,6 +35,18 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	return builds, nil
 }
 
+func (c *Client) GetBuildsWithLimit(app string, limit int) (Builds, error) {
+	var builds Builds
+
+	err := c.Get(fmt.Sprintf("/apps/%s/builds?limit=%d", app, limit), &builds)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return builds, nil
+}
+
 func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest string, description string) (*Build, error) {
 	var build Build
 
