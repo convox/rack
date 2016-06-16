@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/urfave/cli.v1"
 
@@ -34,27 +35,48 @@ func cmdSwitch(c *cli.Context) error {
 		return nil
 	}
 
-	rack := c.Args()[0]
-
 	racks, err := rackClient(c).Racks()
-
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	found := false
+	rackName := c.Args()[0]
+	orgName := ""
+
+	parts := strings.Split(rackName, "/")
+	if len(parts) == 2 {
+		orgName = parts[0]
+		rackName = parts[1]
+	}
+
+	all := []string{}
+	matched := []string{}
 
 	for _, r := range racks {
-		if fmt.Sprintf("%s/%s", r.Organization.Name, r.Name) == rack {
-			found = true
-			break
+		rn := fmt.Sprintf("%s/%s", r.Organization.Name, r.Name)
+		all = append(all, rn)
+
+		// if no org was specified, collect all the rack name matches
+		if orgName == "" {
+			if r.Name == rackName {
+				matched = append(matched, rn)
+			}
+		} else {
+			if fmt.Sprintf("%s/%s", orgName, rackName) == rn {
+				matched = append(matched, rn)
+			}
 		}
 	}
 
-	if !found {
-		return stdcli.ExitError(fmt.Errorf("no such rack: %s", rack))
+	if len(matched) == 0 {
+		return stdcli.ExitError(fmt.Errorf("Rack not found. Try one of:\n" + strings.Join(all, "\n")))
 	}
 
+	if len(matched) > 1 {
+		return stdcli.ExitError(fmt.Errorf("You have access to multiple racks with that name, try one of the following:\n" + strings.Join(matched, "\n")))
+	}
+
+	rack := matched[0]
 	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "rack"), []byte(rack), 0644); err != nil {
 		return stdcli.ExitError(err)
 	}
