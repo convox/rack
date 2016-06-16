@@ -134,6 +134,91 @@ func TestCommandStringForm(t *testing.T) {
 	assertFixture(t, "command_string_form", "")
 }
 
+func TestHealthCheckPort(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be the first port
+	port, err := balancer.HealthCheckPort()
+	assert.EqualValues(t, port, "80")
+}
+
+func TestHealthCheckPortWithOverride(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+  labels:
+    - convox.health.port=3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be the first host port that matches 3001, which is 81
+	port, err := balancer.HealthCheckPort()
+	assert.EqualValues(t, port, "81")
+}
+
+func TestHealthCheckPortWithMultipleOverride(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+    - 82:3001
+  labels:
+    - convox.health.port=3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be first matching port (81, not 82)
+	port, err := balancer.HealthCheckPort()
+	assert.EqualValues(t, port, "81")
+}
+
+func TestHealthCheckInterval(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should return default
+	interval, err := balancer.HealthCheckInterval()
+	assert.EqualValues(t, interval, "5")
+}
+
+func TestHealthCheckIntervalWithTimeoutConfigured(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+  labels:
+    - convox.health.timeout=120
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should return timeout + 1
+	interval, err := balancer.HealthCheckInterval()
+	assert.EqualValues(t, interval, "121")
+}
+
 func TestManifestRandomPorts(t *testing.T) {
 	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", nil)
 

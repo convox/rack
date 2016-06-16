@@ -178,7 +178,17 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	healthOptions := []string{"port", "path", "timeout"}
+
 	for _, entry := range manifest {
+		entryName := UpperName(entry.Name)
+		for _, option := range healthOptions {
+			val := entry.Label(fmt.Sprintf("convox.health.%s", option))
+			param := fmt.Sprintf("%sHealth%s", entryName, strings.Title(option))
+			fmt.Printf("val %s param %s", val, param)
+			app.Parameters[param] = val
+		}
+
 		for _, mapping := range entry.PortMappings() {
 			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
