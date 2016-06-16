@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"strconv"
 
 	"gopkg.in/yaml.v2"
 )
@@ -257,20 +258,38 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
-func (mb ManifestBalancer) HealthCheckPort() (string, error) {
+func (mb ManifestBalancer) DefaultHealthTimeout() string {
+	return "3"
+}
+
+func (mb ManifestBalancer) HealthPort() (string, error) {
 	mappings := mb.PortMappings()
-	if port := mb.Entry.Label("convox.health_check.port"); port != "" {
+	if port := mb.Entry.Label("convox.health.port"); port != "" {
 		for _, mapping := range mappings {
 			if mapping.Container == port {
 				return mapping.Balancer, nil
 			}
 		}
-		return "", fmt.Errorf("Failed to find matching port for health check port %#v", port)
+		return "", fmt.Errorf("Failed to find matching port for health port %#v", port)
 	} else if len(mappings) > 0 {
 		return mappings[0].Balancer, nil
 	}
 
 	return "", nil
+}
+
+func (mb ManifestBalancer) HealthInterval() (string, error) {
+	// interval must be greater than timeout
+	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
+		timeout_as_int, err := strconv.Atoi(timeout)
+		if err != nil {
+			return "", err
+		}
+		interval := strconv.Itoa(timeout_as_int + 1)
+		return interval, nil
+	} else {
+		return "5", nil
+	}
 }
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {

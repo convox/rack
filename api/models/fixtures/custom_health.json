@@ -1,100 +1,66 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerRedisBlankHealthPath": {
+    "BalancerMainBlankHealthPath": {
       "Fn::Equals": [
         {
-          "Ref": "RedisHealthPath"
+          "Ref": "MainHealthPath"
         },
         ""
       ]
     },
-    "BalancerRedisBlankHealthTimeout": {
+    "BalancerMainBlankHealthTimeout": {
       "Fn::Equals": [
         {
-          "Ref": "RedisHealthTimeout"
+          "Ref": "MainHealthTimeout"
         },
         ""
       ]
     },
-    "BalancerRedisPort6379Proxy": {
+    "BalancerMainPort80Proxy": {
       "Fn::Equals": [
         {
-          "Ref": "RedisPort6379Proxy"
+          "Ref": "MainPort80Proxy"
         },
         "Yes"
       ]
     },
-    "BalancerRedisPort6379Secure": {
+    "BalancerMainPort80Secure": {
       "Fn::Equals": [
         {
-          "Ref": "RedisPort6379Secure"
+          "Ref": "MainPort80Secure"
         },
         "Yes"
       ]
     },
-    "BalancerWebBlankHealthPath": {
+    "BalancerMainPort81Proxy": {
       "Fn::Equals": [
         {
-          "Ref": "WebHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerWebBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthTimeout"
-        },
-        ""
-      ]
-    },
-    "BalancerWebPort80Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Proxy"
+          "Ref": "MainPort81Proxy"
         },
         "Yes"
       ]
     },
-    "BalancerWebPort80Secure": {
+    "BalancerMainPort81Secure": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Secure"
+          "Ref": "MainPort81Secure"
         },
         "Yes"
       ]
     },
-    "BlankRedisService": {
+    "BlankMainService": {
       "Fn::Equals": [
         "",
         ""
       ]
     },
-    "BlankWebService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
-    "EnabledRedis": {
+    "EnabledMain": {
       "Fn::Not": [
         {
           "Fn::Equals": [
             {
-              "Ref": "RedisDesiredCount"
-            },
-            -1
-          ]
-        }
-      ]
-    },
-    "EnabledWeb": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "WebDesiredCount"
+              "Ref": "MainDesiredCount"
             },
             -1
           ]
@@ -163,20 +129,11 @@
     }
   },
   "Outputs": {
-    "BalancerRedisHost": {
-      "Condition": "EnabledRedis",
+    "BalancerMainHost": {
+      "Condition": "EnabledMain",
       "Value": {
         "Fn::GetAtt": [
-          "BalancerRedisInternal",
-          "DNSName"
-        ]
-      }
-    },
-    "BalancerWebHost": {
-      "Condition": "EnabledWeb",
-      "Value": {
-        "Fn::GetAtt": [
-          "BalancerWeb",
+          "BalancerMain",
           "DNSName"
         ]
       }
@@ -191,15 +148,25 @@
         "Ref": "LogGroup"
       }
     },
-    "RedisPort6379Balancer": {
-      "Condition": "EnabledRedis",
+    "MainPort80Balancer": {
+      "Condition": "EnabledMain",
       "Value": {
-        "Ref": "RedisPort6379Balancer"
+        "Ref": "MainPort80Balancer"
       }
     },
-    "RedisPort6379BalancerName": {
-      "Condition": "EnabledRedis",
-      "Value": "httpd-redis-NVCY43S-i"
+    "MainPort80BalancerName": {
+      "Condition": "EnabledMain",
+      "Value": "httpd-main-KQSNMIK"
+    },
+    "MainPort81Balancer": {
+      "Condition": "EnabledMain",
+      "Value": {
+        "Ref": "MainPort81Balancer"
+      }
+    },
+    "MainPort81BalancerName": {
+      "Condition": "EnabledMain",
+      "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
       "Condition": "RegionHasRegistry",
@@ -220,16 +187,6 @@
       "Value": {
         "Ref": "Settings"
       }
-    },
-    "WebPort80Balancer": {
-      "Condition": "EnabledWeb",
-      "Value": {
-        "Ref": "WebPort80Balancer"
-      }
-    },
-    "WebPort80BalancerName": {
-      "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P"
     }
   },
   "Parameters": {
@@ -263,52 +220,43 @@
       "Description": "",
       "Type": "String"
     },
-    "Private": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "Create internal load balancers in private subnets",
-      "Type": "String"
-    },
-    "RedisDesiredCount": {
+    "MainDesiredCount": {
       "Default": "1",
       "Description": "The number of instantiations of the process to place and keep running on your cluster",
       "MinValue": -1,
       "Type": "Number"
     },
-    "RedisHealthPath": {
+    "MainHealthPath": {
       "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "RedisHealthTimeout": {
+    "MainHealthTimeout": {
       "Default": "3",
       "MaxValue": 60,
       "Type": "Number"
     },
-    "RedisMemory": {
+    "MainMemory": {
       "Default": "256",
       "Description": "MB of RAM to reserve",
       "Type": "Number"
     },
-    "RedisPort6379Balancer": {
-      "Default": "6379",
+    "MainPort80Balancer": {
+      "Default": "80",
       "Description": "",
       "Type": "String"
     },
-    "RedisPort6379Certificate": {
+    "MainPort80Certificate": {
       "Default": "",
       "Description": "",
       "Type": "String"
     },
-    "RedisPort6379Host": {
+    "MainPort80Host": {
       "Default": "5000",
       "Description": "",
       "Type": "String"
     },
-    "RedisPort6379Protocol": {
+    "MainPort80Protocol": {
       "AllowedValues": [
         "http",
         "https",
@@ -319,7 +267,7 @@
       "Description": "",
       "Type": "String"
     },
-    "RedisPort6379Proxy": {
+    "MainPort80Proxy": {
       "AllowedValues": [
         "Yes",
         "No"
@@ -328,13 +276,66 @@
       "Description": "",
       "Type": "String"
     },
-    "RedisPort6379Secure": {
+    "MainPort80Secure": {
       "AllowedValues": [
         "Yes",
         "No"
       ],
       "Default": "No",
       "Description": "",
+      "Type": "String"
+    },
+    "MainPort81Balancer": {
+      "Default": "81",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort81Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort81Host": {
+      "Default": "5001",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort81Protocol": {
+      "AllowedValues": [
+        "http",
+        "https",
+        "tcp",
+        "tls"
+      ],
+      "Default": "tls",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort81Proxy": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort81Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
+    "Private": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Create internal load balancers in private subnets",
       "Type": "String"
     },
     "Release": {
@@ -366,78 +367,13 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
       "Type": "String"
-    },
-    "WebDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WebHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
-    "WebMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
-    },
-    "WebPort80Balancer": {
-      "Default": "80",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Host": {
-      "Default": "5001",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
-    "BalancerRedisInternal": {
-      "Condition": "EnabledRedis",
+    "BalancerMain": {
+      "Condition": "EnabledMain",
       "DependsOn": [
-        "BalancerRedisInternalSecurityGroup"
+        "BalancerMainSecurityGroup"
       ],
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -450,7 +386,7 @@
         "CrossZone": true,
         "HealthCheck": {
           "HealthyThreshold": "2",
-          "Interval": "5",
+          "Interval": "121",
           "Target": {
             "Fn::Join": [
               "",
@@ -461,10 +397,10 @@
                     [
                       {
                         "Fn::If": [
-                          "BalancerRedisBlankHealthPath",
+                          "BalancerMainBlankHealthPath",
                           {
                             "Fn::If": [
-                              "BalancerRedisPort6379Secure",
+                              "BalancerMainPort81Secure",
                               {
                                 "Fn::FindInMap": [
                                   "PortProtocol",
@@ -483,7 +419,7 @@
                           },
                           {
                             "Fn::If": [
-                              "BalancerRedisPort6379Secure",
+                              "BalancerMainPort81Secure",
                               {
                                 "Fn::FindInMap": [
                                   "PortProtocol",
@@ -503,23 +439,23 @@
                         ]
                       },
                       {
-                        "Ref": "RedisPort6379Host"
+                        "Ref": "MainPort81Host"
                       }
                     ]
                   ]
                 },
                 {
-                  "Ref": "RedisHealthPath"
+                  "Ref": "MainHealthPath"
                 }
               ]
             ]
           },
           "Timeout": {
             "Fn::If": [
-              "BalancerRedisBlankHealthTimeout",
+              "BalancerMainBlankHealthTimeout",
               "3",
               {
-                "Ref": "RedisHealthTimeout"
+                "Ref": "MainHealthTimeout"
               }
             ]
           },
@@ -533,63 +469,126 @@
         "Listeners": [
           {
             "Fn::If": [
-              "BalancerRedisPort6379Secure",
+              "BalancerMainPort80Secure",
               {
                 "InstancePort": {
-                  "Ref": "RedisPort6379Host"
+                  "Ref": "MainPort80Host"
                 },
                 "InstanceProtocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "RedisPort6379Protocol"
+                      "Ref": "MainPort80Protocol"
                     },
                     "SecureInstanceProtocol"
                   ]
                 },
                 "LoadBalancerPort": {
-                  "Ref": "RedisPort6379Balancer"
+                  "Ref": "MainPort80Balancer"
                 },
                 "Protocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "RedisPort6379Protocol"
+                      "Ref": "MainPort80Protocol"
                     },
                     "ListenerProtocol"
                   ]
                 },
                 "SSLCertificateId": {
-                  "Ref": "RedisPort6379Certificate"
+                  "Ref": "MainPort80Certificate"
                 }
               },
               {
                 "InstancePort": {
-                  "Ref": "RedisPort6379Host"
+                  "Ref": "MainPort80Host"
                 },
                 "InstanceProtocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "RedisPort6379Protocol"
+                      "Ref": "MainPort80Protocol"
                     },
                     "InstanceProtocol"
                   ]
                 },
                 "LoadBalancerPort": {
-                  "Ref": "RedisPort6379Balancer"
+                  "Ref": "MainPort80Balancer"
                 },
                 "Protocol": {
                   "Fn::FindInMap": [
                     "PortProtocol",
                     {
-                      "Ref": "RedisPort6379Protocol"
+                      "Ref": "MainPort80Protocol"
                     },
                     "ListenerProtocol"
                   ]
                 },
                 "SSLCertificateId": {
-                  "Ref": "RedisPort6379Certificate"
+                  "Ref": "MainPort80Certificate"
+                }
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "BalancerMainPort81Secure",
+              {
+                "InstancePort": {
+                  "Ref": "MainPort81Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort81Protocol"
+                    },
+                    "SecureInstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "MainPort81Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort81Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "MainPort81Certificate"
+                }
+              },
+              {
+                "InstancePort": {
+                  "Ref": "MainPort81Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort81Protocol"
+                    },
+                    "InstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "MainPort81Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort81Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "MainPort81Certificate"
                 }
               }
             ]
@@ -598,11 +597,11 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-redis-NVCY43S-i",
+        "LoadBalancerName": "httpd-main-KQSNMIK",
         "Policies": [
           {
             "Fn::If": [
-              "BalancerRedisPort6379Proxy",
+              "BalancerMainPort80Proxy",
               {
                 "Attributes": [
                   {
@@ -612,7 +611,7 @@
                 ],
                 "InstancePorts": [
                   {
-                    "Ref": "RedisPort6379Host"
+                    "Ref": "MainPort80Host"
                   }
                 ],
                 "PolicyName": "EnableProxyProtocol",
@@ -624,233 +623,8 @@
             ]
           },
           {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Scheme": "internal",
-        "SecurityGroups": [
-          {
-            "Ref": "BalancerRedisInternalSecurityGroup"
-          }
-        ],
-        "Subnets": {
-          "Fn::If": [
-            "Private",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerRedisInternalSecurityGroup": {
-      "Condition": "EnabledRedis",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "RedisPort6379Balancer"
-            },
-            "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "RedisPort6379Balancer"
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
-    "BalancerWeb": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWebSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": 60
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": 3600
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": "5",
-          "Target": {
-            "Fn::Join": [
-              "",
-              [
-                {
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {
-                        "Fn::If": [
-                          "BalancerWebBlankHealthPath",
-                          {
-                            "Fn::If": [
-                              "BalancerWebPort80Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "Fn::If": [
-                              "BalancerWebPort80Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "Ref": "WebPort80Host"
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Ref": "WebHealthPath"
-                }
-              ]
-            ]
-          },
-          "Timeout": {
             "Fn::If": [
-              "BalancerWebBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WebHealthTimeout"
-              }
-            ]
-          },
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "Fn::If": [
-              "BalancerWebPort80Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
-              }
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": "httpd-web-XHW5F4P",
-        "Policies": [
-          {
-            "Fn::If": [
-              "BalancerWebPort80Proxy",
+              "BalancerMainPort81Proxy",
               {
                 "Attributes": [
                   {
@@ -860,7 +634,7 @@
                 ],
                 "InstancePorts": [
                   {
-                    "Ref": "WebPort80Host"
+                    "Ref": "MainPort81Host"
                   }
                 ],
                 "PolicyName": "EnableProxyProtocol",
@@ -877,7 +651,7 @@
         ],
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebSecurityGroup"
+            "Ref": "BalancerMainSecurityGroup"
           }
         ],
         "Subnets": {
@@ -886,8 +660,8 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebSecurityGroup": {
-      "Condition": "EnabledWeb",
+    "BalancerMainSecurityGroup": {
+      "Condition": "EnabledMain",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -904,11 +678,21 @@
           {
             "CidrIp": "0.0.0.0/0",
             "FromPort": {
-              "Ref": "WebPort80Balancer"
+              "Ref": "MainPort80Balancer"
             },
             "IpProtocol": "tcp",
             "ToPort": {
-              "Ref": "WebPort80Balancer"
+              "Ref": "MainPort80Balancer"
+            }
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "MainPort81Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "MainPort81Balancer"
             }
           },
           {
@@ -1007,10 +791,10 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "RedisECSService": {
-      "Condition": "EnabledRedis",
+    "MainECSService": {
+      "Condition": "EnabledMain",
       "DependsOn": [
-        "BalancerRedisInternal",
+        "BalancerMain",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -1025,7 +809,7 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "RedisDesiredCount"
+          "Ref": "MainDesiredCount"
         },
         "LoadBalancers": [
           {
@@ -1033,10 +817,22 @@
               ":",
               [
                 {
-                  "Ref": "BalancerRedisInternal"
+                  "Ref": "BalancerMain"
                 },
-                "redis",
-                "6379"
+                "main",
+                "3000"
+              ]
+            ]
+          },
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerMain"
+                },
+                "main",
+                "3001"
               ]
             ]
           },
@@ -1051,7 +847,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "redis"
+              "main"
             ]
           ]
         },
@@ -1065,13 +861,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "RedisECSTaskDefinition"
+          "Ref": "MainECSTaskDefinition"
         }
       },
       "Type": "Custom::ECSService",
       "Version": "1.0"
     },
-    "RedisECSTaskDefinition": {
+    "MainECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -1090,7 +886,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "redis"
+              "main"
             ]
           ]
         },
@@ -1106,7 +902,7 @@
         "Tasks": [
           {
             "Fn::If": [
-              "BlankRedisService",
+              "BlankMainService",
               {
                 "Environment": {
                   "APP": "httpd",
@@ -1114,30 +910,37 @@
                   "KINESIS": {
                     "Ref": "Kinesis"
                   },
-                  "LINK_PASSWORD": "pass-the-word",
-                  "LINK_PATH": "/0",
-                  "LINK_SCHEME": "redis",
-                  "LINK_USERNAME": "user",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "redis",
+                  "PROCESS": "main",
                   "RACK": "convox-test"
                 },
-                "Image": "convox/redis",
+                "Image": "",
                 "Memory": {
-                  "Ref": "RedisMemory"
+                  "Ref": "MainMemory"
                 },
-                "Name": "redis",
+                "Name": "main",
                 "PortMappings": [
                   {
                     "Fn::Join": [
                       ":",
                       [
                         {
-                          "Ref": "RedisPort6379Host"
+                          "Ref": "MainPort80Host"
                         },
-                        "6379"
+                        "3000"
+                      ]
+                    ]
+                  },
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "MainPort81Host"
+                        },
+                        "3001"
                       ]
                     ]
                   },
@@ -1245,162 +1048,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWeb",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": {
-          "Ref": "DeploymentMaximum"
-        },
-        "DeploymentMinimumPercent": {
-          "Ref": "DeploymentMinimum"
-        },
-        "DesiredCount": {
-          "Ref": "WebDesiredCount"
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
-    },
-    "WebECSTaskDefinition": {
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Environment": {
-          "Ref": "Environment"
-        },
-        "Key": {
-          "Ref": "Key"
-        },
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Release": {
-          "Ref": "Release"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "Tasks": [
-          {
-            "Fn::If": [
-              "BlankWebService",
-              {
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "Image": "",
-                "Memory": {
-                  "Ref": "WebMemory"
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ]
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
     }
   }
 }

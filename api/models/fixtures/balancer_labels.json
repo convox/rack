@@ -1,6 +1,22 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BalancerMainBlankHealthPath": {
+      "Fn::Equals": [
+        {
+          "Ref": "MainHealthPath"
+        },
+        ""
+      ]
+    },
+    "BalancerMainBlankHealthTimeout": {
+      "Fn::Equals": [
+        {
+          "Ref": "MainHealthTimeout"
+        },
+        ""
+      ]
+    },
     "BalancerMainPort443Proxy": {
       "Fn::Equals": [
         {
@@ -75,25 +91,21 @@
   "Mappings": {
     "PortProtocol": {
       "http": {
-        "HealthCheckProtocol": "HTTP",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTP",
         "SecureInstanceProtocol": "HTTPS"
       },
       "https": {
-        "HealthCheckProtocol": "HTTPS",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTPS",
         "SecureInstanceProtocol": "HTTPS"
       },
       "tcp": {
-        "HealthCheckProtocol": "TCP",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "TCP",
         "SecureInstanceProtocol": "SSL"
       },
       "tls": {
-        "HealthCheckProtocol": "SSL",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
@@ -188,30 +200,15 @@
       "MinValue": -1,
       "Type": "Number"
     },
-    "MainHealthCheckHealthyThreshold": {
-      "Type": "String"
-    },
-    "MainHealthCheckInterval": {
-      "Type": "String"
-    },
-    "MainHealthCheckPath": {
+    "MainHealthPath": {
+      "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "MainHealthCheckProtocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Type": "String"
-    },
-    "MainHealthCheckTimeout": {
-      "Type": "String"
-    },
-    "MainHealthCheckUnhealthyThreshold": {
-      "Type": "String"
+    "MainHealthTimeout": {
+      "Default": "3",
+      "MaxValue": 60,
+      "Type": "Number"
     },
     "MainMemory": {
       "Default": "256",
@@ -318,12 +315,8 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": {
-            "Ref": "MainHealthCheckHealthyThreshold"
-          },
-          "Interval": {
-            "Ref": "MainHealthCheckInterval"
-          },
+          "HealthyThreshold": "2",
+          "Interval": "5",
           "Target": {
             "Fn::Join": [
               "",
@@ -333,12 +326,46 @@
                     ":",
                     [
                       {
-                        "Fn::FindInMap": [
-                          "PortProtocol",
+                        "Fn::If": [
+                          "BalancerMainBlankHealthPath",
                           {
-                            "Ref": "MainHealthCheckProtocol"
+                            "Fn::If": [
+                              "BalancerMainPort443Secure",
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "InstanceProtocol"
+                                ]
+                              }
+                            ]
                           },
-                          "ListenerProtocol"
+                          {
+                            "Fn::If": [
+                              "BalancerMainPort443Secure",
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "InstanceProtocol"
+                                ]
+                              }
+                            ]
+                          }
                         ]
                       },
                       {
@@ -348,17 +375,21 @@
                   ]
                 },
                 {
-                  "Ref": "MainHealthCheckPath"
+                  "Ref": "MainHealthPath"
                 }
               ]
             ]
           },
           "Timeout": {
-            "Ref": "MainHealthCheckTimeout"
+            "Fn::If": [
+              "BalancerMainBlankHealthTimeout",
+              "3",
+              {
+                "Ref": "MainHealthTimeout"
+              }
+            ]
           },
-          "UnhealthyThreshold": {
-            "Ref": "MainHealthCheckUnhealthyThreshold"
-          }
+          "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
           {

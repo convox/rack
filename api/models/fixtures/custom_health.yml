@@ -1,0 +1,9 @@
+main:
+  ports:
+    - 80:3000
+    - 81:3001
+  labels:
+    - convox.port.81.secure=true
+    - convox.health.port=3001
+    - convox.health.path=/health_check
+    - convox.health.timeout=120

@@ -80,10 +80,10 @@
     },
     "Mappings": {
       "PortProtocol": {
-        "http": { "HealthCheckProtocol": "HTTP", "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
-        "https": { "HealthCheckProtocol": "HTTPS", "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
-        "tcp": { "HealthCheckProtocol": "TCP", "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
-        "tls": { "HealthCheckProtocol": "SSL", "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
+        "http": { "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
+        "https": { "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
+        "tcp": { "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
+        "tls": { "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
       }
     },
     "Resources": {
@@ -242,13 +242,26 @@
 
 {{ define "balancer-conditions" }}
   {{ range .Balancers }}
-    {{ $balancer := . }}
+    {{ $processName := upper .ProcessName }}
+    {{ $balancerPrefix := printf "Balancer%s" $processName }}
+    "{{ $balancerPrefix }}BlankHealthPath": {
+      "Fn::Equals": [
+        {"Ref": "{{ $processName }}HealthPath"},
+        ""
+      ]
+    },
+    "{{ $balancerPrefix }}BlankHealthTimeout": {
+      "Fn::Equals": [
+        {"Ref": "{{ $processName }}HealthTimeout"},
+        ""
+      ]
+    },
     {{ range .PortMappings }}
-      "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
-        "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
+      "{{ $balancerPrefix }}Port{{ .Balancer }}Proxy": {
+        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
       },
-      "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
-        "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure" }, "Yes" ]
+      "{{ $balancerPrefix }}Port{{ .Balancer }}Secure": {
+        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Secure" }, "Yes" ]
       },
     {{ end }}
   {{ end }}
@@ -257,25 +270,15 @@
 {{ define "balancer-params" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
-    "{{ upper $balancer.ProcessName }}HealthCheckHealthyThreshold": {
-      "Type": "String"
-    },
-    "{{ upper $balancer.ProcessName }}HealthCheckInterval": {
-      "Type": "String"
-    },
-    "{{ upper $balancer.ProcessName }}HealthCheckPath": {
+    "{{ upper $balancer.ProcessName }}HealthPath": {
       "Type": "String",
+      "Default": "",
       "Description": "Path used when health check protocol is http(s)"
     },
-    "{{ upper $balancer.ProcessName }}HealthCheckProtocol": {
-      "Type": "String",
-      "AllowedValues": [ "http", "https", "tcp", "tls" ]
-    },
-    "{{ upper $balancer.ProcessName }}HealthCheckTimeout": {
-      "Type": "String"
-    },
-    "{{ upper $balancer.ProcessName }}HealthCheckUnhealthyThreshold": {
-      "Type": "String"
+    "{{ upper $balancer.ProcessName }}HealthTimeout": {
+      "Default": "{{ .DefaultHealthTimeout }}",
+      "Type": "Number",
+      "MaxValue": 60
     },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
@@ -374,37 +377,57 @@
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
-        {{ $balancer_health_check_prefix := printf "%sHealthCheck" (upper $balancer.ProcessName) }}
-        {{ $balancer_health_check_protocol := printf "%sProtocol" $balancer_health_check_prefix }}
-        {{ $balancer_health_check_path := printf "%sPath" $balancer_health_check_prefix }}
+        {{ $balancerHealthPrefix := printf "%sHealth" (upper $balancer.ProcessName) }}
         "HealthCheck": {
-          "HealthyThreshold": { "Ref": "{{ $balancer_health_check_prefix }}HealthyThreshold" },
-          "Interval": { "Ref": "{{ $balancer_health_check_prefix }}Interval" },
+          "HealthyThreshold": "2",
+          "Interval": "{{ .HealthInterval }}",
           "Target": {
+            {{/* Joins to form <protocol>:<port>/<path> */}}
             "Fn::Join": [
               "",
               [
                 {
+                  {{/* Joins to form <protocol>:<port> */}}
                   "Fn::Join": [
                     ":",
                     [
                       {
-                        "Fn::FindInMap": [
-                          "PortProtocol",
-                          { "Ref": "{{ $balancer_health_check_protocol }}" },
-                          "ListenerProtocol"
+                        "Fn::If": [
+                          "Balancer{{ upper $balancer.ProcessName }}BlankHealthPath",
+                          {{/* If health check path is blank */}}
+                          {
+                            "Fn::If": [
+                              "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
+                              {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
+                              {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
+                            ]
+                          },
+                          {{/* If health check path is NOT blank */}}
+                          {
+                            "Fn::If": [
+                              "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
+                              {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
+                              {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
+                            ]
+                          }
                         ]
                       },
-                      { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthCheckPort }}Host" }
+                      { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Host" }
                     ]
                   ]
                 },
-                { "Ref": "{{ $balancer_health_check_prefix }}Path" }
+                { "Ref": "{{ $balancerHealthPrefix }}Path" }
               ]
             ]
           },
-          "Timeout": { "Ref": "{{ $balancer_health_check_prefix }}Timeout" },
-          "UnhealthyThreshold": { "Ref": "{{ $balancer_health_check_prefix }}UnhealthyThreshold" }
+          "Timeout": {
+            "Fn::If": [
+              "Balancer{{ upper $balancer.ProcessName }}BlankHealthTimeout",
+              "{{ $balancer.DefaultHealthTimeout }}",
+              { "Ref": "{{ $balancerHealthPrefix }}Timeout" }
+            ]
+          },
+          "UnhealthyThreshold": "2"
         },
         "Listeners": [
           {{ range .PortMappings }}

@@ -1,6 +1,22 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BalancerWebBlankHealthPath": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebHealthPath"
+        },
+        ""
+      ]
+    },
+    "BalancerWebBlankHealthTimeout": {
+      "Fn::Equals": [
+        {
+          "Ref": "WebHealthTimeout"
+        },
+        ""
+      ]
+    },
     "BalancerWebPort80Proxy": {
       "Fn::Equals": [
         {
@@ -15,6 +31,22 @@
           "Ref": "WebPort80Secure"
         },
         "Yes"
+      ]
+    },
+    "BalancerWorkerBlankHealthPath": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerHealthPath"
+        },
+        ""
+      ]
+    },
+    "BalancerWorkerBlankHealthTimeout": {
+      "Fn::Equals": [
+        {
+          "Ref": "WorkerHealthTimeout"
+        },
+        ""
       ]
     },
     "BalancerWorkerPort80Proxy": {
@@ -109,25 +141,21 @@
   "Mappings": {
     "PortProtocol": {
       "http": {
-        "HealthCheckProtocol": "HTTP",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTP",
         "SecureInstanceProtocol": "HTTPS"
       },
       "https": {
-        "HealthCheckProtocol": "HTTPS",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTPS",
         "SecureInstanceProtocol": "HTTPS"
       },
       "tcp": {
-        "HealthCheckProtocol": "TCP",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "TCP",
         "SecureInstanceProtocol": "SSL"
       },
       "tls": {
-        "HealthCheckProtocol": "SSL",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
@@ -280,30 +308,15 @@
       "MinValue": -1,
       "Type": "Number"
     },
-    "WebHealthCheckHealthyThreshold": {
-      "Type": "String"
-    },
-    "WebHealthCheckInterval": {
-      "Type": "String"
-    },
-    "WebHealthCheckPath": {
+    "WebHealthPath": {
+      "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "WebHealthCheckProtocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Type": "String"
-    },
-    "WebHealthCheckTimeout": {
-      "Type": "String"
-    },
-    "WebHealthCheckUnhealthyThreshold": {
-      "Type": "String"
+    "WebHealthTimeout": {
+      "Default": "3",
+      "MaxValue": 60,
+      "Type": "Number"
     },
     "WebMemory": {
       "Default": "256",
@@ -360,30 +373,15 @@
       "MinValue": -1,
       "Type": "Number"
     },
-    "WorkerHealthCheckHealthyThreshold": {
-      "Type": "String"
-    },
-    "WorkerHealthCheckInterval": {
-      "Type": "String"
-    },
-    "WorkerHealthCheckPath": {
+    "WorkerHealthPath": {
+      "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "WorkerHealthCheckProtocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Type": "String"
-    },
-    "WorkerHealthCheckTimeout": {
-      "Type": "String"
-    },
-    "WorkerHealthCheckUnhealthyThreshold": {
-      "Type": "String"
+    "WorkerHealthTimeout": {
+      "Default": "3",
+      "MaxValue": 60,
+      "Type": "Number"
     },
     "WorkerMemory": {
       "Default": "256",
@@ -451,12 +449,8 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": {
-            "Ref": "WebHealthCheckHealthyThreshold"
-          },
-          "Interval": {
-            "Ref": "WebHealthCheckInterval"
-          },
+          "HealthyThreshold": "2",
+          "Interval": "5",
           "Target": {
             "Fn::Join": [
               "",
@@ -466,12 +460,46 @@
                     ":",
                     [
                       {
-                        "Fn::FindInMap": [
-                          "PortProtocol",
+                        "Fn::If": [
+                          "BalancerWebBlankHealthPath",
                           {
-                            "Ref": "WebHealthCheckProtocol"
+                            "Fn::If": [
+                              "BalancerWebPort80Secure",
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "InstanceProtocol"
+                                ]
+                              }
+                            ]
                           },
-                          "ListenerProtocol"
+                          {
+                            "Fn::If": [
+                              "BalancerWebPort80Secure",
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "InstanceProtocol"
+                                ]
+                              }
+                            ]
+                          }
                         ]
                       },
                       {
@@ -481,17 +509,21 @@
                   ]
                 },
                 {
-                  "Ref": "WebHealthCheckPath"
+                  "Ref": "WebHealthPath"
                 }
               ]
             ]
           },
           "Timeout": {
-            "Ref": "WebHealthCheckTimeout"
+            "Fn::If": [
+              "BalancerWebBlankHealthTimeout",
+              "3",
+              {
+                "Ref": "WebHealthTimeout"
+              }
+            ]
           },
-          "UnhealthyThreshold": {
-            "Ref": "WebHealthCheckUnhealthyThreshold"
-          }
+          "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
           {
@@ -656,12 +688,8 @@
         },
         "CrossZone": true,
         "HealthCheck": {
-          "HealthyThreshold": {
-            "Ref": "WorkerHealthCheckHealthyThreshold"
-          },
-          "Interval": {
-            "Ref": "WorkerHealthCheckInterval"
-          },
+          "HealthyThreshold": "2",
+          "Interval": "5",
           "Target": {
             "Fn::Join": [
               "",
@@ -671,12 +699,46 @@
                     ":",
                     [
                       {
-                        "Fn::FindInMap": [
-                          "PortProtocol",
+                        "Fn::If": [
+                          "BalancerWorkerBlankHealthPath",
                           {
-                            "Ref": "WorkerHealthCheckProtocol"
+                            "Fn::If": [
+                              "BalancerWorkerPort80Secure",
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "InstanceProtocol"
+                                ]
+                              }
+                            ]
                           },
-                          "ListenerProtocol"
+                          {
+                            "Fn::If": [
+                              "BalancerWorkerPort80Secure",
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "InstanceProtocol"
+                                ]
+                              }
+                            ]
+                          }
                         ]
                       },
                       {
@@ -686,17 +748,21 @@
                   ]
                 },
                 {
-                  "Ref": "WorkerHealthCheckPath"
+                  "Ref": "WorkerHealthPath"
                 }
               ]
             ]
           },
           "Timeout": {
-            "Ref": "WorkerHealthCheckTimeout"
+            "Fn::If": [
+              "BalancerWorkerBlankHealthTimeout",
+              "3",
+              {
+                "Ref": "WorkerHealthTimeout"
+              }
+            ]
           },
-          "UnhealthyThreshold": {
-            "Ref": "WorkerHealthCheckUnhealthyThreshold"
-          }
+          "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
           {

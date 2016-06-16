@@ -59,25 +59,21 @@
   "Mappings": {
     "PortProtocol": {
       "http": {
-        "HealthCheckProtocol": "HTTP",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTP",
         "SecureInstanceProtocol": "HTTPS"
       },
       "https": {
-        "HealthCheckProtocol": "HTTPS",
         "InstanceProtocol": "HTTP",
         "ListenerProtocol": "HTTPS",
         "SecureInstanceProtocol": "HTTPS"
       },
       "tcp": {
-        "HealthCheckProtocol": "TCP",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "TCP",
         "SecureInstanceProtocol": "SSL"
       },
       "tls": {
-        "HealthCheckProtocol": "SSL",
         "InstanceProtocol": "TCP",
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"

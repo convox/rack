@@ -178,35 +178,15 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	// map from convox labels to cf-formatted value
-	// it's just underscore => camelcase, but don't know if it's worth
-	// adding a dependency like https://gowalker.org/github.com/serenize/snaker
-	healthCheckOptions := [][]string{
-		// [label, cf param, default]
-		[]string{"protocol", "Protocol", "tcp"},
-		[]string{"path", "Path", ""},
-		[]string{"interval", "Interval", "5"},
-		[]string{"healthy_threshold", "HealthyThreshold", "2"},
-		[]string{"unhealthy_threshold", "UnhealthyThreshold", "2"},
-		[]string{"timeout", "Timeout", "3"},
-	}
+	healthOptions := []string{"port", "path", "timeout"}
 
 	for _, entry := range manifest {
 		entryName := UpperName(entry.Name)
-		for _, option := range healthCheckOptions {
-			val := entry.Label(fmt.Sprintf("convox.health_check.%s", option[0]))
-			param := fmt.Sprintf("%sHealthCheck%s", entryName, option[1])
+		for _, option := range healthOptions {
+			val := entry.Label(fmt.Sprintf("convox.health.%s", option))
+			param := fmt.Sprintf("%sHealth%s", entryName, strings.Title(option))
+			fmt.Printf("val %s param %s", val, param)
 			app.Parameters[param] = val
-			if app.Parameters[param] == "" {
-				app.Parameters[param] = option[2]
-			}
-		}
-
-		// ensure interval is greater than timeout
-		interval := app.Parameters[fmt.Sprintf("%sHealthCheckInterval", entryName)]
-		timeout := app.Parameters[fmt.Sprintf("%sHealthCheckTimeout", entryName)]
-		if interval <= timeout {
-			return fmt.Errorf("Health check interval %s must be greater than timeout %s", interval, timeout)
 		}
 
 		for _, mapping := range entry.PortMappings() {
