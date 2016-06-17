@@ -17,6 +17,7 @@ func init() {
 		Description: "proxy local ports into a rack",
 		Usage:       "<[port:]host:hostport> [[port:]host:hostport]...",
 		Action:      cmdProxy,
+		Flags:       []cli.Flag{rackFlag},
 	})
 }
 

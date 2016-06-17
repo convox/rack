@@ -29,21 +29,21 @@ func init() {
 		Description: "list an app's releases",
 		Usage:       "",
 		Action:      cmdReleases,
-		Flags:       []cli.Flag{appFlag},
+		Flags:       []cli.Flag{appFlag, rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "info",
 				Description: "see info about a release",
 				Usage:       "<release id>",
 				Action:      cmdReleaseInfo,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "promote",
 				Description: "promote a release",
 				Usage:       "<release id>",
 				Action:      cmdReleasePromote,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
 	})

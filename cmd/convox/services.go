@@ -62,12 +62,14 @@ func init() {
 		Description: "manage services",
 		Usage:       "",
 		Action:      cmdServices,
+		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
 				Description:     "create a new service.",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
+				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
 			},
 			{
@@ -75,12 +77,14 @@ func init() {
 				Description: "delete a service",
 				Usage:       "<name>",
 				Action:      cmdServiceDelete,
+				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "update",
 				Description:     "update a service.\n\nWARNING: updates may cause service downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceUpdate,
+				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
 			},
 			{
@@ -88,20 +92,21 @@ func init() {
 				Description: "info about a service.",
 				Usage:       "<name>",
 				Action:      cmdServiceInfo,
+				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "link",
 				Description: "create a link between a service and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkCreate,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "unlink",
 				Description: "delete a link between a service and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "proxy",
@@ -109,6 +114,7 @@ func init() {
 				Usage:       "<name>",
 				Action:      cmdServiceProxy,
 				Flags: []cli.Flag{
+					rackFlag,
 					cli.StringFlag{
 						Name:  "listen, l",
 						Value: "",
