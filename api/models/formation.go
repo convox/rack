@@ -118,7 +118,7 @@ func SetFormation(app, process string, count, memory, cpu int64) error {
 		params[fmt.Sprintf("%sMemory", UpperName(process))] = fmt.Sprintf("%d", memory)
 	}
 
-	if cpu > 0 {
+	if cpu > -1 {
 		if cpu > capacity.InstanceCPU {
 			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
 		}
