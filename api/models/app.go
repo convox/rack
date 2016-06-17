@@ -212,9 +212,7 @@ func (a *App) Cleanup() error {
 		return err
 	}
 
-	// FIXME: BuildList and ReleaseList only lists and cleans up the last 20 builds/releases
-	// FIXME: Should the delete calls happen in a goroutine?
-	builds, err := provider.BuildList(a.Name)
+	builds, err := provider.BuildList(a.Name, 200)
 	if err != nil {
 		return err
 	}
@@ -223,6 +221,8 @@ func (a *App) Cleanup() error {
 		provider.BuildDelete(a.Name, build.Id)
 	}
 
+	// FIXME: ReleaseList only lists and cleans up the last 20 builds/releases
+	// FIXME: Should the delete calls happen in a goroutine?
 	releases, err := provider.ReleaseList(a.Name)
 	if err != nil {
 		return err

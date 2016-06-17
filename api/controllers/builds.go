@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/convox/rack/api/helpers"
@@ -21,7 +23,21 @@ import (
 func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	builds, err := provider.BuildList(app)
+	l := r.URL.Query().Get("limit")
+
+	var err error
+	var limit int
+
+	if l == "" {
+		limit = 20
+	} else {
+		limit, err = strconv.Atoi(l)
+		if err != nil {
+			return httperr.Errorf(400, err.Error())
+		}
+	}
+
+	builds, err := provider.BuildList(app, int64(limit))
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -129,6 +145,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	build := vars["build"]
+	didComplete := false
 
 	b, err := provider.BuildGet(app, build)
 	if err != nil {
@@ -148,6 +165,9 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if s := r.FormValue("status"); s != "" {
+		if b.Status != s && s == "complete" {
+			didComplete = true
+		}
 		b.Status = s
 		b.Ended = time.Now()
 	}
@@ -163,6 +183,32 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	err = provider.BuildSave(b)
 	if err != nil {
 		return httperr.Server(err)
+	}
+
+	// AWS currently has a limit of 500 images in ECR
+	// This is a "hopefully temporary" and brute force means
+	// of preventing hitting limit errors during deployment
+	if didComplete {
+		bs, err := provider.BuildList(app, 150)
+		if err != nil {
+			fmt.Println("Error listing builds for cleanup")
+		} else {
+			if len(bs) >= 50 {
+				wg := new(sync.WaitGroup)
+				outDated := bs[50:]
+				for _, b := range outDated {
+					wg.Add(1)
+					go func(buildId string, wg *sync.WaitGroup) {
+						defer wg.Done()
+						_, err := provider.BuildDelete(app, buildId)
+						if err != nil {
+							fmt.Printf("Error cleaning up build: %s", buildId)
+						}
+					}(b.Id, wg)
+				}
+				wg.Wait()
+			}
+		}
 	}
 
 	if b.Status == "failed" {

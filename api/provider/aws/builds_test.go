@@ -125,7 +125,7 @@ func TestBuildList(t *testing.T) {
 		provider.CurrentProvider = new(provider.TestProviderRunner)
 	}()
 
-	b, err := provider.BuildList("httpd")
+	b, err := provider.BuildList("httpd", 20)
 
 	assert.Nil(t, err)
 	assert.EqualValues(t, structs.Builds{

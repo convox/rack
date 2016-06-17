@@ -58,8 +58,8 @@ func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
-func (p *TestProviderRunner) BuildList(app string) (structs.Builds, error) {
-	p.Called(app)
+func (p *TestProviderRunner) BuildList(app string, limit int64) (structs.Builds, error) {
+	p.Called(app, limit)
 	return p.Builds, nil
 }
 
