@@ -8,6 +8,6 @@ var appFlag = cli.StringFlag{
 }
 
 var rackFlag = cli.StringFlag{
-	Name:  "rack, r",
+	Name:  "rack",
 	Usage: "Rack name.",
 }
