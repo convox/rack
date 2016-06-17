@@ -193,9 +193,9 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		if err != nil {
 			fmt.Println("Error listing builds for cleanup")
 		} else {
-			if len(bs) >= 4 {
+			if len(bs) >= 50 {
 				wg := new(sync.WaitGroup)
-				outDated := bs[4:]
+				outDated := bs[50:]
 				for _, b := range outDated {
 					wg.Add(1)
 					go func(buildId string, wg *sync.WaitGroup) {
