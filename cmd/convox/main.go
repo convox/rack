@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var Version = "dev"
@@ -41,6 +45,25 @@ func main() {
 	}
 }
 
+func coalesce(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+
+	return ""
+}
+
+func currentRack(c *cli.Context) string {
+	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
+	if err != nil && !os.IsNotExist(err) {
+		stdcli.Error(err)
+	}
+
+	return coalesce(c.String("rack"), os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
+}
+
 func rackClient(c *cli.Context) *client.Client {
 	host, password, err := currentLogin()
 	if err != nil {
@@ -48,5 +71,9 @@ func rackClient(c *cli.Context) *client.Client {
 		return nil
 	}
 
-	return client.New(host, password, c.App.Version)
+	cl := client.New(host, password, c.App.Version)
+
+	cl.Rack = currentRack(c)
+
+	return cl
 }

@@ -19,7 +19,9 @@ func init() {
 		Description: "run a one-off command in your Convox rack",
 		Usage:       "[process] [command]",
 		Action:      cmdRun,
-		Flags: []cli.Flag{appFlag,
+		Flags: []cli.Flag{
+			appFlag,
+			rackFlag,
 			cli.BoolFlag{
 				Name:  "detach",
 				Usage: "run in the background",

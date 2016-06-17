@@ -29,7 +29,7 @@ func init() {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "password, p",
-				Usage: "Password to use for authentication. If not specified, prompt for password.",
+				Usage: "Console API key or Rack password. If not specified, prompt.",
 			},
 		},
 	})

@@ -17,6 +17,7 @@ func init() {
 		Description: "update the cli",
 		Usage:       "",
 		Action:      cmdUpdate,
+		Flags:       []cli.Flag{rackFlag},
 	})
 }
 

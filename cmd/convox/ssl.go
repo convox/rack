@@ -15,6 +15,7 @@ func init() {
 		Description: "manage SSL certificates",
 		Flags: []cli.Flag{
 			appFlag,
+			rackFlag,
 		},
 		Subcommands: []cli.Command{
 			{
@@ -24,6 +25,7 @@ func init() {
 				Action:      cmdSSLUpdate,
 				Flags: []cli.Flag{
 					appFlag,
+					rackFlag,
 					cli.StringFlag{
 						Name:  "chain",
 						Usage: "Intermediate certificate chain.",

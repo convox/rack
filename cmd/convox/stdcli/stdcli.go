@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/briandowns/spinner"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -125,7 +126,6 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 
 func ReadSetting(setting string) string {
 	value, err := ioutil.ReadFile(fmt.Sprintf(".convox/%s", setting))
-
 	if err != nil {
 		return ""
 	}

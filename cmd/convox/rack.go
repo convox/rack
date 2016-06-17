@@ -18,19 +18,21 @@ func init() {
 		Description: "manage your Convox rack",
 		Usage:       "",
 		Action:      cmdRack,
+		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "params",
 				Description: "list advanced rack parameters",
 				Usage:       "",
 				Action:      cmdRackParams,
+				Flags:       []cli.Flag{rackFlag},
 				Subcommands: []cli.Command{
 					{
 						Name:        "set",
 						Description: "update advanced rack parameters",
 						Usage:       "NAME=VALUE [NAME=VALUE]",
 						Action:      cmdRackParamsSet,
-						Flags:       []cli.Flag{appFlag},
+						Flags:       []cli.Flag{rackFlag},
 					},
 				},
 			},
@@ -40,6 +42,7 @@ func init() {
 				Usage:       "",
 				Action:      cmdRackScale,
 				Flags: []cli.Flag{
+					rackFlag,
 					cli.IntFlag{
 						Name:  "count",
 						Usage: "horizontally scale the instance count, e.g. 3 or 10",
@@ -55,6 +58,7 @@ func init() {
 				Description: "update rack to the given version",
 				Usage:       "[version]",
 				Action:      cmdRackUpdate,
+				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "releases",
@@ -62,6 +66,7 @@ func init() {
 				Usage:       "",
 				Action:      cmdRackReleases,
 				Flags: []cli.Flag{
+					rackFlag,
 					cli.BoolFlag{
 						Name:  "unpublished",
 						Usage: "include unpublished versions",

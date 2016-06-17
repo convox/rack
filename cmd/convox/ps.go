@@ -16,6 +16,7 @@ func init() {
 		Action:      cmdPs,
 		Flags: []cli.Flag{
 			appFlag,
+			rackFlag,
 			cli.BoolFlag{
 				Name:  "stats",
 				Usage: "display process cpu/memory stats",
@@ -27,14 +28,14 @@ func init() {
 				Description: "show info for a process",
 				Usage:       "<id>",
 				Action:      cmdPsInfo,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "stop",
 				Description: "stop a process",
 				Usage:       "<id>",
 				Action:      cmdPsStop,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
 	})

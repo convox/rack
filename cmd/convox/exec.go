@@ -16,7 +16,7 @@ func init() {
 		Description: "exec a command in a process in your Convox rack",
 		Usage:       "[pid] [command]",
 		Action:      cmdExec,
-		Flags:       []cli.Flag{appFlag},
+		Flags:       []cli.Flag{appFlag, rackFlag},
 	})
 }
 

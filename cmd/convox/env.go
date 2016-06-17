@@ -18,14 +18,14 @@ func init() {
 		Description: "manage an app's environment variables",
 		Usage:       "",
 		Action:      cmdEnvList,
-		Flags:       []cli.Flag{appFlag},
+		Flags:       []cli.Flag{appFlag, rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "get",
 				Description: "get all environment variables",
 				Usage:       "VARIABLE",
 				Action:      cmdEnvGet,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "set",
@@ -34,6 +34,7 @@ func init() {
 				Action:      cmdEnvSet,
 				Flags: []cli.Flag{
 					appFlag,
+					rackFlag,
 					cli.BoolFlag{
 						Name:  "promote",
 						Usage: "promote the release after env change",
@@ -47,6 +48,7 @@ func init() {
 				Action:      cmdEnvUnset,
 				Flags: []cli.Flag{
 					appFlag,
+					rackFlag,
 					cli.BoolFlag{
 						Name:  "promote",
 						Usage: "promote the release after env change",

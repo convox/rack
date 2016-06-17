@@ -27,6 +27,7 @@ var (
 
 	buildCreateFlags = []cli.Flag{
 		appFlag,
+		rackFlag,
 		cli.BoolFlag{
 			Name:  "no-cache",
 			Usage: "pull fresh image dependencies",
@@ -61,7 +62,7 @@ func init() {
 		Description: "manage an app's builds",
 		Usage:       "",
 		Action:      cmdBuilds,
-		Flags:       []cli.Flag{appFlag},
+		Flags:       []cli.Flag{appFlag, rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "create",
@@ -77,6 +78,7 @@ func init() {
 				Action:      cmdBuildsCopy,
 				Flags: []cli.Flag{
 					appFlag,
+					rackFlag,
 					cli.BoolFlag{
 						Name:  "promote",
 						Usage: "promote the release after copy",
@@ -88,14 +90,14 @@ func init() {
 				Description: "print output for a build",
 				Usage:       "<ID>",
 				Action:      cmdBuildsInfo,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "delete",
 				Description: "Archive a build and its artifacts",
 				Usage:       "<ID>",
 				Action:      cmdBuildsDelete,
-				Flags:       []cli.Flag{appFlag},
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
 	})
