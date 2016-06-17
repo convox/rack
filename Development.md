@@ -200,7 +200,7 @@ The Rack maintainers aim to help land every reasonable pull request, and to prov
 
 ## Checklists
 
-Convox relies on checklists to safely and reliabily take code from a Pull Request to a published release. The standard release checklist is [https://github.com/convox/rack/blob/master/.github/PULL_REQUEST_TEMPLATE.md](PULL_REQUEST_TEMPLATE.md)
+Convox relies on checklists to safely and reliabily take code from a Pull Request to a published release. The standard release checklist is [PULL_REQUEST_TEMPLATE.md](https://github.com/convox/rack/blob/master/.github/PULL_REQUEST_TEMPLATE.md).
 
 We aim to automate and simplify the checklist over the life of the project to make releasing software easy, fast, and safe.
 
