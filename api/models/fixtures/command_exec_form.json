@@ -118,11 +118,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Cpu": {
-      "Default": "200",
-      "Description": "CPU shares of each process",
-      "Type": "Number"
-    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -142,6 +137,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "MainCpu": {
+      "Default": "0",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "MainDesiredCount": {
       "Default": "1",
@@ -373,6 +373,9 @@
                   "cmd1",
                   "cmd2"
                 ],
+                "Cpu": {
+                  "Ref": "MainCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",

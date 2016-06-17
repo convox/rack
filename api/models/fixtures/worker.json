@@ -136,11 +136,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Cpu": {
-      "Default": "200",
-      "Description": "CPU shares of each process",
-      "Type": "Number"
-    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -160,6 +155,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "PostgresCpu": {
+      "Default": "0",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "PostgresDesiredCount": {
       "Default": "1",
@@ -210,6 +210,11 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
       "Type": "String"
+    },
+    "WorkerCpu": {
+      "Default": "0",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "WorkerDesiredCount": {
       "Default": "1",
@@ -398,6 +403,9 @@
             "Fn::If": [
               "BlankPostgresService",
               {
+                "Cpu": {
+                  "Ref": "PostgresCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",
@@ -612,6 +620,9 @@
               "BlankWorkerService",
               {
                 "Command": "bin/work",
+                "Cpu": {
+                  "Ref": "WorkerCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",

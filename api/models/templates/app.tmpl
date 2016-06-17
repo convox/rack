@@ -16,11 +16,6 @@
         "Default" : "",
         "Description" : ""
       },
-      "Cpu": {
-        "Type": "Number",
-        "Default": "200",
-        "Description": "CPU shares of each process"
-      },
       "DeploymentMaximum": {
         "Type": "Number",
         "Default": "200",
@@ -156,6 +151,11 @@
 
 {{ define "process-params" }}
   {{ range $e := . }}
+    "{{ upper $e.Name }}Cpu": {
+      "Type": "Number",
+      "Default": "0",
+      "Description": "CPU units to reserve"
+    },
     "{{ upper $e.Name }}Memory": {
       "Type": "Number",
       "Default": "256",
@@ -620,6 +620,7 @@
     {{else if ne .CommandString ""}}
         "Command": {{ value .CommandString }},
     {{end}}
+    "Cpu": { "Ref": "{{ upper .Name }}Cpu" },
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}

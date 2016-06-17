@@ -34,7 +34,10 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 			if *resource.Name == "MEMORY" {
 				capacity.InstanceMemory = *resource.IntegerValue
 				capacity.ClusterMemory += *resource.IntegerValue
-				break
+			}
+			if *resource.Name == "CPU" {
+				capacity.InstanceCPU = *resource.IntegerValue
+				capacity.ClusterCPU += *resource.IntegerValue
 			}
 		}
 	}
@@ -61,6 +64,7 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 		for _, cd := range res.TaskDefinition.ContainerDefinitions {
 			capacity.ProcessCount += *service.DesiredCount
 			capacity.ProcessMemory += (*service.DesiredCount * *cd.Memory)
+			capacity.ProcessCPU += (*service.DesiredCount * *cd.Cpu)
 		}
 	}
 
