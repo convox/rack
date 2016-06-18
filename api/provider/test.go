@@ -58,6 +58,7 @@ func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
+// BuildList returns a mock list of the latest builds
 func (p *TestProviderRunner) BuildList(app string, limit int64) (structs.Builds, error) {
 	p.Called(app, limit)
 	return p.Builds, nil

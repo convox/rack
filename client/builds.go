@@ -34,6 +34,7 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	return builds, nil
 }
 
+// GetBuildsWithLimit returns a list of the latest builds, with the length specified in limit
 func (c *Client) GetBuildsWithLimit(app string, limit int) (Builds, error) {
 	var builds Builds
 

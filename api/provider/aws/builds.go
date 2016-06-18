@@ -291,6 +291,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	return build, nil
 }
 
+// BuildList returns a list of the latest builds, with the length specified in limit
 func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
