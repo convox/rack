@@ -346,7 +346,7 @@ func (m *Manifest) Build(app, dir string, cache bool) []error {
 	for _, to := range mk {
 		from := tags[to]
 		// for to, from := range tags {
-		err := run("docker", "tag", "-f", from, to)
+		err := run("docker", "tag", from, to)
 
 		if err != nil {
 			return []error{err}
