@@ -39,41 +39,58 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
-	// initialize to invalid values that indicate no change
-	var count, memory, cpu int64 = -2, -1, -1
+	opts := models.FormationOptions{}
 
 	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
-		if c, err := strconv.ParseInt(cc, 10, 64); err != nil {
+		c, err := strconv.Atoi(cc)
+		if err != nil {
 			return httperr.Errorf(403, "count must be numeric")
-		} else {
-			// critical fix: old clients default to count=-1 for "no change"
-			// assert a minimum client version before setting count=-1 which now deletes a service / ELB
-			if c == -1 && r.Header.Get("Version") < "20160602213113" {
-				count = -2
-			} else {
-				count = c
-			}
+		}
+
+		opts.Count = cc
+
+		// critical fix: old clients default to count=-1 for "no change"
+		// assert a minimum client version before setting count=-1 which now deletes a service / ELB
+		if c == -1 && r.Header.Get("Version") < "20160602213113" {
+			opts.Count = ""
+		}
+
+		// backwards compatibility: other old clients use count=-2 for "no change"
+		if c == -2 {
+			opts.Count = ""
 		}
 	}
 
 	if cc := GetForm(r, "cpu"); cc != "" {
-		c, err := strconv.ParseInt(cc, 10, 64)
+		c, err := strconv.Atoi(cc)
 		if err != nil {
 			return httperr.Errorf(403, "cpu must be numeric")
 		}
-		cpu = c
-	}
 
-	if mm := GetForm(r, "memory"); mm != "" {
-		if m, err := strconv.ParseInt(mm, 10, 64); err != nil {
-			return httperr.Errorf(403, "memory must be numeric")
-		} else {
-			memory = m
+		opts.CPU = cc
+
+		// backwards compatibility: other old clients use cpu=-1 for "no change"
+		if c == -1 {
+			opts.CPU = ""
 		}
 	}
 
-	err = models.SetFormation(app, process, count, memory, cpu)
+	if mm := GetForm(r, "memory"); mm != "" {
+		m, err := strconv.Atoi(mm)
+		if err != nil {
+			return httperr.Errorf(403, "memory must be numeric")
+		}
+
+		opts.Memory = mm
+
+		// backwards compatibility: other old clients use memory=-1 or memory=0 for "no change"
+		if m == -1 || m == 0 {
+			opts.Memory = ""
+		}
+	}
+
+	err = models.SetFormation(app, process, opts)
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ValidationError" {
 			switch {

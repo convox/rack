@@ -20,6 +20,14 @@ type FormationEntry struct {
 
 type Formation []FormationEntry
 
+// FormationOptions carries the numeric dimensions that can change for a process type.
+// Empty string indicates no change.
+type FormationOptions struct {
+	Count  string
+	CPU    string
+	Memory string
+}
+
 func ListFormation(app string) (Formation, error) {
 	a, err := GetApp(app)
 	if err != nil {
@@ -77,7 +85,7 @@ func ListFormation(app string) (Formation, error) {
 
 // Update Process Parameters for Count and Memory
 // Expects -1 for memory and cpu and -2 for count to indicate no change, since count=0 is valid
-func SetFormation(app, process string, count, memory, cpu int64) error {
+func SetFormation(app, process string, opts FormationOptions) error {
 	a, err := GetApp(app)
 	if err != nil {
 		return err
@@ -105,25 +113,39 @@ func SetFormation(app, process string, count, memory, cpu int64) error {
 
 	params := map[string]string{}
 
-	// if not -2, set new parameter values
-	if count > -2 {
-		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = fmt.Sprintf("%d", count)
-	}
-
-	if memory > 0 {
-		if memory > capacity.InstanceMemory {
-			return fmt.Errorf("requested memory %d greater than instance size %d", memory, capacity.InstanceMemory)
+	if opts.Count != "" {
+		_, err := strconv.Atoi(opts.Count)
+		if err != nil {
+			return err
 		}
 
-		params[fmt.Sprintf("%sMemory", UpperName(process))] = fmt.Sprintf("%d", memory)
+		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = opts.Count
 	}
 
-	if cpu > -1 {
-		if cpu > capacity.InstanceCPU {
+	if opts.CPU != "" {
+		cpu, err := strconv.Atoi(opts.CPU)
+		if err != nil {
+			return err
+		}
+
+		if int64(cpu) > capacity.InstanceCPU {
 			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
 		}
 
-		params[fmt.Sprintf("%sCpu", UpperName(process))] = fmt.Sprintf("%d", cpu)
+		params[fmt.Sprintf("%sCpu", UpperName(process))] = opts.CPU
+	}
+
+	if opts.Memory != "" {
+		memory, err := strconv.Atoi(opts.Memory)
+		if err != nil {
+			return err
+		}
+
+		if int64(memory) > capacity.InstanceMemory {
+			return fmt.Errorf("requested memory %d greater than instance size %d", memory, capacity.InstanceMemory)
+		}
+
+		params[fmt.Sprintf("%sMemory", UpperName(process))] = opts.Memory
 	}
 
 	NotifySuccess("release:scale", map[string]string{

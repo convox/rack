@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -38,21 +39,18 @@ func cmdScale(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	// initialize to invalid values that indicate no change
-	count := -2 // -1 is valid, indicates removing the process and ELB
-	memory := -1
-	cpu := -1
+	opts := client.FormationOptions{}
 
 	if c.IsSet("count") {
-		count = c.Int("count")
-	}
-
-	if c.IsSet("memory") {
-		memory = c.Int("memory")
+		opts.Count = c.String("count")
 	}
 
 	if c.IsSet("cpu") {
-		cpu = c.Int("cpu")
+		opts.CPU = c.String("cpu")
+	}
+
+	if c.IsSet("memory") {
+		opts.Memory = c.String("memory")
 	}
 
 	// validate single process type argument
@@ -61,7 +59,7 @@ func cmdScale(c *cli.Context) error {
 		displayFormation(c, app)
 		return nil
 	case 1:
-		if count == -2 && memory == -1 && cpu == -1 {
+		if opts.Count == "" && opts.CPU == "" && opts.Memory == "" {
 			displayFormation(c, app)
 			return nil
 		}
@@ -73,7 +71,7 @@ func cmdScale(c *cli.Context) error {
 
 	process := c.Args()[0]
 
-	err = rackClient(c).SetFormation(app, process, count, memory, cpu)
+	err = rackClient(c).SetFormation(app, process, opts)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
