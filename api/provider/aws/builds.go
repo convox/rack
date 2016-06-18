@@ -291,7 +291,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	return build, nil
 }
 
-func (p *AWSProvider) BuildList(app string) (structs.Builds, error) {
+func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func (p *AWSProvider) BuildList(app string) (structs.Builds, error) {
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(20),
+		Limit:            aws.Int64(limit),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(buildsTable(a.Name)),
 	}
