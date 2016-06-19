@@ -1,16 +1,19 @@
 sudo: required
 services:
-- docker
+  - docker
+env:  
+  global:
+    - DOCKER_VERSION=1.10.1-0~trusty
 branches:
   except:
-  - "/^\\d{14}/"
+    - "/^\\d{14}/"
 language: go
 go:
-- 1.6.1
+  - 1.6.1
 before_install:
-- go get -u github.com/convox/version
+  - go get -u github.com/convox/version
 script:
-- make test
+  - make test
 notifications:
   slack:
     secure: mAv68OHqTzm5XxLsGOpfYBSxdx+amZCZYPCMzviNJtxcvR4xQDlRJhpSWzb3EKxnoBkx+3TrIEq6TH+Qczfs/dUbY3qyfbtcDx8+0OeB8GRL2jb9SMLa/8SgY7lUs3Pzb+mkwoAUre6r9ZeEIPs99wmZGnzefT9sq3UsaS6C2tJ8Unv9gtVwLcWnvODc313kHad/1EMAeoTl6dN1EoRUmpxlKbzTSwn8aqj18SFXcOpCRdDKgsaIhnYuK0fOxAmC0WL9XzgPmK2bgzCnaufkQCx5LxjhUH3LPs/Ui+aZdsClCQCTJH81miGfDVK7X4FalKw941OaD8/06sFPJHWyQTvPuUG+6O/QCCx/M6xL+6Ib2Qp7fXjlgrui9xV1jOk0i2mjGPK6FU2u89LRZ41tIZ2HlMCqZ8b9he9zT7W5IR07s0Bdbg8KrRnmwZaxYiZSJothsQ+tmxtiU4csjCxWJ1CG4n4MFp2U9OjbOdYq7c+horvFRcbYPizQ0ciQ0pbZm16lTO2lQqJao59sLcEcHIUGmFfn04zev3aGei+k57hTZjWy1KEm6Y2pjMJ22HV9cF28Jb3K93/5K13zKe8Ao4B7GOWmncnNfuh1rNU8HqXBEYgvkQPqvo17jEOZGnRXGPpeFnsM90RbrRxLzc4Meb00+mSo3fTbsghKZQtaYNY=
