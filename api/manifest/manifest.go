@@ -235,7 +235,7 @@ func pullSync(image string) error {
 }
 
 func pushSync(local, remote string) error {
-	err := run("docker", "tag", "-f", local, remote)
+	err := run("docker", "tag", local, remote)
 
 	if err != nil {
 		return err

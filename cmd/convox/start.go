@@ -11,6 +11,7 @@ import (
 
 	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/fsouza/go-dockerclient"
 )
 
 func init() {
@@ -53,6 +54,27 @@ func cmdStart(c *cli.Context) error {
 	err = dockerTest.Run()
 	if err != nil {
 		return stdcli.ExitError(errors.New("could not connect to docker daemon, is it installed and running?"))
+	}
+
+	dockerVersionTest, err := docker.NewClientFromEnv()
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	minDockerVersion, err := docker.NewAPIVersion("1.9")
+	e, err := dockerVersionTest.Version()
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	currentVersionParts := strings.Split(e.Get("Version"), ".")
+	currentVersion, err := docker.NewAPIVersion(fmt.Sprintf("%s.%s", currentVersionParts[0], currentVersionParts[1]))
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
+		return stdcli.ExitError(errors.New("You're version of docker is out of date (min: 1.9)"))
 	}
 
 	cache := !c.Bool("no-cache")
