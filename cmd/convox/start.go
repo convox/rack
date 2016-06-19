@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -56,25 +57,27 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.ExitError(errors.New("could not connect to docker daemon, is it installed and running?"))
 	}
 
-	dockerVersionTest, err := docker.NewClientFromEnv()
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
+	if os.Getenv("PROVIDER") != "test" {
+		dockerVersionTest, err := docker.NewClientFromEnv()
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
 
-	minDockerVersion, err := docker.NewAPIVersion("1.9")
-	e, err := dockerVersionTest.Version()
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
+		minDockerVersion, err := docker.NewAPIVersion("1.9")
+		e, err := dockerVersionTest.Version()
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
 
-	currentVersionParts := strings.Split(e.Get("Version"), ".")
-	currentVersion, err := docker.NewAPIVersion(fmt.Sprintf("%s.%s", currentVersionParts[0], currentVersionParts[1]))
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
+		currentVersionParts := strings.Split(e.Get("Version"), ".")
+		currentVersion, err := docker.NewAPIVersion(fmt.Sprintf("%s.%s", currentVersionParts[0], currentVersionParts[1]))
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
 
-	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
-		return stdcli.ExitError(errors.New("You're version of docker is out of date (min: 1.9)"))
+		if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
+			return stdcli.ExitError(errors.New("You're version of docker is out of date (min: 1.9)"))
+		}
 	}
 
 	cache := !c.Bool("no-cache")
