@@ -7,7 +7,6 @@ import (
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
-	"github.com/convox/version"
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
@@ -29,15 +28,13 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 
 	os.Setenv("AWS_ENDPOINT", s.URL)
 
-	latest, _ := version.Latest()
-
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox install",
-			Exit:    0,
+			Exit:    1,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"BAR","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\n" + stackId + "\n",
+			Stdout:  Banner + "\n",
 		},
 	)
 }
@@ -61,15 +58,13 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 
 	os.Setenv("AWS_ENDPOINT", s.URL)
 
-	latest, _ := version.Latest()
-
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox install --stack-name valid",
-			Exit:    0,
+			Exit:    1,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"BAR","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\n" + stackId + "\n",
+			Stdout:  Banner + "\n",
 		},
 
 		test.ExecRun{

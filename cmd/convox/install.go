@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -52,6 +53,7 @@ install/uninstall process and then delete them once the installer has completed.
 
 To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
+const iamUserURL = "https://docs.convox.com/creating-an-iam-user"
 
 var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
@@ -254,6 +256,11 @@ func cmdInstall(c *cli.Context) error {
 		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
 	}
 
+	err = validateUserAccess(region, creds)
+	if err != nil {
+		stdcli.Error(err)
+	}
+
 	development := "No"
 	if c.Bool("development") {
 		isDevelopment = true
@@ -402,6 +409,37 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	return stdcli.QOSEventSend("cli-install", distinctId, ep)
+}
+
+/// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
+func validateUserAccess(region string, creds *AwsCredentials) error {
+
+	Iam := iam.New(session.New(), awsConfig(region, creds))
+
+	userOutput, err := Iam.GetUser(&iam.GetUserInput{})
+	if err != nil {
+		if ae, ok := err.(awserr.Error); ok {
+			return fmt.Errorf("%s. See %s", ae.Code(), iamUserURL)
+		}
+		return fmt.Errorf("%s. See %s", err, iamUserURL)
+	}
+
+	policies, err := Iam.ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
+		UserName: userOutput.User.UserName,
+	})
+	if err != nil {
+		if ae, ok := err.(awserr.Error); ok {
+			return fmt.Errorf("%s. See %s", ae.Code(), iamUserURL)
+		}
+	}
+
+	for _, policy := range policies.AttachedPolicies {
+		if "AdministratorAccess" == *policy.PolicyName {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Administrator access needed. See %s", iamUserURL)
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {
