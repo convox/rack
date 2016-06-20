@@ -7,6 +7,14 @@
         ""
       ]
     },
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
     "BlankWorkerService": {
       "Fn::Equals": [
         "",
@@ -189,6 +197,11 @@
     "Repository": {
       "Default": "",
       "Description": "Source code repository",
+      "Type": "String"
+    },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
       "Type": "String"
     },
     "Subnets": {

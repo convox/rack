@@ -23,6 +23,14 @@
         ""
       ]
     },
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         "",
@@ -224,6 +232,11 @@
     "Repository": {
       "Default": "",
       "Description": "Source code repository",
+      "Type": "String"
+    },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
       "Type": "String"
     },
     "Subnets": {
@@ -439,7 +452,15 @@
         "Scheme": "internal",
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebInternalSecurityGroup"
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWebInternalSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
           }
         ],
         "Subnets": {
