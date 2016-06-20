@@ -397,8 +397,17 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	for i, itask := range tasks {
 		task := itask.(map[string]interface{})
 
-		memory, err := strconv.Atoi(task["Memory"].(string))
+		cpu := 0
+		var err error
 
+		if c, ok := task["Cpu"].(string); ok && c != "" {
+			cpu, err = strconv.Atoi(c)
+			if err != nil {
+				return "invalid", nil, err
+			}
+		}
+
+		memory, err := strconv.Atoi(task["Memory"].(string))
 		if err != nil {
 			return "invalid", nil, err
 		}
@@ -407,7 +416,6 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 		if p, ok := task["Privileged"].(string); ok && p != "" {
 			privileged, err = strconv.ParseBool(p)
-
 			if err != nil {
 				return "invalid", nil, err
 			}
@@ -417,6 +425,7 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			Name:       aws.String(task["Name"].(string)),
 			Essential:  aws.Bool(true),
 			Image:      aws.String(task["Image"].(string)),
+			Cpu:        aws.Int64(int64(cpu)),
 			Memory:     aws.Int64(int64(memory)),
 			Privileged: aws.Bool(privileged),
 		}

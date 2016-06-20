@@ -33,6 +33,14 @@
         "Yes"
       ]
     },
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         "",
@@ -179,11 +187,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Cpu": {
-      "Default": "200",
-      "Description": "CPU shares of each process",
-      "Type": "Number"
-    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -223,6 +226,11 @@
       "Description": "Source code repository",
       "Type": "String"
     },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
     "Subnets": {
       "Default": "",
       "Description": "VPC subnets for this app",
@@ -242,6 +250,11 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
       "Type": "String"
+    },
+    "WebCpu": {
+      "Default": "0",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "WebDesiredCount": {
       "Default": "1",
@@ -566,7 +579,15 @@
         "Scheme": "internal",
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebInternalSecurityGroup"
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWebInternalSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
           }
         ],
         "Subnets": {
@@ -906,6 +927,9 @@
             "Fn::If": [
               "BlankWebService",
               {
+                "Cpu": {
+                  "Ref": "WebCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",

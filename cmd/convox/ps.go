@@ -58,18 +58,18 @@ func cmdPs(c *cli.Context) error {
 	}
 
 	if c.Bool("stats") {
-		t := stdcli.NewTable("ID", "NAME", "RELEASE", "SIZE", "CPU", "MEM", "STARTED", "COMMAND")
+		t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU", "SIZE", "CPU %", "MEM %", "STARTED", "COMMAND")
 
 		for _, p := range ps {
-			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%d", p.Size), fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%d", p.Cpu), fmt.Sprintf("%d", p.Size), fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
 		}
 
 		t.Print()
 	} else {
-		t := stdcli.NewTable("ID", "NAME", "RELEASE", "SIZE", "STARTED", "COMMAND")
+		t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU", "SIZE", "STARTED", "COMMAND")
 
 		for _, p := range ps {
-			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%d", p.Size), humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%d", p.Cpu), fmt.Sprintf("%d", p.Size), humanizeTime(p.Started), p.Command)
 		}
 
 		t.Print()

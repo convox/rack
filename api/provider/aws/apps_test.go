@@ -46,13 +46,13 @@ func TestAppGet(t *testing.T) {
 		},
 		Parameters: map[string]string{
 			"WebMemory":              "256",
+			"WebCpu":                 "256",
 			"Release":                "RVFETUHHKKD",
 			"Subnets":                "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
 			"Private":                "Yes",
 			"WebPort80ProxyProtocol": "No",
 			"VPC":                  "vpc-f8006b9c",
 			"Cluster":              "convox-Cluster-1E4XJ0PQWNAYS",
-			"Cpu":                  "200",
 			"Key":                  "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
 			"Repository":           "",
 			"WebPort80Balancer":    "80",
@@ -109,7 +109,6 @@ func TestAppGetUnbound(t *testing.T) {
 			"Environment":          "https://httpd-old-settings-17w6y79y4ppel.s3.amazonaws.com/releases/RBJFRKXUHTD/env",
 			"VPC":                  "vpc-f8006b9c",
 			"Cluster":              "convox-Cluster-1E4XJ0PQWNAYS",
-			"Cpu":                  "200",
 			"Version":              "20160330143438-command-exec-form",
 			"WebPort80Balancer":    "80",
 			"WebPort80Host":        "37636",
@@ -117,6 +116,7 @@ func TestAppGetUnbound(t *testing.T) {
 			"WebPort80Secure":      "No",
 			"WebPort80Certificate": "",
 			"WebMemory":            "256",
+			"WebCpu":               "256",
 			"WebDesiredCount":      "1",
 			"Subnets":              "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
 		},
@@ -216,8 +216,8 @@ var describeStacksUnboundCycle = awsutil.Cycle{
             <ParameterKey>WebPort80Secure</ParameterKey>
           </member>
           <member>
-            <ParameterValue>200</ParameterValue>
-            <ParameterKey>Cpu</ParameterKey>
+            <ParameterValue>256</ParameterValue>
+            <ParameterKey>WebCpu</ParameterKey>
           </member>
           <member>
             <ParameterValue>subnet-13de3139,subnet-b5578fc3,subnet-21c13379</ParameterValue>

@@ -27,7 +27,18 @@ func (c *Client) GetBuilds(app string) (Builds, error) {
 	var builds Builds
 
 	err := c.Get(fmt.Sprintf("/apps/%s/builds", app), &builds)
+	if err != nil {
+		return nil, err
+	}
 
+	return builds, nil
+}
+
+// GetBuildsWithLimit returns a list of the latest builds, with the length specified in limit
+func (c *Client) GetBuildsWithLimit(app string, limit int) (Builds, error) {
+	var builds Builds
+
+	err := c.Get(fmt.Sprintf("/apps/%s/builds?limit=%d", app, limit), &builds)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +50,6 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 	var build Build
 
 	data, err := json.Marshal(index)
-
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +62,6 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 	}
 
 	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
-
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +114,6 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 	var build Build
 
 	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s", app, id), &build)
-
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +159,6 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 	var build Build
 
 	err := c.Put(fmt.Sprintf("/apps/%s/builds/%s", app, id), params, &build)
-
 	if err != nil {
 		return nil, err
 	}

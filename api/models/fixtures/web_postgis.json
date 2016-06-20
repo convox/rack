@@ -39,6 +39,14 @@
         ""
       ]
     },
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         "",
@@ -197,11 +205,6 @@
       "Description": "",
       "Type": "String"
     },
-    "Cpu": {
-      "Default": "200",
-      "Description": "CPU shares of each process",
-      "Type": "Number"
-    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -221,6 +224,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "PostgresCpu": {
+      "Default": "0",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "PostgresDesiredCount": {
       "Default": "1",
@@ -252,6 +260,11 @@
       "Description": "Source code repository",
       "Type": "String"
     },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
     "Subnets": {
       "Default": "",
       "Description": "VPC subnets for this app",
@@ -271,6 +284,11 @@
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
       "Type": "String"
+    },
+    "WebCpu": {
+      "Default": "0",
+      "Description": "CPU units to reserve",
+      "Type": "Number"
     },
     "WebDesiredCount": {
       "Default": "1",
@@ -594,7 +612,15 @@
         ],
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebSecurityGroup"
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWebSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
           }
         ],
         "Subnets": {
@@ -822,6 +848,9 @@
             "Fn::If": [
               "BlankPostgresService",
               {
+                "Cpu": {
+                  "Ref": "PostgresCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",
@@ -1060,6 +1089,9 @@
             "Fn::If": [
               "BlankWebService",
               {
+                "Cpu": {
+                  "Ref": "WebCpu"
+                },
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",

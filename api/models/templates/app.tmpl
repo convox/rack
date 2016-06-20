@@ -5,7 +5,8 @@
       {{ template "balancer-conditions" . }}
       {{ template "process-conditions" . }}
       {{ template "registry-conditions" . }}
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] }
+      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+      "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
     "Parameters" : {
       {{ template "balancer-params" . }}
@@ -15,11 +16,6 @@
         "Type" : "String",
         "Default" : "",
         "Description" : ""
-      },
-      "Cpu": {
-        "Type": "Number",
-        "Default": "200",
-        "Description": "CPU shares of each process"
       },
       "DeploymentMaximum": {
         "Type": "Number",
@@ -56,6 +52,11 @@
         "Type" : "String",
         "Default" : "",
         "Description" : "Source code repository"
+      },
+      "SecurityGroup": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "The Load balancer security group for this app"
       },
       "Subnets": {
         "Type" : "List<AWS::EC2::Subnet::Id>",
@@ -156,6 +157,11 @@
 
 {{ define "process-params" }}
   {{ range $e := . }}
+    "{{ upper $e.Name }}Cpu": {
+      "Type": "Number",
+      "Default": "0",
+      "Description": "CPU units to reserve"
+    },
     "{{ upper $e.Name }}Memory": {
       "Type": "Number",
       "Default": "256",
@@ -401,7 +407,11 @@
         ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName }},
-        "SecurityGroups": [ { "Ref": "{{ .ResourceName }}SecurityGroup" } ]
+        "SecurityGroups" : [{ "Fn::If" : [
+	    "BlankSecurityGroup",
+	    {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+	    {"Ref" : "SecurityGroup"}
+        ]}]
       }
     },
   {{ end }}
@@ -620,6 +630,7 @@
     {{else if ne .CommandString ""}}
         "Command": {{ value .CommandString }},
     {{end}}
+    "Cpu": { "Ref": "{{ upper .Name }}Cpu" },
     "Memory": { "Ref": "{{ upper .Name }}Memory" },
     "Environment": {
       {{ range $key, $value := .EnvMap }}
