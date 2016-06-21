@@ -630,7 +630,7 @@
             }
           },
           {
-            "CidrIp": "0.0.0.0/0",
+            "CidrIp": "10.0.0.0/16",
             "FromPort": {
               "Ref": "WebPort3001Balancer"
             },

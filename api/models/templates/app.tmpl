@@ -332,7 +332,11 @@
         "SecurityGroupIngress": [
           {{ range .PortMappings }}
             {
+              {{ if .Public }}
               "CidrIp": "0.0.0.0/0",
+              {{ else }}
+              "CidrIp": "10.0.0.0/16",
+              {{ end }}
               "IpProtocol": "tcp",
               "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
               "ToPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
