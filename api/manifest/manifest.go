@@ -617,7 +617,20 @@ func (m *Manifest) Run(app string, cache, sync bool, shift int) []error {
 		// block until we can get the container IP
 		for {
 			host := containerName(app, name)
-			ip, err := Execer("docker", "inspect", "-f", "{{ .NetworkSettings.IPAddress }}", host).Output()
+			ipFilterString := "{{ .NetworkSettings.IPAddress }}"
+
+			//if using a custom network, only use the first network
+			if (*m)[name].Networks != nil {
+				for _, n := range (*m)[name].Networks {
+					for _, in := range n {
+						ipFilterString = "{{ .NetworkSettings.Networks." + in.Name + ".IPAddress }}"
+						break
+					}
+					break
+				}
+			}
+
+			ip, err := Execer("docker", "inspect", "-f", ipFilterString, host).Output()
 
 			// dont block in test mode
 			if os.Getenv("PROVIDER") == "test" {
