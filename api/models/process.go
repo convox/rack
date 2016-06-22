@@ -23,7 +23,6 @@ type Process struct {
 	Name    string    `json:"name"`
 	Ports   []string  `json:"ports"`
 	Release string    `json:"release"`
-	Size    int64     `json:"size"`
 	Cpu     float64   `json:"cpu"`
 	Memory  float64   `json:"memory"`
 	Started time.Time `json:"started"`
@@ -305,7 +304,6 @@ func ListPendingProcesses(app string) (Processes, error) {
 					ps := Process{
 						Id:   "pending",
 						Name: *cd.Name,
-						Size: *cd.Memory,
 					}
 
 					for _, env := range cd.Environment {
@@ -367,13 +365,6 @@ func ListOneoffProcesses(app string) (Processes, error) {
 				taskArn:     "", // empty taskArn indicated Docker container, not ECS task
 			}
 
-			c, err := d.InspectContainer(ps.ID)
-			if err != nil {
-				fmt.Printf("ns=kernel at=ListOneoffProcesses state=error message=\"%s\"\n", err)
-			} else {
-				p.Size = c.HostConfig.Memory
-			}
-
 			procs = append(procs, p)
 		}
 	}
@@ -391,7 +382,6 @@ func fetchProcess(app string, task ecs.Task, td ecs.TaskDefinition, cd ecs.Conta
 		Image: *cd.Image,
 		Name:  *cd.Name,
 		Ports: []string{},
-		Size:  *cd.Memory,
 	}
 
 	// We'll use some ECS container definition's data before which might be replaced with docker information later (if available)
