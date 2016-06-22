@@ -15,7 +15,7 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-67a3a90d" },
+      "us-east-1": { "Ami": "ami-8f7687e2" },
       "us-west-1": { "Ami": "ami-b7d5a8d7" },
       "us-west-2": { "Ami": "ami-c7a451a7" },
       "eu-west-1": { "Ami": "ami-9c9819ef" },
