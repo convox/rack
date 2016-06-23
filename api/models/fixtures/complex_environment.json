@@ -201,6 +201,11 @@
       "Description": "VPC for this app",
       "Type": "AWS::EC2::VPC::Id"
     },
+    "VPCCIDR": {
+      "Default": "",
+      "Description": "VPC CIDR for this app",
+      "Type": "String"
+    },
     "Version": {
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",

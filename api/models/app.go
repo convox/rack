@@ -158,6 +158,7 @@ func (a *App) Create() error {
 		"SubnetsPrivate": subnetsPrivate,
 		"Version":        os.Getenv("RELEASE"),
 		"VPC":            os.Getenv("VPC"),
+		"VPCCIDR":        os.Getenv("VPCCIDR"),
 	}
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {
@@ -471,7 +472,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 
 func (a *App) RunAttached(process, command, releaseId string, height, width int, rw io.ReadWriter) error {
 	resources, err := a.Resources()
-
 	if err != nil {
 		return err
 	}
@@ -480,7 +480,6 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
 	}
 	task, err := ECS().DescribeTaskDefinition(input)
-
 	if err != nil {
 		return err
 	}
@@ -503,19 +502,16 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	}
 
 	release, err := GetRelease(a.Name, releaseId)
-
 	if err != nil {
 		return err
 	}
 
 	manifest, err := LoadManifest(release.Manifest, a)
-
 	if err != nil {
 		return err
 	}
 
 	me := manifest.Entry(process)
-
 	if me == nil {
 		return fmt.Errorf("no such process: %s", process)
 	}
@@ -524,7 +520,6 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	host := ""
 
 	pss, err := ListProcesses(a.Name)
-
 	if err != nil {
 		return err
 	}
@@ -579,7 +574,6 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	}
 
 	d, err := Docker(host)
-
 	if err != nil {
 		return err
 	}
@@ -592,7 +586,6 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		Username:      username,
 		Password:      password,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -618,7 +611,6 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 			Binds: binds,
 		},
 	})
-
 	if err != nil {
 		return err
 	}
@@ -645,25 +637,23 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	time.Sleep(100 * time.Millisecond)
 
 	err = d.StartContainer(res.ID, nil)
-
 	if err != nil {
 		return err
 	}
 
 	err = d.ResizeContainerTTY(res.ID, height, width)
-
 	if err != nil {
-		return err
+		// In some cases, a container might finish and exit by the time ResizeContainerTTY is called.
+		// Resizing the TTY shouldn't cause the call to error out for cases like that.
+		fmt.Printf("fn=RunAttached level=warning msg=\"unable to resize container: %s\"", err)
 	}
 
 	code, err := d.WaitContainer(res.ID)
-
 	if err != nil {
 		return err
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code)))
-
 	if err != nil {
 		return err
 	}
@@ -673,7 +663,6 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 
 func (a *App) RunDetached(process, command, releaseId string) error {
 	resources, err := a.Resources()
-
 	if err != nil {
 		return err
 	}
@@ -741,7 +730,6 @@ func (a *App) ProcessPorts(ps string) map[string]string {
 
 func (a *App) Resources() (Resources, error) {
 	resources, err := ListResources(a.Name)
-
 	if err != nil {
 		return nil, err
 	}
@@ -772,7 +760,6 @@ func cleanupBucket(bucket string) error {
 	}
 
 	res, err := S3().ListObjectVersions(req)
-
 	if err != nil {
 		return err
 	}
@@ -796,7 +783,6 @@ func cleanupBucketObject(bucket, key, version string) {
 	}
 
 	_, err := S3().DeleteObject(req)
-
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
 	}

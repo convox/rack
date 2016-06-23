@@ -77,6 +77,11 @@
         "Type" : "AWS::EC2::VPC::Id",
         "Default" : "",
         "Description" : "VPC for this app"
+      },
+      "VPCCIDR": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "VPC CIDR for this app"
       }
     },
     "Mappings": {
@@ -332,7 +337,11 @@
         "SecurityGroupIngress": [
           {{ range .PortMappings }}
             {
+              {{ if .Public }}
               "CidrIp": "0.0.0.0/0",
+              {{ else }}
+              "CidrIp": { "Ref": "VPCCIDR" },
+              {{ end }}
               "IpProtocol": "tcp",
               "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
               "ToPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }

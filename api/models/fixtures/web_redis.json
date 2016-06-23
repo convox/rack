@@ -39,6 +39,14 @@
         ""
       ]
     },
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
     "BlankWebService": {
       "Fn::Equals": [
         "",
@@ -305,6 +313,11 @@
       "Description": "Source code repository",
       "Type": "String"
     },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
     "Subnets": {
       "Default": "",
       "Description": "VPC subnets for this app",
@@ -319,6 +332,11 @@
       "Default": "",
       "Description": "VPC for this app",
       "Type": "AWS::EC2::VPC::Id"
+    },
+    "VPCCIDR": {
+      "Default": "",
+      "Description": "VPC CIDR for this app",
+      "Type": "String"
     },
     "Version": {
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
@@ -523,7 +541,15 @@
         "Scheme": "internal",
         "SecurityGroups": [
           {
-            "Ref": "BalancerRedisInternalSecurityGroup"
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerRedisInternalSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
           }
         ],
         "Subnets": {
@@ -556,7 +582,9 @@
         },
         "SecurityGroupIngress": [
           {
-            "CidrIp": "0.0.0.0/0",
+            "CidrIp": {
+              "Ref": "VPCCIDR"
+            },
             "FromPort": {
               "Ref": "RedisPort6379Balancer"
             },
@@ -710,7 +738,15 @@
         ],
         "SecurityGroups": [
           {
-            "Ref": "BalancerWebSecurityGroup"
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerWebSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
           }
         ],
         "Subnets": {
