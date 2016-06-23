@@ -140,13 +140,8 @@ func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error
 }
 
 func (p *TestProviderRunner) ReleaseList(app string) (structs.Releases, error) {
-	p.Called(app)
-	return p.Releases, nil
-}
-
-func (p *TestProviderRunner) ReleaseLatest(app string) (*structs.Release, error) {
-	p.Called(app)
-	return &p.Release, nil
+	args := p.Called(app)
+	return args.Get(0).(structs.Releases), args.Error(1)
 }
 
 func (p *TestProviderRunner) ReleasePromote(app, id string) (*structs.Release, error) {
