@@ -82,7 +82,7 @@ func cmdReleases(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	t := stdcli.NewTable("ID", "CREATED", "STATUS")
+	t := stdcli.NewTable("ID", "CREATED", "BUILD", "STATUS")
 
 	for _, r := range releases {
 		status := ""
@@ -91,7 +91,7 @@ func cmdReleases(c *cli.Context) error {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, humanizeTime(r.Created), status)
+		t.AddRow(r.Id, humanizeTime(r.Created), r.Build, status)
 	}
 
 	t.Print()
