@@ -19,6 +19,10 @@ type ServiceType struct {
 func init() {
 	types := []ServiceType{
 		ServiceType{
+			"memcached",
+			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
+		},
+		ServiceType{
 			"mysql",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
