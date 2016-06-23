@@ -344,7 +344,7 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	release, err := provider.ReleaseLatest(a.Name)
+	release, err := provider.ReleaseGet(a.Name, a.Release)
 	if err != nil {
 		return nil, err
 	}
