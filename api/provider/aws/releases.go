@@ -97,6 +97,28 @@ func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
 	return releases, nil
 }
 
+func (p *AWSProvider) ReleaseLatest(app string) (*structs.Release, error) {
+	releases, err := p.ReleaseList(app)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(releases) == 0 {
+		return nil, nil
+	}
+
+	r := releases[0]
+
+	return &structs.Release{
+		Id:       r.Id,
+		App:      r.App,
+		Build:    r.Build,
+		Env:      r.Env,
+		Manifest: r.Manifest,
+		Created:  r.Created,
+	}, nil
+}
+
 func (p *AWSProvider) ReleasePromote(app, id string) (*structs.Release, error) {
 	_, err := p.AppGet(app)
 	if err != nil {

@@ -44,6 +44,7 @@ type Provider interface {
 	ReleaseDelete(app, id string) (*structs.Release, error)
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string) (structs.Releases, error)
+	ReleaseLatest(app string) (*structs.Release, error)
 	ReleasePromote(app, id string) (*structs.Release, error)
 	ReleaseSave(*structs.Release, string, string) error
 
@@ -170,6 +171,10 @@ func ReleaseGet(app, id string) (*structs.Release, error) {
 
 func ReleaseList(app string) (structs.Releases, error) {
 	return CurrentProvider.ReleaseList(app)
+}
+
+func ReleaseLatest(app string) (*structs.Release, error) {
+	return CurrentProvider.ReleaseLatest(app)
 }
 
 func ReleasePromote(app, id string) (*structs.Release, error) {
