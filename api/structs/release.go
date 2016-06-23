@@ -19,3 +19,11 @@ func NewRelease(app string) *Release {
 		Id:  generateId("R", 10),
 	}
 }
+
+func (rs Releases) Latest() *Release {
+	if len(rs) == 0 {
+		return nil
+	}
+
+	return &rs[0]
+}
