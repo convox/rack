@@ -77,6 +77,11 @@
         "Type" : "AWS::EC2::VPC::Id",
         "Default" : "",
         "Description" : "VPC for this app"
+      },
+      "VPCCIDR": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "VPC CIRDR for this app"
       }
     },
     "Mappings": {
@@ -335,7 +340,7 @@
               {{ if .Public }}
               "CidrIp": "0.0.0.0/0",
               {{ else }}
-              "CidrIp": "10.0.0.0/16",
+              "CidrIp": { "Ref": "VPCCIDR" },
               {{ end }}
               "IpProtocol": "tcp",
               "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },

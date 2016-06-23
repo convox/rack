@@ -254,6 +254,11 @@
       "Description": "VPC for this app",
       "Type": "AWS::EC2::VPC::Id"
     },
+    "VPCCIDR": {
+      "Default": "",
+      "Description": "VPC CIRDR for this app",
+      "Type": "String"
+    },
     "Version": {
       "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
       "MinLength": "1",
@@ -498,7 +503,9 @@
         },
         "SecurityGroupIngress": [
           {
-            "CidrIp": "10.0.0.0/16",
+            "CidrIp": {
+              "Ref": "VPCCIDR"
+            },
             "FromPort": {
               "Ref": "WebPort3000Balancer"
             },

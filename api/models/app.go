@@ -158,6 +158,7 @@ func (a *App) Create() error {
 		"SubnetsPrivate": subnetsPrivate,
 		"Version":        os.Getenv("RELEASE"),
 		"VPC":            os.Getenv("VPC"),
+		"VPCCIDR":        os.Getenv("VPCCIDR"),
 	}
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {
