@@ -12,6 +12,7 @@ import (
 
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -335,7 +336,6 @@ func (a *App) UpdateParams(changes map[string]string) error {
 
 func (a *App) Formation() (string, error) {
 	data, err := buildTemplate("app", "app", Manifest{})
-
 	if err != nil {
 		return "", err
 	}
@@ -344,43 +344,25 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	release, err := a.LatestRelease()
-
+	release, err := provider.ReleaseLatest(a.Name)
 	if err != nil {
 		return nil, err
 	}
 
 	if release == nil {
-		r := NewRelease(a.Name)
-		release = &r
+		release = structs.NewRelease(a.Name)
 	}
 
 	release.Id = generateId("R", 10)
 	release.Created = time.Time{}
 
-	return release, nil
-}
-
-// FIXME: Port to provider interface
-func (a *App) LatestRelease() (*Release, error) {
-	releases, err := provider.ReleaseList(a.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(releases) == 0 {
-		return nil, nil
-	}
-
-	r := releases[0]
-
 	return &Release{
-		Id:       r.Id,
-		App:      r.App,
-		Build:    r.Build,
-		Env:      r.Env,
-		Manifest: r.Manifest,
-		Created:  r.Created,
+		Id:       release.Id,
+		App:      release.App,
+		Build:    release.Build,
+		Env:      release.Env,
+		Manifest: release.Manifest,
+		Created:  release.Created,
 	}, nil
 }
 
@@ -388,7 +370,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	var ps Process
 
 	pss, err := ListProcesses(a.Name)
-
 	if err != nil {
 		return err
 	}
@@ -405,7 +386,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	}
 
 	d, err := ps.Docker()
-
 	if err != nil {
 		return err
 	}
@@ -418,7 +398,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 		Cmd:          []string{"sh", "-c", command},
 		Container:    ps.containerId,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -449,20 +428,17 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 		RawTerminal:  true,
 		Success:      success,
 	})
-
 	// comparing with io.ErrClosedPipe isn't working
 	if err != nil && !strings.HasSuffix(err.Error(), "closed pipe") {
 		return err
 	}
 
 	ires, err := d.InspectExec(res.ID)
-
 	if err != nil {
 		return err
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode)))
-
 	if err != nil {
 		return err
 	}

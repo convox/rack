@@ -144,6 +144,11 @@ func (p *TestProviderRunner) ReleaseList(app string) (structs.Releases, error) {
 	return p.Releases, nil
 }
 
+func (p *TestProviderRunner) ReleaseLatest(app string) (*structs.Release, error) {
+	p.Called(app)
+	return &p.Release, nil
+}
+
 func (p *TestProviderRunner) ReleasePromote(app, id string) (*structs.Release, error) {
 	p.Called(app, id)
 	return &p.Release, nil
