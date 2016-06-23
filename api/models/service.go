@@ -280,6 +280,8 @@ func serviceFromStack(stack *cloudformation.Stack) *Service {
 
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
+		case "memcached":
+			exports["URL"] = fmt.Sprintf("memcached://%s:%s/%s", outputs["Port11211TcpAddr"], outputs["Port11211TcpPort"], outputs["EnvMemcachedDatabase"])
 		case "mysql":
 			exports["URL"] = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", outputs["EnvMysqlUsername"], outputs["EnvMysqlPassword"], outputs["Port3306TcpAddr"], outputs["Port3306TcpPort"], outputs["EnvMysqlDatabase"])
 		case "papertrail":
