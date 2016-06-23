@@ -335,7 +335,7 @@
     },
     "VPCCIDR": {
       "Default": "",
-      "Description": "VPC CIRDR for this app",
+      "Description": "VPC CIDR for this app",
       "Type": "String"
     },
     "Version": {
