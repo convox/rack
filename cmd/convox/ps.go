@@ -59,7 +59,6 @@ func cmdPs(c *cli.Context) error {
 
 	if c.Bool("stats") {
 		fm, err := rackClient(c).ListFormation(app)
-
 		if err != nil {
 			return stdcli.ExitError(err)
 		}
@@ -103,7 +102,6 @@ func cmdPsInfo(c *cli.Context) error {
 	id := c.Args()[0]
 
 	p, err := rackClient(c).GetProcess(app, id)
-
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
