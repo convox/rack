@@ -25,5 +25,12 @@ func (rs Releases) Latest() *Release {
 		return nil
 	}
 
-	return &rs[0]
+	latest := rs[0]
+	for _, r := range rs {
+		if latest.Created.Before(r.Created) {
+			latest = r
+		}
+	}
+
+	return &latest
 }
