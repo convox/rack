@@ -33,6 +33,8 @@ type Provider interface {
 
 	EventSend(*structs.Event, error) error
 
+	EnvironmentGet(app string) (structs.Environment, error)
+
 	IndexDiff(*structs.Index) ([]string, error)
 	IndexDownload(*structs.Index, string) error
 	IndexUpload(string, []byte) error
@@ -138,6 +140,10 @@ func CertificateList() (structs.Certificates, error) {
 
 func EventSend(e *structs.Event, err error) error {
 	return CurrentProvider.EventSend(e, err)
+}
+
+func EnvironmentGet(app string) (structs.Environment, error) {
+	return CurrentProvider.EnvironmentGet(app)
 }
 
 func IndexDiff(i *structs.Index) ([]string, error) {
