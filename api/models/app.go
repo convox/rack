@@ -356,6 +356,13 @@ func (a *App) ForkRelease() (*Release, error) {
 	release.Id = generateId("R", 10)
 	release.Created = time.Time{}
 
+	env, err := provider.EnvironmentGet(a.Name)
+	if err != nil {
+		fmt.Printf("fn=ForkRelease level=error msg=\"error getting environment: %s\"", err)
+	}
+
+	release.Env = env.Raw()
+
 	return &Release{
 		Id:       release.Id,
 		App:      release.App,

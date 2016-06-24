@@ -104,6 +104,11 @@ func (p *TestProviderRunner) EventSend(e *structs.Event, err error) error {
 	return nil
 }
 
+func (p *TestProviderRunner) EnvironmentGet(app string) (structs.Environment, error) {
+	p.Called()
+	return nil, nil
+}
+
 func (p *TestProviderRunner) IndexDiff(i *structs.Index) ([]string, error) {
 	p.Called(i)
 	return []string{}, nil

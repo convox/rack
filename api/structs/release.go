@@ -20,6 +20,7 @@ func NewRelease(app string) *Release {
 	}
 }
 
+// Latest returns the latest release determined by the date created.
 func (rs Releases) Latest() *Release {
 	if len(rs) == 0 {
 		return nil
