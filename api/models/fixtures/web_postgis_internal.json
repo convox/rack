@@ -132,11 +132,6 @@
         ]
       }
     },
-    "Kinesis": {
-      "Value": {
-        "Ref": "Kinesis"
-      }
-    },
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
@@ -601,12 +596,6 @@
       },
       "Type": "AWS::IAM::Role"
     },
-    "Kinesis": {
-      "Properties": {
-        "ShardCount": 1
-      },
-      "Type": "AWS::Kinesis::Stream"
-    },
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
@@ -704,9 +693,6 @@
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
@@ -933,9 +919,6 @@
                 "Environment": {
                   "APP": "httpd",
                   "AWS_REGION": "us-test-2",
-                  "KINESIS": {
-                    "Ref": "Kinesis"
-                  },
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
