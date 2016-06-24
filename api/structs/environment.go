@@ -8,8 +8,10 @@ import (
 	"strings"
 )
 
+// Environment is of type map used to store environment variables.
 type Environment map[string]string
 
+// LoadEnvironment sets the environment from data.
 func (e Environment) LoadEnvironment(data []byte) Environment {
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
@@ -27,10 +29,11 @@ func (e Environment) LoadEnvironment(data []byte) Environment {
 	return e
 }
 
+// SortedNames returns a slice of environment variables sorted by name.
 func (e Environment) SortedNames() []string {
 	names := []string{}
 
-	for key, _ := range e {
+	for key := range e {
 		names = append(names, key)
 	}
 
@@ -39,6 +42,7 @@ func (e Environment) SortedNames() []string {
 	return names
 }
 
+// Raw returns the environment variables as one string separated by a newline.
 func (e Environment) Raw() string {
 	lines := make([]string, len(e))
 
