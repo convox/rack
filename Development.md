@@ -105,7 +105,7 @@ web      | running: docker run -i --name rack-web...
 web      | [negroni] listening on :3000
 ```
 
-Now you can log into the development Rack API and interact with your Convox resources:
+Now you can log into the development Rack API with the $PASSWORD environment variable you obtained in the previous step and interact with your Convox resources:
 
 ```
 $ convox login $(docker-machine ip default)
