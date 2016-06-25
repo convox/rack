@@ -335,7 +335,7 @@ func templatesGo() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates.go", size: 24576, mode: os.FileMode(436), modTime: time.Unix(1466720552, 0)}
+	info := bindataFileInfo{name: "templates.go", size: 24576, mode: os.FileMode(436), modTime: time.Unix(1466822600, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

@@ -41,8 +41,8 @@
       }
     },
     "Outputs": {
-      "Port11211TcpAddr": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
-      "Port11211TcpPort": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Port" ] } },
+      "Port11211TcpAddr": { "Value": { "Fn::GetAtt": [ "CacheCluster", "ConfigurationEndpoint.Address" ] } },
+      "Port11211TcpPort": { "Value": { "Fn::GetAtt": [ "CacheCluster", "ConfigurationEndpoint.Port" ] } },
       "EnvMemachedDatabase": { "Value": { "Ref": "Database" } }
     },
     "Resources": {
