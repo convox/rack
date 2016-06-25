@@ -21,11 +21,6 @@
         "Default": "false",
         "AllowedValues": [ "true", "false" ]
       },
-      "NumCacheNodes": {
-        "Type": "String",
-        "Default": "1",
-        "Description": "The number of cache clusters for this replication group"
-      },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
         "Description": "VPC subnets"
@@ -38,6 +33,10 @@
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
         "Description": "VPC"
+      },
+      "VpcCidr": {
+        "Description": "VPC CIDR Block",
+        "Type": "String"
       }
     },
     "Outputs": {
@@ -51,7 +50,7 @@
         "Properties": {
           "GroupDescription": "memcached service",
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "11211", "ToPort": "11211", "CidrIp": "10.0.0.0/16" }
+            { "IpProtocol": "tcp", "FromPort": "11211", "ToPort": "11211", "CidrIp": { "Ref": "VpcCidr" } }
           ],
           "VpcId": { "Ref": "Vpc" }
         }

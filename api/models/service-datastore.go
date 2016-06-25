@@ -7,13 +7,24 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
+func stringInSlice(str string, list []string) bool {
+	for _, v := range list {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) CreateDatastore() (*cloudformation.CreateStackInput, error) {
 	formation, err := s.Formation()
 	if err != nil {
 		return nil, err
 	}
 
-	if s.Type != "redis" {
+	nonPasswordServices := []string{"redis", "memcached"}
+
+	if !stringInSlice(s.Type, nonPasswordServices) {
 		s.Parameters["Password"] = generateId("", 30)
 	}
 
