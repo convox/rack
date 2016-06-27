@@ -469,10 +469,19 @@ func (me ManifestEntry) EnvMap() map[string]string {
 }
 
 func (me ManifestEntry) MountableVolumes() []string {
+	volumesEnabled := false
+	labels := me.LabelsByPrefix("convox.volumes.mount")
+	for _, value := range labels {
+		if value == "true" {
+			volumesEnabled = true
+			break
+		}
+	}
+
 	volumes := []string{}
 
 	for _, volume := range me.Volumes {
-		if strings.HasPrefix(volume, "/var/run/docker.sock") {
+		if strings.HasPrefix(volume, "/var/run/docker.sock") || volumesEnabled {
 			volumes = append(volumes, volume)
 		}
 	}
