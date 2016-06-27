@@ -1054,14 +1054,6 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 		return err
 	}
 
-	wdb, err := Execer("docker", "inspect", "-f", "{{.Config.WorkingDir}}", containerName(app, process)).Output()
-
-	if err != nil {
-		return err
-	}
-
-	wd := strings.TrimSpace(string(wdb))
-
 	for _, line := range strings.Split(string(data), "\n") {
 		parts := strings.Fields(line)
 
@@ -1075,7 +1067,20 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 				continue
 			}
 
-			registerSync(containerName(app, process), filepath.Join(me.Build, parts[1]), filepath.Join(wd, parts[2]))
+			remote := parts[2]
+
+			if !filepath.IsAbs(remote) {
+				wdb, err := Execer("docker", "inspect", "-f", "{{.Config.WorkingDir}}", containerName(app, process)).Output()
+				if err != nil {
+					return err
+				}
+
+				wd := strings.TrimSpace(string(wdb))
+
+				remote = filepath.Join(wd, remote)
+			}
+
+			registerSync(containerName(app, process), filepath.Join(me.Build, parts[1]), remote)
 		}
 	}
 
