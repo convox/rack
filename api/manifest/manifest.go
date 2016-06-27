@@ -191,7 +191,7 @@ func (m Manifest) Validate() error {
 	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
 	for _, entry := range map[string]ManifestEntry(m) {
-		labels := entry.labelsByPrefix("convox.cron")
+		labels := entry.LabelsByPrefix("convox.cron")
 		for k := range labels {
 			parts := strings.Split(k, ".")
 			if len(parts) != 3 {
@@ -998,7 +998,7 @@ func (me ManifestEntry) Label(key string) string {
 	return ""
 }
 
-func (me ManifestEntry) labelsByPrefix(prefix string) map[string]string {
+func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
 	switch labels := me.Labels.(type) {
 	case map[interface{}]interface{}:
