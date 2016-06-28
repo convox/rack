@@ -1,21 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"testing"
-  "fmt"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
-  "github.com/convox/version"
+	"github.com/convox/version"
 )
 
 var (
-  versions, _ = version.All()
-  stable, _ = versions.Resolve("stable")
-	stackId = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
-  install_banner = fmt.Sprintf("%s\nInstalling Convox (%s)...\n%s\n", Banner, stable.Version, stackId)
+	versions, _    = version.All()
+	stable, _      = versions.Resolve("stable")
+	stackId        = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	install_banner = fmt.Sprintf("%s\nInstalling Convox (%s)...\n%s\n", Banner, stable.Version, stackId)
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
@@ -36,7 +36,7 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 
 	os.Setenv("AWS_ENDPOINT", s.URL)
 
-  	test.Runs(t,
+	test.Runs(t,
 		test.ExecRun{
 			Command: "convox install",
 			Exit:    0,
