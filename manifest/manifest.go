@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -44,6 +46,11 @@ func Load(data []byte) (*Manifest, error) {
 		m.Services[name] = service
 	}
 
+	err = m.Validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return m, nil
 }
 
@@ -56,6 +63,30 @@ func LoadFile(path string) (*Manifest, error) {
 	}
 
 	return Load(data)
+}
+
+func (m Manifest) Validate() error {
+	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for k, _ := range labels {
+			parts := strings.Split(k, ".")
+			if len(parts) != 3 {
+				return fmt.Errorf(
+					"Cron task is not valid (must be in format convox.cron.myjob)",
+				)
+			}
+			name := parts[2]
+			if !regexValidCronLabel.MatchString(name) {
+				return fmt.Errorf(
+					"Cron task %s is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)",
+					name,
+				)
+			}
+		}
+	}
+	return nil
 }
 
 // Return a list of ports this manifest will expose when run
