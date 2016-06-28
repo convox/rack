@@ -26,9 +26,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "PostgresDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "PostgresFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -38,9 +43,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "WorkerDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -159,21 +169,10 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "PostgresDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "PostgresMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "PostgresFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "Private": {
       "AllowedValues": [
@@ -224,21 +223,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WorkerCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "WorkerDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WorkerMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "WorkerFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -339,7 +327,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "PostgresDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "PostgresFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -411,7 +404,12 @@
               "BlankPostgresService",
               {
                 "Cpu": {
-                  "Ref": "PostgresCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "PostgresFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -426,7 +424,12 @@
                 },
                 "Image": "mdillon/postgis",
                 "Memory": {
-                  "Ref": "PostgresMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "PostgresFormation"
+                    }
+                  ]
                 },
                 "Name": "postgres",
                 "PortMappings": [
@@ -552,7 +555,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "WorkerDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WorkerFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -625,7 +633,12 @@
               {
                 "Command": "bin/work",
                 "Cpu": {
-                  "Ref": "WorkerCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WorkerFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -638,7 +651,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WorkerMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "WorkerFormation"
+                    }
+                  ]
                 },
                 "Name": "worker",
                 "PortMappings": [

@@ -52,9 +52,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "WebDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -251,21 +256,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "WebDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WebMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "WebFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "WebPort3001Balancer": {
       "Default": "3001",
@@ -828,7 +822,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "WebDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -924,7 +923,12 @@
               "BlankWebService",
               {
                 "Cpu": {
-                  "Ref": "WebCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -937,7 +941,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WebMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Name": "web",
                 "PortMappings": [

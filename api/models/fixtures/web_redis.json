@@ -58,9 +58,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "RedisDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "RedisFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -70,9 +75,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "WebDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -238,21 +248,10 @@
       "Description": "Create internal load balancers in private subnets",
       "Type": "String"
     },
-    "RedisCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "RedisDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "RedisMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "RedisFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "RedisPort6379Balancer": {
       "Default": "6379",
@@ -338,21 +337,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "WebDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WebMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "WebFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "WebPort80Balancer": {
       "Default": "80",
@@ -883,7 +871,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "RedisDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "RedisFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -967,7 +960,12 @@
               "BlankRedisService",
               {
                 "Cpu": {
-                  "Ref": "RedisCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "RedisFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -984,7 +982,12 @@
                 },
                 "Image": "convox/redis",
                 "Memory": {
-                  "Ref": "RedisMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "RedisFormation"
+                    }
+                  ]
                 },
                 "Name": "redis",
                 "PortMappings": [
@@ -1122,7 +1125,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "WebDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -1206,7 +1214,12 @@
               "BlankWebService",
               {
                 "Cpu": {
-                  "Ref": "WebCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -1219,7 +1232,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WebMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Name": "web",
                 "PortMappings": [

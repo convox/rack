@@ -42,9 +42,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "PostgresDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "PostgresFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -54,9 +59,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "WebDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -194,21 +204,10 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "PostgresDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "PostgresMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "PostgresFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "Private": {
       "AllowedValues": [
@@ -259,21 +258,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "WebDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WebMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "WebFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "WebPort3000Balancer": {
       "Default": "3000",
@@ -616,7 +604,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "PostgresDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "PostgresFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -688,7 +681,12 @@
               "BlankPostgresService",
               {
                 "Cpu": {
-                  "Ref": "PostgresCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "PostgresFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -703,7 +701,12 @@
                 },
                 "Image": "mdillon/postgis",
                 "Memory": {
-                  "Ref": "PostgresMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "PostgresFormation"
+                    }
+                  ]
                 },
                 "Name": "postgres",
                 "PortMappings": [
@@ -830,7 +833,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "WebDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -914,7 +922,12 @@
               "BlankWebService",
               {
                 "Cpu": {
-                  "Ref": "WebCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -927,7 +940,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WebMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Name": "web",
                 "PortMappings": [
