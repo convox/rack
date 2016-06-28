@@ -64,7 +64,7 @@ func cmdKnownRacks(c *cli.Context) error {
 	}
 
 	t := stdcli.NewTable("RACK")
-	for rack, _ := range auth {
+	for rack := range auth {
 		t.AddRow(rack)
 	}
 
