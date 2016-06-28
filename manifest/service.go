@@ -180,3 +180,13 @@ func linkArgs(name, container string) []string {
 func tagHash(id string) string {
 	return fmt.Sprintf("convox-%s", fmt.Sprintf("%x", sha1.Sum([]byte(id)))[0:10])
 }
+
+func (s Service) LabelsByPrefix(prefix string) map[string]string {
+	returnLabels := make(map[string]string)
+	for k, v := range s.Labels {
+		if strings.HasPrefix(k, prefix) {
+			returnLabels[k] = v
+		}
+	}
+	return returnLabels
+}
