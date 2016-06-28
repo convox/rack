@@ -56,14 +56,39 @@ func ListFormation(app string) (Formation, error) {
 
 		if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(me.Name))]; ok {
 			parts := strings.SplitN(vals, ",", 3)
+			if len(parts) != 3 {
+				return nil, fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", me.Name)
+			}
 
-			count, _ = strconv.Atoi(parts[0])
-			cpu, _ = strconv.Atoi(parts[1])
-			memory, _ = strconv.Atoi(parts[2])
+			count, err = strconv.Atoi(parts[0])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "count")
+			}
+
+			cpu, err = strconv.Atoi(parts[1])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "CPU")
+			}
+
+			memory, err = strconv.Atoi(parts[2])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "memory")
+			}
 		} else {
-			count, _ = strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
-			memory, _ = strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
-			cpu, _ = strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
+			count, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "count")
+			}
+
+			cpu, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "cpu")
+			}
+
+			memory, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "memory")
+			}
 		}
 
 		re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, UpperName(me.Name)))
@@ -95,7 +120,7 @@ func ListFormation(app string) (Formation, error) {
 }
 
 // Update Process Parameters for Count and Memory
-// Expects -1 for memory and cpu and -2 for count to indicate no change, since count=0 is valid
+// Empty string for opts.Count, opts.CPU or opts.Memory indicates no change, since count=0 is valid
 func SetFormation(app, process string, opts FormationOptions) error {
 	a, err := GetApp(app)
 	if err != nil {
@@ -125,9 +150,13 @@ func SetFormation(app, process string, opts FormationOptions) error {
 	params := map[string]string{}
 
 	if opts.Count != "" {
-		_, err := strconv.Atoi(opts.Count)
+		count, err := strconv.Atoi(opts.Count)
 		if err != nil {
 			return err
+		}
+
+		if count < -1 {
+			return fmt.Errorf("requested count %d must -1 or greater", count)
 		}
 	}
 
@@ -140,6 +169,10 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		if int64(cpu) > capacity.InstanceCPU {
 			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
 		}
+
+		if cpu < 0 {
+			return fmt.Errorf("requested cpu %d must be zero or greater", cpu)
+		}
 	}
 
 	if opts.Memory != "" {
@@ -151,10 +184,17 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		if int64(memory) > capacity.InstanceMemory {
 			return fmt.Errorf("requested memory %d greater than instance size %d", memory, capacity.InstanceMemory)
 		}
+
+		if memory < 1 {
+			return fmt.Errorf("requested memory %d must be greater than zero", memory)
+		}
 	}
 
 	if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(process))]; ok {
 		parts := strings.SplitN(vals, ",", 3)
+		if len(parts) != 3 {
+			return fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", process)
+		}
 
 		if opts.Count != "" {
 			parts[0] = opts.Count
