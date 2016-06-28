@@ -156,27 +156,16 @@
 {{ define "process-conditions" }}
   {{ range $k := .EntryNames }}
     "Blank{{ upper $k }}Service": { "Fn::Equals": [ "", "" ] },
-    "Enabled{{ upper $k }}": { "Fn::Not": [{ "Fn::Equals": [ {"Ref": "{{ upper $k }}DesiredCount" }, -1 ] }] },
+    "Enabled{{ upper $k }}": { "Fn::Not": [{ "Fn::Equals": [ { "Fn::Select": [ 0, { "Ref": "{{ upper $k }}Formation" } ] }, "-1" ] }] },
   {{ end }}
 {{ end }}
 
 {{ define "process-params" }}
   {{ range $e := . }}
-    "{{ upper $e.Name }}Cpu": {
-      "Type": "Number",
-      "Default": "0",
-      "Description": "CPU units to reserve"
-    },
-    "{{ upper $e.Name }}Memory": {
-      "Type": "Number",
-      "Default": "256",
-      "Description": "MB of RAM to reserve"
-    },
-    "{{ upper $e.Name }}DesiredCount": {
-      "Type" : "Number",
-      "Default" : "1",
-      "Description" : "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1
+    "{{ upper $e.Name }}Formation": {
+      "Type": "CommaDelimitedList",
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"
     },
   {{ end }}
 {{ end }}
@@ -224,7 +213,7 @@
         "Properties": {
           "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
           "Cluster": { "Ref": "Cluster" },
-          "DesiredCount": { "Ref": "{{ upper $e.Name }}DesiredCount" },
+          "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
           "Role": { "Ref": "ServiceRole" },
@@ -630,8 +619,8 @@
     {{else if ne .CommandString ""}}
         "Command": {{ value .CommandString }},
     {{end}}
-    "Cpu": { "Ref": "{{ upper .Name }}Cpu" },
-    "Memory": { "Ref": "{{ upper .Name }}Memory" },
+    "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
+    "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Environment": {
       {{ range $key, $value := .EnvMap }}
         "{{ $key }}": {{ value $value }},

@@ -58,9 +58,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "WebDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -70,9 +75,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "WorkerDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -278,21 +288,10 @@
       "MinLength": "1",
       "Type": "String"
     },
-    "WebCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "WebDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WebMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "WebFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "WebPort80Balancer": {
       "Default": "80",
@@ -338,21 +337,10 @@
       "Description": "",
       "Type": "String"
     },
-    "WorkerCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "WorkerDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "WorkerMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "WorkerFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "WorkerPort80Balancer": {
       "Default": "80",
@@ -951,7 +939,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "WebDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -1036,7 +1029,12 @@
               {
                 "Command": "bash -c 'bundle exec puma -C config/puma.rb'",
                 "Cpu": {
-                  "Ref": "WebCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -1049,7 +1047,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WebMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "WebFormation"
+                    }
+                  ]
                 },
                 "Name": "web",
                 "PortMappings": [
@@ -1108,7 +1111,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "WorkerDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WorkerFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -1193,7 +1201,12 @@
               {
                 "Command": "bash -c \"bundle exec worker\"",
                 "Cpu": {
-                  "Ref": "WorkerCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "WorkerFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -1206,7 +1219,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "WorkerMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "WorkerFormation"
+                    }
+                  ]
                 },
                 "Name": "worker",
                 "PortMappings": [

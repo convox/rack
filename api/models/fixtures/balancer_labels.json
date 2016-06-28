@@ -36,9 +36,14 @@
         {
           "Fn::Equals": [
             {
-              "Ref": "MainDesiredCount"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "MainFormation"
+                }
+              ]
             },
-            -1
+            "-1"
           ]
         }
       ]
@@ -176,21 +181,10 @@
       "Description": "",
       "Type": "String"
     },
-    "MainCpu": {
-      "Default": "0",
-      "Description": "CPU units to reserve",
-      "Type": "Number"
-    },
-    "MainDesiredCount": {
-      "Default": "1",
-      "Description": "The number of instantiations of the process to place and keep running on your cluster",
-      "MinValue": -1,
-      "Type": "Number"
-    },
-    "MainMemory": {
-      "Default": "256",
-      "Description": "MB of RAM to reserve",
-      "Type": "Number"
+    "MainFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "MainPort443Balancer": {
       "Default": "443",
@@ -572,7 +566,12 @@
           "Ref": "DeploymentMinimum"
         },
         "DesiredCount": {
-          "Ref": "MainDesiredCount"
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "MainFormation"
+            }
+          ]
         },
         "LoadBalancers": [
           {
@@ -656,7 +655,12 @@
               "BlankMainService",
               {
                 "Cpu": {
-                  "Ref": "MainCpu"
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "MainFormation"
+                    }
+                  ]
                 },
                 "Environment": {
                   "APP": "httpd",
@@ -669,7 +673,12 @@
                 },
                 "Image": "",
                 "Memory": {
-                  "Ref": "MainMemory"
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "MainFormation"
+                    }
+                  ]
                 },
                 "Name": "main",
                 "PortMappings": [

@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/convox/rack/api/provider"
 )
@@ -51,9 +52,44 @@ func ListFormation(app string) (Formation, error) {
 	formation := Formation{}
 
 	for _, me := range manifest {
-		count, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
-		memory, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
-		cpu, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
+		var count, memory, cpu int
+
+		if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(me.Name))]; ok {
+			parts := strings.SplitN(vals, ",", 3)
+			if len(parts) != 3 {
+				return nil, fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", me.Name)
+			}
+
+			count, err = strconv.Atoi(parts[0])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "count")
+			}
+
+			cpu, err = strconv.Atoi(parts[1])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "CPU")
+			}
+
+			memory, err = strconv.Atoi(parts[2])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "memory")
+			}
+		} else {
+			count, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "count")
+			}
+
+			cpu, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "cpu")
+			}
+
+			memory, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
+			if err != nil {
+				return nil, fmt.Errorf("%s %s not numeric", me.Name, "memory")
+			}
+		}
 
 		re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, UpperName(me.Name)))
 
@@ -84,7 +120,7 @@ func ListFormation(app string) (Formation, error) {
 }
 
 // Update Process Parameters for Count and Memory
-// Expects -1 for memory and cpu and -2 for count to indicate no change, since count=0 is valid
+// Empty string for opts.Count, opts.CPU or opts.Memory indicates no change, since count=0 is valid
 func SetFormation(app, process string, opts FormationOptions) error {
 	a, err := GetApp(app)
 	if err != nil {
@@ -114,12 +150,14 @@ func SetFormation(app, process string, opts FormationOptions) error {
 	params := map[string]string{}
 
 	if opts.Count != "" {
-		_, err := strconv.Atoi(opts.Count)
+		count, err := strconv.Atoi(opts.Count)
 		if err != nil {
 			return err
 		}
 
-		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = opts.Count
+		if count < -1 {
+			return fmt.Errorf("requested count %d must -1 or greater", count)
+		}
 	}
 
 	if opts.CPU != "" {
@@ -132,7 +170,9 @@ func SetFormation(app, process string, opts FormationOptions) error {
 			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
 		}
 
-		params[fmt.Sprintf("%sCpu", UpperName(process))] = opts.CPU
+		if cpu < 0 {
+			return fmt.Errorf("requested cpu %d must be zero or greater", cpu)
+		}
 	}
 
 	if opts.Memory != "" {
@@ -145,7 +185,42 @@ func SetFormation(app, process string, opts FormationOptions) error {
 			return fmt.Errorf("requested memory %d greater than instance size %d", memory, capacity.InstanceMemory)
 		}
 
-		params[fmt.Sprintf("%sMemory", UpperName(process))] = opts.Memory
+		if memory < 1 {
+			return fmt.Errorf("requested memory %d must be greater than zero", memory)
+		}
+	}
+
+	if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(process))]; ok {
+		parts := strings.SplitN(vals, ",", 3)
+		if len(parts) != 3 {
+			return fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", process)
+		}
+
+		if opts.Count != "" {
+			parts[0] = opts.Count
+		}
+
+		if opts.CPU != "" {
+			parts[1] = opts.CPU
+		}
+
+		if opts.Memory != "" {
+			parts[2] = opts.Memory
+		}
+
+		params[fmt.Sprintf("%sFormation", UpperName(process))] = strings.Join(parts, ",")
+	} else {
+		if opts.Count != "" {
+			params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = opts.Count
+		}
+
+		if opts.CPU != "" {
+			params[fmt.Sprintf("%sCpu", UpperName(process))] = opts.CPU
+		}
+
+		if opts.Memory != "" {
+			params[fmt.Sprintf("%sMemory", UpperName(process))] = opts.Memory
+		}
 	}
 
 	NotifySuccess("release:scale", map[string]string{
