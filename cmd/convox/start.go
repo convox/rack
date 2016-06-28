@@ -1,17 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strings"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
-	"github.com/fsouza/go-dockerclient"
 	"gopkg.in/urfave/cli.v1"
 )
 
