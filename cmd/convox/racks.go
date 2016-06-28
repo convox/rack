@@ -13,7 +13,7 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "racks",
-		Description: "list Convox racks you've connected to",
+		Description: "list your Convox racks",
 		Usage:       "",
 		Action:      cmdRacks,
 		Subcommands: []cli.Command{
