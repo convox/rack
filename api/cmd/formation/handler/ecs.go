@@ -109,7 +109,6 @@ func ECSClusterDelete(req Request) (string, map[string]string, error) {
 
 func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
-
 	if err != nil {
 		return "invalid", nil, err
 	}
@@ -180,7 +179,10 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 }
 
 func ECSServiceUpdate(req Request) (string, map[string]string, error) {
-	count, _ := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
+	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
+	if err != nil {
+		return "invalid", nil, err
+	}
 
 	// arn:aws:ecs:us-east-1:922560784203:service/sinatra-SZXTRXEMYEY
 	parts := strings.Split(req.PhysicalResourceId, "/")
