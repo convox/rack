@@ -500,20 +500,22 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 				return fmt.Errorf("unable to retrieve task definition")
 			}
 
+		ContainerCheck:
 			for _, container = range t.TaskDefinition.ContainerDefinitions {
 				releaseMatch := false
 
+			ReleaseCheck:
 				for _, kv := range container.Environment {
 					if *kv.Name == "RELEASE" {
 						if *kv.Value == releaseId {
 							releaseMatch = true
-							break
+							break ReleaseCheck
 						}
 					}
 				}
 
 				if *container.Name == process && releaseMatch {
-					break
+					break ContainerCheck
 				}
 				container = nil
 			}
