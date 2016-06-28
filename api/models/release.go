@@ -124,24 +124,20 @@ func (r *Release) Save() error {
 
 func (r *Release) Promote() error {
 	app, err := GetApp(r.App)
-
 	if err != nil {
 		return err
 	}
 
 	formation, err := r.Formation()
-
 	if err != nil {
 		return err
 	}
 
 	// If release formation was saved in S3, get that instead
 	f, err := s3Get(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id))
-
 	if err != nil && awserrCode(err) != "NoSuchKey" {
 		return err
 	}
-
 	if err == nil {
 		formation = string(f)
 	}
@@ -149,7 +145,6 @@ func (r *Release) Promote() error {
 	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
 
 	existing, err := formationParameters(formation)
-
 	if err != nil {
 		return err
 	}
@@ -174,12 +169,37 @@ func (r *Release) Promote() error {
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
 	manifest, err := LoadManifest(r.Manifest, app)
-
 	if err != nil {
 		return err
 	}
 
 	for _, entry := range manifest {
+		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
+		// so new deploys and rollbacks have the expected parameters
+		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {
+			parts := strings.SplitN(vals, ",", 3)
+
+			app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))] = parts[0]
+			app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))] = parts[1]
+			app.Parameters[fmt.Sprintf("%sMemory", UpperName(entry.Name))] = parts[2]
+		} else {
+			parts := []string{"1", "0", "256"}
+
+			if v := app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))]; v != "" {
+				parts[0] = v
+			}
+
+			if v := app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))]; v != "" {
+				parts[1] = v
+			}
+
+			if v := app.Parameters[fmt.Sprintf("%sMemory", UpperName(entry.Name))]; v != "" {
+				parts[2] = v
+			}
+
+			app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))] = strings.Join(parts, ",")
+		}
+
 		for _, mapping := range entry.PortMappings() {
 			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
@@ -217,7 +237,6 @@ func (r *Release) Promote() error {
 					name := fmt.Sprintf("cert-%d", time.Now().Unix())
 
 					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
-
 					if err != nil {
 						return err
 					}
@@ -230,7 +249,6 @@ func (r *Release) Promote() error {
 
 					// upload certificate
 					res, err := IAM().UploadServerCertificate(input)
-
 					if err != nil {
 						return err
 					}
@@ -250,7 +268,6 @@ func (r *Release) Promote() error {
 	}
 
 	err = S3Put(app.Outputs["Settings"], fmt.Sprintf("templates/%s", r.Id), []byte(formation), false)
-
 	if err != nil {
 		return err
 	}

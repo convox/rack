@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/convox/rack/api/provider"
 )
@@ -51,9 +52,19 @@ func ListFormation(app string) (Formation, error) {
 	formation := Formation{}
 
 	for _, me := range manifest {
-		count, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
-		memory, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
-		cpu, _ := strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
+		var count, memory, cpu int
+
+		if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(me.Name))]; ok {
+			parts := strings.SplitN(vals, ",", 3)
+
+			count, _ = strconv.Atoi(parts[0])
+			cpu, _ = strconv.Atoi(parts[1])
+			memory, _ = strconv.Atoi(parts[2])
+		} else {
+			count, _ = strconv.Atoi(a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(me.Name))])
+			memory, _ = strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
+			cpu, _ = strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
+		}
 
 		re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, UpperName(me.Name)))
 
@@ -118,8 +129,6 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		if err != nil {
 			return err
 		}
-
-		params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = opts.Count
 	}
 
 	if opts.CPU != "" {
@@ -131,8 +140,6 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		if int64(cpu) > capacity.InstanceCPU {
 			return fmt.Errorf("requested cpu %d greater than instance size %d", cpu, capacity.InstanceCPU)
 		}
-
-		params[fmt.Sprintf("%sCpu", UpperName(process))] = opts.CPU
 	}
 
 	if opts.Memory != "" {
@@ -144,8 +151,36 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		if int64(memory) > capacity.InstanceMemory {
 			return fmt.Errorf("requested memory %d greater than instance size %d", memory, capacity.InstanceMemory)
 		}
+	}
 
-		params[fmt.Sprintf("%sMemory", UpperName(process))] = opts.Memory
+	if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(process))]; ok {
+		parts := strings.SplitN(vals, ",", 3)
+
+		if opts.Count != "" {
+			parts[0] = opts.Count
+		}
+
+		if opts.CPU != "" {
+			parts[1] = opts.CPU
+		}
+
+		if opts.Memory != "" {
+			parts[2] = opts.Memory
+		}
+
+		params[fmt.Sprintf("%sFormation", UpperName(process))] = strings.Join(parts, ",")
+	} else {
+		if opts.Count != "" {
+			params[fmt.Sprintf("%sDesiredCount", UpperName(process))] = opts.Count
+		}
+
+		if opts.CPU != "" {
+			params[fmt.Sprintf("%sCpu", UpperName(process))] = opts.CPU
+		}
+
+		if opts.Memory != "" {
+			params[fmt.Sprintf("%sMemory", UpperName(process))] = opts.Memory
+		}
 	}
 
 	NotifySuccess("release:scale", map[string]string{
