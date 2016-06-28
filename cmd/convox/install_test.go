@@ -1,20 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
+	"github.com/convox/version"
+)
+
+var (
+	versions, _    = version.All()
+	stable, _      = versions.Resolve("stable")
+	stackID        = "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	installBanner = fmt.Sprintf("%s\nInstalling Convox (%s)...\n%s\n", Banner, stable.Version, stackID)
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		awsutil.Cycle{
 			awsutil.Request{"/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		awsutil.Cycle{
 			awsutil.Request{"/", "", ""},
@@ -31,20 +39,19 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox install",
-			Exit:    1,
+			Exit:    0,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"BAR","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\n",
+			Stdout:  installBanner,
 		},
 	)
 }
 
 func TestConvoxInstallValidateStackName(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		awsutil.Cycle{
 			awsutil.Request{"/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		awsutil.Cycle{
 			awsutil.Request{"/", "", ""},
@@ -61,10 +68,10 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 	test.Runs(t,
 		test.ExecRun{
 			Command: "convox install --stack-name valid",
-			Exit:    1,
+			Exit:    0,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"BAR","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\n",
+			Stdout:  installBanner,
 		},
 
 		test.ExecRun{
