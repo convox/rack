@@ -459,29 +459,78 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		return err
 	}
 
-	input := &ecs.DescribeTaskDefinitionInput{
+	var container *ecs.ContainerDefinition
+
+	task, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
-	}
-	task, err := ECS().DescribeTaskDefinition(input)
+	})
 	if err != nil {
 		return err
 	}
 
-	var container *ecs.ContainerDefinition
-	for _, container = range task.TaskDefinition.ContainerDefinitions {
-		if *container.Name == process {
-			break
+	// If no releaseId is provided, use the last promoted release to run this process
+	// otherwise iterate over the previous revisions (starting with the latest) looking for the releaseId specified.
+	if releaseId == "" {
+		releaseId = a.Release
+
+		for _, container = range task.TaskDefinition.ContainerDefinitions {
+			if *container.Name == process {
+				break
+			}
+		}
+
+	} else {
+
+		ts, err := ECS().ListTaskDefinitions(&ecs.ListTaskDefinitionsInput{
+			FamilyPrefix: task.TaskDefinition.Family,
+		})
+		if err != nil {
+			return err
+		}
+
+		for i := len(ts.TaskDefinitionArns) - 1; i >= 0; i-- {
+			t, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+				TaskDefinition: ts.TaskDefinitionArns[i],
+			})
+			if err != nil {
+				continue
+			}
+
+			if t == nil {
+				return fmt.Errorf("unable to retrieve task definition")
+			}
+
+			for _, container = range t.TaskDefinition.ContainerDefinitions {
+				releaseMatch := false
+
+				for _, kv := range container.Environment {
+					if *kv.Name == "RELEASE" {
+						if *kv.Value == releaseId {
+							releaseMatch = true
+							break
+						}
+					}
+				}
+
+				if *container.Name == process && releaseMatch {
+					break
+				}
+				container = nil
+			}
+
+			if container != nil {
+				break
+			}
 		}
 	}
 
-	ea := make([]string, 0)
-
-	for _, env := range container.Environment {
-		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
+	if container == nil {
+		return fmt.Errorf("unable to find contaier for %s", process)
 	}
 
-	if len(releaseId) == 0 {
-		releaseId = a.Release
+	ea := make([]string, 0)
+	for _, env := range container.Environment {
+		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
 	release, err := GetRelease(a.Name, releaseId)

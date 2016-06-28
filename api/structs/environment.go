@@ -53,3 +53,11 @@ func (e Environment) Raw() string {
 
 	return strings.Join(lines, "\n")
 }
+
+// LoadRaw reads a raw string (key/values separated by a newline) to load environment variables
+func (e Environment) LoadRaw(raw string) {
+	for _, rawKV := range strings.Split(raw, "\n") {
+		keyValue := strings.SplitN(rawKV, "=", 2)
+		e[keyValue[0]] = keyValue[1]
+	}
+}
