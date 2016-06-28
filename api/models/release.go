@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -178,6 +179,24 @@ func (r *Release) Promote() error {
 		// so new deploys and rollbacks have the expected parameters
 		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {
 			parts := strings.SplitN(vals, ",", 3)
+			if len(parts) != 3 {
+				return fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", entry.Name)
+			}
+
+			_, err = strconv.Atoi(parts[0])
+			if err != nil {
+				return fmt.Errorf("%s %s not numeric", entry.Name, "count")
+			}
+
+			_, err = strconv.Atoi(parts[1])
+			if err != nil {
+				return fmt.Errorf("%s %s not numeric", entry.Name, "CPU")
+			}
+
+			_, err = strconv.Atoi(parts[2])
+			if err != nil {
+				return fmt.Errorf("%s %s not numeric", entry.Name, "memory")
+			}
 
 			app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))] = parts[0]
 			app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))] = parts[1]
