@@ -2,9 +2,14 @@ package manifest
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -31,8 +36,35 @@ func NewRun(dir, app string, m Manifest) Run {
 }
 
 func (r *Run) Start() error {
+	log.Print("CONVOX START()")
 	if r.done != nil {
 		return fmt.Errorf("already started")
+	}
+
+	if denv := filepath.Join(r.Dir, ".env"); exists(denv) {
+		log.Print("exists")
+
+		data, err := ioutil.ReadFile(denv)
+		if err != nil {
+			return err
+		}
+
+		scanner := bufio.NewScanner(bytes.NewReader(data))
+
+		for scanner.Scan() {
+			if strings.Index(scanner.Text(), "=") > -1 {
+				parts := strings.SplitN(scanner.Text(), "=", 2)
+
+				err := os.Setenv(parts[0], parts[1])
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			return err
+		}
 	}
 
 	// preload system-level stream names
@@ -188,4 +220,12 @@ func waitForContainer(container string) {
 
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+func exists(filename string) bool {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }

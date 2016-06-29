@@ -24,7 +24,11 @@ func NewProcess(app string, s Service) Process {
 	}
 
 	for k, v := range s.Environment {
-		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+		if v == "" {
+			args = append(args, "-e", fmt.Sprintf("%s", k))
+		} else {
+			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+		}
 	}
 
 	for _, link := range s.Links {
