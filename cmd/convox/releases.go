@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 type Release struct {
@@ -43,7 +44,14 @@ func init() {
 				Description: "promote a release",
 				Usage:       "<release id>",
 				Action:      cmdReleasePromote,
-				Flags:       []cli.Flag{appFlag, rackFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "wait",
+						Usage: "wait for release to finish promoting before returning",
+					},
+				},
 			},
 		},
 	})
@@ -74,7 +82,7 @@ func cmdReleases(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	t := stdcli.NewTable("ID", "CREATED", "STATUS")
+	t := stdcli.NewTable("ID", "CREATED", "BUILD", "STATUS")
 
 	for _, r := range releases {
 		status := ""
@@ -83,7 +91,7 @@ func cmdReleases(c *cli.Context) error {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, humanizeTime(r.Created), status)
+		t.AddRow(r.Id, humanizeTime(r.Created), r.Build, status)
 	}
 
 	t.Print()
@@ -119,7 +127,7 @@ func cmdReleaseInfo(c *cli.Context) error {
 
 func cmdReleasePromote(c *cli.Context) error {
 	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "release promote")
+		stdcli.Usage(c, "releases promote")
 		return nil
 	}
 
@@ -138,5 +146,42 @@ func cmdReleasePromote(c *cli.Context) error {
 	}
 
 	fmt.Println("UPDATING")
+
+	if c.Bool("wait") {
+		fmt.Printf("Waiting for %s... ", release)
+
+		if err := waitForReleasePromotion(c, app, release); err != nil {
+			stdcli.ExitError(err)
+		}
+
+		fmt.Println("OK")
+	}
+
+	return nil
+}
+
+func waitForReleasePromotion(c *cli.Context, app, release string) error {
+	for {
+		pss, err := rackClient(c).GetProcesses(app, false)
+		if err != nil {
+			return err
+		}
+
+		ready := true
+
+		for _, ps := range pss {
+			if ps.Release != release {
+				ready = false
+				break
+			}
+		}
+
+		if ready {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+
 	return nil
 }

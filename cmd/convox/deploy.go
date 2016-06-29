@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 func init() {
@@ -13,7 +14,13 @@ func init() {
 		Description: "deploy an app to AWS",
 		Usage:       "<directory>",
 		Action:      cmdDeploy,
-		Flags:       buildCreateFlags,
+		Flags: append(
+			buildCreateFlags,
+			cli.BoolFlag{
+				Name:  "wait",
+				Usage: "wait for release to finish promoting before returning",
+			},
+		),
 	})
 }
 
@@ -62,5 +69,16 @@ func cmdDeploy(c *cli.Context) error {
 	}
 
 	fmt.Println("UPDATING")
+
+	if c.Bool("wait") {
+		fmt.Printf("Waiting for %s... ", release)
+
+		if err := waitForReleasePromotion(c, app, release); err != nil {
+			stdcli.ExitError(err)
+		}
+
+		fmt.Println("OK")
+	}
+
 	return nil
 }

@@ -104,6 +104,11 @@ func (p *TestProviderRunner) EventSend(e *structs.Event, err error) error {
 	return nil
 }
 
+func (p *TestProviderRunner) EnvironmentGet(app string) (structs.Environment, error) {
+	p.Called()
+	return nil, nil
+}
+
 func (p *TestProviderRunner) IndexDiff(i *structs.Index) ([]string, error) {
 	p.Called(i)
 	return []string{}, nil
@@ -140,8 +145,8 @@ func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error
 }
 
 func (p *TestProviderRunner) ReleaseList(app string) (structs.Releases, error) {
-	p.Called(app)
-	return p.Releases, nil
+	args := p.Called(app)
+	return args.Get(0).(structs.Releases), args.Error(1)
 }
 
 func (p *TestProviderRunner) ReleasePromote(app, id string) (*structs.Release, error) {

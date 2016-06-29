@@ -75,6 +75,56 @@ func TestReleaseList(t *testing.T) {
 	}, r)
 }
 
+func TestReleaseLatestEmpty(t *testing.T) {
+	defer func() {
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+	p := provider.CurrentProvider.(*provider.TestProviderRunner)
+
+	p.Mock.On("ReleaseList", "myapp").Return(structs.Releases{}, nil)
+
+	rs, err := p.ReleaseList("myapp")
+	assert.Nil(t, err)
+	assert.Equal(t, (*structs.Release)(nil), rs.Latest())
+}
+
+func TestReleaseLatest(t *testing.T) {
+	defer func() {
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+	p := provider.CurrentProvider.(*provider.TestProviderRunner)
+
+	p.Mock.On("ReleaseList", "myapp").Return(structs.Releases{
+		structs.Release{
+			Id:       "RVFETUHHKKD",
+			App:      "httpd",
+			Build:    "BHINCLZYYVN",
+			Env:      "foo=bar",
+			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
+			Created:  time.Unix(1459780542, 627770380).UTC(),
+		},
+		structs.Release{
+			Id:       "RFVZFLKVTYO",
+			App:      "httpd",
+			Build:    "BNOARQMVHUO",
+			Env:      "foo=bar",
+			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
+			Created:  time.Unix(1459709199, 166694813).UTC(),
+		},
+	}, nil)
+
+	rs, err := p.ReleaseList("myapp")
+	assert.Nil(t, err)
+	assert.Equal(t, &structs.Release{
+		Id:       "RVFETUHHKKD",
+		App:      "httpd",
+		Build:    "BHINCLZYYVN",
+		Env:      "foo=bar",
+		Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
+		Created:  time.Unix(1459780542, 627770380).UTC(),
+	}, rs.Latest())
+}
+
 var release1GetItemCycle = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",

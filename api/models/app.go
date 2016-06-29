@@ -12,6 +12,7 @@ import (
 
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -335,7 +336,6 @@ func (a *App) UpdateParams(changes map[string]string) error {
 
 func (a *App) Formation() (string, error) {
 	data, err := buildTemplate("app", "app", Manifest{})
-
 	if err != nil {
 		return "", err
 	}
@@ -344,43 +344,32 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	release, err := a.LatestRelease()
-
+	release, err := provider.ReleaseGet(a.Name, a.Release)
 	if err != nil {
 		return nil, err
 	}
 
 	if release == nil {
-		r := NewRelease(a.Name)
-		release = &r
+		release = structs.NewRelease(a.Name)
 	}
 
 	release.Id = generateId("R", 10)
 	release.Created = time.Time{}
 
-	return release, nil
-}
-
-// FIXME: Port to provider interface
-func (a *App) LatestRelease() (*Release, error) {
-	releases, err := provider.ReleaseList(a.Name)
+	env, err := provider.EnvironmentGet(a.Name)
 	if err != nil {
-		return nil, err
+		fmt.Printf("fn=ForkRelease level=error msg=\"error getting environment: %s\"", err)
 	}
 
-	if len(releases) == 0 {
-		return nil, nil
-	}
-
-	r := releases[0]
+	release.Env = env.Raw()
 
 	return &Release{
-		Id:       r.Id,
-		App:      r.App,
-		Build:    r.Build,
-		Env:      r.Env,
-		Manifest: r.Manifest,
-		Created:  r.Created,
+		Id:       release.Id,
+		App:      release.App,
+		Build:    release.Build,
+		Env:      release.Env,
+		Manifest: release.Manifest,
+		Created:  release.Created,
 	}, nil
 }
 
@@ -388,7 +377,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	var ps Process
 
 	pss, err := ListProcesses(a.Name)
-
 	if err != nil {
 		return err
 	}
@@ -405,7 +393,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	}
 
 	d, err := ps.Docker()
-
 	if err != nil {
 		return err
 	}
@@ -418,7 +405,6 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 		Cmd:          []string{"sh", "-c", command},
 		Container:    ps.containerId,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -449,20 +435,17 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 		RawTerminal:  true,
 		Success:      success,
 	})
-
 	// comparing with io.ErrClosedPipe isn't working
 	if err != nil && !strings.HasSuffix(err.Error(), "closed pipe") {
 		return err
 	}
 
 	ires, err := d.InspectExec(res.ID)
-
 	if err != nil {
 		return err
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode)))
-
 	if err != nil {
 		return err
 	}
@@ -476,29 +459,80 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		return err
 	}
 
-	input := &ecs.DescribeTaskDefinitionInput{
+	var container *ecs.ContainerDefinition
+
+	task, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
-	}
-	task, err := ECS().DescribeTaskDefinition(input)
+	})
 	if err != nil {
 		return err
 	}
 
-	var container *ecs.ContainerDefinition
-	for _, container = range task.TaskDefinition.ContainerDefinitions {
-		if *container.Name == process {
-			break
+	// If no releaseId is provided, use the last promoted release to run this process
+	// otherwise iterate over the previous revisions (starting with the latest) looking for the releaseId specified.
+	if releaseId == "" {
+		releaseId = a.Release
+
+		for _, container = range task.TaskDefinition.ContainerDefinitions {
+			if *container.Name == process {
+				break
+			}
+		}
+
+	} else {
+
+		ts, err := ECS().ListTaskDefinitions(&ecs.ListTaskDefinitionsInput{
+			FamilyPrefix: task.TaskDefinition.Family,
+		})
+		if err != nil {
+			return err
+		}
+
+		for i := len(ts.TaskDefinitionArns) - 1; i >= 0; i-- {
+			t, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+				TaskDefinition: ts.TaskDefinitionArns[i],
+			})
+			if err != nil {
+				continue
+			}
+
+			if t == nil {
+				return fmt.Errorf("unable to retrieve task definition")
+			}
+
+		ContainerCheck:
+			for _, container = range t.TaskDefinition.ContainerDefinitions {
+				releaseMatch := false
+
+			ReleaseCheck:
+				for _, kv := range container.Environment {
+					if *kv.Name == "RELEASE" {
+						if *kv.Value == releaseId {
+							releaseMatch = true
+							break ReleaseCheck
+						}
+					}
+				}
+
+				if *container.Name == process && releaseMatch {
+					break ContainerCheck
+				}
+				container = nil
+			}
+
+			if container != nil {
+				break
+			}
 		}
 	}
 
-	ea := make([]string, 0)
-
-	for _, env := range container.Environment {
-		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
+	if container == nil {
+		return fmt.Errorf("unable to find contaier for %s", process)
 	}
 
-	if len(releaseId) == 0 {
-		releaseId = a.Release
+	ea := make([]string, 0)
+	for _, env := range container.Environment {
+		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
 
 	release, err := GetRelease(a.Name, releaseId)

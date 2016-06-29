@@ -8,17 +8,21 @@ export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 
 case $CIRCLE_NODE_INDEX in
   1)
-  export AWS_DEFAULT_REGION=us-west-2
-  export AWS_REGION=us-west-2
-  ;;
+  	export AWS_DEFAULT_REGION=us-west-2
+  	export AWS_REGION=us-west-2
+  	;;
   2)
-  export AWS_DEFAULT_REGION=eu-west-1
-  export AWS_REGION=eu-west-1
-  ;;
+  	export AWS_DEFAULT_REGION=eu-west-1
+  	export AWS_REGION=eu-west-1
+  	;;
+  3)
+  	export AWS_DEFAULT_REGION=ap-southeast-2
+  	export AWS_REGION=ap-southeast-2
+  	;;
   *)
-  export AWS_DEFAULT_REGION=us-east-1
-  export AWS_REGION=us-east-1
-  ;;
+  	export AWS_DEFAULT_REGION=us-east-1
+  	export AWS_REGION=us-east-1
+  	;;
 esac
 
 

@@ -38,7 +38,7 @@ type Stack struct {
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "uninstall",
-		Description: "uninstall convox from an aws account",
+		Description: "uninstall a convox rack",
 		Usage:       "<stack-name> <region> [credentials.csv]",
 		Action:      cmdUninstall,
 		Flags: []cli.Flag{
