@@ -469,7 +469,7 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-// TODO: remove when default
+// Returns true if we should try to mount the volumes for this entry
 func (me ManifestEntry) MountVolumes() bool {
 	return me.Label("convox.volumes.mount") == "true"
 }
