@@ -325,8 +325,8 @@ func cmdServiceURL(c *cli.Context) error {
 	if service.URL == "" {
 		fmt.Printf("URL does not exist for %s\n", service.Name)
 	} else {
-    fmt.Printf("%s\n", service.URL)
-  }
+		fmt.Printf("%s\n", service.URL)
+	}
 
 	return nil
 }
