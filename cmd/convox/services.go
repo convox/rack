@@ -320,13 +320,13 @@ func cmdServiceURL(c *cli.Context) error {
 	}
 
 	if service.Status == "failed" {
-		service_failure_error := errors.New(fmt.Sprintf("Service failure for %s", service.StatusReason))
-		return stdcli.ExitError(service_failure_error)
+		serviceFailureError := errors.New(fmt.Sprintf("Service failure for %s", service.StatusReason))
+		return stdcli.ExitError(serviceFailureError)
 	}
 
 	if service.URL == "" {
-		nonexistent_url_error := errors.New(fmt.Sprintf("URL does not exist for %s", service.Name))
-		return stdcli.ExitError(nonexistent_url_error)
+		nonexistentURLError := errors.New(fmt.Sprintf("URL does not exist for %s", service.Name))
+		return stdcli.ExitError(nonexistentURLError)
 	} else {
 		fmt.Printf("%s\n", service.URL)
 	}
