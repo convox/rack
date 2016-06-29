@@ -469,11 +469,6 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-// Returns true if we should try to mount the volumes for this entry
-func (me ManifestEntry) MountVolumes() bool {
-	return me.Label("convox.volumes.mount") == "true"
-}
-
 func (me ManifestEntry) MountableVolumes() []string {
 	volumes := []string{}
 
@@ -502,9 +497,7 @@ func (me ManifestEntry) MountableVolumes() []string {
 		}
 
 		// mount the rest on the efs volume
-		if me.MountVolumes() {
-			volumes = append(volumes, fmt.Sprintf("/volumes%s:%s", parts[0], parts[1]))
-		}
+		volumes = append(volumes, fmt.Sprintf("/volumes%s:%s", parts[0], parts[1]))
 	}
 
 	return volumes
