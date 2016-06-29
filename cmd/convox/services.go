@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -320,12 +319,12 @@ func cmdServiceURL(c *cli.Context) error {
 	}
 
 	if service.Status == "failed" {
-		serviceFailureError := errors.New(fmt.Sprintf("Service failure for %s", service.StatusReason))
+		serviceFailureError := fmt.Errorf("Service failure for %s", service.StatusReason)
 		return stdcli.ExitError(serviceFailureError)
 	}
 
 	if service.URL == "" {
-		nonexistentURLError := errors.New(fmt.Sprintf("URL does not exist for %s", service.Name))
+		nonexistentURLError := fmt.Errorf("URL does not exist for %s", service.Name)
 		return stdcli.ExitError(nonexistentURLError)
 	} else {
 		fmt.Printf("%s\n", service.URL)
