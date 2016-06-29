@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"regexp"
 	"sort"
@@ -44,6 +45,7 @@ func Load(data []byte) (*Manifest, error) {
 	for name, service := range m.Services {
 		service.Name = name
 		m.Services[name] = service
+		log.Printf("%#v", service)
 	}
 
 	err = m.Validate()
