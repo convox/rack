@@ -7,7 +7,7 @@ import (
 )
 
 // UnmarshalYAML implements the Unmarshaller interface.
-func (b Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
 
 	if err := unmarshal(&v); err != nil {
