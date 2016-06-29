@@ -74,7 +74,7 @@ func TestLoadFullVersion1(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
-			assert.Equal(t, web.Build, ".")
+			assert.Equal(t, web.Build.Context, ".")
 			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "bin/web"})
 			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
@@ -129,7 +129,7 @@ func TestLoadFullVersion2(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
-			assert.Equal(t, web.Build, ".")
+			assert.Equal(t, web.Build.Context, ".")
 			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "bin/web"})
 			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
