@@ -109,6 +109,13 @@ func init() {
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
+				Name:        "url",
+				Description: "return url for the given service",
+				Usage:       "<name>",
+				Action:      cmdServiceUrl,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
 				Name:        "proxy",
 				Description: "proxy ports from localhost to connect to a service",
 				Usage:       "<name>",
@@ -294,6 +301,32 @@ func cmdServiceInfo(c *cli.Context) error {
 		// NOTE: this branch is deprecated
 		fmt.Printf("URL     %s\n", service.URL)
 	}
+
+	return nil
+}
+
+func cmdServiceUrl(c *cli.Context) error {
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "url")
+		return nil
+	}
+
+	name := c.Args()[0]
+
+	service, err := rackClient(c).GetService(name)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if service.Status == "failed" {
+		fmt.Printf("Reason  %s\n", service.StatusReason)
+	}
+
+	if service.URL == "" {
+		fmt.Printf("URL does not exist for %s\n", service.Name)
+	} else {
+    fmt.Printf("%s\n", service.URL)
+  }
 
 	return nil
 }
