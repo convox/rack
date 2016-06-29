@@ -72,7 +72,6 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
-
 	if err != nil {
 		return stdcli.ExitError(err)
 	}

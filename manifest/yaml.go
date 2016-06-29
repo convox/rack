@@ -2,9 +2,44 @@ package manifest
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
+
+// UnmarshalYAML implements the Unmarshaller interface.
+func (b *BuildContext) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var v interface{}
+
+	if err := unmarshal(&v); err != nil {
+		return err
+	}
+
+	log.Print("FOO")
+	switch v.(type) {
+	case string:
+		b.Context = v.(string)
+	case map[interface{}]interface{}:
+		for mapKey, mapValue := range v.(map[interface{}]interface{}) {
+			switch mapKey {
+			case "context":
+				b.Context = mapValue.(string)
+			case "dockerfile":
+				b.Dockerfile = mapValue.(string)
+			case "args":
+				//TODO
+			default:
+				// Ignore
+				// unknown
+				// keys
+				continue
+			}
+		}
+	default:
+		return fmt.Errorf("Failed to unmarshal Build: %#v", v)
+	}
+	return nil
+}
 
 func (c *Command) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}

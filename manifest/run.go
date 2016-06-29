@@ -62,7 +62,6 @@ func (r *Run) Start() error {
 		runAsync(r.output.Stream(p.service.Name), Docker(append([]string{"run"}, p.Args...)...), r.done)
 
 		sp, err := p.service.SyncPaths()
-
 		if err != nil {
 			return err
 		}

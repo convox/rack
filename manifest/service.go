@@ -15,24 +15,29 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
-	Build       string      `yaml:"build,omitempty"`
-	Command     Command     `yaml:"command,omitempty"`
-	Dockerfile  string      `yaml:"dockerfile,omitempty"`
-	Entrypoint  string      `yaml:"entrypoint,omitempty"`
-	Environment Environment `yaml:"environment,omitempty"`
-	Image       string      `yaml:"image,omitempty"`
-	Labels      Labels      `yaml:"labels,omitempty"`
-	Links       []string    `yaml:"links,omitempty"`
-	Networks    []string    `yaml:"networks,omitempty"`
-	Ports       Ports       `yaml:"ports,omitempty"`
-	Privileged  bool        `yaml:"privileged,omitempty"`
-	Volumes     []string    `yaml:"volumes,omitempty"`
+	Build       *BuildContext `yaml:"build,omitempty"`
+	Command     Command       `yaml:"command,omitempty"`
+	Dockerfile  string        `yaml:"dockerfile,omitempty"`
+	Entrypoint  string        `yaml:"entrypoint,omitempty"`
+	Environment Environment   `yaml:"environment,omitempty"`
+	Image       string        `yaml:"image,omitempty"`
+	Labels      Labels        `yaml:"labels,omitempty"`
+	Links       []string      `yaml:"links,omitempty"`
+	Networks    []string      `yaml:"networks,omitempty"`
+	Ports       Ports         `yaml:"ports,omitempty"`
+	Privileged  bool          `yaml:"privileged,omitempty"`
+	Volumes     []string      `yaml:"volumes,omitempty"`
 }
 
 // see yaml.go for unmarshallers
 type Command []string
 type Environment map[string]string
 type Labels map[string]string
+type BuildContext struct {
+	Context    string
+	Dockerfile string
+	Args       map[string]string
+}
 
 func (s *Service) Process(app string) Process {
 	return NewProcess(app, *s)
@@ -68,12 +73,16 @@ func (s *Service) Proxies(app string) []Proxy {
 func (s *Service) SyncPaths() (map[string]string, error) {
 	sp := map[string]string{}
 
-	if s.Build == "" {
+	if s.Build.Context == "" {
 		return sp, nil
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(s.Build, coalesce(s.Dockerfile, "Dockerfile")))
+	dockerFile := s.Build.Dockerfile
+	if dockerFile == "" {
+		dockerFile = s.Dockerfile
+	}
 
+	data, err := ioutil.ReadFile(filepath.Join(s.Build.Context, coalesce(dockerFile, "Dockerfile")))
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +108,12 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 }
 
 func (s *Service) Tag() string {
-	if s.Build != "" {
-		return tagHash(fmt.Sprintf("%s:%s", s.Build, s.Dockerfile))
+	if s.Build.Context != "" {
+		dockerFile := s.Build.Dockerfile
+		if dockerFile == "" {
+			dockerFile = s.Dockerfile
+		}
+		return tagHash(fmt.Sprintf("%s:%s", s.Build.Context, dockerFile))
 	} else {
 		return tagHash(s.Image)
 	}
