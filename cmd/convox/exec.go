@@ -22,11 +22,22 @@ func init() {
 
 func cmdExec(c *cli.Context) error {
 	fd := os.Stdin.Fd()
-	stdinState, err := terminal.GetState(int(fd))
-	if err != nil {
-		return stdcli.ExitError(err)
+
+	var h, w int
+
+	if terminal.IsTerminal(int(fd)) {
+		stdinState, err := terminal.GetState(int(fd))
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		defer terminal.Restore(int(fd), stdinState)
+
+		w, h, err = terminal.GetSize(int(fd))
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
 	}
-	defer terminal.Restore(int(fd), stdinState)
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
@@ -38,15 +49,10 @@ func cmdExec(c *cli.Context) error {
 		return nil
 	}
 
-	w, h, err := terminal.GetSize(int(fd))
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
 	ps := c.Args()[0]
 
 	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, h, w)
-	terminal.Restore(int(fd), stdinState)
+
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
