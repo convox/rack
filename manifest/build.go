@@ -1,6 +1,9 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 	pulls := map[string]string{}
