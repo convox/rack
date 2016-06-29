@@ -112,7 +112,7 @@ func init() {
 				Name:        "url",
 				Description: "return url for the given service",
 				Usage:       "<name>",
-				Action:      cmdServiceUrl,
+				Action:      cmdServiceURL,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
@@ -305,7 +305,7 @@ func cmdServiceInfo(c *cli.Context) error {
 	return nil
 }
 
-func cmdServiceUrl(c *cli.Context) error {
+func cmdServiceURL(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "url")
 		return nil
