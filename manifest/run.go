@@ -2,21 +2,18 @@ package manifest
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
 type Run struct {
-	App     string
-	Dir     string
-	NoCache bool
+	App string
+	Dir string
 
 	done      chan error
 	manifest  Manifest
@@ -26,11 +23,10 @@ type Run struct {
 	syncs     []Sync
 }
 
-func NewRun(dir, app string, m Manifest, noCache bool) Run {
+func NewRun(dir, app string, m Manifest) Run {
 	return Run{
 		App:      app,
 		Dir:      dir,
-		NoCache:  noCache,
 		manifest: m,
 		output:   NewOutput(),
 	}
@@ -42,10 +38,13 @@ func (r *Run) Start() error {
 	}
 
 	if denv := filepath.Join(r.Dir, ".env"); exists(denv) {
+		log.Print("exists")
+
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
 			return err
 		}
+
 		scanner := bufio.NewScanner(bytes.NewReader(data))
 
 		for scanner.Scan() {
@@ -64,38 +63,6 @@ func (r *Run) Start() error {
 		}
 	}
 
-	// check for required env vars
-	existing := map[string]bool{}
-	for _, env := range os.Environ() {
-		parts := strings.SplitN(env, "=", 2)
-		if len(parts) == 2 {
-			existing[parts[0]] = true
-		}
-	}
-
-	for _, s := range r.manifest.Services {
-		links := map[string]bool{}
-
-		for _, l := range s.Links {
-			key := fmt.Sprintf("%s_URL", strings.ToUpper(l))
-			links[key] = true
-		}
-
-		missingEnv := []string{}
-		for key, val := range s.Environment {
-			eok := val != ""
-			_, exok := existing[key]
-			_, lok := links[key]
-			if !eok && !exok && !lok {
-				missingEnv = append(missingEnv, key)
-			}
-		}
-
-		if len(missingEnv) > 0 {
-			return fmt.Errorf("env expected: %s", strings.Join(missingEnv, ", "))
-		}
-	}
-
 	// preload system-level stream names
 	r.output.Stream("convox")
 	r.output.Stream("build")
@@ -107,7 +74,7 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	if err := r.manifest.Build(r.Dir, r.output.Stream("build"), r.NoCache); err != nil {
+	if err := r.manifest.Build(r.Dir, r.output.Stream("build")); err != nil {
 		return err
 	}
 
@@ -143,9 +110,7 @@ func (r *Run) Start() error {
 		syncs = pruneSyncs(syncs)
 
 		for _, s := range syncs {
-			go func(s Sync) {
-				s.Start(system)
-			}(s)
+			go s.Start(system)
 			r.syncs = append(r.syncs, s)
 		}
 
@@ -251,12 +216,4 @@ func waitForContainer(container string) {
 
 		time.Sleep(100 * time.Millisecond)
 	}
-}
-
-func exists(filename string) bool {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return false
-	}
-
-	return true
 }
