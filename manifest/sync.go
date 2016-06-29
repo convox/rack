@@ -74,6 +74,16 @@ func (s *Sync) Contains(t Sync) bool {
 func (s *Sync) Start(st Stream) error {
 	s.waitForContainer()
 
+	if !filepath.IsAbs(s.Remote) {
+		wdb, err := Docker("inspect", "--format", "'{{.Config.WorkingDir}}'", s.Container).Output()
+		if err != nil {
+			return err
+		}
+
+		wd := strings.TrimSpace(string(wdb))
+		s.Remote = filepath.Join(wd, s.Remote)
+	}
+
 	go s.watchIncoming(st)
 	go s.watchOutgoing(st)
 

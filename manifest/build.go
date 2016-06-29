@@ -10,9 +10,13 @@ func (m *Manifest) Build(dir string, s Stream) error {
 	pulls := map[string]string{}
 
 	for _, service := range m.Services {
+		dockerFile := service.Build.Dockerfile
+		if dockerFile == "" {
+			dockerFile = service.Dockerfile
+		}
 		switch {
-		case service.Build != "":
-			builds[fmt.Sprintf("%s|%s", service.Build, coalesce(service.Dockerfile, "Dockerfile"))] = service.Tag()
+		case service.Build.Context != "":
+			builds[fmt.Sprintf("%s|%s", service.Build.Context, coalesce(dockerFile, "Dockerfile"))] = service.Tag()
 		case service.Image != "":
 			pulls[service.Image] = service.Tag()
 		}
