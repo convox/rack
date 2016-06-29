@@ -15,29 +15,29 @@ import (
 type Service struct {
 	Name string `yaml:"-"`
 
-	Build       *BuildContext `yaml:"build,omitempty"`
-	Command     Command       `yaml:"command,omitempty"`
-	Dockerfile  string        `yaml:"dockerfile,omitempty"`
-	Entrypoint  string        `yaml:"entrypoint,omitempty"`
-	Environment Environment   `yaml:"environment,omitempty"`
-	Image       string        `yaml:"image,omitempty"`
-	Labels      Labels        `yaml:"labels,omitempty"`
-	Links       []string      `yaml:"links,omitempty"`
-	Networks    []string      `yaml:"networks,omitempty"`
-	Ports       Ports         `yaml:"ports,omitempty"`
-	Privileged  bool          `yaml:"privileged,omitempty"`
-	Volumes     []string      `yaml:"volumes,omitempty"`
+	Build       Build       `yaml:"build,omitempty"`
+	Command     Command     `yaml:"command,omitempty"`
+	Dockerfile  string      `yaml:"dockerfile,omitempty"`
+	Entrypoint  string      `yaml:"entrypoint,omitempty"`
+	Environment Environment `yaml:"environment,omitempty"`
+	Image       string      `yaml:"image,omitempty"`
+	Labels      Labels      `yaml:"labels,omitempty"`
+	Links       []string    `yaml:"links,omitempty"`
+	Networks    []string    `yaml:"networks,omitempty"`
+	Ports       Ports       `yaml:"ports,omitempty"`
+	Privileged  bool        `yaml:"privileged,omitempty"`
+	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
 // see yaml.go for unmarshallers
-type Command []string
-type Environment map[string]string
-type Labels map[string]string
-type BuildContext struct {
+type Build struct {
 	Context    string
 	Dockerfile string
 	Args       map[string]string
 }
+type Command []string
+type Environment map[string]string
+type Labels map[string]string
 
 func (s *Service) Process(app string) Process {
 	return NewProcess(app, *s)
