@@ -2,20 +2,18 @@ package manifest
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 )
 
 // UnmarshalYAML implements the Unmarshaller interface.
-func (b *BuildContext) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (b Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
 
 	if err := unmarshal(&v); err != nil {
 		return err
 	}
 
-	log.Print("FOO")
 	switch v.(type) {
 	case string:
 		b.Context = v.(string)
