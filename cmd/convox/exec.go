@@ -52,7 +52,6 @@ func cmdExec(c *cli.Context) error {
 	ps := c.Args()[0]
 
 	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, h, w)
-
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
