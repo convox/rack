@@ -11,7 +11,14 @@
     "BlankRegistryHost": { "Fn::Equals": [ { "Ref": "RegistryHost" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-    "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] }
+    "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
+    "RegionHasEFS": {
+        "Fn::Or": [
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
+        ]
+    }
   },
   "Mappings": {
     "RegionConfig": {
@@ -899,13 +906,16 @@
             "  - swapon /dev/xvdb\n",
             "  - yum install -y nfs-utils\n",
             "  - mkdir /volumes\n",
-            { "Fn::Join": [ "", [
-              "  - mount -t nfs -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).",
-              { "Ref": "VolumeFilesystem" },
-              ".efs.",
-              { "Ref": "AWS::Region" },
-              ".amazonaws.com:/ /volumes\n"
-            ] ] },
+            { "Fn::If": [ "RegionHasEFS",
+              { "Fn::Join": [ "", [
+                "  - mount -t nfs -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+                { "Ref": "VolumeFilesystem" },
+                ".efs.",
+                { "Ref": "AWS::Region" },
+                ".amazonaws.com:/ /volumes\n"
+              ] ] },
+              ""
+            ] },
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
@@ -1448,6 +1458,7 @@
     },
     "VolumeFilesystem": {
       "Type": "AWS::EFS::FileSystem",
+      "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemTags": [
           { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "volumes" ] ] } }
@@ -1456,6 +1467,7 @@
     },
     "VolumeSecurity": {
       "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "RegionHasEFS",
       "Properties": {
         "GroupDescription": "volume security group",
         "SecurityGroupIngress": [
@@ -1466,6 +1478,7 @@
     },
     "VolumeTarget0": {
       "Type": "AWS::EFS::MountTarget",
+      "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
         "SubnetId": { "Ref": "Subnet0" },
@@ -1474,6 +1487,7 @@
     },
     "VolumeTarget1": {
       "Type": "AWS::EFS::MountTarget",
+      "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
         "SubnetId": { "Ref": "Subnet1" },
@@ -1482,6 +1496,7 @@
     },
     "VolumeTarget2": {
       "Type": "AWS::EFS::MountTarget",
+      "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
         "SubnetId": { "Ref": "Subnet2" },
