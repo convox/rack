@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -468,21 +469,41 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-func (me ManifestEntry) MountableVolumes() []string {
-	volumesEnabled := false
-	labels := me.LabelsByPrefix("convox.volumes.mount")
-	for _, value := range labels {
-		if value == "true" {
-			volumesEnabled = true
-			break
-		}
-	}
+// TODO: remove when default
+func (me ManifestEntry) MountVolumes() bool {
+	return me.Label("convox.volumes.mount") == "true"
+}
 
+func (me ManifestEntry) MountableVolumes() []string {
 	volumes := []string{}
 
 	for _, volume := range me.Volumes {
-		if strings.HasPrefix(volume, "/var/run/docker.sock") || volumesEnabled {
-			volumes = append(volumes, volume)
+		parts := strings.Split(volume, ":")
+
+		// if only one volume part use it for both sides
+		if len(parts) == 1 {
+			parts = append(parts, parts[0])
+		}
+
+		// if we dont have two volume parts bail
+		if len(parts) != 2 {
+			continue
+		}
+
+		// only support absolute paths for volume source
+		if !filepath.IsAbs(parts[0]) {
+			continue
+		}
+
+		// special case for docker socket
+		if parts[0] == "/var/run/docker.sock" {
+			volumes = append(volumes, fmt.Sprintf("%s:%s", parts[0], parts[1]))
+			continue
+		}
+
+		// mount the rest on the efs volume
+		if me.MountVolumes() {
+			volumes = append(volumes, fmt.Sprintf("/volumes%s:%s", parts[0], parts[1]))
 		}
 	}
 

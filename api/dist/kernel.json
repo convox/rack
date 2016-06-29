@@ -897,6 +897,15 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
+            "  - yum install -y nfs-utils\n",
+            "  - mkdir /volumes\n",
+            { "Fn::Join": [ "", [
+              "  - mount -t nfs -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).",
+              { "Ref": "VolumeFilesystem" },
+              ".efs.",
+              { "Ref": "AWS::Region" },
+              ".amazonaws.com:/ /volumes\n"
+            ] ] },
             "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
             "  - echo ECS_CLUSTER=", { "Ref": "Cluster" }, " >> /etc/ecs/ecs.config\n",
             "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
@@ -1435,6 +1444,48 @@
           "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
         }],
         "ProvisionedThroughput": { "ReadCapacityUnits": "5", "WriteCapacityUnits": "5" }
+      }
+    },
+    "VolumeFilesystem": {
+      "Type": "AWS::EFS::FileSystem",
+      "Properties": {
+        "FileSystemTags": [
+          { "Key": "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "volumes" ] ] } }
+        ]
+      }
+    },
+    "VolumeSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "volume security group",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "2049", "ToPort": "2049", "CidrIp": { "Ref": "VPCCIDR" } }
+        ],
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "VolumeTarget0": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": { "Ref": "VolumeFilesystem" },
+        "SubnetId": { "Ref": "Subnet0" },
+        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
+      }
+    },
+    "VolumeTarget1": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": { "Ref": "VolumeFilesystem" },
+        "SubnetId": { "Ref": "Subnet1" },
+        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
+      }
+    },
+    "VolumeTarget2": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": { "Ref": "VolumeFilesystem" },
+        "SubnetId": { "Ref": "Subnet2" },
+        "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
     "Settings": {
