@@ -25,7 +25,7 @@ type Sync struct {
 	docker   *docker.Client
 	lock     sync.Mutex
 	incoming []changes.Change
-	outgoing []changes.Change
+	outgoing map[changes.Change]bool
 
 	incomingBlocks map[string]int
 	outgoingBlocks map[string]int
@@ -47,6 +47,7 @@ func NewSync(container, local, remote string) (*Sync, error) {
 	sync.docker, _ = docker.NewClientFromEnv()
 	sync.incomingBlocks = make(map[string]int)
 	sync.outgoingBlocks = make(map[string]int)
+	sync.outgoing = make(map[changes.Change]bool)
 
 	return sync, nil
 }
@@ -217,12 +218,17 @@ func (s *Sync) syncOutgoing(st Stream) {
 		return
 	}
 
-	adds, removes := changes.Partition(s.outgoing)
+	keys := make([]changes.Change, 0)
+	for k := range s.outgoing {
+		keys = append(keys, k)
+	}
+
+	adds, removes := changes.Partition(keys)
 
 	s.syncOutgoingAdds(adds, st)
 	s.syncOutgoingRemoves(removes, st)
 
-	s.outgoing = nil
+	s.outgoing = make(map[changes.Change]bool)
 }
 
 func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
@@ -410,7 +416,7 @@ func (s *Sync) watchOutgoing(st Stream) {
 		if s.outgoingBlocks[c.Path] > 0 {
 			s.outgoingBlocks[c.Path] -= 1
 		} else {
-			s.outgoing = append(s.outgoing, c)
+			s.outgoing[c] = true
 		}
 
 		s.lock.Unlock()
