@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,19 +35,15 @@ func NewRun(dir, app string, m Manifest) Run {
 }
 
 func (r *Run) Start() error {
-	log.Print("CONVOX START()")
 	if r.done != nil {
 		return fmt.Errorf("already started")
 	}
 
 	if denv := filepath.Join(r.Dir, ".env"); exists(denv) {
-		log.Print("exists")
-
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
 			return err
 		}
-
 		scanner := bufio.NewScanner(bytes.NewReader(data))
 
 		for scanner.Scan() {
@@ -64,6 +59,25 @@ func (r *Run) Start() error {
 
 		if err := scanner.Err(); err != nil {
 			return err
+		}
+	}
+
+	// check for required env vars
+	existing := map[string]bool{}
+
+	for _, env := range os.Environ() {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) == 2 {
+			existing[parts[0]] = true
+		}
+	}
+
+	for _, s := range r.manifest.Services {
+		for key, _ := range s.Environment {
+			_, ok := existing[key]
+			if !ok {
+				return fmt.Errorf("env expected: %s", key)
+			}
 		}
 	}
 
