@@ -80,9 +80,12 @@ func ListFormation(app string) (Formation, error) {
 				return nil, fmt.Errorf("%s %s not numeric", me.Name, "count")
 			}
 
-			cpu, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))])
-			if err != nil {
-				return nil, fmt.Errorf("%s %s not numeric", me.Name, "cpu")
+			// backwards compatibility: old stacks that do not have a WebCpu Parameter should return 0, not an error
+			if c, ok := a.Parameters[fmt.Sprintf("%sCpu", UpperName(me.Name))]; ok {
+				cpu, err = strconv.Atoi(c)
+				if err != nil {
+					return nil, fmt.Errorf("%s %s not numeric", me.Name, "cpu")
+				}
 			}
 
 			memory, err = strconv.Atoi(a.Parameters[fmt.Sprintf("%sMemory", UpperName(me.Name))])
