@@ -469,8 +469,13 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-func (me ManifestEntry) MountableVolumes() []string {
-	volumes := []string{}
+type MountableVolume struct {
+	Host      string
+	Container string
+}
+
+func (me ManifestEntry) MountableVolumes() []MountableVolume {
+	volumes := []MountableVolume{}
 
 	for _, volume := range me.Volumes {
 		parts := strings.Split(volume, ":")
@@ -490,14 +495,10 @@ func (me ManifestEntry) MountableVolumes() []string {
 			continue
 		}
 
-		// special case for docker socket
-		if parts[0] == "/var/run/docker.sock" {
-			volumes = append(volumes, fmt.Sprintf("%s:%s", parts[0], parts[1]))
-			continue
-		}
-
-		// mount the rest on the efs volume
-		volumes = append(volumes, fmt.Sprintf("/volumes%s:%s", parts[0], parts[1]))
+		volumes = append(volumes, MountableVolume{
+			Host:      parts[0],
+			Container: parts[1],
+		})
 	}
 
 	return volumes
