@@ -469,13 +469,14 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-type mountableVolume struct {
+// mountable volumes from a given manifest entry
+type MountableVolume struct {
 	Host      string
 	Container string
 }
 
-func (me ManifestEntry) MountableVolumes() []mountableVolume {
-	volumes := []mountableVolume{}
+func (me ManifestEntry) MountableVolumes() []MountableVolume {
+	volumes := []MountableVolume{}
 
 	for _, volume := range me.Volumes {
 		parts := strings.Split(volume, ":")
@@ -495,7 +496,7 @@ func (me ManifestEntry) MountableVolumes() []mountableVolume {
 			continue
 		}
 
-		volumes = append(volumes, mountableVolume{
+		volumes = append(volumes, MountableVolume{
 			Host:      parts[0],
 			Container: parts[1],
 		})
