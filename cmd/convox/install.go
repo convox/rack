@@ -59,7 +59,7 @@ var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 var isDevelopment = false
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
-var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": true, "ap-southeast-2": true, "test": true}
+var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": false, "ap-southeast-2": true, "test": true}
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())

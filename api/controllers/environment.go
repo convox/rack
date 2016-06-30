@@ -27,23 +27,19 @@ func EnvironmentList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
-
 	app := vars["app"]
 
 	_, err := models.GetEnvironment(app)
-
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	releaseId, err := models.PutEnvironment(app, models.LoadEnvironment(body))
-
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -51,7 +47,6 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rw.Header().Set("Release-Id", releaseId)
 
 	env, err := models.GetEnvironment(app)
-
 	if err != nil {
 		return httperr.Server(err)
 	}
