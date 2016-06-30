@@ -86,9 +86,13 @@ func watchForChanges(files map[string]map[string]time.Time, dir string, ch chan 
 				return nil
 			}
 
+			if info.IsDir() {
+				return nil
+			}
+
 			e, ok := files[dir][path]
 
-			if !ok || e.Before(info.ModTime()) && !info.IsDir() {
+			if !ok || e.Before(info.ModTime()) {
 				rel, err := filepath.Rel(dir, path)
 
 				if err != nil {

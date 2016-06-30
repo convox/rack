@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -173,17 +174,31 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 
 				os.MkdirAll(filepath.Dir(local), 0755)
 
-				fd, err := os.OpenFile(local, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
-
+				tmpfile, err := ioutil.TempFile("", filepath.Base(rel))
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return
 				}
 
-				defer fd.Close()
+				_, err = io.Copy(tmpfile, tr)
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
 
-				_, err = io.Copy(fd, tr)
+				err = tmpfile.Close()
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
 
+				err = os.Chmod(tmpfile.Name(), os.FileMode(header.Mode))
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
+
+				err = os.Rename(tmpfile.Name(), local)
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return

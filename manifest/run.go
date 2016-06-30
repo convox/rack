@@ -128,7 +128,9 @@ func (r *Run) Start() error {
 		syncs = pruneSyncs(syncs)
 
 		for _, s := range syncs {
-			go s.Start(system)
+			go func(s Sync) {
+				s.Start(system)
+			}(s)
 			r.syncs = append(r.syncs, s)
 		}
 
