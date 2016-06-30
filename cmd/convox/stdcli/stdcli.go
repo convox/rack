@@ -171,8 +171,10 @@ func ExitError(err error) error {
 }
 
 type QOSEventProperties struct {
-	Error error
-	Start time.Time
+	AppType         string
+	Error           error
+	Start           time.Time
+	ValidationError error
 }
 
 // QOSEventSend sends an internal CLI event to segment for quality-of-service purposes.
@@ -189,6 +191,14 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	if ep.Error != nil {
 		props["error"] = ep.Error.Error()
 		rollbar.Error(rollbar.ERR, ep.Error, &rollbar.Field{"id", id})
+	}
+
+	if ep.ValidationError != nil {
+		props["validation_error"] = ep.ValidationError.Error()
+	}
+
+	if ep.AppType != "" {
+		props["app_type"] = ep.AppType
 	}
 
 	if !ep.Start.IsZero() {
@@ -211,7 +221,7 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 
 	rollbar.Wait()
 
-	if ep.Error != nil {
+	if ep.Error != nil || ep.ValidationError != nil {
 		return ExitError(ep.Error)
 	}
 	return nil
