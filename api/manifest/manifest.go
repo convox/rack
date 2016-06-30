@@ -1000,9 +1000,9 @@ func (me ManifestEntry) Label(key string) string {
 
 // LabelsByPrefix filters Docker Compose label names by prefixes and returns
 // a map of label names to values that match.
-func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
+func (e ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
-	switch labels := me.Labels.(type) {
+	switch labels := e.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
 			ks, ok := k.(string)

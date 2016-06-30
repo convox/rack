@@ -164,9 +164,10 @@ func (m Manifest) AppName() string {
 	return m[0].app.Name
 }
 
-func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
+// LabelsByPrefix will return the labels that have a given prefix
+func (e ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
-	switch labels := me.Labels.(type) {
+	switch labels := e.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
 			ks, ok := k.(string)
@@ -469,16 +470,17 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-// mountable volumes from a given manifest entry
+// MountableVolume describes a mountable volume
 type MountableVolume struct {
 	Host      string
 	Container string
 }
 
-func (me ManifestEntry) MountableVolumes() []MountableVolume {
+// MountableVolumes return the mountable volumes for a manifest entry
+func (e ManifestEntry) MountableVolumes() []MountableVolume {
 	volumes := []MountableVolume{}
 
-	for _, volume := range me.Volumes {
+	for _, volume := range e.Volumes {
 		parts := strings.Split(volume, ":")
 
 		// if only one volume part use it for both sides
