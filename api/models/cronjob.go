@@ -9,7 +9,7 @@ type CronJob struct {
 	Name          string `yaml:"name"`
 	Schedule      string `yaml:"schedule"`
 	Command       string `yaml:"command"`
-	ManifestEntry *ManifestEntry
+	ManifestEntry ManifestEntry
 }
 
 func NewCronJobFromLabel(key, value string) CronJob {

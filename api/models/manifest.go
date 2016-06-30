@@ -152,7 +152,7 @@ func (m Manifest) CronJobs() []CronJob {
 		labels := entry.LabelsByPrefix("convox.cron")
 		for key, value := range labels {
 			cronjob := NewCronJobFromLabel(key, value)
-			cronjob.ManifestEntry = &entry
+			cronjob.ManifestEntry = entry
 			cronjobs = append(cronjobs, cronjob)
 		}
 	}
