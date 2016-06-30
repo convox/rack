@@ -104,12 +104,15 @@ func cloneGit(s string) {
 	// split it off and pass along http://github.com/nzoschke/httpd.git for `git clone`
 	commitish := u.Fragment
 	u.Fragment = ""
+
+	credentials := u.User
+	u.User = nil // Clear out credentials. We don't want them to be logged.
 	repo := u.String()
 
 	// if URL is a ssh/git url, i.e. ssh://user:base64(privatekey)@server/project.git
 	// decode and write private key to disk and pass along user@service:project.git for `git clone`
 	if u.Scheme == "ssh" {
-		repo = fmt.Sprintf("%s@%s%s", u.User.Username(), u.Host, u.Path)
+		repo = fmt.Sprintf("%s@%s%s", credentials.Username(), u.Host, u.Path)
 
 		if pass, ok := u.User.Password(); ok {
 			key, err := base64.StdEncoding.DecodeString(pass)
@@ -123,7 +126,7 @@ func cloneGit(s string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
 	}
 
-	err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, u.User.Username())), 0700)
+	err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
 	if err != nil {
 		fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
 	}
