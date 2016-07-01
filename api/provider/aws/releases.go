@@ -48,7 +48,6 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	}
 
 	res, err := p.dynamodb().GetItem(req)
-
 	if err != nil {
 		return nil, err
 	}
