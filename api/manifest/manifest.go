@@ -937,7 +937,11 @@ func (me ManifestEntry) runAsync(m *Manifest, prefix, app, process string, cache
 				return
 			}
 
+			// Add the convox container name to the host list which is app + link
 			args = append(args, fmt.Sprintf(`--add-host=%s:%s`, host, strings.TrimSpace(string(ip))))
+
+			// Add traditional docker-compose host link which is simply container name, in this case it's called link
+			args = append(args, fmt.Sprintf(`--add-host=%s:%s`, link, strings.TrimSpace(string(ip))))
 		}
 	}
 
