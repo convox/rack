@@ -74,46 +74,6 @@ func init() {
 		Action:      cmdInstall,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "ami",
-				Value: "",
-				Usage: "ID of the Amazon Machine Image to install",
-			},
-			cli.BoolFlag{
-				Name:  "dedicated",
-				Usage: "create EC2 instances on dedicated hardware",
-			},
-			cli.IntFlag{
-				Name:  "instance-count",
-				Value: 3,
-				Usage: "number of EC2 instances (must be greater than 1)",
-			},
-			cli.StringFlag{
-				Name:  "instance-type",
-				Value: "t2.small",
-				Usage: "type of EC2 instances",
-			},
-			cli.StringFlag{
-				Name:   "region",
-				Value:  "us-east-1",
-				Usage:  "aws region to install in",
-				EnvVar: "AWS_REGION",
-			},
-			cli.StringFlag{
-				Name:   "stack-name",
-				EnvVar: "STACK_NAME",
-				Value:  "convox",
-				Usage:  "name of the CloudFormation stack",
-			},
-			cli.BoolFlag{
-				Name:   "development",
-				EnvVar: "DEVELOPMENT",
-				Usage:  "create additional CloudFormation outputs to copy development .env file",
-			},
-			cli.StringFlag{
-				Name:  "key",
-				Usage: "name of an SSH keypair to install on EC2 instances",
-			},
-			cli.StringFlag{
 				Name:   "email",
 				EnvVar: "CONVOX_EMAIL",
 				Usage:  "email address to receive project updates",
@@ -122,42 +82,73 @@ func init() {
 				Name:   "password",
 				EnvVar: "PASSWORD",
 				Value:  "",
-				Usage:  "custom API password. If not set a secure password will be randomly generated.",
+				Usage:  "custom rack password",
+			},
+			cli.StringFlag{
+				Name:  "ami",
+				Value: "",
+				Usage: "custom AMI for rack instances",
+			},
+			cli.BoolFlag{
+				Name:  "dedicated",
+				Usage: "create EC2 instances on dedicated hardware",
+			},
+			cli.StringFlag{
+				Name:  "existing-vpc",
+				Value: "",
+				Usage: "existing vpc to use for rack instances",
+			},
+			cli.StringFlag{
+				Name:  "existing-subnets",
+				Value: "",
+				Usage: "subnets for existing VPC (specify 3)",
+			},
+			cli.IntFlag{
+				Name:  "instance-count",
+				Value: 3,
+				Usage: "number of instances in the rack",
+			},
+			cli.StringFlag{
+				Name:  "instance-type",
+				Value: "t2.small",
+				Usage: "type of instances in the rack",
+			},
+			cli.BoolFlag{
+				Name:  "private",
+				Usage: "use private subnets and NAT gateways to shield instances",
+			},
+			cli.StringFlag{
+				Name:  "private-cidrs",
+				Value: "10.0.4.0/24,10.0.5.0/24,10.0.6.0/24",
+				Usage: "private subnet CIDRs",
+			},
+			cli.StringFlag{
+				Name:   "region",
+				Value:  "us-east-1",
+				Usage:  "aws region",
+				EnvVar: "AWS_REGION",
+			},
+			cli.StringFlag{
+				Name:   "stack-name",
+				EnvVar: "STACK_NAME",
+				Value:  "convox",
+				Usage:  "custom rack name",
 			},
 			cli.StringFlag{
 				Name:   "version",
 				EnvVar: "VERSION",
 				Value:  "latest",
-				Usage:  "release version in the format of '20150810161818', or 'latest' by default",
-			},
-			cli.StringFlag{
-				Name:  "existing-vpc",
-				Value: "",
-				Usage: "Existing VPC ID",
-			},
-			cli.StringFlag{
-				Name:  "existing-subnets",
-				Value: "",
-				Usage: "Existing VPC subnet IDs",
+				Usage:  "install a specific version",
 			},
 			cli.StringFlag{
 				Name:  "vpc-cidr",
 				Value: "10.0.0.0/16",
-				Usage: "The VPC CIDR block",
+				Usage: "custom VPC CIDR",
 			},
 			cli.StringFlag{
 				Name:  "subnet-cidrs",
 				Value: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24",
-				Usage: "Custom CIDR blocks to use for subnets (specify 3)",
-			},
-			cli.StringFlag{
-				Name:  "subnet-cidrs-private",
-				Value: "10.0.4.0/24,10.0.5.0/24,10.0.6.0/24",
-				Usage: "Custom CIDR blocks to use for private subnets (specify 3)",
-			},
-			cli.BoolFlag{
-				Name:  "private",
-				Usage: "Create private network resources",
+				Usage: "subnet CIDRs",
 			},
 		},
 	})
@@ -221,10 +212,10 @@ func cmdInstall(c *cli.Context) error {
 
 	var subnetPrivate0CIDR, subnetPrivate1CIDR, subnetPrivate2CIDR string
 
-	if cidrs := c.String("subnet-cidrs-private"); cidrs != "" {
+	if cidrs := c.String("private-cidrs"); cidrs != "" {
 		parts := strings.SplitN(cidrs, ",", 3)
 		if len(parts) < 3 {
-			return stdcli.ExitError(fmt.Errorf("subnet-cidrs-private must have 3 values"))
+			return stdcli.ExitError(fmt.Errorf("private-cidrs must have 3 values"))
 		}
 
 		subnetPrivate0CIDR = parts[0]
