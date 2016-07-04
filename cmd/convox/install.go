@@ -147,12 +147,12 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:  "subnet-cidrs",
-				Value: "",
+				Value: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24",
 				Usage: "Custom CIDR blocks to use for subnets (specify 3)",
 			},
 			cli.StringFlag{
 				Name:  "subnet-cidrs-private",
-				Value: "",
+				Value: "10.0.4.0/24,10.0.5.0/24,10.0.6.0/24",
 				Usage: "Custom CIDR blocks to use for private subnets (specify 3)",
 			},
 			cli.BoolFlag{
@@ -245,11 +245,57 @@ func cmdInstall(c *cli.Context) error {
 		existingSubnets = c.String("existing-subnets")
 	}
 
+	development := "No"
+	if c.Bool("development") {
+		isDevelopment = true
+		development = "Yes"
+	}
+
+	private := "No"
+	if c.Bool("private") {
+		private = "Yes"
+	}
+
+	privateApi := "No"
+	if c.Bool("private-api") {
+		private = "Yes"
+		privateApi = "Yes"
+	}
+
+	ami := c.String("ami")
+
+	key := c.String("key")
+
+	vpcCIDR := c.String("vpc-cidr")
+
+	versions, err := version.All()
+	if err != nil {
+		return stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
+	}
+
+	version, err := versions.Resolve(c.String("version"))
+	if err != nil {
+		return stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
+	}
+
+	versionName := version.Version
+	formationUrl := fmt.Sprintf(FormationUrl, versionName)
+
 	fmt.Println(Banner)
 
 	distinctId, err := currentId()
 	if err != nil {
 		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+	}
+
+	fmt.Printf("Installing Convox (%s)...\n", versionName)
+
+	if isDevelopment {
+		fmt.Println("(Development Mode)")
+	}
+
+	if private == "Yes" {
+		fmt.Println("(Private Network Edition)")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -287,52 +333,6 @@ func cmdInstall(c *cli.Context) error {
 	err = validateUserAccess(region, creds)
 	if err != nil {
 		stdcli.Error(err)
-	}
-
-	development := "No"
-	if c.Bool("development") {
-		isDevelopment = true
-		development = "Yes"
-	}
-
-	private := "No"
-	if c.Bool("private") {
-		private = "Yes"
-	}
-
-	privateApi := "No"
-	if c.Bool("private-api") {
-		private = "Yes"
-		privateApi = "Yes"
-	}
-
-	ami := c.String("ami")
-
-	key := c.String("key")
-
-	vpcCIDR := c.String("vpc-cidr")
-
-	versions, err := version.All()
-	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
-	}
-
-	version, err := versions.Resolve(c.String("version"))
-	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
-	}
-
-	versionName := version.Version
-	furl := fmt.Sprintf(formationURL, versionName)
-
-	fmt.Printf("Installing Convox (%s)...\n", versionName)
-
-	if isDevelopment {
-		fmt.Println("(Development Mode)")
-	}
-
-	if private == "Yes" {
-		fmt.Println("(Private Network Edition)")
 	}
 
 	password := c.String("password")
