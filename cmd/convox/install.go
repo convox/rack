@@ -131,39 +131,29 @@ func init() {
 				Usage:  "release version in the format of '20150810161818', or 'latest' by default",
 			},
 			cli.StringFlag{
+				Name:  "existing-vpc",
+				Value: "",
+				Usage: "Existing VPC ID",
+			},
+			cli.StringFlag{
+				Name:  "existing-subnets",
+				Value: "",
+				Usage: "Existing VPC subnet IDs",
+			},
+			cli.StringFlag{
 				Name:  "vpc-cidr",
 				Value: "10.0.0.0/16",
 				Usage: "The VPC CIDR block",
 			},
 			cli.StringFlag{
-				Name:  "subnet0-cidr",
-				Value: "10.0.1.0/24",
-				Usage: "Subnet 0 CIDR block",
+				Name:  "subnet-cidrs",
+				Value: "",
+				Usage: "Custom CIDR blocks to use for subnets (specify 3)",
 			},
 			cli.StringFlag{
-				Name:  "subnet1-cidr",
-				Value: "10.0.2.0/24",
-				Usage: "Subnet 1 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet2-cidr",
-				Value: "10.0.3.0/24",
-				Usage: "Subnet 2 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet-private0-cidr",
-				Value: "10.0.4.0/24",
-				Usage: "Private Subnet 0 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet-private1-cidr",
-				Value: "10.0.5.0/24",
-				Usage: "Private Subnet 1 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet-private2-cidr",
-				Value: "10.0.6.0/24",
-				Usage: "Private Subnet 2 CIDR block",
+				Name:  "subnet-cidrs-private",
+				Value: "",
+				Usage: "Custom CIDR blocks to use for private subnets (specify 3)",
 			},
 			cli.BoolFlag{
 				Name:  "private",
@@ -214,6 +204,45 @@ func cmdInstall(c *cli.Context) error {
 	instanceCount := fmt.Sprintf("%d", numInstances)
 	if numInstances < 2 {
 		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
+	}
+
+	var subnet0CIDR, subnet1CIDR, subnet2CIDR string
+
+	if cidrs := c.String("subnet-cidrs"); cidrs != "" {
+		parts := strings.SplitN(cidrs, ",", 3)
+		if len(parts) < 3 {
+			return stdcli.ExitError(fmt.Errorf("subnet-cidrs must have 3 values"))
+		}
+
+		subnet0CIDR = parts[0]
+		subnet1CIDR = parts[1]
+		subnet2CIDR = parts[2]
+	}
+
+	var subnetPrivate0CIDR, subnetPrivate1CIDR, subnetPrivate2CIDR string
+
+	if cidrs := c.String("subnet-cidrs-private"); cidrs != "" {
+		parts := strings.SplitN(cidrs, ",", 3)
+		if len(parts) < 3 {
+			return stdcli.ExitError(fmt.Errorf("subnet-cidrs-private must have 3 values"))
+		}
+
+		subnetPrivate0CIDR = parts[0]
+		subnetPrivate1CIDR = parts[1]
+		subnetPrivate2CIDR = parts[2]
+	}
+
+	var existingVPC, existingSubnets string
+
+	if vpc := c.String("existing-vpc"); vpc != "" {
+		existingVPC = vpc
+
+		parts := strings.SplitN(c.String("existing-subnets"), ",", 3)
+		if len(parts) < 3 {
+			return stdcli.ExitError(fmt.Errorf("existing-subnets must have 3 values"))
+		}
+
+		existingSubnets = c.String("existing-subnets")
 	}
 
 	fmt.Println(Banner)
@@ -283,14 +312,6 @@ func cmdInstall(c *cli.Context) error {
 
 	vpcCIDR := c.String("vpc-cidr")
 
-	subnet0CIDR := c.String("subnet0-cidr")
-	subnet1CIDR := c.String("subnet1-cidr")
-	subnet2CIDR := c.String("subnet2-cidr")
-
-	subnetPrivate0CIDR := c.String("subnet-private0-cidr")
-	subnetPrivate1CIDR := c.String("subnet-private1-cidr")
-	subnetPrivate2CIDR := c.String("subnet-private2-cidr")
-
 	versions, err := version.All()
 	if err != nil {
 		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
@@ -327,6 +348,8 @@ func cmdInstall(c *cli.Context) error {
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
+			&cloudformation.Parameter{ParameterKey: aws.String("ExistingSubnets"), ParameterValue: aws.String(existingSubnets)},
+			&cloudformation.Parameter{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
