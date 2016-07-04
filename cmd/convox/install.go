@@ -169,10 +169,6 @@ func init() {
 				Name:  "private",
 				Usage: "Create private network resources",
 			},
-			cli.BoolFlag{
-				Name:  "private-api",
-				Usage: "Put Rack API Load Balancer in private network. Implies --private",
-			},
 		},
 	})
 }
