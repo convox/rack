@@ -114,7 +114,7 @@ func cloneGit(s string) {
 	if u.Scheme == "ssh" {
 		repo = fmt.Sprintf("%s@%s%s", credentials.Username(), u.Host, u.Path)
 
-		if pass, ok := u.User.Password(); ok {
+		if pass, ok := credentials.Password(); ok {
 			key, err := base64.StdEncoding.DecodeString(pass)
 			handleError(err)
 
