@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 
 	"github.com/convox/rack/api/manifest"
@@ -127,6 +128,9 @@ func cloneGit(s string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
 	}
 
+	fmt.Println("---u and credentials", u, credentials)
+	fmt.Println("--- u.Host", u.Host)
+	fmt.Println("--- credentials.Username", credentials.Username())
 	err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
 	if err != nil {
 		fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
@@ -208,8 +212,6 @@ func writeDockerAuth() {
 
 func handlePanic() {
 	if r := recover(); r != nil {
-		handleError(fmt.Errorf("%v", r))
+		handleError(fmt.Errorf("%v\n%s", r, debug.Stack()))
 	}
-
-	handleError(fmt.Errorf("Unable to handle panic"))
 }
