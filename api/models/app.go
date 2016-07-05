@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/manifest"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -335,7 +336,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 }
 
 func (a *App) Formation() (string, error) {
-	data, err := buildTemplate("app", "app", Manifest{})
+	data, err := buildTemplate("app", "app", manifest.Manifest{})
 	if err != nil {
 		return "", err
 	}
@@ -540,13 +541,13 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		return err
 	}
 
-	manifest, err := LoadManifest(release.Manifest, a)
+	manifest, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
 		return err
 	}
 
-	me := manifest.Entry(process)
-	if me == nil {
+	me, ok := manifest.Services[process]
+	if !ok {
 		return fmt.Errorf("no such process: %s", process)
 	}
 

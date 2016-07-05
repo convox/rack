@@ -6,9 +6,13 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -27,6 +31,10 @@ type Service struct {
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
+
+	//TODO from models manifest, not passive and used at runtime
+	Exports  map[string]string        `yaml:"-"`
+	LinkVars map[string]template.HTML `yaml:"-"`
 }
 
 // see yaml.go for unmarshallers
@@ -202,4 +210,50 @@ func (s Service) LabelsByPrefix(prefix string) map[string]string {
 		}
 	}
 	return returnLabels
+}
+
+func (me Service) ExternalPorts() []Port {
+	ext := []Port{}
+
+	for _, port := range me.Ports {
+		if port.Balancer != 0 {
+			ext = append(ext, port)
+		}
+	}
+
+	return ext
+}
+
+func (me Service) InternalPorts() []Port {
+	internal := []Port{}
+
+	for _, port := range me.Ports {
+		if port.Balancer == 0 {
+			internal = append(internal, port)
+		}
+	}
+
+	return internal
+}
+
+func (me Service) ContainerPorts() []string {
+	ext := []string{}
+
+	for _, port := range me.Ports {
+		if port.Container != 0 {
+			ext = append(ext, strconv.Itoa(port.Container))
+		}
+	}
+
+	sort.Strings(ext)
+
+	return ext
+}
+
+func (me Service) RegistryImage(appName, buildId string, outputs map[string]string) string {
+	if registryId := outputs["RegistryId"]; registryId != "" {
+		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), outputs["RegistryRepository"], me.Name, buildId)
+	}
+
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, me.Name, buildId)
 }

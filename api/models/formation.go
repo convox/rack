@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/manifest"
 )
 
 type FormationEntry struct {
@@ -44,14 +45,14 @@ func ListFormation(app string) (Formation, error) {
 		return nil, err
 	}
 
-	manifest, err := LoadManifest(release.Manifest, a)
+	manifest, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
 		return nil, err
 	}
 
 	formation := Formation{}
 
-	for _, me := range manifest {
+	for _, me := range manifest.Services {
 		var count, memory, cpu int
 
 		if vals, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(me.Name))]; ok {
@@ -132,13 +133,13 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		return err
 	}
 
-	m, err := LoadManifest(rel.Manifest, a)
+	m, err := manifest.Load([]byte(rel.Manifest))
 	if err != nil {
 		return err
 	}
 
-	me := m.Entry(process)
-	if me == nil {
+	_, ok := m.Services[process]
+	if !ok {
 		return fmt.Errorf("no such process: %s", process)
 	}
 

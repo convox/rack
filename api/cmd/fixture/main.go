@@ -5,13 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/manifest"
 )
-
-func init() {
-	models.ManifestRandomPorts = false
-
-}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -23,17 +18,17 @@ func main() {
 		die(err)
 	}
 
-	app := &models.App{
-		Name: "httpd",
-		Tags: map[string]string{
-			"Name":   "httpd",
-			"Type":   "app",
-			"System": "convox",
-			"Rack":   "convox",
-		},
-	}
+	// app := &models.App{
+	// 	Name: "httpd",
+	// 	Tags: map[string]string{
+	// 		"Name":   "httpd",
+	// 		"Type":   "app",
+	// 		"System": "convox",
+	// 		"Rack":   "convox",
+	// 	},
+	// }
 
-	m, err := models.LoadManifest(string(data), app)
+	m, err := manifest.Load(data)
 	if err != nil {
 		die(err)
 	}
