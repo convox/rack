@@ -588,6 +588,9 @@
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "Tags": [
+          {"Key": "Name", "Value": { "Fn::Join": [ " ", [ {"Ref": "AWS::StackName"}, "public", "0" ] ] }}
+        ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
         "CidrBlock": { "Ref": "Subnet0CIDR" },
         "VpcId": { "Ref": "Vpc" }
@@ -597,6 +600,9 @@
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "Tags": [
+          {"Key": "Name", "Value": { "Fn::Join": [ " ", [ {"Ref": "AWS::StackName"}, "public", "1" ] ] }}
+        ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
         "CidrBlock": { "Ref": "Subnet1CIDR" },
         "VpcId": { "Ref": "Vpc" }
@@ -606,6 +612,9 @@
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "Tags": [
+          {"Key": "Name", "Value": { "Fn::Join": [ " ", [ {"Ref": "AWS::StackName"}, "public", "2" ] ] }}
+        ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
         "CidrBlock": { "Ref": "Subnet2CIDR" },
         "VpcId": { "Ref": "Vpc" }
@@ -616,6 +625,9 @@
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "Tags": [
+          {"Key": "Name", "Value": { "Fn::Join": [ " ", [ {"Ref": "AWS::StackName"}, "private", "0" ] ] }}
+        ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
         "CidrBlock": { "Ref": "SubnetPrivate0CIDR" },
         "VpcId": { "Ref": "Vpc" }
@@ -626,6 +638,9 @@
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "Tags": [
+          {"Key": "Name", "Value": { "Fn::Join": [ " ", [ {"Ref": "AWS::StackName"}, "private", "1" ] ] }}
+        ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
         "CidrBlock": { "Ref": "SubnetPrivate1CIDR" },
         "VpcId": { "Ref": "Vpc" }
@@ -636,6 +651,9 @@
       "DependsOn": [ "AvailabilityZones", "Vpc" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
+        "Tags": [
+          {"Key": "Name", "Value": { "Fn::Join": [ " ", [ {"Ref": "AWS::StackName"}, "private", "2" ] ] }}
+        ],
         "AvailabilityZone": { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] },
         "CidrBlock": { "Ref": "SubnetPrivate2CIDR" },
         "VpcId": { "Ref": "Vpc" }
