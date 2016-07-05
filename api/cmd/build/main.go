@@ -128,12 +128,12 @@ func cloneGit(s string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
 	}
 
-	fmt.Println("---u and credentials", u, credentials)
-	fmt.Println("--- u.Host", u.Host)
-	fmt.Println("--- credentials.Username", credentials.Username())
-	err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
-	if err != nil {
-		fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
+	// Public repos might not have credentials so there's nothing to save
+	if credentials != nil {
+		err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
+		if err != nil {
+			fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
+		}
 	}
 
 	writeAsset("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil)
