@@ -414,6 +414,10 @@ func cmdInstall(c *cli.Context) error {
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
 func validateUserAccess(region string, creds *AwsCredentials) error {
 
+	// this validation need to check for actual permissions somehow and not
+	// just a policy name
+	return nil
+
 	Iam := iam.New(session.New(), awsConfig(region, creds))
 
 	userOutput, err := Iam.GetUser(&iam.GetUserInput{})
