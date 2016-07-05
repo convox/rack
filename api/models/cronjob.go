@@ -3,13 +3,16 @@ package models
 import (
 	"fmt"
 	"strings"
+
+	"github.com/convox/rack/manifest"
 )
 
 type CronJob struct {
-	Name          string `yaml:"name"`
-	Schedule      string `yaml:"schedule"`
-	Command       string `yaml:"command"`
-	ManifestEntry ManifestEntry
+	Name     string `yaml:"name"`
+	Schedule string `yaml:"schedule"`
+	Command  string `yaml:"command"`
+	Service  *manifest.Service
+	App      *App
 }
 
 func NewCronJobFromLabel(key, value string) CronJob {
