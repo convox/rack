@@ -44,6 +44,7 @@ func main() {
 		fmt.Println("usage: build <src>")
 		os.Exit(1)
 	}
+	defer handlePanic()
 
 	src := os.Args[1]
 
@@ -203,4 +204,12 @@ func writeDockerAuth() {
 		handleError(os.MkdirAll("/root/.docker", 0700))
 		handleError(ioutil.WriteFile("/root/.docker/config.json", []byte(auth), 0400))
 	}
+}
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		handleError(fmt.Errorf("%v", r))
+	}
+
+	handleError(fmt.Errorf("Unable to handle panic"))
 }
