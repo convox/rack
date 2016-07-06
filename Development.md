@@ -117,6 +117,9 @@ i-146c2f97  on     active  2 hours ago  1   0.00%  3.21%
 i-c7de605c  on     active  2 hours ago  0   0.00%  0.00%
 ```
 
+## Changing templates
+Rack makes use of Golang [templates](https://golang.org/pkg/text/template/) for some of the rack internal processes. If you're developing or modifying any of these templates, make sure to run `make templates` before viewing your changes.
+
 ## Golang Unit Test Suite
 
 Rack has a suite of Golang unit and integration tests that offer very fast feedback (< 1 minute) about system correctness. They require a running Docker environment.
