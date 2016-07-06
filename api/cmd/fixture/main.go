@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/manifest"
 )
 
@@ -18,22 +19,22 @@ func main() {
 		die(err)
 	}
 
-	// app := &models.App{
-	// 	Name: "httpd",
-	// 	Tags: map[string]string{
-	// 		"Name":   "httpd",
-	// 		"Type":   "app",
-	// 		"System": "convox",
-	// 		"Rack":   "convox",
-	// 	},
-	// }
+	app := models.App{
+		Name: "httpd",
+		Tags: map[string]string{
+			"Name":   "httpd",
+			"Type":   "app",
+			"System": "convox",
+			"Rack":   "convox",
+		},
+	}
 
 	m, err := manifest.Load(data)
 	if err != nil {
 		die(err)
 	}
 
-	f, err := m.Formation()
+	f, err := app.Formation(*m)
 	if err != nil {
 		die(err)
 	}

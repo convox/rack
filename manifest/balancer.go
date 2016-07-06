@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	// "github.com/convox/rack/api/models"
 )
 
 type ManifestPort struct {
@@ -34,22 +35,6 @@ func (m Manifest) Balancers() []ManifestBalancer {
 	}
 
 	return balancers
-}
-
-func (m Manifest) Formation() (string, error) {
-	data, err := buildTemplate("app", "app", m)
-
-	if err != nil {
-		return "", err
-	}
-
-	pretty, err := prettyJson(string(data))
-
-	if err != nil {
-		return "", err
-	}
-
-	return pretty, nil
 }
 
 func (m Manifest) GetBalancer(name string) *ManifestBalancer {
