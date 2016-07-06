@@ -31,7 +31,6 @@ web:
     - SUBNETS_PRIVATE
     - VPC
     - VPCCIDR
-    - KINESIS
     - LOG_GROUP
     - PROCESS=web
   ports:
@@ -70,7 +69,6 @@ monitor:
     - SUBNETS
     - SUBNETS_PRIVATE
     - VPC
-    - KINESIS
     - LOG_GROUP
     - PROCESS=monitor
   volumes:
@@ -79,7 +77,6 @@ registry:
   environment:
     - SETTINGS_FLAVOR=local
     - PASSWORD
-    - KINESIS
     - LOG_GROUP
     - PROCESS=registry
   image: convox/registry
