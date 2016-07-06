@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 
 	"github.com/convox/rack/api/manifest"
@@ -44,6 +45,7 @@ func main() {
 		fmt.Println("usage: build <src>")
 		os.Exit(1)
 	}
+	defer handlePanic()
 
 	src := os.Args[1]
 
@@ -114,7 +116,7 @@ func cloneGit(s string) {
 	if u.Scheme == "ssh" {
 		repo = fmt.Sprintf("%s@%s%s", credentials.Username(), u.Host, u.Path)
 
-		if pass, ok := u.User.Password(); ok {
+		if pass, ok := credentials.Password(); ok {
 			key, err := base64.StdEncoding.DecodeString(pass)
 			handleError(err)
 
@@ -126,9 +128,12 @@ func cloneGit(s string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
 	}
 
-	err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
-	if err != nil {
-		fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
+	// Public repos might not have credentials so there's nothing to save
+	if credentials != nil {
+		err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
+		if err != nil {
+			fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
+		}
 	}
 
 	writeAsset("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil)
@@ -202,5 +207,11 @@ func writeDockerAuth() {
 	if auth != "" {
 		handleError(os.MkdirAll("/root/.docker", 0700))
 		handleError(ioutil.WriteFile("/root/.docker/config.json", []byte(auth), 0400))
+	}
+}
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		handleError(fmt.Errorf("%v\n%s", r, debug.Stack()))
 	}
 }

@@ -424,7 +424,9 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 
 		for _, resource := range rres.StackResources {
 			if *resource.ResourceType == "AWS::S3::Bucket" {
-				buckets = append(buckets, *resource.PhysicalResourceId)
+				if resource.PhysicalResourceId != nil {
+					buckets = append(buckets, *resource.PhysicalResourceId)
+				}
 			}
 		}
 
