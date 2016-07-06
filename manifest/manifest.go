@@ -270,3 +270,7 @@ func templateHelpers() template.FuncMap {
 		},
 	}
 }
+
+func (m *Manifest) Raw() ([]byte, error) {
+	return yaml.Marshal(m)
+}
