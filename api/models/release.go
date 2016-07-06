@@ -378,12 +378,11 @@ func (r *Release) Formation() (string, error) {
 	}
 
 	manifest, err = r.resolveLinks(*app, manifest)
-
 	if err != nil {
 		return "", err
 	}
 
-	return manifest.Formation()
+	return app.Formation(*manifest)
 }
 
 func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.Manifest, error) {

@@ -139,7 +139,11 @@ func (a *App) Create() error {
 		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
 	}
 
-	formation, err := a.Formation()
+	m := manifest.Manifest{
+		Services: make(map[string]manifest.Service),
+	}
+
+	formation, err := a.Formation(m)
 	if err != nil {
 		helpers.TrackEvent("kernel-app-create-error", nil)
 		return err
@@ -334,12 +338,10 @@ func (a *App) UpdateParams(changes map[string]string) error {
 	return err
 }
 
-func (a *App) Formation() (string, error) {
+func (a *App) Formation(m manifest.Manifest) (string, error) {
 	tmplData := map[string]interface{}{
-		"App": a,
-		"Manifest": manifest.Manifest{
-			Services: make(map[string]manifest.Service),
-		},
+		"App":      a,
+		"Manifest": m,
 	}
 	data, err := buildTemplate("app", "app", tmplData)
 	if err != nil {
