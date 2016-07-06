@@ -54,14 +54,6 @@ var (
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
 var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": false, "ap-southeast-2": true, "test": true}
 
-func banner() string {
-	b := ""
-	b += "┌" + strings.Repeat("─", len(Version)+21) + "┐\n"
-	b += "│ Convox Installer (" + Version + ") │\n"
-	b += "└" + strings.Repeat("─", len(Version)+21) + "┘\n"
-	return b
-}
-
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -217,8 +209,6 @@ func cmdInstall(c *cli.Context) error {
 	if numInstances < 2 {
 		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
 	}
-
-	fmt.Println(banner())
 
 	distinctId, err := currentId()
 	if err != nil {

@@ -71,8 +71,6 @@ func cmdUninstall(c *cli.Context) error {
 		credentialsFile = c.Args()[2]
 	}
 
-	fmt.Println(banner())
-
 	creds, err := readCredentials(credentialsFile)
 	if err != nil {
 		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
