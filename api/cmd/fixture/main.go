@@ -9,6 +9,10 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
+func init() {
+	models.ManifestRandomPorts = false
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		die(fmt.Errorf("usage: fixture <docker-compose.yml>"))
