@@ -19,6 +19,9 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
+// set to false when testing for deterministic ports
+var ManifestRandomPorts = true
+
 type Release struct {
 	Id       string    `json:"id"`
 	App      string    `json:"app"`
