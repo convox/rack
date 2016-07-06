@@ -315,7 +315,6 @@ var _bindata = map[string]func() (*asset, error){
 	"templates/service/s3.tmpl": templatesServiceS3Tmpl,
 	"templates/service/sns.tmpl": templatesServiceSnsTmpl,
 	"templates/service/sqs.tmpl": templatesServiceSqsTmpl,
-	"templates/service/syslog.tmpl": templatesServiceSyslogTmpl,
 	"templates/service/webhook.tmpl": templatesServiceWebhookTmpl,
 }
 
@@ -368,7 +367,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"s3.tmpl": &bintree{templatesServiceS3Tmpl, map[string]*bintree{}},
 			"sns.tmpl": &bintree{templatesServiceSnsTmpl, map[string]*bintree{}},
 			"sqs.tmpl": &bintree{templatesServiceSqsTmpl, map[string]*bintree{}},
-			"syslog.tmpl": &bintree{templatesServiceSyslogTmpl, map[string]*bintree{}},
 			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
 		}},
 	}},

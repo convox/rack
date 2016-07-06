@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"encoding/json"
+	"log"
 	"net/url"
 	"os"
 	"testing"
@@ -98,6 +99,7 @@ func TestAppCreate(t *testing.T) {
 	if assert.NotEqual(t, "", body) {
 		var resp map[string]string
 		err := json.Unmarshal([]byte(body), &resp)
+		log.Printf("%#v", resp)
 
 		if assert.Nil(t, err) {
 			assert.Equal(t, "application", resp["name"])
