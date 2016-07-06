@@ -1,10 +1,7 @@
 package manifest
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net"
 	"regexp"
@@ -19,14 +16,6 @@ type Manifest struct {
 	Version string `yaml:"version"`
 
 	Services map[string]Service `yaml:"services"`
-}
-
-func (m Manifest) ServicesArray() []Service {
-	arr := make([]Service, len(m.Services))
-	for _, s := range m.Services {
-		arr = append(arr, s)
-	}
-	return arr
 }
 
 // Load a Manifest from raw data
@@ -202,78 +191,6 @@ func manifestVersion(data []byte) (string, error) {
 	}
 
 	return "1", nil
-}
-
-func buildTemplate(name, section string, input interface{}) (string, error) {
-	data, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
-	if err != nil {
-		return "", err
-	}
-
-	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data))
-	if err != nil {
-		return "", err
-	}
-
-	var formation bytes.Buffer
-
-	err = tmpl.Execute(&formation, input)
-	if err != nil {
-		return "", err
-	}
-
-	return formation.String(), nil
-}
-
-func prettyJson(raw string) (string, error) {
-	var parsed map[string]interface{}
-
-	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-		if syntax, ok := err.(*json.SyntaxError); ok {
-			lines := strings.Split(raw, "\n")
-			lineno := len(strings.Split(raw[0:syntax.Offset], "\n")) - 1
-			start := lineno - 3
-			end := lineno + 3
-			output := "\n"
-
-			if start < 0 {
-				start = 0
-			}
-
-			if end >= len(lines) {
-				end = len(lines) - 1
-			}
-
-			for i := start; i <= end; i++ {
-				output += fmt.Sprintf("%03d: %s\n", i, lines[i])
-			}
-
-			output += err.Error()
-
-			return "", fmt.Errorf(output)
-		}
-
-		return "", err
-	}
-
-	bp, err := json.MarshalIndent(parsed, "", "  ")
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(bp), nil
-}
-
-func templateHelpers() template.FuncMap {
-	return template.FuncMap{
-		"upper": func(s string) string {
-			return UpperName(s)
-		},
-		"value": func(s string) template.HTML {
-			return template.HTML(fmt.Sprintf("%q", s))
-		},
-	}
 }
 
 func (m *Manifest) Raw() ([]byte, error) {
