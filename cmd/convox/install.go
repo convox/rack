@@ -721,7 +721,7 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	}
 
 	if creds.Access == "" || creds.Secret == "" {
-		creds, err = createCredentialsWithCLI()
+		creds, err = awsCLICredentials()
 
 		if err != nil {
 			return nil, err
@@ -807,10 +807,10 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 	return &input.Credentials, err
 }
 
-func createCredentialsWithCLI() (*AwsCredentials, error) {
-	data, err := awsCLI("iam", "get-user", "--user-name", "convox-install")
+func awsCLICredentials() (*AwsCredentials, error) {
+	data, err := awsCLI("iam", "get-user")
 
-	if strings.Index(err.Error(), "executable file not found") > -1 {
+	if err != nil && strings.Index(err.Error(), "executable file not found") > -1 {
 		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
 		fmt.Println("See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html")
 		fmt.Println()
@@ -824,36 +824,24 @@ func createCredentialsWithCLI() (*AwsCredentials, error) {
 		return nil, nil
 	}
 
-	if strings.Index(string(data), "The user with name convox-install cannot be found") > -1 {
-		if data, err := awsCLI("iam", "create-user", "--user-name", "convox-install"); err != nil {
-			return nil, fmt.Errorf(string(data))
-		}
+	access, err := awsCLI("configure", "get", "aws_access_key_id")
 
-		if data, err := awsCLI("iam", "attach-user-policy", "--user-name", "convox-install", "--policy-arn", "arn:aws:iam::aws:policy/AdministratorAccess"); err != nil {
-			return nil, fmt.Errorf(string(data))
-		}
-
-		var ak struct {
-			AccessKey *AwsCredentials
-		}
-
-		data, err = awsCLI("iam", "create-access-key", "--user-name", "convox-install")
-		if err != nil {
-			return nil, fmt.Errorf(string(data))
-		}
-
-		if err = json.Unmarshal(data, &ak); err != nil {
-			return nil, err
-		}
-
-		fmt.Println("Successfully created convox-install IAM user. Waiting a few seconds for permissions to stabilize...")
-		time.Sleep(15 * time.Second)
-		fmt.Println()
-
-		return ak.AccessKey, nil
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	secret, err := awsCLI("configure", "get", "aws_secret_access_key")
+
+	if err != nil {
+		return nil, err
+	}
+
+	creds := &AwsCredentials{
+		Access: strings.TrimSpace(string(access)),
+		Secret: strings.TrimSpace(string(secret)),
+	}
+
+	return creds, nil
 }
 
 func awsCLI(args ...string) ([]byte, error) {
