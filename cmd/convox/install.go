@@ -35,6 +35,16 @@ type AwsCredentials struct {
 	Expiration time.Time
 }
 
+var Banner = `
+
+     ___    ___     ___   __  __    ___   __  _
+    / ___\ / __ \ /  _  \/\ \/\ \  / __ \/\ \/ \
+   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
+   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
+    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
+
+`
+
 const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
 your AWS account. These credentials will only be used to communicate between this
 installer running on your computer and the AWS API.
@@ -209,6 +219,8 @@ func cmdInstall(c *cli.Context) error {
 	if numInstances < 2 {
 		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
 	}
+
+	fmt.Println(Banner)
 
 	distinctId, err := currentId()
 	if err != nil {
