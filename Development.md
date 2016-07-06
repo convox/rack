@@ -277,3 +277,7 @@ $ ci/cleanup.sh
 ```
 
 This generally uses a specific version number (e.g. 20160323164322) that has been released but not published. Passing integration tests offer confidence that the release can be published.
+
+## Gotchas
+
+We compile some templates into `.go` files using `go-bindata`. If you make any changes to template files you will often need to run `make templates` to propagate your changes to the `.go` files. If it seems like your template changes aren't doing anything, try running `make templates.
