@@ -140,7 +140,6 @@ func (a *App) Create() error {
 	}
 
 	formation, err := a.Formation()
-
 	if err != nil {
 		helpers.TrackEvent("kernel-app-create-error", nil)
 		return err
@@ -336,7 +335,13 @@ func (a *App) UpdateParams(changes map[string]string) error {
 }
 
 func (a *App) Formation() (string, error) {
-	data, err := buildTemplate("app", "app", manifest.Manifest{})
+	tmplData := map[string]interface{}{
+		"App": a,
+		"Manifest": manifest.Manifest{
+			Services: make(map[string]manifest.Service),
+		},
+	}
+	data, err := buildTemplate("app", "app", tmplData)
 	if err != nil {
 		return "", err
 	}
@@ -833,4 +838,19 @@ func (s Apps) Less(i, j int) bool {
 
 func (s Apps) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+func (a App) CronJobs(m manifest.Manifest) []CronJob {
+	cronjobs := []CronJob{}
+
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for key, value := range labels {
+			cronjob := NewCronJobFromLabel(key, value)
+			cronjob.Service = &entry
+			cronjob.App = &a
+			cronjobs = append(cronjobs, cronjob)
+		}
+	}
+	return cronjobs
 }

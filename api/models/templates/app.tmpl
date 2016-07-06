@@ -2,15 +2,15 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      {{ template "balancer-conditions" . }}
-      {{ template "process-conditions" . }}
-      {{ template "registry-conditions" . }}
+      {{ template "balancer-conditions" .Manifest }}
+      {{ template "process-conditions" .Manifest }}
+      {{ template "registry-conditions" .Manifest }}
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
     "Parameters" : {
-      {{ template "balancer-params" . }}
-      {{ template "process-params" . }}
+      {{ template "balancer-params" .Manifest }}
+      {{ template "process-params" .Manifest }}
 
       "Cluster": {
         "Type" : "String",
@@ -132,19 +132,19 @@
           "Timeout": "30"
         }
       },
-      {{ template "balancer-resources" . }}
+      {{ template "balancer-resources" .Manifest }}
       {{ template "cronjob-resources" . }}
-      {{ template "process-resources" . }}
-      {{ template "process-services" . }}
-      {{ template "registry-resources" . }}
+      {{ template "process-resources" .Manifest }}
+      {{ template "process-services" .Manifest }}
+      {{ template "registry-resources" .Manifest }}
 
       {{ template "security" }}
       {{ template "state" }}
     },
     "Outputs": {
-      {{ template "balancer-outputs" . }}
-      {{ template "process-outputs" . }}
-      {{ template "registry-outputs" . }}
+      {{ template "balancer-outputs" .Manifest }}
+      {{ template "process-outputs" .Manifest }}
+      {{ template "registry-outputs" .Manifest }}
 
       "Settings": {
         "Value": { "Ref": "Settings" }
@@ -161,8 +161,8 @@
 {{ end }}
 
 {{ define "process-params" }}
-  {{ range $e := . }}
-    "{{ upper $e.Name }}Formation": {
+  {{ range $e := .EntryNames }}
+    "{{ upper $e }}Formation": {
       "Type": "CommaDelimitedList",
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"
@@ -407,11 +407,11 @@
 {{ end }}
 
 {{ define "cronjob-resources" }}
-  {{ if .CronJobs }}
+  {{ if .App.CronJobs .Manifest }}
     "CronFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "FunctionName": "{{ .Rack }}-{{ .AppName }}-cron",
+        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-cron",
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs",
@@ -426,7 +426,7 @@
             "var querystring = require('querystring');",
             "",
             "var params = {",
-            "    StackName: '{{ .Rack }}'",
+            "    StackName: '{{ env "RACK" }}'",
             "};",
             "",
             "process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';",
@@ -499,7 +499,7 @@
       }
     },
   {{ end }}
-  {{ range .CronJobs }}
+  {{ range .App.CronJobs .Manifest }}
     "{{ .ShortName }}Rule": {
       "Type": "AWS::Events::Rule",
       "Properties": {

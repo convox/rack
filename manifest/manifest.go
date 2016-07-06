@@ -21,6 +21,14 @@ type Manifest struct {
 	Services map[string]Service `yaml:"services"`
 }
 
+func (m Manifest) ServicesArray() []Service {
+	arr := make([]Service, len(m.Services))
+	for _, s := range m.Services {
+		arr = append(arr, s)
+	}
+	return arr
+}
+
 // Load a Manifest from raw data
 func Load(data []byte) (*Manifest, error) {
 	v, err := manifestVersion(data)
@@ -198,13 +206,11 @@ func manifestVersion(data []byte) (string, error) {
 
 func buildTemplate(name, section string, input interface{}) (string, error) {
 	data, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
-
 	if err != nil {
 		return "", err
 	}
 
 	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data))
-
 	if err != nil {
 		return "", err
 	}
@@ -212,7 +218,6 @@ func buildTemplate(name, section string, input interface{}) (string, error) {
 	var formation bytes.Buffer
 
 	err = tmpl.Execute(&formation, input)
-
 	if err != nil {
 		return "", err
 	}
@@ -273,4 +278,16 @@ func templateHelpers() template.FuncMap {
 
 func (m *Manifest) Raw() ([]byte, error) {
 	return yaml.Marshal(m)
+}
+
+func (m Manifest) EntryNames() []string {
+	names := make([]string, len(m.Services))
+	x := 0
+
+	for k, _ := range m.Services {
+		names[x] = k
+		x += 1
+	}
+
+	return names
 }
