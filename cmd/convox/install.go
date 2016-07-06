@@ -46,7 +46,7 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
 
 var (
-	formationUrl  = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	formationURL  = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 	iamUserURL    = "https://docs.convox.com/creating-an-iam-user"
 	isDevelopment = false
 )
@@ -304,7 +304,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	versionName := version.Version
-	formationUrl := fmt.Sprintf(formationUrl, versionName)
+	furl := fmt.Sprintf(formationURL, versionName)
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
@@ -346,7 +346,7 @@ func cmdInstall(c *cli.Context) error {
 			&cloudformation.Parameter{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
 		},
 		StackName:   aws.String(stackName),
-		TemplateURL: aws.String(formationUrl),
+		TemplateURL: aws.String(furl),
 	}
 
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
