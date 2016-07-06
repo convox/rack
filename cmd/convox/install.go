@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -34,16 +35,6 @@ type AwsCredentials struct {
 	Expiration time.Time
 }
 
-var Banner = `
-
-     ___    ___     ___   __  __    ___   __  _
-    / ___\ / __ \ /  _  \/\ \/\ \  / __ \/\ \/ \
-   /\ \__//\ \_\ \/\ \/\ \ \ \_/ |/\ \_\ \/>  </
-   \ \____\ \____/\ \_\ \_\ \___/ \ \____//\_/\_\
-    \/____/\/___/  \/_/\/_/\/__/   \/___/ \//\/_/
-
-`
-
 const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
 your AWS account. These credentials will only be used to communicate between this
 installer running on your computer and the AWS API.
@@ -53,13 +44,23 @@ install/uninstall process and then delete them once the installer has completed.
 
 To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
-const iamUserURL = "https://docs.convox.com/creating-an-iam-user"
 
-var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-var isDevelopment = false
+var (
+	formationUrl  = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	iamUserURL    = "https://docs.convox.com/creating-an-iam-user"
+	isDevelopment = false
+)
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
 var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": false, "ap-southeast-2": true, "test": true}
+
+func banner() string {
+	b := ""
+	b += "┌" + strings.Repeat("─", len(Version)+21) + "┐\n"
+	b += "│ Convox Installer (" + Version + ") │\n"
+	b += "└" + strings.Repeat("─", len(Version)+21) + "┘\n"
+	return b
+}
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -217,7 +218,7 @@ func cmdInstall(c *cli.Context) error {
 		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
 	}
 
-	fmt.Println(Banner)
+	fmt.Println(banner())
 
 	distinctId, err := currentId()
 	if err != nil {
@@ -229,7 +230,7 @@ func cmdInstall(c *cli.Context) error {
 	if email := c.String("email"); email != "" {
 		distinctId = email
 		updateId(distinctId)
-	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
+	} else if distinctId == "" && terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
 		email, err := reader.ReadString('\n')
@@ -303,7 +304,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	versionName := version.Version
-	formationUrl := fmt.Sprintf(FormationUrl, versionName)
+	formationUrl := fmt.Sprintf(formationUrl, versionName)
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
@@ -720,7 +721,18 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	}
 
 	if creds.Access == "" || creds.Secret == "" {
+		creds, err = createCredentialsWithCLI()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if creds != nil {
+			return creds, err
+		}
+
 		fmt.Println(CredentialsMessage)
+
 		reader := bufio.NewReader(os.Stdin)
 
 		if creds.Access == "" {
@@ -793,4 +805,57 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 	}
 
 	return &input.Credentials, err
+}
+
+func createCredentialsWithCLI() (*AwsCredentials, error) {
+	data, err := awsCLI("iam", "get-user", "--user-name", "convox-install")
+
+	if strings.Index(err.Error(), "executable file not found") > -1 {
+		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
+		fmt.Println("See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html")
+		fmt.Println()
+		return nil, nil
+	}
+
+	if strings.Index(string(data), "Unable to locate credentials") > -1 {
+		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
+		fmt.Println("You can configure credentials by running `aws configure`.")
+		fmt.Println()
+		return nil, nil
+	}
+
+	if strings.Index(string(data), "The user with name convox-install cannot be found") > -1 {
+		if data, err := awsCLI("iam", "create-user", "--user-name", "convox-install"); err != nil {
+			return nil, fmt.Errorf(string(data))
+		}
+
+		if data, err := awsCLI("iam", "attach-user-policy", "--user-name", "convox-install", "--policy-arn", "arn:aws:iam::aws:policy/AdministratorAccess"); err != nil {
+			return nil, fmt.Errorf(string(data))
+		}
+
+		var ak struct {
+			AccessKey *AwsCredentials
+		}
+
+		data, err = awsCLI("iam", "create-access-key", "--user-name", "convox-install")
+		if err != nil {
+			return nil, fmt.Errorf(string(data))
+		}
+
+		if err = json.Unmarshal(data, &ak); err != nil {
+			return nil, err
+		}
+
+		fmt.Println("Successfully created convox-install IAM user. Waiting a few seconds for permissions to stabilize...")
+		time.Sleep(15 * time.Second)
+		fmt.Println()
+
+		return ak.AccessKey, nil
+	}
+
+	return nil, nil
+}
+
+func awsCLI(args ...string) ([]byte, error) {
+	return exec.Command("aws", args...).CombinedOutput()
 }

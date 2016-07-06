@@ -71,7 +71,7 @@ func cmdUninstall(c *cli.Context) error {
 		credentialsFile = c.Args()[2]
 	}
 
-	fmt.Println(Banner)
+	fmt.Println(banner())
 
 	creds, err := readCredentials(credentialsFile)
 	if err != nil {
