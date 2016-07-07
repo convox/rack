@@ -227,10 +227,6 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 		return ExitError(ep.ValidationError)
 	}
 
-	if ep.ValidationError != nil {
-		return ExitError(ep.ValidationError)
-	}
-
 	if ep.Error != nil {
 		return ExitError(ep.Error)
 	}

@@ -62,7 +62,6 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	appType := detectApplication(dir)
-
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
 		return stdcli.ExitError(err)
