@@ -221,9 +221,14 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 
 	rollbar.Wait()
 
-	if ep.Error != nil || ep.ValidationError != nil {
+	if ep.ValidationError != nil {
+		return ExitError(ep.ValidationError)
+	}
+
+	if ep.Error != nil {
 		return ExitError(ep.Error)
 	}
+
 	return nil
 }
 

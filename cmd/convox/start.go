@@ -94,12 +94,12 @@ func cmdStart(c *cli.Context) error {
 		AppType: appType,
 	})
 
-	go handleInterrupt(r, id)
+	go handleInterrupt(r)
 
 	return r.Wait()
 }
 
-func handleInterrupt(run manifest.Run, id string) {
+func handleInterrupt(run manifest.Run) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, os.Kill)
 	<-ch
