@@ -47,12 +47,21 @@ func cmdStart(c *cli.Context) error {
 	// go handleResize()
 
 	id, err := currentId()
-	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{Error: err})
+	if err != nil {
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{Error: err})
+	}
 
 	err = dockerTest()
 	if err != nil {
-		return stdcli.ExitError(err)
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
 	}
+
+	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
+	if err != nil {
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+	}
+
+	appType := detectApplication(dir)
 
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
@@ -64,24 +73,26 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
-		if err != nil {
-			stdcli.ExitError(err)
+		if err == nil {
+			err = fmt.Errorf("ports in use: %v", pcc)
 		}
-
-		return stdcli.ExitError(fmt.Errorf("ports in use: %v", pcc))
-	}
-
-	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
-	if err != nil {
-		return stdcli.ExitError(err)
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+			ValidationError: err,
+			AppType:         appType,
+		})
 	}
 
 	r := m.Run(dir, app)
 
 	if err := r.Start(); err != nil {
-		fmt.Printf("err: %+v\n", err)
-		return err
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+			ValidationError: err,
+			AppType:         appType,
+		})
 	}
+	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+		AppType: appType,
+	})
 
 	go handleInterrupt(r)
 
