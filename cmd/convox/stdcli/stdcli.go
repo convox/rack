@@ -219,7 +219,9 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 		rollbar.Error(rollbar.ERR, err, &rollbar.Field{"id", id})
 	}
 
-	rollbar.Wait()
+	if os.Getenv("ROLLBAR_TOKEN") != "" {
+		rollbar.Wait()
+	}
 
 	if ep.ValidationError != nil {
 		return ExitError(ep.ValidationError)

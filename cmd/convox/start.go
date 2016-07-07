@@ -62,7 +62,6 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	appType := detectApplication(dir)
-
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
 		return stdcli.ExitError(err)
@@ -84,12 +83,14 @@ func cmdStart(c *cli.Context) error {
 
 	r := m.Run(dir, app)
 
-	if err := r.Start(); err != nil {
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+	err = r.Start()
+	if err != nil {
+		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
 		})
 	}
+
 	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 		AppType: appType,
 	})
