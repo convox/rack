@@ -142,7 +142,7 @@ func cloneGit(s string) {
 
 	err = runE("src", "git", "submodule", "update", "--init", "--recursive")
 	if err != nil {
-		fmt.Printf("WARNING: Failed to update submodules: %s. Continuing...", err)
+		fmt.Printf("WARNING: Failed to update submodules: %s. Continuing...\n", err)
 	}
 
 	if commitish != "" {
@@ -150,7 +150,7 @@ func cloneGit(s string) {
 
 		err = runE("src", "git", "submodule", "update", "--recursive")
 		if err != nil {
-			fmt.Printf("WARNING: Failed to update submodules: %s. Continuing...", err)
+			fmt.Printf("WARNING: Failed to update submodules: %s. Continuing...\n", err)
 		}
 	}
 
