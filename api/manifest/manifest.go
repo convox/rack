@@ -1396,6 +1396,12 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 
 		fmt.Printf(system("%s uploading %d files\n"), prefix, len(adds))
 
+		if os.Getenv("CONVOX_DEBUG") != "" {
+			for add, _ := range adds {
+				fmt.Printf(system("%s uploading %s\n"), prefix, add)
+			}
+		}
+
 		for _, sync := range syncs {
 			var buf bytes.Buffer
 
@@ -1693,6 +1699,12 @@ func (m *Manifest) downloadRemoteAdds(container string, adds map[string]string) 
 	}
 
 	fmt.Printf(system("%s downloading %d files\n"), m.systemPrefix(), len(remotes))
+
+	if os.Getenv("CONVOX_DEBUG") != "" {
+		for _, remote := range remotes {
+			fmt.Printf(system("%s downloading %s\n"), m.systemPrefix(), remote)
+		}
+	}
 
 	args := append([]string{"exec", "-i", container, "tar", "czf", "-"}, remotes...)
 
