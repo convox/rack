@@ -1397,7 +1397,7 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 		fmt.Printf(system("%s uploading %d files\n"), prefix, len(adds))
 
 		if os.Getenv("CONVOX_DEBUG") != "" {
-			for add, _ := range adds {
+			for add := range adds {
 				fmt.Printf(system("%s uploading %s\n"), prefix, add)
 			}
 		}
