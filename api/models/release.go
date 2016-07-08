@@ -365,7 +365,7 @@ func (r *Release) Formation() (string, error) {
 
 		// for i, entry := range manifest.Services {
 		// 	if entry.Name == primary {
-		// 		manifest[i].primary = true
+		// 		entry.primary = true
 		// 	}
 		// }
 	}
