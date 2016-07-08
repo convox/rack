@@ -1097,6 +1097,17 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 				remote = filepath.Join(wd, remote)
 			}
 
+			local := filepath.Join(me.Build, parts[1])
+
+			info, err := os.Stat(local)
+			if err != nil {
+				return err
+			}
+
+			if !info.IsDir() && strings.HasSuffix(remote, "/") {
+				remote = filepath.Join(remote, filepath.Base(local))
+			}
+
 			registerSync(containerName(app, process), filepath.Join(me.Build, parts[1]), remote)
 		}
 	}
