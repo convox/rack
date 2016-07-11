@@ -35,13 +35,3 @@ func (rs Releases) Latest() *Release {
 
 	return &latest
 }
-
-func (rs Releases) Exists(id string) bool {
-	for _, r := range rs {
-		if r.Id == id {
-			return true
-		}
-	}
-
-	return false
-}
