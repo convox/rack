@@ -136,7 +136,7 @@ func (c *Client) PostMultipart(path string, files map[string][]byte, params Para
 	return c.PostMultipartP(path, files, params, out, nil)
 }
 
-// PostMultipartP posts a multipart message in the MIME internet format with a callback function to to report upload Progress.
+// PostMultipartP posts a multipart message in the MIME internet format with a callback function with a string stating the upload Progress.
 func (c *Client) PostMultipartP(path string, files map[string][]byte, params Params, out interface{}, callback func(s string)) error {
 	body := &bytes.Buffer{}
 
