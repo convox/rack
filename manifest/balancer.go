@@ -182,3 +182,7 @@ func UpperName(name string) string {
 
 	return us
 }
+
+func (mb ManifestBalancer) Randoms() map[string]int {
+	return mb.Entry.Randoms()
+}

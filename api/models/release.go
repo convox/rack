@@ -178,10 +178,10 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-<<<<<<< 14450b790b259e91a148646bcae28385196aaf45
-	healthOptions := []string{"port", "path", "timeout"}
 
-	for _, entry := range manifest {
+	healthOptions := []string{"port", "path", "timeout"}
+	for _, entry := range manifest.Services {
+
 		entryName := UpperName(entry.Name)
 		for _, option := range healthOptions {
 			if val := entry.Label(fmt.Sprintf("convox.health.%s", option)); val != "" {
@@ -190,9 +190,6 @@ func (r *Release) Promote() error {
 			}
 		}
 
-=======
-	for _, entry := range manifest.Services {
->>>>>>> compiling without models/manifest but tests still failing
 		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
 		// so new deploys and rollbacks have the expected parameters
 		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {

@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -354,6 +355,9 @@ func templateHelpers() template.FuncMap {
 		},
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
+		},
+		"itoa": func(i int) string {
+			return strconv.Itoa(i)
 		},
 	}
 }
