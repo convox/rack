@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -63,6 +64,7 @@ func (r *Run) Start() error {
 	// check for required env vars
 	existing := map[string]bool{}
 	for _, env := range os.Environ() {
+		log.Print(env)
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) == 2 {
 			existing[parts[0]] = true
@@ -70,9 +72,18 @@ func (r *Run) Start() error {
 	}
 
 	for _, s := range r.manifest.Services {
-		for key, _ := range s.Environment {
-			_, ok := existing[key]
-			if !ok {
+		links := map[string]bool{}
+
+		for _, l := range s.Links {
+			key := fmt.Sprintf("%s_URL", strings.ToUpper(l))
+			links[key] = true
+		}
+
+		for key, val := range s.Environment {
+			eok := val != ""
+			_, exok := existing[key]
+			_, lok := links[key]
+			if !eok && !exok && !lok {
 				return fmt.Errorf("env expected: %s", key)
 			}
 		}
