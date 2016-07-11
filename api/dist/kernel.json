@@ -917,7 +917,7 @@
             "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
             "  - echo \"", { "Ref": "ClientId" }, "\" > /etc/convox/client_id\n",
             "  - echo \"", { "Ref": "LogGroup" }, "\" > /etc/convox/log_group\n",
-            "  - curl -s https://convox.s3.amazonaws.com/agent/0.69/convox.conf > /etc/init/convox.conf\n",
+            "  - curl -s https://convox.s3.amazonaws.com/agent/0.70/convox.conf > /etc/init/convox.conf\n",
             "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
             { "Fn::If": [ "BlankInstanceBootCommand",
               { "Ref": "AWS::NoValue" },
