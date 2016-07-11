@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"math/rand"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 )
+
+var ManifestRandomPorts = true
 
 type Service struct {
 	Name string `yaml:"-"`
@@ -35,6 +38,8 @@ type Service struct {
 	//TODO from models manifest, not passive and used at runtime
 	Exports  map[string]string        `yaml:"-"`
 	LinkVars map[string]template.HTML `yaml:"-"`
+
+	randoms map[string]int
 }
 
 // see yaml.go for unmarshallers
@@ -46,6 +51,10 @@ type Build struct {
 type Command []string
 type Environment map[string]string
 type Labels map[string]string
+
+func (s Service) HasBalancer() bool {
+	return len(s.Ports) > 0
+}
 
 func (s *Service) Process(app string) Process {
 	return NewProcess(app, *s)
@@ -256,4 +265,22 @@ func (me Service) RegistryImage(appName, buildId string, outputs map[string]stri
 	}
 
 	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, me.Name, buildId)
+}
+
+func (me *Service) Randoms() map[string]int {
+	if me.randoms != nil {
+		return me.randoms
+	}
+
+	currentPort := 5000
+	me.randoms = make(map[string]int)
+	for _, port := range me.Ports {
+		if ManifestRandomPorts {
+			me.randoms[strconv.Itoa(port.Balancer)] = rand.Intn(62000) + 3000
+		} else {
+			me.randoms[strconv.Itoa(port.Balancer)] = currentPort
+			currentPort += 1
+		}
+	}
+	return me.randoms
 }

@@ -132,7 +132,7 @@
           "Timeout": "30"
         }
       },
-      {{ template "balancer-resources" .Manifest }}
+      {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
       {{ template "process-resources" .Manifest }}
       {{ template "process-services" .Manifest }}
@@ -142,7 +142,7 @@
       {{ template "state" }}
     },
     "Outputs": {
-      {{ template "balancer-outputs" .Manifest }}
+      {{ template "balancer-outputs" .}}
       {{ template "process-outputs" .Manifest }}
       {{ template "registry-outputs" .Manifest }}
 
@@ -185,7 +185,7 @@
 {{ define "process-services" }}
   {{ $manifest := . }}
   {{ if .HasProcesses }}
-    {{ range $e := . }}
+    {{ range $e := .Services }}
       "{{ upper $e.Name }}ECSTaskDefinition": {
         "DependsOn": ["CustomTopic", "ServiceRole"],
         "Type": "Custom::ECSTaskDefinition",
@@ -220,7 +220,7 @@
           "DeploymentMinimumPercent": { "Ref": "DeploymentMinimum" },
           "DeploymentMaximumPercent": { "Ref": "DeploymentMaximum" },
           "LoadBalancers": [
-            {{ range $e.PortMappings }}
+            {{ range $e.Ports }}
               { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
             {{ end }}
             { "Ref": "AWS::NoValue" }
@@ -261,7 +261,7 @@
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms .Balancer }}",
+        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }}",
         "Description" : ""
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
@@ -287,7 +287,8 @@
 {{ end }}
 
 {{ define "balancer-outputs" }}
-  {{ range .Balancers }}
+  {{ $app := .App }}
+  {{ range .Manifest.Balancers }}
     {{ $balancer := . }}
     "Balancer{{ upper .ProcessName }}Host": {
       "Condition": "Enabled{{ upper .ProcessName }}",
@@ -300,14 +301,15 @@
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
         "Condition": "Enabled{{ upper $balancer.ProcessName }}",
-        "Value": {{ $balancer.LoadBalancerName }}
+        "Value": {{ $balancer.LoadBalancerName true $app.Name }}
       },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ range .Balancers }}
+  {{ $app := .App }}
+  {{ range .Manifest.Balancers }}
     {{ $balancer := . }}
     "{{ .ResourceName }}SecurityGroup": {
       "Condition": "Enabled{{ upper $balancer.ProcessName }}",
@@ -317,7 +319,7 @@
         "SecurityGroupIngress": [
           {{ range .PortMappings }}
             {
-              {{ if .Public }}
+              {{ if .External }}
               "CidrIp": "0.0.0.0/0",
               {{ else }}
               "CidrIp": { "Ref": "VPCCIDR" },
@@ -395,7 +397,7 @@
           { "Ref": "AWS::NoValue" }
         ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": {{ .LoadBalancerName }},
+        "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
         "SecurityGroups" : [{ "Fn::If" : [
 	    "BlankSecurityGroup",
 	    {"Ref" : "{{ .ResourceName }}SecurityGroup"},
@@ -609,20 +611,16 @@
   {
     "Name": "{{ .Name }}",
     "Image": "{{ .Image }}",
-    {{if .CommandArray}}
-      "Command": [
-        {{ range $index, $element := .CommandArray}}
-            {{if $index}},{{else}}{{end}}
-            "{{$element}}"
-        {{end}}
+    "Command": [
+      {{ range $index, $element := .Command}}
+          {{if $index}},{{else}}{{end}}
+          "{{$element}}"
+      {{end}}
       ],
-    {{else if ne .CommandString ""}}
-        "Command": {{ value .CommandString }},
-    {{end}}
     "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Environment": {
-      {{ range $key, $value := .EnvMap }}
+      {{ range $key, $value := .Environment }}
         "{{ $key }}": {{ value $value }},
       {{ end }}
       {{ range $key, $value := .LinkVars }}
@@ -632,7 +630,7 @@
       "PROCESS": "{{ .Name }}"
     },
     "Volumes": [
-      {{ range .MountableVolumes }}
+      {{ range .Volumes }}
         "{{ . }}",
       {{ end }}
       { "Ref" : "AWS::NoValue" }
@@ -642,7 +640,7 @@
     ],
     "PortMappings": [
       {{ $e := . }}
-      {{ range .PortMappings }}
+      {{ range .Ports }}
         { "Fn::Join": [ ":", [
           { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
           "{{ .Container }}"

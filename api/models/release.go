@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -149,10 +150,14 @@ func (r *Release) Promote() error {
 
 	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
 
+	fmt.Println(formation)
+
 	existing, err := formationParameters(formation)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("%#v", existing)
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = CustomTopic
@@ -173,12 +178,24 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
-	manifest, err := manifest.Load([]byte(r.Manifest))
+	m, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
 	}
 
-	for _, entry := range manifest.Services {
+	log.Printf("IDEBT")
+	for _, b := range m.Services {
+		log.Print("SERVIcE")
+		log.Print(b)
+		log.Printf("%#v", b.Ports)
+		log.Printf("%#v", b.Randoms())
+	}
+	for _, b := range m.Balancers() {
+		log.Print("BALANCER")
+		log.Printf("%#v", b.PortMappings())
+	}
+
+	for _, entry := range m.Services {
 		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
 		// so new deploys and rollbacks have the expected parameters
 		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {

@@ -208,3 +208,13 @@ func (m Manifest) EntryNames() []string {
 
 	return names
 }
+
+func (m Manifest) BalancerResourceName(process string) string {
+	for _, b := range m.Balancers() {
+		if b.Entry.Name == process {
+			return b.ResourceName()
+		}
+	}
+
+	return ""
+}
