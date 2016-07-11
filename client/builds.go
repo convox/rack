@@ -70,6 +70,10 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 }
 
 func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manifest string, description string) (*Build, error) {
+	return c.CreateBuildSourceP(app, source, cache, manifest, description, nil)
+}
+
+func (c *Client) CreateBuildSourceP(app string, source []byte, cache bool, manifest string, description string, progressCallback func(s string)) (*Build, error) {
 	var build Build
 
 	files := map[string][]byte{
@@ -82,8 +86,7 @@ func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manife
 		"manifest":    manifest,
 	}
 
-	err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), files, params, &build)
-
+	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, &build, progressCallback)
 	if err != nil {
 		return nil, err
 	}

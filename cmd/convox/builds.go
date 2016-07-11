@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/urfave/cli.v1"
@@ -528,15 +529,14 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 
 	cache := !c.Bool("no-cache")
 
-	fmt.Print("Uploading... ")
-
-	build, err := rackClient(c).CreateBuildSource(app, tar, cache, manifest, description)
-
+	build, err := rackClient(c).CreateBuildSourceP(app, tar, cache, manifest, description, func(s string) {
+		fmt.Printf("\rUploading... %s", strings.TrimSpace(s))
+	})
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("OK")
+	fmt.Println()
 
 	return finishBuild(c, app, build)
 }
@@ -623,6 +623,7 @@ func createTarball(base string) ([]byte, error) {
 }
 
 func finishBuild(c *cli.Context, app string, build *client.Build) (string, error) {
+	fmt.Println("Getting build logs...")
 	if build.Id == "" {
 		return "", fmt.Errorf("unable to fetch build id")
 	}
