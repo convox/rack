@@ -532,8 +532,11 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		}
 	}
 
-	if container == nil {
-		return fmt.Errorf("unable to find container for %s", process)
+		// If container is nil, the release most likely hasn't been promoted and thus no TaskDefinition for it.
+		if releaseContainer == nil {
+			fmt.Printf("Unable to find container for %s. Basing container off of most recent release: %s.\n", process, a.Release)
+			unpromotedRelease = true
+		}
 	}
 
 	ea := make([]string, 0)
