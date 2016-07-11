@@ -427,7 +427,6 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 
 func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.ProgressBar, ch chan error) {
 	data, err := ioutil.ReadFile(item.Name)
-
 	if err != nil {
 		ch <- err
 		return
@@ -435,7 +434,6 @@ func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.Prog
 
 	for i := 0; i < 3; i++ {
 		err = rackClient(c).IndexUpload(hash, data)
-
 		if err != nil {
 			continue
 		}
@@ -458,7 +456,6 @@ func uploadItems(c *cli.Context, index client.Index, bar *pb.ProgressBar, inch c
 
 func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description string) (string, error) {
 	system, err := rackClient(c).GetSystem()
-
 	if err != nil {
 		return "", err
 	}
@@ -471,7 +468,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	cache := !c.Bool("no-cache")
 
 	dir, err = filepath.Abs(dir)
-
 	if err != nil {
 		return "", err
 	}
@@ -479,7 +475,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	fmt.Printf("Analyzing source... ")
 
 	index, err := createIndex(dir)
-
 	if err != nil {
 		return "", err
 	}
@@ -489,7 +484,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	fmt.Printf("Uploading changes... ")
 
 	err = uploadIndex(c, index)
-
 	if err != nil {
 		return "", err
 	}
@@ -497,7 +491,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	fmt.Printf("Starting build... ")
 
 	build, err := rackClient(c).CreateBuildIndex(app, index, cache, manifest, description)
-
 	if err != nil {
 		return "", err
 	}
