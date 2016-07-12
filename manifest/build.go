@@ -6,8 +6,8 @@ import (
 )
 
 func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
+	builds := map[string]string{}
 	pulls := map[string]string{}
-	builds := []Service{}
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
@@ -27,10 +27,13 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 
 		args := []string{"build"}
 
+		if noCache {
+			args = append(args, "--no-cache")
+		}
+
 		args = append(args, "-f", parts[1])
 		args = append(args, "-t", tag)
 		args = append(args, parts[0])
-
 		run(s, Docker(args...))
 		// runPrefix(systemPrefix(m), Docker(args...))
 	}
