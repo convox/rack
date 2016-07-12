@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,7 +65,6 @@ func (r *Run) Start() error {
 	// check for required env vars
 	existing := map[string]bool{}
 	for _, env := range os.Environ() {
-		log.Print(env)
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) == 2 {
 			existing[parts[0]] = true
