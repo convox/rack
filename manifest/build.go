@@ -2,10 +2,11 @@ package manifest
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 
-func (m *Manifest) Build(dir string, s Stream) error {
+func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 	builds := map[string]string{}
 	pulls := map[string]string{}
 
@@ -27,10 +28,16 @@ func (m *Manifest) Build(dir string, s Stream) error {
 
 		args := []string{"build"}
 
+		if noCache {
+			args = append(args, "--no-cache")
+		}
+
 		args = append(args, "-f", parts[1])
 		args = append(args, "-t", tag)
 		args = append(args, parts[0])
-
+		log.Print("IDENT")
+		log.Printf("%#v", parts)
+		log.Printf("%#v", args)
 		run(s, Docker(args...))
 		// runPrefix(systemPrefix(m), Docker(args...))
 	}
