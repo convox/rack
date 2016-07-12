@@ -81,7 +81,8 @@ func cmdStart(c *cli.Context) error {
 		})
 	}
 
-	r := m.Run(dir, app)
+	noCache := c.Bool("no-cache")
+	r := m.Run(dir, app, noCache)
 
 	err = r.Start()
 	if err != nil {

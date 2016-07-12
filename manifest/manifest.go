@@ -126,8 +126,8 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 	return conflicts, nil
 }
 
-func (m *Manifest) Run(dir, app string) Run {
-	return NewRun(dir, app, *m)
+func (m *Manifest) Run(dir, app string, noCache bool) Run {
+	return NewRun(dir, app, *m, noCache)
 }
 
 // Return the Services of this Manifest in the order you should run them
