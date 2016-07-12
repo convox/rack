@@ -14,26 +14,23 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 		if dockerFile == "" {
 			dockerFile = service.Dockerfile
 		}
-		if service.Image != "" {
+		switch {
+		case service.Build.Context != "":
+			builds[fmt.Sprintf("%s|%s", service.Build.Context, coalesce(dockerFile, "Dockerfile"))] = service.Tag()
+		case service.Image != "":
 			pulls[service.Image] = service.Tag()
-		} else {
-			builds = append(builds, service)
 		}
 	}
 
-	for _, service := range builds {
+	for build, tag := range builds {
+		parts := strings.SplitN(build, "|", 2)
+
 		args := []string{"build"}
 
-		if noCache {
-			args = append(args, "--no-cache")
-		}
+		args = append(args, "-f", parts[1])
+		args = append(args, "-t", tag)
+		args = append(args, parts[0])
 
-		context := coalesce(service.Build.Context, ".")
-		dockerFile := coalesce(service.Build.Dockerfile, "Dockerfile")
-
-		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
-		args = append(args, "-t", service.Tag())
-		args = append(args, context)
 		run(s, Docker(args...))
 		// runPrefix(systemPrefix(m), Docker(args...))
 	}
