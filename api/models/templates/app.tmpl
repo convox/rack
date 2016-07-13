@@ -605,6 +605,7 @@
 {{ end }}
 
 {{ define "entry_task" }}
+{{ $e := . }}
 { "Fn::If": [ "Blank{{ upper .Name }}Service",
   {
     "Name": "{{ .Name }}",
@@ -633,7 +634,11 @@
     },
     "Volumes": [
       {{ range .MountableVolumes }}
-        "{{ . }}",
+        {{ if eq .Host "/var/run/docker.sock" }}
+          "{{.Host}}:{{.Container}}",
+        {{ else }}
+          { "Fn::Join": [ "", [ "/volumes/", { "Ref": "AWS::StackName" }, "/{{$e.Name}}{{.Host}}:{{.Container}}" ] ] },
+        {{ end }}
       {{ end }}
       { "Ref" : "AWS::NoValue" }
     ],
@@ -641,7 +646,6 @@
       { "Ref" : "AWS::NoValue" }
     ],
     "PortMappings": [
-      {{ $e := . }}
       {{ range .PortMappings }}
         { "Fn::Join": [ ":", [
           { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },

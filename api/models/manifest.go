@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -163,9 +164,10 @@ func (m Manifest) AppName() string {
 	return m[0].app.Name
 }
 
-func (me ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
+// LabelsByPrefix will return the labels that have a given prefix
+func (e ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
-	switch labels := me.Labels.(type) {
+	switch labels := e.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
 			ks, ok := k.(string)
@@ -468,13 +470,38 @@ func (me ManifestEntry) EnvMap() map[string]string {
 	return envs
 }
 
-func (me ManifestEntry) MountableVolumes() []string {
-	volumes := []string{}
+// MountableVolume describes a mountable volume
+type MountableVolume struct {
+	Host      string
+	Container string
+}
 
-	for _, volume := range me.Volumes {
-		if strings.HasPrefix(volume, "/var/run/docker.sock") {
-			volumes = append(volumes, volume)
+// MountableVolumes return the mountable volumes for a manifest entry
+func (e ManifestEntry) MountableVolumes() []MountableVolume {
+	volumes := []MountableVolume{}
+
+	for _, volume := range e.Volumes {
+		parts := strings.Split(volume, ":")
+
+		// if only one volume part use it for both sides
+		if len(parts) == 1 {
+			parts = append(parts, parts[0])
 		}
+
+		// if we dont have two volume parts bail
+		if len(parts) != 2 {
+			continue
+		}
+
+		// only support absolute paths for volume source
+		if !filepath.IsAbs(parts[0]) {
+			continue
+		}
+
+		volumes = append(volumes, MountableVolume{
+			Host:      parts[0],
+			Container: parts[1],
+		})
 	}
 
 	return volumes
