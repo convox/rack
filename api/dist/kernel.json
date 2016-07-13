@@ -156,6 +156,11 @@
       "Description": "SSL certificate",
       "Default": ""
     },
+    "ContainerDisk": {
+      "Type": "Number",
+      "Description": "Default container disk size in GB",
+      "Default": "10"
+    },
     "Development": {
       "Type": "String",
       "Description": "Development mode",
@@ -903,6 +908,7 @@
             "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
             "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
+            { "Fn::Join": [ "", [ "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n" ] ] },
             { "Fn::If": [ "BlankCertificate",
               { "Fn::Join": [ "", [
                 "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config\n",
