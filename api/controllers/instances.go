@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
@@ -70,8 +71,9 @@ func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	instanceId := mux.Vars(r)["id"]
 
-	_, err = models.EC2().TerminateInstances(&ec2.TerminateInstancesInput{
-		InstanceIds: []*string{&instanceId},
+	_, err = models.AutoScaling().TerminateInstanceInAutoScalingGroup(&autoscaling.TerminateInstanceInAutoScalingGroupInput{
+		InstanceId: aws.String(instanceId),
+		ShouldDecrementDesiredCapacity: aws.Bool(false),
 	})
 
 	if err != nil {
