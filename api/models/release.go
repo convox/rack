@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -149,10 +150,14 @@ func (r *Release) Promote() error {
 
 	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
 
+	fmt.Println(formation)
+
 	existing, err := formationParameters(formation)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("%#v", existing)
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = CustomTopic
@@ -173,7 +178,7 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
-	manifest, err := manifest.Load([]byte(r.Manifest))
+	m, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
 	}
