@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -53,10 +54,12 @@ install/uninstall process and then delete them once the installer has completed.
 
 To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
-const iamUserURL = "https://docs.convox.com/creating-an-iam-user"
 
-var FormationUrl = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-var isDevelopment = false
+var (
+	formationURL  = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	iamUserURL    = "https://docs.convox.com/creating-an-iam-user"
+	isDevelopment = false
+)
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
 var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": false, "ap-southeast-2": true, "test": true}
@@ -229,7 +232,7 @@ func cmdInstall(c *cli.Context) error {
 	if email := c.String("email"); email != "" {
 		distinctId = email
 		updateId(distinctId)
-	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
+	} else if distinctId == "" && terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
 		email, err := reader.ReadString('\n')
@@ -303,7 +306,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	versionName := version.Version
-	formationUrl := fmt.Sprintf(FormationUrl, versionName)
+	furl := fmt.Sprintf(formationURL, versionName)
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
@@ -345,7 +348,7 @@ func cmdInstall(c *cli.Context) error {
 			&cloudformation.Parameter{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
 		},
 		StackName:   aws.String(stackName),
-		TemplateURL: aws.String(formationUrl),
+		TemplateURL: aws.String(furl),
 	}
 
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
@@ -720,7 +723,18 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	}
 
 	if creds.Access == "" || creds.Secret == "" {
+		creds, err = awsCLICredentials()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if creds != nil {
+			return creds, err
+		}
+
 		fmt.Println(CredentialsMessage)
+
 		reader := bufio.NewReader(os.Stdin)
 
 		if creds.Access == "" {
@@ -793,4 +807,45 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 	}
 
 	return &input.Credentials, err
+}
+
+func awsCLICredentials() (*AwsCredentials, error) {
+	data, err := awsCLI("iam", "get-user")
+
+	if err != nil && strings.Index(err.Error(), "executable file not found") > -1 {
+		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
+		fmt.Println("See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html")
+		fmt.Println()
+		return nil, nil
+	}
+
+	if strings.Index(string(data), "Unable to locate credentials") > -1 {
+		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
+		fmt.Println("You can configure credentials by running `aws configure`.")
+		fmt.Println()
+		return nil, nil
+	}
+
+	access, err := awsCLI("configure", "get", "aws_access_key_id")
+
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := awsCLI("configure", "get", "aws_secret_access_key")
+
+	if err != nil {
+		return nil, err
+	}
+
+	creds := &AwsCredentials{
+		Access: strings.TrimSpace(string(access)),
+		Secret: strings.TrimSpace(string(secret)),
+	}
+
+	return creds, nil
+}
+
+func awsCLI(args ...string) ([]byte, error) {
+	return exec.Command("aws", args...).CombinedOutput()
 }
