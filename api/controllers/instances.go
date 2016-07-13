@@ -70,8 +70,9 @@ func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	instanceId := mux.Vars(r)["id"]
 
-	_, err = models.EC2().TerminateInstances(&ec2.TerminateInstancesInput{
-		InstanceIds: []*string{&instanceId},
+	_, err = models.AutoScaling().TerminateInstanceInAutoScalingGroup(&autoscaling.TerminateInstanceInAutoScalingGroupInput{
+		InstanceId: aws.String(instanceId),
+		ShouldDecrementDesiredCapacity: aws.Bool(false),
 	})
 
 	if err != nil {
