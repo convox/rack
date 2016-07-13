@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -62,7 +63,9 @@ func main() {
 	handleError(err)
 
 	handleErrors(m.BuildRack(app, "src", cache))
+	log.Print("LOGS ARE DAWG")
 	handleErrors(m.Push(app, registryAddress, buildId, repository))
+	log.Print("YOOHOO")
 
 	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
 	handleError(err)

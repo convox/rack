@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -150,14 +149,10 @@ func (r *Release) Promote() error {
 
 	fmt.Printf("ns=kernel at=release.promote at=s3Get found=%t\n", err == nil)
 
-	fmt.Println(formation)
-
 	existing, err := formationParameters(formation)
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%#v", existing)
 
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = CustomTopic
@@ -181,18 +176,6 @@ func (r *Release) Promote() error {
 	m, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
-	}
-
-	log.Printf("IDEBT")
-	for _, b := range m.Services {
-		log.Print("SERVIcE")
-		log.Print(b)
-		log.Printf("%#v", b.Ports)
-		log.Printf("%#v", b.Randoms())
-	}
-	for _, b := range m.Balancers() {
-		log.Print("BALANCER")
-		log.Printf("%#v", b.PortMappings())
 	}
 
 	for _, entry := range m.Services {
@@ -241,10 +224,10 @@ func (r *Release) Promote() error {
 		}
 
 		for _, mapping := range entry.Ports {
-			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
-			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
-			proxyParam := fmt.Sprintf("%sPort%sProxy", UpperName(entry.Name), mapping.Balancer)
-			secureParam := fmt.Sprintf("%sPort%sSecure", UpperName(entry.Name), mapping.Balancer)
+			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
+			protoParam := fmt.Sprintf("%sPort%dProtocol", UpperName(entry.Name), mapping.Balancer)
+			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
+			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
 
 			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)]
 
@@ -257,14 +240,14 @@ func (r *Release) Promote() error {
 				}
 			}
 
-			if entry.Labels[fmt.Sprintf("convox.port.%s.proxy", mapping.Balancer)] == "true" {
+			if entry.Labels[fmt.Sprintf("convox.port.%d.proxy", mapping.Balancer)] == "true" {
 				app.Parameters[proxyParam] = "Yes"
 			} else {
 				app.Parameters[proxyParam] = "No"
 			}
 
 			// only change the secure parameter if a label is set for backwards compat
-			switch entry.Labels[fmt.Sprintf("convox.port.%s.secure", mapping.Balancer)] {
+			switch entry.Labels[fmt.Sprintf("convox.port.%d.secure", mapping.Balancer)] {
 			case "true":
 				app.Parameters[secureParam] = "Yes"
 			case "false":
