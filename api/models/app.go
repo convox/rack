@@ -502,65 +502,16 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	// - If the release has yet to be promoted, we use the most recent TaskDefinition with the provided release's environment.
 	if releaseId != a.Release {
 
-		var releaseContainer *ecs.ContainerDefinition
-
-		ts, err := ECS().ListTaskDefinitions(&ecs.ListTaskDefinitionsInput{
-			FamilyPrefix: task.TaskDefinition.Family,
-		})
+		_, releaseContainer, err := findAppDefinitions(process, releaseId, *task.TaskDefinition.Family, 20)
 		if err != nil {
-			return err
-		}
-
-		startRevision := len(ts.TaskDefinitionArns) - 1
-		maxRevision := 0
-		// Only check the last 20 task definition revisions to run a release from.
-		// Avoid any API rate limits and iterating over hudreds of task definitions.
-		if startRevision > 20 {
-			maxRevision = startRevision - 20
-		}
-
-		for i := startRevision; i >= maxRevision; i-- {
-			t, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-				TaskDefinition: ts.TaskDefinitionArns[i],
-			})
-			if err != nil {
-				continue
-			}
-
-			if t == nil {
-				return fmt.Errorf("unable to retrieve task definition")
-			}
-
-			/// Loop logic used to find a previous release.
-		ContainerCheck:
-			for _, releaseContainer = range t.TaskDefinition.ContainerDefinitions {
-				releaseMatch := false
-
-			ReleaseCheck:
-				for _, kv := range releaseContainer.Environment {
-					if *kv.Name == "RELEASE" {
-						if *kv.Value == releaseId {
-							releaseMatch = true
-							break ReleaseCheck
-						}
-					}
-				}
-
-				if *releaseContainer.Name == process && releaseMatch {
-					break ContainerCheck
-				}
-				releaseContainer = nil
-			}
-			////////////////////////////////////////////////////
-
-			if releaseContainer != nil {
-				container = releaseContainer
-				break
-			}
+			return nil
 		}
 
 		// If container is nil, the release most likely hasn't been promoted and thus no TaskDefinition for it.
-		if releaseContainer == nil {
+		if releaseContainer != nil {
+			container = releaseContainer
+
+		} else {
 			fmt.Printf("Unable to find container for %s. Basing container off of most recent release: %s.\n", process, a.Release)
 			unpromotedRelease = true
 		}
@@ -767,7 +718,7 @@ func (a *App) RunDetached(process, command, releaseId string) error {
 			return err
 		}
 
-		td, _, err := findAppDefinitionsByRelease(process, releaseId, *task.TaskDefinition.Family, 20)
+		td, _, err := findAppDefinitions(process, releaseId, *task.TaskDefinition.Family, 20)
 		if err != nil {
 			return err
 
@@ -958,9 +909,9 @@ func (s Apps) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// findAppDefinitionsByRelease looks for a specific ECS task revision and container definition that matches an app's process name and release ID.
+// findAppDefinitions looks for a specific ECS task revision and container definition that matches an app's process name and release ID.
 // Given the taskDefinitionFamily prefix, this function will iterate the task's revisions starting with the most recent up to count revisions.
-func findAppDefinitionsByRelease(process, releaseId, taskDefinitionFamily string, count int) (*ecs.TaskDefinition, *ecs.ContainerDefinition, error) {
+func findAppDefinitions(process, releaseId, taskDefinitionFamily string, count int) (*ecs.TaskDefinition, *ecs.ContainerDefinition, error) {
 	//TODO: Move this function over to the aws apps provider implemntation once the Run methods have been ported over.
 
 	var containerDefinition *ecs.ContainerDefinition
