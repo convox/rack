@@ -191,7 +191,7 @@ func (m Manifest) Validate() error {
 	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
 	for _, entry := range map[string]ManifestEntry(m) {
-		labels := entry.labelsByPrefix("convox.cron")
+		labels := entry.LabelsByPrefix("convox.cron")
 		for k := range labels {
 			parts := strings.Split(k, ".")
 			if len(parts) != 3 {
@@ -998,9 +998,11 @@ func (me ManifestEntry) Label(key string) string {
 	return ""
 }
 
-func (me ManifestEntry) labelsByPrefix(prefix string) map[string]string {
+// LabelsByPrefix filters Docker Compose label names by prefixes and returns
+// a map of label names to values that match.
+func (e ManifestEntry) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
-	switch labels := me.Labels.(type) {
+	switch labels := e.Labels.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range labels {
 			ks, ok := k.(string)
@@ -1095,6 +1097,17 @@ func (me ManifestEntry) syncAdds(app, process string) error {
 				wd := strings.TrimSpace(string(wdb))
 
 				remote = filepath.Join(wd, remote)
+			}
+
+			local := filepath.Join(me.Build, parts[1])
+
+			info, err := os.Stat(local)
+			if err != nil {
+				return err
+			}
+
+			if !info.IsDir() && strings.HasSuffix(remote, "/") {
+				remote = filepath.Join(remote, filepath.Base(local))
 			}
 
 			registerSync(containerName(app, process), filepath.Join(me.Build, parts[1]), remote)
@@ -1384,6 +1397,12 @@ func processAdds(prefix string, adds map[string]bool, lock sync.Mutex, syncs []S
 		lock.Lock()
 
 		fmt.Printf(system("%s uploading %d files\n"), prefix, len(adds))
+
+		if os.Getenv("CONVOX_DEBUG") != "" {
+			for add := range adds {
+				fmt.Printf(system("%s uploading %s\n"), prefix, add)
+			}
+		}
 
 		for _, sync := range syncs {
 			var buf bytes.Buffer
@@ -1682,6 +1701,12 @@ func (m *Manifest) downloadRemoteAdds(container string, adds map[string]string) 
 	}
 
 	fmt.Printf(system("%s downloading %d files\n"), m.systemPrefix(), len(remotes))
+
+	if os.Getenv("CONVOX_DEBUG") != "" {
+		for _, remote := range remotes {
+			fmt.Printf(system("%s downloading %s\n"), m.systemPrefix(), remote)
+		}
+	}
 
 	args := append([]string{"exec", "-i", container, "tar", "czf", "-"}, remotes...)
 

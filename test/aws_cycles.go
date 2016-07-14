@@ -127,7 +127,7 @@ func DescribeStackCycleWithoutQuery(appName string) awsutil.Cycle {
 
 func DeleteInstanceCycle(instance string) awsutil.Cycle {
 	return awsutil.Cycle{
-		awsutil.Request{"/", "", `Action=TerminateInstances&InstanceId.1=` + instance + `&Version=2015-10-01`},
+		awsutil.Request{"/", "", `Action=TerminateInstanceInAutoScalingGroup&InstanceId=` + instance + `&ShouldDecrementDesiredCapacity=false&Version=2011-01-01`},
 		awsutil.Response{200, ""},
 	}
 }
