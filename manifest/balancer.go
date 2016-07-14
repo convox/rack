@@ -11,12 +11,6 @@ import (
 	// "github.com/convox/rack/api/models"
 )
 
-type ManifestPort struct {
-	Balancer  string
-	Container string
-	Public    bool
-}
-
 type ManifestBalancer struct {
 	Entry  Service
 	Public bool

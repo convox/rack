@@ -10,6 +10,7 @@ type Port struct {
 	Name      string
 	Balancer  int
 	Container int
+	Public    bool
 }
 
 type Ports []Port
@@ -68,6 +69,8 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 			p.Name = parts[0]
 			p.Container = n
+			p.Balancer = n
+			p.Public = false
 		case 2:
 			n, err := strconv.Atoi(parts[0])
 
@@ -85,6 +88,7 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 			p.Name = parts[0]
 			p.Container = n
+			p.Public = true
 		default:
 			return fmt.Errorf("invalid port: %s", s)
 		}
@@ -96,7 +100,7 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 func (p Port) External() bool {
-	return p.Balancer != 0
+	return p.Public
 }
 
 func (p Port) String() string {

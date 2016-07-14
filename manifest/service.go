@@ -221,7 +221,7 @@ func (me Service) ExternalPorts() []Port {
 	ext := []Port{}
 
 	for _, port := range me.Ports {
-		if port.Balancer != 0 {
+		if port.Public {
 			ext = append(ext, port)
 		}
 	}
@@ -233,7 +233,7 @@ func (me Service) InternalPorts() []Port {
 	internal := []Port{}
 
 	for _, port := range me.Ports {
-		if port.Balancer == 0 {
+		if !port.Public {
 			internal = append(internal, port)
 		}
 	}
