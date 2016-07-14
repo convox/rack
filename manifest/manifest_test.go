@@ -117,7 +117,7 @@ func TestLoadFullVersion1(t *testing.T) {
 			if assert.Equal(t, len(db.Ports), 1) {
 				assert.False(t, db.Ports.External())
 				assert.False(t, db.Ports[0].External())
-				assert.Equal(t, db.Ports[0].Balancer, 0)
+				assert.Equal(t, db.Ports[0].Balancer, 5432)
 				assert.Equal(t, db.Ports[0].Container, 5432)
 			}
 		}
@@ -172,7 +172,7 @@ func TestLoadFullVersion2(t *testing.T) {
 			if assert.Equal(t, len(db.Ports), 1) {
 				assert.False(t, db.Ports.External())
 				assert.False(t, db.Ports[0].External())
-				assert.Equal(t, db.Ports[0].Balancer, 0)
+				assert.Equal(t, db.Ports[0].Balancer, 5432)
 				assert.Equal(t, db.Ports[0].Container, 5432)
 			}
 		}
@@ -286,7 +286,7 @@ func TestShift(t *testing.T) {
 		web := m.Services["web"]
 
 		if assert.NotNil(t, web) && assert.Equal(t, len(web.Ports), 2) {
-			assert.Equal(t, web.Ports[0].Balancer, 0)
+			assert.Equal(t, web.Ports[0].Balancer, 5000)
 			assert.Equal(t, web.Ports[0].Container, 5000)
 			assert.Equal(t, web.Ports[1].Balancer, 11000)
 			assert.Equal(t, web.Ports[1].Container, 7000)
