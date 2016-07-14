@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -229,7 +230,7 @@ func (r *Release) Promote() error {
 			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
 			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
 
-			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)]
+			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
 
 			// default protocol is tcp, or tls if they have a certificate set
 			if app.Parameters[protoParam] == "" {
@@ -239,6 +240,8 @@ func (r *Release) Promote() error {
 					app.Parameters[protoParam] = "tls"
 				}
 			}
+
+			log.Printf("%#v", app.Parameters)
 
 			if entry.Labels[fmt.Sprintf("convox.port.%d.proxy", mapping.Balancer)] == "true" {
 				app.Parameters[proxyParam] = "Yes"
@@ -281,6 +284,7 @@ func (r *Release) Promote() error {
 			}
 		}
 	}
+	log.Print(formation)
 
 	params := []*cloudformation.Parameter{}
 
@@ -296,6 +300,9 @@ func (r *Release) Promote() error {
 	}
 
 	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
+
+	log.Print("PARAMS")
+	log.Printf("%#v", params)
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
