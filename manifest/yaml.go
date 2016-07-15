@@ -2,9 +2,21 @@ package manifest
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
+
+func (m *Manifest) MarshalYAML() (interface{}, error) {
+	log.Print("MARSHALYAML CALLED")
+	if m.Version == "1" {
+		return m.Services, nil
+	}
+	return map[string]interface{}{
+		"Version":  m.Version,
+		"Services": m.Services,
+	}, nil
+}
 
 // UnmarshalYAML implements the Unmarshaller interface.
 func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -179,6 +191,59 @@ func (l *Labels) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 	default:
 		return fmt.Errorf("cannot parse labels: %v", t)
+	}
+
+	return nil
+}
+
+func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var v []string
+
+	if err := unmarshal(&v); err != nil {
+		return err
+	}
+
+	*pp = make(Ports, len(v))
+
+	for i, s := range v {
+		parts := strings.Split(s, ":")
+		p := Port{}
+
+		switch len(parts) {
+		case 1:
+			n, err := strconv.Atoi(parts[0])
+
+			if err != nil {
+				return fmt.Errorf("error parsing port: %s", err)
+			}
+
+			p.Name = parts[0]
+			p.Container = n
+			p.Balancer = n
+			p.Public = false
+		case 2:
+			n, err := strconv.Atoi(parts[0])
+
+			if err != nil {
+				return fmt.Errorf("error parsing port: %s", err)
+			}
+
+			p.Balancer = n
+
+			n, err = strconv.Atoi(parts[1])
+
+			if err != nil {
+				return fmt.Errorf("error parsing port: %s", err)
+			}
+
+			p.Name = parts[0]
+			p.Container = n
+			p.Public = true
+		default:
+			return fmt.Errorf("invalid port: %s", s)
+		}
+
+		(*pp)[i] = p
 	}
 
 	return nil

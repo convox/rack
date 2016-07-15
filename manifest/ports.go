@@ -1,10 +1,6 @@
 package manifest
 
-import (
-	"fmt"
-	"strconv"
-	"strings"
-)
+import "fmt"
 
 type Port struct {
 	Name      string
@@ -44,59 +40,6 @@ func (pp Ports) Shift(shift int) {
 			pp[i].Balancer += shift
 		}
 	}
-}
-
-func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v []string
-
-	if err := unmarshal(&v); err != nil {
-		return err
-	}
-
-	*pp = make(Ports, len(v))
-
-	for i, s := range v {
-		parts := strings.Split(s, ":")
-		p := Port{}
-
-		switch len(parts) {
-		case 1:
-			n, err := strconv.Atoi(parts[0])
-
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Name = parts[0]
-			p.Container = n
-			p.Balancer = n
-			p.Public = false
-		case 2:
-			n, err := strconv.Atoi(parts[0])
-
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Balancer = n
-
-			n, err = strconv.Atoi(parts[1])
-
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Name = parts[0]
-			p.Container = n
-			p.Public = true
-		default:
-			return fmt.Errorf("invalid port: %s", s)
-		}
-
-		(*pp)[i] = p
-	}
-
-	return nil
 }
 
 func (p Port) External() bool {

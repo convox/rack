@@ -129,10 +129,16 @@ func (r *Release) Save() error {
 }
 
 func (r *Release) Promote() error {
+	log.Print("Promote called")
 	app, err := GetApp(r.App)
 	if err != nil {
+		log.Print("ERROR")
+		log.Print(err.Error())
 		return err
 	}
+
+	log.Print("App got")
+	log.Printf("%#v", app)
 
 	formation, err := r.Formation()
 	if err != nil {
