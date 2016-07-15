@@ -1,39 +1,36 @@
 package manifest
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
-	builds := map[string]string{}
 	pulls := map[string]string{}
+	builds := []Service{}
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
 		if dockerFile == "" {
 			dockerFile = service.Dockerfile
 		}
-		switch {
-		case service.Build.Context != "":
-			builds[fmt.Sprintf("%s|%s", service.Build.Context, coalesce(dockerFile, "Dockerfile"))] = service.Tag()
-		case service.Image != "":
+		if service.Image != "" {
 			pulls[service.Image] = service.Tag()
+		} else {
+			builds = append(builds, service)
 		}
 	}
 
-	for build, tag := range builds {
-		parts := strings.SplitN(build, "|", 2)
-
+	for _, service := range builds {
 		args := []string{"build"}
 
 		if noCache {
 			args = append(args, "--no-cache")
 		}
 
-		args = append(args, "-f", parts[1])
-		args = append(args, "-t", tag)
-		args = append(args, parts[0])
+		context := coalesce(service.Build.Context, ".")
+		dockerFile := coalesce(service.Build.Dockerfile, "Dockerfile")
+
+		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
+		args = append(args, "-t", service.Tag())
+		args = append(args, context)
 		run(s, Docker(args...))
 		// runPrefix(systemPrefix(m), Docker(args...))
 	}
