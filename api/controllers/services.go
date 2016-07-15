@@ -33,14 +33,22 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	// new services should use the provider interfaces
-	if s.Type == "syslog" {
-		s, err := provider.ServiceGet(service)
-		if err != nil {
-			return httperr.Server(err)
-		}
+  switch s.Type {
+    case "syslog":
+      s, err := provider.ServiceGet(service)
+		  if err != nil {
+			  return httperr.Server(err)
+		  }
 
-		return RenderJson(rw, s)
-	}
+		  return RenderJson(rw, s)
+    case "fluentd":
+      s, err := provider.ServiceGet(service)
+		  if err != nil {
+			  return httperr.Server(err)
+		  }
+
+		  return RenderJson(rw, s)
+  }
 
 	return RenderJson(rw, s)
 }
@@ -64,7 +72,7 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "type")
 
 	// new services should use the provider interfaces
-	if kind == "syslog" || kind == "papertrail" {
+	if kind == "syslog" || kind == "papertrail" || kind == "fluentd" {
 		s, err := provider.ServiceCreate(name, kind, params)
 		if err != nil {
 			return httperr.Server(err)
