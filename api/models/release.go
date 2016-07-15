@@ -142,6 +142,8 @@ func (r *Release) Promote() error {
 
 	formation, err := r.Formation()
 	if err != nil {
+		log.Print("ERROR")
+		log.Print(err.Error())
 		return err
 	}
 
