@@ -18,6 +18,13 @@ func (m *Manifest) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
+func (p *Port) MarshalYAML() (interface{}, error) {
+	if p.Public {
+		return fmt.Sprintf("%d:%d", p.Balancer, p.Container), nil
+	}
+	return fmt.Sprintf("%d", p.Container), nil
+}
+
 // UnmarshalYAML implements the Unmarshaller interface.
 func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
