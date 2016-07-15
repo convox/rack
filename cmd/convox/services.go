@@ -48,7 +48,7 @@ func init() {
 		},
 		ServiceType{
 			"fluentd",
-      "--url=tcp://fluentd-collector.example.com:24224",
+			"--url=tcp://fluentd-collector.example.com:24224",
 		},
 		ServiceType{
 			"webhook",
