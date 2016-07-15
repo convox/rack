@@ -69,10 +69,12 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 	return &build, nil
 }
 
+// CreateBuildSource will create a new build from source. If progress of the uploaded is needed, see CreateBuildSourceP
 func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manifest string, description string) (*Build, error) {
 	return c.CreateBuildSourceP(app, source, cache, manifest, description, nil)
 }
 
+// CreateBuildSourceP will create a new build from source with an optional callback to provide progress of the source being uploaded.
 func (c *Client) CreateBuildSourceP(app string, source []byte, cache bool, manifest string, description string, progressCallback func(s string)) (*Build, error) {
 	var build Build
 
