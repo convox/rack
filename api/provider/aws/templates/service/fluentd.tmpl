@@ -81,7 +81,17 @@
     "Function": {
       "Properties": {
         "Code": {
-          "S3Bucket": "reverb-deploy",
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
           "S3Key": "fluentd.zip"
         },
         "Description": {
