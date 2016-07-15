@@ -47,6 +47,10 @@ func init() {
 			"--url=tcp+tls://logs1.papertrailapp.com:11235",
 		},
 		ServiceType{
+			"fluentd",
+      "--url=fluentd-collector.example.com:24224",
+		},
+		ServiceType{
 			"webhook",
 			"--url=https://console.convox.com/webhooks/1234",
 		},

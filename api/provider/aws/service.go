@@ -30,6 +30,8 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		err = fmt.Errorf("papertrail is no longer supported. Create a `syslog` service instead")
 	case "syslog":
 		req, err = createSyslog(s)
+	case "fluentd":
+		req, err = createFluentD(s)
 	default:
 		err = fmt.Errorf("Invalid service type: %s", s.Type)
 	}
@@ -189,6 +191,8 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 	switch s.Type {
 	case "syslog":
 		err = p.ServiceLinkSubscribe(a, s) // Update service to know about App
+	case "fluentd":
+		err = p.ServiceLinkSubscribe(a, s) // Update service to know about App
 	case "s3", "sns", "sqs":
 		err = p.ServiceLinkSet(a, s) // Updates app with S3_URL
 	case "postgres":
@@ -266,6 +270,8 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	// Update Service and/or App stacks
 	switch s.Type {
 	case "syslog":
+		err = p.ServiceUnlinkSubscribe(a, s) // Update service to forget about App
+	case "fluentd":
 		err = p.ServiceUnlinkSubscribe(a, s) // Update service to forget about App
 	case "s3", "sns", "sqs":
 		err = p.ServiceUnlinkSet(a, s) // Updates app without S3_URL
@@ -346,6 +352,21 @@ func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) 
 	return req, nil
 }
 
+func createFluentD(s *structs.Service) (*cloudformation.CreateStackInput, error) {
+	formation, err := serviceFormation(s.Type, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(serviceStackName(s)),
+		TemplateBody: aws.String(formation),
+	}
+
+	return req, nil
+}
+
 func serviceFormation(kind string, data interface{}) (string, error) {
 	d, err := buildTemplate(fmt.Sprintf("service/%s", kind), "service", data)
 	if err != nil {
@@ -369,6 +390,8 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 	if humanStatus(*stack.StackStatus) == "running" {
 		switch tags["Service"] {
 		case "syslog":
+			exports["URL"] = params["Url"]
+    case "fluentd":
 			exports["URL"] = params["Url"]
 		}
 	}
