@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
+// Syslog creates an IAM role, therefore require IAM capabilitites for updates
 func (s *Service) UpdateLogger() (*cloudformation.UpdateStackInput, error) {
 	formation, err := s.Formation()
 	if err != nil {
