@@ -353,7 +353,19 @@ func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) 
 }
 
 func createFluentD(s *structs.Service) (*cloudformation.CreateStackInput, error) {
-	formation, err := serviceFormation(s.Type, nil)
+  u, err := url.Parse(s.Parameters["Url"])
+	if err != nil {
+		return nil, err
+	}
+
+	switch u.Scheme {
+	case "tcp":
+		// proceed
+	default:
+		return nil, fmt.Errorf("Invalid url scheme `%s`. The only allowed scheme for this service is `tcp`", u.Scheme)
+	}
+
+  formation, err := serviceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err
 	}
