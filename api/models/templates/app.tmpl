@@ -233,13 +233,26 @@
 
 {{ define "balancer-conditions" }}
   {{ range .Balancers }}
-    {{ $balancer := . }}
+    {{ $processName := upper .ProcessName }}
+    {{ $balancerPrefix := printf "Balancer%s" $processName }}
+    "{{ $balancerPrefix }}BlankHealthPath": {
+      "Fn::Equals": [
+        {"Ref": "{{ $processName }}HealthPath"},
+        ""
+      ]
+    },
+    "{{ $balancerPrefix }}BlankHealthTimeout": {
+      "Fn::Equals": [
+        {"Ref": "{{ $processName }}HealthTimeout"},
+        ""
+      ]
+    },
     {{ range .PortMappings }}
-      "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
-        "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
+      "{{ $balancerPrefix }}Port{{ .Balancer }}Proxy": {
+        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
       },
-      "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
-        "Fn::Equals": [ { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure" }, "Yes" ]
+      "{{ $balancerPrefix }}Port{{ .Balancer }}Secure": {
+        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Secure" }, "Yes" ]
       },
     {{ end }}
   {{ end }}
@@ -248,6 +261,16 @@
 {{ define "balancer-params" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
+    "{{ upper $balancer.ProcessName }}HealthPath": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Path used when health check protocol is http(s)"
+    },
+    "{{ upper $balancer.ProcessName }}HealthTimeout": {
+      "Default": "{{ .DefaultHealthTimeout }}",
+      "Type": "Number",
+      "MaxValue": 60
+    },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Type" : "String",
@@ -349,11 +372,56 @@
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
+        {{ $balancerHealthPrefix := printf "%sHealth" (upper $balancer.ProcessName) }}
         "HealthCheck": {
           "HealthyThreshold": "2",
-          "Interval": 5,
-          "Target": { "Fn::Join": [ ":", [ "TCP", { "Ref": "{{ upper .ProcessName }}Port{{ .FirstPort }}Host" } ] ] },
-          "Timeout": 3,
+          "Interval": "{{ .HealthInterval }}",
+          "Target": {
+            {{/* Joins to form <protocol>:<port>/<path> */}}
+            "Fn::Join": [
+              "",
+              [
+                {
+                  {{/* Joins to form <protocol>:<port> */}}
+                  "Fn::Join": [
+                    ":",
+                    [
+                      {
+                        "Fn::If": [
+                          "Balancer{{ upper $balancer.ProcessName }}BlankHealthPath",
+                          {{/* If health check path is blank */}}
+                          {
+                            "Fn::If": [
+                              "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
+                              {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
+                              {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
+                            ]
+                          },
+                          {{/* If health check path is NOT blank */}}
+                          {
+                            "Fn::If": [
+                              "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
+                              {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
+                              {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
+                            ]
+                          }
+                        ]
+                      },
+                      { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Host" }
+                    ]
+                  ]
+                },
+                { "Ref": "{{ $balancerHealthPrefix }}Path" }
+              ]
+            ]
+          },
+          "Timeout": {
+            "Fn::If": [
+              "Balancer{{ upper $balancer.ProcessName }}BlankHealthTimeout",
+              "{{ $balancer.DefaultHealthTimeout }}",
+              { "Ref": "{{ $balancerHealthPrefix }}Timeout" }
+            ]
+          },
           "UnhealthyThreshold": "2"
         },
         "Listeners": [
