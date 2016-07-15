@@ -334,16 +334,19 @@ func (r *Release) EnvironmentUrl() string {
 
 func (r *Release) Formation() (string, error) {
 	app, err := GetApp(r.App)
-
 	if err != nil {
 		return "", err
 	}
+
+	log.Print("IDENT HERE")
+	log.Print(r.Manifest)
 
 	manifest, err := manifest.Load([]byte(r.Manifest))
-
 	if err != nil {
 		return "", err
 	}
+
+	log.Print("I bet y'all we dont get here")
 
 	// Bound apps do not use the StackName as ELB name.
 	if !app.IsBound() {
