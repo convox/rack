@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
 )
@@ -292,6 +294,40 @@ func TestShift(t *testing.T) {
 			assert.Equal(t, web.Ports[1].Container, 7000)
 		}
 	}
+}
+
+func TestManifestMarshalYaml(t *testing.T) {
+	m := manifest.Manifest{
+		Version: "1",
+		Services: map[string]manifest.Service{
+			"food": manifest.Service{
+				Name: "food",
+				Build: manifest.Build{
+					Context:    ".",
+					Dockerfile: "Dockerfile",
+				},
+				Ports: manifest.Ports{
+					manifest.Port{
+						Public:    true,
+						Balancer:  10,
+						Container: 10,
+					},
+				},
+			},
+		},
+	}
+
+	byts, err := yaml.Marshal(m)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	m2, err := manifest.Load(byts)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	assert.Equal(t, m2.Version, "2")
+	assert.Equal(t, m2.Services["food"].Name, "food")
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {

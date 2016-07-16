@@ -2,23 +2,16 @@ package manifest
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 )
 
-func (m *Manifest) MarshalYAML() (interface{}, error) {
-	log.Print("MARSHALYAML CALLED")
-	if m.Version == "1" {
-		return m.Services, nil
-	}
-	return map[string]interface{}{
-		"Version":  m.Version,
-		"Services": m.Services,
-	}, nil
+func (m Manifest) MarshalYAML() (interface{}, error) {
+	m.Version = "2"
+	return m, nil
 }
 
-func (p *Port) MarshalYAML() (interface{}, error) {
+func (p Port) MarshalYAML() (interface{}, error) {
 	if p.Public {
 		return fmt.Sprintf("%d:%d", p.Balancer, p.Container), nil
 	}
