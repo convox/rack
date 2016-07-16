@@ -44,9 +44,9 @@ type Service struct {
 
 // see yaml.go for unmarshallers
 type Build struct {
-	Context    string
-	Dockerfile string
-	Args       map[string]string
+	Context    string            `yaml:"context,omitempty"`
+	Dockerfile string            `yaml:"dockerfile,omitempty"`
+	Args       map[string]string `yaml:"args,omitempty"`
 }
 type Command []string
 type Environment map[string]string
