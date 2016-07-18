@@ -294,6 +294,7 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 
 	go keepAlive(ws, quit)
 	go func() {
+		fmt.Println("############################ BEFORE client.Logs")
 		err = client.Logs(docker.LogsOptions{
 			Container:    fmt.Sprintf("build-%s", build),
 			Follow:       true,
@@ -305,23 +306,43 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 			ErrorStream:  ws,
 		})
 
+		fmt.Println("############################ AFTER client.Logs")
 		logErr <- err
 	}()
 
 	for {
+		breakLoop := false
+		fmt.Println("############################ FOR LOOP")
 		select {
+
 		case err = <-logErr:
-			break
+			fmt.Println("############################ IN client.Logs err case")
+			breakLoop = true
+
 		default:
+			fmt.Println("############################ IN default case")
 			b, err := provider.BuildGet(app, build)
 			if err != nil {
-				break
+				breakLoop = true
 			}
-			if b.Status == "complete" {
+
+			switch b.Status {
+			case "complete":
 				err = nil
-				break
+				breakLoop = true
+			case "error":
+				err = fmt.Errorf("%s build failed", app)
+				breakLoop = true
+			case "failed":
+				err = fmt.Errorf("%s build failed", app)
+				breakLoop = true
 			}
+
 			// Maybe have another case to handle a timeout? But what's a good value?
+		}
+
+		if breakLoop {
+			break
 		}
 
 		time.Sleep(2 * time.Second)
