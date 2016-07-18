@@ -270,7 +270,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	versionName := version.Version
-	formationUrl := fmt.Sprintf(FormationUrl, versionName)
+	furl := fmt.Sprintf(formationURL, versionName)
 
 	fmt.Println(Banner)
 
