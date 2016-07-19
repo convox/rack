@@ -616,7 +616,6 @@ func createTarball(base string) ([]byte, error) {
 }
 
 func finishBuild(c *cli.Context, app string, build *client.Build) (string, error) {
-	fmt.Println("Streaming build logs...")
 	if build.Id == "" {
 		return "", fmt.Errorf("unable to fetch build id")
 	}
