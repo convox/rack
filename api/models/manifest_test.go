@@ -134,6 +134,91 @@ func TestCommandStringForm(t *testing.T) {
 	assertFixture(t, "command_string_form", "")
 }
 
+func TestHealthPort(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be the first port
+	port, err := balancer.HealthPort()
+	assert.EqualValues(t, port, "80")
+}
+
+func TestHealthPortWithOverride(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+  labels:
+    - convox.health.port=3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be the first host port that matches 3001, which is 81
+	port, err := balancer.HealthPort()
+	assert.EqualValues(t, port, "81")
+}
+
+func TestHealthPortWithMultipleOverride(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+    - 81:3001
+    - 82:3001
+  labels:
+    - convox.health.port=3001
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should be first matching port (81, not 82)
+	port, err := balancer.HealthPort()
+	assert.EqualValues(t, port, "81")
+}
+
+func TestHealthInterval(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should return default
+	interval, err := balancer.HealthInterval()
+	assert.EqualValues(t, interval, "5")
+}
+
+func TestHealthIntervalWithTimeoutConfigured(t *testing.T) {
+	_manifest := `
+web:
+  ports:
+    - 80:3000
+  labels:
+    - convox.health.timeout=60
+`
+	manifest, err := LoadManifest(_manifest, nil)
+	require.Nil(t, err)
+	balancer := manifest.Balancers()[0]
+
+	// Should return timeout + 2
+	interval, err := balancer.HealthInterval()
+	assert.EqualValues(t, interval, "62")
+}
+
 func TestManifestRandomPorts(t *testing.T) {
 	manifest, err := LoadManifest("web:\n  ports:\n  - 80:3000\n  - 3001", nil)
 
