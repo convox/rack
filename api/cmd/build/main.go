@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -67,14 +66,10 @@ func main() {
 	cwd, err := os.Getwd()
 	handleError(err)
 
-	log.Print("HERE")
-
 	handleError(os.Chdir("./src"))
 	handleErrors(m.BuildRack(app, ".", cache))
 	handleError(os.Chdir(cwd))
-	log.Print("LOGS ARE DAWG")
 	handleErrors(m.Push(app, registryAddress, buildId, repository))
-	log.Print("YOOHOO")
 
 	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
 	handleError(err)

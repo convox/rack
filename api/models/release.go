@@ -128,21 +128,13 @@ func (r *Release) Save() error {
 }
 
 func (r *Release) Promote() error {
-	log.Print("Promote called")
 	app, err := GetApp(r.App)
 	if err != nil {
-		log.Print("ERROR")
-		log.Print(err.Error())
 		return err
 	}
 
-	log.Print("App got")
-	log.Printf("%#v", app)
-
 	formation, err := r.Formation()
 	if err != nil {
-		log.Print("ERROR")
-		log.Print(err.Error())
 		return err
 	}
 
@@ -350,15 +342,10 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	log.Print("IDENT HERE")
-	log.Print(r.Manifest)
-
 	manifest, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return "", err
 	}
-
-	log.Print("I bet y'all we dont get here")
 
 	// Bound apps do not use the StackName as ELB name.
 	if !app.IsBound() {
