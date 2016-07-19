@@ -84,11 +84,7 @@ func templatesServiceFluentdTmpl() (*asset, error) {
 		return nil, err
 	}
 
-<<<<<<< c88f93d4279f69a848f3845f827b0d6454ce8062
-	info := bindataFileInfo{name: "templates/service/fluentd.tmpl", size: 4750, mode: os.FileMode(420), modTime: time.Unix(1468956607, 0)}
-=======
 	info := bindataFileInfo{name: "templates/service/fluentd.tmpl", size: 4756, mode: os.FileMode(420), modTime: time.Unix(1468603685, 0)}
->>>>>>> Updating service template with proper url containing tcp://
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
