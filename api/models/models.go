@@ -127,13 +127,11 @@ func SNS() *sns.SNS {
 
 func buildTemplate(name, section string, input interface{}) (string, error) {
 	data, err := Asset(fmt.Sprintf("templates/%s.tmpl", name))
-
 	if err != nil {
 		return "", err
 	}
 
 	tmpl, err := template.New(section).Funcs(templateHelpers()).Parse(string(data))
-
 	if err != nil {
 		return "", err
 	}
@@ -141,7 +139,6 @@ func buildTemplate(name, section string, input interface{}) (string, error) {
 	var formation bytes.Buffer
 
 	err = tmpl.Execute(&formation, input)
-
 	if err != nil {
 		return "", err
 	}

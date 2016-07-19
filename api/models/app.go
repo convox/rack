@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/manifest"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -138,8 +139,11 @@ func (a *App) Create() error {
 		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
 	}
 
-	formation, err := a.Formation()
+	m := manifest.Manifest{
+		Services: make(map[string]manifest.Service),
+	}
 
+	formation, err := a.Formation(m)
 	if err != nil {
 		helpers.TrackEvent("kernel-app-create-error", nil)
 		return err
@@ -334,8 +338,12 @@ func (a *App) UpdateParams(changes map[string]string) error {
 	return err
 }
 
-func (a *App) Formation() (string, error) {
-	data, err := buildTemplate("app", "app", Manifest{})
+func (a *App) Formation(m manifest.Manifest) (string, error) {
+	tmplData := map[string]interface{}{
+		"App":      a,
+		"Manifest": m,
+	}
+	data, err := buildTemplate("app", "app", tmplData)
 	if err != nil {
 		return "", err
 	}
@@ -540,13 +548,13 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		return err
 	}
 
-	manifest, err := LoadManifest(release.Manifest, a)
+	manifest, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
 		return err
 	}
 
-	me := manifest.Entry(process)
-	if me == nil {
+	me, ok := manifest.Services[process]
+	if !ok {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
@@ -832,4 +840,19 @@ func (s Apps) Less(i, j int) bool {
 
 func (s Apps) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+func (a App) CronJobs(m manifest.Manifest) []CronJob {
+	cronjobs := []CronJob{}
+
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for key, value := range labels {
+			cronjob := NewCronJobFromLabel(key, value)
+			cronjob.Service = &entry
+			cronjob.App = &a
+			cronjobs = append(cronjobs, cronjob)
+		}
+	}
+	return cronjobs
 }

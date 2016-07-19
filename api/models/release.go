@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -16,7 +17,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/manifest"
 )
+
+// set to false when testing for deterministic ports
+var ManifestRandomPorts = true
 
 type Release struct {
 	Id       string    `json:"id"`
@@ -124,13 +129,21 @@ func (r *Release) Save() error {
 }
 
 func (r *Release) Promote() error {
+	log.Print("Promote called")
 	app, err := GetApp(r.App)
 	if err != nil {
+		log.Print("ERROR")
+		log.Print(err.Error())
 		return err
 	}
 
+	log.Print("App got")
+	log.Printf("%#v", app)
+
 	formation, err := r.Formation()
 	if err != nil {
+		log.Print("ERROR")
+		log.Print(err.Error())
 		return err
 	}
 
@@ -169,12 +182,12 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
-	manifest, err := LoadManifest(r.Manifest, app)
+	m, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
 	}
 
-	for _, entry := range manifest {
+	for _, entry := range m.Services {
 		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
 		// so new deploys and rollbacks have the expected parameters
 		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {
@@ -219,13 +232,13 @@ func (r *Release) Promote() error {
 			app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))] = strings.Join(parts, ",")
 		}
 
-		for _, mapping := range entry.PortMappings() {
-			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
-			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
-			proxyParam := fmt.Sprintf("%sPort%sProxy", UpperName(entry.Name), mapping.Balancer)
-			secureParam := fmt.Sprintf("%sPort%sSecure", UpperName(entry.Name), mapping.Balancer)
+		for _, mapping := range entry.Ports {
+			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
+			protoParam := fmt.Sprintf("%sPort%dProtocol", UpperName(entry.Name), mapping.Balancer)
+			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
+			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
 
-			app.Parameters[protoParam] = entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer))
+			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
 
 			// default protocol is tcp, or tls if they have a certificate set
 			if app.Parameters[protoParam] == "" {
@@ -236,14 +249,16 @@ func (r *Release) Promote() error {
 				}
 			}
 
-			if entry.Label(fmt.Sprintf("convox.port.%s.proxy", mapping.Balancer)) == "true" {
+			log.Printf("%#v", app.Parameters)
+
+			if entry.Labels[fmt.Sprintf("convox.port.%d.proxy", mapping.Balancer)] == "true" {
 				app.Parameters[proxyParam] = "Yes"
 			} else {
 				app.Parameters[proxyParam] = "No"
 			}
 
 			// only change the secure parameter if a label is set for backwards compat
-			switch entry.Label(fmt.Sprintf("convox.port.%s.secure", mapping.Balancer)) {
+			switch entry.Labels[fmt.Sprintf("convox.port.%d.secure", mapping.Balancer)] {
 			case "true":
 				app.Parameters[secureParam] = "Yes"
 			case "false":
@@ -277,6 +292,7 @@ func (r *Release) Promote() error {
 			}
 		}
 	}
+	log.Print(formation)
 
 	params := []*cloudformation.Parameter{}
 
@@ -292,6 +308,9 @@ func (r *Release) Promote() error {
 	}
 
 	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
+
+	log.Print("PARAMS")
+	log.Printf("%#v", params)
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
@@ -323,16 +342,19 @@ func (r *Release) EnvironmentUrl() string {
 
 func (r *Release) Formation() (string, error) {
 	app, err := GetApp(r.App)
-
 	if err != nil {
 		return "", err
 	}
 
-	manifest, err := LoadManifest(r.Manifest, app)
+	log.Print("IDENT HERE")
+	log.Print(r.Manifest)
 
+	manifest, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return "", err
 	}
+
+	log.Print("I bet y'all we dont get here")
 
 	// Bound apps do not use the StackName as ELB name.
 	if !app.IsBound() {
@@ -344,13 +366,14 @@ func (r *Release) Formation() (string, error) {
 		}
 
 		// if we dont have a primary default to a process named web
-		if primary == "" && manifest.Entry("web") != nil {
+		_, ok := manifest.Services["web"]
+		if primary == "" && ok {
 			primary = "web"
 		}
 
 		// if we still dont have a primary try the first process with external ports
 		if primary == "" && manifest.HasExternalPorts() {
-			for _, entry := range manifest {
+			for _, entry := range manifest.Services {
 				if len(entry.ExternalPorts()) > 0 {
 					primary = entry.Name
 					break
@@ -358,37 +381,38 @@ func (r *Release) Formation() (string, error) {
 			}
 		}
 
-		for i, entry := range manifest {
-			if entry.Name == primary {
-				manifest[i].primary = true
-			}
-		}
+		// for i, entry := range manifest.Services {
+		// 	if entry.Name == primary {
+		// 		entry.primary = true
+		// 	}
+		// }
 	}
 
 	// set the image
-	for i, entry := range manifest {
-		manifest[i].Image = entry.RegistryImage(app, r.Build)
+	for i, entry := range manifest.Services {
+		s := manifest.Services[i]
+		s.Image = entry.RegistryImage(app.Name, r.Build, app.Outputs)
+		manifest.Services[i] = s
 	}
 
-	manifest, err = r.resolveLinks(*app, &manifest)
-
+	manifest, err = r.resolveLinks(*app, manifest)
 	if err != nil {
 		return "", err
 	}
 
-	return manifest.Formation()
+	return app.Formation(*manifest)
 }
 
-func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
+func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.Manifest, error) {
 	m := *manifest
 
 	endpoint, err := AppDockerLogin(app)
 
 	if err != nil {
-		return m, fmt.Errorf("could not log into %q", endpoint)
+		return &m, fmt.Errorf("could not log into %q", endpoint)
 	}
 
-	for i, entry := range m {
+	for i, entry := range m.Services {
 		var inspect []struct {
 			Config struct {
 				Env []string
@@ -400,31 +424,32 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 		cmd := exec.Command("docker", "pull", imageName)
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
-
 		if err != nil {
-			return m, fmt.Errorf("could not pull %q", imageName)
+			return &m, fmt.Errorf("could not pull %q", imageName)
 		}
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
 		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
-
 		if err != nil {
-			return m, fmt.Errorf("could not inspect %q", imageName)
+			return &m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		err = json.Unmarshal(out, &inspect)
-
 		if err != nil {
 			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
-			return m, fmt.Errorf("could not inspect %q", imageName)
+			return &m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)
-		linkableEnvs := entry.Env
+		linkableEnvs := make([]string, len(entry.Environment))
+		for k, v := range entry.Environment {
+			val := fmt.Sprintf("%s=%s", k, v)
+			linkableEnvs = append(linkableEnvs, val)
+		}
+
 		if len(inspect) == 1 {
-			//manifest entry gets priority for auto-link
-			linkableEnvs = append(inspect[0].Config.Env, entry.Env...)
+			linkableEnvs = append(linkableEnvs, inspect[0].Config.Env...)
 		}
 
 		for _, val := range linkableEnvs {
@@ -432,19 +457,18 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 				parts := strings.SplitN(val, "=", 2)
 				if len(parts) == 2 {
 					entry.Exports[parts[0]] = parts[1]
-					m[i] = entry
+					m.Services[i] = entry
 				}
 			}
 		}
 	}
 
-	for i, entry := range m {
+	for i, entry := range m.Services {
 		entry.LinkVars = make(map[string]template.HTML)
 		for _, link := range entry.Links {
-			other := m.Entry(link)
-
-			if other == nil {
-				return m, fmt.Errorf("Cannot find link %q", link)
+			other, ok := m.Services[link]
+			if !ok {
+				return &m, fmt.Errorf("Cannot find link %q", link)
 			}
 
 			scheme := other.Exports["LINK_SCHEME"]
@@ -467,7 +491,6 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 			}
 
 			port := other.Ports[0]
-			port = strings.Split(port, ":")[0]
 
 			path := other.Exports["LINK_PATH"]
 
@@ -488,11 +511,11 @@ func (r *Release) resolveLinks(app App, manifest *Manifest) (Manifest, error) {
 			entry.LinkVars[prefix+"USERNAME"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_USERNAME"]))
 			entry.LinkVars[prefix+"PATH"] = template.HTML(fmt.Sprintf("%q", path))
 			entry.LinkVars[prefix+"URL"] = template.HTML(html)
-			m[i] = entry
+			m.Services[i] = entry
 		}
 	}
 
-	return m, nil
+	return &m, nil
 }
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)

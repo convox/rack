@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -346,11 +347,17 @@ func shortNameToStackName(appName string) string {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"env": func(s string) string {
+			return os.Getenv(s)
+		},
 		"upper": func(s string) string {
 			return UpperName(s)
 		},
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
+		},
+		"itoa": func(i int) string {
+			return strconv.Itoa(i)
 		},
 	}
 }

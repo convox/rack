@@ -6,11 +6,11 @@ import (
 	"os"
 
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/manifest"
 )
 
 func init() {
 	models.ManifestRandomPorts = false
-
 }
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 		die(err)
 	}
 
-	app := &models.App{
+	app := models.App{
 		Name: "httpd",
 		Tags: map[string]string{
 			"Name":   "httpd",
@@ -33,12 +33,12 @@ func main() {
 		},
 	}
 
-	m, err := models.LoadManifest(string(data), app)
+	m, err := manifest.Load(data)
 	if err != nil {
 		die(err)
 	}
 
-	f, err := m.Formation()
+	f, err := app.Formation(*m)
 	if err != nil {
 		die(err)
 	}

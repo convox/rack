@@ -2,15 +2,15 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      {{ template "balancer-conditions" . }}
-      {{ template "process-conditions" . }}
-      {{ template "registry-conditions" . }}
+      {{ template "balancer-conditions" .Manifest }}
+      {{ template "process-conditions" .Manifest }}
+      {{ template "registry-conditions" .Manifest }}
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
     "Parameters" : {
-      {{ template "balancer-params" . }}
-      {{ template "process-params" . }}
+      {{ template "balancer-params" .Manifest }}
+      {{ template "process-params" .Manifest }}
 
       "Cluster": {
         "Type" : "String",
@@ -134,17 +134,17 @@
       },
       {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
-      {{ template "process-resources" . }}
-      {{ template "process-services" . }}
-      {{ template "registry-resources" . }}
+      {{ template "process-resources" .Manifest }}
+      {{ template "process-services" .Manifest }}
+      {{ template "registry-resources" .Manifest }}
 
       {{ template "security" }}
       {{ template "state" }}
     },
     "Outputs": {
-      {{ template "balancer-outputs" . }}
-      {{ template "process-outputs" . }}
-      {{ template "registry-outputs" . }}
+      {{ template "balancer-outputs" .}}
+      {{ template "process-outputs" .Manifest }}
+      {{ template "registry-outputs" .Manifest }}
 
       "Settings": {
         "Value": { "Ref": "Settings" }
@@ -161,8 +161,8 @@
 {{ end }}
 
 {{ define "process-params" }}
-  {{ range $e := . }}
-    "{{ upper $e.Name }}Formation": {
+  {{ range $e := .EntryNames }}
+    "{{ upper $e }}Formation": {
       "Type": "CommaDelimitedList",
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"
@@ -185,7 +185,7 @@
 {{ define "process-services" }}
   {{ $manifest := . }}
   {{ if .HasProcesses }}
-    {{ range $e := . }}
+    {{ range $e := .Services }}
       "{{ upper $e.Name }}ECSTaskDefinition": {
         "DependsOn": ["CustomTopic", "ServiceRole"],
         "Type": "Custom::ECSTaskDefinition",
@@ -220,7 +220,7 @@
           "DeploymentMinimumPercent": { "Ref": "DeploymentMinimum" },
           "DeploymentMaximumPercent": { "Ref": "DeploymentMaximum" },
           "LoadBalancers": [
-            {{ range $e.PortMappings }}
+            {{ range $e.Ports }}
               { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
             {{ end }}
             { "Ref": "AWS::NoValue" }
@@ -261,7 +261,7 @@
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host": {
         "Type" : "String",
-        "Default" : "{{ index $balancer.Randoms .Balancer }}",
+        "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }}",
         "Description" : ""
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
@@ -287,7 +287,8 @@
 {{ end }}
 
 {{ define "balancer-outputs" }}
-  {{ range .Balancers }}
+  {{ $app := .App }}
+  {{ range .Manifest.Balancers }}
     {{ $balancer := . }}
     "Balancer{{ upper .ProcessName }}Host": {
       "Condition": "Enabled{{ upper .ProcessName }}",
@@ -300,14 +301,15 @@
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
         "Condition": "Enabled{{ upper $balancer.ProcessName }}",
-        "Value": {{ $balancer.LoadBalancerName }}
+        "Value": {{ $balancer.LoadBalancerName true $app.Name }}
       },
     {{ end }}
   {{ end }}
 {{ end }}
 
 {{ define "balancer-resources" }}
-  {{ range .Balancers }}
+  {{ $app := .App }}
+  {{ range .Manifest.Balancers }}
     {{ $balancer := . }}
     "{{ .ResourceName }}SecurityGroup": {
       "Condition": "Enabled{{ upper $balancer.ProcessName }}",
@@ -317,7 +319,7 @@
         "SecurityGroupIngress": [
           {{ range .PortMappings }}
             {
-              {{ if .Public }}
+              {{ if .External }}
               "CidrIp": "0.0.0.0/0",
               {{ else }}
               "CidrIp": { "Ref": "VPCCIDR" },
@@ -395,7 +397,7 @@
           { "Ref": "AWS::NoValue" }
         ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": {{ .LoadBalancerName }},
+        "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
         "SecurityGroups" : [{ "Fn::If" : [
 	    "BlankSecurityGroup",
 	    {"Ref" : "{{ .ResourceName }}SecurityGroup"},
@@ -407,11 +409,11 @@
 {{ end }}
 
 {{ define "cronjob-resources" }}
-  {{ if .CronJobs }}
+  {{ if .App.CronJobs .Manifest }}
     "CronFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "FunctionName": "{{ .Rack }}-{{ .AppName }}-cron",
+        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-cron",
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs",
@@ -426,7 +428,7 @@
             "var querystring = require('querystring');",
             "",
             "var params = {",
-            "    StackName: '{{ .Rack }}'",
+            "    StackName: '{{ env "RACK" }}'",
             "};",
             "",
             "process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';",
@@ -499,7 +501,7 @@
       }
     },
   {{ end }}
-  {{ range .CronJobs }}
+  {{ range .App.CronJobs .Manifest }}
     "{{ .ShortName }}Rule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
@@ -609,20 +611,16 @@
   {
     "Name": "{{ .Name }}",
     "Image": "{{ .Image }}",
-    {{if .CommandArray}}
-      "Command": [
-        {{ range $index, $element := .CommandArray}}
-            {{if $index}},{{else}}{{end}}
-            "{{$element}}"
-        {{end}}
+    "Command": [
+      {{ range $index, $element := .Command}}
+          {{if $index}},{{else}}{{end}}
+          "{{$element}}"
+      {{end}}
       ],
-    {{else if ne .CommandString ""}}
-        "Command": {{ value .CommandString }},
-    {{end}}
     "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Environment": {
-      {{ range $key, $value := .EnvMap }}
+      {{ range $key, $value := .Environment }}
         "{{ $key }}": {{ value $value }},
       {{ end }}
       {{ range $key, $value := .LinkVars }}
@@ -632,7 +630,7 @@
       "PROCESS": "{{ .Name }}"
     },
     "Volumes": [
-      {{ range .MountableVolumes }}
+      {{ range .Volumes }}
         "{{ . }}",
       {{ end }}
       { "Ref" : "AWS::NoValue" }
@@ -642,7 +640,7 @@
     ],
     "PortMappings": [
       {{ $e := . }}
-      {{ range .PortMappings }}
+      {{ range .Ports }}
         { "Fn::Join": [ ":", [
           { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
           "{{ .Container }}"
