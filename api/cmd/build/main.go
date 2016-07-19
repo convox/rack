@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 
 	"github.com/convox/rack/api/manifest"
@@ -44,6 +45,7 @@ func main() {
 		fmt.Println("usage: build <src>")
 		os.Exit(1)
 	}
+	defer handlePanic()
 
 	src := os.Args[1]
 
@@ -104,14 +106,17 @@ func cloneGit(s string) {
 	// split it off and pass along http://github.com/nzoschke/httpd.git for `git clone`
 	commitish := u.Fragment
 	u.Fragment = ""
+
+	credentials := u.User
+	u.User = nil // Clear out credentials. We don't want them to be logged.
 	repo := u.String()
 
 	// if URL is a ssh/git url, i.e. ssh://user:base64(privatekey)@server/project.git
 	// decode and write private key to disk and pass along user@service:project.git for `git clone`
 	if u.Scheme == "ssh" {
-		repo = fmt.Sprintf("%s@%s%s", u.User.Username(), u.Host, u.Path)
+		repo = fmt.Sprintf("%s@%s%s", credentials.Username(), u.Host, u.Path)
 
-		if pass, ok := u.User.Password(); ok {
+		if pass, ok := credentials.Password(); ok {
 			key, err := base64.StdEncoding.DecodeString(pass)
 			handleError(err)
 
@@ -123,14 +128,30 @@ func cloneGit(s string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
 	}
 
+	// Public repos might not have credentials so there's nothing to save
+	if credentials != nil {
+		err = ioutil.WriteFile("/root/.netrc", []byte(fmt.Sprintf("machine %s login %s", u.Host, credentials.Username())), 0700)
+		if err != nil {
+			fmt.Println("WARNING: Failed to write to .netrc; git might fail: ", err)
+		}
+	}
+
 	writeAsset("/usr/local/bin/git-restore-mtime", "git-restore-mtime", 0755, nil)
 
 	run(".", "git", "clone", "--progress", repo, "src")
-	run("src", "git", "submodule", "update", "--init", "--recursive")
+
+	err = runE("src", "git", "submodule", "update", "--init", "--recursive")
+	if err != nil {
+		fmt.Printf("WARNING: Failed to update submodules: %s. Continuing...\n", err)
+	}
 
 	if commitish != "" {
 		run("src", "git", "checkout", commitish)
-		run("src", "git", "submodule", "update", "--recursive")
+
+		err = runE("src", "git", "submodule", "update", "--recursive")
+		if err != nil {
+			fmt.Printf("WARNING: Failed to update submodules: %s. Continuing...\n", err)
+		}
 	}
 
 	run("src", "/usr/local/bin/git-restore-mtime", ".")
@@ -138,7 +159,15 @@ func cloneGit(s string) {
 
 // run optionally changes into a directory then executes the command and args
 // connected to the OS stdin/stdout/stderr
-func run(dir string, name string, arg ...string) {
+// Exits on error.
+func run(dir, name string, arg ...string) {
+	handleError(runE(dir, name, arg...))
+}
+
+// runE optionally changes into a directory then executes the command and args
+// connected to the OS stdin/stdout/stderr.
+// Returns an error instead of exiting.
+func runE(dir, name string, arg ...string) error {
 	sarg := fmt.Sprintf("%v", arg)
 	fmt.Printf("RUNNING: %s %s\n", name, sarg[1:len(sarg)-1])
 
@@ -154,7 +183,8 @@ func run(dir string, name string, arg ...string) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	handleError(cmd.Run())
+
+	return cmd.Run()
 }
 
 func writeAsset(target, name string, perms os.FileMode, replacements map[string]string) {
@@ -177,5 +207,11 @@ func writeDockerAuth() {
 	if auth != "" {
 		handleError(os.MkdirAll("/root/.docker", 0700))
 		handleError(ioutil.WriteFile("/root/.docker/config.json", []byte(auth), 0400))
+	}
+}
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		handleError(fmt.Errorf("%v\n%s", r, debug.Stack()))
 	}
 }

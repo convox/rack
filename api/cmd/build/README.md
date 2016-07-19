@@ -37,7 +37,7 @@ And the tag namespace is optional:
 Without `REPOSITORY`, tags use the app name as the repository, the process name as the image name, and the build id as the tag:
 
 ```
-convox-826133048.us-east-1.elb.amazonaws.com:5000/sinatra/web:BANHPORIOTL 
+convox-826133048.us-east-1.elb.amazonaws.com:5000/sinatra/web:BANHPORIOTL
 ```
 
 With `REPOSITORY`, tags always share the same repository, and use the process name and build id as the tag:
@@ -79,3 +79,7 @@ A few options of the build are controlled by a user. These arguments override de
     $ cd httpd
     $ tar cz . | docker run -i -v /var/run/docker.sock:/var/run/docker.sock rack/api \
       build httpd -
+
+    # Example with a URL as would be called from Console
+    $ docker run -i -v /var/run/docker.sock:/var/run/docker.sock rack/api build \
+    https://oauth_token_here@github.com/private/repo.git
