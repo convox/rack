@@ -179,10 +179,10 @@ func (r *Release) Promote() error {
 	for _, entry := range manifest {
 		entryName := UpperName(entry.Name)
 		for _, option := range healthOptions {
-			val := entry.Label(fmt.Sprintf("convox.health.%s", option))
-			param := fmt.Sprintf("%sHealth%s", entryName, strings.Title(option))
-			fmt.Printf("val %s param %s", val, param)
-			app.Parameters[param] = val
+			if val := entry.Label(fmt.Sprintf("convox.health.%s", option)); val != "" {
+				param := fmt.Sprintf("%sHealth%s", entryName, strings.Title(option))
+				app.Parameters[param] = val
+			}
 		}
 
 		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
