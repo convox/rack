@@ -33,7 +33,7 @@ pr_body() {
   local milestone=$1
 
   echo '## Pull Requests'
-  gethub /repos/convox/rack/issues ".[]|\"#\\(.number) \\(.title)\"" "milestone=$mid" | while read pr; do
+  gethub /repos/convox/rack/issues ".[]|\"#\\(.number) \\(.title) [@\\(.user.login)]\"" "milestone=$mid" | while read pr; do
     echo "  - $pr"
   done
 
