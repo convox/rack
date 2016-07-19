@@ -61,16 +61,26 @@ func (m *Manifest) BuildRack(app, dir string, cache bool) []error {
 
 		switch {
 		case entry.Build.Context != "":
+			log.Print("BUILDER")
+			log.Printf("%#v", entry)
+			log.Printf("%#v", entry.Build)
 			abs, err := filepath.Abs(filepath.Join(entry.Build.Context, entry.Build.Dockerfile))
-
 			if err != nil {
 				return []error{err}
 			}
+
+			log.Print("ABS")
+			log.Printf("%#v", abs)
+			log.Printf("%#v", err)
 
 			sym, err := filepath.EvalSymlinks(abs)
 			if err != nil {
 				return []error{err}
 			}
+
+			log.Print("SYM")
+			log.Printf("%#v", sym)
+			log.Printf("%#v", err)
 
 			df := "Dockerfile"
 			if entry.Dockerfile != "" {
@@ -97,8 +107,16 @@ func (m *Manifest) BuildRack(app, dir string, cache bool) []error {
 
 	errors := []error{}
 
+	log.Print("BUILDS")
+	log.Printf("%#v", builds)
+
 	for path, tag := range builds {
+		log.Print("BUILD SYNC ARGS")
 		source, dockerfile := filepath.Split(path)
+		log.Printf("%#v", source)
+		log.Print(tag)
+		log.Print(cache)
+		log.Print(dockerfile)
 		err := buildSync(source, tag, cache, dockerfile)
 
 		if err != nil {
