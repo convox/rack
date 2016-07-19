@@ -1,25 +1,65 @@
 #!/bin/sh
 
+set -e
+
 die() { echo $*; exit 1; }
 
-github() {
+gethub() {
   local path=$1 filter=$2 query=$3
-  curl -s -u :$token "https://api.github.com$path?$query" | tr -d '\t\r' | jq -r "$filter" | tr -d ' '
+  curl -s -u :$token "https://api.github.com$path?$query" | tr -d '\t\r' | jq -r "$filter"
+}
+
+posthub() {
+  local path=$1 data=$2 filter=$3
+  curl -X POST -s -u :$token -d "$data" "https://api.github.com$path" | tr -d '\t\r'# | jq -r "$filter"
 }
 
 merge() {
   local pr=$1
   local base=$(git rev-parse --abbrev-ref HEAD)
-  local remote="https://github.com/$(github /repos/convox/rack/pulls/$1 ".head.repo.full_name")"
-  local ref=$(github /repos/convox/rack/pulls/$1 ".head.ref")
+  local remote="https://github.com/$(gethub /repos/convox/rack/pulls/$1 ".head.repo.full_name")"
+  local ref=$(gethub /repos/convox/rack/pulls/$1 ".head.ref")
   local work="merge-${ref}"
 
-  git branch -D $work >/dev/null 2>&1
+  git branch -D $work >/dev/null 2>&1 || true
   git fetch $remote $ref:$work
   git checkout $work
-  git rebase $base || die "could not rebase"
+  git rebase $base || (git rebase --abort; git checkout $base; die "could not rebase: $pr")
   git checkout $base
-  git merge --no-ff --no-edit -m "merge pull request #$pr" $work
+  git merge --no-ff --no-edit -m "[merge] pull request #$pr" $work
+}
+
+pr_body() {
+  local milestone=$1
+
+  echo '## Pull Requests'
+  gethub /repos/convox/rack/issues ".[]|\"#\\(.number) \\(.title)\"" "milestone=$mid" | while read pr; do
+    echo "  - $pr"
+  done
+
+  echo
+
+  curl -s https://raw.githubusercontent.com/wiki/convox/rack/Milestone-Release-Checklist.md
+}
+
+pr_create() {
+  local milestone=$1
+  local body=$(pr_body $milestone | awk 1 ORS='\\n')
+  local data="{\"title\":\"[RELEASE] $milestone\",\"head\":\"$milestone\",\"base\":\"master\",\"body\":\"$body\"}"
+
+  echo "creating pr for milestone: $milestone"
+  local num=$(posthub /repos/convox/rack/pulls "$data" ".number")
+  echo "https://github.com/convox/rack/pulls/$num"
+}
+
+pr_update() {
+  local pr=$1 milestone=$2
+  local body=$(pr_body $milestone | awk 1 ORS='\\n')
+  local data="{\"body\":\"$body\"}"
+
+  echo "updating pr for milestone: $milestone"
+  local num=$(posthub /repos/convox/rack/pulls/$pr "$data" ".number")
+  echo "https://github.com/convox/rack/pulls/$num"
 }
 
 milestone=$1
@@ -32,16 +72,21 @@ token=$(git config github.token)
 [ -x "$(which jq)" ]   || die "needs jq"
 [ -z "$status" ]       || die "must have clean git working tree"
 
-mid=$(github /repos/convox/rack/milestones ".[]|select(.title==\"$milestone\").number")
+mid=$(gethub /repos/convox/rack/milestones ".[]|select(.title==\"$milestone\").number")
 
 [ -n "$mid" ] || die "could not find milestone: $milestone"
 
 git checkout master
-git branch -D $milestone >/dev/null 2>&1
+git branch -D $milestone >/dev/null 2>&1 || true
 git checkout -b $milestone
 
-github /repos/convox/rack/issues ".[].number" "milestone=$mid" | while read pr; do
+gethub /repos/convox/rack/issues ".[].number" "milestone=$mid" | while read pr; do
+  echo "merging: $pr"
   merge $pr
 done
 
 git push origin $milestone -f
+
+release=$(gethub /repos/convox/rack/pulls ".[]|select(.head.ref==\"$milestone\")|select(.head.repo.full_name==\"convox/rack\").number")
+
+[ -n "$release" ] && pr_update $release $milestone || pr_create $milestone
