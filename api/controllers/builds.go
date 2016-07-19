@@ -294,7 +294,6 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 
 	go keepAlive(ws, quit)
 	go func() {
-		fmt.Println("############################ BEFORE client.Logs")
 		e := client.Logs(docker.LogsOptions{
 			Container:    fmt.Sprintf("build-%s", build),
 			Follow:       true,
@@ -306,21 +305,17 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 			ErrorStream:  ws,
 		})
 
-		fmt.Println("############################ AFTER client.Logs")
 		logErr <- e
 	}()
 
 ForLoop:
 	for {
-		fmt.Println("############################ FOR LOOP")
 		select {
 
 		case err = <-logErr:
-			fmt.Println("############################ IN client.Logs err case")
 			break ForLoop
 
 		default:
-			fmt.Println("############################ IN default case")
 			b, err := provider.BuildGet(app, build)
 			if err != nil {
 				break ForLoop
