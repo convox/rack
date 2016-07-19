@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
-	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"gopkg.in/yaml.v2"
 
@@ -607,12 +606,6 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 	for scanner.Scan() {
 		text := scanner.Text()
 		out += text + "\n"
-
-		p.kinesis().PutRecord(&kinesis.PutRecordInput{
-			Data:         []byte(text),
-			PartitionKey: aws.String(string(time.Now().UnixNano())),
-			StreamName:   aws.String(a.Outputs["Kinesis"]),
-		})
 	}
 	if err := scanner.Err(); err != nil {
 		helpers.Error(nil, err) // send internal error to rollbar
