@@ -1,0 +1,47 @@
+#!/bin/sh
+
+die() { echo $*; exit 1; }
+
+github() {
+  local path=$1 filter=$2 query=$3
+  curl -s -u :$token "https://api.github.com$path?$query" | tr -d '\t\r' | jq -r "$filter" | tr -d ' '
+}
+
+merge() {
+  local pr=$1
+  local base=$(git rev-parse --abbrev-ref HEAD)
+  local remote="https://github.com/$(github /repos/convox/rack/pulls/$1 ".head.repo.full_name")"
+  local ref=$(github /repos/convox/rack/pulls/$1 ".head.ref")
+  local work="merge-${ref}"
+
+  git branch -D $work >/dev/null 2>&1
+  git fetch $remote $ref:$work
+  git checkout $work
+  git rebase $base || die "could not rebase"
+  git checkout $base
+  git merge --no-ff --no-edit -m "merge pull request #$pr" $work
+}
+
+milestone=$1
+status=$(git status --porcelain)
+token=$(git config github.token)
+
+[ -n "$milestone" ]    || die "must specify milestone as argument (eg 20160715)"
+[ -n "$token" ]        || die "no github.token found in git config"
+[ -x "$(which curl)" ] || die "needs curl"
+[ -x "$(which jq)" ]   || die "needs jq"
+[ -z "$status" ]       || die "must have clean git working tree"
+
+mid=$(github /repos/convox/rack/milestones ".[]|select(.title==\"$milestone\").number")
+
+[ -n "$mid" ] || die "could not find milestone: $milestone"
+
+git checkout master
+git branch -D $milestone >/dev/null 2>&1
+git checkout -b $milestone
+
+github /repos/convox/rack/issues ".[].number" "milestone=$mid" | while read pr; do
+  merge $pr
+done
+
+git push origin $milestone -f
