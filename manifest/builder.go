@@ -36,6 +36,9 @@ func pullSync(image string) error {
 }
 
 func pushSync(local, remote string) error {
+	log.Print("PUSH SYNC")
+	log.Print(local)
+	log.Print(remote)
 	err := runBuilder("docker", "tag", local, remote)
 
 	if err != nil {
