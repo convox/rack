@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -129,21 +128,13 @@ func (r *Release) Save() error {
 }
 
 func (r *Release) Promote() error {
-	log.Print("Promote called")
 	app, err := GetApp(r.App)
 	if err != nil {
-		log.Print("ERROR")
-		log.Print(err.Error())
 		return err
 	}
 
-	log.Print("App got")
-	log.Printf("%#v", app)
-
 	formation, err := r.Formation()
 	if err != nil {
-		log.Print("ERROR")
-		log.Print(err.Error())
 		return err
 	}
 
@@ -249,8 +240,6 @@ func (r *Release) Promote() error {
 				}
 			}
 
-			log.Printf("%#v", app.Parameters)
-
 			if entry.Labels[fmt.Sprintf("convox.port.%d.proxy", mapping.Balancer)] == "true" {
 				app.Parameters[proxyParam] = "Yes"
 			} else {
@@ -292,7 +281,6 @@ func (r *Release) Promote() error {
 			}
 		}
 	}
-	log.Print(formation)
 
 	params := []*cloudformation.Parameter{}
 
@@ -308,9 +296,6 @@ func (r *Release) Promote() error {
 	}
 
 	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
-
-	log.Print("PARAMS")
-	log.Printf("%#v", params)
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
@@ -346,15 +331,10 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	log.Print("IDENT HERE")
-	log.Print(r.Manifest)
-
 	manifest, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return "", err
 	}
-
-	log.Print("I bet y'all we dont get here")
 
 	// Bound apps do not use the StackName as ELB name.
 	if !app.IsBound() {
