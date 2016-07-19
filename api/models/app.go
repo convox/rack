@@ -517,10 +517,12 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		}
 	}
 
-	ea := make([]string, 0)
+	var rawEnvs []string
 	for _, env := range container.Environment {
-		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
+		rawEnvs = append(rawEnvs, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
 	}
+	containerEnvs := structs.Environment{}
+	containerEnvs.LoadRaw(strings.Join(rawEnvs, "\n"))
 
 	// Update any environment variables that might be part of the unpromoted release.
 	if unpromotedRelease {
@@ -624,7 +626,7 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
-			Env:          ea,
+			Env:          containerEnvs.List(),
 			OpenStdin:    true,
 			Tty:          true,
 			Cmd:          []string{"sh", "-c", command},
