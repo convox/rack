@@ -34,7 +34,9 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 		args = append(args, "-f", parts[1])
 		args = append(args, "-t", tag)
 		args = append(args, parts[0])
-		run(s, Docker(args...))
+		builder := Docker(args...)
+		builder.Dir = dir
+		run(s, builder)
 		// runPrefix(systemPrefix(m), Docker(args...))
 	}
 

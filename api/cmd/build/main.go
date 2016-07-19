@@ -62,7 +62,14 @@ func main() {
 	data, err := m.Raw()
 	handleError(err)
 
-	handleErrors(m.BuildRack(app, "src", cache))
+	cwd, err := os.Getwd()
+	handleError(err)
+
+	log.Print("HERE")
+
+	handleError(os.Chdir("./src"))
+	handleErrors(m.BuildRack(app, ".", cache))
+	handleError(os.Chdir(cwd))
 	log.Print("LOGS ARE DAWG")
 	handleErrors(m.Push(app, registryAddress, buildId, repository))
 	log.Print("YOOHOO")
