@@ -19,6 +19,8 @@ test:
         parallel: true
     - ci/tests/example-app node-workers:
         parallel: true
+    - ci/tests/example-app rails:
+        parallel: true
   post:
     - ci/report.sh:
         parallel: true
