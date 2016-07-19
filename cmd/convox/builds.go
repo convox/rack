@@ -246,23 +246,23 @@ func cmdBuildsCopy(c *cli.Context) error {
 
 	fmt.Println("OK")
 
-	releaseId, err := finishBuild(c, destApp, b)
+	releaseID, err := finishBuild(c, destApp, b)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	if releaseId != "" {
+	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s %s... ", destApp, releaseId)
+			fmt.Printf("Promoting %s %s... ", destApp, releaseID)
 
-			_, err = rackClient(c).PromoteRelease(destApp, releaseId)
+			_, err = rackClient(c).PromoteRelease(destApp, releaseID)
 			if err != nil {
 				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
 		} else {
-			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseId, destApp)
+			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseID, destApp)
 		}
 	}
 
