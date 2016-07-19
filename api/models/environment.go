@@ -35,7 +35,6 @@ func LoadEnvironment(data []byte) Environment {
 
 func GetEnvironment(app string) (Environment, error) {
 	a, err := GetApp(app)
-
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +44,6 @@ func GetEnvironment(app string) (Environment, error) {
 	}
 
 	data, err := s3Get(a.Outputs["Settings"], "env")
-
 	if err != nil {
 
 		// if we get a 404 from aws just return an empty environment
@@ -69,7 +67,6 @@ func GetEnvironment(app string) (Environment, error) {
 
 func PutEnvironment(app string, env Environment) (string, error) {
 	a, err := GetApp(app)
-
 	if err != nil {
 		return "", err
 	}
@@ -83,7 +80,6 @@ func PutEnvironment(app string, env Environment) (string, error) {
 	}
 
 	release, err := a.ForkRelease()
-
 	if err != nil {
 		return "", err
 	}
@@ -91,7 +87,6 @@ func PutEnvironment(app string, env Environment) (string, error) {
 	release.Env = env.Raw()
 
 	err = release.Save()
-
 	if err != nil {
 		return "", err
 	}
@@ -109,7 +104,6 @@ func PutEnvironment(app string, env Environment) (string, error) {
 	}
 
 	err = S3Put(a.Outputs["Settings"], "env", []byte(e), true)
-
 	if err != nil {
 		return "", err
 	}

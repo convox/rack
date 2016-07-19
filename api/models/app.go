@@ -352,9 +352,15 @@ func (a *App) Formation(m manifest.Manifest) (string, error) {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	release, err := provider.ReleaseGet(a.Name, a.Release)
-	if err != nil {
-		return nil, err
+	var release *structs.Release
+	var err error
+
+	// If app doesn't have a release, move on to create a new one.
+	if a.Release != "" {
+		release, err = provider.ReleaseGet(a.Name, a.Release)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if release == nil {
