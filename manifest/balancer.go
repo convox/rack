@@ -180,3 +180,8 @@ func UpperName(name string) string {
 func (mb ManifestBalancer) Randoms() map[string]int {
 	return mb.Entry.Randoms()
 }
+
+// DefaultHealthTimeout The default health timeout when one is not specified
+func (mb ManifestBalancer) DefaultHealthTimeout() string {
+	return "3"
+}
