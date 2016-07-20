@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cheggaaa/pb"
+
 	"golang.org/x/net/websocket"
 )
 
@@ -129,20 +131,24 @@ func (c *Client) PostBodyResponse(path string, body io.Reader, out interface{}) 
 	return res, nil
 }
 
+// PostMultipart posts a multipart message in the MIME internet format.
 func (c *Client) PostMultipart(path string, files map[string][]byte, params Params, out interface{}) error {
+	return c.PostMultipartP(path, files, params, out, nil)
+}
+
+// PostMultipartP posts a multipart message in the MIME internet format with a callback function with a string stating the upload Progress.
+func (c *Client) PostMultipartP(path string, files map[string][]byte, params Params, out interface{}, callback func(s string)) error {
 	body := &bytes.Buffer{}
 
 	writer := multipart.NewWriter(body)
 
 	for name, source := range files {
 		part, err := writer.CreateFormFile(name, "source.tgz")
-
 		if err != nil {
 			return err
 		}
 
 		_, err = io.Copy(part, bytes.NewReader(source))
-
 		if err != nil {
 			return err
 		}
@@ -153,12 +159,24 @@ func (c *Client) PostMultipart(path string, files map[string][]byte, params Para
 	}
 
 	err := writer.Close()
-
 	if err != nil {
 		return err
 	}
 
-	req, err := c.request("POST", path, body)
+	var bodyReader io.Reader
+	bodyReader = body
+
+	if callback != nil {
+		bar := pb.New(body.Len()).SetUnits(pb.U_BYTES)
+		bar.NotPrint = true
+		bar.ShowBar = false
+		bar.Callback = callback
+
+		bar.Start()
+		bodyReader = bar.NewProxyReader(body)
+	}
+
+	req, err := c.request("POST", path, bodyReader)
 
 	if err != nil {
 		return err

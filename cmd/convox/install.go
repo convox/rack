@@ -608,6 +608,8 @@ func friendlyName(t string) string {
 		return "AutoScalingGroup"
 	case "AWS::AutoScaling::LaunchConfiguration":
 		return ""
+	case "AWS::AutoScaling::LifecycleHook":
+		return ""
 	case "AWS::CloudFormation::Stack":
 		return "CloudFormation Stack"
 	case "AWS::DynamoDB::Table":
@@ -632,6 +634,10 @@ func friendlyName(t string) string {
 		return ""
 	case "AWS::ECS::Cluster":
 		return "ECS Cluster"
+	case "AWS::EFS::FileSystem":
+		return "EFS Filesystem"
+	case "AWS::EFS::MountTarget":
+		return ""
 	case "AWS::ElasticLoadBalancing::LoadBalancer":
 		return "Elastic Load Balancer"
 	case "AWS::IAM::AccessKey":

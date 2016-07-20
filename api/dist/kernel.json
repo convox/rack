@@ -221,6 +221,12 @@
       "Description": "The type of the instances in the runtime cluster",
       "Type": "String"
     },
+    "InstanceUpdateBatchSize": {
+      "Default": "1",
+      "Description": "The number of instances to update in a batch",
+      "MinValue": "1",
+      "Type": "Number"
+    },
     "Key": {
       "Default": "",
       "Description": "SSH key name for access to cluster instances",
@@ -1006,7 +1012,7 @@
       },
       "UpdatePolicy": {
         "AutoScalingRollingUpdate": {
-          "MaxBatchSize": "1",
+          "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
           "MinInstancesInService": { "Ref": "InstanceCount" },
           "PauseTime" : "PT15M",
           "SuspendProcesses": [
