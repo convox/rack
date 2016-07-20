@@ -290,19 +290,54 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	}
 
 	quit := make(chan bool)
+	logErr := make(chan error)
 
 	go keepAlive(ws, quit)
+	go func() {
+		e := client.Logs(docker.LogsOptions{
+			Container:    fmt.Sprintf("build-%s", build),
+			Follow:       true,
+			Stdout:       true,
+			Stderr:       true,
+			Tail:         "all",
+			RawTerminal:  false,
+			OutputStream: ws,
+			ErrorStream:  ws,
+		})
 
-	err = client.Logs(docker.LogsOptions{
-		Container:    fmt.Sprintf("build-%s", build),
-		Follow:       true,
-		Stdout:       true,
-		Stderr:       true,
-		Tail:         "all",
-		RawTerminal:  false,
-		OutputStream: ws,
-		ErrorStream:  ws,
-	})
+		logErr <- e
+	}()
+
+ForLoop:
+	for {
+		select {
+
+		case err = <-logErr:
+			break ForLoop
+
+		default:
+			b, err := provider.BuildGet(app, build)
+			if err != nil {
+				break ForLoop
+			}
+
+			switch b.Status {
+			case "complete":
+				err = nil
+				break ForLoop
+			case "error":
+				err = fmt.Errorf("%s build failed", app)
+				break ForLoop
+			case "failed":
+				err = fmt.Errorf("%s build failed", app)
+				break ForLoop
+			}
+
+			// Maybe have another case to handle a timeout? But what's a good value?
+		}
+
+		time.Sleep(2 * time.Second)
+	}
 
 	quit <- true
 
