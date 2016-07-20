@@ -533,7 +533,7 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	}
 
 	if container == nil {
-		return fmt.Errorf("unable to find contaier for %s", process)
+		return fmt.Errorf("unable to find container for %s", process)
 	}
 
 	ea := make([]string, 0)

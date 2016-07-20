@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/urfave/cli.v1"
@@ -426,7 +427,6 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 
 func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.ProgressBar, ch chan error) {
 	data, err := ioutil.ReadFile(item.Name)
-
 	if err != nil {
 		ch <- err
 		return
@@ -434,7 +434,6 @@ func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.Prog
 
 	for i := 0; i < 3; i++ {
 		err = rackClient(c).IndexUpload(hash, data)
-
 		if err != nil {
 			continue
 		}
@@ -457,7 +456,6 @@ func uploadItems(c *cli.Context, index client.Index, bar *pb.ProgressBar, inch c
 
 func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description string) (string, error) {
 	system, err := rackClient(c).GetSystem()
-
 	if err != nil {
 		return "", err
 	}
@@ -470,7 +468,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	cache := !c.Bool("no-cache")
 
 	dir, err = filepath.Abs(dir)
-
 	if err != nil {
 		return "", err
 	}
@@ -478,7 +475,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	fmt.Printf("Analyzing source... ")
 
 	index, err := createIndex(dir)
-
 	if err != nil {
 		return "", err
 	}
@@ -488,7 +484,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	fmt.Printf("Uploading changes... ")
 
 	err = uploadIndex(c, index)
-
 	if err != nil {
 		return "", err
 	}
@@ -496,7 +491,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	fmt.Printf("Starting build... ")
 
 	build, err := rackClient(c).CreateBuildIndex(app, index, cache, manifest, description)
-
 	if err != nil {
 		return "", err
 	}
@@ -528,15 +522,14 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 
 	cache := !c.Bool("no-cache")
 
-	fmt.Print("Uploading... ")
-
-	build, err := rackClient(c).CreateBuildSource(app, tar, cache, manifest, description)
-
+	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, func(s string) {
+		fmt.Printf("\rUploading... %s", strings.TrimSpace(s))
+	})
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("OK")
+	fmt.Println()
 
 	return finishBuild(c, app, build)
 }
