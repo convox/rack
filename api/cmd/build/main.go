@@ -10,8 +10,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/manifest"
 )
 
 var (
@@ -57,13 +57,18 @@ func main() {
 
 	writeDockerAuth()
 
-	m, err := manifest.Read("src", manifestPath)
+	m, err := manifest.LoadFile(fmt.Sprintf("src/%s", manifestPath))
 	handleError(err)
 
 	data, err := m.Raw()
 	handleError(err)
 
-	handleErrors(m.Build(app, "src", cache))
+	cwd, err := os.Getwd()
+	handleError(err)
+
+	handleError(os.Chdir("./src"))
+	handleErrors(m.BuildRack(app, ".", cache))
+	handleError(os.Chdir(cwd))
 	handleErrors(m.Push(app, registryAddress, buildId, repository))
 
 	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")

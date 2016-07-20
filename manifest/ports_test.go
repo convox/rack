@@ -36,7 +36,7 @@ func TestPortsShift(t *testing.T) {
 			web.Ports.Shift(5000)
 
 			if assert.Equal(t, len(web.Ports), 2) {
-				assert.Equal(t, web.Ports[0].Balancer, 0)
+				assert.Equal(t, web.Ports[0].Balancer, 5000)
 				assert.Equal(t, web.Ports[0].Container, 5000)
 				assert.Equal(t, web.Ports[1].Balancer, 11000)
 				assert.Equal(t, web.Ports[1].Container, 7000)
@@ -46,6 +46,6 @@ func TestPortsShift(t *testing.T) {
 }
 
 func TestPortsString(t *testing.T) {
-	assert.Equal(t, "5000:9000", manifest.Port{Balancer: 5000, Container: 9000}.String())
+	assert.Equal(t, "5000:9000", manifest.Port{Balancer: 5000, Container: 9000, Public: true}.String())
 	assert.Equal(t, "9000", manifest.Port{Container: 9000}.String())
 }

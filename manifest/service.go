@@ -6,11 +6,18 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
+	"math/rand"
 	"net/url"
+	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 )
+
+var ManifestRandomPorts = true
 
 type Service struct {
 	Name string `yaml:"-"`
@@ -27,17 +34,27 @@ type Service struct {
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
+
+	//TODO from models manifest, not passive and used at runtime
+	Exports  map[string]string        `yaml:"-"`
+	LinkVars map[string]template.HTML `yaml:"-"`
+
+	randoms map[string]int
 }
 
 // see yaml.go for unmarshallers
 type Build struct {
-	Context    string
-	Dockerfile string
-	Args       map[string]string
+	Context    string            `yaml:"context,omitempty"`
+	Dockerfile string            `yaml:"dockerfile,omitempty"`
+	Args       map[string]string `yaml:"args,omitempty"`
 }
 type Command []string
 type Environment map[string]string
 type Labels map[string]string
+
+func (s Service) HasBalancer() bool {
+	return len(s.Ports) > 0
+}
 
 func (s *Service) Process(app string) Process {
 	return NewProcess(app, *s)
@@ -202,4 +219,68 @@ func (s Service) LabelsByPrefix(prefix string) map[string]string {
 		}
 	}
 	return returnLabels
+}
+
+func (me Service) ExternalPorts() []Port {
+	ext := []Port{}
+
+	for _, port := range me.Ports {
+		if port.Public {
+			ext = append(ext, port)
+		}
+	}
+
+	return ext
+}
+
+func (me Service) InternalPorts() []Port {
+	internal := []Port{}
+
+	for _, port := range me.Ports {
+		if !port.Public {
+			internal = append(internal, port)
+		}
+	}
+
+	return internal
+}
+
+func (me Service) ContainerPorts() []string {
+	ext := []string{}
+
+	for _, port := range me.Ports {
+		if port.Container != 0 {
+			ext = append(ext, strconv.Itoa(port.Container))
+		}
+	}
+
+	sort.Strings(ext)
+
+	return ext
+}
+
+func (me Service) RegistryImage(appName, buildId string, outputs map[string]string) string {
+	if registryId := outputs["RegistryId"]; registryId != "" {
+		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), outputs["RegistryRepository"], me.Name, buildId)
+	}
+
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, me.Name, buildId)
+}
+
+func (me *Service) Randoms() map[string]int {
+	if me.randoms != nil {
+		return me.randoms
+	}
+
+	currentPort := 5000
+	me.randoms = make(map[string]int)
+	for _, port := range me.Ports {
+		if ManifestRandomPorts {
+			me.randoms[strconv.Itoa(port.Balancer)] = rand.Intn(62000) + 3000
+		} else {
+			me.randoms[strconv.Itoa(port.Balancer)] = currentPort
+			currentPort += 1
+		}
+	}
+	return me.randoms
 }
