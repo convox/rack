@@ -185,3 +185,36 @@ func (mb ManifestBalancer) Randoms() map[string]int {
 func (mb ManifestBalancer) DefaultHealthTimeout() string {
 	return "3"
 }
+
+// HealthPort The balancer port that maps to the container port specified in
+// manifest
+func (mb ManifestBalancer) HealthPort() (string, error) {
+	mappings := mb.PortMappings()
+	if port := mb.Entry.Labels["convox.health.port"]; port != "" {
+		for _, mapping := range mappings {
+			if strconv.Itoa(mapping.Container) == port {
+				return strconv.Itoa(mapping.Balancer), nil
+			}
+		}
+		return "", fmt.Errorf("Failed to find matching port for health port %#v", port)
+	} else if len(mappings) > 0 {
+		return strconv.Itoa(mappings[0].Balancer), nil
+	}
+
+	return "", nil
+}
+
+// HealthInterval The amount of time in between health checks.
+// This is derived from the timeout value, which must be less than the interval
+func (mb ManifestBalancer) HealthInterval() (string, error) {
+	// interval must be greater than timeout
+	if timeout := mb.Entry.Labels["convox.health.timeout"]; timeout != "" {
+		timeoutInt, err := strconv.Atoi(timeout)
+		if err != nil {
+			return "", err
+		}
+		interval := strconv.Itoa(timeoutInt + 2)
+		return interval, nil
+	}
+	return "5", nil
+}
