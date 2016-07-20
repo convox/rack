@@ -599,20 +599,48 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 }
 
 func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
-	// scan all output
-	out := ""
-	scanner := bufio.NewScanner(stdout)
 
-	for scanner.Scan() {
-		text := scanner.Text()
-		out += text + "\n"
-	}
-	if err := scanner.Err(); err != nil {
-		helpers.Error(nil, err) // send internal error to rollbar
-	}
+	outText := make(chan string)
 
-	// and wait for a return code
-	werr := cmd.Wait()
+	go func() {
+		// scan all output
+		scanner := bufio.NewScanner(stdout)
+		out := ""
+		for scanner.Scan() {
+			text := scanner.Text()
+			out += text + "\n"
+		}
+		if err := scanner.Err(); err != nil {
+			helpers.Error(nil, err) // send internal error to rollbar
+		}
+
+		outText <- out
+	}()
+
+	var cmdStatus string
+	waitErr := make(chan error)
+	timeout := time.After(1 * time.Hour)
+
+	go func() {
+		waitErr <- cmd.Wait()
+	}()
+
+	select {
+
+	case werr := <-waitErr:
+		// Wait / return code are errors, consider the build failed
+		if werr != nil {
+			cmdStatus = "failed"
+		}
+		break
+
+	case <-timeout:
+		cmdStatus = "timeout"
+		// Force kill the build container since its taking way to long
+		kCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
+		kCmd.Start()
+		break
+	}
 
 	// reload build item to get data from BuildUpdate callback
 	b, err := p.BuildGet(b.App, b.Id)
@@ -621,13 +649,12 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 		return
 	}
 
-	// Wait / return code are errors, consider the build failed
-	if werr != nil {
-		b.Status = "failed"
+	if cmdStatus != "" { // Careful not to override the status set by BuildUpdate
+		b.Status = cmdStatus
 	}
 
 	// save final build logs / status
-	b.Logs = string(out)
+	b.Logs = <-outText
 	err = p.BuildSave(b)
 	if err != nil {
 		helpers.Error(nil, err) // send internal error to rollbar

@@ -331,9 +331,10 @@ ForLoop:
 			case "failed":
 				err = fmt.Errorf("%s build failed", app)
 				break ForLoop
+			case "timeout":
+				err = fmt.Errorf("%s build timeout", app)
+				break ForLoop
 			}
-
-			// Maybe have another case to handle a timeout? But what's a good value?
 		}
 
 		time.Sleep(2 * time.Second)
