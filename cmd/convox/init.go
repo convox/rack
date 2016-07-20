@@ -63,6 +63,8 @@ func detectApplication(dir string) string {
 	//   return "meteor"
 	// case exists(filepath.Join(dir, "package.json")):
 	//   return "node"
+	case exists(filepath.Join(dir, "manage.py")):
+		return "django"
 	case exists(filepath.Join(dir, "config/application.rb")):
 		return "rails"
 	case exists(filepath.Join(dir, "config.ru")):

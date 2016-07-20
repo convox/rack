@@ -197,6 +197,8 @@ func (s *Service) Update(changes map[string]string) error {
 		return fmt.Errorf("can not update webhook")
 	case "s3", "sns", "sqs":
 		req, err = s.UpdateIAMService()
+	case "syslog":
+		req, err = s.UpdateLogger()
 	default:
 		req, err = s.UpdateDatastore()
 	}
