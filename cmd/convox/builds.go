@@ -523,7 +523,8 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 	cache := !c.Bool("no-cache")
 
 	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, func(s string) {
-		fmt.Printf("\rUploading... %s", strings.TrimSpace(s))
+		// Pad string with spaces at the end to clear any text left over from a longer string.
+		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
 	})
 	if err != nil {
 		return "", err
