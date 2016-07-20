@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/convox/rack/api/httperr"
@@ -126,6 +127,10 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 	err = a.RunDetached(process, command, release)
 
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "no such release") {
+			return httperr.Errorf(404, err.Error())
+		}
+
 		return httperr.Server(err)
 	}
 
