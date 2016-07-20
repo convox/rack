@@ -263,7 +263,7 @@ func (r *Release) Promote() error {
 			switch app.Parameters[protoParam] {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
-					name := fmt.Sprintf("cert-%d", time.Now().Unix())
+					name := fmt.Sprintf("cert-%s-%d", os.Getenv("RACK"), time.Now().Unix())
 
 					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
 					if err != nil {
