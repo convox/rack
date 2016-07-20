@@ -69,7 +69,13 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 	return &build, nil
 }
 
+// CreateBuildSource will create a new build from source. If progress of the uploaded is needed, see CreateBuildSourceProgress
 func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manifest string, description string) (*Build, error) {
+	return c.CreateBuildSourceProgress(app, source, cache, manifest, description, nil)
+}
+
+// CreateBuildSourceProgress will create a new build from source with an optional callback to provide progress of the source being uploaded.
+func (c *Client) CreateBuildSourceProgress(app string, source []byte, cache bool, manifest string, description string, progressCallback func(s string)) (*Build, error) {
 	var build Build
 
 	files := map[string][]byte{
@@ -82,8 +88,7 @@ func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manife
 		"manifest":    manifest,
 	}
 
-	err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), files, params, &build)
-
+	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, &build, progressCallback)
 	if err != nil {
 		return nil, err
 	}
