@@ -33,22 +33,15 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	// new services should use the provider interfaces
-  switch s.Type {
-    case "syslog":
-      s, err := provider.ServiceGet(service)
-		  if err != nil {
-			  return httperr.Server(err)
-		  }
+	switch s.Type {
+	case "fluentd", "papertrail", "syslog":
+		s, err := provider.ServiceGet(service)
+		if err != nil {
+			return httperr.Server(err)
+		}
 
-		  return RenderJson(rw, s)
-    case "fluentd":
-      s, err := provider.ServiceGet(service)
-		  if err != nil {
-			  return httperr.Server(err)
-		  }
-
-		  return RenderJson(rw, s)
-  }
+		return RenderJson(rw, s)
+	}
 
 	return RenderJson(rw, s)
 }
@@ -72,7 +65,8 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	delete(params, "type")
 
 	// new services should use the provider interfaces
-	if kind == "syslog" || kind == "papertrail" || kind == "fluentd" {
+	switch kind {
+	case "fluentd", "papertrail", "syslog":
 		s, err := provider.ServiceCreate(name, kind, params)
 		if err != nil {
 			return httperr.Server(err)
@@ -119,9 +113,6 @@ func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
 	s, err := provider.ServiceGet(service)
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such service: %s", service)
-	}
 	if err != nil {
 		return httperr.Server(err)
 	}
