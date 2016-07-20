@@ -27,7 +27,7 @@ test-deps:
 test:
 	docker info >/dev/null
 	go get -t ./...
-	env PROVIDER=test go test -v -cover ./...
+	env PROVIDER=test bin/test
 
 vendor:
 	godep restore

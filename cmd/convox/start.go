@@ -3,15 +3,16 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"os/signal"
+	"path/filepath"
 	"strings"
-	"time"
 
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -43,113 +44,98 @@ func init() {
 }
 
 func cmdStart(c *cli.Context) error {
-	ep := stdcli.QOSEventProperties{Start: time.Now()}
+	// go handleResize()
 
-	distinctId, err := currentId()
+	id, err := currentId()
 	if err != nil {
-		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{Error: err})
 	}
 
+	err = dockerTest()
+	if err != nil {
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+	}
+
+	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
+	if err != nil {
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+	}
+
+	appType := detectApplication(dir)
+	m, err := manifest.LoadFile(c.String("file"))
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if shift := c.Int("shift"); shift > 0 {
+		m.Shift(shift)
+	}
+
+	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
+		if err == nil {
+			err = fmt.Errorf("ports in use: %v", pcc)
+		}
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+			ValidationError: err,
+			AppType:         appType,
+		})
+	}
+
+	noCache := c.Bool("no-cache")
+	r := m.Run(dir, app, noCache)
+
+	err = r.Start()
+	if err != nil {
+		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+			ValidationError: err,
+			AppType:         appType,
+		})
+	}
+
+	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+		AppType: appType,
+	})
+
+	go handleInterrupt(r)
+
+	return r.Wait()
+}
+
+func handleInterrupt(run manifest.Run) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, os.Kill)
+	<-ch
+	fmt.Println("")
+	run.Stop()
+	os.Exit(0)
+}
+
+func dockerTest() error {
 	dockerTest := exec.Command("docker", "images")
-	err = dockerTest.Run()
+	err := dockerTest.Run()
 	if err != nil {
 		return stdcli.ExitError(errors.New("could not connect to docker daemon, is it installed and running?"))
 	}
 
 	dockerVersionTest, err := docker.NewClientFromEnv()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return err
 	}
 
 	minDockerVersion, err := docker.NewAPIVersion("1.9")
 	e, err := dockerVersionTest.Version()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return err
 	}
 
 	currentVersionParts := strings.Split(e.Get("Version"), ".")
 	currentVersion, err := docker.NewAPIVersion(fmt.Sprintf("%s.%s", currentVersionParts[0], currentVersionParts[1]))
 	if err != nil {
-		return stdcli.ExitError(err)
+		return err
 	}
 
 	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
-		return stdcli.ExitError(errors.New("Your version of docker is out of date (min: 1.9)"))
+		return errors.New("Your version of docker is out of date (min: 1.9)")
 	}
-
-	cache := !c.Bool("no-cache")
-
-	shift := 0
-
-	if si := c.Int("shift"); si > 0 {
-		shift = si
-	}
-
-	wd := "."
-
-	if len(c.Args()) > 0 {
-		wd = c.Args()[0]
-	}
-
-	dir, app, err := stdcli.DirApp(c, wd)
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	file := c.String("file")
-
-	m, err := manifest.Read(dir, file)
-	if err != nil {
-		switch err.(type) {
-		case *manifest.YAMLError:
-			return stdcli.ExitError(fmt.Errorf(
-				"Invalid manifest (%s): %s", file, err.Error(),
-			))
-		default:
-			err := manifest.Init(dir)
-			if err != nil {
-				return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-			}
-
-			m, err = manifest.Read(dir, file)
-			if err != nil {
-				return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-			}
-		}
-	}
-
-	conflicts, err := m.PortConflicts(shift)
-	if err != nil {
-		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
-
-	if len(conflicts) > 0 {
-		return stdcli.ExitError(fmt.Errorf("ports in use: %s", strings.Join(conflicts, ", ")))
-	}
-
-	missing, err := m.MissingEnvironment(cache, app)
-	if err != nil {
-		stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: err})
-	}
-
-	if len(missing) > 0 {
-		return stdcli.ExitError(fmt.Errorf("env expected: %s", strings.Join(missing, ", ")))
-	}
-
-	errors := m.Build(app, dir, cache)
-	if len(errors) != 0 {
-		return stdcli.QOSEventSend("cli-start", distinctId, stdcli.QOSEventProperties{Error: errors[0]})
-	}
-
-	sync := c.Bool("sync") && (stdcli.ReadSetting("sync") != "false")
-
-	ch := make(chan []error)
-
-	go func() {
-		ch <- m.Run(app, cache, sync, shift)
-	}()
-
-	<-ch
-
-	return stdcli.QOSEventSend("cli-start", distinctId, ep)
+	return nil
 }

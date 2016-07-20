@@ -1,0 +1,4 @@
+web:
+  image: test
+  ports:
+    - 30544:5000
