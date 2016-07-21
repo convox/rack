@@ -107,16 +107,8 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 	return sp, nil
 }
 
-func (s *Service) Tag() string {
-	if s.Build.Context != "" {
-		dockerFile := s.Build.Dockerfile
-		if dockerFile == "" {
-			dockerFile = s.Dockerfile
-		}
-		return tagHash(fmt.Sprintf("%s:%s", s.Build.Context, dockerFile))
-	} else {
-		return tagHash(s.Image)
-	}
+func (s *Service) Tag(appName string) string {
+	return (fmt.Sprintf("%s/%s", appName, s.Name))
 }
 
 func containerEnv(container string) map[string]string {

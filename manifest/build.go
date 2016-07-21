@@ -1,10 +1,20 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"path"
+)
 
 func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
+
+	d, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	appName := path.Base(d)
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
@@ -12,7 +22,7 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 			dockerFile = service.Dockerfile
 		}
 		if service.Image != "" {
-			pulls[service.Image] = service.Tag()
+			pulls[service.Image] = service.Tag(appName)
 		} else {
 			builds = append(builds, service)
 		}
@@ -29,7 +39,7 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 		dockerFile := coalesce(service.Build.Dockerfile, "Dockerfile")
 
 		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
-		args = append(args, "-t", service.Tag())
+		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
 		run(s, Docker(args...))
 		// runPrefix(systemPrefix(m), Docker(args...))
