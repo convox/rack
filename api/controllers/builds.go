@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/convox/rack/api/helpers"
@@ -194,19 +193,16 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			fmt.Println("Error listing builds for cleanup")
 		} else {
 			if len(bs) >= 50 {
-				wg := new(sync.WaitGroup)
-				outDated := bs[50:]
-				for _, b := range outDated {
-					wg.Add(1)
-					go func(buildId string, wg *sync.WaitGroup) {
-						defer wg.Done()
-						_, err := provider.BuildDelete(app, buildId)
+				go func() {
+					for _, b := range bs[50:] {
+						_, err := provider.BuildDelete(app, b.Id)
 						if err != nil {
-							fmt.Printf("Error cleaning up build: %s", buildId)
+							fmt.Printf("Error cleaning up build: %s", b.Id)
 						}
-					}(b.Id, wg)
-				}
-				wg.Wait()
+
+						time.Sleep(1 * time.Second)
+					}
+				}()
 			}
 		}
 	}
