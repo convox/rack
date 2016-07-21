@@ -43,7 +43,7 @@ func NewProcess(app string, s Service) Process {
 		args = append(args, "-v", volume)
 	}
 
-	args = append(args, s.Tag())
+	args = append(args, s.Tag(app))
 	args = append(args, s.Command...)
 
 	return Process{
