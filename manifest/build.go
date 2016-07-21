@@ -10,13 +10,25 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
 
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+
+	appName := stdcli.ReadSetting("app")
+	if appName == "" {
+		appName = path.Base(abs)
+	}
+
+	appName = strings.ToLower(appName)
+
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
 		if dockerFile == "" {
 			dockerFile = service.Dockerfile
 		}
 		if service.Image != "" {
-			pulls[service.Image] = service.Tag()
+			pulls[service.Image] = service.Tag(appName)
 		} else {
 			builds = append(builds, service)
 		}

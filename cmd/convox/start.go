@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -56,12 +56,10 @@ func cmdStart(c *cli.Context) error {
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
 	}
 
-	dir, err := os.Getwd()
+	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
 	if err != nil {
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
 	}
-
-	app := path.Base(dir)
 
 	appType := detectApplication(dir)
 	m, err := manifest.LoadFile(c.String("file"))
