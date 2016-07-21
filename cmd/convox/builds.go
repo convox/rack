@@ -246,23 +246,23 @@ func cmdBuildsCopy(c *cli.Context) error {
 
 	fmt.Println("OK")
 
-	releaseId, err := finishBuild(c, destApp, b)
+	releaseID, err := finishBuild(c, destApp, b)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	if releaseId != "" {
+	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s %s... ", destApp, releaseId)
+			fmt.Printf("Promoting %s %s... ", destApp, releaseID)
 
-			_, err = rackClient(c).PromoteRelease(destApp, releaseId)
+			_, err = rackClient(c).PromoteRelease(destApp, releaseID)
 			if err != nil {
 				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
 		} else {
-			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseId, destApp)
+			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseID, destApp)
 		}
 	}
 
@@ -520,7 +520,8 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 	cache := !c.Bool("no-cache")
 
 	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, func(s string) {
-		fmt.Printf("\rUploading... %s", strings.TrimSpace(s))
+		// Pad string with spaces at the end to clear any text left over from a longer string.
+		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
 	})
 	if err != nil {
 		return "", err
