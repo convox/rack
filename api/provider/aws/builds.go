@@ -637,8 +637,8 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 	case <-timeout:
 		cmdStatus = "timeout"
 		// Force kill the build container since its taking way to long
-		kCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
-		kCmd.Start()
+		killCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
+		killCmd.Start()
 		break
 	}
 
