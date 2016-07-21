@@ -2,19 +2,28 @@ package manifest
 
 import (
 	"fmt"
-	"os"
 	"path"
+	"path/filepath"
+	"strings"
+
+	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
 func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
 
-	d, err := os.Getwd()
+	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return err
 	}
-	appName := path.Base(d)
+
+	appName := stdcli.ReadSetting("app")
+	if appName == "" {
+		appName = path.Base(abs)
+	}
+
+	appName = strings.ToLower(appName)
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
