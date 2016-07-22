@@ -39,6 +39,8 @@ type Service struct {
 	Exports  map[string]string        `yaml:"-"`
 	LinkVars map[string]template.HTML `yaml:"-"`
 
+	Primary bool `yaml:"-"`
+
 	randoms map[string]int
 }
 
