@@ -600,29 +600,23 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 
 func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
 
-	outText := make(chan string)
-
-	go func() {
-		// scan all output
-		scanner := bufio.NewScanner(stdout)
-		out := ""
-		for scanner.Scan() {
-			text := scanner.Text()
-			out += text + "\n"
-		}
-		if err := scanner.Err(); err != nil {
-			helpers.Error(nil, err) // send internal error to rollbar
-		}
-
-		outText <- out
-	}()
+	// scan all output
+	scanner := bufio.NewScanner(stdout)
+	out := ""
+	for scanner.Scan() {
+		text := scanner.Text()
+		out += text + "\n"
+	}
+	if err := scanner.Err(); err != nil {
+		helpers.Error(nil, err) // send internal error to rollbar
+	}
 
 	var cmdStatus string
 	waitErr := make(chan error)
 	timeout := time.After(1 * time.Hour)
 
 	go func() {
-		waitErr <- cmd.Wait()
+		waitErr <- cmd.Wait() // Make sure to read all stdout before calling this.
 	}()
 
 	select {
@@ -654,7 +648,7 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 	}
 
 	// save final build logs / status
-	b.Logs = <-outText
+	b.Logs = out
 	err = p.BuildSave(b)
 	if err != nil {
 		helpers.Error(nil, err) // send internal error to rollbar
