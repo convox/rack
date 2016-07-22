@@ -358,13 +358,11 @@ func readDockerIgnore(dir string) ([]string, error) {
 	if os.IsNotExist(err) {
 		return []string{}, nil
 	}
-
 	if err != nil {
 		return nil, err
 	}
 
 	ignore, err := dockerignore.ReadAll(fd)
-
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +372,6 @@ func readDockerIgnore(dir string) ([]string, error) {
 
 func uploadIndex(c *cli.Context, index client.Index) error {
 	missing, err := rackClient(c).IndexMissing(index)
-
 	if err != nil {
 		return err
 	}
@@ -539,7 +536,6 @@ func executeBuildUrl(c *cli.Context, url, app, manifest, description string) (st
 	cache := !c.Bool("no-cache")
 
 	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest, description)
-
 	if err != nil {
 		return "", err
 	}
@@ -623,14 +619,13 @@ func finishBuild(c *cli.Context, app string, build *client.Build) (string, error
 
 	reader, writer := io.Pipe()
 	go io.Copy(os.Stdout, reader)
-	err := rackClient(c).StreamBuildLogs(app, build.Id, writer)
 
+	err := rackClient(c).StreamBuildLogs(app, build.Id, writer)
 	if err != nil {
 		return "", err
 	}
 
 	release, err := waitForBuild(c, app, build.Id)
-
 	if err != nil {
 		return "", err
 	}
@@ -639,6 +634,7 @@ func finishBuild(c *cli.Context, app string, build *client.Build) (string, error
 }
 
 func waitForBuild(c *cli.Context, app, id string) (string, error) {
+
 	for {
 		build, err := rackClient(c).GetBuild(app, id)
 		if err != nil {
@@ -652,6 +648,8 @@ func waitForBuild(c *cli.Context, app, id string) (string, error) {
 			return "", fmt.Errorf("%s build failed", app)
 		case "failed":
 			return "", fmt.Errorf("%s build failed", app)
+		case "timeout":
+			return "", fmt.Errorf("%s build timed out", app)
 		}
 
 		time.Sleep(1 * time.Second)
