@@ -26,6 +26,7 @@ type Service struct {
 	Networks    []string    `yaml:"networks,omitempty"`
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
+	Tty         bool        `yaml:"tty,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 }
 
