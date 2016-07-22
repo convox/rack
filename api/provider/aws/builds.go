@@ -626,14 +626,12 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 		if werr != nil {
 			cmdStatus = "failed"
 		}
-		break
 
 	case <-timeout:
 		cmdStatus = "timeout"
 		// Force kill the build container since its taking way to long
 		killCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
 		killCmd.Start()
-		break
 	}
 
 	// reload build item to get data from BuildUpdate callback
