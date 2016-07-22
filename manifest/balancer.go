@@ -88,11 +88,11 @@ func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template
 		return template.HTML(`"` + prefix + suffix + `"`)
 	}
 
-	// Unbound apps use legacy StackName or StackName-ProcessName format
-	//TODO
-	// if mb.Entry.primary {
-	// 	return template.HTML(`{ "Ref": "AWS::StackName" }`)
-	// }
+	//Unbound apps use legacy StackName or StackName-ProcessName format
+	//TODO I'm not sure this will be set at the time of calling
+	if mb.Entry.Primary {
+		return template.HTML(`{ "Ref": "AWS::StackName" }`)
+	}
 
 	if mb.Public {
 		return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s" ] ] }`, mb.ProcessName()))

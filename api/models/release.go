@@ -371,11 +371,14 @@ func (r *Release) Formation() (string, error) {
 			}
 		}
 
-		// for i, entry := range manifest.Services {
-		// 	if entry.Name == primary {
-		// 		entry.primary = true
-		// 	}
-		// }
+		for _, entry := range manifest.Services {
+			if entry.Name == primary {
+				//TODO not sure this indirection is required
+				dup := manifest.Services[entry.Name]
+				dup.Primary = true
+				manifest.Services[entry.Name] = dup
+			}
+		}
 	}
 
 	// set the image

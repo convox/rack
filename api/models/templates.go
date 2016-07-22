@@ -91,7 +91,7 @@ func templatesAppTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/app.tmpl", size: 26087, mode: os.FileMode(420), modTime: time.Unix(1469004867, 0)}
+	info := bindataFileInfo{name: "templates/app.tmpl", size: 26087, mode: os.FileMode(420), modTime: time.Unix(1469201389, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -231,7 +231,7 @@ func templatesServiceSyslogTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/syslog.tmpl", size: 4759, mode: os.FileMode(420), modTime: time.Unix(1469004867, 0)}
+	info := bindataFileInfo{name: "templates/service/syslog.tmpl", size: 4759, mode: os.FileMode(420), modTime: time.Unix(1469091990, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
