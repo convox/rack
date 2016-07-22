@@ -29,13 +29,11 @@ func Watch(dir string, ch chan Change) error {
 	files := map[string]map[string]time.Time{}
 
 	abs, err := filepath.Abs(dir)
-
 	if err != nil {
 		return err
 	}
 
 	sym, err := filepath.EvalSymlinks(abs)
-
 	if err != nil {
 		return err
 	}
