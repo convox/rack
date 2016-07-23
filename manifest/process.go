@@ -1,6 +1,10 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+)
 
 type Process struct {
 	Name string
@@ -40,6 +44,14 @@ func NewProcess(app string, s Service) Process {
 	}
 
 	for _, volume := range s.Volumes {
+		parts := strings.Split(volume, ":")
+		if !filepath.IsAbs(parts[0]) {
+			absoluteVolumePath, err := filepath.Abs(parts[0])
+			if err != nil {
+				fmt.Errorf("There was a problem parsing the volume: %s", volume)
+			}
+			volume = filepath.Join(absoluteVolumePath, parts[1])
+		}
 		args = append(args, "-v", volume)
 	}
 
