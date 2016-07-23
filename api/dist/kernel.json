@@ -1537,7 +1537,10 @@
         "SecurityGroupIngress": [
           { "IpProtocol": "tcp", "FromPort": "2049", "ToPort": "2049", "CidrIp": { "Ref": "VPCCIDR" } }
         ],
-        "VpcId": { "Ref": "Vpc" }
+        "VpcId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Vpc" },
+          { "Ref": "ExistingVpc" }
+        ] }
       }
     },
     "VolumeTarget0": {
@@ -1545,7 +1548,17 @@
       "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": { "Ref": "Subnet0" },
+        "SubnetId": {
+          "Fn::If": [
+            "ExistingVpc",
+            { "Fn::Select": [ 0, { "Ref": "ExistingSubnets" } ] },
+            { "Fn::If": [
+              "Private",
+              { "Ref": "SubnetPrivate0" },
+              { "Ref": "Subnet0" }]
+            }
+          ]
+        },
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
@@ -1554,7 +1567,17 @@
       "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": { "Ref": "Subnet1" },
+        "SubnetId": {
+          "Fn::If": [
+            "ExistingVpc",
+            { "Fn::Select": [ 1, { "Ref": "ExistingSubnets" } ] },
+            { "Fn::If": [
+              "Private",
+              { "Ref": "SubnetPrivate1" },
+              { "Ref": "Subnet1" }]
+            }
+          ]
+        },
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
@@ -1563,7 +1586,17 @@
       "Condition": "RegionHasEFS",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
-        "SubnetId": { "Ref": "Subnet2" },
+        "SubnetId": {
+          "Fn::If": [
+            "ExistingVpc",
+            { "Fn::Select": [ 2, { "Ref": "ExistingSubnets" } ] },
+            { "Fn::If": [
+              "Private",
+              { "Ref": "SubnetPrivate2" },
+              { "Ref": "Subnet2" }]
+            }
+          ]
+        },
         "SecurityGroups": [ { "Ref": "VolumeSecurity" } ]
       }
     },
