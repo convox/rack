@@ -96,12 +96,12 @@ func init() {
 			cli.StringFlag{
 				Name:  "existing-vpc",
 				Value: "",
-				Usage: "existing vpc to use for rack instances",
+				Usage: "existing vpc id into which to install rack",
 			},
 			cli.StringFlag{
 				Name:  "existing-subnets",
 				Value: "",
-				Usage: "subnets for existing VPC (specify 3)",
+				Usage: "3 existing subnet ids to be used by rack. eg. subnet-4a26ea3c,subnet-4a26ea3d,subnet-4a26ea3e",
 			},
 			cli.IntFlag{
 				Name:  "instance-count",
