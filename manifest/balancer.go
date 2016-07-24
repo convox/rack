@@ -223,3 +223,20 @@ func (mb ManifestBalancer) HealthInterval() (string, error) {
 	interval := strconv.Itoa(timeoutInt + 2)
 	return interval, nil
 }
+
+// IdleTimeout The amount of time to allow the balancer to keep idle connections open. This should be
+// greater than the keep-alive timeout on your back-end, so that the balancer is responsible for
+// closing connections
+func (mb ManifestBalancer) IdleTimeout() (string, error) {
+	if timeout := mb.Entry.Labels["convox.idle_timeout"]; timeout != "" {
+		timeoutInt, err := strconv.Atoi(timeout)
+		if err != nil {
+			return "", err
+		}
+		if timeoutInt < 1 || timeoutInt > 3600 {
+			return "", fmt.Errorf("convox.idle_timeout must be between 1 and 3600")
+		}
+		return timeout, nil
+	}
+	return "3600", nil
+}
