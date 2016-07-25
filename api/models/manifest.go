@@ -44,6 +44,8 @@ type ManifestPort struct {
 	Balancer  string
 	Container string
 	Public    bool
+	Secure    bool
+	Proxy     bool
 }
 
 type ManifestEntries map[string]ManifestEntry
@@ -564,20 +566,32 @@ func (me ManifestEntry) PortMappings() []ManifestPort {
 	for _, port := range me.Ports {
 		parts := strings.SplitN(port, ":", 2)
 
+		var balancer, container string
+		var public bool
+
 		switch len(parts) {
 		case 1:
-			mappings = append(mappings, ManifestPort{
-				Balancer:  parts[0],
-				Container: parts[0],
-				Public:    false,
-			})
+			balancer = parts[0]
+			container = parts[0]
+			public = false
 		case 2:
-			mappings = append(mappings, ManifestPort{
-				Balancer:  parts[0],
-				Container: parts[1],
-				Public:    true,
-			})
+			balancer = parts[0]
+			container = parts[1]
+			public = true
 		}
+
+		secureLabel := fmt.Sprintf("convox.port.%s.secure", balancer)
+		secure := me.Label(secureLabel) == "true"
+		proxyLabel := fmt.Sprintf("convox.port.%s.proxy", balancer)
+		proxy := me.Label(proxyLabel) == "true"
+
+		mappings = append(mappings, ManifestPort{
+			Balancer: balancer,
+			Container: container,
+			Public: public,
+			Secure: secure,
+			Proxy: proxy,
+		})
 	}
 
 	return mappings

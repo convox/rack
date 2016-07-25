@@ -17,22 +17,6 @@
         ""
       ]
     },
-    "BalancerWebPort3000Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3000Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerWebPort3000Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3000Secure"
-        },
-        "Yes"
-      ]
-    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
@@ -314,24 +298,6 @@
       "Default": "tls",
       "Description": "",
       "Type": "String"
-    },
-    "WebPort3000Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort3000Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
     }
   },
   "Resources": {
@@ -433,67 +399,33 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerWebPort3000Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort3000Host"
+            "InstancePort": {
+              "Ref": "WebPort3000Host"
+            },
+            "InstanceProtocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "WebPort3000Protocol"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3000Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
+                "InstanceProtocol"
+              ]
+            },
+            "LoadBalancerPort": {
+              "Ref": "WebPort3000Balancer"
+            },
+            "Protocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "WebPort3000Protocol"
                 },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort3000Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3000Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort3000Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort3000Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3000Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort3000Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3000Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort3000Certificate"
-                }
-              }
-            ]
+                "ListenerProtocol"
+              ]
+            },
+            "SSLCertificateId": {
+              "Ref": "WebPort3000Certificate"
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -501,29 +433,6 @@
         ],
         "LoadBalancerName": "httpd-web-XHW5F4P-i",
         "Policies": [
-          {
-            "Fn::If": [
-              "BalancerWebPort3000Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "WebPort3000Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
           {
             "Ref": "AWS::NoValue"
           }

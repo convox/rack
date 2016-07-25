@@ -232,8 +232,6 @@ func (r *Release) Promote() error {
 		for _, mapping := range entry.PortMappings() {
 			certParam := fmt.Sprintf("%sPort%sCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%sProtocol", UpperName(entry.Name), mapping.Balancer)
-			proxyParam := fmt.Sprintf("%sPort%sProxy", UpperName(entry.Name), mapping.Balancer)
-			secureParam := fmt.Sprintf("%sPort%sSecure", UpperName(entry.Name), mapping.Balancer)
 
 			app.Parameters[protoParam] = entry.Label(fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer))
 
@@ -244,20 +242,6 @@ func (r *Release) Promote() error {
 				} else {
 					app.Parameters[protoParam] = "tls"
 				}
-			}
-
-			if entry.Label(fmt.Sprintf("convox.port.%s.proxy", mapping.Balancer)) == "true" {
-				app.Parameters[proxyParam] = "Yes"
-			} else {
-				app.Parameters[proxyParam] = "No"
-			}
-
-			// only change the secure parameter if a label is set for backwards compat
-			switch entry.Label(fmt.Sprintf("convox.port.%s.secure", mapping.Balancer)) {
-			case "true":
-				app.Parameters[secureParam] = "Yes"
-			case "false":
-				app.Parameters[secureParam] = "No"
 			}
 
 			switch app.Parameters[protoParam] {
