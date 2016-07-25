@@ -17,22 +17,6 @@
         ""
       ]
     },
-    "BalancerMainPort443Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort443Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerMainPort443Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort443Secure"
-        },
-        "Yes"
-      ]
-    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -405,67 +389,33 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerMainPort443Secure",
-              {
-                "InstancePort": {
-                  "Ref": "MainPort443Host"
+            "InstancePort": {
+              "Ref": "MainPort443Host"
+            },
+            "InstanceProtocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "MainPort443Protocol"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort443Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
+                "SecureInstanceProtocol"
+              ]
+            },
+            "LoadBalancerPort": {
+              "Ref": "MainPort443Balancer"
+            },
+            "Protocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "MainPort443Protocol"
                 },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort443Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort443Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort443Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "MainPort443Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort443Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort443Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort443Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort443Certificate"
-                }
-              }
-            ]
+                "ListenerProtocol"
+              ]
+            },
+            "SSLCertificateId": {
+              "Ref": "MainPort443Certificate"
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -474,27 +424,19 @@
         "LoadBalancerName": "httpd-main-KQSNMIK",
         "Policies": [
           {
-            "Fn::If": [
-              "BalancerMainPort443Proxy",
+            "Attributes": [
               {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "MainPort443Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
+                "Name": "ProxyProtocol",
+                "Value": "true"
               }
-            ]
+            ],
+            "InstancePorts": [
+              {
+                "Ref": "MainPort443Host"
+              }
+            ],
+            "PolicyName": "EnableProxyProtocol",
+            "PolicyType": "ProxyProtocolPolicyType"
           },
           {
             "Ref": "AWS::NoValue"

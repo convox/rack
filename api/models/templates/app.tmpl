@@ -247,14 +247,6 @@
         ""
       ]
     },
-    {{ range .PortMappings }}
-      "{{ $balancerPrefix }}Port{{ .Balancer }}Proxy": {
-        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
-      },
-      "{{ $balancerPrefix }}Port{{ .Balancer }}Secure": {
-        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Secure" }, "Yes" ]
-      },
-    {{ end }}
   {{ end }}
 {{ end }}
 
@@ -287,24 +279,28 @@
         "Default" : "{{ index $balancer.Randoms .Balancer }}",
         "Description" : ""
       },
+      {{ if .Secure }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",
         "AllowedValues": [ "Yes", "No" ]
       },
+      {{ end }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol": {
         "Type" : "String",
         "Default" : "tls",
         "Description" : "",
         "AllowedValues": [ "http", "https", "tcp", "tls" ]
       },
+      {{ if .Proxy }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",
         "AllowedValues": [ "Yes", "No" ]
       },
+      {{ end }}
     {{ end }}
   {{ end }}
 {{ end }}
@@ -426,7 +422,7 @@
         },
         "Listeners": [
           {{ range .PortMappings }}
-            { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure",
+            {{ if .Secure }}
               {
                 "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "ListenerProtocol" ] },
                 "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
@@ -434,20 +430,21 @@
                 "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
                 "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
               },
+            {{ else }}
               {
                 "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "ListenerProtocol" ] },
                 "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
                 "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "InstanceProtocol" ] },
                 "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
                 "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
-              }
-            ] },
+              },
+            {{ end }}
           {{ end }}
           { "Ref": "AWS::NoValue" }
         ],
         "Policies": [
           {{ range .PortMappings }}
-            { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy",
+            {{ if .Proxy }}
               {
                 "PolicyName": "EnableProxyProtocol",
                 "PolicyType": "ProxyProtocolPolicyType",
@@ -457,8 +454,7 @@
                 }],
                 "InstancePorts": [{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }]
               },
-              { "Ref": "AWS::NoValue" }
-            ] },
+            {{ end }}
           {{ end }}
           { "Ref": "AWS::NoValue" }
         ],
