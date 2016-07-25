@@ -97,11 +97,6 @@ func init() {
 				Value: "",
 				Usage: "existing vpc id into which to install rack",
 			},
-			cli.StringFlag{
-				Name:  "existing-subnets",
-				Value: "",
-				Usage: "3 existing subnet ids to be used by rack. eg. subnet-4a26ea3c,subnet-4a26ea3d,subnet-4a26ea3e",
-			},
 			cli.IntFlag{
 				Name:  "instance-count",
 				Value: 3,
@@ -222,17 +217,10 @@ func cmdInstall(c *cli.Context) error {
 		subnetPrivate2CIDR = parts[2]
 	}
 
-	var existingVPC, existingSubnets string
+	var existingVPC string
 
 	if vpc := c.String("existing-vpc"); vpc != "" {
 		existingVPC = vpc
-
-		parts := strings.SplitN(c.String("existing-subnets"), ",", 3)
-		if len(parts) < 3 {
-			return stdcli.ExitError(fmt.Errorf("existing-subnets must have 3 values"))
-		}
-
-		existingSubnets = c.String("existing-subnets")
 	}
 
 	private := "No"
@@ -328,7 +316,6 @@ func cmdInstall(c *cli.Context) error {
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctID)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
-			&cloudformation.Parameter{ParameterKey: aws.String("ExistingSubnets"), ParameterValue: aws.String(existingSubnets)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
