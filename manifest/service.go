@@ -23,7 +23,7 @@ type Service struct {
 	Image       string      `yaml:"image,omitempty"`
 	Labels      Labels      `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
-	Networks    Networks    `yaml:"networks,omitempty"`
+	Networks    Networks    `yaml:"-"`
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
