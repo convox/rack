@@ -9,14 +9,6 @@
         ""
       ]
     },
-    "BalancerWebBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthTimeout"
-        },
-        ""
-      ]
-    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
@@ -278,11 +270,6 @@
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
     "WebPort443Balancer": {
       "Default": "443",
       "Description": "",
@@ -417,15 +404,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerWebBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WebHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [

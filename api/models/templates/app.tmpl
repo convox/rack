@@ -241,12 +241,6 @@
         ""
       ]
     },
-    "{{ $balancerPrefix }}BlankHealthTimeout": {
-      "Fn::Equals": [
-        {"Ref": "{{ $processName }}HealthTimeout"},
-        ""
-      ]
-    },
   {{ end }}
 {{ end }}
 
@@ -257,11 +251,6 @@
       "Type": "String",
       "Default": "",
       "Description": "Path used when health check protocol is http(s)"
-    },
-    "{{ upper $balancer.ProcessName }}HealthTimeout": {
-      "Default": "{{ .DefaultHealthTimeout }}",
-      "Type": "Number",
-      "MaxValue": 60
     },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
@@ -411,13 +400,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "Balancer{{ upper $balancer.ProcessName }}BlankHealthTimeout",
-              "{{ $balancer.DefaultHealthTimeout }}",
-              { "Ref": "{{ $balancerHealthPrefix }}Timeout" }
-            ]
-          },
+          "Timeout": "{{ $balancer.HealthTimeout }}",
           "UnhealthyThreshold": "2"
         },
         "Listeners": [
