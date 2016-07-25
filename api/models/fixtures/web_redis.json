@@ -9,26 +9,10 @@
         ""
       ]
     },
-    "BalancerRedisBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "RedisHealthTimeout"
-        },
-        ""
-      ]
-    },
     "BalancerWebBlankHealthPath": {
       "Fn::Equals": [
         {
           "Ref": "WebHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerWebBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthTimeout"
         },
         ""
       ]
@@ -258,11 +242,6 @@
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "RedisHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
     "RedisPort6379Balancer": {
       "Default": "6379",
       "Description": "",
@@ -338,11 +317,6 @@
       "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
-    },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
     },
     "WebPort80Balancer": {
       "Default": "80",
@@ -452,15 +426,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerRedisBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "RedisHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
@@ -653,15 +619,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerWebBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WebHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [

@@ -9,14 +9,6 @@
         ""
       ]
     },
-    "BalancerMainBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainHealthTimeout"
-        },
-        ""
-      ]
-    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -190,11 +182,6 @@
       "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
-    },
-    "MainHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
     },
     "MainPort443Balancer": {
       "Default": "443",
@@ -371,15 +358,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerMainBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "MainHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
