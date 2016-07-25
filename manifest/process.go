@@ -31,16 +31,14 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		}
 	}
 
-	if len(s.Networks) > 0 {
-		for _, n := range s.Networks {
-			for _, in := range n {
-				args = append(args, "--net", in.Name)
-			}
+	for _, n := range s.Networks {
+		for _, in := range n {
+			args = append(args, "--net", in.Name)
 		}
-	} else {
-		for _, link := range s.Links {
-			args = append(args, linkArgs(m.Services[link], fmt.Sprintf("%s-%s", app, link))...)
-		}
+	}
+
+	for _, link := range s.Links {
+		args = append(args, linkArgs(m.Services[link], fmt.Sprintf("%s-%s", app, link))...)
 	}
 
 	for _, port := range s.Ports {
