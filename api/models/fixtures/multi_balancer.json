@@ -9,26 +9,10 @@
         ""
       ]
     },
-    "BalancerWebBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthTimeout"
-        },
-        ""
-      ]
-    },
     "BalancerWorkerBlankHealthPath": {
       "Fn::Equals": [
         {
           "Ref": "WorkerHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerWorkerBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WorkerHealthTimeout"
         },
         ""
       ]
@@ -298,11 +282,6 @@
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
     },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
     "WebPort80Balancer": {
       "Default": "80",
       "Description": "",
@@ -338,11 +317,6 @@
       "Default": "",
       "Description": "Path used when health check protocol is http(s)",
       "Type": "String"
-    },
-    "WorkerHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
     },
     "WorkerPort80Balancer": {
       "Default": "80",
@@ -452,15 +426,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerWebBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WebHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
@@ -642,15 +608,7 @@
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerWorkerBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WorkerHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [

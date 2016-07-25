@@ -262,10 +262,6 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
-// DefaultHealthTimeout The default health timeout when one is not specified
-func (mb ManifestBalancer) DefaultHealthTimeout() string {
-	return "3"
-}
 
 // HealthPort The balancer port that maps to the container port specified in manifest
 func (mb ManifestBalancer) HealthPort() (string, error) {
@@ -282,6 +278,14 @@ func (mb ManifestBalancer) HealthPort() (string, error) {
 	}
 
 	return "", nil
+}
+
+// HealthTimeout health timeout for balancer
+func (mb ManifestBalancer) HealthTimeout() string {
+	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
+		return timeout
+	}
+	return "3"
 }
 
 // HealthInterval The amount of time in between health checks. This is derived from the timeout value,
