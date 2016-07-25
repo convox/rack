@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -296,6 +297,9 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"env": func(s string) string {
+			return os.Getenv(s)
+		},
 		"upper": func(s string) string {
 			return UpperName(s)
 		},
