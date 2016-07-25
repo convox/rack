@@ -79,6 +79,7 @@ func cmdStart(c *cli.Context) error {
 			ValidationError: err,
 			AppType:         appType,
 		})
+		return stdcli.ExitError(err)
 	}
 
 	noCache := c.Bool("no-cache")

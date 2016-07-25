@@ -114,7 +114,6 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 
 	for _, p := range ext {
 		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, p), 200*time.Millisecond)
-
 		if err == nil {
 			conflicts = append(conflicts, p)
 			defer conn.Close()
