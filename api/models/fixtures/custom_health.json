@@ -1,14 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerMainBlankHealthPath": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainHealthPath"
-        },
-        ""
-      ]
-    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -188,11 +180,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "MainHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
     "MainPort80Balancer": {
       "Default": "80",
       "Description": "",
@@ -332,43 +319,19 @@
                     [
                       {
                         "Fn::If": [
-                          "BalancerMainBlankHealthPath",
+                          "BalancerMainPort81Secure",
                           {
-                            "Fn::If": [
-                              "BalancerMainPort81Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "http",
+                              "SecureInstanceProtocol"
                             ]
                           },
                           {
-                            "Fn::If": [
-                              "BalancerMainPort81Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "http",
+                              "InstanceProtocol"
                             ]
                           }
                         ]
@@ -379,9 +342,7 @@
                     ]
                   ]
                 },
-                {
-                  "Ref": "MainHealthPath"
-                }
+                "/health_check"
               ]
             ]
           },

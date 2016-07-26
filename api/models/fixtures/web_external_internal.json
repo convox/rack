@@ -1,14 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerWebBlankHealthPath": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthPath"
-        },
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -237,11 +229,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
     "WebPort3001Balancer": {
       "Default": "3001",
       "Description": "",
@@ -323,43 +310,19 @@
                     [
                       {
                         "Fn::If": [
-                          "BalancerWebBlankHealthPath",
+                          "BalancerWebPort80Secure",
                           {
-                            "Fn::If": [
-                              "BalancerWebPort80Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "tcp",
+                              "SecureInstanceProtocol"
                             ]
                           },
                           {
-                            "Fn::If": [
-                              "BalancerWebPort80Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "tcp",
+                              "InstanceProtocol"
                             ]
                           }
                         ]
@@ -370,9 +333,7 @@
                     ]
                   ]
                 },
-                {
-                  "Ref": "WebHealthPath"
-                }
+                ""
               ]
             ]
           },

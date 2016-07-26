@@ -2,7 +2,6 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
-      {{ template "balancer-conditions" . }}
       {{ template "process-conditions" . }}
       {{ template "registry-conditions" . }}
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
@@ -231,27 +230,9 @@
   {{ end }}
 {{ end }}
 
-{{ define "balancer-conditions" }}
-  {{ range .Balancers }}
-    {{ $processName := upper .ProcessName }}
-    {{ $balancerPrefix := printf "Balancer%s" $processName }}
-    "{{ $balancerPrefix }}BlankHealthPath": {
-      "Fn::Equals": [
-        {"Ref": "{{ $processName }}HealthPath"},
-        ""
-      ]
-    },
-  {{ end }}
-{{ end }}
-
 {{ define "balancer-params" }}
   {{ range .Balancers }}
     {{ $balancer := . }}
-    "{{ upper $balancer.ProcessName }}HealthPath": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)"
-    },
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Type" : "String",
@@ -371,32 +352,28 @@
                   "Fn::Join": [
                     ":",
                     [
-                      {
-                        "Fn::If": [
-                          "Balancer{{ upper $balancer.ProcessName }}BlankHealthPath",
-                          {{/* If health check path is blank */}}
-                          {
-                            "Fn::If": [
-                              "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
-                              {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
-                              {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
-                            ]
-                          },
-                          {{/* If health check path is NOT blank */}}
-                          {
-                            "Fn::If": [
-                              "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
-                              {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
-                              {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
-                            ]
-                          }
-                        ]
-                      },
+                      {{ if eq .HealthPath "" }}
+                        {
+                          "Fn::If": [
+                            "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
+                            {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
+                            {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
+                          ]
+                        },
+                      {{ else }}
+                        {
+                          "Fn::If": [
+                            "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
+                            {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
+                            {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
+                          ]
+                        },
+                      {{ end }}
                       { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Host" }
                     ]
                   ]
                 },
-                { "Ref": "{{ $balancerHealthPrefix }}Path" }
+                "{{ .HealthPath }}"
               ]
             ]
           },

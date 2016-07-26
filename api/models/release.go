@@ -174,7 +174,7 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-	healthOptions := []string{"port", "path"}
+	healthOptions := []string{"port"}
 
 	for _, entry := range manifest {
 		entryName := UpperName(entry.Name)
