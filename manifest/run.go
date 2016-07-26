@@ -102,7 +102,7 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	if err := r.manifest.Build(r.Dir, r.output.Stream("build"), r.NoCache); err != nil {
+	if err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.NoCache); err != nil {
 		return err
 	}
 

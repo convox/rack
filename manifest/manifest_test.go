@@ -13,7 +13,6 @@ import (
 )
 
 // WARNING: make sure to use spaces for the yaml indentations
-
 func TestLoadVersion1(t *testing.T) {
 	m, err := manifestFixture("v1")
 
