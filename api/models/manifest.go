@@ -537,6 +537,23 @@ func (e ManifestEntry) MountableVolumes() []MountableVolume {
 	return volumes
 }
 
+// DeploymentMinimum returns the min percent of containers that are allowed during deployment
+func (me ManifestEntry) DeploymentMinimum() string {
+	if min := me.Label("convox.deployment.minimum"); min != "" {
+		return min
+	}
+	return "100"
+}
+
+// DeploymentMaximum returns the max percent of containers that are allowed during deployment
+// This will be most likely be overridden and set to 100 for singleton processes like schedulers that cannot have 2 running at once
+func (me ManifestEntry) DeploymentMaximum() string {
+	if max := me.Label("convox.deployment.minimum"); max != "" {
+		return max
+	}
+	return "200"
+}
+
 func (me ManifestEntry) HasBalancer() bool {
 	return len(me.PortMappings()) > 0
 }
