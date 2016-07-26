@@ -322,7 +322,6 @@
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": 3600 },
         "CrossZone": true,
-        {{ $balancerHealthPrefix := printf "%sHealth" (upper $balancer.ProcessName) }}
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": "{{ .HealthInterval }}",
@@ -349,7 +348,7 @@
               ]
             ]
           },
-          "Timeout": "{{ $balancer.HealthTimeout }}",
+          "Timeout": "{{ .HealthTimeout }}",
           "UnhealthyThreshold": "2"
         },
         "Listeners": [
