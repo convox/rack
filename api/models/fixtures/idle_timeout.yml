@@ -2,5 +2,5 @@ main:
   ports:
     - 80:3000
   labels:
-    - convox.idle_timeout=99
+    - convox.idle.timeout=99
 
