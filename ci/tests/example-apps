@@ -1,0 +1,10 @@
+#!/bin/bash
+set -ex -o pipefail
+
+# Running locally:
+#
+#   export CIRCLE_ARTIFACTS=/tmp/
+#   export CIRCLE_BUILD_NUM=0
+#   ./ci/tests/example-apps
+
+parallel "sh -c './ci/tests/example-app {} 2>&1 | tee /$CIRCLE_ARTIFACTS/{}-$CIRCLE_BUILD_NUM-setup.log'" ::: django rails

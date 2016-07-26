@@ -15,9 +15,7 @@ test:
     - ci/install.sh:
         parallel: true
   override:
-    - ci/tests/example-app httpd:
-        parallel: true
-    - ci/tests/example-app node-workers:
+    - ci/tests/example-apps:
         parallel: true
   post:
     - ci/report.sh:
