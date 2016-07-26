@@ -81,7 +81,7 @@ func cmdRunDetached(c *cli.Context) error {
 	ps := c.Args()[0]
 	err = validateProcessId(c, app, ps)
 	if err != nil {
-		return err
+		return stdcli.ExitError(err)
 	}
 
 	command := ""
