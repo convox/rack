@@ -262,7 +262,7 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
-// Returns "" if no health path label is specified
+// HealthPath Returns "" if no health path label is specified
 func (mb ManifestBalancer) HealthPath() string {
 	return mb.Entry.Label("convox.health.path")
 }
@@ -296,6 +296,7 @@ func (mb ManifestBalancer) HealthPortSecure() bool {
 	return mb.Entry.Label(label) == "true"
 }
 
+// HealthProtocol returns http if health path has been set, tcp otherwise
 func (mb ManifestBalancer) HealthProtocol() string {
 	// if a health path is specified, then it implies http
 	if mb.HealthPath() != "" {
