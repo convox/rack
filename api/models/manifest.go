@@ -318,16 +318,13 @@ func (mb ManifestBalancer) HealthTimeout() string {
 // HealthInterval The amount of time in between health checks. This is derived from the timeout value,
 // which must be less than the interval
 func (mb ManifestBalancer) HealthInterval() (string, error) {
-	// interval must be greater than timeout
-	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
-		timeoutInt, err := strconv.Atoi(timeout)
-		if err != nil {
-			return "", err
-		}
-		interval := strconv.Itoa(timeoutInt + 2)
-		return interval, nil
+	timeout := mb.Entry.Label("convox.health.timeout")
+	timeoutInt, err := strconv.Atoi(timeout)
+	if err != nil {
+		return "", err
 	}
-	return "5", nil
+	interval := strconv.Itoa(timeoutInt + 2)
+	return interval, nil
 }
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
