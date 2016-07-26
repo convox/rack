@@ -1,6 +1,9 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+)
 
 type Port struct {
 	Name      string
@@ -50,6 +53,10 @@ func (p Port) String() string {
 	if p.External() {
 		return fmt.Sprintf("%d:%d", p.Balancer, p.Container)
 	} else {
-		return fmt.Sprintf("%d", p.Container)
+		return fmt.Sprintf("%d", p.Balancer)
 	}
+}
+
+var RandomPort = func() int {
+	return 10000 + rand.Intn(50000)
 }

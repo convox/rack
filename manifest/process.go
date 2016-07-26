@@ -1,6 +1,8 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Process struct {
 	Name string
