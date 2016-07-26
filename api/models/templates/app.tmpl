@@ -249,14 +249,6 @@
         "Default" : "{{ index $balancer.Randoms .Balancer }}",
         "Description" : ""
       },
-      {{ if .Secure }}
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      {{ end }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol": {
         "Type" : "String",
         "Default" : "tls",
@@ -352,22 +344,10 @@
                   "Fn::Join": [
                     ":",
                     [
-                      {{ if eq .HealthPath "" }}
-                        {
-                          "Fn::If": [
-                            "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
-                            {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
-                            {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
-                          ]
-                        },
+                      {{ if .HealthPortSecure }}
+                        {"Fn::FindInMap": ["PortProtocol", "{{ .HealthProtocol }}", "SecureInstanceProtocol"]},
                       {{ else }}
-                        {
-                          "Fn::If": [
-                            "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
-                            {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
-                            {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
-                          ]
-                        },
+                        {"Fn::FindInMap": ["PortProtocol", "{{ .HealthProtocol }}", "InstanceProtocol"]},
                       {{ end }}
                       { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Host" }
                     ]
