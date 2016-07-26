@@ -196,15 +196,6 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort443Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
