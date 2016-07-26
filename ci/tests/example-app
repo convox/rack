@@ -32,4 +32,4 @@ convox scale web --count 2 --memory 128 --app $APP_NAME --wait
 
 convox ps --stats --app $APP_NAME
 
-convox run --app $APP_NAME web echo hello world | tee $CIRCLE_ARTIFACTS/$APP_NAME-run.log && grep -i "hello world" $CIRCLE_ARTIFACTS/$APP_NAME-run.log
+convox run --app $APP_NAME web 'bin/test || true' | tee $CIRCLE_ARTIFACTS/$APP_NAME-run.log
