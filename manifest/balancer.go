@@ -228,13 +228,13 @@ func (mb ManifestBalancer) HealthInterval() (string, error) {
 // greater than the keep-alive timeout on your back-end, so that the balancer is responsible for
 // closing connections
 func (mb ManifestBalancer) IdleTimeout() (string, error) {
-	if timeout := mb.Entry.Labels["convox.idle_timeout"]; timeout != "" {
+	if timeout := mb.Entry.Labels["convox.idle.timeout"]; timeout != "" {
 		timeoutInt, err := strconv.Atoi(timeout)
 		if err != nil {
 			return "", err
 		}
 		if timeoutInt < 1 || timeoutInt > 3600 {
-			return "", fmt.Errorf("convox.idle_timeout must be between 1 and 3600")
+			return "", fmt.Errorf("convox.idle.timeout must be between 1 and 3600")
 		}
 		return timeout, nil
 	}
