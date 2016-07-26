@@ -262,6 +262,10 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
+// Returns "" if no health path label is specified
+func (mb ManifestBalancer) HealthPath() string {
+	return mb.Entry.Label("convox.health.path")
+}
 
 // HealthPort The balancer port that maps to the container port specified in manifest
 func (mb ManifestBalancer) HealthPort() (string, error) {
