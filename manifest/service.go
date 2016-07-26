@@ -108,7 +108,7 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 }
 
 func (s *Service) Tag(appName string) string {
-	return (fmt.Sprintf("%s/%s", appName, s.Name))
+	return (fmt.Sprintf("%s/%s", appName, strings.Replace(s.Name, "_", "-", -1)))
 }
 
 func containerEnv(container string) map[string]string {
