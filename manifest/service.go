@@ -181,6 +181,23 @@ func (s Service) MountableVolumes() []MountableVolume {
 	return volumes
 }
 
+// DeploymentMinimum returns the min percent of containers that are allowed during deployment
+func (s Service) DeploymentMinimum() string {
+	if min := s.Labels["convox.deployment.minimum"]; min != "" {
+		return min
+	}
+	return "100"
+}
+
+// DeploymentMaximum returns the max percent of containers that are allowed during deployment
+// This will be most likely be overridden and set to 100 for singleton processes like schedulers that cannot have 2 running at once
+func (s Service) DeploymentMaximum() string {
+	if max := s.Labels["convox.deployment.minimum"]; max != "" {
+		return max
+	}
+	return "200"
+}
+
 func containerEnv(container string) map[string]string {
 	es := []string{}
 
