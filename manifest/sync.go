@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,7 +35,6 @@ type Sync struct {
 
 func NewSync(container, local, remote string) (*Sync, error) {
 	l, err := filepath.Abs(local)
-
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +81,15 @@ func (s *Sync) Start(st Stream) error {
 		if err != nil {
 			return err
 		}
+		swdb := string(wdb)
+		swdb = strings.TrimSpace(swdb)
+		swdb = strings.TrimPrefix(swdb, "'")
+		swdb = strings.TrimSuffix(swdb, "'")
 
-		wd := strings.TrimSpace(string(wdb))
-		s.Remote = filepath.Join(wd, s.Remote)
+		log.Print("WDB")
+		log.Print(swdb)
+
+		s.Remote = filepath.Join(swdb, s.Remote)
 	}
 
 	go s.watchIncoming(st)
@@ -162,7 +168,6 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 			switch header.Typeflag {
 			case tar.TypeReg:
 				rel, err := filepath.Rel(s.Remote, filepath.Join("/", header.Name))
-
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return
