@@ -337,22 +337,10 @@
                     ":",
                     [
                       {
-                        "Fn::If": [
-                          "BalancerWebPort80Secure",
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "SecureInstanceProtocol"
-                            ]
-                          },
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "InstanceProtocol"
-                            ]
-                          }
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          "tcp",
+                          "InstanceProtocol"
                         ]
                       },
                       {

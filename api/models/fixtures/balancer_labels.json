@@ -205,15 +205,6 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort443Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -291,22 +282,10 @@
                     ":",
                     [
                       {
-                        "Fn::If": [
-                          "BalancerMainPort443Secure",
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "SecureInstanceProtocol"
-                            ]
-                          },
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "InstanceProtocol"
-                            ]
-                          }
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          "tcp",
+                          "SecureInstanceProtocol"
                         ]
                       },
                       {

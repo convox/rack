@@ -232,15 +232,6 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort81Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -318,22 +309,10 @@
                     ":",
                     [
                       {
-                        "Fn::If": [
-                          "BalancerMainPort81Secure",
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "http",
-                              "SecureInstanceProtocol"
-                            ]
-                          },
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "http",
-                              "InstanceProtocol"
-                            ]
-                          }
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          "http",
+                          "SecureInstanceProtocol"
                         ]
                       },
                       {

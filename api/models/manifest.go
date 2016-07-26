@@ -284,6 +284,28 @@ func (mb ManifestBalancer) HealthPort() (string, error) {
 	return "", nil
 }
 
+// HealthPortSecure Is the health port secure?
+func (mb ManifestBalancer) HealthPortSecure() bool {
+	port, err := mb.HealthPort()
+	if err != nil {
+		return false
+	}
+
+	label := fmt.Sprintf("convox.port.%s.secure", port)
+
+	return mb.Entry.Label(label) == "true"
+}
+
+func (mb ManifestBalancer) HealthProtocol() string {
+	// if a health path is specified, then it implies http
+	if mb.HealthPath() != "" {
+		return "http"
+	}
+
+	// no health path specified. default to tcp
+	return "tcp"
+}
+
 // HealthTimeout health timeout for balancer
 func (mb ManifestBalancer) HealthTimeout() string {
 	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
