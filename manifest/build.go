@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
-	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -54,36 +51,18 @@ func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
 	return nil
 }
 
-func pullSync(image string) error {
-	return runBuilder("docker", "pull", image)
-}
-
-func pushSync(local, remote string) error {
-	log.Print("PUSH SYNC")
-	log.Print(local)
-	log.Print(remote)
-	err := runBuilder("docker", "tag", local, remote)
-
+func pushSync(s Stream, local, remote string) error {
+	err := run(s, Docker("tag", local, remote))
 	if err != nil {
 		return err
 	}
 
-	err = runBuilder("docker", "push", remote)
-
+	err = run(s, Docker("push", remote))
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func runBuilder(executable string, args ...string) error {
-	os.Stdout.Write([]byte(fmt.Sprintf("RUNNING: %s %s\n", executable, strings.Join(args, " "))))
-
-	cmd := exec.Command(executable, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
 
 var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
@@ -96,7 +75,7 @@ func randomString(prefix string, size int) string {
 	return prefix + string(b)
 }
 
-func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
+func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) []error {
 	if tag == "" {
 		tag = "latest"
 	}
@@ -121,7 +100,7 @@ func (m *Manifest) Push(app, registry, tag string, flatten string) []error {
 				time.Sleep(time.Duration(backOff) * time.Second)
 				backOff = ((backOff + r1.Intn(10)) * (i))
 			}
-			pushErr = pushSync(local, remote)
+			pushErr = pushSync(s, local, remote)
 			if pushErr == nil {
 				break
 			}

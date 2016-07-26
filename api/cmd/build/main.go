@@ -72,7 +72,7 @@ func main() {
 	handleError(os.Chdir("./src"))
 	handleError(m.Build(".", app, str, cache))
 	handleError(os.Chdir(cwd))
-	handleErrors(m.Push(app, registryAddress, buildId, repository))
+	handleErrors(m.Push(str, app, registryAddress, buildId, repository))
 
 	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
 	handleError(err)
