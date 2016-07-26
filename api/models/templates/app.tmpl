@@ -255,14 +255,6 @@
         "Description" : "",
         "AllowedValues": [ "http", "https", "tcp", "tls" ]
       },
-      {{ if .Proxy }}
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      {{ end }}
     {{ end }}
   {{ end }}
 {{ end }}
