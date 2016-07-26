@@ -95,7 +95,7 @@
         "Yes"
       ]
     },
-    "RegionHasRegistry": {
+    "RegionHasECR": {
       "Fn::Or": [
         {
           "Fn::Equals": [
@@ -164,13 +164,13 @@
       }
     },
     "RegistryId": {
-      "Condition": "RegionHasRegistry",
+      "Condition": "RegionHasECR",
       "Value": {
         "Ref": "AWS::AccountId"
       }
     },
     "RegistryRepository": {
-      "Condition": "RegionHasRegistry",
+      "Condition": "RegionHasECR",
       "Value": {
         "Fn::GetAtt": [
           "RegistryRepository",
@@ -823,9 +823,9 @@
       "Version": "1.0"
     },
     "RegistryRepository": {
-      "Condition": "RegionHasRegistry",
+      "Condition": "RegionHasECR",
       "Properties": {
-        "Name": {
+        "RepositoryName": {
           "Ref": "AWS::StackName"
         },
         "ServiceToken": {
