@@ -2,25 +2,15 @@ package manifest
 
 import (
 	"fmt"
+	"log"
+	"math/rand"
 	"os"
 	"path"
 )
 
-func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
+func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
-
-	abs, err := filepath.Abs(dir)
-	if err != nil {
-		return err
-	}
-
-	appName := stdcli.ReadSetting("app")
-	if appName == "" {
-		appName = path.Base(abs)
-	}
-
-	appName = strings.ToLower(appName)
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
@@ -48,7 +38,6 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
 		run(s, Docker(args...))
-		// runPrefix(systemPrefix(m), Docker(args...))
 	}
 
 	for image, tag := range pulls {
@@ -58,9 +47,70 @@ func (m *Manifest) Build(dir string, s Stream, noCache bool) error {
 
 		run(s, Docker(args...))
 		run(s, Docker("tag", image, tag))
-		// runPrefix(systemPrefix(m), Docker(args...))
-		// runPrefix(systemPrefix(m), Docker("tag", image, tag))
 	}
 
 	return nil
+}
+
+func pushSync(s Stream, local, remote string) error {
+	err := run(s, Docker("tag", local, remote))
+	if err != nil {
+		return err
+	}
+
+	err = run(s, Docker("push", remote))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
+
+func randomString(prefix string, size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
+	}
+	return prefix + string(b)
+}
+
+func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) []error {
+	if tag == "" {
+		tag = "latest"
+	}
+
+	for name, _ := range m.Services {
+		local := fmt.Sprintf("%s/%s", app, name)
+		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
+
+		if flatten != "" {
+			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
+		}
+
+		var pushErr error
+		var backOff = 1
+		s1 := rand.NewSource(time.Now().UnixNano())
+		r1 := rand.New(s1)
+
+		for i := 0; i < 5; i++ {
+			if i != 0 {
+				log.Printf("A push error occurred for %s/%s\n", app, name)
+				log.Printf("Retrying in %d seconds...\n", backOff)
+				time.Sleep(time.Duration(backOff) * time.Second)
+				backOff = ((backOff + r1.Intn(10)) * (i))
+			}
+			pushErr = pushSync(s, local, remote)
+			if pushErr == nil {
+				break
+			}
+		}
+
+		if pushErr != nil {
+			return []error{pushErr}
+		}
+	}
+
+	return []error{}
 }
