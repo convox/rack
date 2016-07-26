@@ -89,14 +89,6 @@ func (r *Run) Start() error {
 				return fmt.Errorf("env expected: %s", key)
 			}
 		}
-
-		// Assign random ports to "internal" balancers
-		for i, p := range s.Ports {
-			if !p.Public {
-				p.Balancer = RandomPort()
-				s.Ports[i] = p
-			}
-		}
 	}
 
 	// preload system-level stream names

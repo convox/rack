@@ -169,7 +169,6 @@ func containerHost(container string) string {
 
 func containerPort(container string) string {
 	data, _ := Docker("inspect", "-f", "{{range $k,$v := .Config.ExposedPorts}}{{$k}}|{{end}}", container).Output()
-
 	return strings.Split(string(data), "/")[0]
 }
 
