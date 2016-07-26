@@ -116,7 +116,7 @@ func (r *Run) Start() error {
 	for _, s := range r.manifest.runOrder() {
 		proxies := s.Proxies(r.App)
 
-		p := s.Process(r.App)
+		p := s.Process(r.App, r.manifest)
 
 		Docker("rm", "-f", p.Name).Run()
 
@@ -151,7 +151,7 @@ func (r *Run) Start() error {
 
 		r.processes = append(r.processes, p)
 
-		waitForContainer(p.Name)
+		waitForContainer(p.Name, s)
 
 		for _, proxy := range proxies {
 			r.proxies = append(r.proxies, proxy)
@@ -237,11 +237,11 @@ func streamReader(s Stream, r io.Reader) {
 	}
 }
 
-func waitForContainer(container string) {
+func waitForContainer(container string, service Service) {
 	i := 0
 
 	for {
-		host := containerHost(container)
+		host := containerHost(container, service.Networks)
 		i += 1
 
 		// wait 5s max

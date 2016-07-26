@@ -13,8 +13,8 @@ import (
 )
 
 type Manifest struct {
-	Version string `yaml:"version"`
-
+	Version  string             `yaml:"version"`
+	Networks Networks           `yaml:"networks"`
 	Services map[string]Service `yaml:"services"`
 }
 
@@ -43,6 +43,7 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
+		service.Networks = m.Networks
 		m.Services[name] = service
 	}
 
