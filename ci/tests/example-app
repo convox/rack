@@ -5,7 +5,7 @@ set -ex -o pipefail
 #
 #   export CIRCLE_ARTIFACTS=/tmp/
 #   export CIRCLE_BUILD_NUM=0
-#   ./ci/tests/example-app <repo from node-example>
+#   ./ci/tests/example-app <repo from convox-examples>
 
 export EXAMPLE_NAME=$1
 
@@ -13,8 +13,6 @@ export EXAMPLE_NAME=$1
 export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 export APP_NAME=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
-
-convox logs --app $STACK_NAME > $CIRCLE_ARTIFACTS/convox.log &
 
 git clone git@github.com:convox-examples/${EXAMPLE_NAME}.git
 cd ${EXAMPLE_NAME}
