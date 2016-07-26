@@ -1,54 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerWebBlankHealthPath": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerWebBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthTimeout"
-        },
-        ""
-      ]
-    },
-    "BalancerWebPort3001Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3001Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerWebPort3001Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort3001Secure"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerWebPort80Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerWebPort80Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebPort80Secure"
-        },
-        "Yes"
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -277,16 +229,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
     "WebPort3001Balancer": {
       "Default": "3001",
       "Description": "",
@@ -313,24 +255,6 @@
       "Description": "",
       "Type": "String"
     },
-    "WebPort3001Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort3001Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "WebPort80Balancer": {
       "Default": "80",
       "Description": "",
@@ -354,24 +278,6 @@
         "tls"
       ],
       "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
       "Description": "",
       "Type": "String"
     }
@@ -403,46 +309,10 @@
                     ":",
                     [
                       {
-                        "Fn::If": [
-                          "BalancerWebBlankHealthPath",
-                          {
-                            "Fn::If": [
-                              "BalancerWebPort80Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "Fn::If": [
-                              "BalancerWebPort80Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
-                            ]
-                          }
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          "tcp",
+                          "InstanceProtocol"
                         ]
                       },
                       {
@@ -451,21 +321,11 @@
                     ]
                   ]
                 },
-                {
-                  "Ref": "WebHealthPath"
-                }
+                ""
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerWebBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WebHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
@@ -475,130 +335,62 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerWebPort80Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
+            "InstancePort": {
+              "Ref": "WebPort80Host"
+            },
+            "InstanceProtocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "WebPort80Protocol"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
+                "InstanceProtocol"
+              ]
+            },
+            "LoadBalancerPort": {
+              "Ref": "WebPort80Balancer"
+            },
+            "Protocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "WebPort80Protocol"
                 },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
-              }
-            ]
+                "ListenerProtocol"
+              ]
+            },
+            "SSLCertificateId": {
+              "Ref": "WebPort80Certificate"
+            }
           },
           {
-            "Fn::If": [
-              "BalancerWebPort3001Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort3001Host"
+            "InstancePort": {
+              "Ref": "WebPort3001Host"
+            },
+            "InstanceProtocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "WebPort3001Protocol"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3001Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
+                "InstanceProtocol"
+              ]
+            },
+            "LoadBalancerPort": {
+              "Ref": "WebPort3001Balancer"
+            },
+            "Protocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "WebPort3001Protocol"
                 },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort3001Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3001Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort3001Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort3001Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3001Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort3001Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort3001Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort3001Certificate"
-                }
-              }
-            ]
+                "ListenerProtocol"
+              ]
+            },
+            "SSLCertificateId": {
+              "Ref": "WebPort3001Certificate"
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -606,52 +398,6 @@
         ],
         "LoadBalancerName": "httpd-web-XHW5F4P-i",
         "Policies": [
-          {
-            "Fn::If": [
-              "BalancerWebPort80Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "WebPort80Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BalancerWebPort3001Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "WebPort3001Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
           {
             "Ref": "AWS::NoValue"
           }
