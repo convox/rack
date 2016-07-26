@@ -537,18 +537,18 @@ func (e ManifestEntry) MountableVolumes() []MountableVolume {
 	return volumes
 }
 
-// DeploymentMinimumPercent returns the min percent of containers that are allowed during deployment
-func (me ManifestEntry) DeploymentMinimumPercent() string {
-	if min := me.Label("convox.deployment.min_percent"); min != "" {
+// DeploymentMinimum returns the min percent of containers that are allowed during deployment
+func (me ManifestEntry) DeploymentMinimum() string {
+	if min := me.Label("convox.deployment.minimum"); min != "" {
 		return min
 	}
 	return "100"
 }
 
-// DeploymentMaximumPercent returns the max percent of containers that are allowed during deployment
+// DeploymentMaximum returns the max percent of containers that are allowed during deployment
 // This will be most likely be overridden and set to 100 for singleton processes like schedulers that cannot have 2 running at once
-func (me ManifestEntry) DeploymentMaximumPercent() string {
-	if max := me.Label("convox.deployment.max_percent"); max != "" {
+func (me ManifestEntry) DeploymentMaximum() string {
+	if max := me.Label("convox.deployment.minimum"); max != "" {
 		return max
 	}
 	return "200"

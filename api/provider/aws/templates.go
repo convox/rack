@@ -84,7 +84,7 @@ func templatesServiceFluentdTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/fluentd.tmpl", size: 4784, mode: os.FileMode(420), modTime: time.Unix(1469550779, 0)}
+	info := bindataFileInfo{name: "templates/service/fluentd.tmpl", size: 4784, mode: os.FileMode(420), modTime: time.Unix(1469551314, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
