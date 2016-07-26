@@ -126,6 +126,7 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 	return sp, nil
 }
 
+// Tag generates a string used to tag an image.
 func (s *Service) Tag(appName string) string {
 	return (fmt.Sprintf("%s/%s", appName, strings.Replace(s.Name, "_", "-", -1)))
 }
@@ -205,6 +206,7 @@ func tagHash(id string) string {
 	return fmt.Sprintf("convox-%s", fmt.Sprintf("%x", sha1.Sum([]byte(id)))[0:10])
 }
 
+// LabelsByPrefix retuns a map of string values with the labels filtered by prefix
 func (s Service) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
 	for k, v := range s.Labels {
