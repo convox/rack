@@ -1,54 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerMainBlankHealthPath": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerMainBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainHealthTimeout"
-        },
-        ""
-      ]
-    },
-    "BalancerMainPort80Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort80Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerMainPort80Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort80Secure"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerMainPort81Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort81Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerMainPort81Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort81Secure"
-        },
-        "Yes"
-      ]
-    },
     "BlankMainService": {
       "Fn::Equals": [
         "",
@@ -228,16 +180,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "MainHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
-    "MainHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
     "MainPort80Balancer": {
       "Default": "80",
       "Description": "",
@@ -264,24 +206,6 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "MainPort81Balancer": {
       "Default": "81",
       "Description": "",
@@ -305,24 +229,6 @@
         "tls"
       ],
       "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
       "Description": "",
       "Type": "String"
     },
@@ -403,46 +309,10 @@
                     ":",
                     [
                       {
-                        "Fn::If": [
-                          "BalancerMainBlankHealthPath",
-                          {
-                            "Fn::If": [
-                              "BalancerMainPort81Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "Fn::If": [
-                              "BalancerMainPort81Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
-                            ]
-                          }
+                        "Fn::FindInMap": [
+                          "PortProtocol",
+                          "http",
+                          "SecureInstanceProtocol"
                         ]
                       },
                       {
@@ -451,21 +321,11 @@
                     ]
                   ]
                 },
-                {
-                  "Ref": "MainHealthPath"
-                }
+                "/health_check"
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerMainBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "MainHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "60",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
@@ -475,130 +335,62 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerMainPort80Secure",
-              {
-                "InstancePort": {
-                  "Ref": "MainPort80Host"
+            "InstancePort": {
+              "Ref": "MainPort80Host"
+            },
+            "InstanceProtocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "MainPort80Protocol"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
+                "InstanceProtocol"
+              ]
+            },
+            "LoadBalancerPort": {
+              "Ref": "MainPort80Balancer"
+            },
+            "Protocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "MainPort80Protocol"
                 },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort80Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "MainPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort80Certificate"
-                }
-              }
-            ]
+                "ListenerProtocol"
+              ]
+            },
+            "SSLCertificateId": {
+              "Ref": "MainPort80Certificate"
+            }
           },
           {
-            "Fn::If": [
-              "BalancerMainPort81Secure",
-              {
-                "InstancePort": {
-                  "Ref": "MainPort81Host"
+            "InstancePort": {
+              "Ref": "MainPort81Host"
+            },
+            "InstanceProtocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "MainPort81Protocol"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
+                "SecureInstanceProtocol"
+              ]
+            },
+            "LoadBalancerPort": {
+              "Ref": "MainPort81Balancer"
+            },
+            "Protocol": {
+              "Fn::FindInMap": [
+                "PortProtocol",
+                {
+                  "Ref": "MainPort81Protocol"
                 },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort81Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort81Certificate"
-                }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "MainPort81Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort81Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort81Certificate"
-                }
-              }
-            ]
+                "ListenerProtocol"
+              ]
+            },
+            "SSLCertificateId": {
+              "Ref": "MainPort81Certificate"
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -606,52 +398,6 @@
         ],
         "LoadBalancerName": "httpd-main-KQSNMIK",
         "Policies": [
-          {
-            "Fn::If": [
-              "BalancerMainPort80Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "MainPort80Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BalancerMainPort81Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "MainPort81Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
           {
             "Ref": "AWS::NoValue"
           }
@@ -811,12 +557,8 @@
         "Cluster": {
           "Ref": "Cluster"
         },
-        "DeploymentMaximumPercent": {
-          "Ref": "DeploymentMaximum"
-        },
-        "DeploymentMinimumPercent": {
-          "Ref": "DeploymentMinimum"
-        },
+        "DeploymentMaximumPercent": "200",
+        "DeploymentMinimumPercent": "100",
         "DesiredCount": {
           "Fn::Select": [
             0,

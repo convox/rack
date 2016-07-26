@@ -44,6 +44,8 @@ type ManifestPort struct {
 	Balancer  string
 	Container string
 	Public    bool
+	Secure    bool
+	Proxy     bool
 }
 
 type ManifestEntries map[string]ManifestEntry
@@ -260,9 +262,9 @@ func (mb ManifestBalancer) ExternalPorts() []string {
 	return sp
 }
 
-// DefaultHealthTimeout The default health timeout when one is not specified
-func (mb ManifestBalancer) DefaultHealthTimeout() string {
-	return "3"
+// HealthPath Returns "" if no health path label is specified
+func (mb ManifestBalancer) HealthPath() string {
+	return mb.Entry.Label("convox.health.path")
 }
 
 // HealthPort The balancer port that maps to the container port specified in manifest
@@ -282,19 +284,47 @@ func (mb ManifestBalancer) HealthPort() (string, error) {
 	return "", nil
 }
 
+// HealthPortSecure Is the health port secure?
+func (mb ManifestBalancer) HealthPortSecure() bool {
+	port, err := mb.HealthPort()
+	if err != nil {
+		return false
+	}
+
+	label := fmt.Sprintf("convox.port.%s.secure", port)
+
+	return mb.Entry.Label(label) == "true"
+}
+
+// HealthProtocol returns http if health path has been set, tcp otherwise
+func (mb ManifestBalancer) HealthProtocol() string {
+	// if a health path is specified, then it implies http
+	if mb.HealthPath() != "" {
+		return "http"
+	}
+
+	// no health path specified. default to tcp
+	return "tcp"
+}
+
+// HealthTimeout health timeout for balancer
+func (mb ManifestBalancer) HealthTimeout() string {
+	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
+		return timeout
+	}
+	return "3"
+}
+
 // HealthInterval The amount of time in between health checks. This is derived from the timeout value,
 // which must be less than the interval
 func (mb ManifestBalancer) HealthInterval() (string, error) {
-	// interval must be greater than timeout
-	if timeout := mb.Entry.Label("convox.health.timeout"); timeout != "" {
-		timeoutInt, err := strconv.Atoi(timeout)
-		if err != nil {
-			return "", err
-		}
-		interval := strconv.Itoa(timeoutInt + 2)
-		return interval, nil
+	timeout := mb.HealthTimeout()
+	timeoutInt, err := strconv.Atoi(timeout)
+	if err != nil {
+		return "", err
 	}
-	return "5", nil
+	interval := strconv.Itoa(timeoutInt + 2)
+	return interval, nil
 }
 
 func (mb ManifestBalancer) LoadBalancerName() template.HTML {
@@ -537,6 +567,23 @@ func (e ManifestEntry) MountableVolumes() []MountableVolume {
 	return volumes
 }
 
+// DeploymentMinimum returns the min percent of containers that are allowed during deployment
+func (me ManifestEntry) DeploymentMinimum() string {
+	if min := me.Label("convox.deployment.minimum"); min != "" {
+		return min
+	}
+	return "100"
+}
+
+// DeploymentMaximum returns the max percent of containers that are allowed during deployment
+// This will be most likely be overridden and set to 100 for singleton processes like schedulers that cannot have 2 running at once
+func (me ManifestEntry) DeploymentMaximum() string {
+	if max := me.Label("convox.deployment.minimum"); max != "" {
+		return max
+	}
+	return "200"
+}
+
 func (me ManifestEntry) HasBalancer() bool {
 	return len(me.PortMappings()) > 0
 }
@@ -547,20 +594,32 @@ func (me ManifestEntry) PortMappings() []ManifestPort {
 	for _, port := range me.Ports {
 		parts := strings.SplitN(port, ":", 2)
 
+		var balancer, container string
+		var public bool
+
 		switch len(parts) {
 		case 1:
-			mappings = append(mappings, ManifestPort{
-				Balancer:  parts[0],
-				Container: parts[0],
-				Public:    false,
-			})
+			balancer = parts[0]
+			container = parts[0]
+			public = false
 		case 2:
-			mappings = append(mappings, ManifestPort{
-				Balancer:  parts[0],
-				Container: parts[1],
-				Public:    true,
-			})
+			balancer = parts[0]
+			container = parts[1]
+			public = true
 		}
+
+		secureLabel := fmt.Sprintf("convox.port.%s.secure", balancer)
+		secure := me.Label(secureLabel) == "true"
+		proxyLabel := fmt.Sprintf("convox.port.%s.proxy", balancer)
+		proxy := me.Label(proxyLabel) == "true"
+
+		mappings = append(mappings, ManifestPort{
+			Balancer: balancer,
+			Container: container,
+			Public: public,
+			Secure: secure,
+			Proxy: proxy,
+		})
 	}
 
 	return mappings
