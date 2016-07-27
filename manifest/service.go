@@ -126,6 +126,43 @@ func (s *Service) Tag(appName string) string {
 	return (fmt.Sprintf("%s/%s", appName, strings.Replace(s.Name, "_", "-", -1)))
 }
 
+// MountableVolume describes a mountable volume
+type MountableVolume struct {
+	Host      string
+	Container string
+}
+
+// MountableVolumes return the mountable volumes for a service
+func (s Service) MountableVolumes() []MountableVolume {
+	volumes := []MountableVolume{}
+
+	for _, volume := range s.Volumes {
+		parts := strings.Split(volume, ":")
+
+		// if only one volume part use it for both sides
+		if len(parts) == 1 {
+			parts = append(parts, parts[0])
+		}
+
+		// if we dont have two volume parts bail
+		if len(parts) != 2 {
+			continue
+		}
+
+		// only support absolute paths for volume source
+		if !filepath.IsAbs(parts[0]) {
+			continue
+		}
+
+		volumes = append(volumes, MountableVolume{
+			Host:      parts[0],
+			Container: parts[1],
+		})
+	}
+
+	return volumes
+}
+
 func containerEnv(container string) map[string]string {
 	es := []string{}
 
@@ -211,10 +248,10 @@ func (s Service) LabelsByPrefix(prefix string) map[string]string {
 	return returnLabels
 }
 
-func (me Service) ExternalPorts() []Port {
+func (s Service) ExternalPorts() []Port {
 	ext := []Port{}
 
-	for _, port := range me.Ports {
+	for _, port := range s.Ports {
 		if port.Public {
 			ext = append(ext, port)
 		}
@@ -223,10 +260,10 @@ func (me Service) ExternalPorts() []Port {
 	return ext
 }
 
-func (me Service) InternalPorts() []Port {
+func (s Service) InternalPorts() []Port {
 	internal := []Port{}
 
-	for _, port := range me.Ports {
+	for _, port := range s.Ports {
 		if !port.Public {
 			internal = append(internal, port)
 		}
@@ -235,10 +272,10 @@ func (me Service) InternalPorts() []Port {
 	return internal
 }
 
-func (me Service) ContainerPorts() []string {
+func (s Service) ContainerPorts() []string {
 	ext := []string{}
 
-	for _, port := range me.Ports {
+	for _, port := range s.Ports {
 		if port.Container != 0 {
 			ext = append(ext, strconv.Itoa(port.Container))
 		}
@@ -249,28 +286,28 @@ func (me Service) ContainerPorts() []string {
 	return ext
 }
 
-func (me Service) RegistryImage(appName, buildId string, outputs map[string]string) string {
+func (s Service) RegistryImage(appName, buildId string, outputs map[string]string) string {
 	if registryId := outputs["RegistryId"]; registryId != "" {
-		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), outputs["RegistryRepository"], me.Name, buildId)
+		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), outputs["RegistryRepository"], s.Name, buildId)
 	}
 
-	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, me.Name, buildId)
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, s.Name, buildId)
 }
 
-func (me *Service) Randoms() map[string]int {
-	if me.randoms != nil {
-		return me.randoms
+func (s *Service) Randoms() map[string]int {
+	if s.randoms != nil {
+		return s.randoms
 	}
 
 	currentPort := 5000
-	me.randoms = make(map[string]int)
-	for _, port := range me.Ports {
+	s.randoms = make(map[string]int)
+	for _, port := range s.Ports {
 		if ManifestRandomPorts {
-			me.randoms[strconv.Itoa(port.Balancer)] = rand.Intn(62000) + 3000
+			s.randoms[strconv.Itoa(port.Balancer)] = rand.Intn(62000) + 3000
 		} else {
-			me.randoms[strconv.Itoa(port.Balancer)] = currentPort
+			s.randoms[strconv.Itoa(port.Balancer)] = currentPort
 			currentPort += 1
 		}
 	}
-	return me.randoms
+	return s.randoms
 }

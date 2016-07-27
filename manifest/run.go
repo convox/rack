@@ -81,13 +81,18 @@ func (r *Run) Start() error {
 			links[key] = true
 		}
 
+		missingEnv := []string{}
 		for key, val := range s.Environment {
 			eok := val != ""
 			_, exok := existing[key]
 			_, lok := links[key]
 			if !eok && !exok && !lok {
-				return fmt.Errorf("env expected: %s", key)
+				missingEnv = append(missingEnv, key)
 			}
+		}
+
+		if len(missingEnv) > 0 {
+			return fmt.Errorf("env expected: %s", strings.Join(missingEnv, ", "))
 		}
 	}
 

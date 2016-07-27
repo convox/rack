@@ -852,3 +852,59 @@ func (a App) CronJobs(m manifest.Manifest) []CronJob {
 	}
 	return cronjobs
 }
+
+// findAppDefinitions looks for a specific ECS task revision and container definition that matches an app's process name and release ID.
+// Given the taskDefinitionFamily prefix, this function will iterate the task's revisions starting with the most recent up to count revisions.
+func findAppDefinitions(process, releaseID, taskDefinitionFamily string, count int) (*ecs.TaskDefinition, *ecs.ContainerDefinition, error) {
+	//TODO: Move this function over to the aws apps provider implemntation once the Run methods have been ported over.
+
+	var containerDefinition *ecs.ContainerDefinition
+
+	ts, err := ECS().ListTaskDefinitions(&ecs.ListTaskDefinitionsInput{
+		FamilyPrefix: aws.String(taskDefinitionFamily),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	startRevision := len(ts.TaskDefinitionArns) - 1
+	maxRevision := 0
+	// Only check the last 20 task definition revisions to run a release from.
+	// Avoid any API rate limits and iterating over hudreds of task definitions.
+	if startRevision > count {
+		maxRevision = startRevision - count
+	}
+
+	for i := startRevision; i >= maxRevision; i-- {
+		taskDefinition, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: ts.TaskDefinitionArns[i],
+		})
+		if err != nil {
+			continue
+		}
+
+		if taskDefinition == nil {
+			return nil, nil, fmt.Errorf("unable to retrieve task definition for %s", taskDefinitionFamily)
+		}
+
+		/// Loop logic used to find a previous release.
+	ContainerSearch:
+		for _, containerDefinition = range taskDefinition.TaskDefinition.ContainerDefinitions {
+
+			if *containerDefinition.Name != process {
+				continue ContainerSearch
+			}
+
+			for _, kv := range containerDefinition.Environment {
+				if *kv.Name == "RELEASE" {
+					if *kv.Value == releaseID {
+						return taskDefinition.TaskDefinition, containerDefinition, nil
+					}
+				}
+			}
+		}
+		////////////////////////////////////////////////////
+	}
+
+	return nil, nil, nil
+}

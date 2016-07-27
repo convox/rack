@@ -699,17 +699,12 @@
       "PROCESS": "{{ .Name }}"
     },
     "Volumes": [
-<<<<<<< 1e7d4c538b0e8ff9fa91992771eddb852a091c56
       {{ range .MountableVolumes }}
         {{ if eq .Host "/var/run/docker.sock" }}
           "{{.Host}}:{{.Container}}",
         {{ else }}
           { "Fn::Join": [ "", [ "/volumes/", { "Ref": "AWS::StackName" }, "/{{$e.Name}}{{.Host}}:{{.Container}}" ] ] },
         {{ end }}
-=======
-      {{ range .Volumes }}
-        "{{ . }}",
->>>>>>> debugging
       {{ end }}
       { "Ref" : "AWS::NoValue" }
     ],
@@ -717,12 +712,8 @@
       { "Ref" : "AWS::NoValue" }
     ],
     "PortMappings": [
-<<<<<<< 1e7d4c538b0e8ff9fa91992771eddb852a091c56
-      {{ range .PortMappings }}
-=======
       {{ $e := . }}
       {{ range .Ports }}
->>>>>>> debugging
         { "Fn::Join": [ ":", [
           { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
           "{{ .Container }}"
