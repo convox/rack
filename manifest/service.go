@@ -92,12 +92,16 @@ func (s *Service) Proxies(app string) []Proxy {
 func (s *Service) SyncPaths() (map[string]string, error) {
 	sp := map[string]string{}
 
-	if s.Build == "" {
+	if s.Build.Context == "" {
 		return sp, nil
 	}
 
-	data, err := ioutil.ReadFile(filepath.Join(s.Build, coalesce(s.Dockerfile, "Dockerfile")))
+	dockerFile := s.Build.Dockerfile
+	if dockerFile == "" {
+		dockerFile = s.Dockerfile
+	}
 
+	data, err := ioutil.ReadFile(filepath.Join(s.Build.Context, coalesce(dockerFile, "Dockerfile")))
 	if err != nil {
 		return nil, err
 	}

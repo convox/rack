@@ -80,7 +80,7 @@
       },
       "WebPort80Host": {
         "Type" : "String",
-        "Default" : "32896",
+        "Default" : "35738",
         "Description" : ""
       },
       "WebPort80Secure": {
@@ -114,7 +114,7 @@
       },
       "WebPort3001Host": {
         "Type" : "String",
-        "Default" : "56677",
+        "Default" : "57098",
         "Description" : ""
       },
       "WebPort3001Secure": {

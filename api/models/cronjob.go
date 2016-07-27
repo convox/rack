@@ -28,18 +28,17 @@ func NewCronJobFromLabel(key, value string) CronJob {
 }
 
 func (cr *CronJob) AppName() string {
-	return cr.ManifestEntry.app.Name
+	return cr.App.Name
 }
 
 func (cr *CronJob) Process() string {
-	return cr.ManifestEntry.Name
+	return cr.Service.Name
 }
 
 func (cr *CronJob) ShortName() string {
-	return fmt.Sprintf("%s%s", strings.Title(cr.ManifestEntry.Name), strings.Title(cr.Name))
+	return fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
 }
 
 func (cr *CronJob) LongName() string {
-	app := cr.ManifestEntry.app
-	return fmt.Sprintf("%s-%s-%s", app.StackName(), cr.Process(), cr.Name)
+	return fmt.Sprintf("%s-%s-%s", cr.App.StackName(), cr.Process(), cr.Name)
 }

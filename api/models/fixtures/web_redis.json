@@ -76,53 +76,6 @@
       
   
     
-    "RedisHealthPath": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)"
-    },
-    "RedisHealthTimeout": {
-      "Default": "3",
-      "Type": "Number",
-      "MaxValue": 60
-    },
-    
-      "RedisPort6379Balancer": {
-        "Type" : "String",
-        "Default" : "6379",
-        "Description" : ""
-      },
-      "RedisPort6379Certificate": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "RedisPort6379Host": {
-        "Type" : "String",
-        "Default" : "56084",
-        "Description" : ""
-      },
-      "RedisPort6379Secure": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      "RedisPort6379Protocol": {
-        "Type" : "String",
-        "Default" : "tls",
-        "Description" : "",
-        "AllowedValues": [ "http", "https", "tcp", "tls" ]
-      },
-      "RedisPort6379Proxy": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-    
-  
-    
     "WebHealthPath": {
       "Type": "String",
       "Default": "",
@@ -146,7 +99,7 @@
       },
       "WebPort80Host": {
         "Type" : "String",
-        "Default" : "13454",
+        "Default" : "28300",
         "Description" : ""
       },
       "WebPort80Secure": {
@@ -162,6 +115,53 @@
         "AllowedValues": [ "http", "https", "tcp", "tls" ]
       },
       "WebPort80Proxy": {
+        "Type" : "String",
+        "Default" : "No",
+        "Description" : "",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+    
+  
+    
+    "RedisHealthPath": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Path used when health check protocol is http(s)"
+    },
+    "RedisHealthTimeout": {
+      "Default": "3",
+      "Type": "Number",
+      "MaxValue": 60
+    },
+    
+      "RedisPort6379Balancer": {
+        "Type" : "String",
+        "Default" : "6379",
+        "Description" : ""
+      },
+      "RedisPort6379Certificate": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : ""
+      },
+      "RedisPort6379Host": {
+        "Type" : "String",
+        "Default" : "7211",
+        "Description" : ""
+      },
+      "RedisPort6379Secure": {
+        "Type" : "String",
+        "Default" : "No",
+        "Description" : "",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "RedisPort6379Protocol": {
+        "Type" : "String",
+        "Default" : "tls",
+        "Description" : "",
+        "AllowedValues": [ "http", "https", "tcp", "tls" ]
+      },
+      "RedisPort6379Proxy": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",

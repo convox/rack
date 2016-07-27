@@ -6,29 +6,6 @@
   
     
     
-    "BalancerWorkerBlankHealthPath": {
-      "Fn::Equals": [
-        {"Ref": "WorkerHealthPath"},
-        ""
-      ]
-    },
-    "BalancerWorkerBlankHealthTimeout": {
-      "Fn::Equals": [
-        {"Ref": "WorkerHealthTimeout"},
-        ""
-      ]
-    },
-    
-      "BalancerWorkerPort80Proxy": {
-        "Fn::Equals": [ { "Ref": "WorkerPort80Proxy" }, "Yes" ]
-      },
-      "BalancerWorkerPort80Secure": {
-        "Fn::Equals": [ { "Ref": "WorkerPort80Secure" }, "Yes" ]
-      },
-    
-  
-    
-    
     "BalancerWebBlankHealthPath": {
       "Fn::Equals": [
         {"Ref": "WebHealthPath"},
@@ -47,6 +24,29 @@
       },
       "BalancerWebPort80Secure": {
         "Fn::Equals": [ { "Ref": "WebPort80Secure" }, "Yes" ]
+      },
+    
+  
+    
+    
+    "BalancerWorkerBlankHealthPath": {
+      "Fn::Equals": [
+        {"Ref": "WorkerHealthPath"},
+        ""
+      ]
+    },
+    "BalancerWorkerBlankHealthTimeout": {
+      "Fn::Equals": [
+        {"Ref": "WorkerHealthTimeout"},
+        ""
+      ]
+    },
+    
+      "BalancerWorkerPort80Proxy": {
+        "Fn::Equals": [ { "Ref": "WorkerPort80Proxy" }, "Yes" ]
+      },
+      "BalancerWorkerPort80Secure": {
+        "Fn::Equals": [ { "Ref": "WorkerPort80Secure" }, "Yes" ]
       },
     
   
@@ -76,53 +76,6 @@
       
   
     
-    "WebHealthPath": {
-      "Type": "String",
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)"
-    },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "Type": "Number",
-      "MaxValue": 60
-    },
-    
-      "WebPort80Balancer": {
-        "Type" : "String",
-        "Default" : "80",
-        "Description" : ""
-      },
-      "WebPort80Certificate": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "WebPort80Host": {
-        "Type" : "String",
-        "Default" : "26999",
-        "Description" : ""
-      },
-      "WebPort80Secure": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      "WebPort80Protocol": {
-        "Type" : "String",
-        "Default" : "tls",
-        "Description" : "",
-        "AllowedValues": [ "http", "https", "tcp", "tls" ]
-      },
-      "WebPort80Proxy": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-    
-  
-    
     "WorkerHealthPath": {
       "Type": "String",
       "Default": "",
@@ -146,7 +99,7 @@
       },
       "WorkerPort80Host": {
         "Type" : "String",
-        "Default" : "50697",
+        "Default" : "60602",
         "Description" : ""
       },
       "WorkerPort80Secure": {
@@ -162,6 +115,53 @@
         "AllowedValues": [ "http", "https", "tcp", "tls" ]
       },
       "WorkerPort80Proxy": {
+        "Type" : "String",
+        "Default" : "No",
+        "Description" : "",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+    
+  
+    
+    "WebHealthPath": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Path used when health check protocol is http(s)"
+    },
+    "WebHealthTimeout": {
+      "Default": "3",
+      "Type": "Number",
+      "MaxValue": 60
+    },
+    
+      "WebPort80Balancer": {
+        "Type" : "String",
+        "Default" : "80",
+        "Description" : ""
+      },
+      "WebPort80Certificate": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : ""
+      },
+      "WebPort80Host": {
+        "Type" : "String",
+        "Default" : "31661",
+        "Description" : ""
+      },
+      "WebPort80Secure": {
+        "Type" : "String",
+        "Default" : "No",
+        "Description" : "",
+        "AllowedValues": [ "Yes", "No" ]
+      },
+      "WebPort80Protocol": {
+        "Type" : "String",
+        "Default" : "tls",
+        "Description" : "",
+        "AllowedValues": [ "http", "https", "tcp", "tls" ]
+      },
+      "WebPort80Proxy": {
         "Type" : "String",
         "Default" : "No",
         "Description" : "",

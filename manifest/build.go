@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
-	"path"
+	"time"
 )
 
 func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {

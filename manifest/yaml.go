@@ -26,7 +26,6 @@ func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	log.Print("FOO")
 	switch v.(type) {
 	case string:
 		b.Context = v.(string)

@@ -76,7 +76,7 @@
       },
       "WebPort3000Host": {
         "Type" : "String",
-        "Default" : "52770",
+        "Default" : "5366",
         "Description" : ""
       },
       "WebPort3000Secure": {
@@ -102,13 +102,13 @@
 
       
   
-    "WebFormation": {
+    "PostgresFormation": {
       "Type": "CommaDelimitedList",
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"
     },
   
-    "PostgresFormation": {
+    "WebFormation": {
       "Type": "CommaDelimitedList",
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"

@@ -83,7 +83,7 @@
       },
       "WebPort80Host": {
         "Type" : "String",
-        "Default" : "50624",
+        "Default" : "18753",
         "Description" : ""
       },
       "WebPort80Secure": {
@@ -117,7 +117,7 @@
       },
       "WebPort443Host": {
         "Type" : "String",
-        "Default" : "60410",
+        "Default" : "43199",
         "Description" : ""
       },
       "WebPort443Secure": {

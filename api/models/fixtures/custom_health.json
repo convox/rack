@@ -80,7 +80,7 @@
       },
       "MainPort80Host": {
         "Type" : "String",
-        "Default" : "6021",
+        "Default" : "62399",
         "Description" : ""
       },
       "MainPort80Secure": {
@@ -114,7 +114,7 @@
       },
       "MainPort81Host": {
         "Type" : "String",
-        "Default" : "32394",
+        "Default" : "8157",
         "Description" : ""
       },
       "MainPort81Secure": {

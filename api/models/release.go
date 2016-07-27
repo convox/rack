@@ -178,13 +178,12 @@ func (r *Release) Promote() error {
 		return err
 	}
 
-
 	healthOptions := []string{"port", "path", "timeout"}
-	for _, entry := range manifest.Services {
+	for _, entry := range m.Services {
 
 		entryName := UpperName(entry.Name)
 		for _, option := range healthOptions {
-			if val := entry.Label(fmt.Sprintf("convox.health.%s", option)); val != "" {
+			if val := entry.Labels[fmt.Sprintf("convox.health.%s", option)]; val != "" {
 				param := fmt.Sprintf("%sHealth%s", entryName, strings.Title(option))
 				app.Parameters[param] = val
 			}
