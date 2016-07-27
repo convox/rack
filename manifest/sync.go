@@ -82,8 +82,12 @@ func (s *Sync) Start(st Stream) error {
 			return err
 		}
 
-		wd := strings.TrimSpace(string(wdb))
-		s.Remote = filepath.Join(wd, s.Remote)
+		swdb := string(wdb)
+		swdb = strings.TrimSpace(swdb)
+		swdb = strings.TrimPrefix(swdb, "'")
+		swdb = strings.TrimSuffix(swdb, "'")
+
+		s.Remote = filepath.Join(swdb, s.Remote)
 	}
 
 	go s.watchIncoming(st)
