@@ -12,6 +12,8 @@ type App struct {
 
 type Apps []App
 
+// IsBound checks if the app is bound returns true if it is, false otherwise
+// If an app has a "Name" tag, it's considered bound
 func (a *App) IsBound() bool {
 	if a.Tags == nil {
 		// Default to bound.
