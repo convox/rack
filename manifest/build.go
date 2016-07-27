@@ -36,14 +36,14 @@ func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
 		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
-		run(s, Docker(args...))
+		DefaultRunner.Run(s, Docker(args...))
 	}
 
 	for image, tag := range pulls {
 		args := []string{"pull"}
 		args = append(args, image)
-		run(s, Docker(args...))
-		run(s, Docker("tag", image, tag))
+		DefaultRunner.Run(s, Docker(args...))
+		DefaultRunner.Run(s, Docker("tag", image, tag))
 	}
 
 	return nil
