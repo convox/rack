@@ -42,9 +42,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
 
 	for image, tag := range pulls {
 		args := []string{"pull"}
-
 		args = append(args, image)
-
 		run(s, Docker(args...))
 		run(s, Docker("tag", image, tag))
 	}

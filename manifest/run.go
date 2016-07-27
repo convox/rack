@@ -2,11 +2,13 @@ package manifest
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -100,7 +102,8 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	if err := r.manifest.Build(r.Dir, r.output.Stream("build"), r.NoCache); err != nil {
+	err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.NoCache)
+	if err != nil {
 		return err
 	}
 
@@ -244,4 +247,12 @@ func waitForContainer(container string) {
 
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+func exists(filename string) bool {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }
