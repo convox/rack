@@ -7,6 +7,9 @@ set -ex -o pipefail
 #   export CIRCLE_BUILD_NUM=0
 #   ./ci/tests/example-app <repo from convox-examples>
 
+# HACK: example-apps `parallel` wrapper, and its different stdin behavior for first process
+[[ $1 == null ]] && exit 0
+
 export EXAMPLE_NAME=$1
 
 # inferred
@@ -14,12 +17,12 @@ export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 export APP_NAME=${EXAMPLE_NAME}-${CIRCLE_BUILD_NUM}
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 
-git clone git@github.com:convox-examples/${EXAMPLE_NAME}.git
+git clone https://github.com/convox-examples/${EXAMPLE_NAME}.git
 cd ${EXAMPLE_NAME}
 
 convox apps create $APP_NAME --wait
 
-convox logs --app $APP_NAME > $CIRCLE_ARTIFACTS/$APP_NAME.log &
+# convox logs --app $APP_NAME > $CIRCLE_ARTIFACTS/$APP_NAME.log &
 
 convox deploy --app $APP_NAME --wait
 
@@ -32,4 +35,4 @@ convox scale web --count 2 --memory 128 --app $APP_NAME --wait
 
 convox ps --stats --app $APP_NAME
 
-convox run --app $APP_NAME web 'bin/test || true' | tee $CIRCLE_ARTIFACTS/$APP_NAME-run.log
+convox run --app $APP_NAME web 'bin/test || true'

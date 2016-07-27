@@ -7,4 +7,4 @@ set -ex -o pipefail
 #   export CIRCLE_BUILD_NUM=0
 #   ./ci/tests/example-apps
 
-parallel -u "sh -c './ci/tests/example-app {} 2>&1 | tee $CIRCLE_ARTIFACTS/{}-$CIRCLE_BUILD_NUM-setup.log'" ::: django rails
+parallel --line-buffer ./ci/tests/example-app {} ::: null rails django
