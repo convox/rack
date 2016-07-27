@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -123,8 +122,6 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 			}
 		}
 	}
-	log.Printf("IDENTIFIABLE STRING")
-	log.Printf("%#v", sp)
 
 	return sp, nil
 }
