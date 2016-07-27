@@ -18,3 +18,25 @@ func TestTag(t *testing.T) {
 	}
 	assert.Equal(t, s.Tag("api"), "api/foo-bar")
 }
+
+func TestLabelsByPrefix(t *testing.T) {
+
+	labels := manifest.Labels{
+		"foofake": "label",
+		"foo_foo": "under_bar",
+		"foo-bar": "hypen-string",
+		"te-st":   "hypen-string",
+		"bahtest": "hypen-string",
+	}
+
+	s := manifest.Service{
+		Labels: labels,
+	}
+
+	prefixed := s.LabelsByPrefix("foo")
+	assert.Equal(t, map[string]string{
+		"foofake": "label",
+		"foo_foo": "under_bar",
+		"foo-bar": "hypen-string",
+	}, prefixed)
+}
