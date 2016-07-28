@@ -133,6 +133,10 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	if !app.IsBound() {
+		return fmt.Errorf("unbound apps are no longer supported for promotion")
+	}
+
 	formation, err := r.Formation()
 	if err != nil {
 		return err
