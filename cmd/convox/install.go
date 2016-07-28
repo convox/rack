@@ -633,10 +633,6 @@ func friendlyName(t string) string {
 		return ""
 	case "Custom::EC2AvailabilityZones":
 		return ""
-	case "Custom::EC2NatGateway":
-		return ""
-	case "Custom::EC2Route":
-		return ""
 	case "Custom::ECSTaskDefinition":
 		return "ECS TaskDefinition"
 	case "Custom::ECSService":

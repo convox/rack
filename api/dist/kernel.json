@@ -565,27 +565,24 @@
     },
     "NatGateway0": {
       "Condition": "Private",
-      "Type": "Custom::EC2NatGateway",
+      "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "AllocationId": { "Fn::GetAtt": [ "NatIp0", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet0" }
       }
     },
     "NatGateway1": {
       "Condition": "Private",
-      "Type": "Custom::EC2NatGateway",
+      "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "AllocationId": { "Fn::GetAtt": [ "NatIp1", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet1" }
       }
     },
     "NatGateway2": {
       "Condition": "Private",
-      "Type": "Custom::EC2NatGateway",
+      "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "AllocationId": { "Fn::GetAtt": [ "NatIp2", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet2" }
       }
@@ -758,9 +755,8 @@
     "RoutePrivateDefault0": {
       "Condition": "Private",
       "DependsOn": [ "NatGateway0", "RoutesPrivate0" ],
-      "Type": "Custom::EC2Route",
+      "Type": "AWS::EC2::Route",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "DestinationCidrBlock": "0.0.0.0/0",
         "NatGatewayId": { "Ref": "NatGateway0" },
         "RouteTableId": { "Ref": "RoutesPrivate0" }
@@ -769,9 +765,8 @@
     "RoutePrivateDefault1": {
       "Condition": "Private",
       "DependsOn": [ "NatGateway1", "RoutesPrivate1" ],
-      "Type": "Custom::EC2Route",
+      "Type": "AWS::EC2::Route",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "DestinationCidrBlock": "0.0.0.0/0",
         "NatGatewayId": { "Ref": "NatGateway1" },
         "RouteTableId": { "Ref": "RoutesPrivate1" }
@@ -780,9 +775,8 @@
     "RoutePrivateDefault2": {
       "Condition": "Private",
       "DependsOn": [ "NatGateway2", "RoutesPrivate2" ],
-      "Type": "Custom::EC2Route",
+      "Type": "AWS::EC2::Route",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "DestinationCidrBlock": "0.0.0.0/0",
         "NatGatewayId": { "Ref": "NatGateway2" },
         "RouteTableId": { "Ref": "RoutesPrivate2" }
@@ -1567,7 +1561,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "ApiWebTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
