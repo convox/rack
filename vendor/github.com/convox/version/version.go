@@ -37,7 +37,7 @@ func (vs Versions) Resolve(version string) (v Version, err error) {
 
 // Get all versions as Versions type
 func All() (Versions, error) {
-	res, err := http.Get("http://convox.s3.amazonaws.com/release/versions.json")
+	res, err := http.Get("https://convox.s3.amazonaws.com/release/versions.json")
 
 	if err != nil {
 		return nil, err

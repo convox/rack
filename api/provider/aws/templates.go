@@ -84,7 +84,7 @@ func templatesServiceFluentdTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/fluentd.tmpl", size: 4784, mode: os.FileMode(420), modTime: time.Unix(1469481269, 0)}
+	info := bindataFileInfo{name: "templates/service/fluentd.tmpl", size: 4784, mode: os.FileMode(420), modTime: time.Unix(1469711986, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -104,7 +104,7 @@ func templatesServiceSyslogTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/syslog.tmpl", size: 4758, mode: os.FileMode(420), modTime: time.Unix(1468608994, 0)}
+	info := bindataFileInfo{name: "templates/service/syslog.tmpl", size: 4758, mode: os.FileMode(420), modTime: time.Unix(1462490475, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

@@ -6,11 +6,18 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
+	"math/rand"
 	"net/url"
+	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 )
+
+var ManifestRandomPorts = true
 
 type Service struct {
 	Name string `yaml:"-"`
@@ -23,24 +30,45 @@ type Service struct {
 	Image       string      `yaml:"image,omitempty"`
 	Labels      Labels      `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
-	Networks    []string    `yaml:"networks,omitempty"`
+	Networks    Networks    `yaml:"-"`
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
+
+	//TODO from models manifest, not passive and used at runtime
+	Exports  map[string]string        `yaml:"-"`
+	LinkVars map[string]template.HTML `yaml:"-"`
+
+	Primary bool `yaml:"-"`
+
+	randoms map[string]int
 }
 
 // see yaml.go for unmarshallers
 type Build struct {
-	Context    string
-	Dockerfile string
-	Args       map[string]string
+	Context    string            `yaml:"context,omitempty"`
+	Dockerfile string            `yaml:"dockerfile,omitempty"`
+	Args       map[string]string `yaml:"args,omitempty"`
 }
 type Command []string
 type Environment map[string]string
 type Labels map[string]string
 
-func (s *Service) Process(app string) Process {
-	return NewProcess(app, *s)
+type Networks map[string]InternalNetwork
+
+type InternalNetwork map[string]ExternalNetwork
+type ExternalNetwork Network
+
+type Network struct {
+	Name string
+}
+
+func (s *Service) Process(app string, m Manifest) Process {
+	return NewProcess(app, *s, m)
+}
+
+func (s Service) HasBalancer() bool {
+	return len(s.Ports) > 0
 }
 
 func (s *Service) Proxies(app string) []Proxy {
@@ -99,7 +127,7 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 		switch parts[0] {
 		case "ADD", "COPY":
 			if len(parts) >= 3 {
-				sp[parts[1]] = parts[2]
+				sp[filepath.Join(s.Build.Context, parts[1])] = parts[2]
 			}
 		}
 	}
@@ -107,16 +135,46 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 	return sp, nil
 }
 
-func (s *Service) Tag() string {
-	if s.Build.Context != "" {
-		dockerFile := s.Build.Dockerfile
-		if dockerFile == "" {
-			dockerFile = s.Dockerfile
+// Tag generates a string used to tag an image.
+func (s *Service) Tag(appName string) string {
+	return (fmt.Sprintf("%s/%s", appName, strings.Replace(s.Name, "_", "-", -1)))
+}
+
+// MountableVolume describes a mountable volume
+type MountableVolume struct {
+	Host      string
+	Container string
+}
+
+// MountableVolumes return the mountable volumes for a service
+func (s Service) MountableVolumes() []MountableVolume {
+	volumes := []MountableVolume{}
+
+	for _, volume := range s.Volumes {
+		parts := strings.Split(volume, ":")
+
+		// if only one volume part use it for both sides
+		if len(parts) == 1 {
+			parts = append(parts, parts[0])
 		}
-		return tagHash(fmt.Sprintf("%s:%s", s.Build.Context, dockerFile))
-	} else {
-		return tagHash(s.Image)
+
+		// if we dont have two volume parts bail
+		if len(parts) != 2 {
+			continue
+		}
+
+		// only support absolute paths for volume source
+		if !filepath.IsAbs(parts[0]) {
+			continue
+		}
+
+		volumes = append(volumes, MountableVolume{
+			Host:      parts[0],
+			Container: parts[1],
+		})
 	}
+
+	return volumes
 }
 
 func containerEnv(container string) map[string]string {
@@ -136,14 +194,25 @@ func containerEnv(container string) map[string]string {
 	return env
 }
 
-func containerHost(container string) string {
-	data, _ := Docker("inspect", "-f", "{{.NetworkSettings.IPAddress}}", container).Output()
+func containerHost(container string, networks Networks) string {
+	ipFilterString := "{{ .NetworkSettings.IPAddress }}"
+
+	// TODO container is part of network, look up IP there
+	if len(networks) > 0 {
+		for _, n := range networks {
+			for _, in := range n {
+				ipFilterString = "{{ .NetworkSettings.Networks." + in.Name + ".IPAddress }}"
+				break
+			}
+			break
+		}
+	}
+
+	data, _ := Docker("inspect", "-f", ipFilterString, container).Output()
 
 	if s := strings.TrimSpace(string(data)); s != "" {
 		return s
 	}
-
-	// TODO container is part of network, look up IP there
 
 	return ""
 }
@@ -154,20 +223,20 @@ func containerPort(container string) string {
 	return strings.Split(string(data), "/")[0]
 }
 
-func linkArgs(name, container string) []string {
+func linkArgs(s Service, container string) []string {
 	args := []string{}
 
-	prefix := strings.Replace(strings.ToUpper(name), "-", "_", -1)
+	prefix := strings.Replace(strings.ToUpper(s.Name), "-", "_", -1)
 	env := containerEnv(container)
 
 	scheme := coalesce(env["LINK_SCHEME"], "tcp")
-	host := containerHost(container)
+	host := containerHost(container, s.Networks)
 	port := containerPort(container)
 	path := env["LINK_PATH"]
 	username := env["LINK_USERNAME"]
 	password := env["LINK_PASSWORD"]
 
-	args = append(args, "--add-host", fmt.Sprintf("%s:%s", name, containerHost(container)))
+	args = append(args, "--add-host", fmt.Sprintf("%s:%s", s.Name, host))
 	args = append(args, "-e", fmt.Sprintf("%s_SCHEME=%s", prefix, scheme))
 	args = append(args, "-e", fmt.Sprintf("%s_HOST=%s", prefix, host))
 	args = append(args, "-e", fmt.Sprintf("%s_PORT=%s", prefix, port))
@@ -194,6 +263,7 @@ func tagHash(id string) string {
 	return fmt.Sprintf("convox-%s", fmt.Sprintf("%x", sha1.Sum([]byte(id)))[0:10])
 }
 
+// LabelsByPrefix retuns a map of string values with the labels filtered by prefix
 func (s Service) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)
 	for k, v := range s.Labels {
@@ -202,4 +272,68 @@ func (s Service) LabelsByPrefix(prefix string) map[string]string {
 		}
 	}
 	return returnLabels
+}
+
+func (s Service) ExternalPorts() []Port {
+	ext := []Port{}
+
+	for _, port := range s.Ports {
+		if port.Public {
+			ext = append(ext, port)
+		}
+	}
+
+	return ext
+}
+
+func (s Service) InternalPorts() []Port {
+	internal := []Port{}
+
+	for _, port := range s.Ports {
+		if !port.Public {
+			internal = append(internal, port)
+		}
+	}
+
+	return internal
+}
+
+func (s Service) ContainerPorts() []string {
+	ext := []string{}
+
+	for _, port := range s.Ports {
+		if port.Container != 0 {
+			ext = append(ext, strconv.Itoa(port.Container))
+		}
+	}
+
+	sort.Strings(ext)
+
+	return ext
+}
+
+func (s Service) RegistryImage(appName, buildId string, outputs map[string]string) string {
+	if registryId := outputs["RegistryId"]; registryId != "" {
+		return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), outputs["RegistryRepository"], s.Name, buildId)
+	}
+
+	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, s.Name, buildId)
+}
+
+func (s *Service) Randoms() map[string]int {
+	if s.randoms != nil {
+		return s.randoms
+	}
+
+	currentPort := 5000
+	s.randoms = make(map[string]int)
+	for _, port := range s.Ports {
+		if ManifestRandomPorts {
+			s.randoms[strconv.Itoa(port.Balancer)] = rand.Intn(62000) + 3000
+		} else {
+			s.randoms[strconv.Itoa(port.Balancer)] = currentPort
+			currentPort += 1
+		}
+	}
+	return s.randoms
 }
