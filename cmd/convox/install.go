@@ -56,9 +56,8 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
 
 var (
-	formationURL  = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-	iamUserURL    = "https://docs.convox.com/creating-an-iam-user"
-	isDevelopment = false
+	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
 )
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
@@ -103,11 +102,6 @@ func init() {
 				EnvVar: "STACK_NAME",
 				Value:  "convox",
 				Usage:  "name of the CloudFormation stack",
-			},
-			cli.BoolFlag{
-				Name:   "development",
-				EnvVar: "DEVELOPMENT",
-				Usage:  "create additional CloudFormation outputs to copy development .env file",
 			},
 			cli.StringFlag{
 				Name:  "key",
@@ -264,12 +258,6 @@ func cmdInstall(c *cli.Context) error {
 		stdcli.Error(err)
 	}
 
-	development := "No"
-	if c.Bool("development") {
-		isDevelopment = true
-		development = "Yes"
-	}
-
 	private := "No"
 	if c.Bool("private") {
 		private = "Yes"
@@ -310,10 +298,6 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
 
-	if isDevelopment {
-		fmt.Println("(Development Mode)")
-	}
-
 	if private == "Yes" {
 		fmt.Println("(Private Network Edition)")
 	}
@@ -330,7 +314,6 @@ func cmdInstall(c *cli.Context) error {
 		Parameters: []*cloudformation.Parameter{
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
-			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
@@ -486,23 +469,6 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 
 		switch *dres.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
-			// Dump .env if DEVELOPMENT
-			if isDevelopment {
-				fmt.Printf("Development .env:\n")
-
-				// convert Port5432TcpAddr to PORT_5432_TCP_ADDR
-				re := regexp.MustCompile("([a-z])([A-Z0-9])") // lower case letter followed by upper case or number, i.e. Port5432
-				re2 := regexp.MustCompile("([0-9])([A-Z])")   // number followed by upper case letter, i.e. 5432Tcp
-
-				for _, o := range dres.Stacks[0].Outputs {
-					k := re.ReplaceAllString(*o.OutputKey, "${1}_${2}")
-					k = re2.ReplaceAllString(k, "${1}_${2}")
-					k = strings.ToUpper(k)
-
-					fmt.Printf("%v=%v\n", k, *o.OutputValue)
-				}
-			}
-
 			for _, o := range dres.Stacks[0].Outputs {
 				if *o.OutputKey == "Dashboard" {
 					return *o.OutputValue, nil

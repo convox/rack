@@ -13,8 +13,8 @@ import (
 )
 
 type Manifest struct {
-	Version string `yaml:"version"`
-
+	Version  string             `yaml:"version"`
+	Networks Networks           `yaml:"networks"`
 	Services map[string]Service `yaml:"services"`
 }
 
@@ -43,6 +43,7 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
+		service.Networks = m.Networks
 		m.Services[name] = service
 	}
 
@@ -191,4 +192,30 @@ func manifestVersion(data []byte) (string, error) {
 	}
 
 	return "1", nil
+}
+
+func (m *Manifest) Raw() ([]byte, error) {
+	return yaml.Marshal(m)
+}
+
+func (m Manifest) EntryNames() []string {
+	names := make([]string, len(m.Services))
+	x := 0
+
+	for k, _ := range m.Services {
+		names[x] = k
+		x += 1
+	}
+
+	return names
+}
+
+func (m Manifest) BalancerResourceName(process string) string {
+	for _, b := range m.Balancers() {
+		if b.Entry.Name == process {
+			return b.ResourceName()
+		}
+	}
+
+	return ""
 }

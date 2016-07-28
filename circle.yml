@@ -2,6 +2,7 @@ machine:
   environment:
     INSTALL_DIR: /home/ubuntu/.go_workspace/src/github.com/convox/rack
   post:
+    - sudo apt-get update; sudo apt-get install curl
     - sudo rm -rf /usr/local/go
     - curl https://storage.googleapis.com/golang/go1.6.1.linux-amd64.tar.gz -O
     - sudo tar -C /usr/local -xzf go1.6.1.linux-amd64.tar.gz
@@ -15,9 +16,7 @@ test:
     - ci/install.sh:
         parallel: true
   override:
-    - ci/tests/example-app httpd:
-        parallel: true
-    - ci/tests/example-app node-workers:
+    - ci/tests/example-apps:
         parallel: true
   post:
     - ci/report.sh:
