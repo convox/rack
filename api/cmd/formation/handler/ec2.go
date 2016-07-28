@@ -137,6 +137,8 @@ func EC2NatGatewayCreate(req Request) (string, map[string]string, error) {
 // CloudFormation recognizes the update as a replacement and sends a delete request to the old resource
 // http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cfn-customresource.html
 func EC2NatGatewayUpdate(req Request) (string, map[string]string, error) {
+	// The gateway must be deleted first
+	EC2NatGatewayDelete(req)
 	return EC2NatGatewayCreate(req)
 }
 
@@ -169,6 +171,28 @@ func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
 			n := resp.NatGateways[0]
 
 			if *n.State == "deleted" {
+				break
+			}
+		}
+
+		// sleep and retry
+		time.Sleep(10 * time.Second)
+	}
+
+	// Even though the NAT gateway is deleted, the EIP assocation can still be in the process of deleting,
+	// during which it cannot be attached to other NAT gateways
+	// This waits for the other EIP associations to be deleted so that other NAT gateways can be created without issue
+	for i := 0; i < 12; i++ {
+		resp, _ := EC2(req).DescribeAddresses(&ec2.DescribeAddressesInput{
+			AllocationIds: []*string{aws.String(req.ResourceProperties["AllocationId"].(string))},
+		})
+
+		// if address doesn't have an NetworkInterfaceId, then
+		// it means it was completely disassociated and available for use
+		if len(resp.Addresses) == 1 {
+			n := resp.Addresses[0]
+
+			if *n.NetworkInterfaceId == "" {
 				break
 			}
 		}

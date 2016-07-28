@@ -91,7 +91,7 @@ func templatesAppTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/app.tmpl", size: 25991, mode: os.FileMode(420), modTime: time.Unix(1468964874, 0)}
+	info := bindataFileInfo{name: "templates/app.tmpl", size: 25991, mode: os.FileMode(420), modTime: time.Unix(1469670389, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -111,7 +111,7 @@ func templatesServiceMysqlTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/mysql.tmpl", size: 3447, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/mysql.tmpl", size: 3447, mode: os.FileMode(420), modTime: time.Unix(1465343086, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -131,7 +131,7 @@ func templatesServicePostgresTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/postgres.tmpl", size: 4173, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/postgres.tmpl", size: 4173, mode: os.FileMode(420), modTime: time.Unix(1465343086, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -151,7 +151,7 @@ func templatesServiceRedisTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/redis.tmpl", size: 3162, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/redis.tmpl", size: 3162, mode: os.FileMode(420), modTime: time.Unix(1465343086, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -171,7 +171,7 @@ func templatesServiceS3Tmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/s3.tmpl", size: 4427, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/s3.tmpl", size: 4427, mode: os.FileMode(420), modTime: time.Unix(1464072726, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -191,7 +191,7 @@ func templatesServiceSnsTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/sns.tmpl", size: 2882, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/sns.tmpl", size: 2882, mode: os.FileMode(420), modTime: time.Unix(1464072726, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -211,7 +211,7 @@ func templatesServiceSqsTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/sqs.tmpl", size: 1343, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/sqs.tmpl", size: 1343, mode: os.FileMode(420), modTime: time.Unix(1464072726, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -231,7 +231,7 @@ func templatesServiceSyslogTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/syslog.tmpl", size: 4759, mode: os.FileMode(420), modTime: time.Unix(1469042489, 0)}
+	info := bindataFileInfo{name: "templates/service/syslog.tmpl", size: 4759, mode: os.FileMode(420), modTime: time.Unix(1469130872, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -251,7 +251,7 @@ func templatesServiceWebhookTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/service/webhook.tmpl", size: 781, mode: os.FileMode(420), modTime: time.Unix(1466784924, 0)}
+	info := bindataFileInfo{name: "templates/service/webhook.tmpl", size: 781, mode: os.FileMode(420), modTime: time.Unix(1464072726, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
