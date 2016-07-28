@@ -208,9 +208,9 @@
       "AllowedValues": [ "Yes", "No" ]
     },
     "ExistingVpc": {
-      "Default": "",
-      "Description": "Existing VPC ID",
-      "Type": "String"
+      "Description": "Existing VPC ID (if blank a VPC will be created)",
+      "Type": "String",
+      "Default": ""
     },
     "InstanceBootCommand": {
       "Type": "String",
