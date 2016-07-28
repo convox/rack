@@ -17,27 +17,6 @@ import (
 	"github.com/convox/rack/api/models"
 )
 
-func HandleECSCluster(req Request) (string, map[string]string, error) {
-	defer recoverFailure(req)
-
-	switch req.RequestType {
-	case "Create":
-		fmt.Println("CREATING CLUSTER")
-		fmt.Printf("req %+v\n", req)
-		return ECSClusterCreate(req)
-	case "Update":
-		fmt.Println("UPDATING CLUSTER")
-		fmt.Printf("req %+v\n", req)
-		return ECSClusterUpdate(req)
-	case "Delete":
-		fmt.Println("DELETING CLUSTER")
-		fmt.Printf("req %+v\n", req)
-		return ECSClusterDelete(req)
-	}
-
-	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
-}
-
 func HandleECSService(req Request) (string, map[string]string, error) {
 	switch req.RequestType {
 	case "Create":
@@ -74,37 +53,6 @@ func HandleECSTaskDefinition(req Request) (string, map[string]string, error) {
 	}
 
 	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
-}
-
-func ECSClusterCreate(req Request) (string, map[string]string, error) {
-	res, err := ECS(req).CreateCluster(&ecs.CreateClusterInput{
-		ClusterName: aws.String(req.ResourceProperties["Name"].(string)),
-	})
-
-	if err != nil {
-		return "invalid", nil, err
-	}
-
-	return *res.Cluster.ClusterArn, nil, nil
-}
-
-func ECSClusterUpdate(req Request) (string, map[string]string, error) {
-	return req.PhysicalResourceId, nil, nil
-}
-
-func ECSClusterDelete(req Request) (string, map[string]string, error) {
-	_, err := ECS(req).DeleteCluster(&ecs.DeleteClusterInput{
-		Cluster: aws.String(req.PhysicalResourceId),
-	})
-
-	// TODO let the cloudformation finish thinking this deleted
-	// but take note so we can figure out why
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return req.PhysicalResourceId, nil, nil
-	}
-
-	return req.PhysicalResourceId, nil, nil
 }
 
 func ECSServiceCreate(req Request) (string, map[string]string, error) {
