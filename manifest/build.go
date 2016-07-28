@@ -31,7 +31,8 @@ func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
 		}
 
 		context := coalesce(service.Build.Context, ".")
-		dockerFile := coalesce(service.Build.Dockerfile, "Dockerfile")
+		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
+		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 
 		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
