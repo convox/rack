@@ -53,12 +53,12 @@ func cmdStart(c *cli.Context) error {
 
 	err = dockerTest()
 	if err != nil {
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
 	}
 
 	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
 	if err != nil {
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
 	}
 
 	appType := detectApplication(dir)
@@ -73,12 +73,13 @@ func cmdStart(c *cli.Context) error {
 
 	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
 		if err != nil {
-			stdcli.ExitError(err)
+			err = fmt.Errorf("ports in use: %v", pcc)
 		}
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
 		})
+		return stdcli.ExitError(err)
 	}
 
 	noCache := c.Bool("no-cache")
@@ -114,7 +115,7 @@ func dockerTest() error {
 	dockerTest := exec.Command("docker", "images")
 	err := dockerTest.Run()
 	if err != nil {
-		return stdcli.ExitError(errors.New("could not connect to docker daemon, is it installed and running?"))
+		return errors.New("could not connect to docker daemon, is it installed and running?")
 	}
 
 	dockerVersionTest, err := docker.NewClientFromEnv()
