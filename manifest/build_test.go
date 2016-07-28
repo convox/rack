@@ -43,7 +43,7 @@ func TestBuild(t *testing.T) {
 
 	err = m.Build(".", "web", str, true)
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "pull", "convox/postgres"}
 	cmd3 := []string{"docker", "tag", "convox/postgres", "web/database"}
 
