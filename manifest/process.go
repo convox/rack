@@ -1,6 +1,12 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"os/user"
+	"path/filepath"
+	"strings"
+)
 
 type Process struct {
 	Name string
@@ -46,6 +52,17 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	}
 
 	for _, volume := range s.Volumes {
+		if !strings.Contains(volume, ":") {
+			usr, err := user.Current()
+			if err != nil {
+				log.Fatal(err)
+			}
+			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", usr.HomeDir, app, s.Name, volume))
+			if err != nil {
+				//this won't break
+			}
+			volume = fmt.Sprintf("%s:%s", hostPath, volume)
+		}
 		args = append(args, "-v", volume)
 	}
 
