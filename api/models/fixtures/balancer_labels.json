@@ -1,308 +1,389 @@
-
-  {
-    "AWSTemplateFormatVersion" : "2010-09-09",
-    "Conditions": {
-      
-  
-    
-    
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
     "BalancerMainBlankHealthPath": {
       "Fn::Equals": [
-        {"Ref": "MainHealthPath"},
+        {
+          "Ref": "MainHealthPath"
+        },
         ""
       ]
     },
     "BalancerMainBlankHealthTimeout": {
       "Fn::Equals": [
-        {"Ref": "MainHealthTimeout"},
+        {
+          "Ref": "MainHealthTimeout"
+        },
         ""
       ]
     },
-    
-      "BalancerMainPort443Proxy": {
-        "Fn::Equals": [ { "Ref": "MainPort443Proxy" }, "Yes" ]
-      },
-      "BalancerMainPort443Secure": {
-        "Fn::Equals": [ { "Ref": "MainPort443Secure" }, "Yes" ]
-      },
-    
-  
-
-      
-  
-    "BlankMainService": { "Fn::Equals": [ "", "" ] },
-    "EnabledMain": { "Fn::Not": [{ "Fn::Equals": [ { "Fn::Select": [ 0, { "Ref": "MainFormation" } ] }, "-1" ] }] },
-  
-
-      
-  "RegionHasRegistry": {
-      "Fn::Or": [
-        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
-        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
-        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
+    "BalancerMainPort443Proxy": {
+      "Fn::Equals": [
+        {
+          "Ref": "MainPort443Proxy"
+        },
+        "Yes"
       ]
-  },
-
-      "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
-      "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
-    "Parameters" : {
-      
-  
-    
-    "MainHealthPath": {
-      "Type": "String",
+    "BalancerMainPort443Secure": {
+      "Fn::Equals": [
+        {
+          "Ref": "MainPort443Secure"
+        },
+        "Yes"
+      ]
+    },
+    "BlankMainService": {
+      "Fn::Equals": [
+        "",
+        ""
+      ]
+    },
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
+    "EnabledMain": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "MainFormation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "Private": {
+      "Fn::Equals": [
+        {
+          "Ref": "Private"
+        },
+        "Yes"
+      ]
+    },
+    "RegionHasRegistry": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-east-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-west-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-west-1"
+          ]
+        }
+      ]
+    }
+  },
+  "Mappings": {
+    "PortProtocol": {
+      "http": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTP",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "https": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTPS",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "tcp": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "TCP",
+        "SecureInstanceProtocol": "SSL"
+      },
+      "tls": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "SSL",
+        "SecureInstanceProtocol": "SSL"
+      }
+    }
+  },
+  "Outputs": {
+    "BalancerMainHost": {
+      "Condition": "EnabledMain",
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerMain",
+          "DNSName"
+        ]
+      }
+    },
+    "LogGroup": {
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
+    "MainPort443Balancer": {
+      "Condition": "EnabledMain",
+      "Value": {
+        "Ref": "MainPort443Balancer"
+      }
+    },
+    "MainPort443BalancerName": {
+      "Condition": "EnabledMain",
+      "Value": "httpd-main-KQSNMIK"
+    },
+    "RegistryId": {
+      "Condition": "RegionHasRegistry",
+      "Value": {
+        "Ref": "AWS::AccountId"
+      }
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
+      "Value": {
+        "Fn::GetAtt": [
+          "RegistryRepository",
+          "RepositoryName"
+        ]
+      }
+    },
+    "Settings": {
+      "Value": {
+        "Ref": "Settings"
+      }
+    }
+  },
+  "Parameters": {
+    "Cluster": {
       "Default": "",
-      "Description": "Path used when health check protocol is http(s)"
+      "Description": "",
+      "Type": "String"
+    },
+    "DeploymentMaximum": {
+      "Default": "200",
+      "Description": "Maximum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
+    "DeploymentMinimum": {
+      "Default": "100",
+      "Description": "Minimum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
+    "Environment": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Key": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "MainHealthPath": {
+      "Default": "",
+      "Description": "Path used when health check protocol is http(s)",
+      "Type": "String"
     },
     "MainHealthTimeout": {
       "Default": "3",
-      "Type": "Number",
-      "MaxValue": 60
+      "MaxValue": 60,
+      "Type": "Number"
     },
-    
-      "MainPort443Balancer": {
-        "Type" : "String",
-        "Default" : "443",
-        "Description" : ""
-      },
-      "MainPort443Certificate": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "MainPort443Host": {
-        "Type" : "String",
-        "Default" : "48454",
-        "Description" : ""
-      },
-      "MainPort443Secure": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      "MainPort443Protocol": {
-        "Type" : "String",
-        "Default" : "tls",
-        "Description" : "",
-        "AllowedValues": [ "http", "https", "tcp", "tls" ]
-      },
-      "MainPort443Proxy": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-    
-  
-
-      
-  
-    "MainFormation": {
-      "Type": "CommaDelimitedList",
-      "Default": "1,0,256",
-      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"
+    "MainPort443Balancer": {
+      "Default": "443",
+      "Description": "",
+      "Type": "String"
     },
-  
-
-
-      "Cluster": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "DeploymentMaximum": {
-        "Type": "Number",
-        "Default": "200",
-        "Description": "Maximum percentage of processes to keep running while deploying"
-      },
-      "DeploymentMinimum": {
-        "Type": "Number",
-        "Default": "100",
-        "Description": "Minimum percentage of processes to keep running while deploying"
-      },
-      "Environment": {
-        "Type": "String",
-        "Default": "",
-        "Description": ""
-      },
-      "Key": {
-        "Type": "String",
-        "Default": "",
-        "Description": ""
-      },
-      "Private": {
-        "Type": "String",
-        "Description": "Create internal load balancers in private subnets",
-        "Default": "No",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      "Release": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : ""
-      },
-      "Repository": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : "Source code repository"
-      },
-      "SecurityGroup": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : "The Load balancer security group for this app"
-      },
-      "Subnets": {
-        "Type" : "List<AWS::EC2::Subnet::Id>",
-        "Default" : "",
-        "Description" : "VPC subnets for this app"
-      },
-      "SubnetsPrivate": {
-        "Type" : "List<AWS::EC2::Subnet::Id>",
-        "Default" : "",
-        "Description" : "VPC private subnets for this app"
-      },
-      "Version": {
-        "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
-        "MinLength" : "1",
-        "Type": "String"
-      },
-      "VPC": {
-        "Type" : "AWS::EC2::VPC::Id",
-        "Default" : "",
-        "Description" : "VPC for this app"
-      },
-      "VPCCIDR": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : "VPC CIDR for this app"
-      }
+    "MainPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
     },
-    "Mappings": {
-      "PortProtocol": {
-        "http": { "ListenerProtocol": "HTTP", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS" },
-        "https": { "ListenerProtocol": "HTTPS", "InstanceProtocol": "HTTP", "SecureInstanceProtocol": "HTTPS"  },
-        "tcp": { "ListenerProtocol": "TCP", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"  },
-        "tls": { "ListenerProtocol": "SSL", "InstanceProtocol": "TCP", "SecureInstanceProtocol": "SSL"   }
-      }
+    "MainPort443Host": {
+      "Default": "20816",
+      "Description": "",
+      "Type": "String"
     },
-    "Resources": {
-      "CustomTopicRole": {
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-          "AssumeRolePolicyDocument": {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Principal": { "Service": [ "lambda.amazonaws.com" ] },
-                "Action": [ "sts:AssumeRole" ]
-              }
-            ]
-          },
-          "Path": "/",
-          "Policies": [
-            {
-              "PolicyName": "Administrator",
-              "PolicyDocument": {
-                "Version": "2012-10-17",
-                "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
-              }
-            }
-          ]
-        }
-      },
-      "CustomTopic": {
-        "Type": "AWS::Lambda::Function",
-        "Properties": {
-          "Code": {
-            "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
-            "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/formation.zip" ] ] }
-          },
-          "Handler": "lambda.external",
-          "MemorySize": "128",
-          "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-          "Runtime": "nodejs",
-          "Timeout": "30"
-        }
-      },
-      
-  
-  
-    
-    "BalancerMainSecurityGroup": {
-      "Condition": "EnabledMain",
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": { "Fn::Join": [ " ", [ { "Ref": "AWS::StackName" }, "-balancer" ] ] },
-        "SecurityGroupIngress": [
-          
-            {
-              
-              "CidrIp": "0.0.0.0/0",
-              
-              "IpProtocol": "tcp",
-              "FromPort": { "Ref": "MainPort443Balancer" },
-              "ToPort": { "Ref": "MainPort443Balancer" }
-            },
-          
-          { "Ref": "AWS::NoValue" }
-        ],
-        "VpcId": { "Ref": "VPC" }
-      }
+    "MainPort443Protocol": {
+      "AllowedValues": [
+        "http",
+        "https",
+        "tcp",
+        "tls"
+      ],
+      "Default": "tls",
+      "Description": "",
+      "Type": "String"
     },
+    "MainPort443Proxy": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
+    "MainPort443Secure": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "",
+      "Type": "String"
+    },
+    "Private": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Create internal load balancers in private subnets",
+      "Type": "String"
+    },
+    "Release": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Repository": {
+      "Default": "",
+      "Description": "Source code repository",
+      "Type": "String"
+    },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
+    "Subnets": {
+      "Default": "",
+      "Description": "VPC subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "SubnetsPrivate": {
+      "Default": "",
+      "Description": "VPC private subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "VPC": {
+      "Default": "",
+      "Description": "VPC for this app",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "VPCCIDR": {
+      "Default": "",
+      "Description": "VPC CIDR for this app",
+      "Type": "String"
+    },
+    "Version": {
+      "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
+      "MinLength": "1",
+      "Type": "String"
+    }
+  },
+  "Resources": {
     "BalancerMain": {
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Condition": "EnabledMain",
-      "DependsOn": [ "BalancerMainSecurityGroup" ],
+      "DependsOn": [
+        "BalancerMainSecurityGroup"
+      ],
       "Properties": {
-        
-          "Subnets": { "Ref": "Subnets" },
-        
-        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-        "ConnectionSettings": { "IdleTimeout": 3600 },
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": 3600
+        },
         "CrossZone": true,
-        
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": "5",
           "Target": {
-            
             "Fn::Join": [
               "",
               [
                 {
-                  
                   "Fn::Join": [
                     ":",
                     [
                       {
                         "Fn::If": [
                           "BalancerMainBlankHealthPath",
-                          
                           {
                             "Fn::If": [
                               "BalancerMainPort443Secure",
-                              {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
-                              {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "tcp",
+                                  "InstanceProtocol"
+                                ]
+                              }
                             ]
                           },
-                          
                           {
                             "Fn::If": [
                               "BalancerMainPort443Secure",
-                              {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
-                              {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "SecureInstanceProtocol"
+                                ]
+                              },
+                              {
+                                "Fn::FindInMap": [
+                                  "PortProtocol",
+                                  "http",
+                                  "InstanceProtocol"
+                                ]
+                              }
                             ]
                           }
                         ]
                       },
-                      { "Ref": "MainPort443Host" }
+                      {
+                        "Ref": "MainPort443Host"
+                      }
                     ]
                   ]
                 },
-                { "Ref": "MainHealthPath" }
+                {
+                  "Ref": "MainHealthPath"
+                }
               ]
             ]
           },
@@ -310,267 +391,495 @@
             "Fn::If": [
               "BalancerMainBlankHealthTimeout",
               "3",
-              { "Ref": "MainHealthTimeout" }
+              {
+                "Ref": "MainHealthTimeout"
+              }
             ]
           },
           "UnhealthyThreshold": "2"
         },
-        "Listeners": [
-          
-            { "Fn::If": [ "BalancerMainPort443Secure",
-              {
-                "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "MainPort443Protocol" }, "ListenerProtocol" ] },
-                "LoadBalancerPort": { "Ref": "MainPort443Balancer" },
-                "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "MainPort443Protocol" }, "SecureInstanceProtocol" ] },
-                "InstancePort": { "Ref": "MainPort443Host" },
-                "SSLCertificateId": { "Ref": "MainPort443Certificate" }
-              },
-              {
-                "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "MainPort443Protocol" }, "ListenerProtocol" ] },
-                "LoadBalancerPort": { "Ref": "MainPort443Balancer" },
-                "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "MainPort443Protocol" }, "InstanceProtocol" ] },
-                "InstancePort": { "Ref": "MainPort443Host" },
-                "SSLCertificateId": { "Ref": "MainPort443Certificate" }
-              }
-            ] },
-          
-          { "Ref": "AWS::NoValue" }
-        ],
-        "Policies": [
-          
-            { "Fn::If": [ "BalancerMainPort443Proxy",
-              {
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType",
-                "Attributes": [{
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                }],
-                "InstancePorts": [{ "Ref": "MainPort443Host" }]
-              },
-              { "Ref": "AWS::NoValue" }
-            ] },
-          
-          { "Ref": "AWS::NoValue" }
-        ],
-        "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": "httpd-main-KQSNMIK",
-        "SecurityGroups" : [{ "Fn::If" : [
-	    "BlankSecurityGroup",
-	    {"Ref" : "BalancerMainSecurityGroup"},
-	    {"Ref" : "SecurityGroup"}
-        ]}]
-      }
-    },
-  
-
-      
-  
-  
-
-      
-  "LogGroup": {
-    "Type": "AWS::Logs::LogGroup"
-  },
-
-      
-  
-  
-    
-      "MainECSTaskDefinition": {
-        "DependsOn": ["CustomTopic", "ServiceRole"],
-        "Type": "Custom::ECSTaskDefinition",
-        "Version": "1.0",
-        "Properties": {
-          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "main" ] ] },
-          "Release": { "Ref": "Release" },
-          "Environment": { "Ref": "Environment" },
-          "Key": { "Ref": "Key" },
-          "Tasks": [ 
-
-{ "Fn::If": [ "BlankMainService",
-  {
-    "Name": "main",
-    "Image": "",
-    "Command": [
-      
-      ],
-    "Cpu": { "Fn::Select": [ 1, { "Ref": "MainFormation" } ] },
-    "Memory": { "Fn::Select": [ 2, { "Ref": "MainFormation" } ] },
-    "Environment": {
-      
-      
-      "LOG_GROUP": { "Ref": "LogGroup" },
-      "PROCESS": "main"
-    },
-    "Volumes": [
-      
-      { "Ref" : "AWS::NoValue" }
-    ],
-    "Services": [
-      { "Ref" : "AWS::NoValue" }
-    ],
-    "PortMappings": [
-      
-      
-        { "Fn::Join": [ ":", [
-          { "Ref": "MainPort443Host" },
-          "5000"
-        ] ] },
-      
-      { "Ref" : "AWS::NoValue" }
-    ],
-    "Privileged": "false"
-  },
-  { "Ref" : "AWS::NoValue" } ]
-}
- ]
-        }
-      },
-      "MainECSService": {
-        "Condition": "EnabledMain",
-        "DependsOn": [
-          
-            "BalancerMain",
-          
-          "CustomTopic",
-          "ServiceRole"
-         ],
-        "Type": "Custom::ECSService",
-        "Version": "1.0",
-        "Properties": {
-          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-          "Cluster": { "Ref": "Cluster" },
-          "DesiredCount": { "Fn::Select": [ 0, { "Ref": "MainFormation" } ] },
-          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "main" ] ] },
-          "TaskDefinition": { "Ref": "MainECSTaskDefinition" },
-          "Role": { "Ref": "ServiceRole" },
-          "DeploymentMinimumPercent": { "Ref": "DeploymentMinimum" },
-          "DeploymentMaximumPercent": { "Ref": "DeploymentMaximum" },
-          "LoadBalancers": [
-            
-              { "Fn::Join": [ ":", [ { "Ref": "BalancerMain" }, "main", "5000" ] ] },
-            
-            { "Ref": "AWS::NoValue" }
-          ]
-        }
-      },
-    
-  
-
-      
-  "RegistryRepository": {
-    "Type": "Custom::ECRRepository",
-    "Condition": "RegionHasRegistry",
-    "Version": "1.0",
-    "Properties": {
-      "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-      "Name": { "Ref": "AWS::StackName" }
-    }
-  },
-
-
-      
-  "ServiceRole": {
-    "Type": "AWS::IAM::Role",
-    "Properties": {
-      "AssumeRolePolicyDocument": {
-        "Statement": [
+        "LBCookieStickinessPolicy": [
           {
-            "Action": [
-              "sts:AssumeRole"
-            ],
-            "Effect": "Allow",
-            "Principal": {
-              "Service": [
-                "ecs.amazonaws.com"
-              ]
-            }
+            "PolicyName": "affinity"
           }
         ],
-        "Version": "2012-10-17"
-      },
-      "Path": "/",
-      "Policies": [
-        {
-          "PolicyName": "ServiceRole",
-          "PolicyDocument": {
-            "Statement": [
+        "Listeners": [
+          {
+            "Fn::If": [
+              "BalancerMainPort443Secure",
               {
-                "Effect": "Allow",
-                "Action": [
-                  "elasticloadbalancing:Describe*",
-                  "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                  "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                  "ec2:Describe*",
-                  "ec2:AuthorizeSecurityGroupIngress"
+                "InstancePort": {
+                  "Ref": "MainPort443Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort443Protocol"
+                    },
+                    "SecureInstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "MainPort443Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort443Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "MainPort443Certificate"
+                }
+              },
+              {
+                "InstancePort": {
+                  "Ref": "MainPort443Host"
+                },
+                "InstanceProtocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort443Protocol"
+                    },
+                    "InstanceProtocol"
+                  ]
+                },
+                "LoadBalancerPort": {
+                  "Ref": "MainPort443Balancer"
+                },
+                "Protocol": {
+                  "Fn::FindInMap": [
+                    "PortProtocol",
+                    {
+                      "Ref": "MainPort443Protocol"
+                    },
+                    "ListenerProtocol"
+                  ]
+                },
+                "SSLCertificateId": {
+                  "Ref": "MainPort443Certificate"
+                }
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": "httpd-main-KQSNMIK",
+        "Policies": [
+          {
+            "Fn::If": [
+              "BalancerMainPort443Proxy",
+              {
+                "Attributes": [
+                  {
+                    "Name": "ProxyProtocol",
+                    "Value": "true"
+                  }
                 ],
-                "Resource": [
-                  "*"
-                ]
+                "InstancePorts": [
+                  {
+                    "Ref": "MainPort443Host"
+                  }
+                ],
+                "PolicyName": "EnableProxyProtocol",
+                "PolicyType": "ProxyProtocolPolicyType"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerMainSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
               }
             ]
           }
+        ],
+        "Subnets": {
+          "Ref": "Subnets"
         }
-      ]
-    }
-  },
-
-      
-  "Settings": {
-    "Type": "AWS::S3::Bucket",
-    "DeletionPolicy": "Retain",
-    "Properties": {
-      "AccessControl": "Private",
-      "Tags": [
-        { "Key": "system", "Value": "convox" },
-        { "Key": "app", "Value": { "Ref": "AWS::StackName" } }
-      ]
-    }
-  }
-
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "Outputs": {
-      
-  
-  
-    
-    "BalancerMainHost": {
+    "BalancerMainSecurityGroup": {
       "Condition": "EnabledMain",
-      "Value": { "Fn::GetAtt": [ "BalancerMain", "DNSName" ] }
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": {
+              "Ref": "MainPort443Balancer"
+            },
+            "IpProtocol": "tcp",
+            "ToPort": {
+              "Ref": "MainPort443Balancer"
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
     },
-    
-      "MainPort443Balancer": {
-        "Condition": "EnabledMain",
-        "Value": { "Ref": "MainPort443Balancer" }
+    "CustomTopic": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                "release/",
+                {
+                  "Ref": "Version"
+                },
+                "/formation.zip"
+              ]
+            ]
+          }
+        },
+        "Handler": "lambda.external",
+        "MemorySize": "128",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomTopicRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": "30"
       },
-      "MainPort443BalancerName": {
-        "Condition": "EnabledMain",
-        "Value": "httpd-main-KQSNMIK"
+      "Type": "AWS::Lambda::Function"
+    },
+    "CustomTopicRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "*",
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "Administrator"
+          }
+        ]
       },
-    
-  
-
-      
-  "LogGroup": {
-    "Value": { "Ref": "LogGroup" }
-  },
-
-      
-  "RegistryId": {
-    "Condition": "RegionHasRegistry",
-    "Value": { "Ref": "AWS::AccountId" }
-  },
-  "RegistryRepository": {
-    "Condition": "RegionHasRegistry",
-    "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
-  },
-
-
-      "Settings": {
-        "Value": { "Ref": "Settings" }
-      }
+      "Type": "AWS::IAM::Role"
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "MainECSService": {
+      "Condition": "EnabledMain",
+      "DependsOn": [
+        "BalancerMain",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentMaximumPercent": {
+          "Ref": "DeploymentMaximum"
+        },
+        "DeploymentMinimumPercent": {
+          "Ref": "DeploymentMinimum"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "MainFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerMain"
+                },
+                "main",
+                "5000"
+              ]
+            ]
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "main"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "MainECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
+    "MainECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "main"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Fn::If": [
+              "BlankMainService",
+              {
+                "Cpu": {
+                  "Fn::Select": [
+                    1,
+                    {
+                      "Ref": "MainFormation"
+                    }
+                  ]
+                },
+                "Environment": {
+                  "LOG_GROUP": {
+                    "Ref": "LogGroup"
+                  },
+                  "PROCESS": "main"
+                },
+                "Image": "",
+                "Memory": {
+                  "Fn::Select": [
+                    2,
+                    {
+                      "Ref": "MainFormation"
+                    }
+                  ]
+                },
+                "Name": "main",
+                "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "MainPort443Host"
+                        },
+                        "5000"
+                      ]
+                    ]
+                  },
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Privileged": "false",
+                "Services": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
+                "Volumes": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasRegistry",
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "Custom::ECRRepository",
+      "Version": "1.0"
+    },
+    "ServiceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "elasticloadbalancing:Describe*",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "ec2:Describe*",
+                    "ec2:AuthorizeSecurityGroupIngress"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            },
+            "PolicyName": "ServiceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Settings": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
     }
   }
-
+}

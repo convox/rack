@@ -67,7 +67,12 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	}
 
 	args = append(args, s.Tag(app))
-	args = append(args, s.Command...)
+
+	if s.Command.String != "" {
+		args = append(args, s.Command.String)
+	} else if len(s.Command.Array) > 0 {
+		args = append(args, s.Command.Array...)
+	}
 
 	return Process{
 		Name:    name,

@@ -55,7 +55,7 @@ func TestLoadCommandString(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
-			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "ls -la"})
+			assert.Equal(t, web.Command.String, manifest.Command{String: "ls -la"}.String)
 		}
 	}
 }
@@ -65,7 +65,7 @@ func TestLoadCommandArray(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
-			assert.Equal(t, web.Command, manifest.Command{"ls", "-la"})
+			assert.Equal(t, web.Command.Array, manifest.Command{Array: []string{"ls", "-la"}}.Array)
 		}
 	}
 }
@@ -76,7 +76,7 @@ func TestLoadFullVersion1(t *testing.T) {
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
-			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "bin/web"})
+			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
 			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
 			assert.Equal(t, len(web.Environment), 2)
@@ -131,7 +131,7 @@ func TestLoadFullVersion2(t *testing.T) {
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
-			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "bin/web"})
+			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
 			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
 			assert.Equal(t, len(web.Environment), 2)
@@ -151,7 +151,7 @@ func TestLoadFullVersion2(t *testing.T) {
 				assert.True(t, web.Ports[0].External())
 				assert.Equal(t, web.Ports[0].Balancer, 80)
 				assert.Equal(t, web.Ports[0].Container, 5000)
-				assert.True(t, web.Ports[1].External())
+				assert.True(t, web.Ports[0].External())
 				assert.Equal(t, web.Ports[1].Balancer, 443)
 				assert.Equal(t, web.Ports[1].Container, 5001)
 			}
@@ -311,6 +311,15 @@ func TestShift(t *testing.T) {
 }
 
 func TestManifestMarshalYaml(t *testing.T) {
+
+	strCmd := manifest.Command{
+		String: "bin/web",
+	}
+
+	arrayCmd := manifest.Command{
+		Array: []string{"sh", "-c", "bin/web"},
+	}
+
 	m := manifest.Manifest{
 		Version: "1",
 		Services: map[string]manifest.Service{
@@ -320,6 +329,7 @@ func TestManifestMarshalYaml(t *testing.T) {
 					Context:    ".",
 					Dockerfile: "Dockerfile",
 				},
+				Command: strCmd,
 				Ports: manifest.Ports{
 					manifest.Port{
 						Public:    true,
@@ -342,6 +352,25 @@ func TestManifestMarshalYaml(t *testing.T) {
 	}
 	assert.Equal(t, m2.Version, "2")
 	assert.Equal(t, m2.Services["food"].Name, "food")
+	assert.Equal(t, m2.Services["food"].Command.String, strCmd.String)
+
+	// Test an array Command
+	food := m.Services["food"]
+	food.Command = arrayCmd
+	m.Services["food"] = food
+
+	byts, err = yaml.Marshal(m)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	m2, err = manifest.Load(byts)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	assert.Equal(t, m2.Version, "2")
+	assert.Equal(t, m2.Services["food"].Name, "food")
+	assert.Equal(t, m2.Services["food"].Command.Array, arrayCmd.Array)
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {

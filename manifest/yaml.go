@@ -18,6 +18,18 @@ func (p Port) MarshalYAML() (interface{}, error) {
 	return fmt.Sprintf("%d", p.Container), nil
 }
 
+func (c Command) MarshalYAML() (interface{}, error) {
+
+	if c.String != "" {
+		return c.String, nil
+
+	} else if len(c.Array) > 0 {
+		return c.Array, nil
+	}
+
+	return nil, nil
+}
+
 // UnmarshalYAML implements the Unmarshaller interface.
 func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
@@ -60,7 +72,7 @@ func (c *Command) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	switch t := v.(type) {
 	case string:
-		*c = []string{"sh", "-c", t}
+		c.String = t
 	case []interface{}:
 		for _, tt := range t {
 			s, ok := tt.(string)
@@ -69,7 +81,7 @@ func (c *Command) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				return fmt.Errorf("unknown type in command array: %v", t)
 			}
 
-			*c = append(*c, s)
+			c.Array = append(c.Array, s)
 		}
 	default:
 		return fmt.Errorf("cannot parse command: %s", t)

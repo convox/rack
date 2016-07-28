@@ -680,12 +680,16 @@
   {
     "Name": "{{ .Name }}",
     "Image": "{{ .Image }}",
-    "Command": [
-      {{ range $index, $element := .Command}}
-          {{if $index}},{{else}}{{end}}
-          "{{$element}}"
-      {{end}}
+    {{if .Command.Array}}
+      "Command": [
+        {{ range $index, $element := .Command.Array}}
+            {{if $index}},{{else}}{{end}}
+            "{{$element}}"
+        {{end}}
       ],
+    {{else if ne .Command.String ""}}
+      "Command": {{ value .Command.String }},
+    {{end}}
     "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Environment": {
