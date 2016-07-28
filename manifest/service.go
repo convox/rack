@@ -30,7 +30,7 @@ type Service struct {
 	Image       string      `yaml:"image,omitempty"`
 	Labels      Labels      `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
-	Networks    []string    `yaml:"networks,omitempty"`
+	Networks    Networks    `yaml:"-"`
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
@@ -54,12 +54,21 @@ type Command []string
 type Environment map[string]string
 type Labels map[string]string
 
-func (s Service) HasBalancer() bool {
-	return len(s.Ports) > 0
+type Networks map[string]InternalNetwork
+
+type InternalNetwork map[string]ExternalNetwork
+type ExternalNetwork Network
+
+type Network struct {
+	Name string
 }
 
-func (s *Service) Process(app string) Process {
-	return NewProcess(app, *s)
+func (s *Service) Process(app string, m Manifest) Process {
+	return NewProcess(app, *s, m)
+}
+
+func (s Service) HasBalancer() bool {
+	return len(s.Ports) > 0
 }
 
 func (s *Service) Proxies(app string) []Proxy {
@@ -185,14 +194,25 @@ func containerEnv(container string) map[string]string {
 	return env
 }
 
-func containerHost(container string) string {
-	data, _ := Docker("inspect", "-f", "{{.NetworkSettings.IPAddress}}", container).Output()
+func containerHost(container string, networks Networks) string {
+	ipFilterString := "{{ .NetworkSettings.IPAddress }}"
+
+	// TODO container is part of network, look up IP there
+	if len(networks) > 0 {
+		for _, n := range networks {
+			for _, in := range n {
+				ipFilterString = "{{ .NetworkSettings.Networks." + in.Name + ".IPAddress }}"
+				break
+			}
+			break
+		}
+	}
+
+	data, _ := Docker("inspect", "-f", ipFilterString, container).Output()
 
 	if s := strings.TrimSpace(string(data)); s != "" {
 		return s
 	}
-
-	// TODO container is part of network, look up IP there
 
 	return ""
 }
@@ -203,20 +223,20 @@ func containerPort(container string) string {
 	return strings.Split(string(data), "/")[0]
 }
 
-func linkArgs(name, container string) []string {
+func linkArgs(s Service, container string) []string {
 	args := []string{}
 
-	prefix := strings.Replace(strings.ToUpper(name), "-", "_", -1)
+	prefix := strings.Replace(strings.ToUpper(s.Name), "-", "_", -1)
 	env := containerEnv(container)
 
 	scheme := coalesce(env["LINK_SCHEME"], "tcp")
-	host := containerHost(container)
+	host := containerHost(container, s.Networks)
 	port := containerPort(container)
 	path := env["LINK_PATH"]
 	username := env["LINK_USERNAME"]
 	password := env["LINK_PASSWORD"]
 
-	args = append(args, "--add-host", fmt.Sprintf("%s:%s", name, containerHost(container)))
+	args = append(args, "--add-host", fmt.Sprintf("%s:%s", s.Name, host))
 	args = append(args, "-e", fmt.Sprintf("%s_SCHEME=%s", prefix, scheme))
 	args = append(args, "-e", fmt.Sprintf("%s_HOST=%s", prefix, host))
 	args = append(args, "-e", fmt.Sprintf("%s_PORT=%s", prefix, port))

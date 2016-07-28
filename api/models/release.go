@@ -243,7 +243,7 @@ func (r *Release) Promote() error {
 			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
 			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
 
-			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%s.protocol", mapping.Balancer)]
+			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
 
 			// default protocol is tcp, or tls if they have a certificate set
 			if app.Parameters[protoParam] == "" {
