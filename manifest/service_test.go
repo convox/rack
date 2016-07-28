@@ -17,4 +17,5 @@ func TestTag(t *testing.T) {
 		Name: "foo_bar",
 	}
 	assert.Equal(t, s.Tag("api"), "api/foo-bar")
+
 }

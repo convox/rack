@@ -278,6 +278,21 @@ func TestPortConflictsWithConflict(t *testing.T) {
 	}
 }
 
+func TestManifestNetworks(t *testing.T) {
+	m, err := manifestFixture("networks")
+	if assert.Nil(t, err) {
+		for _, s := range m.Services {
+			assert.Equal(t, s.Networks, manifest.Networks{
+				"foo": manifest.InternalNetwork{
+					"external": manifest.ExternalNetwork{
+						Name: "foo",
+					},
+				},
+			})
+		}
+	}
+}
+
 func TestShift(t *testing.T) {
 	m, err := manifestFixture("shift")
 
