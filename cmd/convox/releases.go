@@ -161,6 +161,10 @@ func cmdReleasePromote(c *cli.Context) error {
 }
 
 func waitForReleasePromotion(c *cli.Context, app, release string) error {
+	if err := waitForAppRunning(c, app); err != nil {
+		stdcli.ExitError(err)
+	}
+
 	for {
 		pss, err := rackClient(c).GetProcesses(app, false)
 		if err != nil {
@@ -171,6 +175,11 @@ func waitForReleasePromotion(c *cli.Context, app, release string) error {
 
 		for _, ps := range pss {
 			if ps.Release != release {
+				ready = false
+				break
+			}
+
+			if ps.Id == "pending" {
 				ready = false
 				break
 			}

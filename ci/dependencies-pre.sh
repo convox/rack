@@ -11,7 +11,7 @@ sudo pip install awscli --upgrade
 go get -d github.com/convox/rack/cmd/convox
 (
 	cd ${GOPATH%%:*}/src/github.com/convox/rack/cmd/convox
-	[ -n "$CIRCLE_BRANCH" ] && git fetch && git checkout $CIRCLE_BRANCH && git reset --hard origin/$CIRCLE_BRANCH
+	[ -n "$CIRCLE_BRANCH" ] && git fetch && git reset --hard origin/$CIRCLE_BRANCH
 	go install -ldflags "-X main.Version $VERSION"
 )
 
