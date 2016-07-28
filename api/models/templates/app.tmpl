@@ -595,34 +595,35 @@
 {{ end }}
 
 {{ define "registry-conditions" }}
-  "RegionHasRegistry": {
+  "RegionHasECR": {
       "Fn::Or": [
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
       ]
   },
+	"RegionMissingECR": { "Fn::Not": "RegionHasECR" },
 {{ end }}
 
 {{ define "registry-resources" }}
   "RegistryRepository": {
-    "Type": "Custom::ECRRepository",
-    "Condition": "RegionHasRegistry",
+    "Type": "AWS::ECR::Repository",
+    "Condition": "RegionHasECR",
+		"DeletionPolicy": "Retain",
     "Version": "1.0",
     "Properties": {
-      "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-      "Name": { "Ref": "AWS::StackName" }
+      "RepositoryName": { "Ref": "AWS::StackName" }
     }
   },
 {{ end }}
 
 {{ define "registry-outputs" }}
   "RegistryId": {
-    "Condition": "RegionHasRegistry",
+    "Condition": "RegionHasECR",
     "Value": { "Ref": "AWS::AccountId" }
   },
   "RegistryRepository": {
-    "Condition": "RegionHasRegistry",
+    "Condition": "RegionHasECR",
     "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
   },
 {{ end }}
