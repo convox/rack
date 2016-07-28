@@ -9,6 +9,7 @@ fixtures:
 
 release:
 	cd api/cmd/formation && make release VERSION=$(VERSION)
+	cd api/provider/aws/lambda/fluentd && make release VERSION=$(VERSION)
 	docker build -t convox/api:$(VERSION) .
 	docker push convox/api:$(VERSION)
 	mkdir -p /tmp/release/$(VERSION)
