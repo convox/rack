@@ -699,7 +699,7 @@
       "PROCESS": "{{ .Name }}"
     },
     "Volumes": [
-      {{ range .Volumes }}
+      {{ range .MountableVolumes }}
         {{ if eq .Host "/var/run/docker.sock" }}
           "{{.Host}}:{{.Container}}",
         {{ else }}
