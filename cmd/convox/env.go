@@ -156,25 +156,25 @@ func cmdEnvSet(c *cli.Context) error {
 
 	fmt.Print("Updating environment... ")
 
-	_, releaseId, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
+	_, releaseID, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
 
-	if releaseId != "" {
+	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s... ", releaseId)
+			fmt.Printf("Promoting %s... ", releaseID)
 
-			_, err = rackClient(c).PromoteRelease(app, releaseId)
+			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
 				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
 		} else {
-			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseId)
+			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseID)
 		}
 	}
 
@@ -199,25 +199,25 @@ func cmdEnvUnset(c *cli.Context) error {
 
 	fmt.Print("Updating environment... ")
 
-	_, releaseId, err := rackClient(c).DeleteEnvironment(app, key)
+	_, releaseID, err := rackClient(c).DeleteEnvironment(app, key)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
 
-	if releaseId != "" {
+	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s... ", releaseId)
+			fmt.Printf("Promoting %s... ", releaseID)
 
-			_, err = rackClient(c).PromoteRelease(app, releaseId)
+			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
 				return stdcli.ExitError(err)
 			}
 
 			fmt.Println("OK")
 		} else {
-			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseId)
+			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseID)
 		}
 	}
 

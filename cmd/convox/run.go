@@ -97,7 +97,7 @@ func cmdRunDetached(c *cli.Context) error {
 
 	err = rackClient(c).RunProcessDetached(app, ps, command, release)
 	if err != nil {
-		return err
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")

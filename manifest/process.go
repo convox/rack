@@ -10,7 +10,7 @@ type Process struct {
 	service Service
 }
 
-func NewProcess(app string, s Service) Process {
+func NewProcess(app string, s Service, m Manifest) Process {
 	name := fmt.Sprintf("%s-%s", app, s.Name)
 
 	args := []string{}
@@ -31,8 +31,14 @@ func NewProcess(app string, s Service) Process {
 		}
 	}
 
+	for _, n := range s.Networks {
+		for _, in := range n {
+			args = append(args, "--net", in.Name)
+		}
+	}
+
 	for _, link := range s.Links {
-		args = append(args, linkArgs(link, fmt.Sprintf("%s-%s", app, link))...)
+		args = append(args, linkArgs(m.Services[link], fmt.Sprintf("%s-%s", app, link))...)
 	}
 
 	for _, port := range s.Ports {

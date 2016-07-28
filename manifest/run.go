@@ -81,13 +81,18 @@ func (r *Run) Start() error {
 			links[key] = true
 		}
 
+		missingEnv := []string{}
 		for key, val := range s.Environment {
 			eok := val != ""
 			_, exok := existing[key]
 			_, lok := links[key]
 			if !eok && !exok && !lok {
-				return fmt.Errorf("env expected: %s", key)
+				missingEnv = append(missingEnv, key)
 			}
+		}
+
+		if len(missingEnv) > 0 {
+			return fmt.Errorf("env expected: %s", strings.Join(missingEnv, ", "))
 		}
 	}
 
@@ -112,7 +117,7 @@ func (r *Run) Start() error {
 	for _, s := range r.manifest.runOrder() {
 		proxies := s.Proxies(r.App)
 
-		p := s.Process(r.App)
+		p := s.Process(r.App, r.manifest)
 
 		Docker("rm", "-f", p.Name).Run()
 
@@ -147,7 +152,7 @@ func (r *Run) Start() error {
 
 		r.processes = append(r.processes, p)
 
-		waitForContainer(p.Name)
+		waitForContainer(p.Name, s)
 
 		for _, proxy := range proxies {
 			r.proxies = append(r.proxies, proxy)
@@ -233,11 +238,11 @@ func streamReader(s Stream, r io.Reader) {
 	}
 }
 
-func waitForContainer(container string) {
+func waitForContainer(container string, service Service) {
 	i := 0
 
 	for {
-		host := containerHost(container)
+		host := containerHost(container, service.Networks)
 		i += 1
 
 		// wait 5s max

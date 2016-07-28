@@ -61,3 +61,15 @@ func (e Environment) LoadRaw(raw string) {
 		e[keyValue[0]] = keyValue[1]
 	}
 }
+
+// List retuns a string slic of environment variables. e.g ["KEY=VALUE"]
+func (e Environment) List() []string {
+
+	list := []string{}
+
+	for key, value := range e {
+		list = append(list, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	return list
+}
