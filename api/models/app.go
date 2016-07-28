@@ -461,13 +461,26 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	return nil
 }
 
-func (a *App) RunAttached(process, command, releaseId string, height, width int, rw io.ReadWriter) error {
+// RunAttached runs a command in the foreground (e.g blocking) and writing the output from said command to rw.
+func (a *App) RunAttached(process, command, releaseID string, height, width int, rw io.ReadWriter) error {
+	//TODO: A lot of logic in here should be moved to the provider interface.
+
 	resources, err := a.Resources()
 	if err != nil {
 		return err
 	}
 
+	if releaseID == "" {
+		releaseID = a.Release
+	}
+
+	release, err := GetRelease(a.Name, releaseID)
+	if err != nil {
+		return err
+	}
+
 	var container *ecs.ContainerDefinition
+	unpromotedRelease := false
 
 	task, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
@@ -476,84 +489,63 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 		return err
 	}
 
-	// If no releaseId is provided, use the last promoted release to run this process
-	// otherwise iterate over the previous revisions (starting with the latest) looking for the releaseId specified.
-	if releaseId == "" {
-		releaseId = a.Release
-
-		for _, container = range task.TaskDefinition.ContainerDefinitions {
-			if *container.Name == process {
-				break
-			}
-		}
-
-	} else {
-
-		ts, err := ECS().ListTaskDefinitions(&ecs.ListTaskDefinitionsInput{
-			FamilyPrefix: task.TaskDefinition.Family,
-		})
-		if err != nil {
-			return err
-		}
-
-		for i := len(ts.TaskDefinitionArns) - 1; i >= 0; i-- {
-			t, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-				TaskDefinition: ts.TaskDefinitionArns[i],
-			})
-			if err != nil {
-				continue
-			}
-
-			if t == nil {
-				return fmt.Errorf("unable to retrieve task definition")
-			}
-
-		ContainerCheck:
-			for _, container = range t.TaskDefinition.ContainerDefinitions {
-				releaseMatch := false
-
-			ReleaseCheck:
-				for _, kv := range container.Environment {
-					if *kv.Name == "RELEASE" {
-						if *kv.Value == releaseId {
-							releaseMatch = true
-							break ReleaseCheck
-						}
-					}
-				}
-
-				if *container.Name == process && releaseMatch {
-					break ContainerCheck
-				}
-				container = nil
-			}
-
-			if container != nil {
-				break
-			}
+	for _, container = range task.TaskDefinition.ContainerDefinitions {
+		if *container.Name == process {
+			break
 		}
 	}
 
+	// This would force an app to be promoted once before being able to run a process.
 	if container == nil {
-		return fmt.Errorf("unable to find contaier for %s", process)
+		return fmt.Errorf("unable to find container for %s", process)
 	}
 
-	ea := make([]string, 0)
+	// If the release ID provided does not equal the active one, some logic is needed to determine the next steps.
+	// - For a previous release, we iterate over the previous TaskDefinition revisions (starting with the latest) looking for the releaseID specified.
+	// - If the release has yet to be promoted, we use the most recent TaskDefinition with the provided release's environment.
+	if releaseID != a.Release {
+
+		_, releaseContainer, err := findAppDefinitions(process, releaseID, *task.TaskDefinition.Family, 20)
+		if err != nil {
+			return nil
+		}
+
+		// If container is nil, the release most likely hasn't been promoted and thus no TaskDefinition for it.
+		if releaseContainer != nil {
+			container = releaseContainer
+
+		} else {
+			fmt.Printf("Unable to find container for %s. Basing container off of most recent release: %s.\n", process, a.Release)
+			unpromotedRelease = true
+		}
+	}
+
+	var rawEnvs []string
 	for _, env := range container.Environment {
-		ea = append(ea, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
+		rawEnvs = append(rawEnvs, fmt.Sprintf("%s=%s", *env.Name, *env.Value))
+	}
+	containerEnvs := structs.Environment{}
+	containerEnvs.LoadRaw(strings.Join(rawEnvs, "\n"))
+
+	// Update any environment variables that might be part of the unpromoted release.
+	if unpromotedRelease {
+
+		releaseEnv := structs.Environment{}
+		releaseEnv.LoadRaw(release.Env)
+
+		for key, value := range releaseEnv {
+			containerEnvs[key] = value
+		}
+
+		containerEnvs["RELEASE"] = release.Id
 	}
 
-	release, err := GetRelease(a.Name, releaseId)
+	m, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
 		return err
 	}
 
-	manifest, err := manifest.Load([]byte(release.Manifest))
-	if err != nil {
-		return err
-	}
-
-	me, ok := manifest.Services[process]
+	me, ok := m.Services[process]
 	if !ok {
 		return fmt.Errorf("no such process: %s", process)
 	}
@@ -637,7 +629,7 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
-			Env:          ea,
+			Env:          containerEnvs.List(),
 			OpenStdin:    true,
 			Tty:          true,
 			Cmd:          []string{"sh", "-c", command},
@@ -703,17 +695,98 @@ func (a *App) RunAttached(process, command, releaseId string, height, width int,
 	return nil
 }
 
-func (a *App) RunDetached(process, command, releaseId string) error {
+// RunDetached runs a command in the background (e.g. non-blocking).
+func (a *App) RunDetached(process, command, releaseID string) error {
 	resources, err := a.Resources()
 	if err != nil {
 		return err
+	}
+
+	taskDefinitionArn := resources[UpperName(process)+"ECSTaskDefinition"].Id
+
+	if releaseID == "" {
+		releaseID = a.Release
+	}
+
+	release, err := GetRelease(a.Name, releaseID)
+	if err != nil {
+		return err
+	}
+
+	// If the releaseID specified isn't the app's current release:
+	// - We have to find the right task definition OR
+	// - create a new/temp task definition to run a release that hasn't been promoted.
+	if releaseID != a.Release {
+		task, err := ECS().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: aws.String(taskDefinitionArn),
+		})
+		if err != nil {
+			return err
+		}
+
+		td, _, err := findAppDefinitions(process, releaseID, *task.TaskDefinition.Family, 20)
+		if err != nil {
+			return err
+
+		} else if td != nil {
+			taskDefinitionArn = *td.TaskDefinitionArn
+
+		} else {
+			// If reached, the release exist but doesn't have a task definition (isn't promoted).
+			// Create a task definition to run that release.
+
+			var cd *ecs.ContainerDefinition
+			for _, cd = range task.TaskDefinition.ContainerDefinitions {
+				if *cd.Name == process {
+					break
+				}
+				cd = nil
+			}
+			if cd == nil {
+				return fmt.Errorf("unable to find container for process %s and release %s", process, releaseID)
+			}
+
+			env := structs.Environment{}
+			env.LoadRaw(release.Env)
+
+			for _, containerKV := range cd.Environment {
+				for key, value := range env {
+
+					if *containerKV.Name == "RELEASE" {
+						*containerKV.Value = releaseID
+						break
+
+					}
+
+					if *containerKV.Name == key {
+						*containerKV.Value = value
+						break
+					}
+				}
+			}
+
+			taskInput := &ecs.RegisterTaskDefinitionInput{
+				ContainerDefinitions: []*ecs.ContainerDefinition{
+					cd,
+				},
+				Family:  task.TaskDefinition.Family,
+				Volumes: []*ecs.Volume{},
+			}
+
+			resp, err := ECS().RegisterTaskDefinition(taskInput)
+			if err != nil {
+				return err
+			}
+
+			taskDefinitionArn = *resp.TaskDefinition.TaskDefinitionArn
+		}
 	}
 
 	req := &ecs.RunTaskInput{
 		Cluster:        aws.String(os.Getenv("CLUSTER")),
 		Count:          aws.Int64(1),
 		StartedBy:      aws.String("convox"),
-		TaskDefinition: aws.String(resources[UpperName(process)+"ECSTaskDefinition"].Id),
+		TaskDefinition: aws.String(taskDefinitionArn),
 	}
 
 	if command != "" {
