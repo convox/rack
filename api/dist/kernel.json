@@ -555,7 +555,7 @@
       }
     },
     "GatewayAttachment": {
-      "DependsOn": [ "Gateway" ],
+      "DependsOn": [ "Gateway", "Vpc" ],
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Condition": "BlankExistingVpc",
       "Properties": {
@@ -705,14 +705,11 @@
       }
     },
     "Routes": {
-      "DependsOn": [ "Gateway", "GatewayAttachment" ],
+      "DependsOn": [ "Gateway", "GatewayAttachment", "Vpc" ],
       "Type": "AWS::EC2::RouteTable",
       "Condition": "BlankExistingVpc",
       "Properties": {
-        "VpcId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Vpc" },
-          { "Ref": "ExistingVpc" }
-        ] }
+        "VpcId": { "Ref": "Vpc" }
       }
     },
     "RouteDefault": {
@@ -1009,7 +1006,7 @@
       }
     },
     "Instances": {
-      "DependsOn": [ "AvailabilityZones" ],
+      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1", "Subnet2" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
