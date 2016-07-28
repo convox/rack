@@ -22,17 +22,17 @@ cd ${EXAMPLE_NAME}
 
 convox apps create $APP_NAME --wait
 
-# convox logs --app $APP_NAME > $CIRCLE_ARTIFACTS/$APP_NAME.log &
-
 convox deploy --app $APP_NAME --wait
 
 convox apps info --app $APP_NAME
 
+convox scale web --count 2 --memory 128 --app $APP_NAME --wait
+
 balancer=$(convox api get /apps/$APP_NAME/formation | jq -r '.[] | select(.name == "web" and .ports[] == 443) | .balancer')
 curl -vi -m2 --retry 60 --retry-delay 20 -k https://$balancer
-
-convox scale web --count 2 --memory 128 --app $APP_NAME --wait
 
 convox ps --stats --app $APP_NAME
 
 convox run --app $APP_NAME web 'bin/test || true'
+
+convox logs --app $APP_NAME --follow=false --since=25m > $CIRCLE_ARTIFACTS/$APP_NAME.log
