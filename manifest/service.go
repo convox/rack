@@ -127,7 +127,7 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 		switch parts[0] {
 		case "ADD", "COPY":
 			if len(parts) >= 3 {
-				sp[parts[1]] = parts[2]
+				sp[filepath.Join(s.Build.Context, parts[1])] = parts[2]
 			}
 		}
 	}
