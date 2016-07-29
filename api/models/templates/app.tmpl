@@ -684,7 +684,7 @@
   },
   "RegistryRepository": {
     "Condition": "RegionHasECR",
-    "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
+    "Value": { "Ref": "RegistryRepository" }
   },
 {{ end }}
 
