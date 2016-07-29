@@ -43,7 +43,7 @@ func main() {
 		die(err)
 	}
 
-	pretty, err := models.PrettyJson(f)
+	pretty, err := models.PrettyJSON(f)
 	if err != nil {
 		die(err)
 	}
