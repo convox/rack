@@ -663,7 +663,6 @@
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
       ]
   },
-	"RegionMissingECR": { "Fn::Not": [ "RegionHasECR" ] },
 {{ end }}
 
 {{ define "registry-resources" }}
