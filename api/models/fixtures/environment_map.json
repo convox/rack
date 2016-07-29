@@ -385,12 +385,15 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "BAZ": "qux",
                   "FOO": "bar",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "main"
+                  "PROCESS": "main",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

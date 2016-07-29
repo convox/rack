@@ -412,12 +412,15 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
                   "POSTGRES_PASSWORD": "password",
                   "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
+                  "PROCESS": "postgres",
+                  "RACK": "convox-test"
                 },
                 "Image": "mdillon/postgis",
                 "Memory": {
@@ -638,12 +641,13 @@
                   ]
                 },
                 "Environment": {
-                  "AWS_ACCESS_KEY": "",
-                  "AWS_SECRET_ACCESS_KEY": "",
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "worker"
+                  "PROCESS": "worker",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

@@ -694,7 +694,9 @@
     "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper .Name }}Formation" } ] },
     "Environment": {
       {{ range $key, $value := .Environment }}
-        "{{ $key }}": {{ value $value }},
+	{{if ne $value "" }}
+        	"{{ $key }}": {{ value $value }},
+	{{end}}
       {{ end }}
       {{ range $key, $value := .LinkVars }}
         "{{ $key }}": {{ $value }},

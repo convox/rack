@@ -306,7 +306,7 @@
       "Type": "String"
     },
     "RedisPort6379Host": {
-      "Default": "12828",
+      "Default": "5000",
       "Description": "",
       "Type": "String"
     },
@@ -405,7 +405,7 @@
       "Type": "String"
     },
     "WebPort80Host": {
-      "Default": "45109",
+      "Default": "5001",
       "Description": "",
       "Type": "String"
     },
@@ -1140,6 +1140,8 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LINK_PASSWORD": "pass-the-word",
                   "LINK_PATH": "/0",
                   "LINK_SCHEME": "redis",
@@ -1147,7 +1149,8 @@
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "redis"
+                  "PROCESS": "redis",
+                  "RACK": "convox-test"
                 },
                 "Image": "convox/redis",
                 "Memory": {
@@ -1391,10 +1394,13 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "web",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

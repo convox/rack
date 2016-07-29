@@ -223,7 +223,7 @@
       "Type": "String"
     },
     "MainPort443Host": {
-      "Default": "20816",
+      "Default": "5000",
       "Description": "",
       "Type": "String"
     },
@@ -749,10 +749,13 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "main"
+                  "PROCESS": "main",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

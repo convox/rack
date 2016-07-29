@@ -249,7 +249,7 @@
       "Type": "String"
     },
     "MainPort80Host": {
-      "Default": "42597",
+      "Default": "5000",
       "Description": "",
       "Type": "String"
     },
@@ -293,7 +293,7 @@
       "Type": "String"
     },
     "MainPort81Host": {
-      "Default": "40855",
+      "Default": "5001",
       "Description": "",
       "Type": "String"
     },
@@ -927,10 +927,13 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "main"
+                  "PROCESS": "main",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

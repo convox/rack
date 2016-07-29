@@ -346,7 +346,7 @@
       "Type": "String"
     },
     "WebPort80Host": {
-      "Default": "29424",
+      "Default": "5000",
       "Description": "",
       "Type": "String"
     },
@@ -405,7 +405,7 @@
       "Type": "String"
     },
     "WorkerPort80Host": {
-      "Default": "55136",
+      "Default": "5001",
       "Description": "",
       "Type": "String"
     },
@@ -1209,10 +1209,13 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "web",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {
@@ -1378,10 +1381,13 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "worker"
+                  "PROCESS": "worker",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {

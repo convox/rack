@@ -326,7 +326,7 @@
       "Type": "String"
     },
     "WebPort443Host": {
-      "Default": "18961",
+      "Default": "5001",
       "Description": "",
       "Type": "String"
     },
@@ -370,7 +370,7 @@
       "Type": "String"
     },
     "WebPort80Host": {
-      "Default": "14477",
+      "Default": "5000",
       "Description": "",
       "Type": "String"
     },
@@ -930,12 +930,15 @@
                   ]
                 },
                 "Environment": {
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
                   "POSTGRES_PASSWORD": "password",
                   "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres"
+                  "PROCESS": "postgres",
+                  "RACK": "convox-test"
                 },
                 "Image": "mdillon/postgis",
                 "Memory": {
@@ -1180,12 +1183,13 @@
                   ]
                 },
                 "Environment": {
-                  "AWS_ACCESS_KEY": "",
-                  "AWS_SECRET_ACCESS_KEY": "",
+                  "APP": "httpd",
+                  "AWS_REGION": "us-test-2",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
-                  "PROCESS": "web"
+                  "PROCESS": "web",
+                  "RACK": "convox-test"
                 },
                 "Image": "",
                 "Memory": {
