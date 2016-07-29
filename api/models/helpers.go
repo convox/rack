@@ -159,7 +159,8 @@ func linkParts(link string) (string, string, error) {
 	return "", "", fmt.Errorf("invalid link name")
 }
 
-func prettyJson(raw string) (string, error) {
+// PrettyJSON returns JSON string in a human-readable format
+func PrettyJSON(raw string) (string, error) {
 	var parsed map[string]interface{}
 
 	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
