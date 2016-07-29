@@ -502,7 +502,7 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 	}
 
 	for _, event := range res.StackEvents {
-		if events[*event.EventId] == true {
+		if events[*event.EventId] {
 			continue
 		}
 
@@ -784,14 +784,14 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 func awsCLICredentials() (*AwsCredentials, error) {
 	data, err := awsCLI("iam", "get-user")
 
-	if err != nil && strings.Index(err.Error(), "executable file not found") > -1 {
+	if err != nil && strings.Contains(err.Error(), "executable file not found") {
 		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
 		fmt.Println("See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html")
 		fmt.Println()
 		return nil, nil
 	}
 
-	if strings.Index(string(data), "Unable to locate credentials") > -1 {
+	if strings.Contains(string(data), "Unable to locate credentials") {
 		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
 		fmt.Println("You can configure credentials by running `aws configure`.")
 		fmt.Println()

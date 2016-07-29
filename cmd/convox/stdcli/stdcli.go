@@ -202,7 +202,7 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	}
 
 	if !ep.Start.IsZero() {
-		props["elapsed"] = float64(time.Now().Sub(ep.Start).Nanoseconds()) / 1000000
+		props["elapsed"] = float64(time.Since(ep.Start).Nanoseconds()) / 1000000
 	}
 
 	err := segment.Track(&analytics.Track{

@@ -255,11 +255,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 
 	// delete ECR images
 	err = p.deleteImages(a, b)
-	if err != nil {
-		return b, err
-	}
-
-	return b, nil
+	return b, err
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
@@ -520,7 +516,7 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
 	}
 
-	if cache == false {
+	if !cache {
 		env = append(env, "NO_CACHE=true")
 	}
 

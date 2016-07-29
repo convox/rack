@@ -177,12 +177,7 @@ func PutRackSettings(env Environment) error {
 	}
 
 	err = S3Put(settings, "env", []byte(e), true)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (e Environment) SortedNames() []string {
