@@ -60,6 +60,10 @@ func cmdScale(c *cli.Context) error {
 	// validate single process type argument
 	switch len(c.Args()) {
 	case 0:
+		if opts.Memory != "" || opts.CPU != "" || opts.Count != "" {
+			return stdcli.ExitError(fmt.Errorf("missing process name"))
+		}
+
 		displayFormation(c, app)
 		return nil
 	case 1:
