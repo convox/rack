@@ -1,11 +1,6 @@
 package handler
 
-import (
-	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-)
+import "fmt"
 
 func HandleS3BucketCleanup(req Request) (string, map[string]string, error) {
 	defer recoverFailure(req)
@@ -50,40 +45,4 @@ func S3BucketCleanupDelete(req Request) (string, map[string]string, error) {
 
 	// success
 	return req.PhysicalResourceId, nil, nil
-}
-
-func cleanupBucket(bucket string, S3 *s3.S3) error {
-	req := &s3.ListObjectVersionsInput{
-		Bucket: aws.String(bucket),
-	}
-
-	res, err := S3.ListObjectVersions(req)
-
-	if err != nil {
-		return err
-	}
-
-	for _, d := range res.DeleteMarkers {
-		go cleanupBucketObject(bucket, *d.Key, *d.VersionId, S3)
-	}
-
-	for _, v := range res.Versions {
-		go cleanupBucketObject(bucket, *v.Key, *v.VersionId, S3)
-	}
-
-	return nil
-}
-
-func cleanupBucketObject(bucket, key, version string, S3 *s3.S3) {
-	req := &s3.DeleteObjectInput{
-		Bucket:    aws.String(bucket),
-		Key:       aws.String(key),
-		VersionId: aws.String(version),
-	}
-
-	_, err := S3.DeleteObject(req)
-
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	}
 }

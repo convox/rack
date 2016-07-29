@@ -103,17 +103,6 @@ func Asset(name string) ([]byte, error) {
 	return nil, fmt.Errorf("Asset %s not found", name)
 }
 
-// MustAsset is like Asset but panics when Asset would return an error.
-// It simplifies safe initialization of global variables.
-func MustAsset(name string) []byte {
-	a, err := Asset(name)
-	if err != nil {
-		panic("asset: Asset(" + name + "): " + err.Error())
-	}
-
-	return a
-}
-
 // AssetInfo loads and returns the asset info for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -127,15 +116,6 @@ func AssetInfo(name string) (os.FileInfo, error) {
 		return a.info, nil
 	}
 	return nil, fmt.Errorf("AssetInfo %s not found", name)
-}
-
-// AssetNames returns the names of the assets.
-func AssetNames() []string {
-	names := make([]string, 0, len(_bindata))
-	for name := range _bindata {
-		names = append(names, name)
-	}
-	return names
 }
 
 // _bindata is a table, holding each asset generator, mapped to its name.
@@ -182,6 +162,7 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"data": &bintree{nil, map[string]*bintree{
 		"git-restore-mtime": &bintree{dataGitRestoreMtime, map[string]*bintree{}},
@@ -234,4 +215,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
