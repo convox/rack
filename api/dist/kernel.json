@@ -1037,6 +1037,11 @@
             "Key": "Rack",
             "Value": { "Ref": "AWS::StackName" },
             "PropagateAtLaunch": true
+          },
+          {
+            "Key": "GatewayAttachment",
+            "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
+            "PropagateAtLaunch": false
           }
         ]
       },
@@ -1293,7 +1298,13 @@
             { "Ref": "Subnet1" },
             { "Ref": "Subnet2" }
           ] ]
-        }
+        },
+        "Tags": [
+          {
+            "Key": "GatewayAttachment",
+            "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] }
+          }
+        ]
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
