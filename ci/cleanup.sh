@@ -66,3 +66,7 @@ aws ecr describe-repositories |\
 aws logs describe-log-groups |\
   jq ".logGroups[] | select(.logGroupName | contains(\"-$CIRCLE_BUILD_NUM-\")) | .logGroupName" |\
   xargs -L1 aws logs delete-log-group --log-group-name
+
+aws iam list-server-certificates |\
+  jq ".ServerCertificateMetadataList[] | select(.ServerCertificateName | contains(\"-$STACK_NAME-\")) | .ServerCertificateName" |\
+  xargs -L1 -I{} sh -c 'aws iam delete-server-certificate --server-certificate-name {} || true'
