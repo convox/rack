@@ -50,6 +50,8 @@ type Build struct {
 	Dockerfile string            `yaml:"dockerfile,omitempty"`
 	Args       map[string]string `yaml:"args,omitempty"`
 }
+
+// Command represents the command docker will run either in string or array of strings
 type Command struct {
 	String string   `yaml:"-"`
 	Array  []string `yaml:"-"`

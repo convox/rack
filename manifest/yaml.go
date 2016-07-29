@@ -6,11 +6,13 @@ import (
 	"strings"
 )
 
+// MarshalYAML implements the Marshaller interface for the Manifest type
 func (m Manifest) MarshalYAML() (interface{}, error) {
 	m.Version = "2"
 	return m, nil
 }
 
+// MarshalYAML implements the Marshaller interface for the Port type
 func (p Port) MarshalYAML() (interface{}, error) {
 	if p.Public {
 		return fmt.Sprintf("%d:%d", p.Balancer, p.Container), nil
@@ -18,6 +20,7 @@ func (p Port) MarshalYAML() (interface{}, error) {
 	return fmt.Sprintf("%d", p.Container), nil
 }
 
+// MarshalYAML implements the Marshaller interface for the Command type
 func (c Command) MarshalYAML() (interface{}, error) {
 
 	if c.String != "" {
