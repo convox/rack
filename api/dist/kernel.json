@@ -908,7 +908,7 @@
             "#cloud-config\n",
             "repo_upgrade_exclude:\n",
             "  - kernel*\n",
-            "repo_upgrade: security\n"
+            "repo_upgrade: bugfix\n"
             "packages:\n",
             "  - aws-cfn-bootstrap\n",
             "mounts:\n",
