@@ -221,9 +221,9 @@
                   "RACK": "{{ env "RACK" }}",
                   "AWS_REGION": "{{ env "AWS_REGION" }}",
                   {{ range $key, $value := $e.Environment }}
-            	    {{if ne $value "" }}
+                  {{if ne $value "" }}
                      "{{ $key }}": {{ value $value }},
-            	    {{end}}
+                  {{end}}
                   {{ end }}
                   {{ range $key, $value := .LinkVars }}
                     "{{ $key }}": {{ $value }},
@@ -528,9 +528,9 @@
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
         "SecurityGroups" : [{ "Fn::If" : [
-	    "BlankSecurityGroup",
-	    {"Ref" : "{{ .ResourceName }}SecurityGroup"},
-	    {"Ref" : "SecurityGroup"}
+      "BlankSecurityGroup",
+      {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+      {"Ref" : "SecurityGroup"}
         ]}]
       }
     },
