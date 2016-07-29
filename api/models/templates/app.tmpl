@@ -667,11 +667,11 @@
 
 {{ define "registry-resources" }}
   "RegistryRepository": {
-    "Type": "AWS::ECR::Repository",
+    "Type": "Custom::ECRRepository",
     "Condition": "RegionHasECR",
-		"DeletionPolicy": "Retain",
     "Version": "1.0",
     "Properties": {
+      "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
       "RepositoryName": { "Ref": "AWS::StackName" }
     }
   },
@@ -684,7 +684,7 @@
   },
   "RegistryRepository": {
     "Condition": "RegionHasECR",
-    "Value": { "Ref": "RegistryRepository" }
+    "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
   },
 {{ end }}
 
