@@ -1252,7 +1252,16 @@
             "LoadBalancerPort": "443",
             "InstanceProtocol": "TCP",
             "InstancePort": "3001"
-          }
+          },
+          { "Fn::If": [ "RegionHasECR",
+            { "Ref": "AWS::NoValue" },
+            {
+              "Protocol": "TCP",
+              "LoadBalancerPort": "5000",
+              "InstanceProtocol": "TCP",
+              "InstancePort": "3101"
+            }
+          ] }
         ],
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
