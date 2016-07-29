@@ -3,7 +3,6 @@
   "Conditions": {
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
-    "BlankDockerImageApi": { "Fn::Equals": [ { "Ref": "DockerImageApi" }, "" ] },
     "BlankExistingVpc": { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
@@ -69,10 +68,7 @@
     },
     "DockerImageApi": {
       "Condition": "Development",
-      "Value": { "Fn::If": [ "BlankDockerImageApi",
-        { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-        { "Ref": "DockerImageApi" }
-      ] }
+      "Value": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }
     },
     "DynamoBuilds": {
       "Condition": "Development",
@@ -180,26 +176,6 @@
       "Description": "Development mode",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
-    },
-    "DockerImageApi": {
-      "Type": "String",
-      "Description": "Image to use for the api container. Overrides current Version.",
-      "Default": ""
-    },
-    "DockerImageApp": {
-      "Type": "String",
-      "Description": "Deprecated",
-      "Default": ""
-    },
-    "DockerImageBuild": {
-      "Type": "String",
-      "Description": "Deprecated",
-      "Default": ""
-    },
-    "DockerImageService": {
-      "Type": "String",
-      "Description": "Deprecated",
-      "Default": ""
     },
     "Encryption": {
       "Type": "String",
@@ -1587,10 +1563,7 @@
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
-              "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
-                { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageApi" }
-              ] },
+              "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
@@ -1621,10 +1594,7 @@
               ] },
               "VPCCIDR": { "Ref": "VPCCIDR" }
             },
-            "Image": { "Fn::If": [ "BlankDockerImageApi",
-              { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-              { "Ref": "DockerImageApi" }
-            ] },
+            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
             "Links": [],
             "Memory": "128",
             "Name": "web",
@@ -1684,10 +1654,7 @@
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
-              "DOCKER_IMAGE_API": { "Fn::If": [ "BlankDockerImageApi",
-                { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-                { "Ref": "DockerImageApi" }
-              ] },
+              "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
@@ -1716,10 +1683,7 @@
                 { "Ref": "ExistingVpc" }
               ] }
             },
-            "Image": { "Fn::If": [ "BlankDockerImageApi",
-              { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
-              { "Ref": "DockerImageApi" }
-            ] },
+            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
             "Links": [],
             "Memory": "64",
             "Name": "monitor",
