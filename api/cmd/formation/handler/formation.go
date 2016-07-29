@@ -206,13 +206,7 @@ func HandleRequest(freq Request) error {
 		fres.Status = "FAILED"
 	}
 
-	err = putResponse(freq.ResponseURL, fres)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return putResponse(freq.ResponseURL, fres)
 }
 
 func putResponse(rurl string, fres Response) error {

@@ -57,7 +57,7 @@ func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.
 
 	// if last request was before the TTL, or if running in the test environment, make a request
 	if s.RequestTime.Before(time.Now().Add(-DescribeStacksCacheTTL)) || os.Getenv("PROVIDER") == "test" {
-		fmt.Printf("fn=doDescribeStack at=miss name=%q age=%s\n", name, time.Now().Sub(s.RequestTime))
+		fmt.Printf("fn=doDescribeStack at=miss name=%q age=%s\n", name, time.Since(s.RequestTime))
 
 		res, err := CloudFormation().DescribeStacks(&input)
 
@@ -72,7 +72,7 @@ func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.
 		return res, err
 	}
 
-	fmt.Printf("fn=doDescribeStack at=hit name=%q age=%s\n", name, time.Now().Sub(s.RequestTime))
+	fmt.Printf("fn=doDescribeStack at=hit name=%q age=%s\n", name, time.Since(s.RequestTime))
 
 	return s.Output, nil
 }

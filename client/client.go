@@ -70,13 +70,7 @@ func (c *Client) Get(path string, out interface{}) error {
 		return err
 	}
 
-	err = json.Unmarshal(data, out)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(data, out)
 }
 
 func (c *Client) Post(path string, params Params, out interface{}) error {
@@ -252,13 +246,7 @@ func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
 		return err
 	}
 
-	err = json.Unmarshal(data, out)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(data, out)
 }
 
 func (c *Client) Delete(path string, out interface{}) error {

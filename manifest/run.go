@@ -47,7 +47,7 @@ func (r *Run) Start() error {
 		scanner := bufio.NewScanner(bytes.NewReader(data))
 
 		for scanner.Scan() {
-			if strings.Index(scanner.Text(), "=") > -1 {
+			if strings.Contains(scanner.Text(), "=") {
 				parts := strings.SplitN(scanner.Text(), "=", 2)
 
 				err := os.Setenv(parts[0], parts[1])

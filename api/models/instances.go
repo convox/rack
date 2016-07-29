@@ -42,11 +42,7 @@ func InstanceKeyroll() error {
 	err = app.UpdateParams(map[string]string{
 		"Key": keyname,
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) error {
@@ -131,12 +127,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code)))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func exitCode(err error) int {

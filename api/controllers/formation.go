@@ -94,9 +94,9 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ValidationError" {
 			switch {
-			case strings.Index(ae.Error(), "No updates are to be performed") > -1:
+			case strings.Contains(ae.Error(), "No updates are to be performed"):
 				return httperr.Errorf(403, "no updates are to be performed: %s", app)
-			case strings.Index(ae.Error(), "can not be updated") > -1:
+			case strings.Contains(ae.Error(), "can not be updated"):
 				return httperr.Errorf(403, "app is already updating: %s", app)
 			}
 		}

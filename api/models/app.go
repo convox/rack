@@ -454,11 +454,7 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode)))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // RunAttached runs a command in the foreground (e.g blocking) and writing the output from said command to rw.
@@ -688,11 +684,7 @@ func (a *App) RunAttached(process, command, releaseID string, height, width int,
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code)))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // RunDetached runs a command in the background (e.g. non-blocking).

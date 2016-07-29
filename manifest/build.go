@@ -56,12 +56,7 @@ func pushSync(s Stream, local, remote string) error {
 		return err
 	}
 
-	err = run(s, Docker("push", remote))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return run(s, Docker("push", remote))
 }
 
 var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
