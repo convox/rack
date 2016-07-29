@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"sort"
 	"strings"
 
@@ -285,22 +283,4 @@ func displaySystem(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
-}
-
-func latestVersion() (string, error) {
-	resp, err := http.Get("https://convox.s3.amazonaws.com/release/latest/version")
-
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(body)), nil
 }

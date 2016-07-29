@@ -59,16 +59,6 @@ func pushSync(s Stream, local, remote string) error {
 	return run(s, Docker("push", remote))
 }
 
-var randomAlphabet = []rune("abcdefghijklmnopqrstuvwxyz")
-
-func randomString(prefix string, size int) string {
-	b := make([]rune, size)
-	for i := range b {
-		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
-	}
-	return prefix + string(b)
-}
-
 func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) []error {
 	if tag == "" {
 		tag = "latest"

@@ -465,7 +465,3 @@ func (c *Client) proxyWebsocket(config *websocket.Config, proxy string) (*websoc
 
 	return websocket.NewClient(config, tls.Client(conn, config.TlsConfig))
 }
-
-func (c *Client) url(path string) string {
-	return fmt.Sprintf("https://%s%s", c.Host, path)
-}

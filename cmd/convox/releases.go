@@ -10,20 +10,6 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
-type Release struct {
-	Id string
-
-	App string
-
-	Build    string
-	Env      string
-	Manifest string
-
-	Created time.Time
-}
-
-type Releases []Release
-
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "releases",

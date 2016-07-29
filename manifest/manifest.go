@@ -162,22 +162,6 @@ func (m *Manifest) Shift(shift int) {
 	}
 }
 
-func manifestPrefix(m Manifest, prefix string) string {
-	max := 6
-
-	for name, _ := range m.Services {
-		if len(name) > max {
-			max = len(name)
-		}
-	}
-
-	return fmt.Sprintf(fmt.Sprintf("%%-%ds |", max), prefix)
-}
-
-func systemPrefix(m *Manifest) string {
-	return manifestPrefix(*m, "convox")
-}
-
 func manifestVersion(data []byte) (string, error) {
 	var check struct {
 		Version string

@@ -3,7 +3,6 @@ package manifest
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -262,10 +261,6 @@ func linkArgs(s Service, container string) []string {
 	args = append(args, "-e", fmt.Sprintf("%s_URL=%s", prefix, u.String()))
 
 	return args
-}
-
-func tagHash(id string) string {
-	return fmt.Sprintf("convox-%s", fmt.Sprintf("%x", sha1.Sum([]byte(id)))[0:10])
 }
 
 // LabelsByPrefix retuns a map of string values with the labels filtered by prefix
