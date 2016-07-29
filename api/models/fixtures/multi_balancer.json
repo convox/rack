@@ -405,7 +405,7 @@
       "Type": "String"
     },
     "WorkerPort80Host": {
-      "Default": "5001",
+      "Default": "5000",
       "Description": "",
       "Type": "String"
     },

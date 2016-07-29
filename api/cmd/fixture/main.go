@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	models.ManifestRandomPorts = false
+	manifest.ManifestRandomPorts = false
 }
 
 func main() {
