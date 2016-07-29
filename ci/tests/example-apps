@@ -2,7 +2,8 @@
 set -ex -o pipefail
 
 # Running locally:
-#
+#   CWD shoud be the root Rack directory
+#   install gnu parallel
 #   export CIRCLE_ARTIFACTS=/tmp/
 #   export CIRCLE_BUILD_NUM=0
 #   ./ci/tests/example-apps
