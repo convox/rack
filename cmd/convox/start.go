@@ -72,13 +72,14 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
-		if err != nil {
+		if err == nil {
 			err = fmt.Errorf("ports in use: %v", pcc)
 		}
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
 		})
+
 		return stdcli.ExitError(err)
 	}
 
