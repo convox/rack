@@ -180,9 +180,6 @@ func waitForReleasePromotion(c *cli.Context, app, release string) error {
 			for _, p := range pss {
 				if p.Release == release && p.Id != "" && p.Id != "pending" && !p.Started.IsZero() {
 					found[p.Name] += 1
-				} else {
-					ready = false
-					break
 				}
 			}
 
