@@ -1351,7 +1351,7 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "ApiWeb": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiWebTasks", "ServiceRole" ],
+      "DependsOn": [ "ApiWebTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
@@ -1371,7 +1371,7 @@
       }
     },
     "ApiMonitor": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "ApiMonitorTasks", "ServiceRole" ],
+      "DependsOn": [ "ApiMonitorTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
       "Type": "Custom::ECSService",
       "Version": "1.0",
       "Properties": {
