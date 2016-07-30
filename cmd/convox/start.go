@@ -83,8 +83,8 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	noCache := c.Bool("no-cache")
-	r := m.Run(dir, app, noCache)
+	cache := !c.Bool("no-cache")
+	r := m.Run(dir, app, cache)
 
 	err = r.Start()
 	if err != nil {

@@ -12,9 +12,9 @@ import (
 )
 
 type Run struct {
-	App     string
-	Dir     string
-	NoCache bool
+	App   string
+	Dir   string
+	Cache bool
 
 	done      chan error
 	manifest  Manifest
@@ -24,11 +24,11 @@ type Run struct {
 	syncs     []Sync
 }
 
-func NewRun(dir, app string, m Manifest, noCache bool) Run {
+func NewRun(dir, app string, m Manifest, cache bool) Run {
 	return Run{
 		App:      app,
 		Dir:      dir,
-		NoCache:  noCache,
+		Cache:    cache,
 		manifest: m,
 		output:   NewOutput(),
 	}
@@ -105,7 +105,7 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.NoCache)
+	err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.Cache)
 	if err != nil {
 		return err
 	}

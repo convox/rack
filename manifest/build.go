@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
+func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
 
@@ -26,7 +26,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, noCache bool) error {
 	for _, service := range builds {
 		args := []string{"build"}
 
-		if noCache {
+		if !cache {
 			args = append(args, "--no-cache")
 		}
 
