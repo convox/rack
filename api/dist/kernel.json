@@ -1494,6 +1494,7 @@
     "VolumeTarget0": {
       "Type": "AWS::EFS::MountTarget",
       "Condition": "RegionHasEFS",
+      "DependsOn": "Subnet0",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
         "SubnetId": {
@@ -1509,6 +1510,7 @@
     "VolumeTarget1": {
       "Type": "AWS::EFS::MountTarget",
       "Condition": "RegionHasEFS",
+      "DependsOn": "Subnet1",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
         "SubnetId": {
@@ -1524,6 +1526,7 @@
     "VolumeTarget2": {
       "Type": "AWS::EFS::MountTarget",
       "Condition": "RegionHasEFS",
+      "DependsOn": "Subnet2",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
         "SubnetId": {
