@@ -1,0 +1,14 @@
+#!/bin/sh
+
+base=$(dirname $(dirname $0))
+
+for region in $(cat $base/REGIONS); do
+  export AWS_DEFAULT_REGION=$region
+
+  for stack in $(aws cloudformation describe-stacks | jq -r '.Stacks[].StackName'); do
+    if [[ "$stack" =~ ^convox- ]] && [[ ! "$stack" =~ ^convox-0 ]]; then
+      echo "deleting: $stack on $region"
+      aws cloudformation delete-stack --stack-name $stack
+    fi
+  done
+done
