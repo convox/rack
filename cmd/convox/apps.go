@@ -244,17 +244,23 @@ func cmdAppParamsSet(c *cli.Context) error {
 }
 
 func waitForAppRunning(c *cli.Context, app string) error {
+	timeout := time.After(10 * time.Minute)
+	tick := time.Tick(5 * time.Second)
+
 	for {
-		app, err := rackClient(c).GetApp(app)
-		if err != nil {
-			return err
-		}
+		select {
+		case <-tick:
+			a, err := rackClient(c).GetApp(app)
+			if err != nil {
+				return err
+			}
 
-		if app.Status == "running" {
-			break
+			if a.Status == "running" {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
 		}
-
-		time.Sleep(5 * time.Second)
 	}
 
 	return nil
