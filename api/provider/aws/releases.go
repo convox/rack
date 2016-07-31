@@ -97,9 +97,13 @@ func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
 }
 
 func (p *AWSProvider) ReleasePromote(app, id string) (*structs.Release, error) {
-	_, err := p.AppGet(app)
+	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
+	}
+
+	if !a.IsBound() {
+		return nil, fmt.Errorf("unbound apps are no longer supported for promotion")
 	}
 
 	return &structs.Release{}, fmt.Errorf("promote not yet implemented for AWS provider")

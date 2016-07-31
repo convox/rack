@@ -106,13 +106,7 @@ func (p *AWSProvider) downloadItem(bucket, hash string, item structs.IndexItem, 
 		return err
 	}
 
-	err = os.Chtimes(file, item.ModTime, item.ModTime)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return os.Chtimes(file, item.ModTime, item.ModTime)
 }
 
 func (p *AWSProvider) missingHashes(bucket string, inch, outch chan string, errch chan error) {

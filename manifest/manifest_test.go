@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
 )
 
 // WARNING: make sure to use spaces for the yaml indentations
-
 func TestLoadVersion1(t *testing.T) {
 	m, err := manifestFixture("v1")
 
@@ -54,7 +55,7 @@ func TestLoadCommandString(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
-			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "ls -la"})
+			assert.Equal(t, web.Command.String, manifest.Command{String: "ls -la"}.String)
 		}
 	}
 }
@@ -64,7 +65,7 @@ func TestLoadCommandArray(t *testing.T) {
 
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
-			assert.Equal(t, web.Command, manifest.Command{"ls", "-la"})
+			assert.Equal(t, web.Command.Array, manifest.Command{Array: []string{"ls", "-la"}}.Array)
 		}
 	}
 }
@@ -75,7 +76,7 @@ func TestLoadFullVersion1(t *testing.T) {
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
-			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "bin/web"})
+			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
 			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
 			assert.Equal(t, len(web.Environment), 2)
@@ -117,7 +118,7 @@ func TestLoadFullVersion1(t *testing.T) {
 			if assert.Equal(t, len(db.Ports), 1) {
 				assert.False(t, db.Ports.External())
 				assert.False(t, db.Ports[0].External())
-				assert.Equal(t, db.Ports[0].Balancer, 0)
+				assert.Equal(t, db.Ports[0].Balancer, 5432)
 				assert.Equal(t, db.Ports[0].Container, 5432)
 			}
 		}
@@ -130,7 +131,7 @@ func TestLoadFullVersion2(t *testing.T) {
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
-			assert.Equal(t, web.Command, manifest.Command{"sh", "-c", "bin/web"})
+			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
 			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
 			assert.Equal(t, len(web.Environment), 2)
@@ -150,7 +151,7 @@ func TestLoadFullVersion2(t *testing.T) {
 				assert.True(t, web.Ports[0].External())
 				assert.Equal(t, web.Ports[0].Balancer, 80)
 				assert.Equal(t, web.Ports[0].Container, 5000)
-				assert.True(t, web.Ports[1].External())
+				assert.True(t, web.Ports[0].External())
 				assert.Equal(t, web.Ports[1].Balancer, 443)
 				assert.Equal(t, web.Ports[1].Container, 5001)
 			}
@@ -172,7 +173,7 @@ func TestLoadFullVersion2(t *testing.T) {
 			if assert.Equal(t, len(db.Ports), 1) {
 				assert.False(t, db.Ports.External())
 				assert.False(t, db.Ports[0].External())
-				assert.Equal(t, db.Ports[0].Balancer, 0)
+				assert.Equal(t, db.Ports[0].Balancer, 5432)
 				assert.Equal(t, db.Ports[0].Container, 5432)
 			}
 		}
@@ -277,6 +278,21 @@ func TestPortConflictsWithConflict(t *testing.T) {
 	}
 }
 
+func TestManifestNetworks(t *testing.T) {
+	m, err := manifestFixture("networks")
+	if assert.Nil(t, err) {
+		for _, s := range m.Services {
+			assert.Equal(t, s.Networks, manifest.Networks{
+				"foo": manifest.InternalNetwork{
+					"external": manifest.ExternalNetwork{
+						Name: "foo",
+					},
+				},
+			})
+		}
+	}
+}
+
 func TestShift(t *testing.T) {
 	m, err := manifestFixture("shift")
 
@@ -286,12 +302,75 @@ func TestShift(t *testing.T) {
 		web := m.Services["web"]
 
 		if assert.NotNil(t, web) && assert.Equal(t, len(web.Ports), 2) {
-			assert.Equal(t, web.Ports[0].Balancer, 0)
+			assert.Equal(t, web.Ports[0].Balancer, 5000)
 			assert.Equal(t, web.Ports[0].Container, 5000)
 			assert.Equal(t, web.Ports[1].Balancer, 11000)
 			assert.Equal(t, web.Ports[1].Container, 7000)
 		}
 	}
+}
+
+func TestManifestMarshalYaml(t *testing.T) {
+
+	strCmd := manifest.Command{
+		String: "bin/web",
+	}
+
+	arrayCmd := manifest.Command{
+		Array: []string{"sh", "-c", "bin/web"},
+	}
+
+	m := manifest.Manifest{
+		Version: "1",
+		Services: map[string]manifest.Service{
+			"food": manifest.Service{
+				Name: "food",
+				Build: manifest.Build{
+					Context:    ".",
+					Dockerfile: "Dockerfile",
+				},
+				Command: strCmd,
+				Ports: manifest.Ports{
+					manifest.Port{
+						Public:    true,
+						Balancer:  10,
+						Container: 10,
+					},
+				},
+			},
+		},
+	}
+
+	byts, err := yaml.Marshal(m)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	m2, err := manifest.Load(byts)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	assert.Equal(t, m2.Version, "2")
+	assert.Equal(t, m2.Services["food"].Name, "food")
+	assert.Equal(t, m2.Services["food"].Command.String, strCmd.String)
+
+	// Test an array Command
+	food := m.Services["food"]
+	food.Command = arrayCmd
+	m.Services["food"] = food
+
+	byts, err = yaml.Marshal(m)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	m2, err = manifest.Load(byts)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	assert.Equal(t, m2.Version, "2")
+	assert.Equal(t, m2.Services["food"].Name, "food")
+	assert.Equal(t, m2.Services["food"].Command.Array, arrayCmd.Array)
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {

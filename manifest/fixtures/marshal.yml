@@ -1,0 +1,9 @@
+version: "2"
+services:
+  Food:
+    build:
+      context: ""
+      dockerfile: ""
+      args: {}
+   ports:
+      - "5000:5000"

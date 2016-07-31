@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
@@ -21,7 +22,13 @@ func init() {
 				Description: "create a new application",
 				Usage:       "<name>",
 				Action:      cmdAppCreate,
-				Flags:       []cli.Flag{rackFlag},
+				Flags: []cli.Flag{
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "wait",
+						Usage: "wait for app to finish creating before returning",
+					},
+				},
 			},
 			{
 				Name:        "delete",
@@ -104,6 +111,17 @@ func cmdAppCreate(c *cli.Context) error {
 	}
 
 	fmt.Println("CREATING")
+
+	if c.Bool("wait") {
+		fmt.Printf("Waiting for %s... ", app)
+
+		if err := waitForAppRunning(c, app); err != nil {
+			stdcli.ExitError(err)
+		}
+
+		fmt.Println("OK")
+	}
+
 	return nil
 }
 
@@ -222,5 +240,28 @@ func cmdAppParamsSet(c *cli.Context) error {
 	}
 
 	fmt.Println("OK")
+	return nil
+}
+
+func waitForAppRunning(c *cli.Context, app string) error {
+	timeout := time.After(10 * time.Minute)
+	tick := time.Tick(5 * time.Second)
+
+	for {
+		select {
+		case <-tick:
+			a, err := rackClient(c).GetApp(app)
+			if err != nil {
+				return err
+			}
+
+			if a.Status == "running" {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
+		}
+	}
+
 	return nil
 }

@@ -4,19 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
 type Run struct {
-	App     string
-	Dir     string
-	NoCache bool
+	App   string
+	Dir   string
+	Cache bool
 
 	done      chan error
 	manifest  Manifest
@@ -26,11 +24,11 @@ type Run struct {
 	syncs     []Sync
 }
 
-func NewRun(dir, app string, m Manifest, noCache bool) Run {
+func NewRun(dir, app string, m Manifest, cache bool) Run {
 	return Run{
 		App:      app,
 		Dir:      dir,
-		NoCache:  noCache,
+		Cache:    cache,
 		manifest: m,
 		output:   NewOutput(),
 	}
@@ -49,7 +47,7 @@ func (r *Run) Start() error {
 		scanner := bufio.NewScanner(bytes.NewReader(data))
 
 		for scanner.Scan() {
-			if strings.Index(scanner.Text(), "=") > -1 {
+			if strings.Contains(scanner.Text(), "=") {
 				parts := strings.SplitN(scanner.Text(), "=", 2)
 
 				err := os.Setenv(parts[0], parts[1])
@@ -107,7 +105,8 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	if err := r.manifest.Build(r.Dir, r.output.Stream("build"), r.NoCache); err != nil {
+	err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.Cache)
+	if err != nil {
 		return err
 	}
 
@@ -116,7 +115,7 @@ func (r *Run) Start() error {
 	for _, s := range r.manifest.runOrder() {
 		proxies := s.Proxies(r.App)
 
-		p := s.Process(r.App)
+		p := s.Process(r.App, r.manifest)
 
 		Docker("rm", "-f", p.Name).Run()
 
@@ -151,7 +150,7 @@ func (r *Run) Start() error {
 
 		r.processes = append(r.processes, p)
 
-		waitForContainer(p.Name)
+		waitForContainer(p.Name, s)
 
 		for _, proxy := range proxies {
 			r.proxies = append(r.proxies, proxy)
@@ -203,45 +202,11 @@ func pruneSyncs(syncs []Sync) []Sync {
 	return pruned
 }
 
-func run(s Stream, cmd *exec.Cmd) error {
-	done := make(chan error, 1)
-	runAsync(s, cmd, done)
-	return <-done
-}
-
-func runAsync(s Stream, cmd *exec.Cmd, done chan error) {
-	s <- fmt.Sprintf("running: %s", strings.Join(cmd.Args, " "))
-
-	r, w := io.Pipe()
-
-	go streamReader(s, r)
-
-	cmd.Stdout = w
-	cmd.Stderr = w
-
-	if err := cmd.Start(); err != nil {
-		done <- err
-		return
-	}
-
-	go func() {
-		done <- cmd.Wait()
-	}()
-}
-
-func streamReader(s Stream, r io.Reader) {
-	scanner := bufio.NewScanner(r)
-
-	for scanner.Scan() {
-		s <- scanner.Text()
-	}
-}
-
-func waitForContainer(container string) {
+func waitForContainer(container string, service Service) {
 	i := 0
 
 	for {
-		host := containerHost(container)
+		host := containerHost(container, service.Networks)
 		i += 1
 
 		// wait 5s max

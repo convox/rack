@@ -22,8 +22,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/convox/rack/api/helpers"
-	"github.com/convox/rack/api/manifest"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/manifest"
 )
 
 var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
@@ -57,10 +57,10 @@ func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, err
 		return nil, err
 	}
 
-	for name, entry := range m {
-		entry.Build = ""
+	for name, entry := range m.Services {
+		entry.Build.Context = ""
 		entry.Image = registryTag(srcA, name, srcB.Id)
-		m[name] = entry
+		m.Services[name] = entry
 	}
 
 	data, err := m.Raw()
@@ -255,11 +255,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 
 	// delete ECR images
 	err = p.deleteImages(a, b)
-	if err != nil {
-		return b, err
-	}
-
-	return b, nil
+	return b, err
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
@@ -520,7 +516,7 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
 	}
 
-	if cache == false {
+	if !cache {
 		env = append(env, "NO_CACHE=true")
 	}
 
@@ -722,13 +718,13 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	}
 
 	// failed builds could have an empty manifest
-	if len(m) == 0 {
+	if len(m.Services) == 0 {
 		return nil
 	}
 
 	urls := []string{}
 
-	for name, _ := range m {
+	for name, _ := range m.Services {
 		urls = append(urls, registryTag(a, name, b.Id))
 	}
 

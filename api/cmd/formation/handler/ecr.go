@@ -29,12 +29,8 @@ func HandleECRRepository(req Request) (string, map[string]string, error) {
 
 func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 	res, err := ECR(req).CreateRepository(&ecr.CreateRepositoryInput{
-		RepositoryName: aws.String(fmt.Sprintf("%s-%s", req.ResourceProperties["Name"].(string), strings.ToLower(generateId("", 10)))),
+		RepositoryName: aws.String(fmt.Sprintf("%s-%s", req.ResourceProperties["RepositoryName"].(string), strings.ToLower(generateId("", 10)))),
 	})
-
-	fmt.Printf("%s-%s\n", req.ResourceProperties["Name"].(string), strings.ToLower(generateId("", 10)))
-	fmt.Printf("res %+v\n", res)
-	fmt.Printf("err %+v\n", err)
 
 	if err != nil {
 		return "", nil, err
@@ -44,8 +40,6 @@ func ECRRepositoryCreate(req Request) (string, map[string]string, error) {
 		"RegistryId":     *res.Repository.RegistryId,
 		"RepositoryName": *res.Repository.RepositoryName,
 	}
-
-	fmt.Printf("outputs %+v\n", outputs)
 
 	return *res.Repository.RepositoryArn, outputs, nil
 }

@@ -10,20 +10,6 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
-type Release struct {
-	Id string
-
-	App string
-
-	Build    string
-	Env      string
-	Manifest string
-
-	Created time.Time
-}
-
-type Releases []Release
-
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "releases",
@@ -161,26 +147,55 @@ func cmdReleasePromote(c *cli.Context) error {
 }
 
 func waitForReleasePromotion(c *cli.Context, app, release string) error {
+	if err := waitForAppRunning(c, app); err != nil {
+		return err
+	}
+
+	form, err := rackClient(c).ListFormation(app)
+	if err != nil {
+		return err
+	}
+
+	desired := map[string]int{}
+
+	for _, f := range form {
+		desired[f.Name] = f.Count
+	}
+
+	tick := time.Tick(5 * time.Second)
+	timeout := time.Tick(10 * time.Minute)
+
 	for {
-		pss, err := rackClient(c).GetProcesses(app, false)
-		if err != nil {
-			return err
-		}
-
-		ready := true
-
-		for _, ps := range pss {
-			if ps.Release != release {
-				ready = false
-				break
+		select {
+		case <-tick:
+			pss, err := rackClient(c).GetProcesses(app, false)
+			if err != nil {
+				return err
 			}
-		}
 
-		if ready {
-			break
-		}
+			found := map[string]int{}
 
-		time.Sleep(5 * time.Second)
+			ready := true
+
+			for _, p := range pss {
+				if p.Release == release && p.Id != "" && p.Id != "pending" && !p.Started.IsZero() {
+					found[p.Name] += 1
+				}
+			}
+
+			for name, count := range found {
+				if desired[name] != count {
+					ready = false
+					break
+				}
+			}
+
+			if ready {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
+		}
 	}
 
 	return nil

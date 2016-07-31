@@ -20,7 +20,7 @@ func StartHeartbeat() {
 
 	heartbeat()
 
-	for _ = range time.Tick(1 * time.Hour) {
+	for range time.Tick(1 * time.Hour) {
 		heartbeat()
 	}
 }

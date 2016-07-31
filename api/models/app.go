@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/manifest"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -138,8 +139,11 @@ func (a *App) Create() error {
 		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
 	}
 
-	formation, err := a.Formation()
+	m := manifest.Manifest{
+		Services: make(map[string]manifest.Service),
+	}
 
+	formation, err := a.Formation(m)
 	if err != nil {
 		helpers.TrackEvent("kernel-app-create-error", nil)
 		return err
@@ -334,8 +338,12 @@ func (a *App) UpdateParams(changes map[string]string) error {
 	return err
 }
 
-func (a *App) Formation() (string, error) {
-	data, err := buildTemplate("app", "app", Manifest{})
+func (a *App) Formation(m manifest.Manifest) (string, error) {
+	tmplData := map[string]interface{}{
+		"App":      a,
+		"Manifest": m,
+	}
+	data, err := buildTemplate("app", "app", tmplData)
 	if err != nil {
 		return "", err
 	}
@@ -344,15 +352,9 @@ func (a *App) Formation() (string, error) {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	var release *structs.Release
-	var err error
-
-	// If app doesn't have a release, move on to create a new one.
-	if a.Release != "" {
-		release, err = provider.ReleaseGet(a.Name, a.Release)
-		if err != nil {
-			return nil, err
-		}
+	release, err := provider.ReleaseGet(a.Name, a.Release)
+	if err != nil {
+		return nil, err
 	}
 
 	if release == nil {
@@ -452,11 +454,7 @@ func (a *App) ExecAttached(pid, command string, height, width int, rw io.ReadWri
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode)))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // RunAttached runs a command in the foreground (e.g blocking) and writing the output from said command to rw.
@@ -538,13 +536,13 @@ func (a *App) RunAttached(process, command, releaseID string, height, width int,
 		containerEnvs["RELEASE"] = release.Id
 	}
 
-	manifest, err := LoadManifest(release.Manifest, a)
+	m, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
 		return err
 	}
 
-	me := manifest.Entry(process)
-	if me == nil {
+	me, ok := m.Services[process]
+	if !ok {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
@@ -686,11 +684,7 @@ func (a *App) RunAttached(process, command, releaseID string, height, width int,
 	}
 
 	_, err = rw.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, code)))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // RunDetached runs a command in the background (e.g. non-blocking).
@@ -911,6 +905,21 @@ func (s Apps) Less(i, j int) bool {
 
 func (s Apps) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+func (a App) CronJobs(m manifest.Manifest) []CronJob {
+	cronjobs := []CronJob{}
+
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		for key, value := range labels {
+			cronjob := NewCronJobFromLabel(key, value)
+			cronjob.Service = &entry
+			cronjob.App = &a
+			cronjobs = append(cronjobs, cronjob)
+		}
+	}
+	return cronjobs
 }
 
 // findAppDefinitions looks for a specific ECS task revision and container definition that matches an app's process name and release ID.

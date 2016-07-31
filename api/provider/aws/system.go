@@ -94,16 +94,11 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 
 	if awsError(err) == "ValidationError" {
 		switch {
-		case strings.Index(err.Error(), "No updates are to be performed") > -1:
+		case strings.Contains(err.Error(), "No updates are to be performed"):
 			return fmt.Errorf("no system updates are to be performed")
-		case strings.Index(err.Error(), "can not be updated") > -1:
+		case strings.Contains(err.Error(), "can not be updated"):
 			return fmt.Errorf("system is already updating")
 		}
 	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

@@ -18,12 +18,5 @@ func (c *Client) ListParameters(app string) (Parameters, error) {
 
 func (c *Client) SetParameters(app string, params map[string]string) error {
 	var success interface{}
-
-	err := c.Post(fmt.Sprintf("/apps/%s/parameters", app), params, &success)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.Post(fmt.Sprintf("/apps/%s/parameters", app), params, &success)
 }

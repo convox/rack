@@ -56,9 +56,8 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
 
 var (
-	formationURL  = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-	iamUserURL    = "https://docs.convox.com/creating-an-iam-user"
-	isDevelopment = false
+	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
 )
 
 // https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
@@ -74,46 +73,6 @@ func init() {
 		Action:      cmdInstall,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "ami",
-				Value: "",
-				Usage: "ID of the Amazon Machine Image to install",
-			},
-			cli.BoolFlag{
-				Name:  "dedicated",
-				Usage: "create EC2 instances on dedicated hardware",
-			},
-			cli.IntFlag{
-				Name:  "instance-count",
-				Value: 3,
-				Usage: "number of EC2 instances (must be greater than 1)",
-			},
-			cli.StringFlag{
-				Name:  "instance-type",
-				Value: "t2.small",
-				Usage: "type of EC2 instances",
-			},
-			cli.StringFlag{
-				Name:   "region",
-				Value:  "us-east-1",
-				Usage:  "aws region to install in",
-				EnvVar: "AWS_REGION",
-			},
-			cli.StringFlag{
-				Name:   "stack-name",
-				EnvVar: "STACK_NAME",
-				Value:  "convox",
-				Usage:  "name of the CloudFormation stack",
-			},
-			cli.BoolFlag{
-				Name:   "development",
-				EnvVar: "DEVELOPMENT",
-				Usage:  "create additional CloudFormation outputs to copy development .env file",
-			},
-			cli.StringFlag{
-				Name:  "key",
-				Usage: "name of an SSH keypair to install on EC2 instances",
-			},
-			cli.StringFlag{
 				Name:   "email",
 				EnvVar: "CONVOX_EMAIL",
 				Usage:  "email address to receive project updates",
@@ -122,56 +81,68 @@ func init() {
 				Name:   "password",
 				EnvVar: "PASSWORD",
 				Value:  "",
-				Usage:  "custom API password. If not set a secure password will be randomly generated.",
+				Usage:  "custom rack password",
+			},
+			cli.StringFlag{
+				Name:  "ami",
+				Value: "",
+				Usage: "custom AMI for rack instances",
+			},
+			cli.BoolFlag{
+				Name:  "dedicated",
+				Usage: "create EC2 instances on dedicated hardware",
+			},
+			cli.StringFlag{
+				Name:  "existing-vpc",
+				Value: "",
+				Usage: "existing vpc id into which to install rack",
+			},
+			cli.IntFlag{
+				Name:  "instance-count",
+				Value: 3,
+				Usage: "number of instances in the rack",
+			},
+			cli.StringFlag{
+				Name:  "instance-type",
+				Value: "t2.small",
+				Usage: "type of instances in the rack",
+			},
+			cli.BoolFlag{
+				Name:  "private",
+				Usage: "use private subnets and NAT gateways to shield instances",
+			},
+			cli.StringFlag{
+				Name:  "private-cidrs",
+				Value: "10.0.4.0/24,10.0.5.0/24,10.0.6.0/24",
+				Usage: "private subnet CIDRs",
+			},
+			cli.StringFlag{
+				Name:   "region",
+				Value:  "us-east-1",
+				Usage:  "aws region",
+				EnvVar: "AWS_REGION",
+			},
+			cli.StringFlag{
+				Name:   "stack-name",
+				EnvVar: "STACK_NAME",
+				Value:  "convox",
+				Usage:  "custom rack name",
 			},
 			cli.StringFlag{
 				Name:   "version",
 				EnvVar: "VERSION",
 				Value:  "latest",
-				Usage:  "release version in the format of '20150810161818', or 'latest' by default",
+				Usage:  "install a specific version",
 			},
 			cli.StringFlag{
 				Name:  "vpc-cidr",
 				Value: "10.0.0.0/16",
-				Usage: "The VPC CIDR block",
+				Usage: "custom VPC CIDR",
 			},
 			cli.StringFlag{
-				Name:  "subnet0-cidr",
-				Value: "10.0.1.0/24",
-				Usage: "Subnet 0 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet1-cidr",
-				Value: "10.0.2.0/24",
-				Usage: "Subnet 1 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet2-cidr",
-				Value: "10.0.3.0/24",
-				Usage: "Subnet 2 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet-private0-cidr",
-				Value: "10.0.4.0/24",
-				Usage: "Private Subnet 0 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet-private1-cidr",
-				Value: "10.0.5.0/24",
-				Usage: "Private Subnet 1 CIDR block",
-			},
-			cli.StringFlag{
-				Name:  "subnet-private2-cidr",
-				Value: "10.0.6.0/24",
-				Usage: "Private Subnet 2 CIDR block",
-			},
-			cli.BoolFlag{
-				Name:  "private",
-				Usage: "Create private network resources",
-			},
-			cli.BoolFlag{
-				Name:  "private-api",
-				Usage: "Put Rack API Load Balancer in private network. Implies --private",
+				Name:  "subnet-cidrs",
+				Value: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24",
+				Usage: "subnet CIDRs",
 			},
 		},
 	})
@@ -220,28 +191,90 @@ func cmdInstall(c *cli.Context) error {
 		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
 	}
 
+	var subnet0CIDR, subnet1CIDR, subnet2CIDR string
+
+	if cidrs := c.String("subnet-cidrs"); cidrs != "" {
+		parts := strings.SplitN(cidrs, ",", 3)
+		if len(parts) < 3 {
+			return stdcli.ExitError(fmt.Errorf("subnet-cidrs must have 3 values"))
+		}
+
+		subnet0CIDR = parts[0]
+		subnet1CIDR = parts[1]
+		subnet2CIDR = parts[2]
+	}
+
+	var subnetPrivate0CIDR, subnetPrivate1CIDR, subnetPrivate2CIDR string
+
+	if cidrs := c.String("private-cidrs"); cidrs != "" {
+		parts := strings.SplitN(cidrs, ",", 3)
+		if len(parts) < 3 {
+			return stdcli.ExitError(fmt.Errorf("private-cidrs must have 3 values"))
+		}
+
+		subnetPrivate0CIDR = parts[0]
+		subnetPrivate1CIDR = parts[1]
+		subnetPrivate2CIDR = parts[2]
+	}
+
+	var existingVPC string
+
+	if vpc := c.String("existing-vpc"); vpc != "" {
+		existingVPC = vpc
+	}
+
+	private := "No"
+	if c.Bool("private") {
+		private = "Yes"
+	}
+
+	ami := c.String("ami")
+
+	key := c.String("key")
+
+	vpcCIDR := c.String("vpc-cidr")
+
+	versions, err := version.All()
+	if err != nil {
+		return stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
+	}
+
+	version, err := versions.Resolve(c.String("version"))
+	if err != nil {
+		return stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
+	}
+
+	versionName := version.Version
+	furl := fmt.Sprintf(formationURL, versionName)
+
 	fmt.Println(Banner)
 
-	distinctId, err := currentId()
+	distinctID, err := currentId()
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+	}
+
+	fmt.Printf("Installing Convox (%s)...\n", versionName)
+
+	if private == "Yes" {
+		fmt.Println("(Private Network Edition)")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
 
 	if email := c.String("email"); email != "" {
-		distinctId = email
-		updateId(distinctId)
-	} else if distinctId == "" && terminal.IsTerminal(int(os.Stdin.Fd())) {
+		distinctID = email
+		updateId(distinctID)
+	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
 		email, err := reader.ReadString('\n')
 		if err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+			return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		}
 
 		if strings.TrimSpace(email) != "" {
-			distinctId = email
+			distinctID = email
 			updateId(email)
 		}
 	}
@@ -253,69 +286,15 @@ func cmdInstall(c *cli.Context) error {
 
 	creds, err := readCredentials(credentialsFile)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 	}
 	if creds == nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
 	}
 
 	err = validateUserAccess(region, creds)
 	if err != nil {
 		stdcli.Error(err)
-	}
-
-	development := "No"
-	if c.Bool("development") {
-		isDevelopment = true
-		development = "Yes"
-	}
-
-	private := "No"
-	if c.Bool("private") {
-		private = "Yes"
-	}
-
-	privateApi := "No"
-	if c.Bool("private-api") {
-		private = "Yes"
-		privateApi = "Yes"
-	}
-
-	ami := c.String("ami")
-
-	key := c.String("key")
-
-	vpcCIDR := c.String("vpc-cidr")
-
-	subnet0CIDR := c.String("subnet0-cidr")
-	subnet1CIDR := c.String("subnet1-cidr")
-	subnet2CIDR := c.String("subnet2-cidr")
-
-	subnetPrivate0CIDR := c.String("subnet-private0-cidr")
-	subnetPrivate1CIDR := c.String("subnet-private1-cidr")
-	subnetPrivate2CIDR := c.String("subnet-private2-cidr")
-
-	versions, err := version.All()
-	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
-	}
-
-	version, err := versions.Resolve(c.String("version"))
-	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
-	}
-
-	versionName := version.Version
-	furl := fmt.Sprintf(formationURL, versionName)
-
-	fmt.Printf("Installing Convox (%s)...\n", versionName)
-
-	if isDevelopment {
-		fmt.Println("(Development Mode)")
-	}
-
-	if private == "Yes" {
-		fmt.Println("(Private Network Edition)")
 	}
 
 	password := c.String("password")
@@ -329,14 +308,13 @@ func cmdInstall(c *cli.Context) error {
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		Parameters: []*cloudformation.Parameter{
 			&cloudformation.Parameter{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
-			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctId)},
-			&cloudformation.Parameter{ParameterKey: aws.String("Development"), ParameterValue: aws.String(development)},
+			&cloudformation.Parameter{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctID)},
+			&cloudformation.Parameter{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			&cloudformation.Parameter{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
-			&cloudformation.Parameter{ParameterKey: aws.String("PrivateApi"), ParameterValue: aws.String(privateApi)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
 			&cloudformation.Parameter{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
@@ -354,12 +332,12 @@ func cmdInstall(c *cli.Context) error {
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
 		dat, err := ioutil.ReadFile(tf)
 		if err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
+			return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
 		}
 
 		t := new(bytes.Buffer)
 		if err := json.Compact(t, dat); err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+			return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		}
 
 		req.TemplateURL = nil
@@ -374,7 +352,7 @@ func cmdInstall(c *cli.Context) error {
 			}
 		}
 
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 	}
 
 	// NOTE: we start making lots of network requests here
@@ -386,32 +364,28 @@ func cmdInstall(c *cli.Context) error {
 
 	host, err := waitForCompletion(*res.StackId, CloudFormation, false)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 	}
 
-	if privateApi == "Yes" {
-		fmt.Println("Success. See http://convox.com/docs/private-api/ for instructions to log into the private Rack API.")
-	} else {
-		fmt.Println("Waiting for load balancer...")
+	fmt.Println("Waiting for load balancer...")
 
-		waitForAvailability(fmt.Sprintf("http://%s/", host))
+	waitForAvailability(fmt.Sprintf("http://%s/", host))
 
-		fmt.Println("Logging in...")
+	fmt.Println("Logging in...")
 
-		err := addLogin(host, password)
-		if err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
-		}
-
-		err = switchHost(host)
-		if err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctId, stdcli.QOSEventProperties{Error: err})
-		}
-
-		fmt.Println("Success, try `convox apps`")
+	err = addLogin(host, password)
+	if err != nil {
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 	}
 
-	return stdcli.QOSEventSend("cli-install", distinctId, ep)
+	err = switchHost(host)
+	if err != nil {
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+	}
+
+	fmt.Println("Success, try `convox apps`")
+
+	return stdcli.QOSEventSend("cli-install", distinctID, ep)
 }
 
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
@@ -486,23 +460,6 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 
 		switch *dres.Stacks[0].StackStatus {
 		case "CREATE_COMPLETE":
-			// Dump .env if DEVELOPMENT
-			if isDevelopment {
-				fmt.Printf("Development .env:\n")
-
-				// convert Port5432TcpAddr to PORT_5432_TCP_ADDR
-				re := regexp.MustCompile("([a-z])([A-Z0-9])") // lower case letter followed by upper case or number, i.e. Port5432
-				re2 := regexp.MustCompile("([0-9])([A-Z])")   // number followed by upper case letter, i.e. 5432Tcp
-
-				for _, o := range dres.Stacks[0].Outputs {
-					k := re.ReplaceAllString(*o.OutputKey, "${1}_${2}")
-					k = re2.ReplaceAllString(k, "${1}_${2}")
-					k = strings.ToUpper(k)
-
-					fmt.Printf("%v=%v\n", k, *o.OutputValue)
-				}
-			}
-
 			for _, o := range dres.Stacks[0].Outputs {
 				if *o.OutputKey == "Dashboard" {
 					return *o.OutputValue, nil
@@ -536,7 +493,7 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 	}
 
 	for _, event := range res.StackEvents {
-		if events[*event.EventId] == true {
+		if events[*event.EventId] {
 			continue
 		}
 
@@ -664,16 +621,10 @@ func friendlyName(t string) string {
 		return ""
 	case "Custom::EC2AvailabilityZones":
 		return ""
-	case "Custom::EC2NatGateway":
-		return ""
-	case "Custom::EC2Route":
-		return ""
-	case "Custom::ECSTaskDefinition":
-		return "ECS TaskDefinition"
 	case "Custom::ECSService":
 		return "ECS Service"
-	case "Custom::S3BucketCleanup":
-		return ""
+	case "Custom::ECSTaskDefinition":
+		return "ECS TaskDefinition"
 	case "Custom::KMSKey":
 		return "KMS Key"
 	}
@@ -818,14 +769,14 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 func awsCLICredentials() (*AwsCredentials, error) {
 	data, err := awsCLI("iam", "get-user")
 
-	if err != nil && strings.Index(err.Error(), "executable file not found") > -1 {
+	if err != nil && strings.Contains(err.Error(), "executable file not found") {
 		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
 		fmt.Println("See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html")
 		fmt.Println()
 		return nil, nil
 	}
 
-	if strings.Index(string(data), "Unable to locate credentials") > -1 {
+	if strings.Contains(string(data), "Unable to locate credentials") {
 		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
 		fmt.Println("You can configure credentials by running `aws configure`.")
 		fmt.Println()

@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,16 +62,6 @@ func first(values ...string) string {
 	}
 
 	return ""
-}
-
-func flattenTags(tags []cloudformation.Tag) map[string]string {
-	f := make(map[string]string)
-
-	for _, tag := range tags {
-		f[*tag.Key] = *tag.Value
-	}
-
-	return f
 }
 
 type Template struct {
@@ -145,20 +136,8 @@ func humanStatus(original string) string {
 	}
 }
 
-func linkParts(link string) (string, string, error) {
-	parts := strings.Split(link, ":")
-
-	switch len(parts) {
-	case 1:
-		return parts[0], parts[0], nil
-	case 2:
-		return parts[0], parts[1], nil
-	}
-
-	return "", "", fmt.Errorf("invalid link name")
-}
-
-func prettyJson(raw string) (string, error) {
+// PrettyJSON returns JSON string in a human-readable format
+func PrettyJSON(raw string) (string, error) {
 	var parsed map[string]interface{}
 
 	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
@@ -196,42 +175,6 @@ func prettyJson(raw string) (string, error) {
 	}
 
 	return string(bp), nil
-}
-
-func printLines(data string) {
-	lines := strings.Split(data, "\n")
-
-	for i, line := range lines {
-		fmt.Printf("%d: %s\n", i, line)
-	}
-}
-
-func s3Delete(bucket, key string) error {
-	req := &s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	}
-
-	_, err := S3().DeleteObject(req)
-
-	return err
-}
-
-func s3Exists(bucket, key string) (bool, error) {
-	_, err := S3().HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-
-	if err != nil {
-		if aerr, ok := err.(awserr.RequestFailure); ok && aerr.StatusCode() == 404 {
-			return false, nil
-		}
-
-		return false, err
-	}
-
-	return true, nil
 }
 
 func s3Get(bucket, key string) ([]byte, error) {
@@ -346,11 +289,17 @@ func shortNameToStackName(appName string) string {
 
 func templateHelpers() template.FuncMap {
 	return template.FuncMap{
+		"env": func(s string) string {
+			return os.Getenv(s)
+		},
 		"upper": func(s string) string {
 			return UpperName(s)
 		},
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
+		},
+		"itoa": func(i int) string {
+			return strconv.Itoa(i)
 		},
 	}
 }

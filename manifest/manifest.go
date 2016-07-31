@@ -13,8 +13,8 @@ import (
 )
 
 type Manifest struct {
-	Version string `yaml:"version"`
-
+	Version  string             `yaml:"version"`
+	Networks Networks           `yaml:"networks"`
 	Services map[string]Service `yaml:"services"`
 }
 
@@ -43,6 +43,7 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
+		service.Networks = m.Networks
 		m.Services[name] = service
 	}
 
@@ -126,8 +127,8 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 	return conflicts, nil
 }
 
-func (m *Manifest) Run(dir, app string, noCache bool) Run {
-	return NewRun(dir, app, *m, noCache)
+func (m *Manifest) Run(dir, app string, cache bool) Run {
+	return NewRun(dir, app, *m, cache)
 }
 
 // Return the Services of this Manifest in the order you should run them
@@ -161,22 +162,6 @@ func (m *Manifest) Shift(shift int) {
 	}
 }
 
-func manifestPrefix(m Manifest, prefix string) string {
-	max := 6
-
-	for name, _ := range m.Services {
-		if len(name) > max {
-			max = len(name)
-		}
-	}
-
-	return fmt.Sprintf(fmt.Sprintf("%%-%ds |", max), prefix)
-}
-
-func systemPrefix(m *Manifest) string {
-	return manifestPrefix(*m, "convox")
-}
-
 func manifestVersion(data []byte) (string, error) {
 	var check struct {
 		Version string
@@ -191,4 +176,30 @@ func manifestVersion(data []byte) (string, error) {
 	}
 
 	return "1", nil
+}
+
+func (m *Manifest) Raw() ([]byte, error) {
+	return yaml.Marshal(m)
+}
+
+func (m Manifest) EntryNames() []string {
+	names := make([]string, len(m.Services))
+	x := 0
+
+	for k, _ := range m.Services {
+		names[x] = k
+		x += 1
+	}
+
+	return names
+}
+
+func (m Manifest) BalancerResourceName(process string) string {
+	for _, b := range m.Balancers() {
+		if b.Entry.Name == process {
+			return b.ResourceName()
+		}
+	}
+
+	return ""
 }
