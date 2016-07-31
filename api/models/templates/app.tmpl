@@ -221,9 +221,9 @@
                   "RACK": "{{ env "RACK" }}",
                   "AWS_REGION": "{{ env "AWS_REGION" }}",
                   {{ range $key, $value := $e.Environment }}
-            	    {{if ne $value "" }}
+                  {{if ne $value "" }}
                      "{{ $key }}": {{ value $value }},
-            	    {{end}}
+                  {{end}}
                   {{ end }}
                   {{ range $key, $value := .LinkVars }}
                     "{{ $key }}": {{ $value }},
@@ -528,9 +528,9 @@
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
         "SecurityGroups" : [{ "Fn::If" : [
-	    "BlankSecurityGroup",
-	    {"Ref" : "{{ .ResourceName }}SecurityGroup"},
-	    {"Ref" : "SecurityGroup"}
+      "BlankSecurityGroup",
+      {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+      {"Ref" : "SecurityGroup"}
         ]}]
       }
     },
@@ -656,7 +656,7 @@
 {{ end }}
 
 {{ define "registry-conditions" }}
-  "RegionHasRegistry": {
+  "RegionHasECR": {
       "Fn::Or": [
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
@@ -668,22 +668,22 @@
 {{ define "registry-resources" }}
   "RegistryRepository": {
     "Type": "Custom::ECRRepository",
-    "Condition": "RegionHasRegistry",
+    "Condition": "RegionHasECR",
     "Version": "1.0",
     "Properties": {
       "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-      "Name": { "Ref": "AWS::StackName" }
+      "RepositoryName": { "Ref": "AWS::StackName" }
     }
   },
 {{ end }}
 
 {{ define "registry-outputs" }}
   "RegistryId": {
-    "Condition": "RegionHasRegistry",
+    "Condition": "RegionHasECR",
     "Value": { "Ref": "AWS::AccountId" }
   },
   "RegistryRepository": {
-    "Condition": "RegionHasRegistry",
+    "Condition": "RegionHasECR",
     "Value": { "Fn::GetAtt": [ "RegistryRepository", "RepositoryName" ] }
   },
 {{ end }}
