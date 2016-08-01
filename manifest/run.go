@@ -62,6 +62,7 @@ func (r *Run) Start() error {
 		}
 	}
 
+	// check for required env vars
 	existing := map[string]bool{}
 	for _, env := range os.Environ() {
 		parts := strings.SplitN(env, "=", 2)
@@ -71,7 +72,6 @@ func (r *Run) Start() error {
 	}
 
 	for _, s := range r.manifest.Services {
-		// check for required env vars
 		links := map[string]bool{}
 
 		for _, l := range s.Links {
