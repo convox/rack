@@ -538,7 +538,7 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "NatGateway0": {
+    "Nat0": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
@@ -546,7 +546,7 @@
         "SubnetId": { "Ref": "Subnet0" }
       }
     },
-    "NatGateway1": {
+    "Nat1": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
@@ -554,7 +554,7 @@
         "SubnetId": { "Ref": "Subnet1" }
       }
     },
-    "NatGateway2": {
+    "Nat2": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
@@ -696,7 +696,7 @@
     },
     "RoutesPrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway0" ],
+      "DependsOn": [ "Nat0" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -707,7 +707,7 @@
     },
     "RoutesPrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway1" ],
+      "DependsOn": [ "Nat1" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -718,7 +718,7 @@
     },
     "RoutesPrivate2": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway2" ],
+      "DependsOn": [ "Nat2" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -727,33 +727,33 @@
         ] }
       }
     },
-    "RoutePrivateDefault0": {
+    "RouteDefaultPrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway0", "RoutesPrivate0" ],
+      "DependsOn": [ "Nat0", "RoutesPrivate0" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": { "Ref": "NatGateway0" },
+        "NatGatewayId": { "Ref": "Nat0" },
         "RouteTableId": { "Ref": "RoutesPrivate0" }
       }
     },
-    "RoutePrivateDefault1": {
+    "RouteDefaultPrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway1", "RoutesPrivate1" ],
+      "DependsOn": [ "Nat1", "RoutesPrivate1" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": { "Ref": "NatGateway1" },
+        "NatGatewayId": { "Ref": "Nat1" },
         "RouteTableId": { "Ref": "RoutesPrivate1" }
       }
     },
-    "RoutePrivateDefault2": {
+    "RouteDefaultPrivate2": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway2", "RoutesPrivate2" ],
+      "DependsOn": [ "Nat2", "RoutesPrivate2" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": { "Ref": "NatGateway2" },
+        "NatGatewayId": { "Ref": "Nat2" },
         "RouteTableId": { "Ref": "RoutesPrivate2" }
       }
     },
