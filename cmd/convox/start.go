@@ -25,7 +25,7 @@ func init() {
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
-				Usage: "Path to an alternate docker compose manifest file",
+				Usage: "path to an alternate docker compose manifest file",
 			},
 			cli.BoolFlag{
 				Name:  "no-cache",
@@ -33,10 +33,10 @@ func init() {
 			},
 			cli.IntFlag{
 				Name:  "shift",
-				Usage: "Shift allocated port numbers by the given amount",
+				Usage: "shift allocated port numbers by the given amount",
 			},
-			cli.BoolTFlag{
-				Name:  "sync",
+			cli.BoolFlag{
+				Name:  "no-sync",
 				Usage: "synchronize local file changes into the running containers",
 			},
 		},
@@ -84,7 +84,7 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	cache := !c.Bool("no-cache")
-	sync := c.Bool("sync")
+	sync := !c.Bool("no-sync")
 
 	r := m.Run(dir, app, cache, sync)
 
