@@ -34,7 +34,7 @@ pr_body() {
   local milestone=$1
 
   echo '## Pull Requests'
-  gethub /repos/convox/rack/issues ".[]|\"#\\(.number) \\(.title) [@\\(.user.login)]\"" "milestone=$mid" | while read pr; do
+  gethub /repos/convox/rack/issues "sort_by(.number)|.[]|\"#\\(.number) \\(.title) [@\\(.user.login)]\"" "milestone=$mid" | while read pr; do
     echo "  - $pr"
   done
 
@@ -81,7 +81,7 @@ git checkout master
 git branch -D $milestone >/dev/null 2>&1 || true
 git checkout -b $milestone
 
-gethub /repos/convox/rack/issues ".[].number" "milestone=$mid" | while read pr; do
+gethub /repos/convox/rack/issues "sort_by(.number)|.[].number" "milestone=$mid" | while read pr; do
   echo "merging: $pr"
   merge $pr
 done
