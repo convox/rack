@@ -249,7 +249,7 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 
 	// in production loop through docker hosts that the rack is running on
 	// to find the build
-	if os.Getenv("DEVELOPMENT") != "truee" {
+	if os.Getenv("DEVELOPMENT") != "true" {
 		h, err := findBuildHost(build)
 		if err != nil {
 			return httperr.Server(err)
