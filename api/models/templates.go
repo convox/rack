@@ -308,15 +308,15 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"templates/app.tmpl":              templatesAppTmpl,
-	"templates/service/mysql.tmpl":    templatesServiceMysqlTmpl,
+	"templates/app.tmpl": templatesAppTmpl,
+	"templates/service/mysql.tmpl": templatesServiceMysqlTmpl,
 	"templates/service/postgres.tmpl": templatesServicePostgresTmpl,
-	"templates/service/redis.tmpl":    templatesServiceRedisTmpl,
-	"templates/service/s3.tmpl":       templatesServiceS3Tmpl,
-	"templates/service/sns.tmpl":      templatesServiceSnsTmpl,
-	"templates/service/sqs.tmpl":      templatesServiceSqsTmpl,
-	"templates/service/syslog.tmpl":   templatesServiceSyslogTmpl,
-	"templates/service/webhook.tmpl":  templatesServiceWebhookTmpl,
+	"templates/service/redis.tmpl": templatesServiceRedisTmpl,
+	"templates/service/s3.tmpl": templatesServiceS3Tmpl,
+	"templates/service/sns.tmpl": templatesServiceSnsTmpl,
+	"templates/service/sqs.tmpl": templatesServiceSqsTmpl,
+	"templates/service/syslog.tmpl": templatesServiceSyslogTmpl,
+	"templates/service/webhook.tmpl": templatesServiceWebhookTmpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -358,19 +358,18 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
 	"templates": &bintree{nil, map[string]*bintree{
 		"app.tmpl": &bintree{templatesAppTmpl, map[string]*bintree{}},
 		"service": &bintree{nil, map[string]*bintree{
-			"mysql.tmpl":    &bintree{templatesServiceMysqlTmpl, map[string]*bintree{}},
+			"mysql.tmpl": &bintree{templatesServiceMysqlTmpl, map[string]*bintree{}},
 			"postgres.tmpl": &bintree{templatesServicePostgresTmpl, map[string]*bintree{}},
-			"redis.tmpl":    &bintree{templatesServiceRedisTmpl, map[string]*bintree{}},
-			"s3.tmpl":       &bintree{templatesServiceS3Tmpl, map[string]*bintree{}},
-			"sns.tmpl":      &bintree{templatesServiceSnsTmpl, map[string]*bintree{}},
-			"sqs.tmpl":      &bintree{templatesServiceSqsTmpl, map[string]*bintree{}},
-			"syslog.tmpl":   &bintree{templatesServiceSyslogTmpl, map[string]*bintree{}},
-			"webhook.tmpl":  &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
+			"redis.tmpl": &bintree{templatesServiceRedisTmpl, map[string]*bintree{}},
+			"s3.tmpl": &bintree{templatesServiceS3Tmpl, map[string]*bintree{}},
+			"sns.tmpl": &bintree{templatesServiceSnsTmpl, map[string]*bintree{}},
+			"sqs.tmpl": &bintree{templatesServiceSqsTmpl, map[string]*bintree{}},
+			"syslog.tmpl": &bintree{templatesServiceSyslogTmpl, map[string]*bintree{}},
+			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
 		}},
 	}},
 }}
@@ -393,7 +392,11 @@ func RestoreAsset(dir, name string) error {
 	if err != nil {
 		return err
 	}
-	return os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // RestoreAssets restores an asset under the given directory recursively
@@ -417,3 +420,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+
