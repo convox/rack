@@ -66,10 +66,13 @@ func main() {
 	cwd, err := os.Getwd()
 	handleError(err)
 
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+
 	handleError(os.Chdir("./src"))
-	handleErrors(m.BuildRack(app, ".", cache))
+	handleError(m.Build(".", app, str, cache))
 	handleError(os.Chdir(cwd))
-	handleErrors(m.Push(app, registryAddress, buildId, repository))
+	handleErrors(m.Push(str, app, registryAddress, buildId, repository))
 
 	_, err = rackClient.UpdateBuild(os.Getenv("APP"), os.Getenv("BUILD"), string(data), "complete", "")
 	handleError(err)

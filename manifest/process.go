@@ -2,6 +2,10 @@ package manifest
 
 import (
 	"fmt"
+	"log"
+	"os/user"
+	"path/filepath"
+	"strings"
 )
 
 type Process struct {
@@ -12,7 +16,7 @@ type Process struct {
 	service Service
 }
 
-func NewProcess(app string, s Service) Process {
+func NewProcess(app string, s Service, m Manifest) Process {
 	name := fmt.Sprintf("%s-%s", app, s.Name)
 
 	args := []string{}
@@ -43,16 +47,38 @@ func NewProcess(app string, s Service) Process {
 		args = append(args, "-p", p.String())
 	}
 
+	for _, n := range s.Networks {
+		for _, in := range n {
+			args = append(args, "--net", in.Name)
+		}
+	}
+
 	for _, link := range s.Links {
-		args = append(args, linkArgs(link, fmt.Sprintf("%s-%s", app, link))...)
+		args = append(args, linkArgs(m.Services[link], fmt.Sprintf("%s-%s", app, link))...)
 	}
 
 	for _, volume := range s.Volumes {
+		if !strings.Contains(volume, ":") {
+			usr, err := user.Current()
+			if err != nil {
+				log.Fatal(err)
+			}
+			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", usr.HomeDir, app, s.Name, volume))
+			if err != nil {
+				//this won't break
+			}
+			volume = fmt.Sprintf("%s:%s", hostPath, volume)
+		}
 		args = append(args, "-v", volume)
 	}
 
-	args = append(args, s.Tag())
-	args = append(args, s.Command...)
+	args = append(args, s.Tag(app))
+
+	if s.Command.String != "" {
+		args = append(args, s.Command.String)
+	} else if len(s.Command.Array) > 0 {
+		args = append(args, s.Command.Array...)
+	}
 
 	return Process{
 		Name:    name,

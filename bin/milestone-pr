@@ -27,6 +27,7 @@ merge() {
   git rebase $base || (git rebase --abort; git checkout $base; die "could not rebase: $pr")
   git checkout $base
   git merge --no-ff --no-edit -m "[merge] pull request #$pr" $work
+  git branch -d $work
 }
 
 pr_body() {

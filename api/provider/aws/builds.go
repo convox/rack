@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
-	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"gopkg.in/yaml.v2"
 
@@ -256,11 +255,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 
 	// delete ECR images
 	err = p.deleteImages(a, b)
-	if err != nil {
-		return b, err
-	}
-
-	return b, nil
+	return b, err
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
@@ -521,7 +516,7 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
 	}
 
-	if cache == false {
+	if !cache {
 		env = append(env, "NO_CACHE=true")
 	}
 
@@ -600,26 +595,40 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 }
 
 func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
-	// scan all output
-	out := ""
-	scanner := bufio.NewScanner(stdout)
 
+	// scan all output
+	scanner := bufio.NewScanner(stdout)
+	out := ""
 	for scanner.Scan() {
 		text := scanner.Text()
 		out += text + "\n"
-
-		p.kinesis().PutRecord(&kinesis.PutRecordInput{
-			Data:         []byte(text),
-			PartitionKey: aws.String(string(time.Now().UnixNano())),
-			StreamName:   aws.String(a.Outputs["Kinesis"]),
-		})
 	}
 	if err := scanner.Err(); err != nil {
 		helpers.Error(nil, err) // send internal error to rollbar
 	}
 
-	// and wait for a return code
-	werr := cmd.Wait()
+	var cmdStatus string
+	waitErr := make(chan error)
+	timeout := time.After(1 * time.Hour)
+
+	go func() {
+		waitErr <- cmd.Wait() // Make sure to read all stdout before calling this.
+	}()
+
+	select {
+
+	case werr := <-waitErr:
+		// Wait / return code are errors, consider the build failed
+		if werr != nil {
+			cmdStatus = "failed"
+		}
+
+	case <-timeout:
+		cmdStatus = "timeout"
+		// Force kill the build container since its taking way to long
+		killCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
+		killCmd.Start()
+	}
 
 	// reload build item to get data from BuildUpdate callback
 	b, err := p.BuildGet(b.App, b.Id)
@@ -628,13 +637,12 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 		return
 	}
 
-	// Wait / return code are errors, consider the build failed
-	if werr != nil {
-		b.Status = "failed"
+	if cmdStatus != "" { // Careful not to override the status set by BuildUpdate
+		b.Status = cmdStatus
 	}
 
 	// save final build logs / status
-	b.Logs = string(out)
+	b.Logs = out
 	err = p.BuildSave(b)
 	if err != nil {
 		helpers.Error(nil, err) // send internal error to rollbar

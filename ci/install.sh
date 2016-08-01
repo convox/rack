@@ -9,23 +9,25 @@ export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 
 case $CIRCLE_NODE_INDEX in
   1)
-	export AWS_DEFAULT_REGION=us-west-2
-	export AWS_REGION=us-west-2
-	;;
+    export AWS_DEFAULT_REGION=us-west-2
+    export AWS_REGION=us-west-2
+    ;;
   2)
-  	export AWS_DEFAULT_REGION=eu-west-1
-  	export AWS_REGION=eu-west-1
-  	;;
+    export AWS_DEFAULT_REGION=eu-west-1
+    export AWS_REGION=eu-west-1
+    ;;
   3)
-  	export AWS_DEFAULT_REGION=ap-southeast-2
-  	export AWS_REGION=ap-southeast-2
-  	;;
+    export AWS_DEFAULT_REGION=ap-southeast-2
+    export AWS_REGION=ap-southeast-2
+    ;;
   *)
-	export AWS_DEFAULT_REGION=us-east-1
-	export AWS_REGION=us-east-1
-	;;
+    export AWS_DEFAULT_REGION=us-east-1
+    export AWS_REGION=us-east-1
+    ;;
 esac
 
 convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
 grep -v "Created Unknown" $CIRCLE_ARTIFACTS/convox-installer.log
+
+convox logs --app $STACK_NAME > $CIRCLE_ARTIFACTS/convox.log &

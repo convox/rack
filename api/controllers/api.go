@@ -3,7 +3,6 @@ package controllers
 import (
 	"encoding/base64"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -50,7 +49,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 			"ns":                      "kernel",
 			"at":                      at,
 			"state":                   "success",
-			"measure#handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Now().Sub(start).Nanoseconds())/1000000),
+			"measure#handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Since(start).Nanoseconds())/1000000),
 		}).Info()
 	}
 }
@@ -163,22 +162,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 			"ns":    "kernel",
 			"at":    at,
 			"state": "success",
-			"measure#websocket.handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Now().Sub(start).Nanoseconds())/1000000),
+			"measure#websocket.handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Since(start).Nanoseconds())/1000000),
 		}).Info()
 	})
-}
-
-// Sends "true" to the done channel when either
-// the websocket is closed or after a timeout
-func signalWsClose(ws *websocket.Conn, done chan bool) {
-	buf := make([]byte, 0)
-	expires := time.Now().Add(RequestTimeout)
-	for {
-		_, err := ws.Read(buf)
-		expired := time.Now().After(expires)
-		if err == io.EOF || expired {
-			done <- true
-			return
-		}
-	}
 }

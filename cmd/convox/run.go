@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"regexp"
 	"strings"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -81,7 +79,7 @@ func cmdRunDetached(c *cli.Context) error {
 	ps := c.Args()[0]
 	err = validateProcessId(c, app, ps)
 	if err != nil {
-		return err
+		return stdcli.ExitError(err)
 	}
 
 	command := ""
@@ -97,7 +95,7 @@ func cmdRunDetached(c *cli.Context) error {
 
 	err = rackClient(c).RunProcessDetached(app, ps, command, release)
 	if err != nil {
-		return err
+		return stdcli.ExitError(err)
 	}
 
 	fmt.Println("OK")
@@ -130,6 +128,7 @@ func runAttached(c *cli.Context, app, ps, args, release string) (int, error) {
 
 	return code, nil
 }
+
 func validateProcessId(c *cli.Context, app, ps string) error {
 	formation, err := rackClient(c).ListFormation(app)
 	if err != nil {
@@ -143,15 +142,4 @@ func validateProcessId(c *cli.Context, app, ps string) error {
 	}
 
 	return fmt.Errorf("Unknown process name: %s", ps)
-}
-
-var CodeRemoverRegex = regexp.MustCompile(`\x1b\[.n`)
-
-type CodeStripper struct {
-	writer io.Writer
-}
-
-func (cs CodeStripper) Write(data []byte) (int, error) {
-	_, err := cs.writer.Write(CodeRemoverRegex.ReplaceAll(data, []byte("")))
-	return len(data), err
 }

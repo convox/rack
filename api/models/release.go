@@ -133,6 +133,10 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	if !app.IsBound() {
+		return fmt.Errorf("unbound apps are no longer supported for promotion")
+	}
+
 	formation, err := r.Formation()
 	if err != nil {
 		return err
@@ -179,8 +183,8 @@ func (r *Release) Promote() error {
 	}
 
 	healthOptions := []string{"port", "path", "timeout"}
-
 	for _, entry := range m.Services {
+
 		entryName := UpperName(entry.Name)
 		for _, option := range healthOptions {
 			if val := entry.Labels[fmt.Sprintf("convox.health.%s", option)]; val != "" {
@@ -267,7 +271,7 @@ func (r *Release) Promote() error {
 			switch app.Parameters[protoParam] {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
-					name := fmt.Sprintf("cert-%d", time.Now().Unix())
+					name := fmt.Sprintf("cert-%s-%d", os.Getenv("RACK"), time.Now().Unix())
 
 					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
 					if err != nil {

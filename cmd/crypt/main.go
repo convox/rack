@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/convox/rack/api/crypt"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func main() {

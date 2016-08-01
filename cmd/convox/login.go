@@ -153,13 +153,7 @@ func upgradeConfig() error {
 		return err
 	}
 
-	err = switchHost(parts[0])
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return switchHost(parts[0])
 }
 
 func getLogin(host string) (string, error) {
@@ -246,12 +240,7 @@ func switchHost(host string) error {
 }
 
 func removeHost() error {
-	err := os.Remove(filepath.Join(ConfigRoot, "host"))
-
-	if err != nil {
-		return err
-	}
-	return nil
+	return os.Remove(filepath.Join(ConfigRoot, "host"))
 }
 
 func currentLogin() (string, string, error) {

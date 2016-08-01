@@ -16,7 +16,7 @@ import (
 func StartServicesCapacity() {
 	converged, lastEvent := checkConverged()
 
-	for _ = range time.Tick(1 * time.Minute) {
+	for range time.Tick(1 * time.Minute) {
 		converged, lastEvent = monitorConverged(converged, *lastEvent.CreatedAt)
 	}
 }

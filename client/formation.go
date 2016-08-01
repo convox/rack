@@ -51,9 +51,5 @@ func (c *Client) SetFormation(app, process string, opts FormationOptions) error 
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/formation/%s", app, process), params, &success)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

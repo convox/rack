@@ -13,8 +13,8 @@ import (
 )
 
 type Manifest struct {
-	Version string `yaml:"version"`
-
+	Version  string             `yaml:"version"`
+	Networks Networks           `yaml:"networks"`
 	Services map[string]Service `yaml:"services"`
 }
 
@@ -43,6 +43,7 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
+		service.Networks = m.Networks
 		m.Services[name] = service
 	}
 
@@ -126,8 +127,8 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 	return conflicts, nil
 }
 
-func (m *Manifest) Run(dir, app string, noCache bool) Run {
-	return NewRun(dir, app, *m, noCache)
+func (m *Manifest) Run(dir, app string, cache bool) Run {
+	return NewRun(dir, app, *m, cache)
 }
 
 // Return the Services of this Manifest in the order you should run them
@@ -159,22 +160,6 @@ func (m *Manifest) Shift(shift int) {
 	for _, service := range m.Services {
 		service.Ports.Shift(shift)
 	}
-}
-
-func manifestPrefix(m Manifest, prefix string) string {
-	max := 6
-
-	for name, _ := range m.Services {
-		if len(name) > max {
-			max = len(name)
-		}
-	}
-
-	return fmt.Sprintf(fmt.Sprintf("%%-%ds |", max), prefix)
-}
-
-func systemPrefix(m *Manifest) string {
-	return manifestPrefix(*m, "convox")
 }
 
 func manifestVersion(data []byte) (string, error) {

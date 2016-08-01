@@ -479,19 +479,9 @@ func describeRackStacks(rackName, distinctId string, CF *cloudformation.CloudFor
 
 func (stacks Stacks) all() []Stack {
 	s := []Stack{}
-
-	for _, stack := range stacks.Services {
-		s = append(s, stack)
-	}
-
-	for _, stack := range stacks.Apps {
-		s = append(s, stack)
-	}
-
-	for _, stack := range stacks.Rack {
-		s = append(s, stack)
-	}
-
+	s = append(s, stacks.Services...)
+	s = append(s, stacks.Apps...)
+	s = append(s, stacks.Rack...)
 	return s
 }
 

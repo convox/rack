@@ -29,6 +29,10 @@ func init() {
 				Name:  "cpu",
 				Usage: "CPU units available to specified process type.",
 			},
+			cli.BoolFlag{
+				Name:  "wait",
+				Usage: "wait for app to finish scaling before returning",
+			},
 		},
 	})
 }
@@ -56,6 +60,10 @@ func cmdScale(c *cli.Context) error {
 	// validate single process type argument
 	switch len(c.Args()) {
 	case 0:
+		if opts.Memory != "" || opts.CPU != "" || opts.Count != "" {
+			return stdcli.ExitError(fmt.Errorf("missing process name"))
+		}
+
 		displayFormation(c, app)
 		return nil
 	case 1:
@@ -80,6 +88,22 @@ func cmdScale(c *cli.Context) error {
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
+
+	if c.Bool("wait") {
+		fmt.Printf("Waiting for %s... ", process)
+
+		a, err := rackClient(c).GetApp(app)
+		if err != nil {
+			stdcli.ExitError(err)
+		}
+
+		if err := waitForReleasePromotion(c, app, a.Release); err != nil {
+			stdcli.ExitError(err)
+		}
+
+		fmt.Println("OK")
+	}
+
 	return nil
 }
 

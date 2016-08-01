@@ -114,14 +114,9 @@ func (c *Client) RunProcessDetached(app, process, command, release string) error
 		"release": release,
 	}
 
-	err := c.Post(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), params, &success)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.Post(fmt.Sprintf("/apps/%s/processes/%s/run", app, process), params, &success)
 }
+
 func (c *Client) StopProcess(app, id string) (*Process, error) {
 	var process Process
 

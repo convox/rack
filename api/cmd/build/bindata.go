@@ -83,7 +83,7 @@ func dataGitRestoreMtime() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/git-restore-mtime", size: 1350, mode: os.FileMode(493), modTime: time.Unix(1459609522, 0)}
+	info := bindataFileInfo{name: "data/git-restore-mtime", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
