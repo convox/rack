@@ -542,7 +542,7 @@
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "NatIp0", "AllocationId" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet0" }
       }
     },
@@ -550,7 +550,7 @@
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "NatIp1", "AllocationId" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet1" }
       }
     },
@@ -558,25 +558,25 @@
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "NatIp2", "AllocationId" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatAddress2", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet2" }
       }
     },
-    "NatIp0": {
+    "NatAddress0": {
       "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
       }
     },
-    "NatIp1": {
+    "NatAddress1": {
       "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
       }
     },
-    "NatIp2": {
+    "NatAddress2": {
       "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
