@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math/rand"
 	"os"
 	"os/exec"
 	"regexp"
@@ -271,7 +272,7 @@ func (r *Release) Promote() error {
 			switch app.Parameters[protoParam] {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
-					name := fmt.Sprintf("cert-%s-%d", os.Getenv("RACK"), time.Now().Unix())
+					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
 					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
 					if err != nil {
