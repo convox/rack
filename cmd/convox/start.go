@@ -84,7 +84,8 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	cache := !c.Bool("no-cache")
-	sync := !c.Bool("no-sync")
+	sync := c.Bool("sync")
+
 	r := m.Run(dir, app, cache, sync)
 
 	err = r.Start()
