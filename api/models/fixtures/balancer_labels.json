@@ -1,22 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerMainBlankHealthPath": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerMainBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainHealthTimeout"
-        },
-        ""
-      ]
-    },
     "BalancerMainPort443Proxy": {
       "Fn::Equals": [
         {
@@ -72,7 +56,7 @@
         "Yes"
       ]
     },
-    "RegionHasRegistry": {
+    "RegionHasECR": {
       "Fn::Or": [
         {
           "Fn::Equals": [
@@ -151,13 +135,13 @@
       "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
-      "Condition": "RegionHasRegistry",
+      "Condition": "RegionHasECR",
       "Value": {
         "Ref": "AWS::AccountId"
       }
     },
     "RegistryRepository": {
-      "Condition": "RegionHasRegistry",
+      "Condition": "RegionHasECR",
       "Value": {
         "Fn::GetAtt": [
           "RegistryRepository",
@@ -201,16 +185,6 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
-    },
-    "MainHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
-    "MainHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
     },
     "MainPort443Balancer": {
       "Default": "443",
@@ -334,43 +308,19 @@
                     [
                       {
                         "Fn::If": [
-                          "BalancerMainBlankHealthPath",
+                          "BalancerMainPort443Secure",
                           {
-                            "Fn::If": [
-                              "BalancerMainPort443Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "tcp",
+                              "SecureInstanceProtocol"
                             ]
                           },
                           {
-                            "Fn::If": [
-                              "BalancerMainPort443Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "tcp",
+                              "InstanceProtocol"
                             ]
                           }
                         ]
@@ -381,21 +331,11 @@
                     ]
                   ]
                 },
-                {
-                  "Ref": "MainHealthPath"
-                }
+                ""
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerMainBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "MainHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
@@ -806,9 +746,9 @@
       "Version": "1.0"
     },
     "RegistryRepository": {
-      "Condition": "RegionHasRegistry",
+      "Condition": "RegionHasECR",
       "Properties": {
-        "Name": {
+        "RepositoryName": {
           "Ref": "AWS::StackName"
         },
         "ServiceToken": {
