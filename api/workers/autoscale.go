@@ -49,7 +49,7 @@ func autoscaleRack() {
 	instances := int(math.Ceil(float64(capacity.ProcessMemory) / float64(capacity.InstanceMemory)))
 
 	// add one instance for some breathing room
-	instances += 1
+	instances++
 
 	// instance count cant be less than 2
 	if instances < 2 {
