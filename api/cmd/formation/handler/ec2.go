@@ -33,6 +33,7 @@ func HandleEC2AvailabilityZones(req Request) (string, map[string]string, error) 
 	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
+// HandleEC2NatGateway handles the lifecycle of a Custom::EC2NatGateway
 func HandleEC2NatGateway(req Request) (string, map[string]string, error) {
 	defer recoverFailure(req)
 
@@ -50,6 +51,7 @@ func HandleEC2NatGateway(req Request) (string, map[string]string, error) {
 	return "", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
 }
 
+// HandleEC2Route handles the lifecycle of a Custom::EC2Route
 func HandleEC2Route(req Request) (string, map[string]string, error) {
 	defer recoverFailure(req)
 
@@ -109,6 +111,7 @@ func EC2AvailabilityZonesDelete(req Request) (string, map[string]string, error) 
 	return req.PhysicalResourceId, nil, nil
 }
 
+// EC2NatGatewayDelete  deletes a Custom::EC2route
 // TODO: delete
 func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
 	_, err := EC2(req).DeleteNatGateway(&ec2.DeleteNatGatewayInput{
@@ -151,6 +154,7 @@ func EC2NatGatewayDelete(req Request) (string, map[string]string, error) {
 	return req.PhysicalResourceId, nil, err
 }
 
+// EC2RouteDelete deletes a Custom::EC2route
 // TODO: delete
 func EC2RouteDelete(req Request) (string, map[string]string, error) {
 	parts := strings.SplitN(req.PhysicalResourceId, "/", 2)
