@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/convox/rack/api/helpers"
@@ -214,7 +215,6 @@ func (a *App) Create() error {
 
 func (a *App) Cleanup() error {
 	err := cleanupBucket(a.Outputs["Settings"])
-
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,6 @@ func (a *App) Delete() error {
 	helpers.TrackEvent("kernel-app-delete-start", nil)
 
 	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.StackName())})
-
 	if err != nil {
 		helpers.TrackEvent("kernel-app-delete-error", nil)
 		return err
@@ -873,12 +872,32 @@ func cleanupBucket(bucket string) error {
 		return err
 	}
 
-	for _, d := range res.DeleteMarkers {
-		go cleanupBucketObject(bucket, *d.Key, *d.VersionId)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	for _, v := range res.Versions {
-		go cleanupBucketObject(bucket, *v.Key, *v.VersionId)
+	go func() {
+		defer wg.Done()
+		for _, d := range res.DeleteMarkers {
+			cleanupBucketObject(bucket, *d.Key, *d.VersionId)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for _, v := range res.Versions {
+			cleanupBucketObject(bucket, *v.Key, *v.VersionId)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	wg.Wait()
+
+	_, err = S3().DeleteBucket(&s3.DeleteBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil
