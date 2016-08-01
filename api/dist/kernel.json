@@ -694,7 +694,7 @@
         "RouteTableId": { "Ref": "Routes" }
       }
     },
-    "RoutesPrivate0": {
+    "RouteTablePrivate0": {
       "Condition": "Private",
       "DependsOn": [ "Nat0" ],
       "Type": "AWS::EC2::RouteTable",
@@ -705,7 +705,7 @@
         ] }
       }
     },
-    "RoutesPrivate1": {
+    "RouteTablePrivate1": {
       "Condition": "Private",
       "DependsOn": [ "Nat1" ],
       "Type": "AWS::EC2::RouteTable",
@@ -716,7 +716,7 @@
         ] }
       }
     },
-    "RoutesPrivate2": {
+    "RouteTablePrivate2": {
       "Condition": "Private",
       "DependsOn": [ "Nat2" ],
       "Type": "AWS::EC2::RouteTable",
@@ -729,32 +729,32 @@
     },
     "RouteDefaultPrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "Nat0", "RoutesPrivate0" ],
+      "DependsOn": [ "Nat0", "RouteTablePrivate0" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "NatGatewayId": { "Ref": "Nat0" },
-        "RouteTableId": { "Ref": "RoutesPrivate0" }
+        "RouteTableId": { "Ref": "RouteTablePrivate0" }
       }
     },
     "RouteDefaultPrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "Nat1", "RoutesPrivate1" ],
+      "DependsOn": [ "Nat1", "RouteTablePrivate1" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "NatGatewayId": { "Ref": "Nat1" },
-        "RouteTableId": { "Ref": "RoutesPrivate1" }
+        "RouteTableId": { "Ref": "RouteTablePrivate1" }
       }
     },
     "RouteDefaultPrivate2": {
       "Condition": "Private",
-      "DependsOn": [ "Nat2", "RoutesPrivate2" ],
+      "DependsOn": [ "Nat2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "NatGatewayId": { "Ref": "Nat2" },
-        "RouteTableId": { "Ref": "RoutesPrivate2" }
+        "RouteTableId": { "Ref": "RouteTablePrivate2" }
       }
     },
     "Subnet0Routes": {
@@ -786,29 +786,29 @@
     },
     "SubnetPrivate0Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate0", "RoutesPrivate0" ],
+      "DependsOn": [ "SubnetPrivate0", "RouteTablePrivate0" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate0" },
-        "RouteTableId": { "Ref": "RoutesPrivate0" }
+        "RouteTableId": { "Ref": "RouteTablePrivate0" }
       }
     },
     "SubnetPrivate1Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate1", "RoutesPrivate1" ],
+      "DependsOn": [ "SubnetPrivate1", "RouteTablePrivate1" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate1" },
-        "RouteTableId": { "Ref": "RoutesPrivate1" }
+        "RouteTableId": { "Ref": "RouteTablePrivate1" }
       }
     },
     "SubnetPrivate2Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate2", "RoutesPrivate2" ],
+      "DependsOn": [ "SubnetPrivate2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate2" },
-        "RouteTableId": { "Ref": "RoutesPrivate2" }
+        "RouteTableId": { "Ref": "RouteTablePrivate2" }
       }
     },
     "SecurityGroup": {
