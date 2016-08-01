@@ -615,6 +615,8 @@ func friendlyName(t string) string {
 		return "CloudWatch Log Group"
 	case "AWS::Logs::SubscriptionFilter":
 		return ""
+	case "AWS::EC2::NatGateway":
+		return "NAT Gateway"
 	case "AWS::S3::Bucket":
 		return "S3 Bucket"
 	case "AWS::SNS::Topic":
