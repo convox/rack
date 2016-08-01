@@ -18,18 +18,18 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "start",
-		Description: "start an app for local development",
+		Description: "Start an app for local development",
 		Usage:       "[directory]",
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "file, f",
 				Value: "docker-compose.yml",
-				Usage: "path to an alternate docker compose manifest file",
+				Usage: "Path to an alternate docker compose manifest file",
 			},
 			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "pull fresh image dependencies",
+				Usage: "Pull fresh image dependencies",
 			},
 			cli.IntFlag{
 				Name:  "shift",
@@ -84,7 +84,8 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	cache := !c.Bool("no-cache")
-	r := m.Run(dir, app, cache)
+	sync := !c.Bool("no-sync")
+	r := m.Run(dir, app, cache, sync)
 
 	err = r.Start()
 	if err != nil {
