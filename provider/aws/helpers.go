@@ -25,6 +25,7 @@ type Template struct {
 type TemplateParameter struct {
 	Default     string
 	Description string
+	NoEcho      bool
 	Type        string
 }
 
@@ -258,6 +259,8 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 	}
 
+	fp := make(map[string]TemplateParameter)
+
 	if templateUrl != "" {
 		res, err := http.Get(templateUrl)
 
@@ -271,7 +274,7 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 			return err
 		}
 
-		fp, err := formationParameters(string(body))
+		fp, err = formationParameters(string(body))
 
 		// remove params that don't exist in the template
 		for key := range params {
@@ -284,10 +287,22 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	}
 
 	for key, value := range params {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(value),
-		})
+		var parameter *cloudformation.Parameter
+
+		// unless param changed, use previous value so NoEcho params don't get set to "****"
+		if _, present := changes[key]; present {
+			parameter = &cloudformation.Parameter{
+				ParameterKey:   aws.String(key),
+				ParameterValue: aws.String(value),
+			}
+		} else {
+			parameter = &cloudformation.Parameter{
+				ParameterKey:     aws.String(key),
+				UsePreviousValue: aws.Bool(true),
+			}
+		}
+
+		req.Parameters = append(req.Parameters, parameter)
 	}
 
 	_, err = p.updateStack(req)
