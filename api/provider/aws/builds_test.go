@@ -1,13 +1,18 @@
 package aws_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/convox/rack/api/awsutil"
+	"github.com/convox/rack/api/controllers"
+	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,6 +21,8 @@ func init() {
 	os.Setenv("RACK", "convox")
 	os.Setenv("DYNAMO_BUILDS", "convox-builds")
 	os.Setenv("DYNAMO_RELEASES", "convox-releases")
+	models.PauseNotifications = true
+	test.HandlerFunc = controllers.HandlerFunc
 }
 
 func TestBuildGet(t *testing.T) {
@@ -56,7 +63,7 @@ func TestBuildDelete(t *testing.T) {
 		build2GetObjectCycle,
 
 		describeStacksCycle,
-		releasesBuild2QueryCycle,
+		releasesBuild2DeleteItemCycle,
 
 		releasesBuild2BatchWriteItemCycle,
 		build2DeleteItemCycle,
@@ -87,26 +94,43 @@ func TestBuildDelete(t *testing.T) {
 }
 
 func TestBuildDeleteActive(t *testing.T) {
-	aws := StubAwsProvider(
-		describeStacksCycle,
-
-		build1GetItemCycle,
-		build1GetObjectCycle,
-
-		describeStacksCycle,
-		releasesBuild1QueryCycle,
-	)
-	defer aws.Close()
-
+	// set current provider
+	testProvider := &provider.TestProviderRunner{
+		App: structs.App{
+			Name:    "httpd",
+			Release: "release-id",
+		},
+		Build: structs.Build{
+			Id: "BHINCLZYYVN",
+		},
+		Release: structs.Release{
+			Id:    "release-id",
+			Build: "BHINCLZYYVN",
+		},
+	}
+	provider.CurrentProvider = testProvider
 	defer func() {
 		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one (I miss rspec before)
+		//clean default one
 		provider.CurrentProvider = new(provider.TestProviderRunner)
 	}()
 
-	_, err := provider.BuildDelete("httpd", "BHINCLZYYVN")
+	testProvider.On("AppGet", "httpd").Return(&testProvider.App, nil)
+	testProvider.On("BuildGet", "httpd", "BHINCLZYYVN").Return(&testProvider.Build, nil)
+	testProvider.On("ReleaseGet", "httpd", "release-id").Return(&testProvider.Release, nil)
 
-	assert.Equal(t, err.Error(), "cant delete build contained in active release")
+	body := test.HTTPBody("DELETE", "http://convox/apps/httpd/builds/BHINCLZYYVN", nil)
+
+	// assert on expectations
+	testProvider.AssertExpectations(t)
+
+	// assert on response
+	resp := make(map[string]string)
+	err := json.Unmarshal([]byte(body), &resp)
+	if assert.Nil(t, err) {
+		fmt.Fprintf(os.Stderr, "%s\n", resp)
+		assert.Equal(t, "cannot delete build contained in active release", resp["error"])
+	}
 }
 
 func TestBuildList(t *testing.T) {
@@ -399,11 +423,11 @@ var releasesQueryCycle = awsutil.Cycle{
 	},
 }
 
-var releasesBuild1QueryCycle = awsutil.Cycle{
+var releasesBuild1DeleteItemCycle = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Operation:  "DynamoDB_20120810.Query",
-		Body:       `{"ExpressionAttributeValues":{":app":{"S":"httpd"},":build":{"S":"BHINCLZYYVN"}},"FilterExpression":"build = :build","IndexName":"app.created","KeyConditionExpression":"app = :app","TableName":"convox-releases"}`,
+		Operation:  "DynamoDB_20120810.DeleteItem",
+		Body:       `{"Key":{"id":{"S": "BHINCLZYYVN"}},"TableName": "convox-builds"}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -411,11 +435,11 @@ var releasesBuild1QueryCycle = awsutil.Cycle{
 	},
 }
 
-var releasesBuild2QueryCycle = awsutil.Cycle{
+var releasesBuild2DeleteItemCycle = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Operation:  "DynamoDB_20120810.Query",
-		Body:       `{"ExpressionAttributeValues":{":app":{"S":"httpd"},":build":{"S":"BNOARQMVHUO"}},"FilterExpression":"build = :build","IndexName":"app.created","KeyConditionExpression":"app = :app","TableName":"convox-releases"}`,
+		Operation:  "DynamoDB_20120810.DeleteItem",
+		Body:       `{"Key": {"id":{"S":"BNOARQMVHUO"}},"TableName":"convox-builds"}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
