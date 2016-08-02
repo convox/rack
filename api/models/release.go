@@ -310,6 +310,11 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	// loop until we can find the template
+	if err := waitForTemplate(app.Outputs["Settings"], r.Id); err != nil {
+		return fmt.Errorf("error waiting for template: %s", err)
+	}
+
 	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
 
 	req := &cloudformation.UpdateStackInput{
@@ -566,4 +571,27 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *Release {
 	}
 
 	return release
+}
+
+func waitForTemplate(bucket string, id string) error {
+	tick := time.Tick(1 * time.Second)
+	timeout := time.Tick(1 * time.Minute)
+
+	for {
+		select {
+		case <-tick:
+			fmt.Printf("ns=kernel at=waitForTemplate.tick bucket=%q release=%q\n", bucket, id)
+			_, err := s3Get(bucket, fmt.Sprintf("templates/%s", id))
+			if err == nil {
+				fmt.Printf("ns=kernel at=waitForTemplate.tick status=found bucket=%q release=%q\n", bucket, id)
+				return nil
+			}
+		case <-timeout:
+			fmt.Printf("ns=kernel at=waitForTemplate.tick error=timeout bucket=%q release=%q\n", bucket, id)
+			return fmt.Errorf("timeout")
+		}
+	}
+
+	fmt.Printf("ns=kernel at=waitForTemplate.tick error=unknown bucket=%q release=%q\n", bucket, id)
+	return fmt.Errorf("unknown error")
 }
