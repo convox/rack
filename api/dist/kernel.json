@@ -538,45 +538,45 @@
         "VpcId": { "Ref": "Vpc" }
       }
     },
-    "NatGateway0": {
+    "Nat0": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "NatIp0", "AllocationId" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet0" }
       }
     },
-    "NatGateway1": {
+    "Nat1": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "NatIp1", "AllocationId" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet1" }
       }
     },
-    "NatGateway2": {
+    "Nat2": {
       "Condition": "Private",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
-        "AllocationId": { "Fn::GetAtt": [ "NatIp2", "AllocationId" ] },
+        "AllocationId": { "Fn::GetAtt": [ "NatAddress2", "AllocationId" ] },
         "SubnetId": { "Ref": "Subnet2" }
       }
     },
-    "NatIp0": {
+    "NatAddress0": {
       "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
       }
     },
-    "NatIp1": {
+    "NatAddress1": {
       "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
         "Domain": "vpc"
       }
     },
-    "NatIp2": {
+    "NatAddress2": {
       "Condition": "Private",
       "Type": "AWS::EC2::EIP",
       "Properties": {
@@ -694,9 +694,9 @@
         "RouteTableId": { "Ref": "Routes" }
       }
     },
-    "RoutesPrivate0": {
+    "RouteTablePrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway0" ],
+      "DependsOn": [ "Nat0" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -705,9 +705,9 @@
         ] }
       }
     },
-    "RoutesPrivate1": {
+    "RouteTablePrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway1" ],
+      "DependsOn": [ "Nat1" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -716,9 +716,9 @@
         ] }
       }
     },
-    "RoutesPrivate2": {
+    "RouteTablePrivate2": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway2" ],
+      "DependsOn": [ "Nat2" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -727,34 +727,34 @@
         ] }
       }
     },
-    "RoutePrivateDefault0": {
+    "RouteDefaultPrivate0": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway0", "RoutesPrivate0" ],
+      "DependsOn": [ "Nat0", "RouteTablePrivate0" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": { "Ref": "NatGateway0" },
-        "RouteTableId": { "Ref": "RoutesPrivate0" }
+        "NatGatewayId": { "Ref": "Nat0" },
+        "RouteTableId": { "Ref": "RouteTablePrivate0" }
       }
     },
-    "RoutePrivateDefault1": {
+    "RouteDefaultPrivate1": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway1", "RoutesPrivate1" ],
+      "DependsOn": [ "Nat1", "RouteTablePrivate1" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": { "Ref": "NatGateway1" },
-        "RouteTableId": { "Ref": "RoutesPrivate1" }
+        "NatGatewayId": { "Ref": "Nat1" },
+        "RouteTableId": { "Ref": "RouteTablePrivate1" }
       }
     },
-    "RoutePrivateDefault2": {
+    "RouteDefaultPrivate2": {
       "Condition": "Private",
-      "DependsOn": [ "NatGateway2", "RoutesPrivate2" ],
+      "DependsOn": [ "Nat2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": { "Ref": "NatGateway2" },
-        "RouteTableId": { "Ref": "RoutesPrivate2" }
+        "NatGatewayId": { "Ref": "Nat2" },
+        "RouteTableId": { "Ref": "RouteTablePrivate2" }
       }
     },
     "Subnet0Routes": {
@@ -786,29 +786,29 @@
     },
     "SubnetPrivate0Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate0", "RoutesPrivate0" ],
+      "DependsOn": [ "SubnetPrivate0", "RouteTablePrivate0" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate0" },
-        "RouteTableId": { "Ref": "RoutesPrivate0" }
+        "RouteTableId": { "Ref": "RouteTablePrivate0" }
       }
     },
     "SubnetPrivate1Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate1", "RoutesPrivate1" ],
+      "DependsOn": [ "SubnetPrivate1", "RouteTablePrivate1" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate1" },
-        "RouteTableId": { "Ref": "RoutesPrivate1" }
+        "RouteTableId": { "Ref": "RouteTablePrivate1" }
       }
     },
     "SubnetPrivate2Routes": {
       "Condition": "Private",
-      "DependsOn": [ "SubnetPrivate2", "RoutesPrivate2" ],
+      "DependsOn": [ "SubnetPrivate2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": { "Ref": "SubnetPrivate2" },
-        "RouteTableId": { "Ref": "RoutesPrivate2" }
+        "RouteTableId": { "Ref": "RouteTablePrivate2" }
       }
     },
     "SecurityGroup": {
