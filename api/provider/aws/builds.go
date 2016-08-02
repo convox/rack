@@ -187,6 +187,8 @@ func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, descri
 	return b, err
 }
 
+// BuildDelete deletes the build specified by id belonging to app
+// Care should be taken as this could delete the build used by the active release
 func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
@@ -197,53 +199,6 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	if err != nil {
 		return b, err
 	}
-
-	// scan dynamo for all releases for this build
-	res, err := p.dynamodb().Query(&dynamodb.QueryInput{
-		KeyConditionExpression: aws.String("app = :app"),
-		FilterExpression:       aws.String("build = :build"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app":   &dynamodb.AttributeValue{S: aws.String(app)},
-			":build": &dynamodb.AttributeValue{S: aws.String(id)},
-		},
-		IndexName: aws.String("app.created"),
-		TableName: aws.String(releasesTable(app)),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	// collect release IDs to delete
-	// and validate the build doesn't belong to the app's current release
-	wrs := []*dynamodb.WriteRequest{}
-	for _, item := range res.Items {
-		r := releaseFromItem(item)
-
-		if a.Release == r.Id {
-			return b, errors.New("cant delete build contained in active release")
-		}
-
-		wr := &dynamodb.WriteRequest{
-			DeleteRequest: &dynamodb.DeleteRequest{
-				Key: map[string]*dynamodb.AttributeValue{
-					"id": &dynamodb.AttributeValue{
-						S: aws.String(r.Id),
-					},
-				},
-			},
-		}
-
-		wrs = append(wrs, wr)
-	}
-
-	// delete all release items
-	// TODO: Move to ReleaseDelete and also clean up env, task definition, etc.
-	p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-		RequestItems: map[string][]*dynamodb.WriteRequest{
-			releasesTable(app): wrs,
-		},
-	})
 
 	// delete build item
 	p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
@@ -321,7 +276,7 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 }
 
 func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
-	releases, err := p.ReleaseList(b.App)
+	releases, err := p.ReleaseList(b.App, 20)
 	if err != nil {
 		return nil, err
 	}
@@ -542,7 +497,6 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bu
 		}
 
 		res, err := p.s3().GetObject(req)
-
 		if err != nil {
 			if awsError(err) != "NoSuchKey" {
 				fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)

@@ -66,19 +66,6 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
-func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	app := vars["app"]
-	build := vars["build"]
-
-	b, err := provider.BuildDelete(app, build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, b)
-}
-
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -140,6 +127,43 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
+func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	appName := vars["app"]
+	buildID := vars["build"]
+
+	app, err := provider.AppGet(appName)
+	if err != nil {
+		return httperr.Errorf(404, err.Error())
+	}
+
+	build, err := provider.BuildGet(app.Name, buildID)
+	if err != nil {
+		return httperr.Errorf(404, err.Error())
+	}
+
+	release, err := provider.ReleaseGet(app.Name, app.Release)
+	if err != nil {
+		return httperr.Errorf(404, err.Error())
+	}
+
+	if release.Build == buildID {
+		return httperr.Errorf(400, "cannot delete build contained in active release")
+	}
+
+	err = provider.ReleaseBatchDelete(app.Name, buildID)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	build, err = provider.BuildDelete(appName, buildID)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, build)
+}
+
 func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -194,14 +218,15 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		} else {
 			if len(bs) >= 50 {
 				go func() {
-					for _, b := range bs[50:] {
-						_, err := provider.BuildDelete(app, b.Id)
-						if err != nil {
-							fmt.Printf("Error cleaning up build: %s", b.Id)
-						}
+					//TODO: implement a way to clean up the ECR
+					//for _, b := range bs[50:] {
+					//	_, err := provider.BuildDelete(app, b.Id)
+					//	if err != nil {
+					//		fmt.Printf("Error cleaning up build: %s", b.Id)
+					//	}
 
-						time.Sleep(1 * time.Second)
-					}
+					//	time.Sleep(1 * time.Second)
+					//}
 				}()
 			}
 		}

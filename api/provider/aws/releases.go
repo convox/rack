@@ -17,22 +17,6 @@ func releasesTable(app string) string {
 	return os.Getenv("DYNAMO_RELEASES")
 }
 
-func (p *AWSProvider) ReleaseDelete(app, id string) (*structs.Release, error) {
-	r, err := p.ReleaseGet(app, id)
-	if err != nil {
-		return r, err
-	}
-
-	a, err := p.AppGet(app)
-	if err != nil {
-		return r, err
-	}
-
-	err = p.s3Delete(a.Outputs["Settings"], fmt.Sprintf("releases/%s/env", r.Id))
-
-	return r, err
-}
-
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -61,7 +45,8 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	return release, nil
 }
 
-func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
+// ReleaseList returns a list of the latest releases, with the length specified in limit
+func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -77,7 +62,7 @@ func (p *AWSProvider) ReleaseList(app string) (structs.Releases, error) {
 			},
 		},
 		IndexName:        aws.String("app.created"),
-		Limit:            aws.Int64(20),
+		Limit:            aws.Int64(limit),
 		ScanIndexForward: aws.Bool(false),
 		TableName:        aws.String(releasesTable(a.Name)),
 	}
@@ -179,4 +164,78 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release 
 	}
 
 	return release
+}
+
+// ReleaseBatchDelete will delete all releases that belong to app and build
+// This could includes the active release which implies this should be called with caution.
+func (p *AWSProvider) ReleaseBatchDelete(app, buildID string) error {
+
+	// query dynamo for all releases for this build
+	qi := &dynamodb.QueryInput{
+		KeyConditionExpression: aws.String("app = :app"),
+		FilterExpression:       aws.String("build = :build"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":app":   &dynamodb.AttributeValue{S: aws.String(app)},
+			":build": &dynamodb.AttributeValue{S: aws.String(buildID)},
+		},
+		IndexName: aws.String("app.created"),
+		TableName: aws.String(releasesTable(app)),
+	}
+
+	return p.deleteReleaseItems(qi, releasesTable(app))
+}
+
+// releasesDeleteAll will delete all releases associate with app
+// This includes the active release which implies this should only be called when deleting an app.
+func (p *AWSProvider) releaseDeleteAll(app string) error {
+
+	// query dynamo for all releases for this app
+	qi := &dynamodb.QueryInput{
+		KeyConditionExpression: aws.String("app = :app"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":app": &dynamodb.AttributeValue{S: aws.String(app)},
+		},
+		IndexName: aws.String("app.created"),
+		TableName: aws.String(releasesTable(app)),
+	}
+
+	return p.deleteReleaseItems(qi, releasesTable(app))
+}
+
+// deleteReleaseItems deletes release items from Dynamodb based on query input and the tableName
+func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName string) error {
+
+	res, err := p.dynamodb().Query(qi)
+	if err != nil {
+		return err
+	}
+
+	// collect release IDs to delete
+	wrs := []*dynamodb.WriteRequest{}
+	for _, item := range res.Items {
+		r := releaseFromItem(item)
+
+		wr := &dynamodb.WriteRequest{
+			DeleteRequest: &dynamodb.DeleteRequest{
+				Key: map[string]*dynamodb.AttributeValue{
+					"id": &dynamodb.AttributeValue{
+						S: aws.String(r.Id),
+					},
+				},
+			},
+		}
+
+		wrs = append(wrs, wr)
+	}
+
+	_, err = p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]*dynamodb.WriteRequest{
+			tableName: wrs,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

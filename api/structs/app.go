@@ -1,5 +1,7 @@
 package structs
 
+import "os"
+
 type App struct {
 	Name    string `json:"name"`
 	Release string `json:"release"`
@@ -27,4 +29,23 @@ func (a *App) IsBound() bool {
 
 	// Tags are present but "Name" tag is not, so we have an unbound app.
 	return false
+}
+
+func (a *App) StackName() string {
+	if a.IsBound() {
+		return shortNameToStackName(a.Name)
+	} else {
+		return a.Name
+	}
+}
+
+func shortNameToStackName(appName string) string {
+	rack := os.Getenv("RACK")
+
+	if rack == appName {
+		// Do no prefix the rack itself.
+		return appName
+	}
+
+	return rack + "-" + appName
 }

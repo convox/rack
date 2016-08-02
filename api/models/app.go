@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/convox/rack/api/helpers"
@@ -18,11 +17,9 @@ import (
 	"github.com/convox/rack/manifest"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -213,87 +210,13 @@ func (a *App) Create() error {
 	return nil
 }
 
-func (a *App) Cleanup() error {
-	err := cleanupBucket(a.Outputs["Settings"])
-	if err != nil {
-		return err
-	}
-
-	builds, err := provider.BuildList(a.Name, 200)
-	if err != nil {
-		return err
-	}
-
-	for _, build := range builds {
-		provider.BuildDelete(a.Name, build.Id)
-	}
-
-	// FIXME: ReleaseList only lists and cleans up the last 20 builds/releases
-	// FIXME: Should the delete calls happen in a goroutine?
-	releases, err := provider.ReleaseList(a.Name)
-	if err != nil {
-		return err
-	}
-
-	for _, release := range releases {
-		provider.ReleaseDelete(a.Name, release.Id)
-	}
-
-	// monitor and stack deletion state for up to 10 minutes
-	// retry once if DELETE_FAILED to automate around transient errors
-	// send delete success event only when stack is gone
-	shouldRetry := true
-
-	for i := 0; i < 60; i++ {
-		res, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(a.StackName()),
-		})
-
-		// return when stack is not found indicating successful delete
-		if ae, ok := err.(awserr.Error); ok {
-			if ae.Code() == "ValidationError" {
-				helpers.TrackEvent("kernel-app-delete-success", nil)
-				// Last ditch effort to remove the empty bucket CF leaves behind.
-				_, err := S3().DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(a.Outputs["Settings"])})
-				if err != nil {
-					fmt.Printf("error: %s\n", err)
-				}
-				return nil
-			}
-		}
-
-		if err == nil && len(res.Stacks) == 1 && shouldRetry {
-			// if delete failed, issue one more delete stack and return
-			s := res.Stacks[0]
-			if *s.StackStatus == "DELETE_FAILED" {
-				helpers.TrackEvent("kernel-app-delete-retry", nil)
-
-				_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.StackName())})
-
-				if err != nil {
-					helpers.TrackEvent("kernel-app-delete-retry-error", nil)
-				} else {
-					shouldRetry = false
-				}
-			}
-		}
-
-		time.Sleep(10 * time.Second)
-	}
-
-	return nil
-}
-
 func (a *App) Delete() error {
 	helpers.TrackEvent("kernel-app-delete-start", nil)
 
-	_, err := CloudFormation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(a.StackName())})
+	err := provider.AppDelete(a.Name)
 	if err != nil {
-		helpers.TrackEvent("kernel-app-delete-error", nil)
 		return err
 	}
-
-	go a.Cleanup()
 
 	NotifySuccess("app:delete", map[string]string{"name": a.Name})
 
@@ -859,60 +782,6 @@ func appFromStack(stack *cloudformation.Stack) *App {
 		Outputs:    stackOutputs(stack),
 		Parameters: stackParameters(stack),
 		Tags:       tags,
-	}
-}
-
-func cleanupBucket(bucket string) error {
-	req := &s3.ListObjectVersionsInput{
-		Bucket: aws.String(bucket),
-	}
-
-	res, err := S3().ListObjectVersions(req)
-	if err != nil {
-		return err
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		for _, d := range res.DeleteMarkers {
-			cleanupBucketObject(bucket, *d.Key, *d.VersionId)
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		for _, v := range res.Versions {
-			cleanupBucketObject(bucket, *v.Key, *v.VersionId)
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	wg.Wait()
-
-	_, err = S3().DeleteBucket(&s3.DeleteBucketInput{
-		Bucket: aws.String(bucket),
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func cleanupBucketObject(bucket, key, version string) {
-	req := &s3.DeleteObjectInput{
-		Bucket:    aws.String(bucket),
-		Key:       aws.String(key),
-		VersionId: aws.String(version),
-	}
-
-	_, err := S3().DeleteObject(req)
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
 	}
 }
 
