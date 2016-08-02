@@ -1,22 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerWebBlankHealthPath": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthPath"
-        },
-        ""
-      ]
-    },
-    "BalancerWebBlankHealthTimeout": {
-      "Fn::Equals": [
-        {
-          "Ref": "WebHealthTimeout"
-        },
-        ""
-      ]
-    },
     "BalancerWebPort3000Proxy": {
       "Fn::Equals": [
         {
@@ -279,16 +263,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebHealthPath": {
-      "Default": "",
-      "Description": "Path used when health check protocol is http(s)",
-      "Type": "String"
-    },
-    "WebHealthTimeout": {
-      "Default": "3",
-      "MaxValue": 60,
-      "Type": "Number"
-    },
     "WebPort3000Balancer": {
       "Default": "3000",
       "Description": "",
@@ -362,43 +336,19 @@
                     [
                       {
                         "Fn::If": [
-                          "BalancerWebBlankHealthPath",
+                          "BalancerWebPort3000Secure",
                           {
-                            "Fn::If": [
-                              "BalancerWebPort3000Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "tcp",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "tcp",
+                              "SecureInstanceProtocol"
                             ]
                           },
                           {
-                            "Fn::If": [
-                              "BalancerWebPort3000Secure",
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "SecureInstanceProtocol"
-                                ]
-                              },
-                              {
-                                "Fn::FindInMap": [
-                                  "PortProtocol",
-                                  "http",
-                                  "InstanceProtocol"
-                                ]
-                              }
+                            "Fn::FindInMap": [
+                              "PortProtocol",
+                              "tcp",
+                              "InstanceProtocol"
                             ]
                           }
                         ]
@@ -409,21 +359,11 @@
                     ]
                   ]
                 },
-                {
-                  "Ref": "WebHealthPath"
-                }
+                ""
               ]
             ]
           },
-          "Timeout": {
-            "Fn::If": [
-              "BalancerWebBlankHealthTimeout",
-              "3",
-              {
-                "Ref": "WebHealthTimeout"
-              }
-            ]
-          },
+          "Timeout": "3",
           "UnhealthyThreshold": "2"
         },
         "LBCookieStickinessPolicy": [
