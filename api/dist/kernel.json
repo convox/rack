@@ -155,6 +155,16 @@
       "Description": "Amazon Machine Image: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_container_instance.html",
       "Default": ""
     },
+    "ApiCpu": {
+      "Type": "String",
+      "Description": "How much cpu should be reserved by the api web process",
+      "Default": "128"
+    },
+    "ApiMemory": {
+      "Type": "String",
+      "Description": "How much memory should be reserved by the api web process",
+      "Default": "128"
+    },
     "Autoscale": {
       "Type": "String",
       "Description": "Autoscale rack instances",
@@ -1566,7 +1576,7 @@
         "Tasks": [
           {
             "Command": "api/bin/web",
-            "CPU": "128",
+            "CPU": { "Ref": "ApiCpu" },
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
@@ -1607,7 +1617,7 @@
             },
             "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
             "Links": [],
-            "Memory": "128",
+            "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
               "3000:3000",
