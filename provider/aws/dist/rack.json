@@ -257,7 +257,8 @@
       "Description": "(REQUIRED) API HTTP password",
       "Type": "String",
       "MinLength": "1",
-      "MaxLength": "50"
+      "MaxLength": "50",
+      "NoEcho": "true"
     },
     "Private": {
       "Type": "String",
