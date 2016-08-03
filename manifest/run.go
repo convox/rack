@@ -25,7 +25,7 @@ type Run struct {
 	syncs     []Sync
 }
 
-// Default constructor method for a Run object
+// NewRun Default constructor method for a Run object
 func NewRun(dir, app string, m Manifest, cache, sync bool) Run {
 	return Run{
 		App:      app,
