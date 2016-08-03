@@ -37,14 +37,23 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
-		DefaultRunner.Run(s, Docker(args...))
+
+		if err := DefaultRunner.Run(s, Docker(args...)); err != nil {
+			return fmt.Errorf("build error: %s", err)
+		}
 	}
 
 	for image, tag := range pulls {
 		args := []string{"pull"}
 		args = append(args, image)
-		DefaultRunner.Run(s, Docker(args...))
-		DefaultRunner.Run(s, Docker("tag", image, tag))
+
+		if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
+			return fmt.Errorf("build error: %s", err)
+		}
+
+		if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
+			return fmt.Errorf("build error: %s", err)
+		}
 	}
 
 	return nil
