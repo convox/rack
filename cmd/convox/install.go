@@ -639,11 +639,19 @@ func waitForAvailability(url string) {
 		Timeout: 2 * time.Second,
 	}
 
+	count := 0
+
 	for {
 		_, err := client.Get(url)
 
 		if err == nil {
 			return
+		}
+
+		count++
+
+		if count%15 == 0 {
+			fmt.Print(".")
 		}
 	}
 }
