@@ -16,7 +16,11 @@ test:
     - ci/install.sh:
         parallel: true
   override:
-    - ci/tests/example-apps:
+    - ci/tests/example-app django:
+        parallel: true
+    - ci/tests/example-app node-workers:
+        parallel: true
+    - ci/tests/example-app rails:
         parallel: true
   post:
     - ci/report.sh:
