@@ -71,6 +71,7 @@ const (
 	pushRetryDelay = 30
 )
 
+// Push will push the image for a given process up to the appropriate registry
 func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) error {
 	if tag == "" {
 		tag = "latest"
