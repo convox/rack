@@ -411,7 +411,7 @@
           "Subnets": { "Ref": "Subnets" },
         {{ end }}
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
-        "ConnectionSettings": { "IdleTimeout": 3600 },
+        "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
         "HealthCheck": {
           "HealthyThreshold": "2",
