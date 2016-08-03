@@ -127,7 +127,7 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 	return conflicts, nil
 }
 
-// Instantiate a Run object based on this manifest to be run via 'convox start'
+// Run Instantiate a Run object based on this manifest to be run via 'convox start'
 func (m *Manifest) Run(dir, app string, cache, sync bool) Run {
 	return NewRun(dir, app, *m, cache, sync)
 }
