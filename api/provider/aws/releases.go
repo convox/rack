@@ -18,6 +18,11 @@ func releasesTable(app string) string {
 }
 
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
+
+	if id == "" {
+		return nil, fmt.Errorf("release id must not be empty")
+	}
+
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
@@ -166,7 +171,7 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release 
 	return release
 }
 
-// ReleaseBatchDelete will delete all releases that belong to app and build
+// ReleaseBatchDelete will delete all releases that belong to app and buildID
 // This could includes the active release which implies this should be called with caution.
 func (p *AWSProvider) ReleaseBatchDelete(app, buildID string) error {
 
@@ -228,13 +233,17 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 		wrs = append(wrs, wr)
 	}
 
-	_, err = p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-		RequestItems: map[string][]*dynamodb.WriteRequest{
-			tableName: wrs,
-		},
-	})
-	if err != nil {
-		return err
+	if len(wrs) > 0 {
+		_, err = p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]*dynamodb.WriteRequest{
+				tableName: wrs,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		fmt.Println("ns=api fn=deleteReleaseItems level=info  msg=\"no releases to delete\"")
 	}
 
 	return nil

@@ -132,31 +132,20 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	appName := vars["app"]
 	buildID := vars["build"]
 
-	app, err := provider.AppGet(appName)
+	active, err := isBuildActive(appName, buildID)
 	if err != nil {
 		return httperr.Errorf(404, err.Error())
 	}
-
-	build, err := provider.BuildGet(app.Name, buildID)
-	if err != nil {
-		return httperr.Errorf(404, err.Error())
-	}
-
-	release, err := provider.ReleaseGet(app.Name, app.Release)
-	if err != nil {
-		return httperr.Errorf(404, err.Error())
-	}
-
-	if release.Build == buildID {
+	if active {
 		return httperr.Errorf(400, "cannot delete build contained in active release")
 	}
 
-	err = provider.ReleaseBatchDelete(app.Name, buildID)
+	err = provider.ReleaseBatchDelete(appName, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	build, err = provider.BuildDelete(appName, buildID)
+	build, err := provider.BuildDelete(appName, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -218,15 +207,25 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		} else {
 			if len(bs) >= 50 {
 				go func() {
-					//TODO: implement a way to clean up the ECR
-					//for _, b := range bs[50:] {
-					//	_, err := provider.BuildDelete(app, b.Id)
-					//	if err != nil {
-					//		fmt.Printf("Error cleaning up build: %s", b.Id)
-					//	}
+					for _, b := range bs[50:] {
+						active, err := isBuildActive(app, b.Id)
+						if err != nil || active {
+							continue
+						}
 
-					//	time.Sleep(1 * time.Second)
-					//}
+						err = provider.ReleaseBatchDelete(app, b.Id)
+						if err != nil {
+							fmt.Printf("Error cleaning up releases for %s: %s", b.Id, err.Error())
+							continue
+						}
+
+						_, err = provider.BuildDelete(app, b.Id)
+						if err != nil {
+							fmt.Printf("Error cleaning up build: %s", b.Id)
+						}
+
+						time.Sleep(1 * time.Second)
+					}
 				}()
 			}
 		}
@@ -392,4 +391,27 @@ func keepAlive(ws *websocket.Conn, quit chan bool) {
 			return
 		}
 	}
+}
+
+// isBuildActive verifies if the build is part of the active release
+// Function assumes the build is active if an error occurs to play it safe
+func isBuildActive(appName, buildID string) (bool, error) {
+
+	app, err := provider.AppGet(appName)
+	if err != nil {
+		return true, err
+	}
+
+	// To make sure the build exist
+	_, err = provider.BuildGet(app.Name, buildID)
+	if err != nil {
+		return true, err
+	}
+
+	release, err := provider.ReleaseGet(app.Name, app.Release)
+	if err != nil {
+		return true, err
+	}
+
+	return release.Build == buildID, nil
 }
