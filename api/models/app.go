@@ -352,13 +352,14 @@ func (a *App) Formation(m manifest.Manifest) (string, error) {
 }
 
 func (a *App) ForkRelease() (*Release, error) {
-	release, err := provider.ReleaseGet(a.Name, a.Release)
-	if err != nil {
-		return nil, err
-	}
+	release := structs.NewRelease(a.Name)
 
-	if release == nil {
-		release = structs.NewRelease(a.Name)
+	if a.Release != "" {
+		r, err := provider.ReleaseGet(a.Name, a.Release)
+		if err != nil {
+			return nil, err
+		}
+		release = r
 	}
 
 	release.Id = generateId("R", 10)

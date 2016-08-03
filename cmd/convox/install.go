@@ -369,7 +369,9 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Println("Waiting for load balancer...")
 
-	waitForAvailability(fmt.Sprintf("http://%s/", host))
+	if err := waitForAvailability(fmt.Sprintf("http://%s/", host)); err != nil {
+		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+	}
 
 	fmt.Println("Logging in...")
 
@@ -634,18 +636,30 @@ func friendlyName(t string) string {
 	return fmt.Sprintf("Unknown: %s", t)
 }
 
-func waitForAvailability(url string) {
-	client := &http.Client{
-		Timeout: 2 * time.Second,
-	}
+func waitForAvailability(url string) error {
+	tick := time.Tick(10 * time.Second)
+	timeout := time.After(20 * time.Minute)
 
 	for {
-		_, err := client.Get(url)
+		select {
+		case <-tick:
+			fmt.Print(".")
 
-		if err == nil {
-			return
+			client := &http.Client{
+				Timeout: 2 * time.Second,
+			}
+
+			_, err := client.Get(url)
+
+			if err == nil {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
 		}
 	}
+
+	return fmt.Errorf("unknown error")
 }
 
 var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")

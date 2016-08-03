@@ -2,8 +2,6 @@ package manifest
 
 import (
 	"fmt"
-	"log"
-	"math/rand"
 	"time"
 )
 
@@ -37,14 +35,23 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
-		DefaultRunner.Run(s, Docker(args...))
+
+		if err := DefaultRunner.Run(s, Docker(args...)); err != nil {
+			return fmt.Errorf("build error: %s", err)
+		}
 	}
 
 	for image, tag := range pulls {
 		args := []string{"pull"}
 		args = append(args, image)
-		DefaultRunner.Run(s, Docker(args...))
-		DefaultRunner.Run(s, Docker("tag", image, tag))
+
+		if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
+			return fmt.Errorf("build error: %s", err)
+		}
+
+		if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
+			return fmt.Errorf("build error: %s", err)
+		}
 	}
 
 	return nil
@@ -59,7 +66,13 @@ func pushSync(s Stream, local, remote string) error {
 	return run(s, Docker("push", remote))
 }
 
-func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) []error {
+const (
+	pushRetryLimit = 5
+	pushRetryDelay = 30
+)
+
+// Push will push the image for a given process up to the appropriate registry
+func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) error {
 	if tag == "" {
 		tag = "latest"
 	}
@@ -72,28 +85,20 @@ func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) []e
 			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
 		}
 
-		var pushErr error
-		var backOff = 1
-		s1 := rand.NewSource(time.Now().UnixNano())
-		r1 := rand.New(s1)
-
-		for i := 0; i < 5; i++ {
-			if i != 0 {
-				log.Printf("A push error occurred for %s/%s\n", app, name)
-				log.Printf("Retrying in %d seconds...\n", backOff)
-				time.Sleep(time.Duration(backOff) * time.Second)
-				backOff = ((backOff + r1.Intn(10)) * (i))
+		for i := 1; i <= pushRetryLimit; i++ {
+			if err := run(s, Docker("tag", local, remote)); err != nil {
+				return fmt.Errorf("could not tag build: %s", err)
 			}
-			pushErr = pushSync(s, local, remote)
-			if pushErr == nil {
-				break
-			}
-		}
 
-		if pushErr != nil {
-			return []error{pushErr}
+			if err := run(s, Docker("push", remote)); err == nil {
+				continue
+			}
+
+			fmt.Printf("An error occurred while trying to push %s/%s\n", app, name)
+			fmt.Printf("Retrying in %d seconds (attempt %d/%d)\n", pushRetryDelay, i, pushRetryLimit)
+			time.Sleep(pushRetryDelay * time.Second)
 		}
 	}
 
-	return []error{}
+	return nil
 }
