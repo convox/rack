@@ -183,19 +183,13 @@ func (s Service) MountableVolumes() []MountableVolume {
 
 // DeploymentMinimum returns the min percent of containers that are allowed during deployment
 func (s Service) DeploymentMinimum() string {
-	if min := s.Labels["convox.deployment.minimum"]; min != "" {
-		return min
-	}
-	return "100"
+	return s.LabelDefault("convox.deployment.minimum", "100")
 }
 
 // DeploymentMaximum returns the max percent of containers that are allowed during deployment
 // This will be most likely be overridden and set to 100 for singleton processes like schedulers that cannot have 2 running at once
 func (s Service) DeploymentMaximum() string {
-	if max := s.Labels["convox.deployment.minimum"]; max != "" {
-		return max
-	}
-	return "200"
+	return s.LabelDefault("convox.deployment.maximum", "200")
 }
 
 func containerEnv(container string) map[string]string {
@@ -289,6 +283,15 @@ func (s Service) LabelsByPrefix(prefix string) map[string]string {
 		}
 	}
 	return returnLabels
+}
+
+// LabelDefault returns the value of a given label if it exists, otherwise the specified default
+func (s Service) LabelDefault(label, def string) string {
+	if val, ok := s.Labels[label]; ok {
+		return val
+	}
+
+	return def
 }
 
 func (s Service) ExternalPorts() []Port {
