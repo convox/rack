@@ -643,6 +643,8 @@ func waitForAvailability(url string) error {
 	for {
 		select {
 		case <-tick:
+			fmt.Print(".")
+
 			client := &http.Client{
 				Timeout: 2 * time.Second,
 			}
