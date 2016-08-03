@@ -778,12 +778,8 @@
         "Cluster": {
           "Ref": "Cluster"
         },
-        "DeploymentMaximumPercent": {
-          "Ref": "DeploymentMaximum"
-        },
-        "DeploymentMinimumPercent": {
-          "Ref": "DeploymentMinimum"
-        },
+        "DeploymentMaximumPercent": "200",
+        "DeploymentMinimumPercent": "100",
         "DesiredCount": {
           "Fn::Select": [
             0,
@@ -1007,12 +1003,8 @@
         "Cluster": {
           "Ref": "Cluster"
         },
-        "DeploymentMaximumPercent": {
-          "Ref": "DeploymentMaximum"
-        },
-        "DeploymentMinimumPercent": {
-          "Ref": "DeploymentMinimum"
-        },
+        "DeploymentMaximumPercent": "200",
+        "DeploymentMinimumPercent": "100",
         "DesiredCount": {
           "Fn::Select": [
             0,

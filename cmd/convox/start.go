@@ -29,14 +29,14 @@ func init() {
 			},
 			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "pull fresh image dependencies",
+				Usage: "Pull fresh image dependencies",
 			},
 			cli.IntFlag{
 				Name:  "shift",
-				Usage: "Shift allocated port numbers by the given amount",
+				Usage: "shift allocated port numbers by the given amount",
 			},
-			cli.BoolTFlag{
-				Name:  "sync",
+			cli.BoolFlag{
+				Name:  "no-sync",
 				Usage: "synchronize local file changes into the running containers",
 			},
 		},
@@ -84,7 +84,9 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	cache := !c.Bool("no-cache")
-	r := m.Run(dir, app, cache)
+	sync := !c.Bool("no-sync")
+
+	r := m.Run(dir, app, cache, sync)
 
 	err = r.Start()
 	if err != nil {
