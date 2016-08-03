@@ -15,6 +15,7 @@ type Run struct {
 	App   string
 	Dir   string
 	Cache bool
+	Sync  bool
 
 	done      chan error
 	manifest  Manifest
@@ -24,11 +25,13 @@ type Run struct {
 	syncs     []Sync
 }
 
-func NewRun(dir, app string, m Manifest, cache bool) Run {
+// NewRun Default constructor method for a Run object
+func NewRun(dir, app string, m Manifest, cache, sync bool) Run {
 	return Run{
 		App:      app,
 		Dir:      dir,
 		Cache:    cache,
+		Sync:     sync,
 		manifest: m,
 		output:   NewOutput(),
 	}
@@ -126,26 +129,28 @@ func (r *Run) Start() error {
 			return err
 		}
 
-		syncs := []Sync{}
+		if r.Sync {
+			syncs := []Sync{}
 
-		for local, remote := range sp {
-			s, err := p.Sync(local, remote)
+			for local, remote := range sp {
+				s, err := p.Sync(local, remote)
 
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
+
+				syncs = append(syncs, *s)
 			}
 
-			syncs = append(syncs, *s)
-		}
+			// remove redundant syncs
+			syncs = pruneSyncs(syncs)
 
-		// remove redundant syncs
-		syncs = pruneSyncs(syncs)
-
-		for _, s := range syncs {
-			go func(s Sync) {
-				s.Start(system)
-			}(s)
-			r.syncs = append(r.syncs, s)
+			for _, s := range syncs {
+				go func(s Sync) {
+					s.Start(system)
+				}(s)
+				r.syncs = append(r.syncs, s)
+			}
 		}
 
 		r.processes = append(r.processes, p)
