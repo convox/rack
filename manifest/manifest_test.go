@@ -188,6 +188,19 @@ func TestLoadGarbage(t *testing.T) {
 	}
 }
 
+func TestLoadIdleTimeout(t *testing.T) {
+	m, err := manifestFixture("idle-timeout")
+
+	if assert.Nil(t, err) {
+		if assert.Equal(t, 1, len(m.Balancers())) {
+			b := m.Balancers()[0]
+			if val, err := b.IdleTimeout(); assert.Nil(t, err) {
+				assert.Equal(t, val, "99")
+			}
+		}
+	}
+}
+
 func TestLoadBadVersion1(t *testing.T) {
 	m, err := manifestFixture("bad-v1")
 
