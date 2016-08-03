@@ -184,19 +184,6 @@ func (r *Release) Promote() error {
 	}
 
 	for _, entry := range m.Services {
-		// Deployment min/max per service was moved from CF param to manifest label
-		// Verify that deployment min and max are backwards compatible
-		deploymentOpts := []string{ "minimum", "maximum" }
-		for _, opt := range deploymentOpts {
-			label := fmt.Sprintf("convox.deployment.%s", opt)
-			if labelVal, ok := entry.Labels[label]; ok {
-				cfVal, ok := app.Parameters[fmt.Sprintf("Deployment%s", UpperName(opt))]
-				if ok && labelVal != cfVal  {
-					return fmt.Errorf("Deployment %s must be unset as CF val and set as a service label", opt)
-				}
-			}
-		}
-
 		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
 		// so new deploys and rollbacks have the expected parameters
 		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {
