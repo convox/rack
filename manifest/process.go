@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 	"log"
+	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -29,11 +30,25 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		args = append(args, "--entrypoint", s.Entrypoint)
 	}
 
+	userEnv := map[string]string{}
+
+	for _, e := range os.Environ() {
+		parts := strings.SplitN(e, "=", 2)
+
+		if len(parts) == 2 {
+			userEnv[parts[0]] = parts[1]
+		}
+	}
+
 	for k, v := range s.Environment {
 		if v == "" {
 			args = append(args, "-e", fmt.Sprintf("%s", k))
 		} else {
-			args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+			if ev, ok := userEnv[k]; ok {
+				args = append(args, "-e", fmt.Sprintf("%s=%s", k, ev))
+			} else {
+				args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+			}
 		}
 	}
 
