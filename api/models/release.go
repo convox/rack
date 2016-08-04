@@ -231,6 +231,31 @@ func (r *Release) Promote() error {
 		for _, mapping := range entry.Ports {
 			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%dProtocol", UpperName(entry.Name), mapping.Balancer)
+			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
+			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
+
+			proto := entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
+
+			// if the proto param is set and doesnt match the label, error
+			if ap, ok := app.Parameters[protoParam]; ok {
+				if ap != proto {
+					return fmt.Errorf("%s parameter has been deprecated. Please set the convox.port.%d.protocol label instead.", protoParam, mapping.Balancer)
+				}
+			}
+
+			// if the proxy param is set and doesnt match the label, error
+			if ap, ok := app.Parameters[proxyParam]; ok {
+				if ap == "Yes" && entry.Labels[fmt.Sprintf("convox.port.%d.proxy", mapping.Balancer)] != "true" {
+					return fmt.Errorf("%s parameter has been deprecated. Please set the convox.port.%d.proxy label instead.", proxyParam, mapping.Balancer)
+				}
+			}
+
+			// if the secure param is set and doesnt match the label, error
+			if ap, ok := app.Parameters[secureParam]; ok {
+				if ap == "Yes" && entry.Labels[fmt.Sprintf("convox.port.%d.secure", mapping.Balancer)] != "true" {
+					return fmt.Errorf("%s parameter has been deprecated. Please set the convox.port.%d.secure label instead.", secureParam, mapping.Balancer)
+				}
+			}
 
 			switch app.Parameters[protoParam] {
 			case "https", "tls":
