@@ -231,33 +231,6 @@ func (r *Release) Promote() error {
 		for _, mapping := range entry.Ports {
 			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
 			protoParam := fmt.Sprintf("%sPort%dProtocol", UpperName(entry.Name), mapping.Balancer)
-			proxyParam := fmt.Sprintf("%sPort%dProxy", UpperName(entry.Name), mapping.Balancer)
-			secureParam := fmt.Sprintf("%sPort%dSecure", UpperName(entry.Name), mapping.Balancer)
-
-			app.Parameters[protoParam] = entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
-
-			// default protocol is tcp, or tls if they have a certificate set
-			if app.Parameters[protoParam] == "" {
-				if app.Parameters[certParam] == "" {
-					app.Parameters[protoParam] = "tcp"
-				} else {
-					app.Parameters[protoParam] = "tls"
-				}
-			}
-
-			if entry.Labels[fmt.Sprintf("convox.port.%d.proxy", mapping.Balancer)] == "true" {
-				app.Parameters[proxyParam] = "Yes"
-			} else {
-				app.Parameters[proxyParam] = "No"
-			}
-
-			// only change the secure parameter if a label is set for backwards compat
-			switch entry.Labels[fmt.Sprintf("convox.port.%d.secure", mapping.Balancer)] {
-			case "true":
-				app.Parameters[secureParam] = "Yes"
-			case "false":
-				app.Parameters[secureParam] = "No"
-			}
 
 			switch app.Parameters[protoParam] {
 			case "https", "tls":
