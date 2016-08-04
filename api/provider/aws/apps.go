@@ -58,6 +58,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	return &app, nil
 }
 
+// AppDelete deletes an app
 func (p *AWSProvider) AppDelete(name string) error {
 
 	app, err := p.AppGet(name)

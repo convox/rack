@@ -28,6 +28,7 @@ func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
 	return &p.App, nil
 }
 
+// AppDelete deletes an app
 func (p *TestProviderRunner) AppDelete(name string) error {
 	p.Called(name)
 	return nil
@@ -139,6 +140,7 @@ func (p *TestProviderRunner) LogStream(app string, w io.Writer, opts structs.Log
 	return nil
 }
 
+// ReleaseBatchDelete deletes releases associated with app and buildID in batches
 func (p *TestProviderRunner) ReleaseBatchDelete(app, buildID string) error {
 	p.Called(app, buildID)
 	return nil
@@ -149,6 +151,7 @@ func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error
 	return &p.Release, nil
 }
 
+// ReleaseList returns a list of releases
 func (p *TestProviderRunner) ReleaseList(app string, limit int64) (structs.Releases, error) {
 	args := p.Called(app, limit)
 	return args.Get(0).(structs.Releases), args.Error(1)

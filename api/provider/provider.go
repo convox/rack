@@ -83,6 +83,7 @@ func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
 }
 
+// AppDelete deletes an app
 func AppDelete(name string) error {
 	return CurrentProvider.AppDelete(name)
 }
@@ -171,6 +172,7 @@ func LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	return CurrentProvider.LogStream(app, w, opts)
 }
 
+// ReleaseBatchDelete deletes releases associated with app and buildID in batches
 func ReleaseBatchDelete(app, buildID string) error {
 	return CurrentProvider.ReleaseBatchDelete(app, buildID)
 }
@@ -179,6 +181,7 @@ func ReleaseGet(app, id string) (*structs.Release, error) {
 	return CurrentProvider.ReleaseGet(app, id)
 }
 
+// ReleaseList returns a list of releases
 func ReleaseList(app string, limit int64) (structs.Releases, error) {
 	return CurrentProvider.ReleaseList(app, limit)
 }

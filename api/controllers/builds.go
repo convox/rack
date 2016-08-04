@@ -127,6 +127,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
+// BuildDelete deletes a build. Makes sure not to delete a build that is contained in the active release
 func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	appName := vars["app"]

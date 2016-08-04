@@ -17,6 +17,7 @@ func releasesTable(app string) string {
 	return os.Getenv("DYNAMO_RELEASES")
 }
 
+// ReleaseGet returns a release
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 
 	if id == "" {

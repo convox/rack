@@ -122,12 +122,13 @@ func (a *App) IsBound() bool {
 	return false
 }
 
+// StackName returns the app's stack if the app is bound. Otherwise returns the short name.
 func (a *App) StackName() string {
 	if a.IsBound() {
 		return shortNameToStackName(a.Name)
-	} else {
-		return a.Name
 	}
+
+	return a.Name
 }
 
 func (a *App) Create() error {
