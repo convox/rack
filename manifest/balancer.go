@@ -154,6 +154,7 @@ func (mb ManifestBalancer) Protocol(p Port) string {
 	return mb.Entry.Labels[fmt.Sprintf("convox.port.%d.protocol", p.Balancer)]
 }
 
+// ListenerProtocol returns the ELB listener protocol
 func (mb ManifestBalancer) ListenerProtocol(p Port) string {
 	switch mb.Protocol(p) {
 	case "tls":
@@ -168,6 +169,7 @@ func (mb ManifestBalancer) ListenerProtocol(p Port) string {
 	return "TCP"
 }
 
+// InstanceProtocol returns the container protocol
 func (mb ManifestBalancer) InstanceProtocol(p Port) string {
 	secure := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.secure", p.Balancer)] == "true"
 
@@ -175,20 +177,19 @@ func (mb ManifestBalancer) InstanceProtocol(p Port) string {
 	case "tcp", "tls":
 		if secure {
 			return "SSL"
-		} else {
-			return "TCP"
 		}
+		return "TCP"
 	case "https", "http":
 		if secure {
 			return "HTTPS"
-		} else {
-			return "HTTP"
 		}
+		return "HTTP"
 	}
 
 	return "TCP"
 }
 
+// ProxyProtocol returns true if the container is listening for PROXY protocol
 func (mb ManifestBalancer) ProxyProtocol(p Port) bool {
 	return mb.Entry.Labels[fmt.Sprintf("convox.port.%d.proxy", p.Balancer)] == "true"
 }
@@ -246,16 +247,14 @@ func (mb ManifestBalancer) HealthProtocol() string {
 	if path := mb.Entry.Labels["convox.health.path"]; path != "" {
 		if secure {
 			return "HTTPS"
-		} else {
-			return "HTTP"
 		}
-	} else {
-		if secure {
-			return "SSL"
-		} else {
-			return "TCP"
-		}
+		return "HTTP"
 	}
+
+	if secure {
+		return "SSL"
+	}
+	return "TCP"
 }
 
 // HealthTimeout The default health timeout when one is not specified
