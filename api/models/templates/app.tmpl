@@ -7,6 +7,7 @@
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
       {{ template "registry-conditions" .Manifest }}
+      "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
@@ -34,6 +35,12 @@
         "Default": "",
         "Description": ""
       },
+      "Internal": {
+        "Type": "String",
+        "Description": "Only allow access to this app from inside the VPC",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
       "Key": {
         "Type": "String",
         "Default": "",
@@ -41,7 +48,7 @@
       },
       "Private": {
         "Type": "String",
-        "Description": "Create internal load balancers in private subnets",
+        "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
       },
@@ -375,15 +382,18 @@
       "Condition": "Enabled{{ upper .ProcessName }}",
       "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
-        {{ if eq .Scheme "internal" }}
-          "Scheme": "{{ .Scheme }}",
-          "Subnets": { "Fn::If": [ "Private",
-            { "Ref": "SubnetsPrivate" },
-            { "Ref": "Subnets" }
-          ] },
-        {{ else }}
-          "Subnets": { "Ref": "Subnets" },
-        {{ end }}
+        "Scheme": { "Fn::If": [ "Internal",
+          "internal",
+          {{ if eq .Scheme "internal" }}
+            "internal"
+          {{ else }}
+            { "Ref": "AWS::NoValue" }
+          {{ end }}
+        ] },
+        "Subnets": { "Fn::If": [ "Private",
+          { "Ref": "SubnetsPrivate" },
+          { "Ref": "Subnets" }
+        ] },
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
