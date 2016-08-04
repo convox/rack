@@ -261,7 +261,7 @@ func linkArgs(s Service, container string) []string {
 
 	u := url.URL{
 		Scheme: scheme,
-		Host:   host,
+		Host:   fmt.Sprintf("%s:%s", host, port),
 		Path:   path,
 	}
 
