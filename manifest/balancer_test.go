@@ -1,0 +1,50 @@
+package manifest_test
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestBalancer(t *testing.T) {
+	m, err := manifestFixture("balancer")
+
+	if assert.Nil(t, err) {
+		if assert.Equal(t, len(m.Balancers()), 1) {
+			balancer := m.Balancers()[0]
+
+			assert.Equal(t, "TCP", balancer.HealthProtocol())
+			assert.Equal(t, "80", balancer.HealthPort())
+			assert.Equal(t, "", balancer.HealthPath())
+			assert.Equal(t, "3", balancer.HealthTimeout())
+		}
+	}
+}
+
+func TestBalancerLabels(t *testing.T) {
+	m, err := manifestFixture("balancer-labels")
+
+	if assert.Nil(t, err) {
+		if assert.Equal(t, len(m.Balancers()), 1) {
+			balancer := m.Balancers()[0]
+
+			assert.Equal(t, "HTTP", balancer.HealthProtocol())
+			assert.Equal(t, "443", balancer.HealthPort())
+			assert.Equal(t, "/foo", balancer.HealthPath())
+			assert.Equal(t, "20", balancer.HealthTimeout())
+		}
+	}
+}
+
+func TestBalancerSecure(t *testing.T) {
+	m, err := manifestFixture("balancer-secure")
+
+	if assert.Nil(t, err) {
+		if assert.Equal(t, len(m.Balancers()), 1) {
+			balancer := m.Balancers()[0]
+
+			assert.Equal(t, "SSL", balancer.HealthProtocol())
+			assert.Equal(t, "443", balancer.HealthPort())
+		}
+	}
+}
