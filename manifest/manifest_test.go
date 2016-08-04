@@ -188,8 +188,21 @@ func TestLoadGarbage(t *testing.T) {
 	}
 }
 
-func TestLoadIdleTimeout(t *testing.T) {
-	m, err := manifestFixture("idle-timeout")
+func TestLoadIdleTimeoutUnset(t *testing.T) {
+	m, err := manifestFixture("idle-timeout-unset")
+
+	if assert.Nil(t, err) {
+		if assert.Equal(t, 1, len(m.Balancers())) {
+			b := m.Balancers()[0]
+			if val, err := b.IdleTimeout(); assert.Nil(t, err) {
+				assert.Equal(t, val, "3600")
+			}
+		}
+	}
+}
+
+func TestLoadIdleTimeoutSet(t *testing.T) {
+	m, err := manifestFixture("idle-timeout-set")
 
 	if assert.Nil(t, err) {
 		if assert.Equal(t, 1, len(m.Balancers())) {
