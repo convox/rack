@@ -3,7 +3,7 @@ services:
   web:
     build: .
     labels:
-      - convox.health.port=443
+      - convox.health.port=5001
       - convox.health.path=/foo
       - convox.health.timeout=20
       - convox.port.443.protocol=https

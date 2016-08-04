@@ -238,6 +238,17 @@ func (mb ManifestBalancer) HealthPort() string {
 		return ""
 	}
 
+	if port := mb.Entry.Labels["convox.health.port"]; port != "" {
+		for _, p := range mb.Entry.Ports {
+			if strconv.Itoa(p.Container) == port {
+				return strconv.Itoa(p.Balancer)
+			}
+		}
+
+		// couldnt find the port they are talking about
+		return ""
+	}
+
 	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.ExternalPorts()[0].Balancer))
 }
 
