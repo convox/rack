@@ -201,12 +201,15 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	}
 
 	// delete build item
-	p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
+	_, err = p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
 		TableName: aws.String(buildsTable(app)),
 	})
+	if err != nil {
+		return b, err
+	}
 
 	// delete ECR images
 	err = p.deleteImages(a, b)
@@ -716,4 +719,43 @@ func registryTag(a *structs.App, serviceName, buildId string) string {
 	}
 
 	return tag
+}
+
+func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
+
+	// query dynamo for all builds belonging to app
+	qi := &dynamodb.QueryInput{
+		KeyConditionExpression: aws.String("app = :app"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":app": &dynamodb.AttributeValue{S: aws.String(app.Name)},
+		},
+		IndexName: aws.String("app.created"),
+		TableName: aws.String(buildsTable(app.Name)),
+	}
+
+	res, err := p.dynamodb().Query(qi)
+	if err != nil {
+		return err
+	}
+
+	// collect builds IDs to delete
+	wrs := []*dynamodb.WriteRequest{}
+	fmt.Println()
+	for _, item := range res.Items {
+		b := p.buildFromItem(item, app.Outputs["Settings"])
+
+		wr := &dynamodb.WriteRequest{
+			DeleteRequest: &dynamodb.DeleteRequest{
+				Key: map[string]*dynamodb.AttributeValue{
+					"id": &dynamodb.AttributeValue{
+						S: aws.String(b.Id),
+					},
+				},
+			},
+		}
+
+		wrs = append(wrs, wr)
+	}
+
+	return p.dynamoBatchDeleteItems(wrs, buildsTable(app.Name))
 }

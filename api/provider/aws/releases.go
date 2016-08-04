@@ -233,18 +233,5 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 		wrs = append(wrs, wr)
 	}
 
-	if len(wrs) > 0 {
-		_, err = p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-			RequestItems: map[string][]*dynamodb.WriteRequest{
-				tableName: wrs,
-			},
-		})
-		if err != nil {
-			return err
-		}
-	} else {
-		fmt.Println("ns=api fn=deleteReleaseItems level=info  msg=\"no releases to delete\"")
-	}
-
-	return nil
+	return p.dynamoBatchDeleteItems(wrs, tableName)
 }

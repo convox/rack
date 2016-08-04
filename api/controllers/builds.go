@@ -206,6 +206,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			fmt.Println("Error listing builds for cleanup")
 		} else {
 			if len(bs) >= 50 {
+
 				go func() {
 					for _, b := range bs[50:] {
 						active, err := isBuildActive(app, b.Id)
@@ -406,6 +407,10 @@ func isBuildActive(appName, buildID string) (bool, error) {
 	_, err = provider.BuildGet(app.Name, buildID)
 	if err != nil {
 		return true, err
+	}
+
+	if app.Release == "" { // no release means no active build
+		return false, nil
 	}
 
 	release, err := provider.ReleaseGet(app.Name, app.Release)

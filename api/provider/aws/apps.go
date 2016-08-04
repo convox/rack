@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/structs"
@@ -77,22 +78,30 @@ func (p *AWSProvider) AppDelete(name string) error {
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
 func (p *AWSProvider) cleanup(app *structs.App) error {
+
 	err := p.deleteBucket(app.Outputs["Settings"])
 	if err != nil {
+		fmt.Printf("fn=cleanup level=error msg=\"%s\"", err)
 		return err
 	}
 
-	builds, err := p.BuildList(app.Name, 200)
+	err = p.buildsDeleteAll(app)
 	if err != nil {
+		fmt.Printf("fn=cleanup level=error msg=\"%s\"", err)
 		return err
 	}
 
-	for _, build := range builds {
-		p.BuildDelete(app.Name, build.Id)
+	_, err = p.ecr().DeleteRepository(&ecr.DeleteRepositoryInput{
+		RepositoryName: aws.String(app.Outputs["RegistryRepository"]),
+		Force:          aws.Bool(true),
+	})
+	if err != nil {
+		fmt.Printf("fn=cleanup level=error msg=\"error deleting ecr repo: %s\"", err)
 	}
 
 	err = p.releaseDeleteAll(app.Name)
 	if err != nil {
+		fmt.Printf("fn=cleanup level=error msg=\"%s\"", err)
 		return err
 	}
 
@@ -155,19 +164,56 @@ func (p *AWSProvider) deleteBucket(bucket string) error {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	maxLen := 1000
 	go func() {
 		defer wg.Done()
-		for _, d := range res.DeleteMarkers {
-			p.cleanupBucketObject(bucket, *d.Key, *d.VersionId)
-			time.Sleep(1 * time.Second)
+
+		for i := 0; i < len(res.DeleteMarkers); i += maxLen {
+			high := i + maxLen
+			if high > len(res.DeleteMarkers) {
+				high = len(res.DeleteMarkers)
+			}
+
+			objects := []*s3.ObjectIdentifier{}
+			for _, obj := range res.DeleteMarkers[i:high] {
+				objects = append(objects, &s3.ObjectIdentifier{Key: obj.Key, VersionId: obj.VersionId})
+			}
+
+			_, err := p.s3().DeleteObjects(&s3.DeleteObjectsInput{
+				Bucket: aws.String(bucket),
+				Delete: &s3.Delete{
+					Objects: objects,
+				},
+			})
+			if err != nil {
+				fmt.Printf("failed to delete S3 markers: %s\n", err)
+			}
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		for _, v := range res.Versions {
-			p.cleanupBucketObject(bucket, *v.Key, *v.VersionId)
-			time.Sleep(1 * time.Second)
+
+		for i := 0; i < len(res.Versions); i += maxLen {
+			high := i + maxLen
+			if high > len(res.Versions) {
+				high = len(res.Versions)
+			}
+
+			objects := []*s3.ObjectIdentifier{}
+			for _, obj := range res.Versions[i:high] {
+				objects = append(objects, &s3.ObjectIdentifier{Key: obj.Key, VersionId: obj.VersionId})
+			}
+
+			_, err := p.s3().DeleteObjects(&s3.DeleteObjectsInput{
+				Bucket: aws.String(bucket),
+				Delete: &s3.Delete{
+					Objects: objects,
+				},
+			})
+			if err != nil {
+				fmt.Printf("failed to delete S3 versions: %s\n", err)
+			}
 		}
 	}()
 
