@@ -150,11 +150,12 @@ func (mb ManifestBalancer) Scheme() string {
 	return "internal"
 }
 
+// Protocol returns the desired listener protocol of the balancer
 func (mb ManifestBalancer) Protocol(p Port) string {
 	return mb.Entry.Labels[fmt.Sprintf("convox.port.%d.protocol", p.Balancer)]
 }
 
-// ListenerProtocol returns the ELB listener protocol
+// ListenerProtocol returns the protocol the balancer should use to listen
 func (mb ManifestBalancer) ListenerProtocol(p Port) string {
 	switch mb.Protocol(p) {
 	case "tls":
@@ -169,7 +170,7 @@ func (mb ManifestBalancer) ListenerProtocol(p Port) string {
 	return "TCP"
 }
 
-// InstanceProtocol returns the container protocol
+// InstanceProtocol returns protocol the container is listening with
 func (mb ManifestBalancer) InstanceProtocol(p Port) string {
 	secure := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.secure", p.Balancer)] == "true"
 
