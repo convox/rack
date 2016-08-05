@@ -150,6 +150,51 @@ func (mb ManifestBalancer) Scheme() string {
 	return "internal"
 }
 
+// Protocol returns the desired listener protocol of the balancer
+func (mb ManifestBalancer) Protocol(p Port) string {
+	return mb.Entry.Labels[fmt.Sprintf("convox.port.%d.protocol", p.Balancer)]
+}
+
+// ListenerProtocol returns the protocol the balancer should use to listen
+func (mb ManifestBalancer) ListenerProtocol(p Port) string {
+	switch mb.Protocol(p) {
+	case "tls":
+		return "SSL"
+	case "tcp":
+		return "TCP"
+	case "https":
+		return "HTTPS"
+	case "http":
+		return "HTTP"
+	}
+	return "TCP"
+}
+
+// InstanceProtocol returns protocol the container is listening with
+func (mb ManifestBalancer) InstanceProtocol(p Port) string {
+	secure := mb.Entry.Labels[fmt.Sprintf("convox.port.%d.secure", p.Balancer)] == "true"
+
+	switch mb.Protocol(p) {
+	case "tcp", "tls":
+		if secure {
+			return "SSL"
+		}
+		return "TCP"
+	case "https", "http":
+		if secure {
+			return "HTTPS"
+		}
+		return "HTTP"
+	}
+
+	return "TCP"
+}
+
+// ProxyProtocol returns true if the container is listening for PROXY protocol
+func (mb ManifestBalancer) ProxyProtocol(p Port) bool {
+	return mb.Entry.Labels[fmt.Sprintf("convox.port.%d.proxy", p.Balancer)] == "true"
+}
+
 func UpperName(name string) string {
 	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
@@ -181,14 +226,6 @@ func (mb ManifestBalancer) Randoms() map[string]int {
 	return mb.Entry.Randoms()
 }
 
-// HealthTimeout The default health timeout when one is not specified
-func (mb ManifestBalancer) HealthTimeout() string {
-	if timeout := mb.Entry.Labels["convox.health.timeout"]; timeout != "" {
-		return timeout
-	}
-	return "3"
-}
-
 // HealthPath The path to check for health. If unset, then implies TCP check
 func (mb ManifestBalancer) HealthPath() string {
 	return mb.Entry.Labels["convox.health.path"]
@@ -196,20 +233,48 @@ func (mb ManifestBalancer) HealthPath() string {
 
 // HealthPort The balancer port that maps to the container port specified in
 // manifest
-func (mb ManifestBalancer) HealthPort() (string, error) {
-	mappings := mb.PortMappings()
-	if port := mb.Entry.Labels["convox.health.port"]; port != "" {
-		for _, mapping := range mappings {
-			if strconv.Itoa(mapping.Container) == port {
-				return strconv.Itoa(mapping.Balancer), nil
-			}
-		}
-		return "", fmt.Errorf("Failed to find matching port for health port %#v", port)
-	} else if len(mappings) > 0 {
-		return strconv.Itoa(mappings[0].Balancer), nil
+func (mb ManifestBalancer) HealthPort() string {
+	if len(mb.Entry.Ports) == 0 {
+		return ""
 	}
 
-	return "", nil
+	if port := mb.Entry.Labels["convox.health.port"]; port != "" {
+		for _, p := range mb.Entry.Ports {
+			if strconv.Itoa(p.Container) == port {
+				return strconv.Itoa(p.Balancer)
+			}
+		}
+
+		// couldnt find the port they are talking about
+		return ""
+	}
+
+	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.Ports[0].Balancer))
+}
+
+// HealthProtocol returns the protocol to use for the health check
+func (mb ManifestBalancer) HealthProtocol() string {
+	secure := mb.Entry.Labels[fmt.Sprintf("convox.port.%s.secure", mb.HealthPort())] == "true"
+
+	if path := mb.Entry.Labels["convox.health.path"]; path != "" {
+		if secure {
+			return "HTTPS"
+		}
+		return "HTTP"
+	}
+
+	if secure {
+		return "SSL"
+	}
+	return "TCP"
+}
+
+// HealthTimeout The default health timeout when one is not specified
+func (mb ManifestBalancer) HealthTimeout() string {
+	if timeout := mb.Entry.Labels["convox.health.timeout"]; timeout != "" {
+		return timeout
+	}
+	return "3"
 }
 
 // HealthInterval The amount of time in between health checks.
