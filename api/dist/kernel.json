@@ -82,6 +82,10 @@
       "Condition": "Development",
       "Value": { "Ref": "EncryptionKey" }
     },
+    "Internal": {
+      "Condition": "Development",
+      "Value": { "Ref": "Internal" }
+    },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
     },
@@ -197,6 +201,12 @@
       "Description": "Existing VPC ID (if blank a VPC will be created)",
       "Type": "String",
       "Default": ""
+    },
+    "Internal": {
+      "Type": "String",
+      "Description": "Create applications that are only accessible inside the VPC",
+      "Default": "No",
+      "AllowedValues": [ "Yes", "No" ]
     },
     "InstanceBootCommand": {
       "Type": "String",
@@ -1588,6 +1598,7 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "INTERNAL": { "Ref": "Internal" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
