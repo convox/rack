@@ -249,7 +249,7 @@ func (mb ManifestBalancer) HealthPort() string {
 		return ""
 	}
 
-	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.ExternalPorts()[0].Balancer))
+	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.Ports[0].Balancer))
 }
 
 // HealthProtocol returns the protocol to use for the health check
