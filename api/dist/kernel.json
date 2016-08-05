@@ -1576,7 +1576,7 @@
         "Tasks": [
           {
             "Command": "api/bin/web",
-            "CPU": { "Ref": "ApiCpu" },
+            "Cpu": { "Ref": "ApiCpu" },
             "Environment": {
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
