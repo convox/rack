@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 type Process struct {
@@ -68,11 +69,11 @@ func NewProcess(app string, s Service, m Manifest) Process {
 
 	for _, volume := range s.Volumes {
 		if !strings.Contains(volume, ":") {
-			usr, err := user.Current()
+			home, err := homedir.Dir()
 			if err != nil {
 				log.Fatal(err)
 			}
-			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", usr.HomeDir, app, s.Name, volume))
+			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, app, s.Name, volume))
 			if err != nil {
 				//this won't break
 			}
