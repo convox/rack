@@ -257,7 +257,7 @@ func (r *Release) Promote() error {
 				}
 			}
 
-			switch app.Parameters[protoParam] {
+			switch proto {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
 					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
