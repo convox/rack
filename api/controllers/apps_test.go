@@ -8,6 +8,7 @@ import (
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -146,11 +147,24 @@ func TestAppCreateWithRackName(t *testing.T) {
 bucket name to the ephermeral host, so you get `app-XXX.127.0.0.1`
 */
 func TestAppDelete(t *testing.T) {
+
+	// set current provider
+	testProvider := &provider.TestProviderRunner{}
+	provider.CurrentProvider = testProvider
+	defer func() {
+		//TODO: remove: as we arent updating all tests we need to set current provider back to a
+		//clean default one
+		provider.CurrentProvider = new(provider.TestProviderRunner)
+	}()
+
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-bar"),
 		test.DeleteStackCycle("convox-test-bar"),
 	)
 	defer aws.Close()
+
+	// setup expectations on current provider
+	testProvider.On("AppDelete", "bar").Return(nil)
 
 	body := test.HTTPBody("DELETE", "http://convox/apps/bar", nil)
 

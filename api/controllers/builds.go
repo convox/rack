@@ -66,19 +66,6 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
-func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	app := vars["app"]
-	build := vars["build"]
-
-	b, err := provider.BuildDelete(app, build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, b)
-}
-
 func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -140,6 +127,33 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
+// BuildDelete deletes a build. Makes sure not to delete a build that is contained in the active release
+func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	appName := vars["app"]
+	buildID := vars["build"]
+
+	active, err := isBuildActive(appName, buildID)
+	if err != nil {
+		return httperr.Errorf(404, err.Error())
+	}
+	if active {
+		return httperr.Errorf(400, "cannot delete build contained in active release")
+	}
+
+	err = provider.ReleaseDelete(appName, buildID)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	build, err := provider.BuildDelete(appName, buildID)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, build)
+}
+
 func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -193,9 +207,21 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			fmt.Println("Error listing builds for cleanup")
 		} else {
 			if len(bs) >= 50 {
+
 				go func() {
 					for _, b := range bs[50:] {
-						_, err := provider.BuildDelete(app, b.Id)
+						active, err := isBuildActive(app, b.Id)
+						if err != nil || active {
+							continue
+						}
+
+						err = provider.ReleaseDelete(app, b.Id)
+						if err != nil {
+							fmt.Printf("Error cleaning up releases for %s: %s", b.Id, err.Error())
+							continue
+						}
+
+						_, err = provider.BuildDelete(app, b.Id)
 						if err != nil {
 							fmt.Printf("Error cleaning up build: %s", b.Id)
 						}
@@ -367,4 +393,31 @@ func keepAlive(ws *websocket.Conn, quit chan bool) {
 			return
 		}
 	}
+}
+
+// isBuildActive verifies if the build is part of the active release
+// Function assumes the build is active if an error occurs to play it safe
+func isBuildActive(appName, buildID string) (bool, error) {
+
+	app, err := provider.AppGet(appName)
+	if err != nil {
+		return true, err
+	}
+
+	// To make sure the build exist
+	_, err = provider.BuildGet(app.Name, buildID)
+	if err != nil {
+		return true, err
+	}
+
+	if app.Release == "" { // no release means no active build
+		return false, nil
+	}
+
+	release, err := provider.ReleaseGet(app.Name, app.Release)
+	if err != nil {
+		return true, err
+	}
+
+	return release.Build == buildID, nil
 }

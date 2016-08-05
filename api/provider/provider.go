@@ -13,6 +13,7 @@ var CurrentProvider Provider
 
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
+	AppDelete(name string) error
 
 	BuildCopy(srcApp, id, destApp string) (*structs.Build, error)
 	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)
@@ -43,9 +44,9 @@ type Provider interface {
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
 
-	ReleaseDelete(app, id string) (*structs.Release, error)
+	ReleaseDelete(app, buildID string) error
 	ReleaseGet(app, id string) (*structs.Release, error)
-	ReleaseList(app string) (structs.Releases, error)
+	ReleaseList(app string, limit int64) (structs.Releases, error)
 	ReleasePromote(app, id string) (*structs.Release, error)
 	ReleaseSave(*structs.Release, string, string) error
 
@@ -80,6 +81,11 @@ func init() {
 
 func AppGet(name string) (*structs.App, error) {
 	return CurrentProvider.AppGet(name)
+}
+
+// AppDelete deletes an app
+func AppDelete(name string) error {
+	return CurrentProvider.AppDelete(name)
 }
 
 func BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
@@ -166,16 +172,18 @@ func LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	return CurrentProvider.LogStream(app, w, opts)
 }
 
-func ReleaseDelete(app, id string) (*structs.Release, error) {
-	return CurrentProvider.ReleaseDelete(app, id)
+// ReleaseDelete deletes releases associated with app and buildID in batches
+func ReleaseDelete(app, buildID string) error {
+	return CurrentProvider.ReleaseDelete(app, buildID)
 }
 
 func ReleaseGet(app, id string) (*structs.Release, error) {
 	return CurrentProvider.ReleaseGet(app, id)
 }
 
-func ReleaseList(app string) (structs.Releases, error) {
-	return CurrentProvider.ReleaseList(app)
+// ReleaseList returns a list of releases
+func ReleaseList(app string, limit int64) (structs.Releases, error) {
+	return CurrentProvider.ReleaseList(app, limit)
 }
 
 func ReleasePromote(app, id string) (*structs.Release, error) {
