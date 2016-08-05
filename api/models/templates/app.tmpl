@@ -7,6 +7,7 @@
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
       {{ template "registry-conditions" .Manifest }}
+      "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
     },
@@ -34,6 +35,12 @@
         "Default": "",
         "Description": ""
       },
+      "Internal": {
+        "Type": "String",
+        "Description": "Only allow access to this app from inside the VPC",
+        "Default": "No",
+        "AllowedValues": [ "Yes", "No" ]
+      },
       "Key": {
         "Type": "String",
         "Default": "",
@@ -41,7 +48,7 @@
       },
       "Private": {
         "Type": "String",
-        "Description": "Create internal load balancers in private subnets",
+        "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
         "Default": "No",
         "AllowedValues": [ "Yes", "No" ]
       },
@@ -297,11 +304,8 @@
     {{ $processName := upper .ProcessName }}
     {{ $balancerPrefix := printf "Balancer%s" $processName }}
     {{ range .PortMappings }}
-      "{{ $balancerPrefix }}Port{{ .Balancer }}Proxy": {
-        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Proxy" }, "Yes" ]
-      },
-      "{{ $balancerPrefix }}Port{{ .Balancer }}Secure": {
-        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Secure" }, "Yes" ]
+      "Blank{{ $balancerPrefix }}Port{{ .Balancer }}Certificate": {
+        "Fn::Equals": [ { "Ref": "{{ $processName }}Port{{ .Balancer }}Certificate" }, "" ]
       },
     {{ end }}
   {{ end }}
@@ -311,11 +315,6 @@
   {{ range .Balancers }}
     {{ $balancer := . }}
     {{ range .PortMappings }}
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
-        "Type" : "String",
-        "Default" : "{{ .Balancer }}",
-        "Description" : ""
-      },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate": {
         "Type" : "String",
         "Default" : "",
@@ -325,24 +324,6 @@
         "Type" : "String",
         "Default" : "{{ index $balancer.Randoms (itoa .Balancer) }}",
         "Description" : ""
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol": {
-        "Type" : "String",
-        "Default" : "tls",
-        "Description" : "",
-        "AllowedValues": [ "http", "https", "tcp", "tls" ]
-      },
-      "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy": {
-        "Type" : "String",
-        "Default" : "No",
-        "Description" : "",
-        "AllowedValues": [ "Yes", "No" ]
       },
     {{ end }}
   {{ end }}
@@ -359,7 +340,7 @@
     {{ range .PortMappings }}
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer": {
         "Condition": "Enabled{{ upper $balancer.ProcessName }}",
-        "Value": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
+        "Value": "{{ .Balancer }}"
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
         "Condition": "Enabled{{ upper $balancer.ProcessName }}",
@@ -387,8 +368,8 @@
               "CidrIp": { "Ref": "VPCCIDR" },
               {{ end }}
               "IpProtocol": "tcp",
-              "FromPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-              "ToPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" }
+              "FromPort": "{{ .Balancer }}",
+              "ToPort": "{{ .Balancer }}"
             },
           {{ end }}
           { "Ref": "AWS::NoValue" }
@@ -401,83 +382,54 @@
       "Condition": "Enabled{{ upper .ProcessName }}",
       "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
-        {{ if eq .Scheme "internal" }}
-          "Scheme": "{{ .Scheme }}",
-          "Subnets": { "Fn::If": [ "Private",
-            { "Ref": "SubnetsPrivate" },
-            { "Ref": "Subnets" }
-          ] },
-        {{ else }}
-          "Subnets": { "Ref": "Subnets" },
-        {{ end }}
+        "Scheme": { "Fn::If": [ "Internal",
+          "internal",
+          {{ if eq .Scheme "internal" }}
+            "internal"
+          {{ else }}
+            { "Ref": "AWS::NoValue" }
+          {{ end }}
+        ] },
+        "Subnets": { "Fn::If": [ "Private",
+          { "Ref": "SubnetsPrivate" },
+          { "Ref": "Subnets" }
+        ] },
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": "{{ .HealthInterval }}",
-          "Target": {
-            {{/* Joins to form <protocol>:<port>/<path> */}}
-            "Fn::Join": [
-              "",
-              [
-                {
-                  {{/* Joins to form <protocol>:<port> */}}
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {{ if eq .HealthPath "" }}
-                        {
-                          "Fn::If": [
-                            "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
-                            {"Fn::FindInMap": ["PortProtocol", "tcp", "SecureInstanceProtocol"]},
-                            {"Fn::FindInMap": ["PortProtocol", "tcp", "InstanceProtocol"]}
-                          ]
-                        },
-                      {{ else }}
-                        {
-                          "Fn::If": [
-                            "Balancer{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Secure",
-                            {"Fn::FindInMap": ["PortProtocol", "http", "SecureInstanceProtocol"]},
-                            {"Fn::FindInMap": ["PortProtocol", "http", "InstanceProtocol"]}
-                          ]
-                        },
-                      {{ end }}
-                      { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .HealthPort }}Host" }
-                    ]
-                  ]
-                },
-                "{{ .HealthPath }}"
-              ]
-            ]
-          },
-          "Timeout": "{{ $balancer.HealthTimeout }}",
+          "Target": { "Fn::Join": [ "", [
+            "{{ .HealthProtocol }}:",
+            { "Ref": "{{ upper .ProcessName }}Port{{ .HealthPort }}Host" },
+            "{{ .HealthPath }}"
+          ] ] },
+          "Timeout": "{{ .HealthTimeout }}",
           "UnhealthyThreshold": "2"
         },
         "Listeners": [
           {{ range .PortMappings }}
-            { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Secure",
-              {
-                "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "ListenerProtocol" ] },
-                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "SecureInstanceProtocol" ] },
-                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
-                "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
-              },
-              {
-                "Protocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "ListenerProtocol" ] },
-                "LoadBalancerPort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Balancer" },
-                "InstanceProtocol": { "Fn::FindInMap": [ "PortProtocol", { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Protocol" }, "InstanceProtocol" ] },
-                "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
-                "SSLCertificateId": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
-              }
-            ] },
+            {
+              {{ if $balancer.Protocol . }}
+                "Protocol": "{{ $balancer.ListenerProtocol . }}",
+              {{ else }}
+                "Protocol": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate", "TCP", "SSL" ] },
+              {{ end }}
+              "LoadBalancerPort": "{{ .Balancer }}",
+              "InstanceProtocol": "{{ $balancer.InstanceProtocol . }}",
+              "InstancePort": { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" },
+              "SSLCertificateId": { "Fn::If": [ "BlankBalancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate",
+                { "Ref": "AWS::NoValue" },
+                { "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Certificate" }
+              ] }
+            },
           {{ end }}
           { "Ref": "AWS::NoValue" }
         ],
         "Policies": [
           {{ range .PortMappings }}
-            { "Fn::If": [ "Balancer{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Proxy",
+            {{ if $balancer.ProxyProtocol . }}
               {
                 "PolicyName": "EnableProxyProtocol",
                 "PolicyType": "ProxyProtocolPolicyType",
@@ -487,8 +439,7 @@
                 }],
                 "InstancePorts": [{ "Ref": "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}Host" }]
               },
-              { "Ref": "AWS::NoValue" }
-            ] },
+            {{ end }}
           {{ end }}
           { "Ref": "AWS::NoValue" }
         ],
