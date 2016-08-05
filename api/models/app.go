@@ -158,6 +158,7 @@ func (a *App) Create() error {
 
 	params := map[string]string{
 		"Cluster":        os.Getenv("CLUSTER"),
+		"Internal":       os.Getenv("INTERNAL"),
 		"Private":        os.Getenv("PRIVATE"),
 		"Subnets":        os.Getenv("SUBNETS"),
 		"SubnetsPrivate": subnetsPrivate,
