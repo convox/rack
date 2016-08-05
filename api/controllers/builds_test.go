@@ -37,7 +37,7 @@ func TestBuildDelete(t *testing.T) {
 	testProvider.On("BuildGet", "app-name", "build-id").Return(&testProvider.Build, nil)
 	testProvider.On("ReleaseGet", "app-name", "release-id").Return(&testProvider.Release, nil)
 	testProvider.On("BuildDelete", "app-name", "build-id").Return(&testProvider.Build, nil)
-	testProvider.On("ReleaseBatchDelete", "app-name", "build-id").Return(nil)
+	testProvider.On("ReleaseDelete", "app-name", "build-id").Return(nil)
 
 	// make request
 	body := test.HTTPBody("DELETE", "http://convox/apps/app-name/builds/build-id", nil)

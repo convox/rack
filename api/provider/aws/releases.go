@@ -172,9 +172,9 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release 
 	return release
 }
 
-// ReleaseBatchDelete will delete all releases that belong to app and buildID
+// ReleaseDelete will delete all releases that belong to app and buildID
 // This could includes the active release which implies this should be called with caution.
-func (p *AWSProvider) ReleaseBatchDelete(app, buildID string) error {
+func (p *AWSProvider) ReleaseDelete(app, buildID string) error {
 
 	// query dynamo for all releases for this build
 	qi := &dynamodb.QueryInput{

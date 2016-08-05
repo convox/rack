@@ -140,8 +140,8 @@ func (p *TestProviderRunner) LogStream(app string, w io.Writer, opts structs.Log
 	return nil
 }
 
-// ReleaseBatchDelete deletes releases associated with app and buildID in batches
-func (p *TestProviderRunner) ReleaseBatchDelete(app, buildID string) error {
+// ReleaseDelete deletes releases associated with app and buildID in batches
+func (p *TestProviderRunner) ReleaseDelete(app, buildID string) error {
 	p.Called(app, buildID)
 	return nil
 }

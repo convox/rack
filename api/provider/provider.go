@@ -44,7 +44,7 @@ type Provider interface {
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
 
-	ReleaseBatchDelete(app, buildID string) error
+	ReleaseDelete(app, buildID string) error
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string, limit int64) (structs.Releases, error)
 	ReleasePromote(app, id string) (*structs.Release, error)
@@ -172,9 +172,9 @@ func LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	return CurrentProvider.LogStream(app, w, opts)
 }
 
-// ReleaseBatchDelete deletes releases associated with app and buildID in batches
-func ReleaseBatchDelete(app, buildID string) error {
-	return CurrentProvider.ReleaseBatchDelete(app, buildID)
+// ReleaseDelete deletes releases associated with app and buildID in batches
+func ReleaseDelete(app, buildID string) error {
+	return CurrentProvider.ReleaseDelete(app, buildID)
 }
 
 func ReleaseGet(app, id string) (*structs.Release, error) {

@@ -141,7 +141,7 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(400, "cannot delete build contained in active release")
 	}
 
-	err = provider.ReleaseBatchDelete(appName, buildID)
+	err = provider.ReleaseDelete(appName, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -215,7 +215,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 							continue
 						}
 
-						err = provider.ReleaseBatchDelete(app, b.Id)
+						err = provider.ReleaseDelete(app, b.Id)
 						if err != nil {
 							fmt.Printf("Error cleaning up releases for %s: %s", b.Id, err.Error())
 							continue
