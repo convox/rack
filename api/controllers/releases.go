@@ -14,7 +14,7 @@ import (
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	releases, err := provider.ReleaseList(app)
+	releases, err := provider.ReleaseList(app, 20)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
