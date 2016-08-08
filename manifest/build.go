@@ -2,12 +2,21 @@ package manifest
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
 func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
+
+	defer func() {
+		if r := recover(); r != nil {
+			time.Sleep(5 * time.Second)
+			fmt.Println("Recovered in f")
+			log.Printf("%#v", r)
+		}
+	}()
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
@@ -43,10 +52,19 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 
 	for image, tag := range pulls {
 		args := []string{"pull"}
+
+		cmd := Docker("images", "-q", image)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return err
+		}
+
 		args = append(args, image)
 
-		if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
-			return fmt.Errorf("build error: %s", err)
+		if !cache || len(output) == 0 {
+			if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
+				return fmt.Errorf("build error: %s", err)
+			}
 		}
 
 		if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
