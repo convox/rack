@@ -428,7 +428,7 @@ func (a *App) RunAttached(process, command, releaseID string, height, width int,
 
 		_, releaseContainer, err := findAppDefinitions(process, releaseID, *task.TaskDefinition.Family, 20)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		// If container is nil, the release most likely hasn't been promoted and thus no TaskDefinition for it.
