@@ -91,7 +91,7 @@ func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) err
 			}
 
 			if err := run(s, Docker("push", remote)); err == nil {
-				continue
+				break
 			}
 
 			fmt.Printf("An error occurred while trying to push %s/%s\n", app, name)
