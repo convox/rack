@@ -72,29 +72,29 @@ const (
 )
 
 // Push will push the image for a given process up to the appropriate registry
-func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) error {
+func (m *Manifest) Push(stream Stream, app, registry, tag string, flatten string) error {
 	if tag == "" {
 		tag = "latest"
 	}
 
-	for name, _ := range m.Services {
-		local := fmt.Sprintf("%s/%s", app, name)
-		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, name, tag)
+	for _, s := range m.runOrder() {
+		local := fmt.Sprintf("%s/%s", app, s.Name)
+		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, s.Name, tag)
 
 		if flatten != "" {
-			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", name, tag))
+			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", s.Name, tag))
 		}
 
 		for i := 1; i <= pushRetryLimit; i++ {
-			if err := DefaultRunner.Run(s, Docker("tag", local, remote)); err != nil {
+			if err := DefaultRunner.Run(stream, Docker("tag", local, remote)); err != nil {
 				return fmt.Errorf("could not tag build: %s", err)
 			}
 
-			if err := DefaultRunner.Run(s, Docker("push", remote)); err == nil {
+			if err := DefaultRunner.Run(stream, Docker("push", remote)); err == nil {
 				break
 			}
 
-			fmt.Printf("An error occurred while trying to push %s/%s\n", app, name)
+			fmt.Printf("An error occurred while trying to push %s/%s\n", app, s.Name)
 			fmt.Printf("Retrying in %d seconds (attempt %d/%d)\n", pushRetryDelay, i, pushRetryLimit)
 			time.Sleep(pushRetryDelay * time.Second)
 		}
