@@ -236,9 +236,9 @@ func (r *Release) Promote() error {
 
 			proto := entry.Labels[fmt.Sprintf("convox.port.%d.protocol", mapping.Balancer)]
 
-			// if the proto param is set and doesnt match the label, error
+			// if the proto param is set to a non-default value and doesnt match the label, error
 			if ap, ok := app.Parameters[protoParam]; ok {
-				if ap != proto {
+				if ap != "tcp" && ap != proto {
 					return fmt.Errorf("%s parameter has been deprecated. Please set the convox.port.%d.protocol label instead", protoParam, mapping.Balancer)
 				}
 			}
