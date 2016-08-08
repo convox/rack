@@ -66,11 +66,11 @@ func TestPush(t *testing.T) {
 		t.Error(err)
 	}
 
-	cmd1 := []string{"docker", "tag", "app/web", "regsitry/flatten:web.tag"}
-	cmd2 := []string{"docker", "push", "regsitry/flatten:web.tag"}
-	cmd3 := []string{"docker", "tag", "app/database", "regsitry/flatten:database.tag"}
-	cmd4 := []string{"docker", "push", "regsitry/flatten:database.tag"}
-	m.Push(str, "app", "regsitry", "tag", "flatten")
+	cmd1 := []string{"docker", "tag", "app/web", "registry/flatten:web.tag"}
+	cmd2 := []string{"docker", "push", "registry/flatten:web.tag"}
+	cmd3 := []string{"docker", "tag", "app/database", "registry/flatten:database.tag"}
+	cmd4 := []string{"docker", "push", "registry/flatten:database.tag"}
+	m.Push(str, "app", "registry", "tag", "flatten")
 
 	assert.Equal(t, len(te.Commands), 4)
 	assert.Equal(t, te.Commands[0].Args, cmd1)
