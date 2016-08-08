@@ -86,6 +86,25 @@ func (m Manifest) Validate() error {
 				)
 			}
 		}
+
+		for _, l := range entry.Links {
+			ls, ok := m.Services[l]
+			if !ok {
+				return fmt.Errorf(
+					"%s links to service: %s which does not exist",
+					entry.Name,
+					l,
+				)
+			}
+
+			if len(ls.Ports) == 0 {
+				return fmt.Errorf(
+					"%s links to service: %s which does not expose any ports",
+					entry.Name,
+					l,
+				)
+			}
+		}
 	}
 	return nil
 }
