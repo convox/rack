@@ -92,7 +92,6 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", name)
 	}
-
 	if err != nil {
 		return httperr.Server(err)
 	}

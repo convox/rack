@@ -51,7 +51,7 @@ func TestReleaseList(t *testing.T) {
 		provider.CurrentProvider = new(provider.TestProviderRunner)
 	}()
 
-	r, err := provider.ReleaseList("httpd")
+	r, err := provider.ReleaseList("httpd", 20)
 
 	assert.Nil(t, err)
 
@@ -81,9 +81,9 @@ func TestReleaseLatestEmpty(t *testing.T) {
 	}()
 	p := provider.CurrentProvider.(*provider.TestProviderRunner)
 
-	p.Mock.On("ReleaseList", "myapp").Return(structs.Releases{}, nil)
+	p.Mock.On("ReleaseList", "myapp", int64(20)).Return(structs.Releases{}, nil)
 
-	rs, err := p.ReleaseList("myapp")
+	rs, err := p.ReleaseList("myapp", 20)
 	assert.Nil(t, err)
 	assert.Equal(t, (*structs.Release)(nil), rs.Latest())
 }
@@ -94,7 +94,7 @@ func TestReleaseLatest(t *testing.T) {
 	}()
 	p := provider.CurrentProvider.(*provider.TestProviderRunner)
 
-	p.Mock.On("ReleaseList", "myapp").Return(structs.Releases{
+	p.Mock.On("ReleaseList", "myapp", int64(20)).Return(structs.Releases{
 		structs.Release{
 			Id:       "RVFETUHHKKD",
 			App:      "httpd",
@@ -113,7 +113,7 @@ func TestReleaseLatest(t *testing.T) {
 		},
 	}, nil)
 
-	rs, err := p.ReleaseList("myapp")
+	rs, err := p.ReleaseList("myapp", 20)
 	assert.Nil(t, err)
 	assert.Equal(t, &structs.Release{
 		Id:       "RVFETUHHKKD",

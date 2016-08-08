@@ -18,7 +18,7 @@ func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	releases, err := provider.ReleaseList(rack.Name)
+	releases, err := provider.ReleaseList(rack.Name, 20)
 	if err != nil {
 		return httperr.Server(err)
 	}

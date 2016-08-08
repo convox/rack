@@ -52,3 +52,29 @@ func TestBuild(t *testing.T) {
 	assert.Equal(t, te.Commands[1].Args, cmd2)
 	assert.Equal(t, te.Commands[2].Args, cmd3)
 }
+
+func TestPush(t *testing.T) {
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+	dr := manifest.DefaultRunner
+	te := NewTestExecer()
+	manifest.DefaultRunner = te
+	defer func() { manifest.DefaultRunner = dr }()
+
+	m, err := manifestFixture("full-v1")
+	if err != nil {
+		t.Error(err)
+	}
+
+	cmd1 := []string{"docker", "tag", "app/database", "registry/flatten:database.tag"}
+	cmd2 := []string{"docker", "push", "registry/flatten:database.tag"}
+	cmd3 := []string{"docker", "tag", "app/web", "registry/flatten:web.tag"}
+	cmd4 := []string{"docker", "push", "registry/flatten:web.tag"}
+	m.Push(str, "app", "registry", "tag", "flatten")
+
+	assert.Equal(t, len(te.Commands), 4)
+	assert.Equal(t, te.Commands[0].Args, cmd1)
+	assert.Equal(t, te.Commands[1].Args, cmd2)
+	assert.Equal(t, te.Commands[2].Args, cmd3)
+	assert.Equal(t, te.Commands[3].Args, cmd4)
+}
