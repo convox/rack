@@ -86,11 +86,11 @@ func (m *Manifest) Push(s Stream, app, registry, tag string, flatten string) err
 		}
 
 		for i := 1; i <= pushRetryLimit; i++ {
-			if err := run(s, Docker("tag", local, remote)); err != nil {
+			if err := DefaultRunner.Run(s, Docker("tag", local, remote)); err != nil {
 				return fmt.Errorf("could not tag build: %s", err)
 			}
 
-			if err := run(s, Docker("push", remote)); err == nil {
+			if err := DefaultRunner.Run(s, Docker("push", remote)); err == nil {
 				break
 			}
 
