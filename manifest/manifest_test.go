@@ -414,6 +414,11 @@ func TestManifestValidate(t *testing.T) {
 	if assert.NotNil(t, lperr) {
 		assert.Equal(t, lperr.Error(), "web links to service: database which does not expose any ports")
 	}
+
+	_, herr := manifestFixture("invalid-health-timeout")
+	if assert.NotNil(t, herr) {
+		assert.Equal(t, herr.Error(), "convox.health.timeout is invalid for web, must be a number between 0 and 60")
+	}
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
