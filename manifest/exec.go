@@ -9,6 +9,7 @@ import (
 )
 
 type Runner interface {
+	CombinedOutput(cmd *exec.Cmd) ([]byte, error)
 	Run(s Stream, cmd *exec.Cmd) error
 	RunAsync(s Stream, cmd *exec.Cmd, dobe chan error)
 }
@@ -23,6 +24,10 @@ func (e *Exec) Run(s Stream, cmd *exec.Cmd) error {
 
 func (e *Exec) RunAsync(s Stream, cmd *exec.Cmd, done chan error) {
 	runAsync(s, cmd, done)
+}
+
+func (e *Exec) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
+	return cmd.CombinedOutput()
 }
 
 func run(s Stream, cmd *exec.Cmd) error {
