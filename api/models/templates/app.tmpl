@@ -382,18 +382,16 @@
       "Condition": "Enabled{{ upper .ProcessName }}",
       "DependsOn": [ "{{ .ResourceName }}SecurityGroup" ],
       "Properties": {
-        "Scheme": { "Fn::If": [ "Internal",
-          "internal",
-          {{ if eq .Scheme "internal" }}
-            "internal"
-          {{ else }}
-            { "Ref": "AWS::NoValue" }
-          {{ end }}
-        ] },
-        "Subnets": { "Fn::If": [ "Private",
-          { "Ref": "SubnetsPrivate" },
-          { "Ref": "Subnets" }
-        ] },
+        {{ if eq .Scheme "internal" }}
+          "Scheme": "internal",
+          "Subnets": { "Fn::If": [ "Private",
+            { "Ref": "SubnetsPrivate" },
+            { "Ref": "Subnets" }
+          ] },
+        {{ else }}
+          "Scheme": { "Fn::If": [ "Internal", "internal", { "Ref": "AWS::NoValue" } ] },
+          "Subnets": { "Fn::If": [ "Internal", { "Ref": "SubnetsPrivate" }, { "Ref": "Subnets" } ] },
+        {{ end }}
         "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
