@@ -44,8 +44,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 	for image, tag := range pulls {
 		args := []string{"pull"}
 
-		cmd := Docker("images", "-q", image)
-		output, err := cmd.CombinedOutput()
+		output, err := DefaultRunner.CombinedOutput(Docker("images", "-q", image))
 		if err != nil {
 			return err
 		}
