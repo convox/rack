@@ -630,18 +630,127 @@
       }
     },
     "KernelUser": {
+      "DependsOn": [ "KernelUserPolicy" ],
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "Administrator",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
-            }
-          }
-        ]
+        "ManagedPolicyArns": [ { "Ref": "KernelUserPolicy" } ]
+      }
+    },
+    "KernelUserPolicy": {
+      "Type" : "AWS::IAM::ManagedPolicy",
+      "Properties" : {
+        "Path": "/convox/",
+        "Description" : "Policy used by the KernelUser",
+        "PolicyDocument" : {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": [
+                      "autoscaling:CreateLaunchConfiguration",
+                      "autoscaling:DeleteLaunchConfiguration",
+                      "autoscaling:DescribeAutoScalingGroups",
+                      "autoscaling:DescribeAutoScalingInstances",
+                      "autoscaling:DescribeLaunchConfigurations",
+                      "autoscaling:DescribeScalingActivities",
+                      "autoscaling:DescribeScheduledActions",
+                      "autoscaling:DisableMetricsCollection",
+                      "autoscaling:EnableMetricsCollection",
+                      "autoscaling:PutLifecycleHook",
+                      "autoscaling:ResumeProcesses",
+                      "autoscaling:SetDesiredCapacity",
+                      "autoscaling:SetInstanceHealth",
+                      "autoscaling:TerminateInstanceInAutoScalingGroup",
+                      "autoscaling:UpdateAutoScalingGroup",
+                      "cloudformation:CreateStack",
+                      "cloudformation:DeleteStack",
+                      "cloudformation:DescribeStackResources",
+                      "cloudformation:DescribeStacks",
+                      "cloudformation:UpdateStack",
+                      "dynamodb:GetItem",
+                      "dynamodb:PutItem",
+                      "dynamodb:Query",
+                      "ec2:AuthorizeSecurityGroupIngress",
+                      "ec2:CreateKeyPair",
+                      "ec2:CreateSecurityGroup",
+                      "ec2:CreateTags",
+                      "ec2:DeleteSecurityGroup",
+                      "ec2:DescribeInstances",
+                      "ec2:DescribeSecurityGroups",
+                      "ec2:DescribeSubnets",
+                      "ec2:DescribeVpcs",
+                      "ecr:BatchCheckLayerAvailability",
+                      "ecr:BatchGetImage",
+                      "ecr:CompleteLayerUpload",
+                      "ecr:DeleteRepository",
+                      "ecr:DescribeContainerInstances",
+                      "ecr:GetAuthorizationToken",
+                      "ecr:GetDownloadUrlForLayer",
+                      "ecr:InitiateLayerUpload",
+                      "ecr:PutImage",
+                      "ecr:UploadLayerPart",
+                      "ecs:DescribeContainerInstances",
+                      "ecs:DescribeServices",
+                      "ecs:DescribeTaskDefinition",
+                      "ecs:DescribeTasks",
+                      "ecs:ListContainerInstances",
+                      "ecs:ListServices",
+                      "ecs:ListTaskDefinitions",
+                      "ecs:ListTasks",
+                      "ecs:RunTask",
+                      "elasticloadbalancing:ConfigureHealthCheck",
+                      "elasticloadbalancing:CreateLoadBalancer",
+                      "elasticloadbalancing:CreateLoadBalancerPolicy",
+                      "elasticloadbalancing:DeleteLoadBalancer",
+                      "elasticloadbalancing:DescribeLoadBalancers",
+                      "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                      "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
+                      "iam:AddRoleToInstanceProfile",
+                      "iam:PassRole",
+                      "iam:RemoveRoleFromInstanceProfile",
+                      "kms:Decrypt",
+                      "kms:GenerateDataKey",
+                      "kms:GenerateRandom",
+                      "lambda:CreateFunction",
+                      "lambda:DeleteFunction",
+                      "lambda:GetFunctionConfiguration",
+                      "lambda:InvokeFunction",
+                      "lambda:UpdateFunctionCode",
+                      "lambda:UpdateFunctionConfiguration",
+                      "logs:CreateLogGroup",
+                      "logs:DeleteLogGroup",
+                      "logs:DescribeLogGroups",
+                      "s3:CreateBucket",
+                      "s3:DeleteBucket",
+                      "s3:GetObject",
+                      "s3:ListBucket",
+                      "s3:PutObject",
+                      "s3:PutObjectAcl",
+                      "sns:Publish"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }, {
+                    "Sid": "LimitedIAMPermissions",
+                    "Effect": "Allow",
+                    "Action": [
+                      "iam:AttachUserPolicy",
+                      "iam:CreateRole",
+                      "iam:DeleteRole",
+                      "iam:DeleteRolePolicy",
+                      "iam:DetachUserPolicy",
+                      "iam:GetRole",
+                      "iam:PutRolePolicy",
+                      "iam:PutUserPolicy"
+                    ],
+                    "Resource": [
+                      "arn:aws:iam::*:policy/convox/*",
+                      "arn:aws:iam::*:role/convox/*",
+                      "arn:aws:iam::*:user/convox/*"
+                    ]
+                }
+            ]
+        }
       }
     },
     "KernelAccess": {
