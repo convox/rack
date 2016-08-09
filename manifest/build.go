@@ -43,10 +43,18 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 
 	for image, tag := range pulls {
 		args := []string{"pull"}
+
+		output, err := DefaultRunner.CombinedOutput(Docker("images", "-q", image))
+		if err != nil {
+			return err
+		}
+
 		args = append(args, image)
 
-		if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
-			return fmt.Errorf("build error: %s", err)
+		if !cache || len(output) == 0 {
+			if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
+				return fmt.Errorf("build error: %s", err)
+			}
 		}
 
 		if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
