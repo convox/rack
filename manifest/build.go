@@ -2,21 +2,12 @@ package manifest
 
 import (
 	"fmt"
-	"log"
 	"time"
 )
 
 func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 	pulls := map[string]string{}
 	builds := []Service{}
-
-	defer func() {
-		if r := recover(); r != nil {
-			time.Sleep(5 * time.Second)
-			fmt.Println("Recovered in f")
-			log.Printf("%#v", r)
-		}
-	}()
 
 	for _, service := range m.Services {
 		dockerFile := service.Build.Dockerfile
