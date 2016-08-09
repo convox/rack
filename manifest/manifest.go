@@ -6,6 +6,7 @@ import (
 	"net"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,6 +84,43 @@ func (m Manifest) Validate() error {
 				return fmt.Errorf(
 					"Cron task %s is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)",
 					name,
+				)
+			}
+		}
+
+		labels = entry.LabelsByPrefix("convox.health.timeout")
+		for _, v := range labels {
+			i, err := strconv.Atoi(v)
+			if err != nil {
+				return fmt.Errorf(
+					"convox.health.timeout is invalid for %s, must be a number between 0 and 60",
+					entry.Name,
+				)
+			}
+
+			if i < 0 || i > 60 {
+				return fmt.Errorf(
+					"convox.health.timeout is invalid for %s, must be a number between 0 and 60",
+					entry.Name,
+				)
+			}
+		}
+
+		for _, l := range entry.Links {
+			ls, ok := m.Services[l]
+			if !ok {
+				return fmt.Errorf(
+					"%s links to service: %s which does not exist",
+					entry.Name,
+					l,
+				)
+			}
+
+			if len(ls.Ports) == 0 {
+				return fmt.Errorf(
+					"%s links to service: %s which does not expose any ports",
+					entry.Name,
+					l,
 				)
 			}
 		}
