@@ -399,6 +399,23 @@ func TestManifestMarshalYaml(t *testing.T) {
 	assert.Equal(t, m2.Services["food"].Command.Array, arrayCmd.Array)
 }
 
+func TestManifestValidate(t *testing.T) {
+	_, cerr := manifestFixture("invalid-cron")
+	if assert.NotNil(t, cerr) {
+		assert.Equal(t, cerr.Error(), "Cron task my_job is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)")
+	}
+
+	_, lerr := manifestFixture("invalid-link")
+	if assert.NotNil(t, lerr) {
+		assert.Equal(t, lerr.Error(), "web links to service: database2 which does not exist")
+	}
+
+	_, lperr := manifestFixture("invalid-link-no-ports")
+	if assert.NotNil(t, lperr) {
+		assert.Equal(t, lperr.Error(), "web links to service: database which does not expose any ports")
+	}
+}
+
 func manifestFixture(name string) (*manifest.Manifest, error) {
 	return manifest.LoadFile(fmt.Sprintf("fixtures/%s.yml", name))
 }
