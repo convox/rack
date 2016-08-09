@@ -2,7 +2,9 @@ package manifest_test
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -185,6 +187,22 @@ func TestLoadGarbage(t *testing.T) {
 
 	if assert.Nil(t, m) && assert.NotNil(t, err) {
 		assert.Equal(t, err.Error(), "could not parse manifest: yaml: control characters are not allowed")
+	}
+}
+
+func TestLoadEnvVar(t *testing.T) {
+	rando := randomString(30)
+
+	err := os.Setenv("KNOWN_VAR", rando)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	m, err := manifestFixture("interpolate-env-var")
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, m.Services["web"].Image, rando)
 	}
 }
 
@@ -401,4 +419,14 @@ func TestManifestMarshalYaml(t *testing.T) {
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
 	return manifest.LoadFile(fmt.Sprintf("fixtures/%s.yml", name))
+}
+
+var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+func randomString(size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
+	}
+	return string(b)
 }

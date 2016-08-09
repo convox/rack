@@ -1,9 +1,13 @@
 package manifest
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -11,6 +15,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 )
+
+var interpolationRegex = regexp.MustCompile("\\$\\{([0-9A-Za-z_]*)\\}")
 
 type Manifest struct {
 	Version  string             `yaml:"version"`
@@ -20,8 +26,12 @@ type Manifest struct {
 
 // Load a Manifest from raw data
 func Load(data []byte) (*Manifest, error) {
-	v, err := manifestVersion(data)
+	data, err := parseEnvVars(data)
+	if err != nil {
+		return nil, err
+	}
 
+	v, err := manifestVersion(data)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +187,31 @@ func manifestVersion(data []byte) (string, error) {
 	}
 
 	return "1", nil
+}
+
+func parseEnvVars(data []byte) ([]byte, error) {
+	r := bytes.NewReader(data)
+	result := []byte{}
+	reader := bufio.NewReader(r)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return result, err
+		}
+		result = append(result, []byte(parseLine(line))...)
+		if err == io.EOF {
+			break
+		}
+	}
+	return result, nil
+}
+
+func parseLine(line string) string {
+	result := interpolationRegex.FindAllStringSubmatch(line, -1)
+	for _, v := range result {
+		line = strings.Replace(line, v[0], os.Getenv(v[1]), -1)
+	}
+	return line
 }
 
 func (m *Manifest) Raw() ([]byte, error) {
