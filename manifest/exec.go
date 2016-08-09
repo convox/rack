@@ -28,7 +28,7 @@ func (e *Exec) RunAsync(s Stream, cmd *exec.Cmd, done chan error) {
 	runAsync(s, cmd, done)
 }
 
-//CombindedOutput synchronously calls the command and returns the output,
+//CombinedOutput synchronously calls the command and returns the output,
 //useful for internal checks
 func (e *Exec) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
 	return cmd.CombinedOutput()
