@@ -191,9 +191,23 @@ func TestLoadGarbage(t *testing.T) {
 }
 
 func TestLoadEnvVar(t *testing.T) {
-	rando := randomString(30)
+	rando1 := randomString(30)
+	rando2 := randomString(30)
+	rando3 := randomString(30)
 
-	err := os.Setenv("KNOWN_VAR", rando)
+	err := os.Setenv("KNOWN_VAR1", rando1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = os.Setenv("KNOWN_VAR2", rando2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = os.Setenv("KNOWN_VAR3", rando3)
 	if err != nil {
 		t.Error(err)
 		return
@@ -202,7 +216,8 @@ func TestLoadEnvVar(t *testing.T) {
 	m, err := manifestFixture("interpolate-env-var")
 
 	if assert.Nil(t, err) {
-		assert.Equal(t, m.Services["web"].Image, rando)
+		assert.Equal(t, m.Services["web"].Image, rando1)
+		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s", rando2, rando2, rando3))
 	}
 }
 
