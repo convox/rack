@@ -1,0 +1,11 @@
+version: "2"
+services:
+  web:
+    build: .
+    command: bin/web
+  monitor:
+    build: .
+    command: bin/monitor
+  other:
+    build: ./other
+    command: bin/other
