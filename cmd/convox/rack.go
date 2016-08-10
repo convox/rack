@@ -37,7 +37,7 @@ func init() {
 					},
 					cli.DurationFlag{
 						Name:  "since",
-						Usage: "Show logs since a duration (e.g. 10m or 1h2m10s)",
+						Usage: "show logs since a duration (e.g. 10m or 1h2m10s)",
 						Value: 2 * time.Minute,
 					},
 				},
