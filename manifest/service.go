@@ -67,6 +67,7 @@ type Network struct {
 	Name string
 }
 
+// Hash returns a string suitable for using as a map key
 func (b *Build) Hash() string {
 	return fmt.Sprintf("%+v||%+v||%+v", b.Context, b.Dockerfile, b.Args)
 }
