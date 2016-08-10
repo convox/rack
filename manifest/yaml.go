@@ -52,7 +52,15 @@ func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			case "dockerfile":
 				b.Dockerfile = mapValue.(string)
 			case "args":
-				//TODO
+				args := map[string]string{}
+				for key, value := range mapValue.(map[interface{}]interface{}) {
+					if ks, ok := key.(string); ok {
+						if vs, ok := value.(string); ok {
+							args[ks] = vs
+						}
+					}
+				}
+				b.Args = args
 			default:
 				// Ignore
 				// unknown
