@@ -55,8 +55,6 @@ func IndexUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
-		fmt.Printf("header = %+v\n", header)
-
 		switch header.Typeflag {
 		case tar.TypeReg:
 			buf := &bytes.Buffer{}
