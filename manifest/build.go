@@ -21,7 +21,16 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 		}
 	}
 
+	buildCache := map[string]string{}
+
 	for _, service := range builds {
+		if bc, ok := buildCache[service.Build.Hash()]; ok {
+			if err := DefaultRunner.Run(s, Docker("tag", bc, service.Tag(appName))); err != nil {
+				return fmt.Errorf("build error: %s", err)
+			}
+			continue
+		}
+
 		args := []string{"build"}
 
 		if !cache {
@@ -39,6 +48,8 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 		if err := DefaultRunner.Run(s, Docker(args...)); err != nil {
 			return fmt.Errorf("build error: %s", err)
 		}
+
+		buildCache[service.Build.Hash()] = service.Tag(appName)
 	}
 
 	for image, tag := range pulls {

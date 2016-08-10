@@ -67,6 +67,10 @@ type Network struct {
 	Name string
 }
 
+func (b *Build) Hash() string {
+	return fmt.Sprintf("%+v||%+v||%+v", b.Context, b.Dockerfile, b.Args)
+}
+
 func (s *Service) Process(app string, m Manifest) Process {
 	return NewProcess(app, *s, m)
 }
