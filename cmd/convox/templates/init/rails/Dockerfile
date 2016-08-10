@@ -12,7 +12,7 @@ COPY Rakefile   /app/Rakefile
 COPY config     /app/config
 COPY public     /app/public
 COPY app/assets /app/app/assets
-RUN rake assets:precompile
+RUN bundle exec rake assets:precompile
 
 # copy the rest of the app
 COPY . /app
