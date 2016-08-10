@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
@@ -19,6 +21,28 @@ func init() {
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
+				Name:        "logs",
+				Description: "stream the rack logs",
+				Usage:       "",
+				Action:      cmdRackLogs,
+				Flags: []cli.Flag{
+					rackFlag,
+					cli.StringFlag{
+						Name:  "filter",
+						Usage: "filter the logs by a given token",
+					},
+					cli.BoolTFlag{
+						Name:  "follow",
+						Usage: "keep streaming new log output (default)",
+					},
+					cli.DurationFlag{
+						Name:  "since",
+						Usage: "Show logs since a duration (e.g. 10m or 1h2m10s)",
+						Value: 2 * time.Minute,
+					},
+				},
+			},
+			{
 				Name:        "params",
 				Description: "list advanced rack parameters",
 				Usage:       "",
@@ -31,6 +55,19 @@ func init() {
 						Usage:       "NAME=VALUE [NAME=VALUE]",
 						Action:      cmdRackParamsSet,
 						Flags:       []cli.Flag{rackFlag},
+					},
+				},
+			},
+			{
+				Name:        "ps",
+				Description: "list rack processes",
+				Usage:       "",
+				Action:      cmdRackPs,
+				Flags: []cli.Flag{
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "stats",
+						Usage: "display process cpu/memory stats",
 					},
 				},
 			},
@@ -99,6 +136,20 @@ func cmdRack(c *cli.Context) error {
 	return nil
 }
 
+func cmdRackLogs(c *cli.Context) error {
+	system, err := rackClient(c).GetSystem()
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	err = rackClient(c).StreamAppLogs(system.Name, c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	return nil
+}
+
 func cmdRackParams(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
@@ -154,6 +205,32 @@ func cmdRackParamsSet(c *cli.Context) error {
 	}
 
 	fmt.Println("OK")
+	return nil
+}
+
+func cmdRackPs(c *cli.Context) error {
+	system, err := rackClient(c).GetSystem()
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	ps, err := rackClient(c).GetProcesses(system.Name, c.Bool("stats"))
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if c.Bool("stats") {
+		fm, err := rackClient(c).ListFormation(system.Name)
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		displayProcessesStats(ps, fm)
+		return nil
+	}
+
+	displayProcesses(ps)
+
 	return nil
 }
 
