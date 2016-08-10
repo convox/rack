@@ -181,7 +181,7 @@ func TestBuildRepeatComplex(t *testing.T) {
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
 	cmd2 := []string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/othera", "./other"}
 	cmd3 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.other", "-t", "web/otherb", "."}
-	cmd4 := []string{"docker", "tag", "web/monitor", "web/otherc"}
+	cmd4 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherc", "."}
 	cmd5 := []string{"docker", "tag", "web/monitor", "web/web"}
 
 	assert.Equal(t, len(te.Commands), 5)
