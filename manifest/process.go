@@ -53,6 +53,16 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		}
 	}
 
+	for i, p := range s.Ports {
+		// Assign random ports to "internal" balancers
+		if !p.Public {
+			p.Public = true
+			p.Balancer = RandomPort()
+			s.Ports[i] = p
+		}
+		args = append(args, "-p", p.String())
+	}
+
 	for _, n := range s.Networks {
 		for _, in := range n {
 			args = append(args, "--net", in.Name)
@@ -61,10 +71,6 @@ func NewProcess(app string, s Service, m Manifest) Process {
 
 	for _, link := range s.Links {
 		args = append(args, linkArgs(m.Services[link], fmt.Sprintf("%s-%s", app, link))...)
-	}
-
-	for _, port := range s.Ports {
-		args = append(args, "-p", port.String())
 	}
 
 	for _, volume := range s.Volumes {
