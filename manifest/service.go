@@ -43,6 +43,7 @@ type Service struct {
 	randoms map[string]int
 }
 
+// Services are a list of Services
 type Services []Service
 
 // see yaml.go for unmarshallers
