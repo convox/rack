@@ -34,6 +34,7 @@ func IndexDiff(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, missing)
 }
 
+// IndexUpdate accepts a tarball of changes to the index
 func IndexUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	update, _, err := r.FormFile("update")
 	if err != nil {

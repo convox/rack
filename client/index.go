@@ -38,6 +38,7 @@ func (c *Client) IndexMissing(index Index) ([]string, error) {
 	return missing, nil
 }
 
+// IndexUpdate uploads a tarball of changes to the index
 func (c *Client) IndexUpdate(update []byte, progressCallback func(s string)) error {
 	files := map[string][]byte{
 		"update": update,

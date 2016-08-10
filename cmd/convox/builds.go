@@ -381,9 +381,9 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 	if len(missing) == 0 {
 		fmt.Println("NONE")
 		return nil
-	} else {
-		fmt.Printf("%d files\n", len(missing))
 	}
+
+	fmt.Printf("%d files\n", len(missing))
 
 	buf := &bytes.Buffer{}
 
