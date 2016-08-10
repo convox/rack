@@ -43,6 +43,8 @@ type Service struct {
 	randoms map[string]int
 }
 
+type Services []Service
+
 // see yaml.go for unmarshallers
 type Build struct {
 	Context    string            `yaml:"context,omitempty"`
@@ -361,4 +363,16 @@ func (s *Service) Randoms() map[string]int {
 		}
 	}
 	return s.randoms
+}
+
+func (ss Services) Len() int {
+	return len(ss)
+}
+
+func (ss Services) Less(i, j int) bool {
+	return ss[i].Name < ss[j].Name
+}
+
+func (ss Services) Swap(i, j int) {
+	ss[i], ss[j] = ss[j], ss[i]
 }
