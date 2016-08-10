@@ -1,10 +1,14 @@
 package controllers
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -28,6 +32,50 @@ func IndexDiff(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, missing)
+}
+
+func IndexUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	update, _, err := r.FormFile("update")
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	gz, err := gzip.NewReader(update)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	tr := tar.NewReader(gz)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		fmt.Printf("header = %+v\n", header)
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			buf := &bytes.Buffer{}
+			io.Copy(buf, tr)
+
+			hash := sha256.Sum256(buf.Bytes())
+
+			if header.Name != hex.EncodeToString(hash[:]) {
+				return httperr.New(403, fmt.Errorf("invalid hash"))
+			}
+
+			if err := provider.IndexUpload(header.Name, buf.Bytes()); err != nil {
+				return httperr.Server(err)
+			}
+		}
+	}
+
+	return RenderSuccess(rw)
 }
 
 func IndexUpload(rw http.ResponseWriter, r *http.Request) *httperr.Error {

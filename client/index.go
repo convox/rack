@@ -38,6 +38,14 @@ func (c *Client) IndexMissing(index Index) ([]string, error) {
 	return missing, nil
 }
 
+func (c *Client) IndexUpdate(update []byte, progressCallback func(s string)) error {
+	files := map[string][]byte{
+		"update": update,
+	}
+
+	return c.PostMultipartP("/index/update", files, nil, nil, progressCallback)
+}
+
 func (c *Client) IndexUpload(hash string, data []byte) error {
 	files := map[string][]byte{
 		"data": data,

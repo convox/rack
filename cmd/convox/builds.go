@@ -1,6 +1,9 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -15,7 +18,6 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
-	"github.com/cheggaaa/pb"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/docker/docker/builder/dockerignore"
@@ -24,8 +26,6 @@ import (
 )
 
 var (
-	IndexOperationConcurrency = 128
-
 	buildCreateFlags = []cli.Flag{
 		appFlag,
 		rackFlag,
@@ -376,79 +376,62 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 		return err
 	}
 
-	total := 0
+	fmt.Print("Identifying changes... ")
+
+	if len(missing) == 0 {
+		fmt.Println("NONE")
+		return nil
+	} else {
+		fmt.Printf("%d files\n", len(missing))
+	}
+
+	buf := &bytes.Buffer{}
+
+	gz := gzip.NewWriter(buf)
+
+	tw := tar.NewWriter(gz)
 
 	for _, m := range missing {
-		total += index[m].Size
-	}
-
-	bar := pb.New(total)
-
-	bar.Prefix("Uploading changes... ")
-	bar.SetMaxWidth(40)
-	bar.SetUnits(pb.U_BYTES)
-
-	if total == 0 {
-		fmt.Println("NONE")
-	} else {
-		bar.Start()
-	}
-
-	inch := make(chan string)
-	errch := make(chan error)
-
-	for i := 1; i < IndexOperationConcurrency; i++ {
-		go uploadItems(c, index, bar, inch, errch)
-	}
-
-	go func() {
-		for _, hash := range missing {
-			inch <- hash
+		data, err := ioutil.ReadFile(index[m].Name)
+		if err != nil {
+			return err
 		}
-	}()
 
-	for range missing {
-		if err := <-errch; err != nil {
+		header := &tar.Header{
+			Typeflag: tar.TypeReg,
+			Name:     m,
+			Mode:     0600,
+			Size:     int64(len(data)),
+		}
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if _, err := tw.Write(data); err != nil {
 			return err
 		}
 	}
 
-	close(inch)
-
-	if total > 0 {
-		bar.Finish()
+	if err := tw.Close(); err != nil {
+		return err
 	}
+
+	if err := gz.Close(); err != nil {
+		return err
+	}
+
+	progress := func(s string) {
+		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
+	}
+
+	if err := rackClient(c).IndexUpdate(buf.Bytes(), progress); err != nil {
+		return err
+	}
+
+	fmt.Println()
 
 	return nil
-}
-
-func uploadItem(c *cli.Context, hash string, item client.IndexItem, bar *pb.ProgressBar, ch chan error) {
-	data, err := ioutil.ReadFile(item.Name)
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	for i := 0; i < 3; i++ {
-		err = rackClient(c).IndexUpload(hash, data)
-		if err != nil {
-			continue
-		}
-
-		bar.Add(item.Size)
-
-		ch <- nil
-		return
-	}
-
-	ch <- fmt.Errorf("max 3 retries on upload")
-	return
-}
-
-func uploadItems(c *cli.Context, index client.Index, bar *pb.ProgressBar, inch chan string, errch chan error) {
-	for hash := range inch {
-		uploadItem(c, hash, index[hash], bar, errch)
-	}
 }
 
 func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description string) (string, error) {
@@ -477,8 +460,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 	}
 
 	fmt.Println("OK")
-
-	fmt.Printf("Uploading changes... ")
 
 	err = uploadIndex(c, index)
 	if err != nil {
