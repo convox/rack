@@ -45,6 +45,16 @@ func Load(data []byte) (*Manifest, error) {
 	for name, service := range m.Services {
 		service.Name = name
 		service.Networks = m.Networks
+
+		if ss, ok := service.Labels["convox.start.shift"]; ok {
+			shift, err := strconv.Atoi(ss)
+			if err != nil {
+				return nil, fmt.Errorf("invalid shift: %s", ss)
+			}
+
+			service.Ports.Shift(shift)
+		}
+
 		m.Services[name] = service
 	}
 

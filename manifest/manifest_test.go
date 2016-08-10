@@ -333,6 +333,15 @@ func TestShift(t *testing.T) {
 			assert.Equal(t, web.Ports[1].Balancer, 11000)
 			assert.Equal(t, web.Ports[1].Container, 7000)
 		}
+
+		other := m.Services["other"]
+
+		if assert.NotNil(t, other) && assert.Equal(t, len(other.Ports), 2) {
+			assert.Equal(t, other.Ports[0].Balancer, 8000)
+			assert.Equal(t, other.Ports[0].Container, 8000)
+			assert.Equal(t, other.Ports[1].Balancer, 15000)
+			assert.Equal(t, other.Ports[1].Container, 9001)
+		}
 	}
 }
 
