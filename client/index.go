@@ -46,11 +46,3 @@ func (c *Client) IndexUpdate(update []byte, progressCallback func(s string)) err
 
 	return c.PostMultipartP("/index/update", files, nil, nil, progressCallback)
 }
-
-func (c *Client) IndexUpload(hash string, data []byte) error {
-	files := map[string][]byte{
-		"data": data,
-	}
-
-	return c.PostMultipart(fmt.Sprintf("/index/file/%s", hash), files, nil, nil)
-}
