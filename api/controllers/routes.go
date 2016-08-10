@@ -46,7 +46,6 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/certificates/generate", api("certificate.generate", CertificateGenerate)).Methods("POST")
 	router.HandleFunc("/certificates/{id}", api("certificate.delete", CertificateDelete)).Methods("DELETE")
 	router.HandleFunc("/index/diff", api("index.diff", IndexDiff)).Methods("POST")
-	router.HandleFunc("/index/file/{hash}", api("index.upload", IndexUpload)).Methods("POST")
 	router.HandleFunc("/index/update", api("index.update", IndexUpdate)).Methods("POST")
 	router.HandleFunc("/instances", api("instances.get", InstancesList)).Methods("GET")
 	router.HandleFunc("/instances/{id}", api("instance.delete", InstanceTerminate)).Methods("DELETE")

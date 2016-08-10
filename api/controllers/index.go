@@ -9,13 +9,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/provider"
 	"github.com/convox/rack/api/structs"
-	"github.com/gorilla/mux"
 )
 
 func IndexDiff(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -74,33 +72,6 @@ func IndexUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 				return httperr.Server(err)
 			}
 		}
-	}
-
-	return RenderSuccess(rw)
-}
-
-func IndexUpload(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	hash := mux.Vars(r)["hash"]
-
-	file, _, err := r.FormFile("data")
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	sum := sha256.Sum256(data)
-
-	if hash != hex.EncodeToString(sum[:]) {
-		return httperr.New(403, fmt.Errorf("invalid hash"))
-	}
-
-	err = provider.IndexUpload(hash, data)
-	if err != nil {
-		return httperr.Server(err)
 	}
 
 	return RenderSuccess(rw)
