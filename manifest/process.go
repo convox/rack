@@ -27,6 +27,10 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	args = append(args, "--rm")
 	args = append(args, "--name", name)
 
+	if s.Tty {
+		args = append(args, "--tty")
+	}
+
 	if s.Entrypoint != "" {
 		args = append(args, "--entrypoint", s.Entrypoint)
 	}

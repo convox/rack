@@ -32,6 +32,7 @@ type Service struct {
 	Networks    Networks    `yaml:"-"`
 	Ports       Ports       `yaml:"ports,omitempty"`
 	Privileged  bool        `yaml:"privileged,omitempty"`
+	Tty         bool        `yaml:"tty,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 
 	//TODO from models manifest, not passive and used at runtime
