@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"os/exec"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/equinox-io/equinox"
@@ -35,7 +36,17 @@ func cmdUpdate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	stdcli.Spinner.Prefix = "Updating: "
+	stdcli.Spinner.Prefix = "Updating convox/proxy: "
+	stdcli.Spinner.Start()
+
+	if err := updateProxy(); err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	fmt.Printf("\x08\x08OK\n")
+	stdcli.Spinner.Stop()
+
+	stdcli.Spinner.Prefix = "Updating convox: "
 	stdcli.Spinner.Start()
 
 	opts := equinox.Options{
@@ -63,8 +74,9 @@ func cmdUpdate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	stdcli.Spinner.Stop()
 	fmt.Printf("\x08\x08OK, %s\n", r.ReleaseVersion)
+	stdcli.Spinner.Stop()
+
 	return nil
 }
 
@@ -84,4 +96,9 @@ func updateClient() (*http.Client, error) {
 	}
 
 	return client, nil
+}
+
+func updateProxy() error {
+	cmd := exec.Command("docker", "pull", "convox/proxy")
+	return cmd.Run()
 }
