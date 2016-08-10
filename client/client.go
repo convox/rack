@@ -160,8 +160,10 @@ func (c *Client) PostMultipartP(path string, files map[string][]byte, params Par
 	var bodyReader io.Reader
 	bodyReader = body
 
+	var bar *pb.ProgressBar
+
 	if callback != nil {
-		bar := pb.New(body.Len()).SetUnits(pb.U_BYTES)
+		bar = pb.New(body.Len()).SetUnits(pb.U_BYTES)
 		bar.NotPrint = true
 		bar.ShowBar = false
 		bar.Callback = callback
@@ -204,6 +206,10 @@ func (c *Client) PostMultipartP(path string, files map[string][]byte, params Par
 		if err != nil {
 			return err
 		}
+	}
+
+	if callback != nil {
+		bar.Finish()
 	}
 
 	return nil
