@@ -72,7 +72,19 @@ type Network struct {
 
 // Hash returns a string suitable for using as a map key
 func (b *Build) Hash() string {
-	return fmt.Sprintf("%+v||%+v||%+v", b.Context, b.Dockerfile, b.Args)
+	argKeys := []string{}
+	for k := range b.Args {
+		argKeys = append(argKeys, k)
+	}
+	sort.Strings(argKeys)
+
+	hashParts := make([]string, len(argKeys))
+	for i, key := range argKeys {
+		hashParts[i] = fmt.Sprintf("%s=%s", key, b.Args[key])
+	}
+	argsHash := strings.Join(hashParts, "@@@@@")
+
+	return fmt.Sprintf("%+v|||||%+v|||||%+v", b.Context, b.Dockerfile, argsHash)
 }
 
 func (s *Service) Process(app string, m Manifest) Process {
