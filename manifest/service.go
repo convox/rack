@@ -43,6 +43,9 @@ type Service struct {
 	randoms map[string]int
 }
 
+// Services are a list of Services
+type Services []Service
+
 // see yaml.go for unmarshallers
 type Build struct {
 	Context    string            `yaml:"context,omitempty"`
@@ -65,6 +68,23 @@ type ExternalNetwork Network
 
 type Network struct {
 	Name string
+}
+
+// Hash returns a string suitable for using as a map key
+func (b *Build) Hash() string {
+	argKeys := []string{}
+	for k := range b.Args {
+		argKeys = append(argKeys, k)
+	}
+	sort.Strings(argKeys)
+
+	hashParts := make([]string, len(argKeys))
+	for i, key := range argKeys {
+		hashParts[i] = fmt.Sprintf("%s=%s", key, b.Args[key])
+	}
+	argsHash := strings.Join(hashParts, "@@@@@")
+
+	return fmt.Sprintf("%+v|||||%+v|||||%+v", b.Context, b.Dockerfile, argsHash)
 }
 
 func (s *Service) Process(app string, m Manifest) Process {
@@ -356,4 +376,16 @@ func (s *Service) Randoms() map[string]int {
 		}
 	}
 	return s.randoms
+}
+
+func (ss Services) Len() int {
+	return len(ss)
+}
+
+func (ss Services) Less(i, j int) bool {
+	return ss[i].Name < ss[j].Name
+}
+
+func (ss Services) Swap(i, j int) {
+	ss[i], ss[j] = ss[j], ss[i]
 }

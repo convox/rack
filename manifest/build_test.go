@@ -138,6 +138,60 @@ func TestBuildNoCache(t *testing.T) {
 	assert.Equal(t, te.Commands[2].Args, cmd3)
 }
 
+func TestBuildRepeatSimple(t *testing.T) {
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+	dr := manifest.DefaultRunner
+	te := NewTestExecer()
+	manifest.DefaultRunner = te
+	defer func() { manifest.DefaultRunner = dr }()
+
+	m, err := manifestFixture("repeat-simple")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = m.Build(".", "web", str, false)
+
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
+	cmd2 := []string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/other", "./other"}
+	cmd3 := []string{"docker", "tag", "web/monitor", "web/web"}
+
+	assert.Equal(t, len(te.Commands), 3)
+	assert.Equal(t, te.Commands[0].Args, cmd1)
+	assert.Equal(t, te.Commands[1].Args, cmd2)
+	assert.Equal(t, te.Commands[2].Args, cmd3)
+}
+
+func TestBuildRepeatComplex(t *testing.T) {
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+	dr := manifest.DefaultRunner
+	te := NewTestExecer()
+	manifest.DefaultRunner = te
+	defer func() { manifest.DefaultRunner = dr }()
+
+	m, err := manifestFixture("repeat-complex")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = m.Build(".", "web", str, false)
+
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
+	cmd2 := []string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/othera", "./other"}
+	cmd3 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.other", "-t", "web/otherb", "."}
+	cmd4 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherc", "."}
+	cmd5 := []string{"docker", "tag", "web/monitor", "web/web"}
+
+	assert.Equal(t, len(te.Commands), 5)
+	assert.Equal(t, te.Commands[0].Args, cmd1)
+	assert.Equal(t, te.Commands[1].Args, cmd2)
+	assert.Equal(t, te.Commands[2].Args, cmd3)
+	assert.Equal(t, te.Commands[3].Args, cmd4)
+	assert.Equal(t, te.Commands[4].Args, cmd5)
+}
+
 func TestPush(t *testing.T) {
 	output := manifest.NewOutput()
 	str := output.Stream("build")
