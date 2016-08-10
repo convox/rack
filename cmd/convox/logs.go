@@ -20,15 +20,15 @@ func init() {
 			rackFlag,
 			cli.StringFlag{
 				Name:  "filter",
-				Usage: "Only return logs that match a filter pattern. If not specified, return all logs.",
+				Usage: "filter the logs by a given token",
 			},
 			cli.BoolTFlag{
 				Name:  "follow",
-				Usage: "Follow log output (default).",
+				Usage: "keep streaming new log output (default)",
 			},
 			cli.DurationFlag{
 				Name:  "since",
-				Usage: "Show logs since a duration, e.g. 10m or 1h2m10s.",
+				Usage: "Show logs since a duration (e.g. 10m or 1h2m10s)",
 				Value: 2 * time.Minute,
 			},
 		},
