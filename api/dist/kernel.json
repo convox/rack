@@ -1016,7 +1016,7 @@
         "AvailabilityZones": [
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
+          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
         ],
         "VPCZoneIdentifier": {
           "Fn::If": [ "Private", [
