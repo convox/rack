@@ -46,7 +46,7 @@
       "us-west-2": { "Ami": "ami-84b44de4", "ThirdAvailabilityZone": "Yes" },
       "eu-west-1": { "Ami": "ami-4e6ffe3d", "ThirdAvailabilityZone": "Yes" },
       "eu-central-1": { "Ami": "ami-b0cc23df", "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "Ami": "ami-095dbf68", "ThirdAvailabilityZone": "Yes" },
+      "ap-northeast-1": { "Ami": "ami-095dbf68", "ThirdAvailabilityZone": "No" },
       "ap-southeast-1": { "Ami": "ami-cf03d2ac", "ThirdAvailabilityZone": "No" },
       "ap-southeast-2": { "Ami": "ami-697a540a", "ThirdAvailabilityZone": "Yes" }
     }
