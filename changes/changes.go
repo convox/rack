@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
 )
 
 type Change struct {
@@ -33,6 +36,11 @@ func Watch(dir string, ch chan Change) error {
 		return err
 	}
 
+	ignore, err := readDockerIgnore(abs)
+	if err != nil {
+		return err
+	}
+
 	sym, err := filepath.EvalSymlinks(abs)
 	if err != nil {
 		return err
@@ -56,10 +64,28 @@ func Watch(dir string, ch chan Change) error {
 		return err
 	}
 
-	return watchForChanges(files, sym, ch)
+	return watchForChanges(files, sym, ignore, ch)
 }
 
-func watchForChanges(files map[string]map[string]time.Time, dir string, ch chan Change) error {
+func readDockerIgnore(dir string) ([]string, error) {
+	fd, err := os.Open(filepath.Join(dir, ".dockerignore"))
+
+	if os.IsNotExist(err) {
+		return []string{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	ignore, err := dockerignore.ReadAll(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return ignore, nil
+}
+
+func watchForChanges(files map[string]map[string]time.Time, dir string, ignore []string, ch chan Change) error {
 	for {
 		for file, _ := range files[dir] {
 			if _, err := os.Stat(file); os.IsNotExist(err) {
@@ -85,6 +111,20 @@ func watchForChanges(files map[string]map[string]time.Time, dir string, ch chan 
 			}
 
 			if info.IsDir() {
+				return nil
+			}
+
+			rel, err := filepath.Rel(dir, path)
+			if err != nil {
+				return err
+			}
+
+			match, err := fileutils.Matches(rel, ignore)
+			if err != nil {
+				return err
+			}
+
+			if match {
 				return nil
 			}
 
