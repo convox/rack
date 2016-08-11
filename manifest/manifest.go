@@ -16,7 +16,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var interpolationRegex = regexp.MustCompile("\\$\\{([0-9A-Za-z_]*)\\}")
+var interpolationBracketRegex = regexp.MustCompile("\\$\\{([0-9A-Za-z_]*)\\}")
+var interpolationDollarRegex = regexp.MustCompile("\\$([0-9A-Za-z_]+)")
 
 type Manifest struct {
 	Version  string             `yaml:"version"`
@@ -207,7 +208,20 @@ func parseEnvVars(data []byte) ([]byte, error) {
 }
 
 func parseLine(line string) string {
-	result := interpolationRegex.FindAllStringSubmatch(line, -1)
+	matches := interpolationDollarRegex.FindAllIndex([]byte(line), -1)
+	for _, pair := range matches {
+		if line[pair[0]-1] != '$' {
+			fmt.Println(line[pair[0]:pair[1]])
+			head := line[0:pair[0]]
+			tail := line[pair[1]:]
+			line = fmt.Sprintf("%s%s%s", head, os.Getenv(line[(pair[0]+1):pair[1]]), tail)
+		} else {
+			head := line[0:(pair[0] - 1)]
+			tail := line[pair[0]:]
+			line = fmt.Sprintf("%s%s", head, tail)
+		}
+	}
+	result := interpolationBracketRegex.FindAllStringSubmatch(line, -1)
 	for _, v := range result {
 		line = strings.Replace(line, v[0], os.Getenv(v[1]), -1)
 	}

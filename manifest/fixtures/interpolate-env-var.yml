@@ -2,4 +2,5 @@ version: "2"
 services:
   web:
     image: ${KNOWN_VAR1}
-    entrypoint: ${KNOWN_VAR2}/${KNOWN_VAR2}/${KNOWN_VAR3}
+    entrypoint: ${KNOWN_VAR2}/$KNOWN_VAR2/${KNOWN_VAR3}
+    dockerfile: $$REMAIN
