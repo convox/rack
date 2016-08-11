@@ -171,12 +171,14 @@ func (m *Manifest) Run(dir, app string, cache, sync bool) Run {
 }
 
 // Return the Services of this Manifest in the order you should run them
-func (m *Manifest) runOrder() []Service {
-	services := []Service{}
+func (m *Manifest) runOrder() Services {
+	services := Services{}
 
 	for _, service := range m.Services {
 		services = append(services, service)
 	}
+
+	sort.Sort(services)
 
 	// classic bubble sort
 	for i := 0; i < len(services)-1; i++ {

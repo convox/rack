@@ -549,7 +549,12 @@ func createTarball(base string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = os.Chdir(base)
+	sym, err := filepath.EvalSymlinks(base)
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.Chdir(sym)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +562,7 @@ func createTarball(base string) ([]byte, error) {
 	var includes = []string{"."}
 	var excludes []string
 
-	dockerIgnorePath := path.Join(base, ".dockerignore")
+	dockerIgnorePath := path.Join(sym, ".dockerignore")
 	dockerIgnore, err := os.Open(dockerIgnorePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -594,7 +599,7 @@ func createTarball(base string) ([]byte, error) {
 		IncludeFiles:    includes,
 	}
 
-	out, err := archive.TarWithOptions(base, options)
+	out, err := archive.TarWithOptions(sym, options)
 	if err != nil {
 		return nil, err
 	}
