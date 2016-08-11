@@ -1,7 +1,7 @@
 package manifest_test
 
 import (
-	"math"
+	"fmt"
 	"os/exec"
 	"testing"
 
@@ -28,8 +28,10 @@ func NewTestExecer() *TestExecer {
 }
 
 func (p *TestExecer) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
-	i := int(math.Mod(float64(p.Index), float64(len(p.CannedResponses))))
-	resp := p.CannedResponses[i]
+	if p.Index > len(p.CannedResponses)-1 {
+		return nil, fmt.Errorf("CannedResponse index out of range")
+	}
+	resp := p.CannedResponses[p.Index]
 	p.Index++
 	return resp.Output, resp.Error
 }
