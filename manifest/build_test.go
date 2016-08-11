@@ -165,6 +165,38 @@ func TestBuildRepeatSimple(t *testing.T) {
 	assert.Equal(t, te.Commands[2].Args, cmd3)
 }
 
+func TestBuildRepeatImage(t *testing.T) {
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+	dr := manifest.DefaultRunner
+	te := NewTestExecer()
+	te.CannedResponses = []ExecResponse{
+		ExecResponse{
+			Output: []byte(""),
+			Error:  nil,
+		},
+	}
+	manifest.DefaultRunner = te
+	defer func() { manifest.DefaultRunner = dr }()
+
+	m, err := manifestFixture("repeat-image")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = m.Build(".", "web", str, false)
+
+	cmd1 := []string{"docker", "pull", "convox/rails"}
+	cmd2 := []string{"docker", "tag", "convox/rails", "web/web1"}
+	cmd3 := []string{"docker", "tag", "convox/rails", "web/web2"}
+
+	if assert.Equal(t, len(te.Commands), 3) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+		assert.Equal(t, te.Commands[2].Args, cmd3)
+	}
+}
+
 func TestBuildRepeatComplex(t *testing.T) {
 	output := manifest.NewOutput()
 	str := output.Stream("build")
