@@ -1268,7 +1268,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:3000/check",
+          "Target": "HTTPS:3001/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -1278,12 +1278,6 @@
           }
         ],
         "Listeners": [
-          {
-            "Protocol": "TCP",
-            "LoadBalancerPort": "80",
-            "InstanceProtocol": "TCP",
-            "InstancePort": "3000"
-          },
           {
             "Protocol": "TCP",
             "LoadBalancerPort": "443",
@@ -1655,7 +1649,6 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
-              "3000:3000",
               "3001:4443"
             ],
             "Volumes": [
@@ -1682,7 +1675,6 @@
               "Memory": "128",
               "Name": "registry",
               "PortMappings": [
-                "3100:3000",
                 "3101:443"
               ],
               "Volumes": []
