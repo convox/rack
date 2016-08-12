@@ -96,6 +96,11 @@ func (s Service) HasBalancer() bool {
 	return len(s.Ports) > 0
 }
 
+func (s Service) HasRoute() bool {
+	_, ok := s.Labels["convox.router.path"]
+	return ok
+}
+
 func (s *Service) Proxies(app string) []Proxy {
 	proxies := []Proxy{}
 

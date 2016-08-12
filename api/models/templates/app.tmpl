@@ -146,6 +146,7 @@
       {{ template "process-resources" .Manifest }}
       {{ template "process-services" . }}
       {{ template "registry-resources" .Manifest }}
+      {{ template "router-resources" . }}
 
       {{ template "security" }}
       {{ template "state" }}
@@ -154,6 +155,7 @@
       {{ template "balancer-outputs" .}}
       {{ template "process-outputs" .Manifest }}
       {{ template "registry-outputs" .Manifest }}
+      {{ template "router-outputs" . }}
 
       "Settings": {
         "Value": { "Ref": "Settings" }
@@ -282,6 +284,9 @@
           {{ if $e.HasBalancer }}
             "{{ $manifest.BalancerResourceName $e.Name }}",
           {{ end }}
+          {{ range $i, $route := $manifest.Routes }}
+            "RouterListener{{ $route.ListenerPort }}Rule{{ $route.Port }}",
+          {{ end }}
           "CustomTopic",
           "ServiceRole"
          ],
@@ -298,7 +303,15 @@
           "DeploymentMaximumPercent": "{{ $e.DeploymentMaximum }}",
           "LoadBalancers": [
             {{ range $e.Ports }}
-              { "Fn::Join": [ "||", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
+              { "Fn::Join": [ "||", [
+                {{ if $e.HasRoute }}
+                  { "Ref": "RouterListener{{ .Balancer }}Target{{ .Container }}" },
+                {{ else }}
+                  { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" },
+                {{ end }}
+                "{{ $e.Name }}",
+                "{{ .Container }}"
+              ] ] },
             {{ end }}
             { "Ref": "AWS::NoValue" }
           ]
@@ -457,6 +470,82 @@
           {"Ref" : "{{ .ResourceName }}SecurityGroup"},
           {"Ref" : "SecurityGroup"}
         ]}]
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "router-outputs" }}
+  {{ if .Manifest.Routes }}
+    "Router": {
+      "Value": { "Fn::GetAtt": [ "Router", "DNSName" ] }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "router-resources" }}
+  {{ if .Manifest.Routes }}
+    "Router": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Name": { "Ref": "AWS::StackName" },
+        "Scheme": { "Fn::If": [ "Internal", "internal", "internet-facing" ] },
+        "SecurityGroups": [ { "Ref": "RouterSecurity" } ],
+        "Subnets": { "Fn::If": [ "Private",
+          { "Ref": "SubnetsPrivate" },
+          { "Ref": "Subnets" }
+        ] }
+      }
+    },
+    "RouterSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Instances",
+        "SecurityGroupIngress": [
+          {{ range .Manifest.Routes.Listeners }}
+            { "IpProtocol": "tcp", "FromPort": "{{ .Port }}", "ToPort": "{{ .Port }}", "CidrIp": { "Fn::If": [ "Internal", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] } },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ],
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+  {{ end }}
+  {{ range .Manifest.Routes.Listeners }}
+    "RouterListener{{ .Port }}": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ .Port }}TargetDefault" } } ],
+        "LoadBalancerArn": { "Ref": "Router" },
+        "Port": "{{ .Port }}",
+        "Protocol": "HTTP"
+      }
+    },
+    "RouterListener{{ .Port }}TargetDefault": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": "1024",
+        "Protocol": "HTTP",
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+  {{ end }}
+  {{ range $i, $route := .Manifest.Routes }}
+    "RouterListener{{ $route.ListenerPort }}Target{{ $route.Port }}": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": "{{ .Port }}",
+        "Protocol": "HTTP",
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+    "RouterListener{{ $route.ListenerPort }}Rule{{ $route.Port }}": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ $route.ListenerPort }}Target{{ $route.Port }}" } } ],
+        "Conditions": [ { "Field": "path-pattern", "Values": [ "{{ $route.Route }}" ] } ],
+        "ListenerArn": { "Ref": "RouterListener{{ $route.ListenerPort }}" },
+        "Priority": "{{ inc $i }}"
       }
     },
   {{ end }}
