@@ -217,7 +217,11 @@ func ECSServiceReplacementRequired(req Request) (bool, error) {
 
 	// NOTE: Despite the Service APIs taking and returning a list, at most one balancer:container:port mapping will be set
 	for _, lb := range res.Services[0].LoadBalancers {
-		existing[fmt.Sprintf("%s:%s:%d", *lb.LoadBalancerName, *lb.ContainerName, *lb.ContainerPort)] = true
+		if lb.TargetGroupArn != nil || *lb.TargetGroupArn == "" {
+			existing[fmt.Sprintf("%s||%s||%d", *lb.TargetGroupArn, *lb.ContainerName, *lb.ContainerPort)] = true
+		} else {
+			existing[fmt.Sprintf("%s||%s||%d", *lb.LoadBalancerName, *lb.ContainerName, *lb.ContainerPort)] = true
+		}
 	}
 
 	// update retains no load balancers
