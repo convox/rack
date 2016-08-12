@@ -109,13 +109,13 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimumPercent"].(string))
 
 		if err != nil {
-			return "could not parse DeploymentMinimumPercent", nil, err
+			return "invalid", nil, fmt.Errorf("could not parse DeploymentMinimumPercent")
 		}
 
 		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximumPercent"].(string))
 
 		if err != nil {
-			return "could not parse DeploymentMaximumPercent", nil, err
+			return "invalid", nil, fmt.Errorf("could not parse DeploymentMaximumPercent")
 		}
 
 		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
@@ -164,13 +164,13 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimumPercent"].(string))
 
 		if err != nil {
-			return "could not parse DeploymentMinimumPercent", nil, err
+			return "invalid", nil, fmt.Errorf("could not parse DeploymentMinimumPercent")
 		}
 
 		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximumPercent"].(string))
 
 		if err != nil {
-			return "could not parse DeploymentMaximumPercent", nil, err
+			return "invalid", nil, fmt.Errorf("could not parse DeploymentMaximumPercent")
 		}
 
 		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
@@ -182,7 +182,7 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	res, err := ECS(req).UpdateService(r)
 
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return "invalid", nil, err
 	}
 
 	return *res.Service.ServiceArn, nil, nil
