@@ -1395,9 +1395,8 @@
         "DeploymentMaximumPercent": "100",
         "DesiredCount": "2",
         "LoadBalancers": [
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
+          { "Fn::Join": [ "||", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
+          { "Fn::Join": [ "||", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },

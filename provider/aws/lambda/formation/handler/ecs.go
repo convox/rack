@@ -75,7 +75,7 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 	}
 
 	for _, balancer := range balancers {
-		parts := strings.SplitN(balancer.(string), ":", 3)
+		parts := strings.Split(balancer.(string), "||")
 
 		if len(parts) != 3 {
 			return "invalid", nil, fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
@@ -85,11 +85,18 @@ func ECSServiceCreate(req Request) (string, map[string]string, error) {
 		ps := parts[1]
 		port, _ := strconv.Atoi(parts[2])
 
-		r.LoadBalancers = append(r.LoadBalancers, &ecs.LoadBalancer{
-			LoadBalancerName: aws.String(name),
-			ContainerName:    aws.String(ps),
-			ContainerPort:    aws.Int64(int64(port)),
-		})
+		lb := &ecs.LoadBalancer{
+			ContainerName: aws.String(ps),
+			ContainerPort: aws.Int64(int64(port)),
+		}
+
+		if strings.HasPrefix(name, "arn:") {
+			lb.TargetGroupArn = aws.String(name)
+		} else {
+			lb.LoadBalancerName = aws.String(name)
+		}
+
+		r.LoadBalancers = append(r.LoadBalancers, lb)
 
 		// Despite the ECS Create Service API docs, you can only specify a single load balancer name and port. Specifying more than one results in
 		// Failed to update resource. InvalidParameterException: load balancers can have at most 1 items. status code: 400, request id: 0839710e-9227-11e5-8a2f-015e938a7aea
