@@ -1034,7 +1034,7 @@
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : "1",
-        "MaxSize" : "100",
+        "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
