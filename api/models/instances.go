@@ -16,20 +16,17 @@ func InstanceKeyroll() error {
 	keypair, err := EC2().CreateKeyPair(&ec2.CreateKeyPairInput{
 		KeyName: &keyname,
 	})
-
 	if err != nil {
 		return err
 	}
 
 	env, err := GetRackSettings()
-
 	if err != nil {
 		return err
 	}
 
 	env["InstancePEM"] = *keypair.KeyMaterial
 	err = PutRackSettings(env)
-
 	if err != nil {
 		return err
 	}
