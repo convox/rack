@@ -1,6 +1,6 @@
-FROM golang:1.6.3-alpine
+FROM convox/golang
 
-RUN apk update && apk add build-base docker git haproxy openssh openssl python tar
+RUN apt-get update && apt-get install -y docker haproxy openssl python
 
 RUN go get github.com/ddollar/init
 RUN go get github.com/convox/rerun
