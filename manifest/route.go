@@ -1,8 +1,10 @@
 package manifest
 
+import "strings"
+
 type ManifestRoute struct {
 	ListenerPort int
-	Route        string
+	Paths        []string
 	Port         int
 	ServiceName  string
 }
@@ -17,12 +19,12 @@ func (m Manifest) Routes() ManifestRoutes {
 	routes := ManifestRoutes{}
 
 	for _, s := range m.Services {
-		if route, ok := s.Labels["convox.router.path"]; ok {
+		if path, ok := s.Labels["convox.router.path"]; ok {
 			for _, port := range s.Ports {
 				routes = append(routes, ManifestRoute{
 					ListenerPort: port.Balancer,
 					Port:         port.Container,
-					Route:        route,
+					Paths:        strings.Split(path, ","),
 					ServiceName:  s.Name,
 				})
 			}

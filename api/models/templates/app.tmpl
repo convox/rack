@@ -285,7 +285,9 @@
             "{{ $manifest.BalancerResourceName $e.Name }}",
           {{ end }}
           {{ range $i, $route := $manifest.Routes }}
-            "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}",
+            {{ range $j, $path := $route.Paths }}
+              "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}Path{{ $j }}",
+            {{ end }}
           {{ end }}
           "CustomTopic",
           "ServiceRole"
@@ -530,6 +532,7 @@
       }
     },
   {{ end }}
+  {{ $rand := random 50 }}
   {{ range $i, $route := .Manifest.Routes }}
     "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
@@ -539,15 +542,17 @@
         "VpcId": { "Ref": "VPC" }
       }
     },
-    "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}": {
-      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
-      "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}" } } ],
-        "Conditions": [ { "Field": "path-pattern", "Values": [ "{{ $route.Route }}" ] } ],
-        "ListenerArn": { "Ref": "RouterListener{{ $route.ListenerPort }}" },
-        "Priority": "{{ inc $i }}"
-      }
-    },
+    {{ range $j, $path := $route.Paths }}
+      "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}Path{{ $j }}": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}" } } ],
+          "Conditions": [ { "Field": "path-pattern", "Values": [ "{{ . }}" ] } ],
+          "ListenerArn": { "Ref": "RouterListener{{ $route.ListenerPort }}" },
+          "Priority": "{{ priority $rand $i $j }}"
+        }
+      },
+    {{ end }}
   {{ end }}
 {{ end }}
 
