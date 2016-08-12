@@ -96,6 +96,7 @@ func (s Service) HasBalancer() bool {
 	return len(s.Ports) > 0
 }
 
+// HasRoute returns true if the service has a route
 func (s Service) HasRoute() bool {
 	_, ok := s.Labels["convox.router.path"]
 	return ok
