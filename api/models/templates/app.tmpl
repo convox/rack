@@ -298,7 +298,7 @@
           "DeploymentMaximumPercent": "{{ $e.DeploymentMaximum }}",
           "LoadBalancers": [
             {{ range $e.Ports }}
-              { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
+              { "Fn::Join": [ "||", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
             {{ end }}
             { "Ref": "AWS::NoValue" }
           ]
@@ -453,9 +453,9 @@
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
         "SecurityGroups" : [{ "Fn::If" : [
-      "BlankSecurityGroup",
-      {"Ref" : "{{ .ResourceName }}SecurityGroup"},
-      {"Ref" : "SecurityGroup"}
+          "BlankSecurityGroup",
+          {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+          {"Ref" : "SecurityGroup"}
         ]}]
       }
     },
