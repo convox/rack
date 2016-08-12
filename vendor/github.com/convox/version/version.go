@@ -184,7 +184,7 @@ func (vs Versions) Next(curr string) (string, error) {
 		return published, nil
 	}
 
-	return "", fmt.Printf("current version %q is latest", curr)
+	return "", fmt.Sprintf("current version %q is latest", curr)
 }
 
 // Walk a bucket to create initial versions.json file
