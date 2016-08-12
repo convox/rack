@@ -111,9 +111,9 @@ func (s *Service) Proxies(app string) []Proxy {
 
 			s.Ports[i].Balancer = 0
 
-			proxy.Protocol = coalesce(s.Labels[fmt.Sprintf("convox.port.%s.protocol", p.Name)], "tcp")
-			proxy.Proxy = s.Labels[fmt.Sprintf("convox.port.%s.proxy", p.Name)] == "true"
-			proxy.Secure = s.Labels[fmt.Sprintf("convox.port.%s.secure", p.Name)] == "true"
+			proxy.Protocol = coalesce(s.Labels[fmt.Sprintf("convox.port.%d.protocol", p.Balancer)], "tcp")
+			proxy.Proxy = s.Labels[fmt.Sprintf("convox.port.%d.proxy", p.Balancer)] == "true"
+			proxy.Secure = s.Labels[fmt.Sprintf("convox.port.%d.secure", p.Balancer)] == "true"
 
 			proxies = append(proxies, proxy)
 		}
