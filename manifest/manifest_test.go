@@ -2,7 +2,9 @@ package manifest_test
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -188,6 +190,38 @@ func TestLoadGarbage(t *testing.T) {
 	}
 }
 
+func TestLoadEnvVar(t *testing.T) {
+	rando1 := randomString(30)
+	rando2 := randomString(30)
+	rando3 := randomString(30)
+
+	err := os.Setenv("KNOWN_VAR1", rando1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = os.Setenv("KNOWN_VAR2", rando2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = os.Setenv("KNOWN_VAR3", rando3)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	m, err := manifestFixture("interpolate-env-var")
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, m.Services["web"].Image, rando1)
+		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s", rando2, rando2, rando3))
+		assert.Equal(t, m.Services["web"].Dockerfile, "$REMAIN")
+	}
+}
+
 func TestLoadIdleTimeoutUnset(t *testing.T) {
 	m, err := manifestFixture("idle-timeout-unset")
 
@@ -333,6 +367,15 @@ func TestShift(t *testing.T) {
 			assert.Equal(t, web.Ports[1].Balancer, 11000)
 			assert.Equal(t, web.Ports[1].Container, 7000)
 		}
+
+		other := m.Services["other"]
+
+		if assert.NotNil(t, other) && assert.Equal(t, len(other.Ports), 2) {
+			assert.Equal(t, other.Ports[0].Balancer, 8000)
+			assert.Equal(t, other.Ports[0].Container, 8000)
+			assert.Equal(t, other.Ports[1].Balancer, 15000)
+			assert.Equal(t, other.Ports[1].Container, 9001)
+		}
 	}
 }
 
@@ -423,4 +466,14 @@ func TestManifestValidate(t *testing.T) {
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
 	return manifest.LoadFile(fmt.Sprintf("fixtures/%s.yml", name))
+}
+
+var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+func randomString(size int) string {
+	b := make([]rune, size)
+	for i := range b {
+		b[i] = randomAlphabet[rand.Intn(len(randomAlphabet))]
+	}
+	return string(b)
 }

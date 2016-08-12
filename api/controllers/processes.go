@@ -24,7 +24,6 @@ func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	processes, err := models.ListProcesses(app)
-
 	if err != nil {
 		return httperr.Server(err)
 	}

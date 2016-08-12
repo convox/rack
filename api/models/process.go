@@ -542,7 +542,7 @@ func (p *Process) FetchStats() error {
 	}
 
 	stch := make(chan *docker.Stats)
-	dnch := make(chan bool)
+	dnch := make(chan bool, 1)
 
 	options := docker.StatsOptions{
 		ID:     p.containerId,
@@ -553,15 +553,18 @@ func (p *Process) FetchStats() error {
 
 	go d.Stats(options)
 
-	stat := <-stch
+	var stat *docker.Stats
 
 	toch := time.After(5 * time.Second)
 	select {
-	case dnch <- true:
+	case stat = <-stch:
 		// nop
 	case <-toch:
-		fmt.Println("timeout closing stats") // TODO: track this ?
+		// TODO: track this ?
+		fmt.Println(`ns=kernel at=FetchStats state=warning message="timeout retrieving stats"`)
 	}
+
+	dnch <- true
 
 	if stat != nil {
 		pcpu := stat.PreCPUStats.CPUUsage.TotalUsage

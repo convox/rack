@@ -416,7 +416,7 @@
             }
           ]
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyName": "LogSubscriptionFilterRole",
@@ -458,7 +458,7 @@
             }
           ]
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyName": "Administrator",
@@ -859,7 +859,7 @@
             }
           ]
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyName": "ClusterInstanceRole",
@@ -1076,7 +1076,7 @@
             }
           ]
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyName": "InstancesLifecycleRole",
@@ -1180,7 +1180,7 @@
             }
           ]
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyName": "InstancesLifecycleHandlerRole",
@@ -1386,7 +1386,7 @@
           { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
-        "Role": { "Ref": "ServiceRole" },
+        "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiWebTasks" }
       }
     },
@@ -1402,7 +1402,7 @@
         "DesiredCount": "1",
         "LoadBalancers": [],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-monitor" ] ] },
-        "Role": { "Ref": "ServiceRole" },
+        "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
         "TaskDefinition": { "Ref": "ApiMonitorTasks" }
       }
     },
@@ -1424,7 +1424,7 @@
           ],
           "Version": "2012-10-17"
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyDocument": {
@@ -1639,7 +1639,7 @@
             ]
           },
           { "Fn::If": [ "RegionHasECR",
-            { "Ref": "AWS::NoValue" }, 
+            { "Ref": "AWS::NoValue" },
             {
               "CPU": "128",
               "Environment": {

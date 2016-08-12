@@ -6,7 +6,7 @@ import (
 )
 
 func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
-	pulls := map[string]string{}
+	pulls := map[string][]string{}
 	builds := []Service{}
 
 	for _, service := range m.runOrder() {
@@ -15,7 +15,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 			dockerFile = service.Dockerfile
 		}
 		if service.Image != "" {
-			pulls[service.Image] = service.Tag(appName)
+			pulls[service.Image] = append(pulls[service.Image], service.Tag(appName))
 		} else {
 			builds = append(builds, service)
 		}
@@ -52,7 +52,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 		buildCache[service.Build.Hash()] = service.Tag(appName)
 	}
 
-	for image, tag := range pulls {
+	for image, tags := range pulls {
 		args := []string{"pull"}
 
 		output, err := DefaultRunner.CombinedOutput(Docker("images", "-q", image))
@@ -67,9 +67,10 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 				return fmt.Errorf("build error: %s", err)
 			}
 		}
-
-		if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
-			return fmt.Errorf("build error: %s", err)
+		for _, tag := range tags {
+			if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
+				return fmt.Errorf("build error: %s", err)
+			}
 		}
 	}
 
