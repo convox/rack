@@ -2,27 +2,30 @@ package manifest
 
 import "strings"
 
-type manifestRoute struct {
+// Route defines a route on the Manifest
+type Route struct {
 	ListenerPort int
 	Paths        []string
 	Port         int
 	ServiceName  string
 }
 
-type manifestRoutes []manifestRoute
+// Routes is a list of Routes
+type Routes []Route
 
-type manifestRouteListener struct {
+// RouteListener defines the listener for a Route
+type RouteListener struct {
 	Port int
 }
 
 // Routes returns all routes in the Manifest
-func (m Manifest) Routes() manifestRoutes {
-	routes := manifestRoutes{}
+func (m Manifest) Routes() Routes {
+	routes := Routes{}
 
 	for _, s := range m.Services {
 		if path, ok := s.Labels["convox.router.path"]; ok {
 			for _, port := range s.Ports {
-				routes = append(routes, manifestRoute{
+				routes = append(routes, Route{
 					ListenerPort: port.Balancer,
 					Port:         port.Container,
 					Paths:        strings.Split(path, ","),
@@ -35,17 +38,17 @@ func (m Manifest) Routes() manifestRoutes {
 	return routes
 }
 
-func (rr manifestRoutes) Listeners() []manifestRouteListener {
+func (rr Routes) Listeners() []RouteListener {
 	ports := map[int]bool{}
 
 	for _, r := range rr {
 		ports[r.ListenerPort] = true
 	}
 
-	listeners := []manifestRouteListener{}
+	listeners := []RouteListener{}
 
 	for port := range ports {
-		listeners = append(listeners, manifestRouteListener{
+		listeners = append(listeners, RouteListener{
 			Port: port,
 		})
 	}
