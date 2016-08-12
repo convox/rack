@@ -285,7 +285,7 @@
             "{{ $manifest.BalancerResourceName $e.Name }}",
           {{ end }}
           {{ range $i, $route := $manifest.Routes }}
-            "RouterListener{{ $route.ListenerPort }}Rule{{ $route.Port }}",
+            "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}",
           {{ end }}
           "CustomTopic",
           "ServiceRole"
@@ -305,7 +305,7 @@
             {{ range $e.Ports }}
               { "Fn::Join": [ "||", [
                 {{ if $e.HasRoute }}
-                  { "Ref": "RouterListener{{ .Balancer }}Target{{ .Container }}" },
+                  { "Ref": "RouterListener{{ .Balancer }}Target{{ upper $e.Name }}{{ .Container }}" },
                 {{ else }}
                   { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" },
                 {{ end }}
@@ -531,7 +531,7 @@
     },
   {{ end }}
   {{ range $i, $route := .Manifest.Routes }}
-    "RouterListener{{ $route.ListenerPort }}Target{{ $route.Port }}": {
+    "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
       "Properties": {
         "Port": { "Ref": "{{ upper $route.ServiceName }}Port{{ $route.ListenerPort }}Host" },
@@ -539,10 +539,10 @@
         "VpcId": { "Ref": "VPC" }
       }
     },
-    "RouterListener{{ $route.ListenerPort }}Rule{{ $route.Port }}": {
+    "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}": {
       "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
       "Properties": {
-        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ $route.ListenerPort }}Target{{ $route.Port }}" } } ],
+        "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}" } } ],
         "Conditions": [ { "Field": "path-pattern", "Values": [ "{{ $route.Route }}" ] } ],
         "ListenerArn": { "Ref": "RouterListener{{ $route.ListenerPort }}" },
         "Priority": "{{ inc $i }}"
