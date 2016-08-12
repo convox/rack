@@ -731,15 +731,15 @@
               {
                 "Effect": "Allow",
                 "Action": [
-                  "elasticloadbalancing:Describe*",
-                  "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                  "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                  "ec2:AuthorizeSecurityGroupIngress",
                   "ec2:Describe*",
-                  "ec2:AuthorizeSecurityGroupIngress"
+                  "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                  "elasticloadbalancing:DeregisterTargets",
+                  "elasticloadbalancing:Describe*",
+                  "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                  "elasticloadbalancing:RegisterTargets"
                 ],
-                "Resource": [
-                  "*"
-                ]
+                "Resource": [ "*" ]
               }
             ]
           }
