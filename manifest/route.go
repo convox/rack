@@ -38,6 +38,7 @@ func (m Manifest) Routes() Routes {
 	return routes
 }
 
+// Listeners returns the unique listeners for these Routes
 func (rr Routes) Listeners() []RouteListener {
 	ports := map[int]bool{}
 
