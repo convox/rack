@@ -1,7 +1,7 @@
 package manifest_test
 
 import (
-	"math"
+	"fmt"
 	"os/exec"
 	"testing"
 
@@ -28,8 +28,10 @@ func NewTestExecer() *TestExecer {
 }
 
 func (p *TestExecer) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
-	i := int(math.Mod(float64(p.Index), float64(len(p.CannedResponses))))
-	resp := p.CannedResponses[i]
+	if p.Index > len(p.CannedResponses)-1 {
+		return nil, fmt.Errorf("CannedResponse index out of range")
+	}
+	resp := p.CannedResponses[p.Index]
 	p.Index++
 	return resp.Output, resp.Error
 }
@@ -161,6 +163,38 @@ func TestBuildRepeatSimple(t *testing.T) {
 	assert.Equal(t, te.Commands[0].Args, cmd1)
 	assert.Equal(t, te.Commands[1].Args, cmd2)
 	assert.Equal(t, te.Commands[2].Args, cmd3)
+}
+
+func TestBuildRepeatImage(t *testing.T) {
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+	dr := manifest.DefaultRunner
+	te := NewTestExecer()
+	te.CannedResponses = []ExecResponse{
+		ExecResponse{
+			Output: []byte(""),
+			Error:  nil,
+		},
+	}
+	manifest.DefaultRunner = te
+	defer func() { manifest.DefaultRunner = dr }()
+
+	m, err := manifestFixture("repeat-image")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = m.Build(".", "web", str, false)
+
+	cmd1 := []string{"docker", "pull", "convox/rails"}
+	cmd2 := []string{"docker", "tag", "convox/rails", "web/web1"}
+	cmd3 := []string{"docker", "tag", "convox/rails", "web/web2"}
+
+	if assert.Equal(t, len(te.Commands), 3) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+		assert.Equal(t, te.Commands[2].Args, cmd3)
+	}
 }
 
 func TestBuildRepeatComplex(t *testing.T) {
