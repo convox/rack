@@ -349,6 +349,8 @@ func TestManifestNetworks(t *testing.T) {
 					},
 				},
 			})
+
+			assert.Equal(t, s.NetworkName(), "foo")
 		}
 	}
 }
