@@ -261,7 +261,6 @@ func parseLine(line string) string {
 	matches := interpolationDollarRegex.FindAllIndex([]byte(line), -1)
 	for _, pair := range matches {
 		if line[pair[0]-1] != '$' {
-			fmt.Println(line[pair[0]:pair[1]])
 			head := line[0:pair[0]]
 			tail := line[pair[1]:]
 			line = fmt.Sprintf("%s%s%s", head, os.Getenv(line[(pair[0]+1):pair[1]]), tail)
