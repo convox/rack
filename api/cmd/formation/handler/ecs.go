@@ -139,7 +139,7 @@ func ECSServiceUpdate(req Request) (string, map[string]string, error) {
 	replace, err := ECSServiceReplacementRequired(req)
 
 	if err != nil {
-		return req.PhysicalResourceId, nil, err
+		return "invalid", nil, err
 	}
 
 	if replace {
@@ -187,10 +187,6 @@ func ECSServiceReplacementRequired(req Request) (bool, error) {
 	incoming := []string{}
 	existing := make(map[string]bool)
 
-	for _, ilb := range req.ResourceProperties["LoadBalancers"].([]interface{}) {
-		incoming = append(incoming, ilb.(string))
-	}
-
 	res, err := ECS(req).DescribeServices(&ecs.DescribeServicesInput{
 		Cluster:  aws.String(req.ResourceProperties["Cluster"].(string)),
 		Services: []*string{aws.String(req.PhysicalResourceId)},
@@ -198,6 +194,18 @@ func ECSServiceReplacementRequired(req Request) (bool, error) {
 
 	if err != nil {
 		return false, err
+	}
+
+	balancers := req.ResourceProperties["LoadBalancers"].([]interface{})
+
+	for _, ilb := range balancers {
+		incoming = append(incoming, ilb.(string))
+	}
+
+	if len(balancers) > 0 {
+		if req.ResourceProperties["Role"].(string) != *res.Services[0].RoleArn {
+			return true, nil
+		}
 	}
 
 	// NOTE: Despite the Service APIs taking and returning a list, at most one balancer:container:port mapping will be set
