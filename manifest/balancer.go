@@ -102,7 +102,6 @@ func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template
 }
 
 func (mb ManifestBalancer) InternalPorts() []Port {
-	fmt.Printf("mb.Entry.InternalPorts(): %+v\n", mb.Entry.InternalPorts())
 	return mb.Entry.InternalPorts()
 }
 
