@@ -534,7 +534,7 @@
     "RouterListener{{ $route.ListenerPort }}Target{{ $route.Port }}": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
       "Properties": {
-        "Port": "{{ .Port }}",
+        "Port": { "Ref": "{{ upper $route.ServiceName }}Port{{ $route.ListenerPort }}Host" },
         "Protocol": "HTTP",
         "VpcId": { "Ref": "VPC" }
       }
