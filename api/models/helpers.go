@@ -345,6 +345,9 @@ func templateHelpers() template.FuncMap {
 		"itoa": func(i int) string {
 			return strconv.Itoa(i)
 		},
+		"inc": func(i int) int {
+			return i + 1
+		},
 	}
 }
 
