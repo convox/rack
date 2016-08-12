@@ -352,6 +352,7 @@
       }
     },
     "LogSubscriptionFilterFunction": {
+      "DependsOn": [ "LogSubscriptionFilterRole" ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -494,7 +495,7 @@
       }
     },
     "CustomTopic": {
-      "DependsOn": ["CustomTopicRole"],
+      "DependsOn": [ "CustomTopicRole" ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1120,7 +1121,7 @@
       }
     },
     "InstancesLifecycleHandler": {
-      "DependsOn": ["InstancesLifecycleHandlerRole"],
+      "DependsOn": [ "InstancesLifecycleHandlerRole" ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
