@@ -40,3 +40,29 @@ func TestLabelsByPrefix(t *testing.T) {
 		"foo-bar": "hypen-string",
 	}, prefixed)
 }
+
+func TestNetworkName(t *testing.T) {
+	networks := manifest.Networks{
+		"foo": manifest.InternalNetwork{
+			"external": manifest.ExternalNetwork {
+				Name: "foonet",
+			},
+		},
+	}
+
+	s := manifest.Service{
+		Networks: networks,
+	}
+
+	assert.Equal(t, s.NetworkName(), "foonet")
+}
+
+func TestDefaultNetworkName(t *testing.T) {
+	networks := manifest.Networks {}
+
+	s := manifest.Service {
+		Networks: networks,
+	}
+
+	assert.Equal(t, s.NetworkName(), "")
+}

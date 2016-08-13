@@ -10,6 +10,7 @@ type Proxy struct {
 
 	Protocol string
 	Host     string
+	Network  string
 	Proxy    bool
 	Secure   bool
 }
@@ -21,6 +22,12 @@ func (p *Proxy) Start() error {
 
 	args = append(args, "--rm", "--name", p.Name)
 	args = append(args, "-p", fmt.Sprintf("%d:%d", p.Balancer, p.Balancer))
+	
+	// Attach proxy container to custom docker network, if configured
+	if p.Network != "" {
+		args = append(args, "--net", p.Network)
+	}
+
 	args = append(args, "--link", fmt.Sprintf("%s:host", p.Host))
 	args = append(args, "convox/proxy", fmt.Sprintf("%d", p.Balancer), fmt.Sprintf("%d", p.Container), p.Protocol)
 

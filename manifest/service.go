@@ -107,6 +107,7 @@ func (s *Service) Proxies(app string) []Proxy {
 				Balancer:  p.Balancer,
 				Container: p.Container,
 				Host:      fmt.Sprintf("%s-%s", app, s.Name),
+				Network:   s.NetworkName(),
 			}
 
 			s.Ports[i].Balancer = 0
@@ -210,6 +211,21 @@ func (s Service) DeploymentMinimum() string {
 // This will be most likely be overridden and set to 100 for singleton processes like schedulers that cannot have 2 running at once
 func (s Service) DeploymentMaximum() string {
 	return s.LabelDefault("convox.deployment.maximum", "200")
+}
+
+// NetworkName returns custom network name from the networks, defined in compose file.
+// REturns empty string, if no custom network is defined.
+// We pick the last one, as we currently support only single one.
+func (s *Service) NetworkName() string {
+	// No custom docker network by default
+	networkName := ""
+
+	for _, n := range s.Networks {
+		for _, in := range n {
+			networkName = in.Name
+		}
+	}
+	return networkName
 }
 
 func containerEnv(container string) map[string]string {
