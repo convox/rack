@@ -24,6 +24,9 @@ var (
 )
 
 func Get(collection string, key interface{}) interface{} {
+	lock.Lock()
+	defer lock.Unlock()
+
 	if os.Getenv("PROVIDER") == "test" {
 		return nil
 	}

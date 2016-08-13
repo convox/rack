@@ -11,4 +11,11 @@ for region in $(cat $base/REGIONS); do
       aws cloudformation delete-stack --stack-name $stack
     fi
   done
+
+  for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
+    if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
+      echo "deleting: $bucket on $region"
+      aws s3 rb s3://$bucket --force
+    fi
+  done
 done
