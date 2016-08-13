@@ -15,5 +15,5 @@ formation.zip: lambda.js formation
 
 release: formation.zip
 	for region in $(shell cat ../../../REGIONS); do \
-		aws s3 cp formation.zip s3://convox-$$region/release/$(VERSION)/formation.zip --acl public-read; \
+		aws s3 cp formation.zip s3://convox-$$region/release/$(VERSION)/formation.zip --acl public-read --region $$region; \
 	done

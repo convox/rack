@@ -20,7 +20,7 @@ func TestApps(t *testing.T) {
 		test.ExecRun{
 			Command: "convox apps",
 			Exit:    0,
-			Stdout:  "APP      STATUS \nsinatra  running\n",
+			Stdout:  "APP      STATUS\nsinatra  running\n",
 		},
 	)
 }

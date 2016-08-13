@@ -4,12 +4,18 @@
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
     "BlankExistingVpc": { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] },
+    "BlankExistingVpcAndThirdAvailabilityZone": {
+      "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
+    },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
+    "PrivateAndThirdAvailabilityZone": {
+      "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
+    },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
     "RegionHasECR": {
         "Fn::Or": [
@@ -24,18 +30,25 @@
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
         ]
-    }
+    },
+    "RegionHasEFSAndThirdAvailabilityZone": {
+      "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
+    },
+    "ThirdAvailabilityZone": { "Fn::Equals": [
+      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
+      "Yes"
+    ] }
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-c17ce0d6" },
-      "us-west-1": { "Ami": "ami-b74b08d7" },
-      "us-west-2": { "Ami": "ami-f3468e93" },
-      "eu-west-1": { "Ami": "ami-12ea8261" },
-      "eu-central-1": { "Ami": "ami-3bf10754" },
-      "ap-northeast-1": { "Ami": "ami-ed26e78c" },
-      "ap-southeast-1": { "Ami": "ami-032af460" },
-      "ap-southeast-2": { "Ami": "ami-a1281cc2" }
+      "us-east-1": { "Ami": "ami-8f7687e2", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "Ami": "ami-bb473cdb", "ThirdAvailabilityZone": "Yes" },
+      "us-west-2": { "Ami": "ami-84b44de4", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "Ami": "ami-4e6ffe3d", "ThirdAvailabilityZone": "Yes" },
+      "eu-central-1": { "Ami": "ami-b0cc23df", "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "Ami": "ami-095dbf68", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "Ami": "ami-cf03d2ac", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "Ami": "ami-697a540a", "ThirdAvailabilityZone": "Yes" }
     }
   },
   "Outputs": {
@@ -129,7 +142,7 @@
           [
             { "Ref": "Subnet0" },
             { "Ref": "Subnet1" },
-            { "Ref": "Subnet2" }
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
           ]
         ]
       }
@@ -575,7 +588,7 @@
       }
     },
     "Nat2": {
-      "Condition": "Private",
+      "Condition": "PrivateAndThirdAvailabilityZone",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress2", "AllocationId" ] },
@@ -634,6 +647,7 @@
       }
     },
     "Subnet2": {
+      "Condition": "ThirdAvailabilityZone",
       "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
@@ -681,7 +695,7 @@
       }
     },
     "SubnetPrivate2": {
-      "Condition": "Private",
+      "Condition": "PrivateAndThirdAvailabilityZone",
       "DependsOn": [ "AvailabilityZones" ],
       "Type": "AWS::EC2::Subnet",
       "Properties": {
@@ -737,7 +751,7 @@
       }
     },
     "RouteTablePrivate2": {
-      "Condition": "Private",
+      "Condition": "PrivateAndThirdAvailabilityZone",
       "DependsOn": [ "Nat2" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
@@ -768,7 +782,7 @@
       }
     },
     "RouteDefaultPrivate2": {
-      "Condition": "Private",
+      "Condition": "PrivateAndThirdAvailabilityZone",
       "DependsOn": [ "Nat2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
@@ -778,27 +792,27 @@
       }
     },
     "Subnet0Routes": {
+      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "SubnetId": { "Ref": "Subnet0" },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
     "Subnet1Routes": {
+      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "SubnetId": { "Ref": "Subnet1" },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
     "Subnet2Routes": {
+      "Condition": "BlankExistingVpcAndThirdAvailabilityZone",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "SubnetId": { "Ref": "Subnet2" },
         "RouteTableId": { "Ref": "Routes" }
@@ -823,7 +837,7 @@
       }
     },
     "SubnetPrivate2Routes": {
-      "Condition": "Private",
+      "Condition": "PrivateAndThirdAvailabilityZone",
       "DependsOn": [ "SubnetPrivate2", "RouteTablePrivate2" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -995,24 +1009,24 @@
       }
     },
     "Instances": {
-      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1", "Subnet2" ],
+      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "LaunchConfiguration" },
         "AvailabilityZones": [
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
           { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
-          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }
+          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
         ],
         "VPCZoneIdentifier": {
           "Fn::If": [ "Private", [
             { "Ref": "SubnetPrivate0" },
             { "Ref": "SubnetPrivate1" },
-            { "Ref": "SubnetPrivate2" }
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
           ], [
             { "Ref": "Subnet0" },
             { "Ref": "Subnet1" },
-            { "Ref": "Subnet2" }
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
           ] ]
         },
         "Cooldown": 5,
@@ -1020,7 +1034,7 @@
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
         "MinSize" : "1",
-        "MaxSize" : "100",
+        "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
           {
@@ -1296,11 +1310,11 @@
           "Fn::If": [ "PrivateApi", [
             { "Ref": "SubnetPrivate0" },
             { "Ref": "SubnetPrivate1" },
-            { "Ref": "SubnetPrivate2" }
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
           ], [
             { "Ref": "Subnet0" },
             { "Ref": "Subnet1" },
-            { "Ref": "Subnet2" }
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
           ] ]
         },
         "Tags": [
@@ -1545,7 +1559,7 @@
     },
     "VolumeTarget2": {
       "Type": "AWS::EFS::MountTarget",
-      "Condition": "RegionHasEFS",
+      "Condition": "RegionHasEFSAndThirdAvailabilityZone",
       "DependsOn": "Subnet2",
       "Properties": {
         "FileSystemId": { "Ref": "VolumeFilesystem" },
@@ -1579,7 +1593,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "ApiWebTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1", "Subnet2" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -1614,10 +1628,18 @@
               "SETTINGS_BUCKET": { "Ref": "Settings" },
               "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": {
-                "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ]
+                "Fn::Join": [ ",", [
+                  { "Ref": "Subnet0" },
+                  { "Ref": "Subnet1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ]
               },
               "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
-                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
+                { "Fn::Join": [ ",", [
+                  { "Ref": "SubnetPrivate0" },
+                  { "Ref": "SubnetPrivate1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ] },
                 ""
               ] },
               "VPC": { "Fn::If": [ "BlankExistingVpc",
@@ -1670,7 +1692,7 @@
       "Version": "1.0"
     },
     "ApiMonitorTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1", "Subnet2" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -1704,10 +1726,18 @@
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
               "STACK_ID": { "Ref": "AWS::StackId" },
               "SUBNETS": {
-                "Fn::Join": [ ",", [ { "Ref": "Subnet0" }, { "Ref": "Subnet1" }, { "Ref": "Subnet2" } ] ]
+                "Fn::Join": [ ",", [
+                  { "Ref": "Subnet0" },
+                  { "Ref": "Subnet1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ]
               },
               "SUBNETS_PRIVATE": { "Fn::If": [ "Private",
-                { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
+                { "Fn::Join": [ ",", [
+                  { "Ref": "SubnetPrivate0" },
+                  { "Ref": "SubnetPrivate1" },
+                  { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+                ] ] },
                 ""
               ] },
               "VPC": { "Fn::If": [ "BlankExistingVpc",
