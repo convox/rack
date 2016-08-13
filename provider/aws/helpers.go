@@ -100,10 +100,22 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 	return formation.String(), nil
 }
 
-func formationParameters(formation string) (map[string]TemplateParameter, error) {
+func formationParameters(templateURL string) (map[string]TemplateParameter, error) {
 	var t Template
 
-	err := json.Unmarshal([]byte(formation), &t)
+	res, err := http.Get(templateURL)
+
+	if err != nil {
+		return nil, err
+	}
+
+	formation, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal([]byte(formation), &t)
 	if err != nil {
 		return nil, err
 	}
@@ -238,71 +250,30 @@ func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error 
 }
 
 func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[string]string) error {
-	app, err := p.AppGet(name)
+	req := &cloudformation.UpdateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(name),
+		TemplateURL:  aws.String(templateUrl),
+	}
+
+	params, err := formationParameters(templateUrl)
 
 	if err != nil {
 		return err
 	}
 
-	params := map[string]string{}
-
-	for key, value := range app.Parameters {
-		params[key] = value
-	}
-
-	for key, value := range changes {
-		params[key] = value
-	}
-
-	req := &cloudformation.UpdateStackInput{
-		StackName:    aws.String(name),
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-	}
-
-	fp := make(map[string]TemplateParameter)
-
-	if templateUrl != "" {
-		res, err := http.Get(templateUrl)
-
-		if err != nil {
-			return err
-		}
-
-		body, err := ioutil.ReadAll(res.Body)
-
-		if err != nil {
-			return err
-		}
-
-		fp, err = formationParameters(string(body))
-
-		// remove params that don't exist in the template
-		for key := range params {
-			if _, ok := fp[key]; !ok {
-				delete(params, key)
-			}
-		}
-
-		req.TemplateURL = aws.String(templateUrl)
-	}
-
-	for key, value := range params {
-		var parameter *cloudformation.Parameter
-
-		// unless param changed, use previous value so NoEcho params don't get set to "****"
+	for key := range params {
 		if _, present := changes[key]; present {
-			parameter = &cloudformation.Parameter{
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 				ParameterKey:   aws.String(key),
-				ParameterValue: aws.String(value),
-			}
+				ParameterValue: aws.String(changes[key]),
+			})
 		} else {
-			parameter = &cloudformation.Parameter{
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 				ParameterKey:     aws.String(key),
 				UsePreviousValue: aws.Bool(true),
-			}
+			})
 		}
-
-		req.Parameters = append(req.Parameters, parameter)
 	}
 
 	_, err = p.updateStack(req)
