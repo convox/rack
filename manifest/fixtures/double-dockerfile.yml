@@ -1,0 +1,5 @@
+web:
+  build:
+    context: .
+    dockerfile: Dockerfile1
+  dockerfile: Dockerfile2

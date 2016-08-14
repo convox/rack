@@ -1,5 +1,8 @@
 version: "2"
 services:
+  first:
+    build:
+      context: .
   web:
     build:
       context: .
@@ -35,3 +38,15 @@ services:
       args:
         foo: other
     command: bin/other
+  otherd:
+    build: .
+    dockerfile: Dockerfile
+  othere:
+    build: .
+  otherf:
+    build: .
+    dockerfile: Dockerfile.otherf
+  otherg:
+    build:
+      context: .
+    dockerfile: Dockerfile.otherf

@@ -236,18 +236,25 @@ func TestBuildRepeatComplex(t *testing.T) {
 
 	err = m.Build(".", "web", str, false)
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
-	cmd2 := []string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/othera", "./other"}
-	cmd3 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.other", "-t", "web/otherb", "."}
-	cmd4 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherc", "."}
-	cmd5 := []string{"docker", "tag", "web/monitor", "web/web"}
+	te.AssertCommands(t, TestCommands{
+		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/first", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/othera", "./other"},
+		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile.other", "-t", "web/otherb", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherc", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherd", "."},
+		[]string{"docker", "tag", "web/first", "web/othere"},
+		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile.otherf", "-t", "web/otherf", "."},
+		[]string{"docker", "tag", "web/otherf", "web/otherg"},
+		[]string{"docker", "tag", "web/monitor", "web/web"},
+	})
+}
 
-	assert.Equal(t, len(te.Commands), 5)
-	assert.Equal(t, te.Commands[0].Args, cmd1)
-	assert.Equal(t, te.Commands[1].Args, cmd2)
-	assert.Equal(t, te.Commands[2].Args, cmd3)
-	assert.Equal(t, te.Commands[3].Args, cmd4)
-	assert.Equal(t, te.Commands[4].Args, cmd5)
+func TestDoubleDockerfile(t *testing.T) {
+	m, err := manifestFixture("double-dockerfile")
+
+	assert.Nil(t, m, "manifest should be nil")
+	assert.Equal(t, fmt.Errorf("dockerfile specified twice for web"), err)
 }
 
 func TestPush(t *testing.T) {
