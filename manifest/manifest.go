@@ -56,6 +56,15 @@ func Load(data []byte) (*Manifest, error) {
 	for name, service := range m.Services {
 		service.Name = name
 
+		// there are two places in a docker-compose.yml to specify a dockerfile
+		// normalize (for caching) and complain if both are set
+		if service.Dockerfile != "" {
+			if service.Build.Dockerfile != "" {
+				return nil, fmt.Errorf("dockerfile specified twice for %s", name)
+			}
+			service.Build.Dockerfile = service.Dockerfile
+		}
+
 		// shift all of the ports by a convox.start.shift label
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
 			shift, err := strconv.Atoi(ss)
