@@ -10,12 +10,12 @@ var (
 	wordChar = regexp.MustCompile("[0-9A-Za-z_]")
 )
 
-type Token struct {
+type token struct {
 	Value []byte
 	Kind  string
 }
 
-func (t Token) Result() string {
+func (t token) Result() string {
 	switch t.Kind {
 	case "env":
 		return os.Getenv(string(t.Value))
@@ -27,14 +27,14 @@ func (t Token) Result() string {
 }
 
 func parseLine(line string) string {
-	tokens := []Token{}
+	tokens := []token{}
 	totalLength := len(line)
 
 	for i := 0; i < totalLength; {
 		char := line[i]
 
 		if char == '$' && line[i+1] == '$' {
-			tok := Token{
+			tok := token{
 				Kind:  "ignore",
 				Value: []byte{},
 			}
@@ -54,7 +54,7 @@ func parseLine(line string) string {
 		} else if char == '$' && line[i+1] == '{' {
 			//bracket var
 			i += 2
-			tok := Token{
+			tok := token{
 				Kind:  "defualt",
 				Value: []byte{},
 			}
@@ -72,15 +72,15 @@ func parseLine(line string) string {
 				x++
 				i++
 			}
-			i += 1
+			i++
 			tokens = append(tokens, tok)
 		} else if char == '$' && wordChar.Match([]byte{line[i+1]}) {
 			//dollar var
-			tok := Token{
+			tok := token{
 				Kind:  "env",
 				Value: []byte{},
 			}
-			i += 1
+			i++
 			for x := i; x < totalLength; {
 				if wordChar.Match([]byte{line[x]}) {
 					tok.Value = append(tok.Value, line[x])
@@ -92,7 +92,7 @@ func parseLine(line string) string {
 			}
 			tokens = append(tokens, tok)
 		} else {
-			tokens = append(tokens, Token{
+			tokens = append(tokens, token{
 				Value: []byte{char},
 				Kind:  "default",
 			})
