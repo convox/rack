@@ -12,6 +12,6 @@ main: *.go
 	GOOS=linux GOARCH=amd64 go build -o main
 
 release: lambda.zip
-	for region in $(shell cat ../../../REGIONS); do \
+	for region in $(shell cat ../../../../REGIONS); do \
 		aws s3 cp lambda.zip s3://convox-$$region/release/$(VERSION)/lambda/formation.zip --acl public-read --region $$region; \
 	done
