@@ -54,16 +54,18 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
-		service.Networks = m.Networks
 
+		// shift all of the ports by a convox.start.shift label
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
 			shift, err := strconv.Atoi(ss)
 			if err != nil {
 				return nil, fmt.Errorf("invalid shift: %s", ss)
 			}
-
 			service.Ports.Shift(shift)
 		}
+
+		// denormalize a bit
+		service.Networks = m.Networks
 
 		m.Services[name] = service
 	}
