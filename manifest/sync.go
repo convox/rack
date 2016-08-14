@@ -223,6 +223,12 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 	}
 
 	st <- fmt.Sprintf("%d files downloaded", len(adds))
+
+	if os.Getenv("CONVOX_DEBUG") != "" {
+		for _, a := range adds {
+			st <- fmt.Sprintf("<- %s", filepath.Join(a.Base, a.Path))
+		}
+	}
 }
 
 func (s *Sync) syncIncomingRemoves(removes []changes.Change, st Stream) {
@@ -291,6 +297,12 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 	}
 
 	st <- fmt.Sprintf("%d files uploaded", len(adds))
+
+	if os.Getenv("CONVOX_DEBUG") != "" {
+		for _, a := range adds {
+			st <- fmt.Sprintf("-> %s", filepath.Join(a.Base, a.Path))
+		}
+	}
 
 	tgz.Close()
 
