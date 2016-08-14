@@ -226,7 +226,7 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 
 	if os.Getenv("CONVOX_DEBUG") != "" {
 		for _, a := range adds {
-			st <- fmt.Sprintf("add: %s", a)
+			st <- fmt.Sprintf("<- %s", filepath.Join(a.Base, a.Path))
 		}
 	}
 }
@@ -300,7 +300,7 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 
 	if os.Getenv("CONVOX_DEBUG") != "" {
 		for _, a := range adds {
-			st <- fmt.Sprintf("add: %s", a)
+			st <- fmt.Sprintf("-> %s", filepath.Join(a.Base, a.Path))
 		}
 	}
 
