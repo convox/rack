@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -255,26 +254,6 @@ func parseEnvVars(data []byte) ([]byte, error) {
 		}
 	}
 	return result, nil
-}
-
-func parseLine(line string) string {
-	matches := interpolationDollarRegex.FindAllIndex([]byte(line), -1)
-	for _, pair := range matches {
-		if line[pair[0]-1] != '$' {
-			head := line[0:pair[0]]
-			tail := line[pair[1]:]
-			line = fmt.Sprintf("%s%s%s", head, os.Getenv(line[(pair[0]+1):pair[1]]), tail)
-		} else {
-			head := line[0:(pair[0] - 1)]
-			tail := line[pair[0]:]
-			line = fmt.Sprintf("%s%s", head, tail)
-		}
-	}
-	result := interpolationBracketRegex.FindAllStringSubmatch(line, -1)
-	for _, v := range result {
-		line = strings.Replace(line, v[0], os.Getenv(v[1]), -1)
-	}
-	return line
 }
 
 func (m *Manifest) Raw() ([]byte, error) {

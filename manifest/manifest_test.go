@@ -229,6 +229,7 @@ func TestLoadEnvVar(t *testing.T) {
 		assert.Equal(t, m.Services["web"].Image, rando1)
 		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s", rando2, rando2, rando3))
 		assert.Equal(t, m.Services["web"].Dockerfile, "$REMAIN")
+		assert.Equal(t, m.Services["web"].Volumes[0], "${broken")
 	}
 }
 
