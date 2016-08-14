@@ -141,27 +141,21 @@ func watchForChanges(files map[string]map[string]time.Time, dir string, ignore [
 				return nil
 			}
 
-			rel, err := filepath.Rel(dir, path)
-			if err != nil {
-				return err
-			}
-
-			match, err := fileutils.Matches(rel, ignore)
-			if err != nil {
-				return err
-			}
-
-			if match {
-				return nil
-			}
-
 			e, ok := files[dir][path]
 
 			if !ok || e.Before(info.ModTime()) {
 				rel, err := filepath.Rel(dir, path)
-
 				if err != nil {
 					return err
+				}
+
+				match, err := fileutils.Matches(rel, ignore)
+				if err != nil {
+					return err
+				}
+
+				if match {
+					return nil
 				}
 
 				files[dir][path] = info.ModTime()
