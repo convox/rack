@@ -1,36 +1,20 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerMainPort80Proxy": {
+    "BlankBalancerMainPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "MainPort80Proxy"
+          "Ref": "MainPort80Certificate"
         },
-        "Yes"
+        ""
       ]
     },
-    "BalancerMainPort80Secure": {
+    "BlankBalancerMainPort81Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "MainPort80Secure"
+          "Ref": "MainPort81Certificate"
         },
-        "Yes"
-      ]
-    },
-    "BalancerMainPort81Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort81Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerMainPort81Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort81Secure"
-        },
-        "Yes"
+        ""
       ]
     },
     "BlankMainService": {
@@ -62,6 +46,14 @@
             "-1"
           ]
         }
+      ]
+    },
+    "Internal": {
+      "Fn::Equals": [
+        {
+          "Ref": "Internal"
+        },
+        "Yes"
       ]
     },
     "Private": {
@@ -142,9 +134,7 @@
     },
     "MainPort80Balancer": {
       "Condition": "EnabledMain",
-      "Value": {
-        "Ref": "MainPort80Balancer"
-      }
+      "Value": "80"
     },
     "MainPort80BalancerName": {
       "Condition": "EnabledMain",
@@ -152,9 +142,7 @@
     },
     "MainPort81Balancer": {
       "Condition": "EnabledMain",
-      "Value": {
-        "Ref": "MainPort81Balancer"
-      }
+      "Value": "81"
     },
     "MainPort81BalancerName": {
       "Condition": "EnabledMain",
@@ -202,6 +190,15 @@
       "Description": "",
       "Type": "String"
     },
+    "Internal": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Only allow access to this app from inside the VPC",
+      "Type": "String"
+    },
     "Key": {
       "Default": "",
       "Description": "",
@@ -212,11 +209,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "MainPort80Balancer": {
-      "Default": "80",
-      "Description": "",
-      "Type": "String"
-    },
     "MainPort80Certificate": {
       "Default": "",
       "Description": "",
@@ -224,40 +216,6 @@
     },
     "MainPort80Host": {
       "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort80Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Balancer": {
-      "Default": "81",
       "Description": "",
       "Type": "String"
     },
@@ -271,42 +229,13 @@
       "Description": "",
       "Type": "String"
     },
-    "MainPort81Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort81Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
         "No"
       ],
       "Default": "No",
-      "Description": "Create internal load balancers in private subnets",
+      "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
       "Type": "String"
     },
     "Release": {
@@ -362,7 +291,7 @@
           "Timeout": 60
         },
         "ConnectionSettings": {
-          "IdleTimeout": 3600
+          "IdleTimeout": "3600"
         },
         "CrossZone": true,
         "HealthCheck": {
@@ -372,34 +301,9 @@
             "Fn::Join": [
               "",
               [
+                "HTTPS:",
                 {
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {
-                        "Fn::If": [
-                          "BalancerMainPort81Secure",
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "http",
-                              "SecureInstanceProtocol"
-                            ]
-                          },
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "http",
-                              "InstanceProtocol"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "Ref": "MainPort81Host"
-                      }
-                    ]
-                  ]
+                  "Ref": "MainPort81Host"
                 },
                 "/health_check"
               ]
@@ -415,130 +319,54 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerMainPort80Secure",
-              {
-                "InstancePort": {
-                  "Ref": "MainPort80Host"
+            "InstancePort": {
+              "Ref": "MainPort80Host"
+            },
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "80",
+            "Protocol": {
+              "Fn::If": [
+                "BlankBalancerMainPort80Certificate",
+                "TCP",
+                "SSL"
+              ]
+            },
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerMainPort80Certificate",
+                {
+                  "Ref": "AWS::NoValue"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
+                {
                   "Ref": "MainPort80Certificate"
                 }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "MainPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort80Certificate"
-                }
-              }
-            ]
+              ]
+            }
           },
           {
-            "Fn::If": [
-              "BalancerMainPort81Secure",
-              {
-                "InstancePort": {
-                  "Ref": "MainPort81Host"
+            "InstancePort": {
+              "Ref": "MainPort81Host"
+            },
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "81",
+            "Protocol": {
+              "Fn::If": [
+                "BlankBalancerMainPort81Certificate",
+                "TCP",
+                "SSL"
+              ]
+            },
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerMainPort81Certificate",
+                {
+                  "Ref": "AWS::NoValue"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort81Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
+                {
                   "Ref": "MainPort81Certificate"
                 }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "MainPort81Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "MainPort81Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "MainPort81Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "MainPort81Certificate"
-                }
-              }
-            ]
+              ]
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -547,55 +375,18 @@
         "LoadBalancerName": "httpd-main-KQSNMIK",
         "Policies": [
           {
-            "Fn::If": [
-              "BalancerMainPort80Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "MainPort80Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
-            "Fn::If": [
-              "BalancerMainPort81Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "MainPort81Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
             "Ref": "AWS::NoValue"
           }
         ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
         "SecurityGroups": [
           {
             "Fn::If": [
@@ -610,7 +401,15 @@
           }
         ],
         "Subnets": {
-          "Ref": "Subnets"
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
         }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
@@ -632,23 +431,15 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "MainPort80Balancer"
-            },
+            "FromPort": "80",
             "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "MainPort80Balancer"
-            }
+            "ToPort": "80"
           },
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "MainPort81Balancer"
-            },
+            "FromPort": "81",
             "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "MainPort81Balancer"
-            }
+            "ToPort": "81"
           },
           {
             "Ref": "AWS::NoValue"
@@ -682,7 +473,7 @@
                 {
                   "Ref": "Version"
                 },
-                "/formation.zip"
+                "/lambda/formation.zip"
               ]
             ]
           }
@@ -864,13 +655,18 @@
                 },
                 "Environment": {
                   "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
+                  "AWS_REGION": "test",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
                   "PROCESS": "main",
                   "RACK": "convox-test"
                 },
+                "ExtraHosts": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
                 "Image": "",
                 "Memory": {
                   "Fn::Select": [

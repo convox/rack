@@ -1,36 +1,20 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BalancerWebPort80Proxy": {
+    "BlankBalancerWebPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Proxy"
+          "Ref": "WebPort80Certificate"
         },
-        "Yes"
+        ""
       ]
     },
-    "BalancerWebPort80Secure": {
+    "BlankBalancerWorkerPort80Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Secure"
+          "Ref": "WorkerPort80Certificate"
         },
-        "Yes"
-      ]
-    },
-    "BalancerWorkerPort80Proxy": {
-      "Fn::Equals": [
-        {
-          "Ref": "WorkerPort80Proxy"
-        },
-        "Yes"
-      ]
-    },
-    "BalancerWorkerPort80Secure": {
-      "Fn::Equals": [
-        {
-          "Ref": "WorkerPort80Secure"
-        },
-        "Yes"
+        ""
       ]
     },
     "BlankSecurityGroup": {
@@ -85,6 +69,14 @@
             "-1"
           ]
         }
+      ]
+    },
+    "Internal": {
+      "Fn::Equals": [
+        {
+          "Ref": "Internal"
+        },
+        "Yes"
       ]
     },
     "Private": {
@@ -194,9 +186,7 @@
     },
     "WebPort80Balancer": {
       "Condition": "EnabledWeb",
-      "Value": {
-        "Ref": "WebPort80Balancer"
-      }
+      "Value": "80"
     },
     "WebPort80BalancerName": {
       "Condition": "EnabledWeb",
@@ -204,9 +194,7 @@
     },
     "WorkerPort80Balancer": {
       "Condition": "EnabledWorker",
-      "Value": {
-        "Ref": "WorkerPort80Balancer"
-      }
+      "Value": "80"
     },
     "WorkerPort80BalancerName": {
       "Condition": "EnabledWorker",
@@ -234,6 +222,15 @@
       "Description": "",
       "Type": "String"
     },
+    "Internal": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Only allow access to this app from inside the VPC",
+      "Type": "String"
+    },
     "Key": {
       "Default": "",
       "Description": "",
@@ -245,7 +242,7 @@
         "No"
       ],
       "Default": "No",
-      "Description": "Create internal load balancers in private subnets",
+      "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
       "Type": "String"
     },
     "Release": {
@@ -293,11 +290,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "WebPort80Balancer": {
-      "Default": "80",
-      "Description": "",
-      "Type": "String"
-    },
     "WebPort80Certificate": {
       "Default": "",
       "Description": "",
@@ -308,44 +300,10 @@
       "Description": "",
       "Type": "String"
     },
-    "WebPort80Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WebPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
     "WorkerFormation": {
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
-    },
-    "WorkerPort80Balancer": {
-      "Default": "80",
-      "Description": "",
-      "Type": "String"
     },
     "WorkerPort80Certificate": {
       "Default": "",
@@ -354,35 +312,6 @@
     },
     "WorkerPort80Host": {
       "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerPort80Protocol": {
-      "AllowedValues": [
-        "http",
-        "https",
-        "tcp",
-        "tls"
-      ],
-      "Default": "tls",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerPort80Proxy": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
-      "Description": "",
-      "Type": "String"
-    },
-    "WorkerPort80Secure": {
-      "AllowedValues": [
-        "Yes",
-        "No"
-      ],
-      "Default": "No",
       "Description": "",
       "Type": "String"
     }
@@ -409,34 +338,9 @@
             "Fn::Join": [
               "",
               [
+                "TCP:",
                 {
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {
-                        "Fn::If": [
-                          "BalancerWebPort80Secure",
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "SecureInstanceProtocol"
-                            ]
-                          },
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "InstanceProtocol"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "Ref": "WebPort80Host"
-                      }
-                    ]
-                  ]
+                  "Ref": "WebPort80Host"
                 },
                 ""
               ]
@@ -452,67 +356,29 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerWebPort80Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
+            "InstancePort": {
+              "Ref": "WebPort80Host"
+            },
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "80",
+            "Protocol": {
+              "Fn::If": [
+                "BlankBalancerWebPort80Certificate",
+                "TCP",
+                "SSL"
+              ]
+            },
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerWebPort80Certificate",
+                {
+                  "Ref": "AWS::NoValue"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
+                {
                   "Ref": "WebPort80Certificate"
                 }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WebPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WebPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WebPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WebPort80Certificate"
-                }
-              }
-            ]
+              ]
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -521,32 +387,18 @@
         "LoadBalancerName": "httpd-web-XHW5F4P",
         "Policies": [
           {
-            "Fn::If": [
-              "BalancerWebPort80Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "WebPort80Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
             "Ref": "AWS::NoValue"
           }
         ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
         "SecurityGroups": [
           {
             "Fn::If": [
@@ -561,7 +413,15 @@
           }
         ],
         "Subnets": {
-          "Ref": "Subnets"
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
         }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
@@ -583,13 +443,9 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "WebPort80Balancer"
-            },
+            "FromPort": "80",
             "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "WebPort80Balancer"
-            }
+            "ToPort": "80"
           },
           {
             "Ref": "AWS::NoValue"
@@ -622,34 +478,9 @@
             "Fn::Join": [
               "",
               [
+                "TCP:",
                 {
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {
-                        "Fn::If": [
-                          "BalancerWorkerPort80Secure",
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "SecureInstanceProtocol"
-                            ]
-                          },
-                          {
-                            "Fn::FindInMap": [
-                              "PortProtocol",
-                              "tcp",
-                              "InstanceProtocol"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "Ref": "WorkerPort80Host"
-                      }
-                    ]
-                  ]
+                  "Ref": "WorkerPort80Host"
                 },
                 ""
               ]
@@ -665,67 +496,29 @@
         ],
         "Listeners": [
           {
-            "Fn::If": [
-              "BalancerWorkerPort80Secure",
-              {
-                "InstancePort": {
-                  "Ref": "WorkerPort80Host"
+            "InstancePort": {
+              "Ref": "WorkerPort80Host"
+            },
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "80",
+            "Protocol": {
+              "Fn::If": [
+                "BlankBalancerWorkerPort80Certificate",
+                "TCP",
+                "SSL"
+              ]
+            },
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerWorkerPort80Certificate",
+                {
+                  "Ref": "AWS::NoValue"
                 },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WorkerPort80Protocol"
-                    },
-                    "SecureInstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WorkerPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WorkerPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
+                {
                   "Ref": "WorkerPort80Certificate"
                 }
-              },
-              {
-                "InstancePort": {
-                  "Ref": "WorkerPort80Host"
-                },
-                "InstanceProtocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WorkerPort80Protocol"
-                    },
-                    "InstanceProtocol"
-                  ]
-                },
-                "LoadBalancerPort": {
-                  "Ref": "WorkerPort80Balancer"
-                },
-                "Protocol": {
-                  "Fn::FindInMap": [
-                    "PortProtocol",
-                    {
-                      "Ref": "WorkerPort80Protocol"
-                    },
-                    "ListenerProtocol"
-                  ]
-                },
-                "SSLCertificateId": {
-                  "Ref": "WorkerPort80Certificate"
-                }
-              }
-            ]
+              ]
+            }
           },
           {
             "Ref": "AWS::NoValue"
@@ -734,32 +527,18 @@
         "LoadBalancerName": "httpd-worker-3XM5YXK",
         "Policies": [
           {
-            "Fn::If": [
-              "BalancerWorkerPort80Proxy",
-              {
-                "Attributes": [
-                  {
-                    "Name": "ProxyProtocol",
-                    "Value": "true"
-                  }
-                ],
-                "InstancePorts": [
-                  {
-                    "Ref": "WorkerPort80Host"
-                  }
-                ],
-                "PolicyName": "EnableProxyProtocol",
-                "PolicyType": "ProxyProtocolPolicyType"
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          },
-          {
             "Ref": "AWS::NoValue"
           }
         ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
         "SecurityGroups": [
           {
             "Fn::If": [
@@ -774,7 +553,15 @@
           }
         ],
         "Subnets": {
-          "Ref": "Subnets"
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
         }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
@@ -796,13 +583,9 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": {
-              "Ref": "WorkerPort80Balancer"
-            },
+            "FromPort": "80",
             "IpProtocol": "tcp",
-            "ToPort": {
-              "Ref": "WorkerPort80Balancer"
-            }
+            "ToPort": "80"
           },
           {
             "Ref": "AWS::NoValue"
@@ -836,7 +619,7 @@
                 {
                   "Ref": "Version"
                 },
-                "/formation.zip"
+                "/lambda/formation.zip"
               ]
             ]
           }
@@ -1086,13 +869,18 @@
                 },
                 "Environment": {
                   "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
+                  "AWS_REGION": "test",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
                   "PROCESS": "web",
                   "RACK": "convox-test"
                 },
+                "ExtraHosts": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
                 "Image": "",
                 "Memory": {
                   "Fn::Select": [
@@ -1254,13 +1042,18 @@
                 },
                 "Environment": {
                   "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
+                  "AWS_REGION": "test",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
                   "PROCESS": "worker",
                   "RACK": "convox-test"
                 },
+                "ExtraHosts": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
                 "Image": "",
                 "Memory": {
                   "Fn::Select": [

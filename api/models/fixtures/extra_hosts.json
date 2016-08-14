@@ -388,7 +388,7 @@
             "Fn::If": [
               "BlankMainService",
               {
-                "Command": "cmd1 cmd2",
+                "Command": "bin/eat",
                 "Cpu": {
                   "Fn::Select": [
                     1,
@@ -407,6 +407,14 @@
                   "RACK": "convox-test"
                 },
                 "ExtraHosts": [
+                  {
+                    "HostName": "bar",
+                    "IpAddress": "30.30.30.30"
+                  },
+                  {
+                    "HostName": "foo",
+                    "IpAddress": "20.20.20.20"
+                  },
                   {
                     "Ref": "AWS::NoValue"
                   }

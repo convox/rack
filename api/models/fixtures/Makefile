@@ -3,7 +3,10 @@ MANIFESTS := $(FIXTURES:%.yml=%.json)
 
 .PHONY: all
 
-all: $(MANIFESTS)
+all: fixture $(MANIFESTS)
+
+fixture: fixture.go
+	go build -o fixture fixture.go
 
 %.json: %.yml
-	env AWS_REGION=us-test-2 PROVIDER=test RACK=convox-test fixture $< > $@
+	env AWS_REGION=test PROVIDER=test RACK=convox-test fixture $< > $@
