@@ -15,6 +15,5 @@ release:
 templates:
 	go get -u github.com/jteeuwen/go-bindata/...
 	make -C api templates
-	make -C api/cmd/build templates
-	make -C cmd/convox templates
+	make -C cmd templates
 	make -C provider templates
