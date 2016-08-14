@@ -2,6 +2,7 @@ package manifest_test
 
 import (
 	"fmt"
+	"math"
 	"os/exec"
 	"testing"
 
@@ -20,10 +21,33 @@ type TestExecer struct {
 	Commands        []*exec.Cmd
 }
 
+type TestCommands [][]string
+
 func NewTestExecer() *TestExecer {
 	return &TestExecer{
 		CannedResponses: []ExecResponse{},
 		Commands:        make([]*exec.Cmd, 0),
+	}
+}
+
+func (te *TestExecer) AssertCommands(t *testing.T, commands TestCommands) {
+	assert.Equal(t, len(te.Commands), len(commands))
+
+	max := int(math.Max(float64(len(te.Commands)), float64(len(commands))))
+
+	for i := 0; i < max; i++ {
+		expected := []string{}
+		actual := []string{}
+
+		if i < len(te.Commands) {
+			expected = te.Commands[i].Args
+		}
+
+		if i < len(commands) {
+			actual = commands[i]
+		}
+
+		assert.Equal(t, expected, actual)
 	}
 }
 
