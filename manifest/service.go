@@ -26,6 +26,7 @@ type Service struct {
 	Dockerfile  string      `yaml:"dockerfile,omitempty"`
 	Entrypoint  string      `yaml:"entrypoint,omitempty"`
 	Environment Environment `yaml:"environment,omitempty"`
+	ExtraHosts  []string    `yaml:"extra_hosts,omitempty"`
 	Image       string      `yaml:"image,omitempty"`
 	Labels      Labels      `yaml:"labels,omitempty"`
 	Links       []string    `yaml:"links,omitempty"`
@@ -374,6 +375,17 @@ func (s Service) RegistryImage(appName, buildId string, outputs map[string]strin
 	}
 
 	return fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), appName, s.Name, buildId)
+}
+
+//ExtraHostsMap is a convenience method to allow for easier use of the hosts in
+//AWS templates
+func (s Service) ExtraHostsMap() map[string]string {
+	res := map[string]string{}
+	for _, str := range s.ExtraHosts {
+		parts := strings.Split(str, ":")
+		res[parts[0]] = parts[1]
+	}
+	return res
 }
 
 func (s *Service) Randoms() map[string]int {

@@ -248,6 +248,15 @@
                   {{ end }}
                   { "Ref" : "AWS::NoValue" }
                 ],
+                "ExtraHosts": [
+                  {{ range $key, $value := $e.ExtraHostsMap }}
+                    {
+                      "HostName": "{{ $key }}",
+                      "IpAddress": "{{ $value }}"
+                    },
+                  {{ end }}
+                  { "Ref" : "AWS::NoValue" }
+                ],
                 "Services": [
                   { "Ref" : "AWS::NoValue" }
                 ],

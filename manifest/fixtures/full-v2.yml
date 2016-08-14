@@ -8,6 +8,9 @@ services:
     environment:
       - FOO=bar
       - BAZ
+    extra_hosts:
+      - foo:10.10.10.10
+      - bar:20.20.20.20
     labels:
       - convox.foo=bar
       - convox.baz=4

@@ -477,10 +477,22 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 				})
 			}
 		}
+
+		// set extra hosts
+		if extraHosts, ok := task["ExtraHosts"].([]interface{}); ok {
+			for _, host := range extraHosts {
+				hostx, oky := host.(map[string]interface{})
+				if oky {
+					r.ContainerDefinitions[i].ExtraHosts = append(r.ContainerDefinitions[i].ExtraHosts, &ecs.HostEntry{
+						Hostname:  aws.String(hostx["HostName"].(string)),
+						IpAddress: aws.String(hostx["IpAddress"].(string)),
+					})
+				}
+			}
+		}
 	}
 
 	res, err := ECS(req).RegisterTaskDefinition(r)
-
 	if err != nil {
 		return "invalid", nil, err
 	}

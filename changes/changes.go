@@ -36,7 +36,7 @@ func Watch(dir string, ch chan Change) error {
 		return err
 	}
 
-	ignore, err := readDockerIgnore(abs)
+	ignore, err := readDockerIgnoreRecursive(abs)
 	if err != nil {
 		return err
 	}
@@ -67,12 +67,39 @@ func Watch(dir string, ch chan Change) error {
 	return watchForChanges(files, sym, ignore, ch)
 }
 
-func readDockerIgnore(dir string) ([]string, error) {
-	fd, err := os.Open(filepath.Join(dir, ".dockerignore"))
+func readDockerIgnoreRecursive(root string) ([]string, error) {
+	ignore := []string{}
 
-	if os.IsNotExist(err) {
-		return []string{}, nil
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if info.Name() == ".dockerignore" {
+			lines, err := readDockerIgnore(path)
+			if err != nil {
+				return err
+			}
+
+			// get the relative base between the root of the docker context and this dockerignore
+			rel, err := filepath.Rel(root, filepath.Dir(path))
+			if err != nil {
+				return err
+			}
+
+			for _, line := range lines {
+				// append the dockerignore lines including the relative base
+				ignore = append(ignore, filepath.Join(rel, line))
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	return ignore, nil
+}
+
+func readDockerIgnore(file string) ([]string, error) {
+	fd, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
@@ -114,27 +141,21 @@ func watchForChanges(files map[string]map[string]time.Time, dir string, ignore [
 				return nil
 			}
 
-			rel, err := filepath.Rel(dir, path)
-			if err != nil {
-				return err
-			}
-
-			match, err := fileutils.Matches(rel, ignore)
-			if err != nil {
-				return err
-			}
-
-			if match {
-				return nil
-			}
-
 			e, ok := files[dir][path]
 
 			if !ok || e.Before(info.ModTime()) {
 				rel, err := filepath.Rel(dir, path)
-
 				if err != nil {
 					return err
+				}
+
+				match, err := fileutils.Matches(rel, ignore)
+				if err != nil {
+					return err
+				}
+
+				if match {
+					return nil
 				}
 
 				files[dir][path] = info.ModTime()

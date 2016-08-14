@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -55,16 +54,27 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
-		service.Networks = m.Networks
 
+		// there are two places in a docker-compose.yml to specify a dockerfile
+		// normalize (for caching) and complain if both are set
+		if service.Dockerfile != "" {
+			if service.Build.Dockerfile != "" {
+				return nil, fmt.Errorf("dockerfile specified twice for %s", name)
+			}
+			service.Build.Dockerfile = service.Dockerfile
+		}
+
+		// shift all of the ports by a convox.start.shift label
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
 			shift, err := strconv.Atoi(ss)
 			if err != nil {
 				return nil, fmt.Errorf("invalid shift: %s", ss)
 			}
-
 			service.Ports.Shift(shift)
 		}
+
+		// denormalize a bit
+		service.Networks = m.Networks
 
 		m.Services[name] = service
 	}
@@ -255,26 +265,6 @@ func parseEnvVars(data []byte) ([]byte, error) {
 		}
 	}
 	return result, nil
-}
-
-func parseLine(line string) string {
-	matches := interpolationDollarRegex.FindAllIndex([]byte(line), -1)
-	for _, pair := range matches {
-		if line[pair[0]-1] != '$' {
-			head := line[0:pair[0]]
-			tail := line[pair[1]:]
-			line = fmt.Sprintf("%s%s%s", head, os.Getenv(line[(pair[0]+1):pair[1]]), tail)
-		} else {
-			head := line[0:(pair[0] - 1)]
-			tail := line[pair[0]:]
-			line = fmt.Sprintf("%s%s", head, tail)
-		}
-	}
-	result := interpolationBracketRegex.FindAllStringSubmatch(line, -1)
-	for _, v := range result {
-		line = strings.Replace(line, v[0], os.Getenv(v[1]), -1)
-	}
-	return line
 }
 
 func (m *Manifest) Raw() ([]byte, error) {
