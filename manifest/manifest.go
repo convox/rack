@@ -54,16 +54,27 @@ func Load(data []byte) (*Manifest, error) {
 
 	for name, service := range m.Services {
 		service.Name = name
-		service.Networks = m.Networks
 
+		// there are two places in a docker-compose.yml to specify a dockerfile
+		// normalize (for caching) and complain if both are set
+		if service.Dockerfile != "" {
+			if service.Build.Dockerfile != "" {
+				return nil, fmt.Errorf("dockerfile specified twice for %s", name)
+			}
+			service.Build.Dockerfile = service.Dockerfile
+		}
+
+		// shift all of the ports by a convox.start.shift label
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
 			shift, err := strconv.Atoi(ss)
 			if err != nil {
 				return nil, fmt.Errorf("invalid shift: %s", ss)
 			}
-
 			service.Ports.Shift(shift)
 		}
+
+		// denormalize a bit
+		service.Networks = m.Networks
 
 		m.Services[name] = service
 	}
