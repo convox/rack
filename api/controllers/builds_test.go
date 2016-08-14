@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"

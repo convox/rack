@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/ddollar/logger"
 )
 

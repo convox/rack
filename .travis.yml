@@ -16,7 +16,8 @@ before_install:
   - go get -u github.com/convox/version
 
 script:
-  - make test
+  - go test -v ./...
+  - env PROVIDER=test bin/test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

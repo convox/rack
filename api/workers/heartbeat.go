@@ -7,7 +7,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/ddollar/logger"
 )
 

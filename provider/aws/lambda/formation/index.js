@@ -8,7 +8,7 @@ exports.external = function(event, context) {
     return context.done(err);
   });
 
-  var child = require('child_process').spawn('./formation', [JSON.stringify(event)], { stdio:'inherit' });
+  var child = require('child_process').spawn('./main', [JSON.stringify(event)], { stdio:'inherit' });
 
   child.on('close', function(code) {
     if (code !== 0 ) {

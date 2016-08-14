@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/provider"
-	"github.com/convox/rack/api/provider/aws"
+	"github.com/convox/rack/provider"
+	"github.com/convox/rack/provider/aws"
 )
 
 // StubAwsProvider creates an httptest server with canned Request / Response

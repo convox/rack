@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/convox/rack/api/provider/aws"
+	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/api/structs"
 )
 

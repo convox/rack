@@ -12,7 +12,7 @@ import (
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/mux"

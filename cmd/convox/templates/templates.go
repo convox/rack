@@ -177,7 +177,7 @@ func initRailsDockerfile() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/rails/Dockerfile", size: 508, mode: os.FileMode(420), modTime: time.Unix(1470928689, 0)}
+	info := bindataFileInfo{name: "init/rails/Dockerfile", size: 508, mode: os.FileMode(420), modTime: time.Unix(1471008628, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

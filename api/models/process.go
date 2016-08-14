@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/fsouza/go-dockerclient"
 )
 

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/convox/rack/api/httperr"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 )
 
