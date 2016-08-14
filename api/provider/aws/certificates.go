@@ -1,13 +1,9 @@
 package aws
 
 import (
-	"bytes"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -20,17 +16,6 @@ import (
 func (p *AWSProvider) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
 	end, _ := pem.Decode([]byte(pub))
 	pub = string(pem.EncodeToMemory(end))
-
-	if chain == "" {
-		ch, err := resolveCertificateChain(pub)
-		if err != nil {
-			if _, ok := err.(CfsslError); !ok { // error is not an expected cfssl error
-				return nil, err
-			}
-		}
-
-		chain = ch
-	}
 
 	c, err := x509.ParseCertificate(end.Bytes)
 	if err != nil {
@@ -201,116 +186,4 @@ func (p *AWSProvider) certificateListACM() (structs.Certificates, error) {
 	}
 
 	return certs, nil
-}
-
-// use cfssl bundle to generate the certificate chain
-// return the whole list minus the first one
-func resolveCertificateChain(body string) (string, error) {
-	bl, _ := pem.Decode([]byte(body))
-	crt, err := x509.ParseCertificate(bl.Bytes)
-	if err != nil {
-		return "", err
-	}
-
-	// return if this is a self-signed cert
-	// a cert is self-signed if the issuer and subject are the same
-	if string(crt.RawIssuer) == string(crt.RawSubject) {
-		return "", nil
-	}
-
-	cmd := exec.Command("cfssl", "bundle", "-cert", "-")
-
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return "", err
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return "", err
-	}
-
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return "", err
-	}
-
-	err = cmd.Start()
-	if err != nil {
-		return "", err
-	}
-
-	stdin.Write([]byte(body))
-	stdin.Close()
-
-	data, err := ioutil.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
-
-	edata, err := ioutil.ReadAll(stderr)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("cfssl stderr=%q\n", edata)
-
-	// try to coerce last line of stderr into a friendly error message
-	if len(data) == 0 && len(edata) > 0 {
-		lines := strings.Split(strings.TrimSpace(string(edata)), "\n")
-		l := lines[len(lines)-1]
-
-		var e CfsslError
-
-		err = json.Unmarshal([]byte(l), &e)
-		if err != nil {
-			return "", err
-		}
-
-		return "", e
-	}
-
-	var bundle CfsslCertificateBundle
-
-	err = json.Unmarshal(data, &bundle)
-	if err != nil {
-		return "", err
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return "", err
-	}
-
-	certs := []*x509.Certificate{}
-
-	raw := []byte(bundle.Bundle)
-
-	for {
-		block, rest := pem.Decode(raw)
-
-		if block == nil {
-			break
-		}
-
-		raw = rest
-
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return "", nil
-		}
-
-		certs = append(certs, cert)
-	}
-
-	var buf bytes.Buffer
-
-	for i := 1; i < len(certs); i++ {
-		err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: certs[i].Raw})
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return buf.String(), nil
 }

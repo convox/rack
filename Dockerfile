@@ -4,9 +4,8 @@ RUN apk update && apk add build-base docker git haproxy openssh openssl python t
 
 RUN go get github.com/ddollar/init
 RUN go get github.com/convox/rerun
-RUN go get github.com/convox/cfssl/cmd/cfssl
 
-COPY conf/haproxy.cfg /etc/haproxy/haproxy.cfg
+COPY dist/haproxy.cfg /etc/haproxy/haproxy.cfg
 
 ENV PORT 3000
 WORKDIR /go/src/github.com/convox/rack
