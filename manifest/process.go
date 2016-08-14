@@ -53,9 +53,14 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		}
 	}
 
-	networkName := s.NetworkName()
-	if networkName != "" {
-		args = append(args, "--net", networkName)
+	for _, v := range s.ExtraHosts {
+		args = append(args, "--add-host", v)
+	}
+
+	for _, n := range s.Networks {
+		for _, in := range n {
+			args = append(args, "--net", in.Name)
+		}
 	}
 
 	for _, link := range s.Links {

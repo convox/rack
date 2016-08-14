@@ -103,6 +103,11 @@ func TestLoadFullVersion1(t *testing.T) {
 				assert.Equal(t, web.Ports[1].Container, 5001)
 			}
 
+			if assert.Equal(t, len(web.ExtraHosts), 2) {
+				assert.Equal(t, web.ExtraHosts[0], "foo:10.10.10.10")
+				assert.Equal(t, web.ExtraHosts[1], "bar:20.20.20.20")
+			}
+
 			if assert.Equal(t, len(web.Volumes), 1) {
 				assert.Equal(t, web.Volumes[0], "/var/db")
 			}
@@ -156,6 +161,11 @@ func TestLoadFullVersion2(t *testing.T) {
 				assert.True(t, web.Ports[0].External())
 				assert.Equal(t, web.Ports[1].Balancer, 443)
 				assert.Equal(t, web.Ports[1].Container, 5001)
+			}
+
+			if assert.Equal(t, len(web.ExtraHosts), 2) {
+				assert.Equal(t, web.ExtraHosts[0], "foo:10.10.10.10")
+				assert.Equal(t, web.ExtraHosts[1], "bar:20.20.20.20")
 			}
 
 			if assert.Equal(t, len(web.Volumes), 1) {
