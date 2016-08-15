@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/manifest"
 )
 

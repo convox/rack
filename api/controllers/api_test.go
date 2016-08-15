@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )

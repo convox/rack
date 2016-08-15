@@ -7,7 +7,7 @@ import (
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"

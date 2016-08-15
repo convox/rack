@@ -1,4 +1,2 @@
-.env
-*.swp
 /api
 /monitor

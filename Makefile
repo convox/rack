@@ -1,36 +1,21 @@
 .PHONY: all templates test test-deps vendor
 
-all: test
+all: templates
 
 fixtures:
-	go install github.com/convox/rack/api/cmd/fixture
-	rm api/models/fixtures/*.json
 	make -C api/models/fixtures
 
 release:
-	cd api/cmd/formation && make release VERSION=$(VERSION)
-	cd api/provider/aws/lambda/fluentd && make release VERSION=$(VERSION)
+	make -C provider release VERSION=$(VERSION)
 	docker build -t convox/api:$(VERSION) .
 	docker push convox/api:$(VERSION)
-	mkdir -p /tmp/release/$(VERSION)
-	cd /tmp/release/$(VERSION)
-	jq '.Parameters.Version.Default |= "$(VERSION)"' api/dist/kernel.json > kernel.json
-	aws s3 cp kernel.json s3://convox/release/$(VERSION)/formation.json --acl public-read
 
 templates:
 	go get -u github.com/jteeuwen/go-bindata/...
 	make -C api templates
-	make -C api/cmd/build templates
-	make -C cmd/convox templates
-
-test-deps:
-	go get -t -u ./...
+	make -C cmd templates
+	make -C provider templates
+	make -C sync templates
 
 test:
-	docker info >/dev/null
-	go get -t ./...
 	env PROVIDER=test bin/test
-
-vendor:
-	godep restore
-	godep save -r ./...

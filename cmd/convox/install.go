@@ -60,9 +60,6 @@ var (
 	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
 )
 
-// https://docs.aws.amazon.com/general/latest/gr/rande.html#lambda_region
-var lambdaRegions = map[string]bool{"us-east-1": true, "us-west-2": true, "eu-west-1": true, "ap-northeast-1": false, "ap-southeast-2": true, "test": true}
-
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -152,10 +149,6 @@ func cmdInstall(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
 	region := c.String("region")
-
-	if !lambdaRegions[region] {
-		return stdcli.ExitError(fmt.Errorf("Convox is not currently supported in %s", region))
-	}
 
 	stackName := c.String("stack-name")
 	awsRegexRules := []string{

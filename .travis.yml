@@ -12,9 +12,6 @@ language: go
 go:
   - 1.6.3
 
-before_install:
-  - go get -u github.com/convox/version
-
 script:
   - make test
 

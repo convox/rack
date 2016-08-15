@@ -6,7 +6,7 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/api/provider"
+	"github.com/convox/rack/provider"
 )
 
 func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {

@@ -132,9 +132,9 @@
         "Properties": {
           "Code": {
             "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
-            "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/formation.zip" ] ] }
+            "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/formation.zip" ] ] }
           },
-          "Handler": "lambda.external",
+          "Handler": "index.external",
           "MemorySize": "128",
           "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
           "Runtime": "nodejs",

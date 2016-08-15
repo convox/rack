@@ -1,6 +1,14 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
+    "BlankBalancerPostgresPort5432Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "PostgresPort5432Certificate"
+        },
+        ""
+      ]
+    },
     "BlankPostgresService": {
       "Fn::Equals": [
         "",
@@ -53,6 +61,14 @@
             "-1"
           ]
         }
+      ]
+    },
+    "Internal": {
+      "Fn::Equals": [
+        {
+          "Ref": "Internal"
+        },
+        "Yes"
       ]
     },
     "Private": {
@@ -117,10 +133,27 @@
     }
   },
   "Outputs": {
+    "BalancerPostgresHost": {
+      "Condition": "EnabledPostgres",
+      "Value": {
+        "Fn::GetAtt": [
+          "BalancerPostgresInternal",
+          "DNSName"
+        ]
+      }
+    },
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
       }
+    },
+    "PostgresPort5432Balancer": {
+      "Condition": "EnabledPostgres",
+      "Value": "5432"
+    },
+    "PostgresPort5432BalancerName": {
+      "Condition": "EnabledPostgres",
+      "Value": "httpd-postgres-OTLTE5J-i"
     },
     "RegistryId": {
       "Condition": "RegionHasECR",
@@ -164,6 +197,15 @@
       "Description": "",
       "Type": "String"
     },
+    "Internal": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Only allow access to this app from inside the VPC",
+      "Type": "String"
+    },
     "Key": {
       "Default": "",
       "Description": "",
@@ -174,13 +216,23 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
+    "PostgresPort5432Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "PostgresPort5432Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
     "Private": {
       "AllowedValues": [
         "Yes",
         "No"
       ],
       "Default": "No",
-      "Description": "Create internal load balancers in private subnets",
+      "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
       "Type": "String"
     },
     "Release": {
@@ -230,6 +282,140 @@
     }
   },
   "Resources": {
+    "BalancerPostgresInternal": {
+      "Condition": "EnabledPostgres",
+      "DependsOn": [
+        "BalancerPostgresInternalSecurityGroup"
+      ],
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": 60
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "3600"
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "5",
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                "TCP:",
+                {
+                  "Ref": "PostgresPort5432Host"
+                },
+                ""
+              ]
+            ]
+          },
+          "Timeout": "3",
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": {
+              "Ref": "PostgresPort5432Host"
+            },
+            "InstanceProtocol": "TCP",
+            "LoadBalancerPort": "5432",
+            "Protocol": {
+              "Fn::If": [
+                "BlankBalancerPostgresPort5432Certificate",
+                "TCP",
+                "SSL"
+              ]
+            },
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerPostgresPort5432Certificate",
+                {
+                  "Ref": "AWS::NoValue"
+                },
+                {
+                  "Ref": "PostgresPort5432Certificate"
+                }
+              ]
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": "httpd-postgres-OTLTE5J-i",
+        "Policies": [
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Scheme": "internal",
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerPostgresInternalSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Private",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerPostgresInternalSecurityGroup": {
+      "Condition": "EnabledPostgres",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Ref": "VPCCIDR"
+            },
+            "FromPort": "5432",
+            "IpProtocol": "tcp",
+            "ToPort": "5432"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -252,12 +438,12 @@
                 {
                   "Ref": "Version"
                 },
-                "/formation.zip"
+                "/lambda/formation.zip"
               ]
             ]
           }
         },
-        "Handler": "lambda.external",
+        "Handler": "index.external",
         "MemorySize": "128",
         "Role": {
           "Fn::GetAtt": [
@@ -313,6 +499,7 @@
     "PostgresECSService": {
       "Condition": "EnabledPostgres",
       "DependsOn": [
+        "BalancerPostgresInternal",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -331,6 +518,18 @@
           ]
         },
         "LoadBalancers": [
+          {
+            "Fn::Join": [
+              ":",
+              [
+                {
+                  "Ref": "BalancerPostgresInternal"
+                },
+                "postgres",
+                "5432"
+              ]
+            ]
+          },
           {
             "Ref": "AWS::NoValue"
           }
@@ -409,7 +608,7 @@
                 },
                 "Environment": {
                   "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
+                  "AWS_REGION": "test",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
@@ -418,6 +617,11 @@
                   "PROCESS": "postgres",
                   "RACK": "convox-test"
                 },
+                "ExtraHosts": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
                 "Image": "mdillon/postgis",
                 "Memory": {
                   "Fn::Select": [
@@ -429,6 +633,17 @@
                 },
                 "Name": "postgres",
                 "PortMappings": [
+                  {
+                    "Fn::Join": [
+                      ":",
+                      [
+                        {
+                          "Ref": "PostgresPort5432Host"
+                        },
+                        "5432"
+                      ]
+                    ]
+                  },
                   {
                     "Ref": "AWS::NoValue"
                   }
@@ -634,13 +849,18 @@
                 },
                 "Environment": {
                   "APP": "httpd",
-                  "AWS_REGION": "us-test-2",
+                  "AWS_REGION": "test",
                   "LOG_GROUP": {
                     "Ref": "LogGroup"
                   },
                   "PROCESS": "worker",
                   "RACK": "convox-test"
                 },
+                "ExtraHosts": [
+                  {
+                    "Ref": "AWS::NoValue"
+                  }
+                ],
                 "Image": "",
                 "Memory": {
                   "Fn::Select": [
