@@ -59,7 +59,7 @@ func (t *Table) printValues(values []string) {
 	line := fmt.Sprintf(t.formatString(), interfaceSlice(values)...)
 	line = strings.TrimRightFunc(line, unicode.IsSpace) + "\n"
 
-	fmt.Fprintf(t.Output, line)
+	fmt.Fprint(t.Output, line)
 }
 
 func interfaceSlice(ss []string) []interface{} {
