@@ -708,6 +708,7 @@
                       "iam:AddRoleToInstanceProfile",
                       "iam:PassRole",
                       "iam:RemoveRoleFromInstanceProfile",
+                      "iam:UploadServerCertificate",
                       "kms:Decrypt",
                       "kms:GenerateDataKey",
                       "kms:GenerateRandom",
