@@ -14,5 +14,8 @@ templates:
 	go get -u github.com/jteeuwen/go-bindata/...
 	make -C api templates
 	make -C cmd templates
-	make -C manifest templates
 	make -C provider templates
+	make -C sync templates
+
+test:
+	env PROVIDER=test bin/test

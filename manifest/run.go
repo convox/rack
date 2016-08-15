@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/convox/rack/sync"
 )
 
 type Run struct {
@@ -22,7 +24,7 @@ type Run struct {
 	output    Output
 	processes []Process
 	proxies   []Proxy
-	syncs     []Sync
+	syncs     []sync.Sync
 }
 
 // NewRun Default constructor method for a Run object
@@ -130,7 +132,7 @@ func (r *Run) Start() error {
 		}
 
 		if r.Sync {
-			syncs := []Sync{}
+			syncs := []sync.Sync{}
 
 			for local, remote := range sp {
 				s, err := p.Sync(local, remote)
@@ -146,8 +148,8 @@ func (r *Run) Start() error {
 			syncs = pruneSyncs(syncs)
 
 			for _, s := range syncs {
-				go func(s Sync) {
-					s.Start(system)
+				go func(s sync.Sync) {
+					s.Start(sync.Stream(system))
 				}(s)
 				r.syncs = append(r.syncs, s)
 			}
@@ -182,8 +184,8 @@ func (r *Run) Stop() {
 	}
 }
 
-func pruneSyncs(syncs []Sync) []Sync {
-	pruned := []Sync{}
+func pruneSyncs(syncs []sync.Sync) []sync.Sync {
+	pruned := []sync.Sync{}
 
 	for i := 0; i < len(syncs); i++ {
 		root := true

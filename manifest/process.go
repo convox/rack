@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/convox/rack/sync"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -101,6 +102,6 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	}
 }
 
-func (p *Process) Sync(local, remote string) (*Sync, error) {
-	return NewSync(p.Name, local, remote)
+func (p *Process) Sync(local, remote string) (*sync.Sync, error) {
+	return sync.NewSync(p.Name, local, remote)
 }

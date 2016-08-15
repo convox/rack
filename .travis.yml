@@ -12,11 +12,8 @@ language: go
 go:
   - 1.6.3
 
-env:
-  - PROVIDER=test
-
 script:
-  - bin/test
+  - make test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
