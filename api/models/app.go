@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/helpers"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/manifest"
@@ -214,7 +213,7 @@ func (a *App) Create() error {
 func (a *App) Delete() error {
 	helpers.TrackEvent("kernel-app-delete-start", nil)
 
-	err := provider.AppDelete(a.Name)
+	err := Provider().AppDelete(a.Name)
 	if err != nil {
 		return err
 	}
@@ -279,7 +278,7 @@ func (a *App) ForkRelease() (*Release, error) {
 	release := structs.NewRelease(a.Name)
 
 	if a.Release != "" {
-		r, err := provider.ReleaseGet(a.Name, a.Release)
+		r, err := Provider().ReleaseGet(a.Name, a.Release)
 		if err != nil {
 			return nil, err
 		}
@@ -289,7 +288,7 @@ func (a *App) ForkRelease() (*Release, error) {
 	release.Id = generateId("R", 10)
 	release.Created = time.Time{}
 
-	env, err := provider.EnvironmentGet(a.Name)
+	env, err := Provider().EnvironmentGet(a.Name)
 	if err != nil {
 		fmt.Printf("fn=ForkRelease level=error msg=\"error getting environment: %s\"", err)
 	}

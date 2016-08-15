@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/convox/rack/provider"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -324,7 +323,7 @@ func ListPendingProcesses(app string) (Processes, error) {
 // ListOneoffProcesses tries to get a list of all one-off processes.
 // If unable to connect to a docker daemon, it will bypass (instead of erroring out) and continue to other daemons.
 func ListOneoffProcesses(app string) (Processes, error) {
-	instances, err := provider.InstanceList()
+	instances, err := Provider().InstanceList()
 
 	if err != nil {
 		return nil, err

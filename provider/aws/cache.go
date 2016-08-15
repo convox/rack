@@ -21,10 +21,10 @@ func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) 
 		return nil, err
 	}
 
-	err = cache.Set("describeStacks", input.StackName, res, 5*time.Second)
-
-	if err != nil {
-		return nil, err
+	if p.Cache {
+		if err := cache.Set("describeStacks", input.StackName, res, 5*time.Second); err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
@@ -42,9 +42,10 @@ func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEve
 		return nil, err
 	}
 
-	err = cache.Set("describeStackEvents", input.StackName, res, 5*time.Second)
-	if err != nil {
-		return nil, err
+	if p.Cache {
+		if err := cache.Set("describeStackEvents", input.StackName, res, 5*time.Second); err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
@@ -63,10 +64,10 @@ func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesIn
 		return nil, err
 	}
 
-	err = cache.Set("listContainerInstances", input, res, 10*time.Second)
-
-	if err != nil {
-		return nil, err
+	if p.Cache {
+		if err := cache.Set("listContainerInstances", input, res, 10*time.Second); err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil

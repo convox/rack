@@ -1,18 +1,13 @@
 package aws_test
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,23 +17,16 @@ func init() {
 	os.Setenv("DYNAMO_BUILDS", "convox-builds")
 	os.Setenv("DYNAMO_RELEASES", "convox-releases")
 	models.PauseNotifications = true
-	test.HandlerFunc = controllers.HandlerFunc
 }
 
 func TestBuildGet(t *testing.T) {
-	aws := StubAwsProvider(
+	aws, provider := StubAwsProvider(
 		describeStacksCycle,
 
 		build1GetItemCycle,
 		build1GetObjectCycle,
 	)
 	defer aws.Close()
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
 
 	b, err := provider.BuildGet("httpd", "BHINCLZYYVN")
 
@@ -56,7 +44,7 @@ func TestBuildGet(t *testing.T) {
 }
 
 func TestBuildDelete(t *testing.T) {
-	aws := StubAwsProvider(
+	aws, provider := StubAwsProvider(
 		describeStacksCycle,
 
 		build2GetItemCycle,
@@ -71,12 +59,6 @@ func TestBuildDelete(t *testing.T) {
 		build2BatchDeleteImageCycle,
 	)
 	defer aws.Close()
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
 
 	b, err := provider.BuildDelete("httpd", "BNOARQMVHUO")
 
@@ -93,61 +75,16 @@ func TestBuildDelete(t *testing.T) {
 	}, b)
 }
 
-func TestBuildDeleteActive(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
-		App: structs.App{
-			Name:    "httpd",
-			Release: "release-id",
-		},
-		Build: structs.Build{
-			Id: "BHINCLZYYVN",
-		},
-		Release: structs.Release{
-			Id:    "release-id",
-			Build: "BHINCLZYYVN",
-		},
-	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
-
-	testProvider.On("AppGet", "httpd").Return(&testProvider.App, nil)
-	testProvider.On("BuildGet", "httpd", "BHINCLZYYVN").Return(&testProvider.Build, nil)
-	testProvider.On("ReleaseGet", "httpd", "release-id").Return(&testProvider.Release, nil)
-
-	body := test.HTTPBody("DELETE", "http://convox/apps/httpd/builds/BHINCLZYYVN", nil)
-
-	// assert on expectations
-	testProvider.AssertExpectations(t)
-
-	// assert on response
-	resp := make(map[string]string)
-	err := json.Unmarshal([]byte(body), &resp)
-	if assert.Nil(t, err) {
-		fmt.Fprintf(os.Stderr, "%s\n", resp)
-		assert.Equal(t, "cannot delete build contained in active release", resp["error"])
-	}
-}
-
 func TestBuildList(t *testing.T) {
-	aws := StubAwsProvider(
+	aws, provider := StubAwsProvider(
 		describeStacksCycle,
+
 		buildsQueryCycle,
 
 		build1GetObjectCycle,
 		build2GetObjectCycle,
 	)
 	defer aws.Close()
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
 
 	b, err := provider.BuildList("httpd", 20)
 

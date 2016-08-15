@@ -5,11 +5,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/convox/rack/provider/aws"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider/aws"
 )
-
-var CurrentProvider Provider
 
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
@@ -60,166 +58,8 @@ type Provider interface {
 	SystemSave(system structs.System) error
 }
 
-func init() {
-	var err error
-
-	switch os.Getenv("PROVIDER") {
-	case "aws":
-		CurrentProvider, err = aws.NewProvider(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), os.Getenv("AWS_ENDPOINT"))
-	case "test":
-		CurrentProvider = TestProvider
-	default:
-		die(fmt.Errorf("PROVIDER must be one of (aws, test)"))
-	}
-
-	if err != nil {
-		die(err)
-	}
-}
-
-/** package-level functions ************************************************************************/
-
-func AppGet(name string) (*structs.App, error) {
-	return CurrentProvider.AppGet(name)
-}
-
-// AppDelete deletes an app
-func AppDelete(name string) error {
-	return CurrentProvider.AppDelete(name)
-}
-
-func BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
-	return CurrentProvider.BuildCopy(srcApp, id, destApp)
-}
-
-func BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
-	return CurrentProvider.BuildCreateIndex(app, index, manifest, description, cache)
-}
-
-func BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
-	return CurrentProvider.BuildCreateRepo(app, url, manifest, description, cache)
-}
-
-func BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
-	return CurrentProvider.BuildCreateTar(app, src, manifest, description, cache)
-}
-
-func BuildDelete(app, id string) (*structs.Build, error) {
-	return CurrentProvider.BuildDelete(app, id)
-}
-
-func BuildGet(app, id string) (*structs.Build, error) {
-	return CurrentProvider.BuildGet(app, id)
-}
-
-func BuildList(app string, limit int64) (structs.Builds, error) {
-	return CurrentProvider.BuildList(app, limit)
-}
-
-func BuildRelease(b *structs.Build) (*structs.Release, error) {
-	return CurrentProvider.BuildRelease(b)
-}
-
-func BuildSave(b *structs.Build) error {
-	return CurrentProvider.BuildSave(b)
-}
-
-func CapacityGet() (*structs.Capacity, error) {
-	return CurrentProvider.CapacityGet()
-}
-
-func CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
-	return CurrentProvider.CertificateCreate(pub, key, chain)
-}
-
-func CertificateDelete(id string) error {
-	return CurrentProvider.CertificateDelete(id)
-}
-
-func CertificateGenerate(domains []string) (*structs.Certificate, error) {
-	return CurrentProvider.CertificateGenerate(domains)
-}
-
-func CertificateList() (structs.Certificates, error) {
-	return CurrentProvider.CertificateList()
-}
-
-func EventSend(e *structs.Event, err error) error {
-	return CurrentProvider.EventSend(e, err)
-}
-
-func EnvironmentGet(app string) (structs.Environment, error) {
-	return CurrentProvider.EnvironmentGet(app)
-}
-
-func IndexDiff(i *structs.Index) ([]string, error) {
-	return CurrentProvider.IndexDiff(i)
-}
-
-func IndexDownload(i *structs.Index, dir string) error {
-	return CurrentProvider.IndexDownload(i, dir)
-}
-
-func IndexUpload(hash string, data []byte) error {
-	return CurrentProvider.IndexUpload(hash, data)
-}
-
-func InstanceList() (structs.Instances, error) {
-	return CurrentProvider.InstanceList()
-}
-
-func LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
-	return CurrentProvider.LogStream(app, w, opts)
-}
-
-// ReleaseDelete deletes releases associated with app and buildID in batches
-func ReleaseDelete(app, buildID string) error {
-	return CurrentProvider.ReleaseDelete(app, buildID)
-}
-
-func ReleaseGet(app, id string) (*structs.Release, error) {
-	return CurrentProvider.ReleaseGet(app, id)
-}
-
-// ReleaseList returns a list of releases
-func ReleaseList(app string, limit int64) (structs.Releases, error) {
-	return CurrentProvider.ReleaseList(app, limit)
-}
-
-func ReleasePromote(app, id string) (*structs.Release, error) {
-	return CurrentProvider.ReleasePromote(app, id)
-}
-
-func ReleaseSave(r *structs.Release, logdir, key string) error {
-	return CurrentProvider.ReleaseSave(r, logdir, key)
-}
-
-func ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
-	return CurrentProvider.ServiceCreate(name, kind, params)
-}
-
-func ServiceDelete(name string) (*structs.Service, error) {
-	return CurrentProvider.ServiceDelete(name)
-}
-
-func ServiceGet(name string) (*structs.Service, error) {
-	return CurrentProvider.ServiceGet(name)
-}
-
-func ServiceLink(name, app, process string) (*structs.Service, error) {
-	return CurrentProvider.ServiceLink(name, app, process)
-}
-
-func ServiceUnlink(name, app, process string) (*structs.Service, error) {
-	return CurrentProvider.ServiceUnlink(name, app, process)
-}
-
-func SystemGet() (*structs.System, error) {
-	return CurrentProvider.SystemGet()
-}
-
-func SystemSave(system structs.System) error {
-	return CurrentProvider.SystemSave(system)
+func NewAwsProvider(region, endpoint, access, secret, token string) Provider {
+	return aws.NewProvider(region, endpoint, access, secret, token)
 }
 
 /** helpers ****************************************************************************************/
