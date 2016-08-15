@@ -478,7 +478,7 @@
             ]
           }
         },
-        "Handler": "index2.external",
+        "Handler": "index.external",
         "MemorySize": "128",
         "Role": {
           "Fn::GetAtt": [
