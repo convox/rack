@@ -19,7 +19,7 @@ env:
   - PROVIDER=test
 
 script:
-  - go test -v ./...
+  - go get ./...
   - bin/test
 
 after_success:

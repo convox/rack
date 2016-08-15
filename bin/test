@@ -2,7 +2,9 @@
 
 set -e
 
-echo "" > coverage.txt
+go get ./...
+
+rm -f coverage.txt
 
 for d in $(find . -name '*.go' -exec dirname {} \; | sort -u); do
   go test -coverprofile=profile.out -covermode=atomic $d
