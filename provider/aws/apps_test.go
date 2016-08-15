@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/awsutil"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -16,16 +15,10 @@ func init() {
 }
 
 func TestAppGet(t *testing.T) {
-	aws := StubAwsProvider(
+	aws, provider := StubAwsProvider(
 		describeStacksCycle,
 	)
 	defer aws.Close()
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
 
 	a, err := provider.AppGet("httpd")
 
@@ -74,17 +67,11 @@ func TestAppGet(t *testing.T) {
 }
 
 func TestAppGetUnbound(t *testing.T) {
-	aws := StubAwsProvider(
+	aws, provider := StubAwsProvider(
 		describeStacksUnbound400Cycle,
 		describeStacksUnboundCycle,
 	)
 	defer aws.Close()
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need to set current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
 
 	a, err := provider.AppGet("httpd-old")
 

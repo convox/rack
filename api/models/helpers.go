@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/provider"
 )
 
 func awserrCode(err error) string {
@@ -337,4 +338,17 @@ func UpperName(name string) string {
 	}
 
 	return us
+}
+
+var TestProvider *provider.TestProvider = &provider.TestProvider{}
+
+func Provider() provider.Provider {
+	switch os.Getenv("PROVIDER") {
+	case "aws":
+		return provider.NewAwsProvider(os.Getenv("AWS_REGION"), os.Getenv("AWS_ENDPOINT"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), os.Getenv("AWS_TOKEN"))
+	case "test":
+		return TestProvider
+	default:
+		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
+	}
 }

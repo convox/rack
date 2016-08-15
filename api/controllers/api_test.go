@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
-	"github.com/convox/rack/provider"
+	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,16 +16,7 @@ import (
 //       client can connect
 
 func TestNoPassword(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
-	// setup expectations on current provider
-	testProvider.On("SystemGet").Return(nil, nil)
+	models.TestProvider.On("SystemGet").Return(nil, nil)
 
 	aws := test.StubAws(test.DescribeConvoxStackCycle("convox-test"))
 	defer aws.Close()
@@ -37,16 +28,7 @@ func TestNoPassword(t *testing.T) {
 }
 
 func TestBasicAuth(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
-	// setup expectations on current provider
-	testProvider.On("SystemGet").Return(nil, nil)
+	models.TestProvider.On("SystemGet").Return(nil, nil)
 
 	assert := assert.New(t)
 	aws := test.StubAws(test.DescribeConvoxStackCycle("convox-test"))

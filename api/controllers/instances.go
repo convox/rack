@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -26,7 +25,7 @@ func InstancesKeyroll(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func InstancesList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	instances, err := provider.InstanceList()
+	instances, err := models.Provider().InstanceList()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -58,7 +57,7 @@ func InstanceSSH(ws *websocket.Conn) *httperr.Error {
 }
 
 func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := provider.SystemGet()
+	rack, err := models.Provider().SystemGet()
 
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)

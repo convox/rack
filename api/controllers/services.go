@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 )
 
@@ -35,7 +34,7 @@ func ServiceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	// new services should use the provider interfaces
 	switch s.Type {
 	case "fluentd", "papertrail", "syslog":
-		s, err := provider.ServiceGet(service)
+		s, err := models.Provider().ServiceGet(service)
 		if err != nil {
 			return httperr.Server(err)
 		}
@@ -67,7 +66,7 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	// new services should use the provider interfaces
 	switch kind {
 	case "fluentd", "papertrail", "syslog":
-		s, err := provider.ServiceCreate(name, kind, params)
+		s, err := models.Provider().ServiceCreate(name, kind, params)
 		if err != nil {
 			return httperr.Server(err)
 		}
@@ -112,12 +111,12 @@ func ServiceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 func ServiceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	service := mux.Vars(r)["service"]
 
-	s, err := provider.ServiceGet(service)
+	s, err := models.Provider().ServiceGet(service)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	s, err = provider.ServiceDelete(service)
+	s, err = models.Provider().ServiceDelete(service)
 	if err != nil {
 		return httperr.Server(err)
 	}
