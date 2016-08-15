@@ -2,7 +2,7 @@
 
 set -e
 
-go get ./...
+go get -t ./...
 
 rm -f coverage.txt
 
