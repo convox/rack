@@ -351,6 +351,7 @@
       }
     },
     "LogSubscriptionFilterFunction": {
+      "DependsOn": [ "LogSubscriptionFilterRole" ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -493,6 +494,7 @@
       }
     },
     "CustomTopic": {
+      "DependsOn": [ "CustomTopicRole" ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1118,6 +1120,7 @@
       }
     },
     "InstancesLifecycleHandler": {
+      "DependsOn": [ "InstancesLifecycleHandlerRole" ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1265,7 +1268,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:3000/check",
+          "Target": "HTTPS:3001/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -1275,12 +1278,6 @@
           }
         ],
         "Listeners": [
-          {
-            "Protocol": "TCP",
-            "LoadBalancerPort": "80",
-            "InstanceProtocol": "TCP",
-            "InstancePort": "3000"
-          },
           {
             "Protocol": "TCP",
             "LoadBalancerPort": "443",
@@ -1395,9 +1392,8 @@
         "DeploymentMaximumPercent": "100",
         "DesiredCount": "2",
         "LoadBalancers": [
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
+          { "Fn::Join": [ "||", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
+          { "Fn::Join": [ "||", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
         ],
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
@@ -1653,7 +1649,6 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
-              "3000:3000",
               "3001:4443"
             ],
             "Volumes": [
@@ -1680,7 +1675,6 @@
               "Memory": "128",
               "Name": "registry",
               "PortMappings": [
-                "3100:3000",
                 "3101:443"
               ],
               "Volumes": []

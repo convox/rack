@@ -78,14 +78,14 @@ func displayProcesses(ps []client.Process) {
 }
 
 func displayProcessesStats(ps []client.Process, fm client.Formation) {
-	t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU %", "MEM", "MEM %", "STARTED", "COMMAND")
+	t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU %%", "MEM", "MEM %%", "STARTED", "COMMAND")
 
 	for _, p := range ps {
 		for _, f := range fm {
 			if f.Name != p.Name {
 				continue
 			}
-			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%%%", p.Memory*100), humanizeTime(p.Started), p.Command)
 		}
 	}
 

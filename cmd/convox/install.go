@@ -362,7 +362,7 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Println("Waiting for load balancer...")
 
-	if err := waitForAvailability(fmt.Sprintf("http://%s/", host)); err != nil {
+	if err := waitForAvailability(fmt.Sprintf("https://%s/", host)); err != nil {
 		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 	}
 
