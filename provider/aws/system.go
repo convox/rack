@@ -52,6 +52,19 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 func (p *AWSProvider) SystemSave(system structs.System) error {
 	rack := os.Getenv("RACK")
 
+	typeValid := false
+	// Better search method could work here if needed
+	// sort.SearchString() return value doesn't indicate if string is not in slice
+	for _, itype := range instanceTypes {
+		if itype == system.Type {
+			typeValid = true
+			break
+		}
+	}
+	if !typeValid {
+		return fmt.Errorf("invalid instance type: %s", system.Type)
+	}
+
 	// FIXME
 	// mac, err := maxAppConcurrency()
 
@@ -64,19 +77,6 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	app, err := p.AppGet(rack)
 	if err != nil {
 		return err
-	}
-
-	typeValid := false
-	// Better search method could work here if needed
-	// sort.SearchString() return value doesn't indicate if string is not in slice
-	for _, itype := range instanceTypes {
-		if itype == system.Type {
-			typeValid = true
-			break
-		}
-	}
-	if !typeValid {
-		return fmt.Errorf("invalid instance type: %s", system.Type)
 	}
 
 	params := map[string]string{
