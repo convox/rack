@@ -1,12 +1,12 @@
 FIXTURES := $(shell find . -name '*.yml')
 MANIFESTS := $(FIXTURES:%.yml=%.json)
 
-.PHONY: all
+.PHONY: all fixture
 
 all: fixture $(MANIFESTS)
 
-fixture: fixture.go
-	go build -o fixture fixture.go
+fixture:
+	go build -o ./fixture fixture.go
 
 %.json: %.yml
-	env AWS_REGION=test PROVIDER=test RACK=convox-test fixture $< > $@
+	env AWS_REGION=test PROVIDER=test RACK=convox-test ./fixture $< > $@

@@ -8,5 +8,5 @@ aws lambda create-function \
   --function-name convox-formation \
   --runtime nodejs \
   --role $role \
-  --handler lambda.external \
+  --handler index.external \
   --zip-file fileb://lambda.zip

@@ -3,8 +3,6 @@
 all: templates
 
 fixtures:
-	go install github.com/convox/rack/api/cmd/fixture
-	rm api/models/fixtures/*.json
 	make -C api/models/fixtures
 
 release:
