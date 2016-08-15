@@ -12,14 +12,10 @@ language: go
 go:
   - 1.6.3
 
-before_install:
-  - go get -u github.com/convox/version
-
 env:
   - PROVIDER=test
 
 script:
-  - go get ./...
   - bin/test
 
 after_success:
