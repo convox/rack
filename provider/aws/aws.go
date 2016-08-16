@@ -37,6 +37,7 @@ type AWSProvider struct {
 	Cache bool
 }
 
+// NewProvider returns the AWS provider
 func NewProvider(region, endpoint, access, secret, token string) *AWSProvider {
 	return &AWSProvider{
 		Region:   region,
