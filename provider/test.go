@@ -227,7 +227,7 @@ func (p *TestProvider) ServiceUnlink(name, app, process string) (*structs.Servic
 	return &p.Service, nil
 }
 
-// ServieUpdate updates a Service
+// ServiceUpdate updates a Service
 func (p *TestProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
 	p.Called(name, params)
 	return &p.Service, nil

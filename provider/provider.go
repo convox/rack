@@ -60,6 +60,7 @@ type Provider interface {
 	SystemSave(system structs.System) error
 }
 
+// NewAwsProvider returns a new AWS provider
 func NewAwsProvider(region, endpoint, access, secret, token string) Provider {
 	return aws.NewProvider(region, endpoint, access, secret, token)
 }

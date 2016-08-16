@@ -167,6 +167,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	return &s, nil
 }
 
+// ServiceList lists the Services
 func (p *AWSProvider) ServiceList() (structs.Services, error) {
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
@@ -253,6 +254,7 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	return s, err
 }
 
+// ServiceUpdate updates a Service with new params
 func (p *AWSProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
 	s, err := p.ServiceGet(name)
 	if err != nil {

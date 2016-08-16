@@ -12,10 +12,11 @@ import (
 	"github.com/ddollar/logger"
 )
 
-var (
-	NotificationTopic  = os.Getenv("NOTIFICATION_TOPIC")
-	PauseNotifications = false
-)
+// NotificationTopic is the SNS topic for notifications
+var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")
+
+// PauseNotifications turns off notifications globally
+var PauseNotifications = false
 
 // uniform error handling
 func NotifyError(action string, err error, data map[string]string) error {
