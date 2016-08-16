@@ -64,15 +64,6 @@ func Load(data []byte) (*Manifest, error) {
 			service.Build.Dockerfile = service.Dockerfile
 		}
 
-		// shift all of the ports by a convox.start.shift label
-		if ss, ok := service.Labels["convox.start.shift"]; ok {
-			shift, err := strconv.Atoi(ss)
-			if err != nil {
-				return nil, fmt.Errorf("invalid shift: %s", ss)
-			}
-			service.Ports.Shift(shift)
-		}
-
 		// denormalize a bit
 		service.Networks = m.Networks
 
@@ -228,10 +219,21 @@ func (m *Manifest) runOrder() Services {
 }
 
 // Shift all external ports in this Manifest by the given amount
-func (m *Manifest) Shift(shift int) {
+func (m *Manifest) Shift(shift int) error {
 	for _, service := range m.Services {
 		service.Ports.Shift(shift)
+
+		if ss, ok := service.Labels["convox.start.shift"]; ok {
+			shift, err := strconv.Atoi(ss)
+			if err != nil {
+				return fmt.Errorf("invalid shift: %s", ss)
+			}
+
+			service.Ports.Shift(shift)
+		}
 	}
+
+	return nil
 }
 
 func manifestVersion(data []byte) (string, error) {
