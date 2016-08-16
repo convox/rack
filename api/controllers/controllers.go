@@ -17,6 +17,21 @@ func awsError(err error) string {
 	return ""
 }
 
+func formHash(r *http.Request) (map[string]string, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+
+	params := make(map[string]string)
+
+	for key := range r.Form {
+		params[key] = r.Form.Get(key)
+	}
+
+	return params, nil
+}
+
 func GetForm(r *http.Request, name string) string {
 	r.ParseMultipartForm(4096)
 

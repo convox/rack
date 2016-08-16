@@ -12,7 +12,10 @@ import (
 	"github.com/ddollar/logger"
 )
 
-var PauseNotifications = false
+var (
+	NotificationTopic  = os.Getenv("NOTIFICATION_TOPIC")
+	PauseNotifications = false
+)
 
 // uniform error handling
 func NotifyError(action string, err error, data map[string]string) error {

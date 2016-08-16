@@ -19,6 +19,7 @@ type TestProvider struct {
 	Release      structs.Release
 	Releases     structs.Releases
 	Service      structs.Service
+	Services     structs.Services
 }
 
 func (p *TestProvider) AppGet(name string) (*structs.App, error) {
@@ -185,8 +186,18 @@ func (p *TestProvider) ServiceLink(name, app, process string) (*structs.Service,
 	return &p.Service, nil
 }
 
+func (p *TestProvider) ServiceList() (structs.Services, error) {
+	p.Called()
+	return p.Services, nil
+}
+
 func (p *TestProvider) ServiceUnlink(name, app, process string) (*structs.Service, error) {
 	p.Called(name, app, process)
+	return &p.Service, nil
+}
+
+func (p *TestProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
+	p.Called(name, params)
 	return &p.Service, nil
 }
 
