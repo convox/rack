@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
+	mr "math/rand"
 	"os"
 	"regexp"
 	"strconv"
@@ -344,6 +345,12 @@ func templateHelpers() template.FuncMap {
 		},
 		"itoa": func(i int) string {
 			return strconv.Itoa(i)
+		},
+		"random": func(n int) int {
+			return mr.Intn(n)
+		},
+		"priority": func(base, i, j int) int {
+			return base*1000 + (i+1)*100 + j + 1
 		},
 	}
 }

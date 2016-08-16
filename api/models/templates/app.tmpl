@@ -146,6 +146,7 @@
       {{ template "process-resources" .Manifest }}
       {{ template "process-services" . }}
       {{ template "registry-resources" .Manifest }}
+      {{ template "router-resources" . }}
 
       {{ template "security" }}
       {{ template "state" }}
@@ -154,6 +155,7 @@
       {{ template "balancer-outputs" .}}
       {{ template "process-outputs" .Manifest }}
       {{ template "registry-outputs" .Manifest }}
+      {{ template "router-outputs" . }}
 
       "Settings": {
         "Value": { "Ref": "Settings" }
@@ -282,6 +284,11 @@
           {{ if $e.HasBalancer }}
             "{{ $manifest.BalancerResourceName $e.Name }}",
           {{ end }}
+          {{ range $i, $route := $manifest.Routes }}
+            {{ range $j, $path := $route.Paths }}
+              "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}Path{{ $j }}",
+            {{ end }}
+          {{ end }}
           "CustomTopic",
           "ServiceRole"
          ],
@@ -298,7 +305,15 @@
           "DeploymentMaximumPercent": "{{ $e.DeploymentMaximum }}",
           "LoadBalancers": [
             {{ range $e.Ports }}
-              { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
+              { "Fn::Join": [ "||", [
+                {{ if $e.HasRoute }}
+                  { "Ref": "RouterListener{{ .Balancer }}Target{{ upper $e.Name }}{{ .Container }}" },
+                {{ else }}
+                  { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" },
+                {{ end }}
+                "{{ $e.Name }}",
+                "{{ .Container }}"
+              ] ] },
             {{ end }}
             { "Ref": "AWS::NoValue" }
           ]
@@ -453,12 +468,91 @@
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
         "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
         "SecurityGroups" : [{ "Fn::If" : [
-      "BlankSecurityGroup",
-      {"Ref" : "{{ .ResourceName }}SecurityGroup"},
-      {"Ref" : "SecurityGroup"}
+          "BlankSecurityGroup",
+          {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+          {"Ref" : "SecurityGroup"}
         ]}]
       }
     },
+  {{ end }}
+{{ end }}
+
+{{ define "router-outputs" }}
+  {{ if .Manifest.Routes }}
+    "Router": {
+      "Value": { "Fn::GetAtt": [ "Router", "DNSName" ] }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "router-resources" }}
+  {{ if .Manifest.Routes }}
+    "Router": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Name": { "Ref": "AWS::StackName" },
+        "Scheme": { "Fn::If": [ "Internal", "internal", "internet-facing" ] },
+        "SecurityGroups": [ { "Ref": "RouterSecurity" } ],
+        "Subnets": { "Fn::If": [ "Private",
+          { "Ref": "SubnetsPrivate" },
+          { "Ref": "Subnets" }
+        ] }
+      }
+    },
+    "RouterSecurity": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Instances",
+        "SecurityGroupIngress": [
+          {{ range .Manifest.Routes.Listeners }}
+            { "IpProtocol": "tcp", "FromPort": "{{ .Port }}", "ToPort": "{{ .Port }}", "CidrIp": { "Fn::If": [ "Internal", { "Ref": "VPCCIDR" }, "0.0.0.0/0" ] } },
+          {{ end }}
+          { "Ref": "AWS::NoValue" }
+        ],
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+  {{ end }}
+  {{ range .Manifest.Routes.Listeners }}
+    "RouterListener{{ .Port }}": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ .Port }}TargetDefault" } } ],
+        "LoadBalancerArn": { "Ref": "Router" },
+        "Port": "{{ .Port }}",
+        "Protocol": "HTTP"
+      }
+    },
+    "RouterListener{{ .Port }}TargetDefault": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": "1024",
+        "Protocol": "HTTP",
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+  {{ end }}
+  {{ $rand := random 50 }}
+  {{ range $i, $route := .Manifest.Routes }}
+    "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": { "Ref": "{{ upper $route.ServiceName }}Port{{ $route.ListenerPort }}Host" },
+        "Protocol": "HTTP",
+        "VpcId": { "Ref": "VPC" }
+      }
+    },
+    {{ range $j, $path := $route.Paths }}
+      "RouterListener{{ $route.ListenerPort }}Rule{{ upper $route.ServiceName }}{{ $route.Port }}Path{{ $j }}": {
+        "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "Properties": {
+          "Actions": [ { "Type": "forward", "TargetGroupArn": { "Ref": "RouterListener{{ $route.ListenerPort }}Target{{ upper $route.ServiceName }}{{ $route.Port }}" } } ],
+          "Conditions": [ { "Field": "path-pattern", "Values": [ "{{ . }}" ] } ],
+          "ListenerArn": { "Ref": "RouterListener{{ $route.ListenerPort }}" },
+          "Priority": "{{ priority $rand $i $j }}"
+        }
+      },
+    {{ end }}
   {{ end }}
 {{ end }}
 
@@ -642,15 +736,15 @@
               {
                 "Effect": "Allow",
                 "Action": [
-                  "elasticloadbalancing:Describe*",
-                  "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                  "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                  "ec2:AuthorizeSecurityGroupIngress",
                   "ec2:Describe*",
-                  "ec2:AuthorizeSecurityGroupIngress"
+                  "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                  "elasticloadbalancing:DeregisterTargets",
+                  "elasticloadbalancing:Describe*",
+                  "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                  "elasticloadbalancing:RegisterTargets"
                 ],
-                "Resource": [
-                  "*"
-                ]
+                "Resource": [ "*" ]
               }
             ]
           }
