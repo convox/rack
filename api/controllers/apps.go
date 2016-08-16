@@ -105,8 +105,8 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	if err != nil {
 		return httperr.Server(err)
 	}
-	for _, service_name := range services {
-		service, err := provider.ServiceGet(service_name.Name)
+	for _, serviceName := range services {
+		service, err := provider.ServiceGet(serviceName.Name)
 		if err != nil {
 			return httperr.Server(err)
 		}
