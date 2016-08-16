@@ -104,18 +104,16 @@ func formationParameters(templateURL string) (map[string]TemplateParameter, erro
 	var t Template
 
 	res, err := http.Get(templateURL)
-
 	if err != nil {
 		return nil, err
 	}
 
 	formation, err := ioutil.ReadAll(res.Body)
-
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal([]byte(formation), &t)
+	err = json.Unmarshal(formation, &t)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +255,6 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	}
 
 	params, err := formationParameters(templateUrl)
-
 	if err != nil {
 		return err
 	}
