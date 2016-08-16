@@ -3,7 +3,11 @@ package models
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"html/template"
 	"io"
@@ -20,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/provider"
 )
 
 func awserrCode(err error) string {
@@ -98,6 +103,45 @@ func generateId(prefix string, size int) string {
 		b[i] = idAlphabet[idx.Int64()]
 	}
 	return prefix + string(b)
+}
+
+func generateSelfSignedCertificate(host string) ([]byte, []byte, error) {
+	rkey, err := rsa.GenerateKey(rand.Reader, 2048)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	template := x509.Certificate{
+		SerialNumber: serial,
+		Subject: pkix.Name{
+			CommonName:   host,
+			Organization: []string{"convox"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              []string{host},
+	}
+
+	data, err := x509.CreateCertificate(rand.Reader, &template, &template, &rkey.PublicKey, rkey)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pub := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
+	key := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(rkey)})
+
+	return pub, key, nil
 }
 
 func humanStatus(original string) string {
@@ -337,4 +381,19 @@ func UpperName(name string) string {
 	}
 
 	return us
+}
+
+// TestProvider is a global test provider
+var TestProvider = &provider.TestProvider{}
+
+// Provider returns the appropriate provider interface based on the env
+func Provider() provider.Provider {
+	switch os.Getenv("PROVIDER") {
+	case "aws":
+		return provider.NewAwsProvider(os.Getenv("AWS_REGION"), os.Getenv("AWS_ENDPOINT"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), os.Getenv("AWS_TOKEN"))
+	case "test":
+		return TestProvider
+	default:
+		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
+	}
 }

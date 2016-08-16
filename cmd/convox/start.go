@@ -67,8 +67,8 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	if shift := c.Int("shift"); shift > 0 {
-		m.Shift(shift)
+	if err := m.Shift(c.Int("shift")); err != nil {
+		return stdcli.ExitError(err)
 	}
 
 	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {

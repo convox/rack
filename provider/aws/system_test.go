@@ -2,7 +2,6 @@ package aws_test
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/convox/rack/api/structs"
@@ -18,10 +17,9 @@ func TestSystemSaveWrongType(t *testing.T) {
 		Type:    "wrongtype",
 	}
 
-	awsProvider, _ := aws.NewProvider(os.Getenv("us-east-1"), os.Getenv("fakeaccess"), os.Getenv("fakesecret"), os.Getenv("fakeendpoint"))
+	provider := &aws.AWSProvider{}
 
-	err := awsProvider.SystemSave(sys)
-	if assert.Error(t, err, "err should state wrong instance type") {
-		assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
-	}
+	err := provider.SystemSave(sys)
+
+	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
 }

@@ -190,7 +190,7 @@ func runE(dir, name string, arg ...string) error {
 }
 
 func writeAsset(target, name string, perms os.FileMode, replacements map[string]string) {
-	data, err := Asset(fmt.Sprintf("data/%s", name))
+	data, err := Asset(fmt.Sprintf("templates/%s", name))
 	handleError(err)
 
 	sdata := string(data)

@@ -7,7 +7,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/ddollar/logger"
 )
 
@@ -26,7 +25,7 @@ func StartHeartbeat() {
 }
 
 func heartbeat() {
-	system, err := provider.SystemGet()
+	system, err := models.Provider().SystemGet()
 
 	if err != nil {
 		log.Error(err)

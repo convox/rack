@@ -9,7 +9,6 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
@@ -127,7 +126,7 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 		}
 	}
 
-	err = provider.LogStream(app, ws, structs.LogStreamOptions{
+	err = models.Provider().LogStream(app, ws, structs.LogStreamOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
 		Since:  since,

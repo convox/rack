@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/manifest"
 )
 
@@ -146,7 +145,7 @@ func SetFormation(app, process string, opts FormationOptions) error {
 		return fmt.Errorf("no such process: %s", process)
 	}
 
-	capacity, err := provider.CapacityGet()
+	capacity, err := Provider().CapacityGet()
 	if err != nil {
 		return err
 	}

@@ -262,7 +262,7 @@ func (r *Release) Promote() error {
 				if app.Parameters[certParam] == "" {
 					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
-					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
+					body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
 					if err != nil {
 						return err
 					}
