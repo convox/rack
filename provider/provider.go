@@ -52,7 +52,9 @@ type Provider interface {
 	ServiceDelete(name string) (*structs.Service, error)
 	ServiceGet(name string) (*structs.Service, error)
 	ServiceLink(name, app, process string) (*structs.Service, error)
+	ServiceList() (structs.Services, error)
 	ServiceUnlink(name, app, process string) (*structs.Service, error)
+	ServiceUpdate(name string, params map[string]string) (*structs.Service, error)
 
 	SystemGet() (*structs.System, error)
 	SystemSave(system structs.System) error

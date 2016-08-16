@@ -1,6 +1,10 @@
 package aws
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -26,12 +30,21 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "papertrail":
-		err = fmt.Errorf("papertrail is no longer supported. Create a `syslog` service instead")
-	case "syslog":
-		req, err = createSyslog(s)
+	case "mysql", "postgres", "redis", "sqs":
+		req, err = createService(s)
 	case "fluentd":
-		req, err = createFluentD(s)
+		req, err = createServiceURL(s, "tcp")
+	case "s3":
+		s.Parameters["Topic"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Topic"])
+		req, err = createService(s)
+	case "sns":
+		s.Parameters["Queue"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Queue"])
+		req, err = createService(s)
+	case "syslog":
+		req, err = createServiceURL(s, "tcp", "tcp+tls", "udp")
+	case "webhook":
+		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", os.Getenv("NOTIFICATION_HOST"), url.QueryEscape(s.Parameters["Url"]))
+		req, err = createServiceURL(s, "http", "https")
 	default:
 		err = fmt.Errorf("Invalid service type: %s", s.Type)
 	}
@@ -154,6 +167,28 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	return &s, nil
 }
 
+func (p *AWSProvider) ServiceList() (structs.Services, error) {
+	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	services := structs.Services{}
+
+	for _, stack := range res.Stacks {
+		tags := stackTags(stack)
+
+		// if it's a service and the Rack tag is either the current rack or blank
+		if tags["System"] == "convox" && tags["Type"] == "service" {
+			if tags["Rack"] == os.Getenv("RACK") || tags["Rack"] == "" {
+				services = append(services, serviceFromStack(stack))
+			}
+		}
+	}
+
+	return services, nil
+}
+
 func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -172,69 +207,15 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 		}
 	}
 
-	// can't link
-	switch s.Type {
-	case "papertrail":
-		return nil, fmt.Errorf("Papertrail linking is no longer supported. Delete the papertrail service and create a new `syslog` service instead")
-	}
-
-	// can't link to process or process does not exist
-	if process != "" {
-		switch s.Type {
-		default:
-			return nil, fmt.Errorf("Service type %s can not replace a process", s.Type)
-		}
-		// TODO: Port Resource and Resources and validate that UpperName(process)+"ECSTaskDefinition" exists
-	}
-
 	// Update Service and/or App stacks
 	switch s.Type {
-	case "syslog":
-		err = p.ServiceLinkSubscribe(a, s) // Update service to know about App
-	case "fluentd":
-		err = p.ServiceLinkSubscribe(a, s) // Update service to know about App
-	case "s3", "sns", "sqs":
-		err = p.ServiceLinkSet(a, s) // Updates app with S3_URL
-	case "postgres":
-		err = p.ServiceLinkReplace(a, s) // Updates app with POSTGRES_URL and PostgresCount=0
+	case "fluentd", "syslog":
+		err = p.linkService(a, s) // Update service to know about App
 	default:
 		err = fmt.Errorf("Service type %s does not have a link strategy", s.Type)
 	}
 
 	return s, err
-}
-
-func (p *AWSProvider) ServiceLinkReplace(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Replacing a process with a service is not yet implemented")
-}
-
-func (p *AWSProvider) ServiceLinkSet(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Setting an environment variable for a service is not yet implemented")
-}
-
-func (p *AWSProvider) ServiceLinkSubscribe(a *structs.App, s *structs.Service) error {
-	s.Apps = append(s.Apps, *a)
-
-	formation, err := serviceFormation(s.Type, s)
-	if err != nil {
-		return err
-	}
-
-	req := &cloudformation.UpdateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(serviceStackName(s)),
-		TemplateBody: aws.String(formation),
-	}
-
-	for key, value := range s.Parameters {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(value),
-		})
-	}
-
-	_, err = p.cloudformation().UpdateStack(req)
-	return err
 }
 
 func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service, error) {
@@ -246,12 +227,6 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	s, err := p.ServiceGet(name)
 	if err != nil {
 		return nil, err
-	}
-
-	// can't unlink
-	switch s.Type {
-	case "papertrail":
-		return nil, fmt.Errorf("Papertrail unlinking is no longer supported. Delete the papertrail service and create a new `syslog` service instead")
 	}
 
 	// already linked
@@ -269,14 +244,8 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 
 	// Update Service and/or App stacks
 	switch s.Type {
-	case "syslog":
-		err = p.ServiceUnlinkSubscribe(a, s) // Update service to forget about App
-	case "fluentd":
-		err = p.ServiceUnlinkSubscribe(a, s) // Update service to forget about App
-	case "s3", "sns", "sqs":
-		err = p.ServiceUnlinkSet(a, s) // Updates app without S3_URL
-	case "postgres":
-		err = p.ServiceUnlinkReplace(a, s) // Updates app without POSTGRES_URL and PostgresCount=1
+	case "fluentd", "syslog":
+		err = p.unlinkService(a, s) // Update service to forget about App
 	default:
 		err = fmt.Errorf("Service type %s does not have a unlink strategy", s.Type)
 	}
@@ -284,27 +253,81 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	return s, err
 }
 
-func (p *AWSProvider) ServiceUnlinkReplace(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Un-replacing a process with a service is not yet implemented")
+func (p *AWSProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
+	s, err := p.ServiceGet(name)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range cfParams(params) {
+		s.Parameters[key] = value
+	}
+
+	err = p.updateService(s)
+
+	return s, err
 }
 
-func (p *AWSProvider) ServiceUnlinkSet(a *structs.App, s *structs.Service) error {
-	return fmt.Errorf("Un-setting an environment variable for a service is not yet implemented")
+func createService(s *structs.Service) (*cloudformation.CreateStackInput, error) {
+	formation, err := serviceFormation(s.Type, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := appendSystemParameters(s); err != nil {
+		return nil, err
+	}
+
+	if err := filterFormationParameters(s, formation); err != nil {
+		return nil, err
+	}
+
+	req := &cloudformation.CreateStackInput{
+		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
+		StackName:    aws.String(serviceStackName(s)),
+		TemplateBody: aws.String(formation),
+	}
+
+	return req, nil
 }
 
-func (p *AWSProvider) ServiceUnlinkSubscribe(a *structs.App, s *structs.Service) error {
-	// delete from links
-	apps := structs.Apps{}
-	for _, linkedApp := range s.Apps {
-		if a.Name != linkedApp.Name {
-			apps = append(apps, linkedApp)
+func createServiceURL(s *structs.Service, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
+	if s.Parameters["Url"] == "" {
+		return nil, fmt.Errorf("Must specify a URL")
+	}
+
+	u, err := url.Parse(s.Parameters["Url"])
+	if err != nil {
+		return nil, err
+	}
+
+	valid := false
+
+	for _, p := range allowedProtocols {
+		if u.Scheme == p {
+			valid = true
+			break
 		}
 	}
 
-	s.Apps = apps
+	if !valid {
+		return nil, fmt.Errorf("Invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
+	}
 
+	return createService(s)
+}
+
+func (p *AWSProvider) updateService(s *structs.Service) error {
 	formation, err := serviceFormation(s.Type, s)
 	if err != nil {
+		return err
+	}
+
+	if err := appendSystemParameters(s); err != nil {
+		return err
+	}
+
+	if err := filterFormationParameters(s, formation); err != nil {
 		return err
 	}
 
@@ -322,61 +345,83 @@ func (p *AWSProvider) ServiceUnlinkSubscribe(a *structs.App, s *structs.Service)
 	}
 
 	_, err = p.cloudformation().UpdateStack(req)
+
 	return err
 }
 
-func createSyslog(s *structs.Service) (*cloudformation.CreateStackInput, error) {
-	u, err := url.Parse(s.Parameters["Url"])
-	if err != nil {
-		return nil, err
-	}
+// add to links
+func (p *AWSProvider) linkService(a *structs.App, s *structs.Service) error {
+	s.Apps = append(s.Apps, *a)
 
-	switch u.Scheme {
-	case "udp", "tcp", "tcp+tls":
-		// proceed
-	default:
-		return nil, fmt.Errorf("Invalid url scheme `%s`. Allowed schemes are `udp`, `tcp`, `tcp+tls`", u.Scheme)
-	}
-
-	formation, err := serviceFormation(s.Type, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req := &cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(serviceStackName(s)),
-		TemplateBody: aws.String(formation),
-	}
-
-	return req, nil
+	return p.updateService(s)
 }
 
-func createFluentD(s *structs.Service) (*cloudformation.CreateStackInput, error) {
-	u, err := url.Parse(s.Parameters["Url"])
+// delete from links
+func (p *AWSProvider) unlinkService(a *structs.App, s *structs.Service) error {
+	apps := structs.Apps{}
+	for _, linkedApp := range s.Apps {
+		if a.Name != linkedApp.Name {
+			apps = append(apps, linkedApp)
+		}
+	}
+
+	s.Apps = apps
+
+	return p.updateService(s)
+}
+
+func appendSystemParameters(s *structs.Service) error {
+	password, err := generatePassword()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	switch u.Scheme {
-	case "tcp":
-		// proceed
-	default:
-		return nil, fmt.Errorf("Invalid url scheme `%s`. The only allowed scheme for this service is `tcp`", u.Scheme)
+	s.Parameters["Password"] = password
+	s.Parameters["Subnets"] = os.Getenv("SUBNETS")
+	s.Parameters["SubnetsPrivate"] = coalesceString(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS"))
+	s.Parameters["Vpc"] = os.Getenv("VPC")
+	s.Parameters["VpcCidr"] = os.Getenv("VPCCIDR")
+
+	return nil
+}
+
+func coalesceString(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func filterFormationParameters(s *structs.Service, formation string) error {
+	var params struct {
+		Parameters map[string]interface{}
 	}
 
-	formation, err := serviceFormation(s.Type, nil)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal([]byte(formation), &params); err != nil {
+		return err
 	}
 
-	req := &cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(serviceStackName(s)),
-		TemplateBody: aws.String(formation),
+	for key := range s.Parameters {
+		if _, ok := params.Parameters[key]; !ok {
+			delete(s.Parameters, key)
+		}
 	}
 
-	return req, nil
+	return nil
+}
+
+func generatePassword() (string, error) {
+	data := make([]byte, 1024)
+
+	if _, err := rand.Read(data); err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(data)
+
+	return hex.EncodeToString(hash[:])[0:30], nil
 }
 
 func serviceFormation(kind string, data interface{}) (string, error) {
@@ -389,23 +434,14 @@ func serviceFormation(kind string, data interface{}) (string, error) {
 }
 
 func serviceFromStack(stack *cloudformation.Stack) structs.Service {
-	name := *stack.StackName
 	params := stackParameters(stack)
 	tags := stackTags(stack)
-	if value, ok := tags["Name"]; ok {
-		// StackName probably includes the Rack prefix, prefer Name tag.
-		name = value
-	}
+	name := coalesceString(tags["Name"], *stack.StackName)
 
-	exports := make(map[string]string)
+	exports := map[string]string{}
 
-	if humanStatus(*stack.StackStatus) == "running" {
-		switch tags["Service"] {
-		case "syslog":
-			exports["URL"] = params["Url"]
-		case "fluentd":
-			exports["URL"] = params["Url"]
-		}
+	if url, ok := params["Url"]; ok {
+		exports["URL"] = url
 	}
 
 	return structs.Service{
@@ -419,12 +455,11 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 	}
 }
 
+// if the Name tag isnt set the stack name is the service name, otherwise prefix the rack
 func serviceStackName(s *structs.Service) string {
-	// Tags are present but "Name" tag is not so we have an "unbound" service with no rack name prefix
-	if s.Tags != nil && s.Tags["Name"] == "" {
+	if s.Tags["Name"] == "" {
 		return s.Name
 	}
 
-	// otherwise prefix the stack name with the rack name
 	return fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Name)
 }
