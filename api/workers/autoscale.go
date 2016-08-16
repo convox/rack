@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/convox/rack/provider"
+	"github.com/convox/rack/api/models"
 	"github.com/ddollar/logger"
 )
 
@@ -26,7 +26,7 @@ func StartAutoscale() {
 func autoscaleRack() {
 	log := logger.New("ns=workers.autoscale at=autoscaleRack")
 
-	capacity, err := provider.CapacityGet()
+	capacity, err := models.Provider().CapacityGet()
 	if err != nil {
 		log.Log("fn=models.GetSystemCapacity err=%q", err)
 		return
@@ -38,7 +38,7 @@ func autoscaleRack() {
 		return
 	}
 
-	system, err := provider.SystemGet()
+	system, err := models.Provider().SystemGet()
 	if err != nil {
 		log.Log("fn=models.GetSystem err=%q", err)
 		return
@@ -70,7 +70,7 @@ func autoscaleRack() {
 
 	system.Count = instances
 
-	err = provider.SystemSave(*system)
+	err = models.Provider().SystemSave(*system)
 	if err != nil {
 		log.Log("fn=system.Save err=%q", err)
 		return

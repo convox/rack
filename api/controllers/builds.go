@@ -12,7 +12,6 @@ import (
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/mux"
@@ -36,7 +35,7 @@ func BuildList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 	}
 
-	builds, err := provider.BuildList(app, int64(limit))
+	builds, err := models.Provider().BuildList(app, int64(limit))
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -52,7 +51,7 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	b, err := provider.BuildGet(app, build)
+	b, err := models.Provider().BuildGet(app, build)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -105,9 +104,9 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	// if source file was posted, build from tar
 	if source != nil {
-		b, err = provider.BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+		b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
 	} else if repo != "" {
-		b, err = provider.BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
+		b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
 	} else if index != "" {
 		var i structs.Index
 		err := json.Unmarshal([]byte(index), &i)
@@ -115,7 +114,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
-		b, err = provider.BuildCreateIndex(app, i, manifest, description, cache)
+		b, err = models.Provider().BuildCreateIndex(app, i, manifest, description, cache)
 	} else {
 		return httperr.Errorf(403, "no source, repo or index")
 	}
@@ -141,12 +140,12 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(400, "cannot delete build contained in active release")
 	}
 
-	err = provider.ReleaseDelete(appName, buildID)
+	err = models.Provider().ReleaseDelete(appName, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	build, err := provider.BuildDelete(appName, buildID)
+	build, err := models.Provider().BuildDelete(appName, buildID)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -160,7 +159,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := vars["build"]
 	didComplete := false
 
-	b, err := provider.BuildGet(app, build)
+	b, err := models.Provider().BuildGet(app, build)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -187,13 +186,13 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	// if build was successful create a release
 	if b.Status == "complete" && b.Manifest != "" {
-		_, err := provider.BuildRelease(b)
+		_, err := models.Provider().BuildRelease(b)
 		if err != nil {
 			return httperr.Server(err)
 		}
 	}
 
-	err = provider.BuildSave(b)
+	err = models.Provider().BuildSave(b)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -202,7 +201,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	// This is a "hopefully temporary" and brute force means
 	// of preventing hitting limit errors during deployment
 	if didComplete {
-		bs, err := provider.BuildList(app, 150)
+		bs, err := models.Provider().BuildList(app, 150)
 		if err != nil {
 			fmt.Println("Error listing builds for cleanup")
 		} else {
@@ -215,13 +214,13 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 							continue
 						}
 
-						err = provider.ReleaseDelete(app, b.Id)
+						err = models.Provider().ReleaseDelete(app, b.Id)
 						if err != nil {
 							fmt.Printf("Error cleaning up releases for %s: %s", b.Id, err.Error())
 							continue
 						}
 
-						_, err = provider.BuildDelete(app, b.Id)
+						_, err = models.Provider().BuildDelete(app, b.Id)
 						if err != nil {
 							fmt.Printf("Error cleaning up build: %s", b.Id)
 						}
@@ -234,7 +233,7 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if b.Status == "failed" {
-		provider.EventSend(&structs.Event{
+		models.Provider().EventSend(&structs.Event{
 			Action: "build:create",
 			Data: map[string]string{
 				"app": b.App,
@@ -252,7 +251,7 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build := vars["build"]
 	dest := r.FormValue("app")
 
-	b, err := provider.BuildCopy(srcApp, build, dest)
+	b, err := models.Provider().BuildCopy(srcApp, build, dest)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -266,7 +265,7 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := provider.BuildGet(app, build)
+	_, err := models.Provider().BuildGet(app, build)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -319,7 +318,7 @@ ForLoop:
 			break ForLoop
 
 		default:
-			b, err := provider.BuildGet(app, build)
+			b, err := models.Provider().BuildGet(app, build)
 			if err != nil {
 				break ForLoop
 			}
@@ -399,13 +398,13 @@ func keepAlive(ws *websocket.Conn, quit chan bool) {
 // Function assumes the build is active if an error occurs to play it safe
 func isBuildActive(appName, buildID string) (bool, error) {
 
-	app, err := provider.AppGet(appName)
+	app, err := models.Provider().AppGet(appName)
 	if err != nil {
 		return true, err
 	}
 
 	// To make sure the build exist
-	_, err = provider.BuildGet(app.Name, buildID)
+	_, err = models.Provider().BuildGet(app.Name, buildID)
 	if err != nil {
 		return true, err
 	}
@@ -414,7 +413,7 @@ func isBuildActive(appName, buildID string) (bool, error) {
 		return false, nil
 	}
 
-	release, err := provider.ReleaseGet(app.Name, app.Release)
+	release, err := models.Provider().ReleaseGet(app.Name, app.Release)
 	if err != nil {
 		return true, err
 	}

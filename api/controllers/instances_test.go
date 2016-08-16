@@ -7,9 +7,9 @@ import (
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,24 +20,16 @@ func init() {
 }
 
 func TestInstanceList(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Instances: []structs.Instance{
 			structs.Instance{},
 			structs.Instance{},
 			structs.Instance{},
 		},
 	}
-	provider.CurrentProvider = testProvider
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
 
 	// setup expectations on current provider
-	testProvider.On("InstanceList").Return(testProvider.Instances, nil)
+	models.TestProvider.On("InstanceList").Return(models.TestProvider.Instances, nil)
 
 	os.Setenv("RACK", "convox-test")
 	os.Setenv("CLUSTER", "convox-test-cluster")
@@ -54,18 +46,7 @@ func TestInstanceList(t *testing.T) {
 }
 
 func TestInstanceTerminate(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{}
-	provider.CurrentProvider = testProvider
-
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
-
-	// setup expectations on current provider
-	testProvider.On("SystemGet").Return(nil, nil)
+	models.TestProvider.On("SystemGet").Return(nil, nil)
 
 	os.Setenv("RACK", "convox-test")
 
