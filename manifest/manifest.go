@@ -218,7 +218,7 @@ func (m *Manifest) runOrder() Services {
 	return services
 }
 
-// Shift all external ports in this Manifest by the given amount
+// Shift all external ports in this Manifest by the given amount and their shift labels
 func (m *Manifest) Shift(shift int) error {
 	for _, service := range m.Services {
 		service.Ports.Shift(shift)
