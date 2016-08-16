@@ -340,8 +340,10 @@ func UpperName(name string) string {
 	return us
 }
 
-var TestProvider *provider.TestProvider = &provider.TestProvider{}
+// TestProvider is a global test provider
+var TestProvider = &provider.TestProvider{}
 
+// Provider returns the appropriate provider interface based on the env
 func Provider() provider.Provider {
 	switch os.Getenv("PROVIDER") {
 	case "aws":
