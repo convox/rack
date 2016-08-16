@@ -71,7 +71,7 @@ func readDockerIgnoreRecursive(root string) ([]string, error) {
 	ignore := []string{}
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if info.Name() == ".dockerignore" {
+		if info != nil && info.Name() == ".dockerignore" {
 			lines, err := readDockerIgnore(path)
 			if err != nil {
 				return err

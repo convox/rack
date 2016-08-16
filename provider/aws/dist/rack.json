@@ -41,14 +41,14 @@
   },
   "Mappings": {
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-8f7687e2", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "Ami": "ami-bb473cdb", "ThirdAvailabilityZone": "Yes" },
-      "us-west-2": { "Ami": "ami-84b44de4", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "Ami": "ami-4e6ffe3d", "ThirdAvailabilityZone": "Yes" },
-      "eu-central-1": { "Ami": "ami-b0cc23df", "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "Ami": "ami-095dbf68", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "Ami": "ami-cf03d2ac", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "Ami": "ami-697a540a", "ThirdAvailabilityZone": "Yes" }
+      "us-east-1": { "Ami": "ami-52cd5445", "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "Ami": "ami-efa1e28f", "ThirdAvailabilityZone": "Yes" },
+      "us-west-2": { "Ami": "ami-a426edc4", "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "Ami": "ami-7b244e08", "ThirdAvailabilityZone": "Yes" },
+      "eu-central-1": { "Ami": "ami-721aec1d", "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "Ami": "ami-058a4964", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "Ami": "ami-0d9f466e", "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "Ami": "ami-7df2c61e", "ThirdAvailabilityZone": "Yes" }
     }
   },
   "Outputs": {
@@ -493,6 +493,7 @@
       }
     },
     "CustomTopic": {
+      "DependsOn": ["CustomTopicRole"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1118,6 +1119,7 @@
       }
     },
     "InstancesLifecycleHandler": {
+      "DependsOn": ["InstancesLifecycleHandlerRole"],
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
