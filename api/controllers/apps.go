@@ -9,8 +9,8 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -98,6 +98,23 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	if app.Tags["Type"] != "app" || app.Tags["System"] != "convox" || app.Tags["Rack"] != os.Getenv("RACK") {
 		return httperr.Errorf(404, "invalid app: %s", name)
+	}
+
+	// check to see if the app is linked to a service, if it is fail the request with precondition failed
+	services, err := models.ListServices()
+	if err != nil {
+		return httperr.Server(err)
+	}
+	for _, service_name := range services {
+		service, err := provider.ServiceGet(service_name.Name)
+		if err != nil {
+			return httperr.Server(err)
+		}
+		for _, linkedApp := range service.Apps {
+			if linkedApp.Name == app.Name {
+				return httperr.Errorf(412, "%s is linked to the service %s. You must delete all service links before deleting the app %s", app, service.Name, app)
+			}
+		}
 	}
 
 	err = app.Delete()
