@@ -175,13 +175,17 @@ func (r *Run) Wait() error {
 }
 
 func (r *Run) Stop() {
-	for _, p := range r.processes {
-		Docker("kill", p.Name).Run()
-	}
+	args := []string{"stop"}
 
 	for _, p := range r.proxies {
-		Docker("kill", p.Name).Run()
+		args = append(args, p.Name)
 	}
+
+	for _, p := range r.processes {
+		args = append(args, p.Name)
+	}
+
+	Docker(args...).Run()
 }
 
 func pruneSyncs(syncs []sync.Sync) []sync.Sync {
