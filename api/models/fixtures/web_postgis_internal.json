@@ -17,23 +17,11 @@
         ""
       ]
     },
-    "BlankPostgresService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
           "Ref": "SecurityGroup"
         },
-        ""
-      ]
-    },
-    "BlankWebService": {
-      "Fn::Equals": [
-        "",
         ""
       ]
     },
@@ -621,7 +609,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -665,71 +653,6 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "PostgresECSService": {
-      "Condition": "EnabledPostgres",
-      "DependsOn": [
-        "BalancerPostgresInternal",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PostgresFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerPostgresInternal"
-                },
-                "postgres",
-                "5432"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "postgres"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "PostgresECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
-    },
     "PostgresECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
@@ -764,71 +687,63 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankPostgresService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "PostgresFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "POSTGRES_PASSWORD": "password",
+              "POSTGRES_USERNAME": "postgres",
+              "PROCESS": "postgres",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "mdillon/postgis",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "PostgresFormation"
+                }
+              ]
+            },
+            "Name": "postgres",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "PostgresFormation"
-                    }
+                      "Ref": "PostgresPort5432Host"
+                    },
+                    "5432"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "POSTGRES_PASSWORD": "password",
-                  "POSTGRES_USERNAME": "postgres",
-                  "PROCESS": "postgres",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "mdillon/postgis",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "PostgresFormation"
-                    }
-                  ]
-                },
-                "Name": "postgres",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "PostgresPort5432Host"
-                        },
-                        "5432"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
@@ -854,6 +769,50 @@
       },
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
+    },
+    "ServicePostgres": {
+      "Condition": "EnabledPostgres",
+      "DependsOn": [
+        "BalancerPostgresInternal",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "PostgresFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "postgres",
+            "ContainerPort": "5432",
+            "LoadBalancerName": {
+              "Ref": "BalancerPostgresInternal"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "PostgresECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
     },
     "ServiceRole": {
       "Properties": {
@@ -899,6 +858,50 @@
       },
       "Type": "AWS::IAM::Role"
     },
+    "ServiceWeb": {
+      "Condition": "EnabledWeb",
+      "DependsOn": [
+        "BalancerWebInternal",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "web",
+            "ContainerPort": "3000",
+            "LoadBalancerName": {
+              "Ref": "BalancerWebInternal"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
     "Settings": {
       "DeletionPolicy": "Retain",
       "Properties": {
@@ -917,71 +920,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWebInternal",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WebFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWebInternal"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
@@ -1017,69 +955,61 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankWebService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "web",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Name": "web",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "WebFormation"
-                    }
+                      "Ref": "WebPort3000Host"
+                    },
+                    "3000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "WebFormation"
-                    }
-                  ]
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort3000Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
