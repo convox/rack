@@ -1400,7 +1400,7 @@
         "LoadBalancers": [
           {
             "ContainerName": "web",
-            "ContainerPort": "4000",
+            "ContainerPort": "3000",
             "LoadBalancerName": { "Ref": "Balancer" }
           }
         ],
