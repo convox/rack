@@ -10,19 +10,17 @@ import (
 // TestProvider is a test provider
 type TestProvider struct {
 	mock.Mock
-	App              structs.App
-	Build            structs.Build
-	Builds           structs.Builds
-	Capacity         structs.Capacity
-	Certificate      structs.Certificate
-	Certificates     structs.Certificates
-	Formation        structs.Formation
-	Instances        structs.Instances
-	ProcessFormation structs.ProcessFormation
-	Release          structs.Release
-	Releases         structs.Releases
-	Service          structs.Service
-	Services         structs.Services
+	App          structs.App
+	Build        structs.Build
+	Builds       structs.Builds
+	Capacity     structs.Capacity
+	Certificate  structs.Certificate
+	Certificates structs.Certificates
+	Instances    structs.Instances
+	Release      structs.Release
+	Releases     structs.Releases
+	Service      structs.Service
+	Services     structs.Services
 }
 
 // AppGet gets an App
@@ -141,20 +139,25 @@ func (p *TestProvider) EnvironmentGet(app string) (structs.Environment, error) {
 
 // FormationList lists the Formation
 func (p *TestProvider) FormationList(app string) (structs.Formation, error) {
-	p.Called(app)
-	return p.Formation, nil
+	args := p.Called(app)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Formation), args.Error(1)
 }
 
 // FormationGet gets the Formation for a Process
 func (p *TestProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
-	p.Called(app, process)
-	return &p.ProcessFormation, nil
+	args := p.Called(app, process)
+	return args.Get(0).(*structs.ProcessFormation), args.Error(1)
 }
 
 // FormationSave saves the Formation for a Process
 func (p *TestProvider) FormationSave(app string, pf *structs.ProcessFormation) error {
-	p.Called(app, pf)
-	return nil
+	args := p.Called(app, pf)
+	return args.Error(0)
 }
 
 // IndexDiff gets a list of missing Index hashes

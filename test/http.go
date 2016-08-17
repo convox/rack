@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -55,7 +56,76 @@ func buildRequest(method, url string, values url.Values) (req *http.Request, err
 	} else {
 		req, err = http.NewRequest(method, url+"?"+values.Encode(), nil)
 	}
+
 	req.Header.Set("Version", "dev")
 
 	return
+}
+
+// new http tester
+
+type HandlerFuncTest struct {
+	Handler http.HandlerFunc
+
+	body []byte
+	code int
+}
+
+func NewHandlerFunc(handler http.HandlerFunc) HandlerFuncTest {
+	return HandlerFuncTest{
+		Handler: handler,
+	}
+}
+
+func (f *HandlerFuncTest) Request(method, url string, values url.Values) error {
+	w := httptest.NewRecorder()
+
+	req, err := buildRequest(method, url, values)
+	if err != nil {
+		return err
+	}
+
+	f.Handler(w, req)
+
+	f.body = w.Body.Bytes()
+	f.code = w.Code
+
+	return nil
+}
+
+func (f *HandlerFuncTest) AssertBodyObject(t *testing.T, object interface{}) {
+	body, err := json.Marshal(object)
+
+	if assert.Nil(t, err) {
+		assert.Equal(t, stripJson(body), stripJson(f.Body()))
+	}
+}
+
+func (f *HandlerFuncTest) AssertCode(t *testing.T, code int) {
+	assert.Equal(t, code, f.code)
+}
+
+func (f *HandlerFuncTest) AssertError(t *testing.T, message string) {
+	var err struct {
+		Error string `json:"error"`
+	}
+
+	if assert.Nil(t, json.Unmarshal(f.Body(), &err)) {
+		assert.Equal(t, message, err.Error)
+	}
+}
+
+func (f *HandlerFuncTest) Body() []byte {
+	return f.body
+}
+
+func (f *HandlerFuncTest) Code() int {
+	return f.code
+}
+
+func stripJson(data []byte) []byte {
+	var obj interface{}
+	json.Unmarshal(data, &obj)
+	strip, _ := json.Marshal(obj)
+	return strip
 }
