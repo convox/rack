@@ -439,7 +439,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -494,8 +494,10 @@
         "Cluster": {
           "Ref": "Cluster"
         },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
         "DesiredCount": {
           "Fn::Select": [
             0,
@@ -506,38 +508,14 @@
         },
         "LoadBalancers": [
           {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerMain"
-                },
-                "main",
-                "5000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
+            "ContainerName": "main",
+            "ContainerPort": "5000",
+            "LoadBalancerName": "BalancerMain"
           }
         ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "main"
-            ]
-          ]
-        },
         "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
           "Fn::GetAtt": [
-            "CustomTopic",
+            "ServiceRole",
             "Arn"
           ]
         },
@@ -545,8 +523,7 @@
           "Ref": "MainECSTaskDefinition"
         }
       },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
+      "Type": "AWS::ECS::Service"
     },
     "MainECSTaskDefinition": {
       "DependsOn": [
