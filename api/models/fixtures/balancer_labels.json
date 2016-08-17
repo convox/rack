@@ -9,12 +9,6 @@
         ""
       ]
     },
-    "BlankMainService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -439,7 +433,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -483,71 +477,6 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "MainECSService": {
-      "Condition": "EnabledMain",
-      "DependsOn": [
-        "BalancerMain",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "MainFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerMain"
-                },
-                "main",
-                "5000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "main"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "MainECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
-    },
     "MainECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
@@ -582,69 +511,61 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankMainService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "MainFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "main",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "MainFormation"
+                }
+              ]
+            },
+            "Name": "main",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "MainFormation"
-                    }
+                      "Ref": "MainPort443Host"
+                    },
+                    "5000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "main",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "MainFormation"
-                    }
-                  ]
-                },
-                "Name": "main",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "MainPort443Host"
-                        },
-                        "5000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
@@ -670,6 +591,50 @@
       },
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
+    },
+    "ServiceMain": {
+      "Condition": "EnabledMain",
+      "DependsOn": [
+        "BalancerMain",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "MainFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "main",
+            "ContainerPort": "5000",
+            "LoadBalancerName": {
+              "Ref": "BalancerMain"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "MainECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
     },
     "ServiceRole": {
       "Properties": {

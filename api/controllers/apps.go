@@ -144,7 +144,7 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 		}
 	}
 
-	err = provider.LogStream(app, ws, structs.LogStreamOptions{
+	err = models.Provider().LogStream(app, ws, structs.LogStreamOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
 		Since:  since,

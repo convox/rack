@@ -29,35 +29,39 @@ var (
 
 type AWSProvider struct {
 	Region   string
+	Endpoint string
 	Access   string
 	Secret   string
-	Endpoint string
+	Token    string
+
+	Cache bool
 }
 
-func NewProvider(region, access, secret, endpoint string) (*AWSProvider, error) {
-	p := &AWSProvider{
+// NewProvider returns the AWS provider
+func NewProvider(region, endpoint, access, secret, token string) *AWSProvider {
+	return &AWSProvider{
 		Region:   region,
+		Endpoint: endpoint,
 		Access:   access,
 		Secret:   secret,
-		Endpoint: endpoint,
+		Token:    token,
+		Cache:    true,
 	}
-
-	return p, nil
 }
 
 /** services ****************************************************************************************/
 
 func (p *AWSProvider) config() *aws.Config {
 	config := &aws.Config{
-		Credentials: credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), ""),
+		Credentials: credentials.NewStaticCredentials(p.Access, p.Secret, p.Token),
 	}
 
-	if e := os.Getenv("AWS_ENDPOINT"); e != "" {
-		config.Endpoint = aws.String(e)
+	if p.Region != "" {
+		config.Region = aws.String(p.Region)
 	}
 
-	if r := os.Getenv("AWS_REGION"); r != "" {
-		config.Region = aws.String(r)
+	if p.Endpoint != "" {
+		config.Endpoint = aws.String(p.Endpoint)
 	}
 
 	if os.Getenv("DEBUG") != "" {

@@ -7,9 +7,8 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var TestProvider = &TestProviderRunner{}
-
-type TestProviderRunner struct {
+// TestProvider is a test provider
+type TestProvider struct {
 	mock.Mock
 	App          structs.App
 	Build        structs.Build
@@ -21,183 +20,227 @@ type TestProviderRunner struct {
 	Release      structs.Release
 	Releases     structs.Releases
 	Service      structs.Service
+	Services     structs.Services
 }
 
-func (p *TestProviderRunner) AppGet(name string) (*structs.App, error) {
+// AppGet gets an App
+func (p *TestProvider) AppGet(name string) (*structs.App, error) {
 	p.Called(name)
 	return &p.App, nil
 }
 
-// AppDelete deletes an app
-func (p *TestProviderRunner) AppDelete(name string) error {
+// AppDelete deletes an App
+func (p *TestProvider) AppDelete(name string) error {
 	p.Called(name)
 	return nil
 }
 
-func (p *TestProviderRunner) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
+// BuildCopy copies an App
+func (p *TestProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
 	p.Called(srcApp, id, destApp)
 	return &p.Build, nil
 }
 
-func (p *TestProviderRunner) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
+// BuildCreateIndex creates a Build from an Index
+func (p *TestProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, index, manifest, description, cache)
 	return &p.Build, nil
 }
 
-func (p *TestProviderRunner) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
+// BuildCreateRepo creates a Build from a repository URL
+func (p *TestProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, url, manifest, description, cache)
 	return &p.Build, nil
 }
 
-func (p *TestProviderRunner) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
+// BuildCreateTar creates a Build from a tarball
+func (p *TestProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, src, manifest, description, cache)
 	return &p.Build, nil
 }
 
-func (p *TestProviderRunner) BuildDelete(app, id string) (*structs.Build, error) {
+// BuildDelete deletes a Build
+func (p *TestProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	p.Called(app, id)
 	return &p.Build, nil
 }
 
-func (p *TestProviderRunner) BuildGet(app, id string) (*structs.Build, error) {
+// BuildGet gets a Build
+func (p *TestProvider) BuildGet(app, id string) (*structs.Build, error) {
 	p.Called(app, id)
 	return &p.Build, nil
 }
 
-// BuildList returns a mock list of the latest builds
-func (p *TestProviderRunner) BuildList(app string, limit int64) (structs.Builds, error) {
+// BuildList lists the Builds
+func (p *TestProvider) BuildList(app string, limit int64) (structs.Builds, error) {
 	p.Called(app, limit)
 	return p.Builds, nil
 }
 
-func (p *TestProviderRunner) BuildRelease(b *structs.Build) (*structs.Release, error) {
+// BuildRelease gets the Release for a Build
+func (p *TestProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	p.Called(b)
 	return &p.Release, nil
 }
 
-func (p *TestProviderRunner) BuildSave(b *structs.Build) error {
+// BuildSave saves a build
+func (p *TestProvider) BuildSave(b *structs.Build) error {
 	p.Called(b)
 	return nil
 }
 
-func (p *TestProviderRunner) CapacityGet() (*structs.Capacity, error) {
+// CapacityGet gets the Capacity
+func (p *TestProvider) CapacityGet() (*structs.Capacity, error) {
 	p.Called()
 	return &p.Capacity, nil
 }
 
-func (p *TestProviderRunner) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
+// CertificateCreate creates a Certificate
+func (p *TestProvider) CertificateCreate(pub, key, chain string) (*structs.Certificate, error) {
 	p.Called(pub, key, chain)
 	return &p.Certificate, nil
 }
 
-func (p *TestProviderRunner) CertificateDelete(id string) error {
+// CertificateDelete deletes a Certificate
+func (p *TestProvider) CertificateDelete(id string) error {
 	p.Called(id)
 	return nil
 }
 
-func (p *TestProviderRunner) CertificateGenerate(domains []string) (*structs.Certificate, error) {
+// CertificateGenerate generates a Certificatge
+func (p *TestProvider) CertificateGenerate(domains []string) (*structs.Certificate, error) {
 	p.Called(domains)
 	return &p.Certificate, nil
 }
 
-func (p *TestProviderRunner) CertificateList() (structs.Certificates, error) {
+// CertificateList lists the Certificates
+func (p *TestProvider) CertificateList() (structs.Certificates, error) {
 	p.Called()
 	return p.Certificates, nil
 }
 
-func (p *TestProviderRunner) EventSend(e *structs.Event, err error) error {
+// EventSend sends an Event
+func (p *TestProvider) EventSend(e *structs.Event, err error) error {
 	p.Called(e, err)
 	return nil
 }
 
-func (p *TestProviderRunner) EnvironmentGet(app string) (structs.Environment, error) {
+// EnvironmentGet gets the Environment
+func (p *TestProvider) EnvironmentGet(app string) (structs.Environment, error) {
 	p.Called()
 	return nil, nil
 }
 
-func (p *TestProviderRunner) IndexDiff(i *structs.Index) ([]string, error) {
+// IndexDiff gets a list of missing Index hashes
+func (p *TestProvider) IndexDiff(i *structs.Index) ([]string, error) {
 	p.Called(i)
 	return []string{}, nil
 }
 
-func (p *TestProviderRunner) IndexDownload(i *structs.Index, dir string) error {
+// IndexDownload downloads an Index into a directory
+func (p *TestProvider) IndexDownload(i *structs.Index, dir string) error {
 	p.Called(i, dir)
 	return nil
 }
 
-func (p *TestProviderRunner) IndexUpload(hash string, data []byte) error {
+// IndexUpload uploads Index changes
+func (p *TestProvider) IndexUpload(hash string, data []byte) error {
 	p.Called(hash, data)
 	return nil
 }
 
-func (p *TestProviderRunner) InstanceList() (structs.Instances, error) {
+// InstanceList lists the Instances
+func (p *TestProvider) InstanceList() (structs.Instances, error) {
 	p.Called()
 	return p.Instances, nil
 }
 
-func (p *TestProviderRunner) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
+// LogStream streams the Logs
+func (p *TestProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	p.Called(app, w, opts)
 	return nil
 }
 
-// ReleaseDelete deletes releases associated with app and buildID in batches
-func (p *TestProviderRunner) ReleaseDelete(app, buildID string) error {
+// ReleaseDelete deletes all releases for an App and Build
+func (p *TestProvider) ReleaseDelete(app, buildID string) error {
 	p.Called(app, buildID)
 	return nil
 }
 
-func (p *TestProviderRunner) ReleaseGet(app, id string) (*structs.Release, error) {
+// ReleaseGet gets a Release
+func (p *TestProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	p.Called(app, id)
 	return &p.Release, nil
 }
 
-// ReleaseList returns a list of releases
-func (p *TestProviderRunner) ReleaseList(app string, limit int64) (structs.Releases, error) {
+// ReleaseList lists the Releases
+func (p *TestProvider) ReleaseList(app string, limit int64) (structs.Releases, error) {
 	args := p.Called(app, limit)
 	return args.Get(0).(structs.Releases), args.Error(1)
 }
 
-func (p *TestProviderRunner) ReleasePromote(app, id string) (*structs.Release, error) {
+// ReleasePromote promotes a Release
+func (p *TestProvider) ReleasePromote(app, id string) (*structs.Release, error) {
 	p.Called(app, id)
 	return &p.Release, nil
 }
 
-func (p *TestProviderRunner) ReleaseSave(r *structs.Release, logdir, key string) error {
+// ReleaseSave saves a Release
+func (p *TestProvider) ReleaseSave(r *structs.Release, logdir, key string) error {
 	p.Called(r, logdir, key)
 	return nil
 }
 
-func (p *TestProviderRunner) ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
+// ServiceCreate creates a Service
+func (p *TestProvider) ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
 	p.Called(name, kind, params)
 	return &p.Service, nil
 }
 
-func (p *TestProviderRunner) ServiceDelete(name string) (*structs.Service, error) {
+// ServiceDelete deletes a Service
+func (p *TestProvider) ServiceDelete(name string) (*structs.Service, error) {
 	p.Called(name)
 	return &p.Service, nil
 }
 
-func (p *TestProviderRunner) ServiceGet(name string) (*structs.Service, error) {
+// ServiceGet gets a Service
+func (p *TestProvider) ServiceGet(name string) (*structs.Service, error) {
 	p.Called(name)
 	return &p.Service, nil
 }
 
-func (p *TestProviderRunner) ServiceLink(name, app, process string) (*structs.Service, error) {
+// ServiceLink links a Service
+func (p *TestProvider) ServiceLink(name, app, process string) (*structs.Service, error) {
 	p.Called(name, app, process)
 	return &p.Service, nil
 }
 
-func (p *TestProviderRunner) ServiceUnlink(name, app, process string) (*structs.Service, error) {
+// ServiceList lists the Services
+func (p *TestProvider) ServiceList() (structs.Services, error) {
+	p.Called()
+	return p.Services, nil
+}
+
+// ServiceUnlink unlinks a Service
+func (p *TestProvider) ServiceUnlink(name, app, process string) (*structs.Service, error) {
 	p.Called(name, app, process)
 	return &p.Service, nil
 }
 
-func (p *TestProviderRunner) SystemGet() (*structs.System, error) {
+// ServiceUpdate updates a Service
+func (p *TestProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
+	p.Called(name, params)
+	return &p.Service, nil
+}
+
+// SystemGet gets the System
+func (p *TestProvider) SystemGet() (*structs.System, error) {
 	p.Called()
 	return nil, nil
 }
 
-func (p *TestProviderRunner) SystemSave(system structs.System) error {
+// SystemSave saves the System
+func (p *TestProvider) SystemSave(system structs.System) error {
 	p.Called(system)
 	return nil
 }

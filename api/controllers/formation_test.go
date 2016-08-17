@@ -7,8 +7,8 @@ import (
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,18 +22,12 @@ func init() {
 
 // empty string for count should retain MainDesiredCount=1 and MainMemory=256 in the stack update
 func TestFormationScaleEmpty(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Capacity: structs.Capacity{},
 	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
+
 	// setup expectations on current provider
-	testProvider.On("CapacityGet").Return(testProvider.Capacity, nil)
+	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -67,18 +61,12 @@ func TestFormationScaleCountInvalid(t *testing.T) {
 
 // post count=2 should set MainDesiredCount=2 in the stack update
 func TestFormationScaleCount2(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Capacity: structs.Capacity{},
 	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
+
 	// setup expectations on current provider
-	testProvider.On("CapacityGet").Return(testProvider.Capacity, nil)
+	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -96,18 +84,12 @@ func TestFormationScaleCount2(t *testing.T) {
 
 // post count=0 should set MainDesiredCount=0 in the stack update
 func TestFormationScaleCount0(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Capacity: structs.Capacity{},
 	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
+
 	// setup expectations on current provider
-	testProvider.On("CapacityGet").Return(testProvider.Capacity, nil)
+	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -141,18 +123,12 @@ func TestFormationScaleMemoryInvalid(t *testing.T) {
 
 // post memory=0 should retain MainMemory=256 in the stack update
 func TestFormationScaleMemory0(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Capacity: structs.Capacity{},
 	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
+
 	// setup expectations on current provider
-	testProvider.On("CapacityGet").Return(testProvider.Capacity, nil)
+	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -162,10 +138,6 @@ func TestFormationScaleMemory0(t *testing.T) {
 	)
 	defer aws.Close()
 
-	provider.TestProvider.Capacity = structs.Capacity{
-		InstanceMemory: 1024,
-	}
-
 	val := url.Values{"count": []string{""}, "memory": []string{"0"}}
 	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
 
@@ -174,20 +146,14 @@ func TestFormationScaleMemory0(t *testing.T) {
 
 // post memory=512 should set MainMemory=512 in the stack update
 func TestFormationScaleMemory512(t *testing.T) {
-	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Capacity: structs.Capacity{
 			InstanceMemory: 2048,
 		},
 	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
+
 	// setup expectations on current provider
-	testProvider.On("CapacityGet").Return(testProvider.Capacity, nil)
+	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -196,10 +162,6 @@ func TestFormationScaleMemory512(t *testing.T) {
 		test.UpdateAppStackCycle("convox-test-application", "1", "512"),
 	)
 	defer aws.Close()
-
-	provider.TestProvider.Capacity = structs.Capacity{
-		InstanceMemory: 1024,
-	}
 
 	val := url.Values{"count": []string{""}, "memory": []string{"512"}}
 	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
@@ -210,18 +172,13 @@ func TestFormationScaleMemory512(t *testing.T) {
 // post memory=2048 should error
 func TestFormationScaleMemory2048(t *testing.T) {
 	// set current provider
-	testProvider := &provider.TestProviderRunner{
+	models.TestProvider = &provider.TestProvider{
 		Capacity: structs.Capacity{
 			InstanceMemory: 1024,
 		},
 	}
-	provider.CurrentProvider = testProvider
-	defer func() {
-		//TODO: remove: as we arent updating all tests we need tos et current provider back to a
-		//clean default one (I miss rspec before)
-		provider.CurrentProvider = new(provider.TestProviderRunner)
-	}()
-	testProvider.On("CapacityGet").Return(testProvider.Capacity, nil)
+
+	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
 
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-application"),
@@ -230,10 +187,6 @@ func TestFormationScaleMemory2048(t *testing.T) {
 		test.UpdateAppStackCycle("convox-test-application", "1", "512"),
 	)
 	defer aws.Close()
-
-	provider.TestProvider.Capacity = structs.Capacity{
-		InstanceMemory: 1024,
-	}
 
 	val := url.Values{"count": []string{""}, "memory": []string{"2048"}}
 	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)

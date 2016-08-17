@@ -14,19 +14,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/kinesis"
-	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 var SortableTime = "20060102.150405.000000000"
@@ -71,10 +66,6 @@ func CloudFormation() *cloudformation.CloudFormation {
 	return cloudformation.New(session.New(), awsConfig())
 }
 
-func CloudWatch() *cloudwatch.CloudWatch {
-	return cloudwatch.New(session.New(), awsConfig())
-}
-
 func CloudWatchLogs() *cloudwatchlogs.CloudWatchLogs {
 	return cloudwatchlogs.New(session.New(), awsConfig())
 }
@@ -97,28 +88,12 @@ func ECS() *ecs.ECS {
 	return ecs.New(session.New(), c)
 }
 
-func ELB() *elb.ELB {
-	return elb.New(session.New(), awsConfig())
-}
-
 func IAM() *iam.IAM {
 	return iam.New(session.New(), awsConfig())
 }
 
-func Kinesis() *kinesis.Kinesis {
-	return kinesis.New(session.New(), awsConfig())
-}
-
-func RDS() *rds.RDS {
-	return rds.New(session.New(), awsConfig())
-}
-
 func S3() *s3.S3 {
 	return s3.New(session.New(), awsConfig())
-}
-
-func SQS() *sqs.SQS {
-	return sqs.New(session.New(), awsConfig())
 }
 
 func SNS() *sns.SNS {

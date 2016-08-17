@@ -6,11 +6,10 @@ import (
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 )
 
 func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := provider.SystemGet()
+	rack, err := models.Provider().SystemGet()
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)
 	}
@@ -18,7 +17,7 @@ func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	releases, err := provider.ReleaseList(rack.Name, 20)
+	releases, err := models.Provider().ReleaseList(rack.Name, 20)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -27,7 +26,7 @@ func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := provider.SystemGet()
+	rack, err := models.Provider().SystemGet()
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such stack: %s", rack)
 	}
@@ -39,7 +38,7 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := provider.SystemGet()
+	rack, err := models.Provider().SystemGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -59,7 +58,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 				return httperr.Errorf(403, "count must be greater than 1")
 			}
 
-			stack, err := provider.AppGet(rack.Name)
+			stack, err := models.Provider().AppGet(rack.Name)
 			if err != nil {
 				return httperr.Errorf(404, "no such stack")
 			}
@@ -88,12 +87,12 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "no rack updates specified")
 	}
 
-	err = provider.SystemSave(*rack)
+	err = models.Provider().SystemSave(*rack)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	rack, err = provider.SystemGet()
+	rack, err = models.Provider().SystemGet()
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -104,7 +103,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	capacity, err := provider.CapacityGet()
+	capacity, err := models.Provider().CapacityGet()
 	if err != nil {
 		return httperr.Server(err)
 	}

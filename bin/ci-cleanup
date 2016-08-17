@@ -12,10 +12,20 @@ for region in $(cat $base/REGIONS); do
     fi
   done
 
-  for bucket in $(aws s3api list-buckets --region $region | jq -r '.Buckets[].Name'); do
+  for bucket in $(aws s3api list-buckets --region us-east-1 | jq -r '.Buckets[].Name'); do
     if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
-      echo "deleting: $bucket on $region"
-      aws s3 rb s3://$bucket --force --region $region
+      if [[ "$region" =~ "$(aws s3api get-bucket-location --bucket $bucket --region $region | jq -r .LocationConstraint)" ]]; then
+        echo "deleting: $bucket on $region"
+        aws s3 rb s3://$bucket --force --region $region
+      fi
     fi
   done
+
+done
+
+for cert in $(aws iam list-server-certificates | jq -r '.ServerCertificateMetadataList[].ServerCertificateName'); do
+  if [[ "$cert" =~ ^cert-convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^cert-convox-0 ]]; then
+    echo "deleting: $cert"
+    aws iam delete-server-certificate --server-certificate-name $cert
+  fi
 done
