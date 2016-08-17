@@ -285,23 +285,25 @@
           "CustomTopic",
           "ServiceRole"
          ],
-        "Type": "Custom::ECSService",
-        "Version": "1.0",
+        "Type": "AWS::ECS::Service",
         "Properties": {
-          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
           "Cluster": { "Ref": "Cluster" },
+          "DeploymentConfiguration": {
+            "MinimumHealthyPercent": "{{ $e.DeploymentMinimum }}",
+            "MaximumPercent": "{{ $e.DeploymentMaximum }}"
+          },
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
-          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
-          "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-          "DeploymentMinimumPercent": "{{ $e.DeploymentMinimum }}",
-          "DeploymentMaximumPercent": "{{ $e.DeploymentMaximum }}",
           "LoadBalancers": [
-            {{ range $e.Ports }}
-              { "Fn::Join": [ ":", [ { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }, "{{ $e.Name }}", "{{ .Container }}" ] ] },
+            {{ if $e.Ports }}
+              {
+                "ContainerName": "{{ $e.Name }}",
+                "ContainerPort": "{{ (index $e.Ports 0).Container }}",
+                "LoadBalancerName": "{{ $manifest.BalancerResourceName $e.Name }}"
+              }
             {{ end }}
-            { "Ref": "AWS::NoValue" }
-          ]
+          ],
+          "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" }
         }
       },
     {{ end }}

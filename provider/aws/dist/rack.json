@@ -1268,7 +1268,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:3000/check",
+          "Target": "HTTP:4000/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -1282,13 +1282,13 @@
             "Protocol": "TCP",
             "LoadBalancerPort": "80",
             "InstanceProtocol": "TCP",
-            "InstancePort": "3000"
+            "InstancePort": "4000"
           },
           {
             "Protocol": "TCP",
             "LoadBalancerPort": "443",
             "InstanceProtocol": "TCP",
-            "InstancePort": "3001"
+            "InstancePort": "4001"
           },
           { "Fn::If": [ "RegionHasECR",
             { "Ref": "AWS::NoValue" },
@@ -1296,7 +1296,7 @@
               "Protocol": "TCP",
               "LoadBalancerPort": "5000",
               "InstanceProtocol": "TCP",
-              "InstancePort": "3101"
+              "InstancePort": "4101"
             }
           ] }
         ],
@@ -1387,40 +1387,38 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "ApiWeb": {
-      "DependsOn": [ "ApiWebTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
-      "Type": "Custom::ECSService",
-      "Version": "1.0",
+    "RackWeb": {
+      "DependsOn": [ "RackWebTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
+      "Type": "AWS::ECS::Service",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
-        "DeploymentMinimumPercent": "50",
-        "DeploymentMaximumPercent": "100",
+        "DeploymentConfiguration": {
+          "MinimumHealthyPercent": "50",
+          "MaximumPercent": "200"
+        },
         "DesiredCount": "2",
         "LoadBalancers": [
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "3000" ] ] },
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "web", "4443" ] ] },
-          { "Fn::Join": [ ":", [ { "Ref": "Balancer" }, "registry", "443" ] ] }
+          {
+            "ContainerName": "web",
+            "ContainerPort": "4000",
+            "LoadBalancerName": { "Ref": "Balancer" }
+          }
         ],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-web" ] ] },
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-        "TaskDefinition": { "Ref": "ApiWebTasks" }
+        "TaskDefinition": { "Ref": "RackWebTasks" }
       }
     },
-    "ApiMonitor": {
-      "DependsOn": [ "ApiMonitorTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
-      "Type": "Custom::ECSService",
-      "Version": "1.0",
+    "RackMonitor": {
+      "DependsOn": [ "RackMonitorTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
+      "Type": "AWS::ECS::Service",
       "Properties": {
-        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
         "Cluster": { "Ref": "Cluster" },
-        "DeploymentMinimumPercent": "0",
-        "DeploymentMaximumPercent": "100",
+        "DeploymentConfiguration": {
+          "MinimumHealthyPercent": "0",
+          "MaximumPercent": "100"
+        },
         "DesiredCount": "1",
-        "LoadBalancers": [],
-        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "api-monitor" ] ] },
-        "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-        "TaskDefinition": { "Ref": "ApiMonitorTasks" }
+        "TaskDefinition": { "Ref": "RackMonitorTasks" }
       }
     },
     "ServiceRole": {
@@ -1595,7 +1593,7 @@
       "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
     },
-    "ApiWebTasks": {
+    "RackWebTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
@@ -1656,8 +1654,8 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
-              "3000:3000",
-              "3001:4443"
+              "4000:3000",
+              "4001:4443"
             ],
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"
@@ -1683,8 +1681,8 @@
               "Memory": "128",
               "Name": "registry",
               "PortMappings": [
-                "3100:3000",
-                "3101:443"
+                "4100:3000",
+                "4101:443"
               ],
               "Volumes": []
             }
@@ -1694,7 +1692,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "ApiMonitorTasks": {
+    "RackMonitorTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
