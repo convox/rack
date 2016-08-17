@@ -285,6 +285,14 @@ func (r *Release) Promote() error {
 		}
 	}
 
+	// randomize the instance ports
+	// TODO: only do this for an old app
+	for key := range app.Parameters {
+		if strings.HasSuffix(key, "Host") {
+			app.Parameters[key] = strconv.Itoa(rand.Intn(50000) + 10000)
+		}
+	}
+
 	params := []*cloudformation.Parameter{}
 
 	for key, value := range app.Parameters {

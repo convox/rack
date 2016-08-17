@@ -87,9 +87,14 @@ func ListProcesses(app string) ([]*Process, error) {
 	services := []string{}
 
 	for _, resource := range resources {
-		if resource.Type == "Custom::ECSService" {
+		switch resource.Type {
+		case "AWS::ECS::Service", "Custom::ECSService":
 			parts := strings.Split(resource.Id, "/")
-			services = append(services, parts[len(parts)-1])
+			service := parts[len(parts)-1]
+
+			if service != "" {
+				services = append(services, service)
+			}
 		}
 	}
 
