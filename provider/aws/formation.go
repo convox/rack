@@ -11,6 +11,7 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
+// FormationList lists the Formation
 func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -45,6 +46,7 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 	return formation, nil
 }
 
+// FormationGet gets a Formation
 func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -72,6 +74,7 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 	return processFormation(a, manifest.Services[process])
 }
 
+// FormationSave saves a Formation
 func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) error {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -201,7 +204,7 @@ func processFormation(a *structs.App, s manifest.Service) (*structs.ProcessForma
 
 	ports := []int{}
 
-	for key, _ := range a.Parameters {
+	for key := range a.Parameters {
 		matches := re.FindStringSubmatch(key)
 
 		if len(matches) == 2 {
