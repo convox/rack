@@ -633,7 +633,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -767,8 +767,10 @@
         "Cluster": {
           "Ref": "Cluster"
         },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
         "DesiredCount": {
           "Fn::Select": [
             0,
@@ -779,38 +781,14 @@
         },
         "LoadBalancers": [
           {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
+            "ContainerName": "web",
+            "ContainerPort": "3000",
+            "LoadBalancerName": "BalancerWeb"
           }
         ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
         "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
           "Fn::GetAtt": [
-            "CustomTopic",
+            "ServiceRole",
             "Arn"
           ]
         },
@@ -818,8 +796,7 @@
           "Ref": "WebECSTaskDefinition"
         }
       },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
+      "Type": "AWS::ECS::Service"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
@@ -940,8 +917,10 @@
         "Cluster": {
           "Ref": "Cluster"
         },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
         "DesiredCount": {
           "Fn::Select": [
             0,
@@ -952,38 +931,14 @@
         },
         "LoadBalancers": [
           {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWorker"
-                },
-                "worker",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
+            "ContainerName": "worker",
+            "ContainerPort": "3000",
+            "LoadBalancerName": "BalancerWorker"
           }
         ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "worker"
-            ]
-          ]
-        },
         "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
           "Fn::GetAtt": [
-            "CustomTopic",
+            "ServiceRole",
             "Arn"
           ]
         },
@@ -991,8 +946,7 @@
           "Ref": "WorkerECSTaskDefinition"
         }
       },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
+      "Type": "AWS::ECS::Service"
     },
     "WorkerECSTaskDefinition": {
       "DependsOn": [
