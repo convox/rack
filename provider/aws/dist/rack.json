@@ -505,7 +505,7 @@
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       }
     },
     "AvailabilityZones": {

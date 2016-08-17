@@ -256,57 +256,16 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 		return req.PhysicalResourceId, nil, err
 	}
 
-	// Help move Desired to 0 by stopping all tasks
-	tasks, err := ECS(req).ListTasks(&ecs.ListTasksInput{
-		Cluster:     aws.String(cluster),
-		ServiceName: aws.String(name),
+	if err := waitForServiceStop(req, cluster, name); err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
+		Cluster: aws.String(cluster),
+		Service: aws.String(name),
 	})
 
-	if err != nil {
-		fmt.Printf("ECS ListTasks error: %s\n", err)
-	} else {
-		for _, arn := range tasks.TaskArns {
-			_, err = ECS(req).StopTask(&ecs.StopTaskInput{
-				Cluster: aws.String(cluster),
-				Task:    arn,
-			})
-
-			if err != nil {
-				fmt.Printf("ECS StopTask error: %s\n", err)
-			}
-		}
-	}
-
-	// Delete service, sleeping/retrying for 2 minutes if the error is:
-	// Failed to delete resource. InvalidParameterException: The service cannot be stopped while deployments are active.
-	var derr error
-
-	for i := 0; i < 12; i++ {
-		_, derr = ECS(req).DeleteService(&ecs.DeleteServiceInput{
-			Cluster: aws.String(cluster),
-			Service: aws.String(name),
-		})
-
-		// sleep and retry
-		if ae, ok := derr.(awserr.Error); ok {
-			if ae.Code() == "InvalidParameterException" {
-				time.Sleep(10 * time.Second)
-				continue
-			}
-		}
-
-		// signal DELETE_FAILED to cloudformation
-		if derr != nil {
-			fmt.Printf("error: %s\n", derr)
-			return req.PhysicalResourceId, nil, derr
-		}
-
-		// signal DELETE_COMPLETE to cloudformation
-		return req.PhysicalResourceId, nil, nil
-	}
-
-	// signal DELETE_FAILED to cloudformation
-	return req.PhysicalResourceId, nil, derr
+	return req.PhysicalResourceId, nil, err
 }
 
 func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
@@ -516,4 +475,27 @@ func generateId(prefix string, size int) string {
 		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
 	}
 	return prefix + string(b)
+}
+
+func waitForServiceStop(req Request, cluster, name string) error {
+	timeout := time.After(4 * time.Minute)
+	tick := time.Tick(10 * time.Second)
+
+	for {
+		select {
+		case <-tick:
+			tasks, err := ECS(req).ListTasks(&ecs.ListTasksInput{
+				Cluster:     aws.String(cluster),
+				ServiceName: aws.String(name),
+			})
+			if err != nil {
+				return err
+			}
+			if len(tasks.TaskArns) == 0 {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout stopping service")
+		}
+	}
 }
