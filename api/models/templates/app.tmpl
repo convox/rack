@@ -289,16 +289,16 @@
             "MaximumPercent": "{{ $e.DeploymentMaximum }}"
           },
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-          "LoadBalancers": [
-            {{ if $e.Ports }}
+          {{ if $e.Ports }}
+            "LoadBalancers": [
               {
                 "ContainerName": "{{ $e.Name }}",
                 "ContainerPort": "{{ (index $e.Ports 0).Container }}",
                 "LoadBalancerName": { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }
               }
-            {{ end }}
-          ],
-          "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+            ],
+            "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+          {{ end }}
           "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" }
         }
       },
