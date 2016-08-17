@@ -293,7 +293,7 @@
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
-          "Role": { "Ref": "ServiceRole" },
+          "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           "DeploymentMinimumPercent": "{{ $e.DeploymentMinimum }}",
           "DeploymentMaximumPercent": "{{ $e.DeploymentMaximum }}",
           "LoadBalancers": [
