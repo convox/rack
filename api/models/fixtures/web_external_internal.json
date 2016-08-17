@@ -25,12 +25,6 @@
         ""
       ]
     },
-    "BlankWebService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "EnabledWeb": {
       "Fn::Not": [
         {
@@ -585,26 +579,7 @@
       },
       "Type": "AWS::IAM::Role"
     },
-    "Settings": {
-      "DeletionPolicy": "Retain",
-      "Properties": {
-        "AccessControl": "Private",
-        "Tags": [
-          {
-            "Key": "system",
-            "Value": "convox"
-          },
-          {
-            "Key": "app",
-            "Value": {
-              "Ref": "AWS::StackName"
-            }
-          }
-        ]
-      },
-      "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
+    "ServiceWeb": {
       "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWebInternal",
@@ -631,7 +606,9 @@
           {
             "ContainerName": "web",
             "ContainerPort": "3000",
-            "LoadBalancerName": "BalancerWebInternal"
+            "LoadBalancerName": {
+              "Ref": "BalancerWebInternal"
+            }
           }
         ],
         "Role": {
@@ -645,6 +622,25 @@
         }
       },
       "Type": "AWS::ECS::Service"
+    },
+    "Settings": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
@@ -680,80 +676,72 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankWebService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "web",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Name": "web",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "WebFormation"
-                    }
+                      "Ref": "WebPort80Host"
+                    },
+                    "3000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "WebFormation"
-                    }
-                  ]
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort3001Host"
-                        },
-                        "3001"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Ref": "WebPort3001Host"
+                    },
+                    "3001"
+                  ]
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }

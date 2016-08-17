@@ -17,23 +17,11 @@
         ""
       ]
     },
-    "BlankRedisService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
           "Ref": "SecurityGroup"
         },
-        ""
-      ]
-    },
-    "BlankWebService": {
-      "Fn::Equals": [
-        "",
         ""
       ]
     },
@@ -671,48 +659,6 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "RedisECSService": {
-      "Condition": "EnabledRedis",
-      "DependsOn": [
-        "BalancerRedisInternal",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentConfiguration": {
-          "MaximumPercent": "200",
-          "MinimumHealthyPercent": "100"
-        },
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "RedisFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "ContainerName": "redis",
-            "ContainerPort": "6379",
-            "LoadBalancerName": "BalancerRedisInternal"
-          }
-        ],
-        "Role": {
-          "Fn::GetAtt": [
-            "ServiceRole",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "RedisECSTaskDefinition"
-        }
-      },
-      "Type": "AWS::ECS::Service"
-    },
     "RedisECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
@@ -747,73 +693,65 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankRedisService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "RedisFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LINK_PASSWORD": "pass-the-word",
+              "LINK_PATH": "/0",
+              "LINK_SCHEME": "redis",
+              "LINK_USERNAME": "user",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "redis",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "convox/redis",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "RedisFormation"
+                }
+              ]
+            },
+            "Name": "redis",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "RedisFormation"
-                    }
+                      "Ref": "RedisPort6379Host"
+                    },
+                    "6379"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LINK_PASSWORD": "pass-the-word",
-                  "LINK_PATH": "/0",
-                  "LINK_SCHEME": "redis",
-                  "LINK_USERNAME": "user",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "redis",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "convox/redis",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "RedisFormation"
-                    }
-                  ]
-                },
-                "Name": "redis",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "RedisPort6379Host"
-                        },
-                        "6379"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
@@ -839,6 +777,50 @@
       },
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
+    },
+    "ServiceRedis": {
+      "Condition": "EnabledRedis",
+      "DependsOn": [
+        "BalancerRedisInternal",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "RedisFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "redis",
+            "ContainerPort": "6379",
+            "LoadBalancerName": {
+              "Ref": "BalancerRedisInternal"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "RedisECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
     },
     "ServiceRole": {
       "Properties": {
@@ -884,26 +866,7 @@
       },
       "Type": "AWS::IAM::Role"
     },
-    "Settings": {
-      "DeletionPolicy": "Retain",
-      "Properties": {
-        "AccessControl": "Private",
-        "Tags": [
-          {
-            "Key": "system",
-            "Value": "convox"
-          },
-          {
-            "Key": "app",
-            "Value": {
-              "Ref": "AWS::StackName"
-            }
-          }
-        ]
-      },
-      "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
+    "ServiceWeb": {
       "Condition": "EnabledWeb",
       "DependsOn": [
         "BalancerWeb",
@@ -930,7 +893,9 @@
           {
             "ContainerName": "web",
             "ContainerPort": "3000",
-            "LoadBalancerName": "BalancerWeb"
+            "LoadBalancerName": {
+              "Ref": "BalancerWeb"
+            }
           }
         ],
         "Role": {
@@ -944,6 +909,25 @@
         }
       },
       "Type": "AWS::ECS::Service"
+    },
+    "Settings": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
@@ -979,69 +963,61 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankWebService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "web",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Name": "web",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "WebFormation"
-                    }
+                      "Ref": "WebPort80Host"
+                    },
+                    "3000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "WebFormation"
-                    }
-                  ]
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
