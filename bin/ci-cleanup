@@ -20,4 +20,12 @@ for region in $(cat $base/REGIONS); do
       fi
     fi
   done
+
+done
+
+for cert in $(aws iam list-server-certificates | jq -r '.ServerCertificateMetadataList[].ServerCertificateName'); do
+  if [[ "$cert" =~ ^cert-convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^cert-convox-0 ]]; then
+    echo "deleting: $cert"
+    aws iam delete-server-certificate --server-certificate-name $cert
+  fi
 done
