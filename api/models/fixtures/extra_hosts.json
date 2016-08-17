@@ -1,12 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankMainService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -299,41 +293,6 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "MainECSService": {
-      "Condition": "EnabledMain",
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentConfiguration": {
-          "MaximumPercent": "200",
-          "MinimumHealthyPercent": "100"
-        },
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "MainFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [],
-        "Role": {
-          "Fn::GetAtt": [
-            "ServiceRole",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "MainECSTaskDefinition"
-        }
-      },
-      "Type": "AWS::ECS::Service"
-    },
     "MainECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
@@ -368,67 +327,59 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankMainService",
-              {
-                "Command": "bin/eat",
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
-                    {
-                      "Ref": "MainFormation"
-                    }
-                  ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "main",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "HostName": "bar",
-                    "IpAddress": "30.30.30.30"
-                  },
-                  {
-                    "HostName": "foo",
-                    "IpAddress": "20.20.20.20"
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "MainFormation"
-                    }
-                  ]
-                },
-                "Name": "main",
-                "PortMappings": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ]
+            "Command": "bin/eat",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "MainFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
               },
+              "PROCESS": "main",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "HostName": "bar",
+                "IpAddress": "30.30.30.30"
+              },
+              {
+                "HostName": "foo",
+                "IpAddress": "20.20.20.20"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "MainFormation"
+                }
+              ]
+            },
+            "Name": "main",
+            "PortMappings": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
@@ -454,6 +405,34 @@
       },
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
+    },
+    "ServiceMain": {
+      "Condition": "EnabledMain",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "MainFormation"
+            }
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "MainECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
     },
     "ServiceRole": {
       "Properties": {
