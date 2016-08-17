@@ -3,9 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
@@ -14,14 +12,7 @@ import (
 func FormationList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	formation, err := models.ListFormation(app)
-
+	formation, err := models.Provider().FormationList(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -34,12 +25,10 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := vars["app"]
 	process := vars["process"]
 
-	_, err := models.GetApp(app)
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
+	pf, err := models.Provider().FormationGet(app, process)
+	if err != nil {
+		return httperr.Server(err)
 	}
-
-	opts := models.FormationOptions{}
 
 	// update based on form input
 	if cc := GetForm(r, "count"); cc != "" {
@@ -48,17 +37,14 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "count must be numeric")
 		}
 
-		opts.Count = cc
-
+		switch {
 		// critical fix: old clients default to count=-1 for "no change"
 		// assert a minimum client version before setting count=-1 which now deletes a service / ELB
-		if c == -1 && r.Header.Get("Version") < "20160602213113" {
-			opts.Count = ""
-		}
-
+		case r.Header.Get("Version") < "20160602213113" && c == -1:
 		// backwards compatibility: other old clients use count=-2 for "no change"
-		if c == -2 {
-			opts.Count = ""
+		case c == -2:
+		default:
+			pf.Count = c
 		}
 	}
 
@@ -68,11 +54,11 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "cpu must be numeric")
 		}
 
-		opts.CPU = cc
-
+		switch {
 		// backwards compatibility: other old clients use cpu=-1 for "no change"
-		if c == -1 {
-			opts.CPU = ""
+		case c == -1:
+		default:
+			pf.CPU = c
 		}
 	}
 
@@ -82,25 +68,15 @@ func FormationSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "memory must be numeric")
 		}
 
-		opts.Memory = mm
-
+		switch {
 		// backwards compatibility: other old clients use memory=-1 or memory=0 for "no change"
-		if m == -1 || m == 0 {
-			opts.Memory = ""
+		case m == -1 || m == 0:
+		default:
+			pf.Memory = m
 		}
 	}
 
-	err = models.SetFormation(app, process, opts)
-	if ae, ok := err.(awserr.Error); ok {
-		if ae.Code() == "ValidationError" {
-			switch {
-			case strings.Contains(ae.Error(), "No updates are to be performed"):
-				return httperr.Errorf(403, "no updates are to be performed: %s", app)
-			case strings.Contains(ae.Error(), "can not be updated"):
-				return httperr.Errorf(403, "app is already updating: %s", app)
-			}
-		}
-	}
+	err = models.Provider().FormationSave(app, pf)
 	if err != nil {
 		return httperr.Server(err)
 	}

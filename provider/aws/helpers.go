@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/structs"
 )
 
 type Template struct {
@@ -157,6 +158,14 @@ func humanStatus(original string) string {
 	}
 }
 
+func stackName(app *structs.App) string {
+	if _, ok := app.Tags["Rack"]; ok {
+		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)
+	}
+
+	return app.Name
+}
+
 func stackParameters(stack *cloudformation.Stack) map[string]string {
 	parameters := make(map[string]string)
 
@@ -274,6 +283,25 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	}
 
 	_, err = p.updateStack(req)
+
+	return err
+}
+
+func (p *AWSProvider) stackUpdateParameters(name string, params map[string]string) error {
+	req := &cloudformation.UpdateStackInput{
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		StackName:           aws.String(name),
+		UsePreviousTemplate: aws.Bool(true),
+	}
+
+	for key := range params {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(params[key]),
+		})
+	}
+
+	_, err := p.updateStack(req)
 
 	return err
 }

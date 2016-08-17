@@ -35,6 +35,10 @@ type Provider interface {
 
 	EnvironmentGet(app string) (structs.Environment, error)
 
+	FormationList(app string) (structs.Formation, error)
+	FormationGet(app, process string) (*structs.ProcessFormation, error)
+	FormationSave(app string, pf *structs.ProcessFormation) error
+
 	IndexDiff(*structs.Index) ([]string, error)
 	IndexDownload(*structs.Index, string) error
 	IndexUpload(string, []byte) error

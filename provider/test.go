@@ -16,6 +16,7 @@ type TestProvider struct {
 	Capacity     structs.Capacity
 	Certificate  structs.Certificate
 	Certificates structs.Certificates
+	Formation    structs.Formation
 	Instances    structs.Instances
 	Release      structs.Release
 	Releases     structs.Releases
@@ -135,6 +136,24 @@ func (p *TestProvider) EventSend(e *structs.Event, err error) error {
 func (p *TestProvider) EnvironmentGet(app string) (structs.Environment, error) {
 	p.Called()
 	return nil, nil
+}
+
+// FormationList lists the Formation
+func (p *TestProvider) FormationList(app string) (structs.Formation, error) {
+	p.Called(app)
+	return p.Formation, nil
+}
+
+// FormationGet gets the Formation for a Process
+func (p *TestProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
+	p.Called(app, process)
+	return nil, nil
+}
+
+// FormationSave saves the Formation for a Process
+func (p *TestProvider) FormationSave(app string, pf *structs.ProcessFormation) error {
+	p.Called(app, pf)
+	return nil
 }
 
 // IndexDiff gets a list of missing Index hashes
