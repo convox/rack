@@ -10,18 +10,19 @@ import (
 // TestProvider is a test provider
 type TestProvider struct {
 	mock.Mock
-	App          structs.App
-	Build        structs.Build
-	Builds       structs.Builds
-	Capacity     structs.Capacity
-	Certificate  structs.Certificate
-	Certificates structs.Certificates
-	Formation    structs.Formation
-	Instances    structs.Instances
-	Release      structs.Release
-	Releases     structs.Releases
-	Service      structs.Service
-	Services     structs.Services
+	App              structs.App
+	Build            structs.Build
+	Builds           structs.Builds
+	Capacity         structs.Capacity
+	Certificate      structs.Certificate
+	Certificates     structs.Certificates
+	Formation        structs.Formation
+	Instances        structs.Instances
+	ProcessFormation structs.ProcessFormation
+	Release          structs.Release
+	Releases         structs.Releases
+	Service          structs.Service
+	Services         structs.Services
 }
 
 // AppGet gets an App
@@ -147,7 +148,7 @@ func (p *TestProvider) FormationList(app string) (structs.Formation, error) {
 // FormationGet gets the Formation for a Process
 func (p *TestProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
 	p.Called(app, process)
-	return nil, nil
+	return &p.ProcessFormation, nil
 }
 
 // FormationSave saves the Formation for a Process
