@@ -10,6 +10,7 @@ import (
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
+	AppRepository(name string) (*structs.AppRepository, error)
 
 	BuildCopy(srcApp, id, destApp string) (*structs.Build, error)
 	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)

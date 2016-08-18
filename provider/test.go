@@ -36,6 +36,12 @@ func (p *TestProvider) AppDelete(name string) error {
 	return nil
 }
 
+// AppRepository gets an app's repository data
+func (p *TestProvider) AppRepository(name string) (*structs.AppRepository, error) {
+	p.Called(name)
+	return &structs.AppRepository{}, nil
+}
+
 // BuildCopy copies an App
 func (p *TestProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
 	p.Called(srcApp, id, destApp)
