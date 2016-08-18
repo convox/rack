@@ -399,6 +399,7 @@ func Provider() provider.Provider {
 	}
 }
 
+// Test provides a wrapping helper for running model tests
 func Test(t *testing.T, fn func()) {
 	tp := TestProvider
 	TestProvider = &provider.TestProvider{}

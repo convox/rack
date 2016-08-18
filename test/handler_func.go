@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// HandlerFuncTest is a helper for running tests on http.HandlerFunc
 type HandlerFuncTest struct {
 	Handler http.HandlerFunc
 
@@ -19,6 +20,7 @@ type HandlerFuncTest struct {
 	version string
 }
 
+// NewHandlerFunc returns a new HandlerFuncTest
 func NewHandlerFunc(handler http.HandlerFunc) HandlerFuncTest {
 	return HandlerFuncTest{
 		Handler: handler,
@@ -26,6 +28,7 @@ func NewHandlerFunc(handler http.HandlerFunc) HandlerFuncTest {
 	}
 }
 
+// Request executes an HTTP request against the tester
 func (f *HandlerFuncTest) Request(method, url string, values url.Values) error {
 	w := httptest.NewRecorder()
 
@@ -42,10 +45,12 @@ func (f *HandlerFuncTest) Request(method, url string, values url.Values) error {
 	return nil
 }
 
+// AssertCode asserts the response code
 func (f *HandlerFuncTest) AssertCode(t *testing.T, code int) {
 	assert.Equal(t, code, f.code)
 }
 
+// AssertError asserts a response error
 func (f *HandlerFuncTest) AssertError(t *testing.T, message string) {
 	var err struct {
 		Error string `json:"error"`
@@ -56,27 +61,32 @@ func (f *HandlerFuncTest) AssertError(t *testing.T, message string) {
 	}
 }
 
+// AssertJSON assets a JSON response (ignoring whitespace differences)
 func (f *HandlerFuncTest) AssertJSON(t *testing.T, body string) {
-	b1, err1 := stripJson([]byte(body))
-	b2, err2 := stripJson(f.Body())
+	b1, err1 := stripJSON([]byte(body))
+	b2, err2 := stripJSON(f.Body())
 
 	if assert.Nil(t, err1) && assert.Nil(t, err2) {
 		assert.Equal(t, b1, b2)
 	}
 }
 
+// AssertSuccess asserts a successful response
 func (f *HandlerFuncTest) AssertSuccess(t *testing.T) {
 	f.AssertJSON(t, `{"success":true}`)
 }
 
+// Body returns the response body
 func (f *HandlerFuncTest) Body() []byte {
 	return f.body
 }
 
+// Code returns the response code
 func (f *HandlerFuncTest) Code() int {
 	return f.code
 }
 
+// SetVersion sets the Version: HTTP header
 func (f *HandlerFuncTest) SetVersion(version string) {
 	f.version = version
 }
@@ -95,7 +105,7 @@ func (f *HandlerFuncTest) request(method, url string, values url.Values) (req *h
 	return
 }
 
-func stripJson(data []byte) ([]byte, error) {
+func stripJSON(data []byte) ([]byte, error) {
 	var obj interface{}
 
 	if err := json.Unmarshal(data, &obj); err != nil {
