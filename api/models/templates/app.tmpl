@@ -115,7 +115,7 @@
               }
             ]
           },
-          "Path": "/",
+          "Path": "/convox/",
           "Policies": [
             {
               "PolicyName": "Administrator",
@@ -205,7 +205,7 @@
           "Release": { "Ref": "Release" },
           "Environment": { "Ref": "Environment" },
           "Key": { "Ref": "Key" },
-          "Tasks": [ 
+          "Tasks": [
             {
               "Name": "{{ $e.Name }}",
               "Image": "{{ $e.Image }}",
@@ -636,7 +636,7 @@
         ],
         "Version": "2012-10-17"
       },
-      "Path": "/",
+      "Path": "/convox/",
       "Policies": [
         {
           "PolicyName": "ServiceRole",
