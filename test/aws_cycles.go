@@ -376,7 +376,7 @@ func DescribeTaskDefinition1Cycle(clusterName string) awsutil.Cycle {
 		Request: awsutil.Request{
 			RequestURI: "/",
 			Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
-			Body:       `{"taskDefinition":"arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:1"}`,
+			Body:       `{"taskDefinition":"arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:1"}`,
 		},
 		Response: awsutil.Response{
 			StatusCode: 200,
