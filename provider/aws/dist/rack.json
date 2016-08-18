@@ -17,13 +17,6 @@
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "PrivateApi": { "Fn::Equals": [ { "Ref": "PrivateApi" }, "Yes" ] },
-    "RegionHasECR": {
-        "Fn::Or": [
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
-        ]
-    },
     "RegionHasEFS": {
         "Fn::Or": [
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
@@ -1290,15 +1283,12 @@
             "InstanceProtocol": "TCP",
             "InstancePort": "4001"
           },
-          { "Fn::If": [ "RegionHasECR",
-            { "Ref": "AWS::NoValue" },
-            {
-              "Protocol": "TCP",
-              "LoadBalancerPort": "5000",
-              "InstanceProtocol": "TCP",
-              "InstancePort": "4101"
-            }
-          ] }
+          {
+            "Protocol": "TCP",
+            "LoadBalancerPort": "5000",
+            "InstanceProtocol": "TCP",
+            "InstancePort": "4101"
+          }
         ],
         "LoadBalancerName": {
           "Ref": "AWS::StackName"
@@ -1661,32 +1651,29 @@
               "/var/run/docker.sock:/var/run/docker.sock"
             ]
           },
-          { "Fn::If": [ "RegionHasECR",
-            { "Ref": "AWS::NoValue" },
-            {
-              "CPU": "128",
-              "Environment": {
-                "AWS_REGION": { "Ref": "AWS::Region" },
-                "AWS_ACCESS": { "Ref": "RegistryAccess" },
-                "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
-                "BUCKET": { "Ref": "RegistryBucket" },
-                "LOG_GROUP": { "Ref": "LogGroup" },
-                "PASSWORD": { "Ref": "Password" },
-                "PROCESS": "registry",
-                "RELEASE": { "Ref": "Version" },
-                "SETTINGS_FLAVOR": "s3"
-              },
-              "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
-              "Links": [],
-              "Memory": "128",
-              "Name": "registry",
-              "PortMappings": [
-                "4100:3000",
-                "4101:443"
-              ],
-              "Volumes": []
-            }
-          ] }
+          {
+            "CPU": "128",
+            "Environment": {
+              "AWS_REGION": { "Ref": "AWS::Region" },
+              "AWS_ACCESS": { "Ref": "RegistryAccess" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
+              "BUCKET": { "Ref": "RegistryBucket" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
+              "PASSWORD": { "Ref": "Password" },
+              "PROCESS": "registry",
+              "RELEASE": { "Ref": "Version" },
+              "SETTINGS_FLAVOR": "s3"
+            },
+            "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
+            "Links": [],
+            "Memory": "128",
+            "Name": "registry",
+            "PortMappings": [
+              "4100:3000",
+              "4101:443"
+            ],
+            "Volumes": []
+          }
         ]
       },
       "Type": "Custom::ECSTaskDefinition",

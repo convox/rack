@@ -232,28 +232,25 @@ func (a *App) UpdateParams(changes map[string]string) error {
 		UsePreviousTemplate: aws.Bool(true),
 	}
 
-	params := a.Parameters
-
-	for key, val := range changes {
-		params[key] = val
-	}
-
 	// sort parameters by key name to make test requests stable
 	var keys []string
-
-	for k, _ := range params {
-		keys = append(keys, k)
+	for key := range a.Parameters {
+		keys = append(keys, key)
 	}
-
 	sort.Strings(keys)
 
 	for _, key := range keys {
-		val := params[key]
-
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(val),
-		})
+		if updatedValue, present := changes[key]; present {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:   aws.String(key),
+				ParameterValue: aws.String(updatedValue),
+			})
+		} else {
+			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+				ParameterKey:     aws.String(key),
+				UsePreviousValue: aws.Bool(true),
+			})
+		}
 	}
 
 	_, err := UpdateStack(req)
