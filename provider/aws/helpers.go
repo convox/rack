@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -294,7 +295,16 @@ func (p *AWSProvider) stackUpdateParameters(name string, params map[string]strin
 		UsePreviousTemplate: aws.Bool(true),
 	}
 
+	keys := []string{}
+
 	for key := range params {
+		keys = append(keys, key)
+	}
+
+	// sort the keys so tests are predictable
+	sort.Strings(keys)
+
+	for _, key := range keys {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
 			ParameterValue: aws.String(params[key]),
