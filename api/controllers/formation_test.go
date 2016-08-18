@@ -25,7 +25,10 @@ func TestFormationList(t *testing.T) {
 
 	if assert.Nil(t, hf.Request("GET", "/apps/myapp/formation", nil)) {
 		hf.AssertCode(t, 200)
-		hf.AssertBodyObject(t, formation)
+		hf.AssertJSON(t, `[
+			{"balancer":"", "count":2, "cpu":128, "memory":1024, "name":"web", "ports":[3000,3001]},
+			{"balancer":"", "count":3, "cpu":129, "memory":1025, "name":"worker", "ports":[4000,4001]}
+		]`)
 	}
 
 	models.TestProvider.AssertExpectations(t)
@@ -36,11 +39,10 @@ func TestFormationListError(t *testing.T) {
 	models.TestProvider.On("FormationList", "myapp").Return(nil, fmt.Errorf("some error"))
 
 	hf := test.NewHandlerFunc(controllers.HandlerFunc)
+	hf.Request("GET", "/apps/myapp/formation", nil)
 
-	if assert.Nil(t, hf.Request("GET", "/apps/myapp/formation", nil)) {
-		hf.AssertCode(t, 500)
-		hf.AssertError(t, "some error")
-	}
+	hf.AssertCode(t, 500)
+	hf.AssertError(t, "some error")
 
 	models.TestProvider.AssertExpectations(t)
 }

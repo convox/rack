@@ -93,14 +93,6 @@ func (f *HandlerFuncTest) Request(method, url string, values url.Values) error {
 	return nil
 }
 
-func (f *HandlerFuncTest) AssertBodyObject(t *testing.T, object interface{}) {
-	body, err := json.Marshal(object)
-
-	if assert.Nil(t, err) {
-		assert.Equal(t, stripJson(body), stripJson(f.Body()))
-	}
-}
-
 func (f *HandlerFuncTest) AssertCode(t *testing.T, code int) {
 	assert.Equal(t, code, f.code)
 }
@@ -115,6 +107,15 @@ func (f *HandlerFuncTest) AssertError(t *testing.T, message string) {
 	}
 }
 
+func (f *HandlerFuncTest) AssertJSON(t *testing.T, body string) {
+	b1, err1 := stripJson([]byte(body))
+	b2, err2 := stripJson(f.Body())
+
+	if assert.Nil(t, err1) && assert.Nil(t, err2) {
+		assert.Equal(t, b1, b2)
+	}
+}
+
 func (f *HandlerFuncTest) Body() []byte {
 	return f.body
 }
@@ -123,9 +124,17 @@ func (f *HandlerFuncTest) Code() int {
 	return f.code
 }
 
-func stripJson(data []byte) []byte {
+func stripJson(data []byte) ([]byte, error) {
 	var obj interface{}
-	json.Unmarshal(data, &obj)
-	strip, _ := json.Marshal(obj)
-	return strip
+
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return nil, err
+	}
+
+	strip, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return strip, nil
 }
