@@ -7,14 +7,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
-	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 )
 
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	releases, err := provider.ReleaseList(app, 20)
+	releases, err := models.Provider().ReleaseList(app, 20)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
@@ -30,7 +29,7 @@ func ReleaseGet(rw http.ResponseWriter, req *http.Request) *httperr.Error {
 	app := vars["app"]
 	release := vars["release"]
 
-	r, err := provider.ReleaseGet(app, release)
+	r, err := models.Provider().ReleaseGet(app, release)
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}

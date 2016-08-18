@@ -25,12 +25,6 @@
         ""
       ]
     },
-    "BlankWebService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "EnabledWeb": {
       "Fn::Not": [
         {
@@ -79,6 +73,14 @@
             {
               "Ref": "AWS::Region"
             },
+            "us-west-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "us-west-2"
           ]
         },
@@ -87,7 +89,39 @@
             {
               "Ref": "AWS::Region"
             },
+            "eu-central-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "eu-west-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-northeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-2"
           ]
         }
       ]
@@ -481,7 +515,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -585,6 +619,50 @@
       },
       "Type": "AWS::IAM::Role"
     },
+    "ServiceWeb": {
+      "Condition": "EnabledWeb",
+      "DependsOn": [
+        "BalancerWebInternal",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "web",
+            "ContainerPort": "3000",
+            "LoadBalancerName": {
+              "Ref": "BalancerWebInternal"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
     "Settings": {
       "DeletionPolicy": "Retain",
       "Properties": {
@@ -603,83 +681,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWebInternal",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WebFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWebInternal"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWebInternal"
-                },
-                "web",
-                "3001"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
@@ -715,80 +716,72 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankWebService",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "web",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Name": "web",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "WebFormation"
-                    }
+                      "Ref": "WebPort80Host"
+                    },
+                    "3000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "WebFormation"
-                    }
-                  ]
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort3001Host"
-                        },
-                        "3001"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Ref": "WebPort3001Host"
+                    },
+                    "3001"
+                  ]
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }

@@ -12,6 +12,10 @@ import (
 	"github.com/ddollar/logger"
 )
 
+// NotificationTopic is the SNS topic for notifications
+var NotificationTopic = os.Getenv("NOTIFICATION_TOPIC")
+
+// PauseNotifications turns off notifications globally
 var PauseNotifications = false
 
 // uniform error handling

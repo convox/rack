@@ -262,7 +262,7 @@ func (r *Release) Promote() error {
 				if app.Parameters[certParam] == "" {
 					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
-					body, key, err := GenerateSelfSignedCertificate("*.*.elb.amazonaws.com")
+					body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
 					if err != nil {
 						return err
 					}
@@ -282,6 +282,14 @@ func (r *Release) Promote() error {
 					app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
 				}
 			}
+		}
+	}
+
+	// randomize the instance ports
+	// TODO: only do this for an old app
+	for key := range app.Parameters {
+		if strings.HasSuffix(key, "Host") {
+			app.Parameters[key] = strconv.Itoa(rand.Intn(50000) + 10000)
 		}
 	}
 

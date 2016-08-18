@@ -20,13 +20,9 @@ import (
 func HandleECSService(req Request) (string, map[string]string, error) {
 	switch req.RequestType {
 	case "Create":
-		fmt.Println("CREATING SERVICE")
-		fmt.Printf("req %+v\n", req)
-		return ECSServiceCreate(req)
+		return "invalid", nil, fmt.Errorf("creation of Custom::ECSService no longer supported")
 	case "Update":
-		fmt.Println("UPDATING SERVICE")
-		fmt.Printf("req %+v\n", req)
-		return ECSServiceUpdate(req)
+		return "invalid", nil, fmt.Errorf("updating Custom::ECSService no longer supported")
 	case "Delete":
 		fmt.Println("DELETING SERVICE")
 		fmt.Printf("req %+v\n", req)
@@ -53,180 +49,6 @@ func HandleECSTaskDefinition(req Request) (string, map[string]string, error) {
 	}
 
 	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
-}
-
-func ECSServiceCreate(req Request) (string, map[string]string, error) {
-	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
-	if err != nil {
-		return "invalid", nil, err
-	}
-
-	r := &ecs.CreateServiceInput{
-		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
-		DesiredCount:   aws.Int64(int64(count)),
-		ServiceName:    aws.String(req.ResourceProperties["Name"].(string) + "-" + generateId("S", 10)),
-		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
-	}
-
-	balancers := req.ResourceProperties["LoadBalancers"].([]interface{})
-
-	if len(balancers) > 0 {
-		r.Role = aws.String(req.ResourceProperties["Role"].(string))
-	}
-
-	for _, balancer := range balancers {
-		parts := strings.SplitN(balancer.(string), ":", 3)
-
-		if len(parts) != 3 {
-			return "invalid", nil, fmt.Errorf("invalid load balancer specification: %s", balancer.(string))
-		}
-
-		name := parts[0]
-		ps := parts[1]
-		port, _ := strconv.Atoi(parts[2])
-
-		r.LoadBalancers = append(r.LoadBalancers, &ecs.LoadBalancer{
-			LoadBalancerName: aws.String(name),
-			ContainerName:    aws.String(ps),
-			ContainerPort:    aws.Int64(int64(port)),
-		})
-
-		// Despite the ECS Create Service API docs, you can only specify a single load balancer name and port. Specifying more than one results in
-		// Failed to update resource. InvalidParameterException: load balancers can have at most 1 items. status code: 400, request id: 0839710e-9227-11e5-8a2f-015e938a7aea
-		// https://github.com/aws/aws-cli/issues/1362
-		// Therefore break after adding the first load balancer mapping to the CreateServiceInput
-		break
-	}
-
-	if req.ResourceProperties["DeploymentMinimumPercent"] != nil && req.ResourceProperties["DeploymentMaximumPercent"] != nil {
-		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimumPercent"].(string))
-
-		if err != nil {
-			return "could not parse DeploymentMinimumPercent", nil, err
-		}
-
-		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximumPercent"].(string))
-
-		if err != nil {
-			return "could not parse DeploymentMaximumPercent", nil, err
-		}
-
-		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
-			MinimumHealthyPercent: aws.Int64(int64(min)),
-			MaximumPercent:        aws.Int64(int64(max)),
-		}
-	}
-
-	res, err := ECS(req).CreateService(r)
-
-	if err != nil {
-		return "invalid", nil, err
-	}
-
-	return *res.Service.ServiceArn, nil, nil
-}
-
-func ECSServiceUpdate(req Request) (string, map[string]string, error) {
-	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
-	if err != nil {
-		return "invalid", nil, err
-	}
-
-	// arn:aws:ecs:us-east-1:922560784203:service/sinatra-SZXTRXEMYEY
-	parts := strings.Split(req.PhysicalResourceId, "/")
-	name := parts[1]
-
-	replace, err := ECSServiceReplacementRequired(req)
-
-	if err != nil {
-		return "invalid", nil, err
-	}
-
-	if replace {
-		return ECSServiceCreate(req)
-	}
-
-	r := &ecs.UpdateServiceInput{
-		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
-		Service:        aws.String(name),
-		DesiredCount:   aws.Int64(int64(count)),
-		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
-	}
-
-	if req.ResourceProperties["DeploymentMinimumPercent"] != nil && req.ResourceProperties["DeploymentMaximumPercent"] != nil {
-		min, err := strconv.Atoi(req.ResourceProperties["DeploymentMinimumPercent"].(string))
-
-		if err != nil {
-			return "could not parse DeploymentMinimumPercent", nil, err
-		}
-
-		max, err := strconv.Atoi(req.ResourceProperties["DeploymentMaximumPercent"].(string))
-
-		if err != nil {
-			return "could not parse DeploymentMaximumPercent", nil, err
-		}
-
-		r.DeploymentConfiguration = &ecs.DeploymentConfiguration{
-			MinimumHealthyPercent: aws.Int64(int64(min)),
-			MaximumPercent:        aws.Int64(int64(max)),
-		}
-	}
-
-	res, err := ECS(req).UpdateService(r)
-
-	if err != nil {
-		return req.PhysicalResourceId, nil, err
-	}
-
-	return *res.Service.ServiceArn, nil, nil
-}
-
-// According to the ECS Docs (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/update-service.html):
-// To change the load balancer name, the container name, or the container port associated with a service load balancer configuration, you must create a new service.
-func ECSServiceReplacementRequired(req Request) (bool, error) {
-	incoming := []string{}
-	existing := make(map[string]bool)
-
-	res, err := ECS(req).DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(req.ResourceProperties["Cluster"].(string)),
-		Services: []*string{aws.String(req.PhysicalResourceId)},
-	})
-
-	if err != nil {
-		return false, err
-	}
-
-	balancers := req.ResourceProperties["LoadBalancers"].([]interface{})
-
-	for _, ilb := range balancers {
-		incoming = append(incoming, ilb.(string))
-	}
-
-	if len(balancers) > 0 {
-		if req.ResourceProperties["Role"].(string) != *res.Services[0].RoleArn {
-			return true, nil
-		}
-	}
-
-	// NOTE: Despite the Service APIs taking and returning a list, at most one balancer:container:port mapping will be set
-	for _, lb := range res.Services[0].LoadBalancers {
-		existing[fmt.Sprintf("%s:%s:%d", *lb.LoadBalancerName, *lb.ContainerName, *lb.ContainerPort)] = true
-	}
-
-	// update retains no load balancers
-	if len(incoming) == 0 && len(existing) == 0 {
-		return false, nil
-	}
-
-	// update retains one existing service port mapping
-	for _, lb := range incoming {
-		if existing[lb] {
-			return false, nil
-		}
-	}
-
-	// update creates or removes existing service port mapping
-	return true, nil
 }
 
 func ECSServiceDelete(req Request) (string, map[string]string, error) {
@@ -256,57 +78,16 @@ func ECSServiceDelete(req Request) (string, map[string]string, error) {
 		return req.PhysicalResourceId, nil, err
 	}
 
-	// Help move Desired to 0 by stopping all tasks
-	tasks, err := ECS(req).ListTasks(&ecs.ListTasksInput{
-		Cluster:     aws.String(cluster),
-		ServiceName: aws.String(name),
+	if err := waitForServiceStop(req, cluster, name); err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	_, err = ECS(req).DeleteService(&ecs.DeleteServiceInput{
+		Cluster: aws.String(cluster),
+		Service: aws.String(name),
 	})
 
-	if err != nil {
-		fmt.Printf("ECS ListTasks error: %s\n", err)
-	} else {
-		for _, arn := range tasks.TaskArns {
-			_, err = ECS(req).StopTask(&ecs.StopTaskInput{
-				Cluster: aws.String(cluster),
-				Task:    arn,
-			})
-
-			if err != nil {
-				fmt.Printf("ECS StopTask error: %s\n", err)
-			}
-		}
-	}
-
-	// Delete service, sleeping/retrying for 2 minutes if the error is:
-	// Failed to delete resource. InvalidParameterException: The service cannot be stopped while deployments are active.
-	var derr error
-
-	for i := 0; i < 12; i++ {
-		_, derr = ECS(req).DeleteService(&ecs.DeleteServiceInput{
-			Cluster: aws.String(cluster),
-			Service: aws.String(name),
-		})
-
-		// sleep and retry
-		if ae, ok := derr.(awserr.Error); ok {
-			if ae.Code() == "InvalidParameterException" {
-				time.Sleep(10 * time.Second)
-				continue
-			}
-		}
-
-		// signal DELETE_FAILED to cloudformation
-		if derr != nil {
-			fmt.Printf("error: %s\n", derr)
-			return req.PhysicalResourceId, nil, derr
-		}
-
-		// signal DELETE_COMPLETE to cloudformation
-		return req.PhysicalResourceId, nil, nil
-	}
-
-	// signal DELETE_FAILED to cloudformation
-	return req.PhysicalResourceId, nil, derr
+	return req.PhysicalResourceId, nil, err
 }
 
 func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
@@ -516,4 +297,27 @@ func generateId(prefix string, size int) string {
 		b[i] = idAlphabet[rand.Intn(len(idAlphabet))]
 	}
 	return prefix + string(b)
+}
+
+func waitForServiceStop(req Request, cluster, name string) error {
+	timeout := time.After(4 * time.Minute)
+	tick := time.Tick(10 * time.Second)
+
+	for {
+		select {
+		case <-tick:
+			tasks, err := ECS(req).ListTasks(&ecs.ListTasksInput{
+				Cluster:     aws.String(cluster),
+				ServiceName: aws.String(name),
+			})
+			if err != nil {
+				return err
+			}
+			if len(tasks.TaskArns) == 0 {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout stopping service")
+		}
+	}
 }

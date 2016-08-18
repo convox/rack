@@ -25,18 +25,6 @@
         ""
       ]
     },
-    "BlankWebService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
-    "BlankWorkerService": {
-      "Fn::Equals": [
-        "",
-        ""
-      ]
-    },
     "EnabledWeb": {
       "Fn::Not": [
         {
@@ -102,6 +90,14 @@
             {
               "Ref": "AWS::Region"
             },
+            "us-west-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "us-west-2"
           ]
         },
@@ -110,7 +106,39 @@
             {
               "Ref": "AWS::Region"
             },
+            "eu-central-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "eu-west-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-northeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-2"
           ]
         }
       ]
@@ -633,7 +661,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "30"
+        "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -737,6 +765,94 @@
       },
       "Type": "AWS::IAM::Role"
     },
+    "ServiceWeb": {
+      "Condition": "EnabledWeb",
+      "DependsOn": [
+        "BalancerWeb",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WebFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "web",
+            "ContainerPort": "3000",
+            "LoadBalancerName": {
+              "Ref": "BalancerWeb"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "ServiceWorker": {
+      "Condition": "EnabledWorker",
+      "DependsOn": [
+        "BalancerWorker",
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "WorkerFormation"
+            }
+          ]
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "worker",
+            "ContainerPort": "3000",
+            "LoadBalancerName": {
+              "Ref": "BalancerWorker"
+            }
+          }
+        ],
+        "Role": {
+          "Fn::GetAtt": [
+            "ServiceRole",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WorkerECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
     "Settings": {
       "DeletionPolicy": "Retain",
       "Properties": {
@@ -755,71 +871,6 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
-    },
-    "WebECSService": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWeb",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WebFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWeb"
-                },
-                "web",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "web"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
-      "Version": "1.0"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
@@ -855,70 +906,62 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankWebService",
+            "Command": "bash -c 'bundle exec puma -C config/puma.rb'",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "web",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Command": "bash -c 'bundle exec puma -C config/puma.rb'",
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WebFormation"
+                }
+              ]
+            },
+            "Name": "web",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "WebFormation"
-                    }
+                      "Ref": "WebPort80Host"
+                    },
+                    "3000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "web",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "WebFormation"
-                    }
-                  ]
-                },
-                "Name": "web",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WebPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
@@ -927,71 +970,6 @@
         ]
       },
       "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
-    },
-    "WorkerECSService": {
-      "Condition": "EnabledWorker",
-      "DependsOn": [
-        "BalancerWorker",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentMaximumPercent": "200",
-        "DeploymentMinimumPercent": "100",
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WorkerFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "Fn::Join": [
-              ":",
-              [
-                {
-                  "Ref": "BalancerWorker"
-                },
-                "worker",
-                "3000"
-              ]
-            ]
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "worker"
-            ]
-          ]
-        },
-        "Role": {
-          "Ref": "ServiceRole"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "WorkerECSTaskDefinition"
-        }
-      },
-      "Type": "Custom::ECSService",
       "Version": "1.0"
     },
     "WorkerECSTaskDefinition": {
@@ -1028,70 +1006,62 @@
         },
         "Tasks": [
           {
-            "Fn::If": [
-              "BlankWorkerService",
+            "Command": "bash -c \"bundle exec worker\"",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "worker",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
               {
-                "Command": "bash -c \"bundle exec worker\"",
-                "Cpu": {
-                  "Fn::Select": [
-                    1,
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "Name": "worker",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
                     {
-                      "Ref": "WorkerFormation"
-                    }
+                      "Ref": "WorkerPort80Host"
+                    },
+                    "3000"
                   ]
-                },
-                "Environment": {
-                  "APP": "httpd",
-                  "AWS_REGION": "test",
-                  "LOG_GROUP": {
-                    "Ref": "LogGroup"
-                  },
-                  "PROCESS": "worker",
-                  "RACK": "convox-test"
-                },
-                "ExtraHosts": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Image": "",
-                "Memory": {
-                  "Fn::Select": [
-                    2,
-                    {
-                      "Ref": "WorkerFormation"
-                    }
-                  ]
-                },
-                "Name": "worker",
-                "PortMappings": [
-                  {
-                    "Fn::Join": [
-                      ":",
-                      [
-                        {
-                          "Ref": "WorkerPort80Host"
-                        },
-                        "3000"
-                      ]
-                    ]
-                  },
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Privileged": "false",
-                "Services": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
-                ],
-                "Volumes": [
-                  {
-                    "Ref": "AWS::NoValue"
-                  }
                 ]
               },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
               {
                 "Ref": "AWS::NoValue"
               }
