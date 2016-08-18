@@ -10,7 +10,6 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -101,12 +100,12 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	// check to see if the app is linked to a service, if it is fail the request with precondition failed
-	services, err := models.ListServices()
+	services, err := models.Provider().ServiceList()
 	if err != nil {
 		return httperr.Server(err)
 	}
 	for _, serviceName := range services {
-		service, err := provider.ServiceGet(serviceName.Name)
+		service, err := models.Provider().ServiceGet(serviceName.Name)
 		if err != nil {
 			return httperr.Server(err)
 		}
