@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -396,4 +397,12 @@ func Provider() provider.Provider {
 	default:
 		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
 	}
+}
+
+func Test(t *testing.T, fn func()) {
+	tp := TestProvider
+	TestProvider = &provider.TestProvider{}
+	defer func() { TestProvider = tp }()
+	fn()
+	TestProvider.AssertExpectations(t)
 }

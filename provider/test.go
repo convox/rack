@@ -151,6 +151,11 @@ func (p *TestProvider) FormationList(app string) (structs.Formation, error) {
 // FormationGet gets the Formation for a Process
 func (p *TestProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
 	args := p.Called(app, process)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
 	return args.Get(0).(*structs.ProcessFormation), args.Error(1)
 }
 

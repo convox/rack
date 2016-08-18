@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
@@ -45,4 +46,240 @@ func TestFormationListError(t *testing.T) {
 	hf.AssertError(t, "some error")
 
 	models.TestProvider.AssertExpectations(t)
+}
+
+func TestFormationSetAll(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 200, Memory: 300, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "200")
+		v.Add("memory", "300")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+}
+
+func TestFormationSetOne(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("cpu", "200")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+}
+
+func TestFormationSetFailedGet(t *testing.T) {
+	models.Test(t, func() {
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(nil, fmt.Errorf("could not fetch"))
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "200")
+		v.Add("memory", "300")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 500)
+			hf.AssertError(t, "could not fetch")
+		}
+	})
+}
+
+func TestFormationSetFailedSave(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 200, Memory: 300, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(fmt.Errorf("could not save"))
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "200")
+		v.Add("memory", "300")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 500)
+			hf.AssertError(t, "could not save")
+		}
+	})
+}
+
+func TestFormationSetEdgeCases(t *testing.T) {
+
+	// count=-1 with older rack versions means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+		hf.SetVersion("20160602213112")
+
+		v := url.Values{}
+		v.Add("count", "-1")
+		v.Add("cpu", "200")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// count=-2 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "-2")
+		v.Add("cpu", "200")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// cpu=-1 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "-1")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// memory=0 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("memory", "0")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// memory=-1 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("memory", "-1")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+}
+
+func TestFormationSetNonNumeric(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "foo")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "count must be numeric")
+		}
+	})
+
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("cpu", "foo")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "cpu must be numeric")
+		}
+	})
+
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("memory", "foo")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "memory must be numeric")
+		}
+	})
 }
