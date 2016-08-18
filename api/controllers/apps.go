@@ -101,7 +101,7 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	// check to see if the app is linked to a service, if it is fail the request with precondition failed
 	services, err := models.Provider().ServiceList()
-  var linkedServices []string
+	var linkedServices []string
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -112,14 +112,14 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 		for _, linkedApp := range service.Apps {
 			if linkedApp.Name == app.Name {
-        linkedServices = append(linkedServices, service.Name)
+				linkedServices = append(linkedServices, service.Name)
 			}
 		}
 	}
 
-  if len(linkedServices) > 0 {
-    return httperr.Errorf(412, "%s is linked to these services and cannot be deleted: %s", app.Name, strings.Join(linkedServices,", "))
-  }
+	if len(linkedServices) > 0 {
+		return httperr.Errorf(412, "%s is linked to these services and cannot be deleted: %s", app.Name, strings.Join(linkedServices, " "))
+	}
 
 	err = app.Delete()
 	if err != nil {
