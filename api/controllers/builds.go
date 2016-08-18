@@ -266,6 +266,38 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
+func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	b, err := models.Provider().BuildGet(app, build)
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such app: %s", app)
+	}
+	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
+		return httperr.Errorf(404, err.Error())
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	repo, err := models.Provider().AppRepository(b.App)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	bbytes, err := b.Export(repo.Uri)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	rw.Header().Set("Content-Type", "application/octet-stream")
+	_, err = rw.Write(bbytes)
+
+	return httperr.Server(err)
+}
+
 func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	vars := mux.Vars(ws.Request())
 

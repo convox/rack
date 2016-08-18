@@ -95,9 +95,16 @@ func init() {
 			},
 			{
 				Name:        "delete",
-				Description: "Archive a build and its artifacts",
+				Description: "archive a build and its artifacts",
 				Usage:       "<ID>",
 				Action:      cmdBuildsDelete,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
+				Name:        "export",
+				Description: "export a build artifact to stdout",
+				Usage:       "<ID>",
+				Action:      cmdBuildsExport,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
@@ -265,6 +272,30 @@ func cmdBuildsCopy(c *cli.Context) error {
 			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseID, destApp)
 		}
 	}
+
+	return nil
+}
+
+func cmdBuildsExport(c *cli.Context) error {
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "export")
+		return nil
+	}
+
+	buildID := c.Args()[0]
+
+	build, err := rackClient(c).ExportBuild(app, buildID)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	buf := bytes.NewBuffer(build)
+	buf.WriteTo(os.Stdout)
 
 	return nil
 }

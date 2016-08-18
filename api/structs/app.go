@@ -14,6 +14,11 @@ type App struct {
 
 type Apps []App
 
+type AppRepository struct {
+	Id  string `json:"id"`
+	Uri string `json:"uri"`
+}
+
 // IsBound checks if the app is bound returns true if it is, false otherwise
 // If an app has a "Name" tag, it's considered bound
 func (a *App) IsBound() bool {
