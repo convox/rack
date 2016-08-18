@@ -170,3 +170,14 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 
 	return &build, nil
 }
+
+func (c *Client) ExportBuild(app, id string) ([]byte, error) {
+
+	var buildData []byte
+	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s/export", app, id), &buildData)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildData, nil
+}

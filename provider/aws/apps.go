@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+// AppGet gets an app
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
@@ -57,6 +58,36 @@ func (p *AWSProvider) AppDelete(name string) error {
 	go p.cleanup(app)
 
 	return nil
+}
+
+// AppRepository gets an app's repository data
+func (p *AWSProvider) AppRepository(name string) (*structs.AppRepository, error) {
+	app, err := p.AppGet(name)
+	if err != nil {
+		return nil, err
+	}
+
+	repoName := app.Outputs["RegistryRepository"]
+
+	params := &ecr.DescribeRepositoriesInput{
+		RepositoryNames: []*string{
+			aws.String(repoName),
+		},
+	}
+
+	resp, err := p.ecr().DescribeRepositories(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Repositories) > 0 {
+		return &structs.AppRepository{
+			Id:  repoName,
+			Uri: *resp.Repositories[0].RepositoryUri,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("no repo found")
 }
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
