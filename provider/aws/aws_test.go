@@ -18,9 +18,9 @@ func StubAwsProvider(cycles ...awsutil.Cycle) (s *httptest.Server, p *aws.AWSPro
 	os.Setenv("AWS_ACCESS", "test")
 	os.Setenv("AWS_SECRET", "test")
 	os.Setenv("AWS_ENDPOINT", s.URL)
-	os.Setenv("AWS_REGION", "test")
+	os.Setenv("AWS_REGION", "us-test-1")
 
-	p = aws.NewProvider("test", s.URL, "test", "test", "")
+	p = aws.NewProvider("us-test-1", s.URL, "test", "test", "")
 	p.Cache = false
 
 	return httptest.NewServer(handler), p
