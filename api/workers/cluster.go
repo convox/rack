@@ -133,34 +133,47 @@ func (instances Instances) describeASG() error {
 }
 
 func (instances Instances) describeECS() error {
-	res, err := models.ECS().ListContainerInstances(
-		&ecs.ListContainerInstancesInput{
-			Cluster: aws.String(os.Getenv("CLUSTER")),
-		},
-	)
+	var nextToken string
+	for {
+		res, err := models.ECS().ListContainerInstances(
+			&ecs.ListContainerInstancesInput{
+				Cluster: aws.String(os.Getenv("CLUSTER")),
+				NextToken: &nextToken,
 
-	if err != nil {
-		return err
-	}
+			},
+		)
 
-	dres, err := models.ECS().DescribeContainerInstances(
-		&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: res.ContainerInstanceArns,
-		},
-	)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		return err
-	}
+		dres, err := models.ECS().DescribeContainerInstances(
+			&ecs.DescribeContainerInstancesInput{
+				Cluster:            aws.String(os.Getenv("CLUSTER")),
+				ContainerInstances: res.ContainerInstanceArns,
+			},
+		)
 
-	for _, i := range dres.ContainerInstances {
-		instance := instances[*i.Ec2InstanceId]
+		if err != nil {
+			return err
+		}
 
-		instance.Id = *i.Ec2InstanceId
-		instance.ECS = *i.AgentConnected
+		for _, i := range dres.ContainerInstances {
+			instance := instances[*i.Ec2InstanceId]
 
-		instances[*i.Ec2InstanceId] = instance
+			instance.Id = *i.Ec2InstanceId
+			instance.ECS = *i.AgentConnected
+
+			instances[*i.Ec2InstanceId] = instance
+		}
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
 	}
 
 	return nil
