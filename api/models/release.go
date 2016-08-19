@@ -159,6 +159,8 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	oldVersion := app.Parameters["Version"]
+
 	app.Parameters["Environment"] = r.EnvironmentUrl()
 	app.Parameters["Kernel"] = CustomTopic
 	app.Parameters["Release"] = r.Id
@@ -285,11 +287,12 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	// randomize the instance ports
-	// TODO: only do this for an old app
-	for key := range app.Parameters {
-		if strings.HasSuffix(key, "Host") {
-			app.Parameters[key] = strconv.Itoa(rand.Intn(50000) + 10000)
+	// randomize the instance ports for older apps so we can upgrade smoothly
+	if oldVersion <= "20160818013241" {
+		for key := range app.Parameters {
+			if strings.HasSuffix(key, "Host") {
+				app.Parameters[key] = strconv.Itoa(rand.Intn(50000) + 10000)
+			}
 		}
 	}
 
