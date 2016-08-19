@@ -1404,8 +1404,8 @@
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "0",
-          "MaximumPercent": "100"
+          "MinimumHealthyPercent": "100",
+          "MaximumPercent": "200"
         },
         "DesiredCount": "1",
         "TaskDefinition": { "Ref": "RackMonitorTasks" }

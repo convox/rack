@@ -22,7 +22,9 @@ func HandleECSService(req Request) (string, map[string]string, error) {
 	case "Create":
 		return "invalid", nil, fmt.Errorf("creation of Custom::ECSService no longer supported")
 	case "Update":
-		return "invalid", nil, fmt.Errorf("updating Custom::ECSService no longer supported")
+		fmt.Println("UPDATING SERVICE")
+		fmt.Printf("req %+v\n", req)
+		return ECSServiceUpdate(req)
 	case "Delete":
 		fmt.Println("DELETING SERVICE")
 		fmt.Printf("req %+v\n", req)
@@ -49,6 +51,33 @@ func HandleECSTaskDefinition(req Request) (string, map[string]string, error) {
 	}
 
 	return "invalid", nil, fmt.Errorf("unknown RequestType: %s", req.RequestType)
+}
+
+// ECSServiceUpdate will update an ECS service
+func ECSServiceUpdate(req Request) (string, map[string]string, error) {
+	count, err := strconv.Atoi(req.ResourceProperties["DesiredCount"].(string))
+	if err != nil {
+		return "invalid", nil, err
+	}
+
+	// arn:aws:ecs:us-east-1:922560784203:service/sinatra-SZXTRXEMYEY
+	parts := strings.Split(req.PhysicalResourceId, "/")
+	name := parts[1]
+
+	r := &ecs.UpdateServiceInput{
+		Cluster:        aws.String(req.ResourceProperties["Cluster"].(string)),
+		Service:        aws.String(name),
+		DesiredCount:   aws.Int64(int64(count)),
+		TaskDefinition: aws.String(req.ResourceProperties["TaskDefinition"].(string)),
+	}
+
+	res, err := ECS(req).UpdateService(r)
+
+	if err != nil {
+		return req.PhysicalResourceId, nil, err
+	}
+
+	return *res.Service.ServiceArn, nil, nil
 }
 
 func ECSServiceDelete(req Request) (string, map[string]string, error) {

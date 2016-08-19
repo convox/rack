@@ -302,6 +302,19 @@
           "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" }
         }
       },
+      "{{ upper $e.Name }}ECSService": {
+        "DependsOn": [ "CustomTopic", "ServiceRole" ],
+        "Type": "Custom::ECSService",
+        "Version": "1.0",
+        "Properties": {
+          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+          "Cluster": { "Ref": "Cluster" },
+          "DesiredCount": "0",
+          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
+          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" },
+          "Role": { "Ref": "ServiceRole" }
+        }
+      },
     {{ end }}
   {{ end }}
 {{ end }}
