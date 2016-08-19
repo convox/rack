@@ -169,8 +169,8 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 			s.Exports["URL"] = u.String()
 		}
 	case "webhook":
-		if parsedUrl, err := url.Parse(s.Parameters["Url"]); err == nil {
-			s.Exports["URL"] = parsedUrl.Query().Get("endpoint")
+		if parsedURL, err := url.Parse(s.Parameters["Url"]); err == nil {
+			s.Exports["URL"] = parsedURL.Query().Get("endpoint")
 		}
 	}
 
