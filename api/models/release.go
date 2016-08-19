@@ -288,7 +288,7 @@ func (r *Release) Promote() error {
 	}
 
 	// randomize the instance ports for older apps so we can upgrade smoothly
-	if oldVersion <= "20160818013241" {
+	if oldVersion < "20160818013241" {
 		for key := range app.Parameters {
 			if strings.HasSuffix(key, "Host") {
 				app.Parameters[key] = strconv.Itoa(rand.Intn(50000) + 10000)
