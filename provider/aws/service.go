@@ -471,8 +471,6 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 		exports["URL"] = url
 	}
 
-	tags["Stack"] = *stack.StackName
-
 	return structs.Service{
 		Name:       name,
 		Stack:      *stack.StackName,
