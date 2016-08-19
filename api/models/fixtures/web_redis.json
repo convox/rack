@@ -699,6 +699,43 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
+    "RedisECSService": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": "0",
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "redis"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "RedisECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
+    },
     "RedisECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
@@ -968,6 +1005,43 @@
         ]
       },
       "Type": "AWS::S3::Bucket"
+    },
+    "WebECSService": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DesiredCount": "0",
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "web"
+            ]
+          ]
+        },
+        "Role": {
+          "Ref": "ServiceRole"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "WebECSTaskDefinition"
+        }
+      },
+      "Type": "Custom::ECSService",
+      "Version": "1.0"
     },
     "WebECSTaskDefinition": {
       "DependsOn": [
