@@ -2,6 +2,7 @@ package structs
 
 type Service struct {
 	Name         string `json:"name"`
+	Stack        string `json:"-"`
 	Status       string `json:"status"`
 	StatusReason string `json:"status-reason"`
 	Type         string `json:"type"`
