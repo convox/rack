@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -58,11 +59,20 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		return s, err
 	}
 
+	keys := []string{}
+
+	for key := range s.Parameters {
+		keys = append(keys, key)
+	}
+
+	// sort keys for easier testing
+	sort.Strings(keys)
+
 	// pass through service parameters as Cloudformation Parameters
-	for key, value := range s.Parameters {
+	for _, key := range keys {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(value),
+			ParameterValue: aws.String(s.Parameters[key]),
 		})
 	}
 

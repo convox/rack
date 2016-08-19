@@ -17,7 +17,6 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if a.Release == "" {
 		return structs.Formation{}, nil
 	}
@@ -29,7 +28,7 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 
 	manifest, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
 	}
 
 	formation := structs.Formation{}
@@ -52,7 +51,6 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 	if err != nil {
 		return nil, err
 	}
-
 	if a.Release == "" {
 		return nil, fmt.Errorf("no release for app: %s", app)
 	}
@@ -64,7 +62,7 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 
 	manifest, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
 	}
 
 	if _, ok := manifest.Services[process]; !ok {
@@ -87,7 +85,7 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 	}
 
 	if pf.Count < -1 {
-		return fmt.Errorf("requested count %d must -1 or greater", pf.Count)
+		return fmt.Errorf("requested count %d must be -1 or greater", pf.Count)
 	}
 
 	if int64(pf.CPU) > capacity.InstanceCPU {
@@ -95,7 +93,7 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 	}
 
 	if pf.CPU < 0 {
-		return fmt.Errorf("requested cpu %d must be zero or greater", pf.CPU)
+		return fmt.Errorf("requested cpu %d must be 0 or greater", pf.CPU)
 	}
 
 	if int64(pf.Memory) > capacity.InstanceMemory {

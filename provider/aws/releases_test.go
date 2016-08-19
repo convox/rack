@@ -11,12 +11,12 @@ import (
 )
 
 func TestReleaseGet(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
 		describeStacksCycle,
 
 		release1GetItemCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	r, err := provider.ReleaseGet("httpd", "RVFETUHHKKD")
 
@@ -32,12 +32,12 @@ func TestReleaseGet(t *testing.T) {
 }
 
 func TestReleaseList(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
 		describeStacksCycle,
 
 		releasesQueryCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	r, err := provider.ReleaseList("httpd", 20)
 

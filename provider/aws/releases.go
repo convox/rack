@@ -19,7 +19,6 @@ func releasesTable(app string) string {
 
 // ReleaseGet returns a release
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
-
 	if id == "" {
 		return nil, fmt.Errorf("release id must not be empty")
 	}
@@ -41,9 +40,8 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if res.Item == nil {
-		return nil, fmt.Errorf("no such release: %s", id)
+		return nil, ErrorNotFound(fmt.Sprintf("no such release: %s", id))
 	}
 
 	release := releaseFromItem(res.Item)

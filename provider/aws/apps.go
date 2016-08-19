@@ -19,28 +19,15 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
 
-	if name == os.Getenv("RACK") {
-		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(name),
-		})
-	} else {
-
-		// try '$RACK-myapp', and if not found try 'myapp'
-		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(os.Getenv("RACK") + "-" + name),
-		})
-
-		if awsError(err) == "ValidationError" {
-			res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-				StackName: aws.String(name),
-			})
-		}
+	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(os.Getenv("RACK") + "-" + name),
+	})
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
 	}
-
 	if err != nil {
 		return nil, err
 	}
-
 	if len(res.Stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for app: %s", name)
 	}

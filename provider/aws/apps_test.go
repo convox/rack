@@ -15,10 +15,10 @@ func init() {
 }
 
 func TestAppGet(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
 		describeStacksCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	a, err := provider.AppGet("httpd")
 
@@ -59,55 +59,6 @@ func TestAppGet(t *testing.T) {
 		},
 		Tags: map[string]string{
 			"Name":   "httpd",
-			"Type":   "app",
-			"System": "convox",
-			"Rack":   "convox",
-		},
-	}, a)
-}
-
-func TestAppGetUnbound(t *testing.T) {
-	aws, provider := StubAwsProvider(
-		describeStacksUnbound400Cycle,
-		describeStacksUnboundCycle,
-	)
-	defer aws.Close()
-
-	a, err := provider.AppGet("httpd-old")
-
-	assert.Nil(t, err)
-	assert.EqualValues(t, &structs.App{
-		Name:    "httpd-old",
-		Release: "RBJFRKXUHTD",
-		Status:  "running",
-		Outputs: map[string]string{
-			"Kinesis":               "httpd-old-Kinesis-1E7IWRINRFHLF",
-			"LogGroup":              "httpd-old-LogGroup-P27NBY2OI3CP",
-			"RegistryId":            "132866487567",
-			"RegistryRepository":    "httpd-old-wcuacldvzi",
-			"Settings":              "httpd-old-settings-17w6y79y4ppel",
-			"WebPort80Balancer":     "80",
-			"WebPort80BalancerName": "httpd-old",
-			"BalancerWebHost":       "httpd-old-132500142.us-east-1.elb.amazonaws.com",
-		},
-		Parameters: map[string]string{
-			"Key":                  "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
-			"Repository":           "",
-			"Environment":          "https://httpd-old-settings-17w6y79y4ppel.s3.amazonaws.com/releases/RBJFRKXUHTD/env",
-			"VPC":                  "vpc-f8006b9c",
-			"Cluster":              "convox-Cluster-1E4XJ0PQWNAYS",
-			"Version":              "20160330143438-command-exec-form",
-			"WebPort80Balancer":    "80",
-			"WebPort80Host":        "37636",
-			"Release":              "RBJFRKXUHTD",
-			"WebPort80Secure":      "No",
-			"WebPort80Certificate": "",
-			"WebMemory":            "256",
-			"WebCpu":               "256",
-			"WebDesiredCount":      "1",
-			"Subnets":              "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
-		},
-		Tags: map[string]string{
 			"Type":   "app",
 			"System": "convox",
 			"Rack":   "convox",

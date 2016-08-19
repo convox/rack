@@ -20,10 +20,12 @@ func init() {
 }
 
 func TestBuildGet(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
+		describeStacksCycle,
+
 		build1GetItemCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	b, err := provider.BuildGet("httpd", "BHINCLZYYVN")
 
@@ -41,7 +43,9 @@ func TestBuildGet(t *testing.T) {
 }
 
 func TestBuildDelete(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
+		describeStacksCycle,
+
 		build2GetItemCycle,
 
 		describeStacksCycle,
@@ -52,7 +56,7 @@ func TestBuildDelete(t *testing.T) {
 
 		build2BatchDeleteImageCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	b, err := provider.BuildDelete("httpd", "BNOARQMVHUO")
 
@@ -70,7 +74,7 @@ func TestBuildDelete(t *testing.T) {
 }
 
 func TestBuildList(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
 		describeStacksCycle,
 
 		buildsQueryCycle,
@@ -78,7 +82,7 @@ func TestBuildList(t *testing.T) {
 		build1GetObjectCycle,
 		build2GetObjectCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	b, err := provider.BuildList("httpd", 20)
 
