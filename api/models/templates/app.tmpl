@@ -462,91 +462,83 @@
 
 {{ define "cronjob-resources" }}
   {{ if .App.CronJobs .Manifest }}
+    "CronRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "Administrator",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "ecs:RunTask",
+                  "Resource": "*",
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": { "Fn::Join": [ "", [
+                        "arn:aws:ecs:",
+                        { "Ref": "AWS::Region" },
+                        ":",
+                        { "Ref": "AWS::AccountId" },
+                        ":cluster/",
+                        "{{ env "CLUSTER" }}"
+                      ] ] }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "CronFunction": {
       "Type": "AWS::Lambda::Function",
+      "DependsOn": [ "CronRole" ],
       "Properties": {
         "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-cron",
         "Handler": "index.handler",
-        "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
         "Runtime": "nodejs",
         "Timeout": 10,
         "Code": {
-          "ZipFile":  { "Fn::Join": ["\n", [
+          "ZipFile": { "Fn::Join": ["\n", [
             "'use strict';",
-            "",
-            "var https = require('https');",
             "var aws = require('aws-sdk');",
-            "var cloudformation = new aws.CloudFormation();",
-            "var querystring = require('querystring');",
-            "",
-            "var params = {",
-            "    StackName: '{{ env "RACK" }}'",
-            "};",
-            "",
-            "process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';",
-            "",
+            "var ecs = new aws.ECS();",
+            "var cluster = '{{ env "CLUSTER" }}';",
+            "var taskDefinitions = {",
+            {{ range .Manifest.Services }}
+              { "Fn::Join": [ "", [ "    '{{ .Name }}': '", { "Ref": "{{ upper .Name }}ECSTaskDefinition" }, "'," ] ] },
+            {{ end }}
+            "    '':''",
+            "}",
             "exports.handler = function(event, context) {",
-            "    console.log('REQUEST RECEIVED: ' + JSON.stringify(event));",
-            "",
-            "    cloudformation.describeStacks(params, function(err, data) {",
-            "        if (err) {",
-            "            console.log(err);",
-            "        } else {",
-            "            var dashboard;",
-            "            var password;",
-            "            var outputs = data.Stacks[0].Outputs;",
-            "            var parameters = data.Stacks[0].Parameters;",
-            "",
-            "            for(var i=0; outputs.length>i; i++) {",
-            "                if (outputs[i].OutputKey == 'Dashboard') {",
-            "                    dashboard = outputs[i].OutputValue;",
-            "                }",
-            "            }",
-            "",
-            "            for(i=0; parameters.length>i; i++) {",
-            "                if (parameters[i].ParameterKey == 'Password') {",
-            "                    password = parameters[i].ParameterValue;",
-            "                }",
-            "            }",
-            "",
-            "            var options = {",
-            "                host: dashboard,",
-            "                port: 443,",
-            "                path: '/apps/' + event.app + '/processes/' + event.process + '/run',",
-            "                method: 'POST',",
-            "                headers: {",
-            "                    'Accept': 'application/json',",
-            "                    'Content-Type': 'application/x-www-form-urlencoded',",
-            "                    'User-Agent': 'curl/'",
-            "                },",
-            "                auth: 'convox:' + password",
-            "            };",
-            "",
-            "            var req = https.request(options, function(res) {",
-            "                var body = '';",
-            "                console.log('Status:', res.statusCode);",
-            "                console.log('Headers:', JSON.stringify(res.headers));",
-            "                res.setEncoding('utf8');",
-            "                res.on('data', function(chunk) { body += chunk });",
-            "                res.on('end', function() {",
-            "                    console.log(body);",
-            "                    context.done();",
-            "                });",
-            "            });",
-            "",
-            "            req.on('error', function(error) {",
-            "                console.log('Error:', error);",
-            "                context.fail(error);",
-            "            });",
-            "",
-            "            var postData = querystring.stringify({",
-            "              'command' : event.command",
-            "            });",
-            "",
-            "            req.write(postData);",
-            "            req.end();",
+            "    var params = {",
+            "        startedBy: 'cron',",
+            "        taskDefinition: taskDefinitions[event.process],",
+            "        cluster: cluster,",
+            "        count: 1,",
+            "        overrides: {",
+            "            containerOverrides: [",
+            "                { name:event.process, command:[ 'sh', '-c', event.command ] }",
+            "            ]",
             "        }",
-            "    });",
+            "    };",
+            "    ecs.runTask(params, context.done);",
             "};"
           ] ] }
         }
@@ -562,7 +554,7 @@
         "Targets": [{
           "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
           "Id": "{{ .LongName }}Target",
-          "Input": "{\"app\": \"{{ .AppName }}\", \"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
+          "Input": "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
         }]
       }
     },
