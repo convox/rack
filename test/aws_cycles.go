@@ -225,7 +225,7 @@ func UpdateAppStackCycle(stackName, count, memory string) awsutil.Cycle {
 func ListContainerInstancesCycle(clusterName string) awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "AmazonEC2ContainerServiceV20141113.ListContainerInstances",
-			`{"cluster":"` + clusterName + `"}`},
+			`{"cluster":"` + clusterName + `","nextToken": ""}`},
 		awsutil.Response{200,
 			`{"containerInstanceArns":["arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","arn:aws:ecs:us-east-1:901416387788:container-instance/38a59629-6f5d-4d02-8733-fdb49500ae45","arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c"]}`},
 	}
