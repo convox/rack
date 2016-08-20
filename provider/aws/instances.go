@@ -13,22 +13,7 @@ import (
 )
 
 func (p *AWSProvider) InstanceList() (structs.Instances, error) {
-	res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ecsRes, err := p.ecs().DescribeContainerInstances(
-		&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: res.ContainerInstanceArns,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
+	ecsRes, err := p.describeContainerInstances()
 
 	var instanceIds []*string
 	for _, i := range ecsRes.ContainerInstances {
@@ -136,4 +121,36 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	return instances, nil
+}
+
+// describeContainerInstances lists and describes all the ECS instances.
+// It handles pagination for clusters > 100 instances.
+func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+	arns := []*string{}
+	var nextToken string
+
+	for {
+		res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
+			Cluster:   aws.String(os.Getenv("CLUSTER")),
+			NextToken: &nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		arns = append(arns, res.ContainerInstanceArns...)
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
+	}
+
+	return p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(os.Getenv("CLUSTER")),
+		ContainerInstances: arns,
+	})
 }
