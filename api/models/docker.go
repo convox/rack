@@ -41,18 +41,11 @@ func Docker(host string) (*docker.Client, error) {
 }
 
 func DockerHost() (string, error) {
-	ares, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
+	cres, err := DescribeContainerInstances()
 
-	if len(ares.ContainerInstanceArns) == 0 {
+	if len(cres.ContainerInstances) == 0 {
 		return "", fmt.Errorf("no container instances")
 	}
-
-	cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: ares.ContainerInstanceArns,
-	})
 
 	if err != nil {
 		return "", err
