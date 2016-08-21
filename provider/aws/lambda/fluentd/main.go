@@ -25,7 +25,7 @@ type fluentURL struct {
 
 func main() {
 	lambda_proc.Run(func(context *lambda_proc.Context, eventJSON json.RawMessage) (interface{}, error) {
-		fluentURL, err := getFluentURL(context.FunctionName)
+		fluentURL, err := getfluentURL(context.FunctionName)
 		fmt.Fprintf(os.Stderr, "fluentd connection config=%s %d\n", fluentURL.Host, fluentURL.Port)
 
 		logger, err := fluent.New(fluent.Config{FluentPort: fluentURL.Port, FluentHost: fluentURL.Host})
@@ -109,14 +109,14 @@ func parseURL(cf_url string) (string, int) {
 	return fluent_host, fluent_port
 }
 
-func getFluentURL(name string) (FluentURL, error) {
+func getfluentURL(name string) (fluentURL, error) {
 	data, err := ioutil.ReadFile("/tmp/url")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "URL Cache empty=%s\n", err)
 	} else {
 		fmt.Fprintf(os.Stderr, "Found cached url=%s\n", string(data))
 		fluent_host, fluent_port := parseURL(string(data))
-		return FluentURL{Host: fluent_host, Port: fluent_port}, nil
+		return fluentURL{Host: fluent_host, Port: fluent_port}, nil
 	}
 
 	cf := cloudformation.New(session.New(&aws.Config{}))
@@ -126,7 +126,7 @@ func getFluentURL(name string) (FluentURL, error) {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cf.DescribeStacks err=%s\n", err)
-		return FluentURL{}, err
+		return fluentURL{}, err
 	}
 
 	if len(resp.Stacks) == 1 {
@@ -143,10 +143,10 @@ func getFluentURL(name string) (FluentURL, error) {
 					fmt.Fprintf(os.Stderr, "Wrote URL Cache w/ url=%s\n", cf_url)
 				}
 
-				return FluentURL{Host: fluent_host, Port: fluent_port}, nil
+				return fluentURL{Host: fluent_host, Port: fluent_port}, nil
 			}
 		}
 	}
 
-	return FluentURL{}, fmt.Errorf("Could not find stack %s Url Parameter", name)
+	return fluentURL{}, fmt.Errorf("Could not find stack %s Url Parameter", name)
 }
