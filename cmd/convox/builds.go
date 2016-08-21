@@ -158,12 +158,8 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	switch a.Status {
-	case "creating":
-		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
-	case "running", "updating":
-	default:
-		return stdcli.ExitError(fmt.Errorf("unable to build app: %s", app))
+	if a.Status != "running" {
+		return stdcli.ExitError(fmt.Errorf("app %s cannot be built; status %s", app, a.Status))
 	}
 
 	if len(c.Args()) > 0 {
