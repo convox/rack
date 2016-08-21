@@ -100,13 +100,13 @@ func parseURL(cf_url string) (string, int) {
 		fmt.Fprintf(os.Stderr, "url.Parse url=%s\n", cf_url)
 	}
 
-	fluent_host, fluent_port_string, _ := net.SplitHostPort(parsed_url.Host)
-	fluent_port, err := strconv.Atoi(fluent_port_string)
+	fluentHost, fluentPort_string, _ := net.SplitHostPort(parsed_url.Host)
+	fluentPort, err := strconv.Atoi(fluentPort_string)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluent_port_string)
+		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluentPort_string)
 	}
 
-	return fluent_host, fluent_port
+	return fluentHost, fluentPort
 }
 
 func getfluentURL(name string) (fluentURL, error) {
@@ -115,8 +115,8 @@ func getfluentURL(name string) (fluentURL, error) {
 		fmt.Fprintf(os.Stderr, "URL Cache empty=%s\n", err)
 	} else {
 		fmt.Fprintf(os.Stderr, "Found cached url=%s\n", string(data))
-		fluent_host, fluent_port := parseURL(string(data))
-		return fluentURL{Host: fluent_host, Port: fluent_port}, nil
+		fluentHost, fluentPort := parseURL(string(data))
+		return fluentURL{Host: fluentHost, Port: fluentPort}, nil
 	}
 
 	cf := cloudformation.New(session.New(&aws.Config{}))
@@ -134,7 +134,7 @@ func getfluentURL(name string) (fluentURL, error) {
 			if *p.ParameterKey == "Url" {
 				cf_url := *p.ParameterValue
 
-				fluent_host, fluent_port := parseURL(cf_url)
+				fluentHost, fluentPort := parseURL(cf_url)
 
 				err = ioutil.WriteFile("/tmp/url", []byte(cf_url), 0644)
 				if err != nil {
@@ -143,7 +143,7 @@ func getfluentURL(name string) (fluentURL, error) {
 					fmt.Fprintf(os.Stderr, "Wrote URL Cache w/ url=%s\n", cf_url)
 				}
 
-				return fluentURL{Host: fluent_host, Port: fluent_port}, nil
+				return fluentURL{Host: fluentHost, Port: fluentPort}, nil
 			}
 		}
 	}
