@@ -100,10 +100,10 @@ func parseURL(cfURL string) (string, int) {
 		fmt.Fprintf(os.Stderr, "url.Parse url=%s\n", cfURL)
 	}
 
-	fluentHost, fluentPort_string, _ := net.SplitHostPort(parsedURL.Host)
-	fluentPort, err := strconv.Atoi(fluentPort_string)
+	fluentHost, fluentPortString, _ := net.SplitHostPort(parsedURL.Host)
+	fluentPort, err := strconv.Atoi(fluentPortString)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluentPort_string)
+		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluentPortString)
 	}
 
 	return fluentHost, fluentPort
