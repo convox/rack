@@ -73,34 +73,34 @@ func main() {
 
 func decodeLogLine(msg string) (map[string]interface{}, error) {
 	s := strings.Split(msg, " ")
-	log_group := s[0]
+	logGroup := s[0]
 	event := strings.Join(s[1:], " ")
-	s = strings.Split(log_group, ":")
-	container_name, convox_metadata := s[0], s[1]
-	s = strings.Split(convox_metadata, "/")
-	release, container_id := s[0], s[1]
+	s = strings.Split(logGroup, ":")
+	containerName, convoxMetadata := s[0], s[1]
+	s = strings.Split(convoxMetadata, "/")
+	release, containerID := s[0], s[1]
 
-	var decoded_json map[string]interface{}
-	err := json.Unmarshal([]byte(event), &decoded_json)
+	var decodedJSON map[string]interface{}
+	err := json.Unmarshal([]byte(event), &decodedJSON)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error decoding json: %s\n", err)
 		return nil, err
 	}
 
-	decoded_json["convox_release"] = release
-	decoded_json["container_name"] = container_name
-	decoded_json["ecs_container_id"] = container_id
+	decodedJSON["convox_release"] = release
+	decodedJSON["containerName"] = containerName
+	decodedJSON["ecs_containerID"] = containerID
 
-	return decoded_json, nil
+	return decodedJSON, nil
 }
 
-func parseURL(cf_url string) (string, int) {
-	parsed_url, err := url.Parse(cf_url)
+func parseURL(cfURL string) (string, int) {
+	parsedURL, err := url.Parse(cfURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "url.Parse url=%s\n", cf_url)
+		fmt.Fprintf(os.Stderr, "url.Parse url=%s\n", cfURL)
 	}
 
-	fluentHost, fluentPort_string, _ := net.SplitHostPort(parsed_url.Host)
+	fluentHost, fluentPort_string, _ := net.SplitHostPort(parsedURL.Host)
 	fluentPort, err := strconv.Atoi(fluentPort_string)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluentPort_string)
@@ -132,15 +132,15 @@ func getfluentURL(name string) (fluentURL, error) {
 	if len(resp.Stacks) == 1 {
 		for _, p := range resp.Stacks[0].Parameters {
 			if *p.ParameterKey == "Url" {
-				cf_url := *p.ParameterValue
+				cfURL := *p.ParameterValue
 
-				fluentHost, fluentPort := parseURL(cf_url)
+				fluentHost, fluentPort := parseURL(cfURL)
 
-				err = ioutil.WriteFile("/tmp/url", []byte(cf_url), 0644)
+				err = ioutil.WriteFile("/tmp/url", []byte(cfURL), 0644)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error writing URL cache for url=%s err=%s\n", cf_url, err)
+					fmt.Fprintf(os.Stderr, "Error writing URL cache for url=%s err=%s\n", cfURL, err)
 				} else {
-					fmt.Fprintf(os.Stderr, "Wrote URL Cache w/ url=%s\n", cf_url)
+					fmt.Fprintf(os.Stderr, "Wrote URL Cache w/ url=%s\n", cfURL)
 				}
 
 				return fluentURL{Host: fluentHost, Port: fluentPort}, nil
