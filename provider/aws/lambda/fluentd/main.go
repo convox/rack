@@ -18,17 +18,17 @@ import (
 	"github.com/mweagle/Sparta/aws/cloudwatchlogs"
 )
 
-type fluentURL struct {
+type FluentURL struct {
 	Host string
 	Port int
 }
 
 func main() {
 	lambda_proc.Run(func(context *lambda_proc.Context, eventJSON json.RawMessage) (interface{}, error) {
-		fluentURL, err := getFluentURL(context.FunctionName)
-		fmt.Fprintf(os.Stderr, "fluentd connection config=%s %d\n", fluentURL.Host, fluentURL.Port)
+		fluent_url, err := getFluentURL(context.FunctionName)
+		fmt.Fprintf(os.Stderr, "fluentd connection config=%s %d\n", fluent_url.Host, fluent_url.Port)
 
-		logger, err := fluent.New(fluent.Config{FluentPort: fluentURL.Port, FluentHost: fluentURL.Host})
+		logger, err := fluent.New(fluent.Config{FluentPort: fluent_url.Port, FluentHost: fluent_url.Host})
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "fluentd connection error=%s\n", err)
@@ -52,14 +52,17 @@ func main() {
 		logs, errs := 0, 0
 		for _, e := range d.LogEvents {
 
-			fmt.Sprintf("Message %s", e)
-			event := decodeLogLine(e.Message)
+			event, err := decodeLogLine(e.Message)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error decoding log line err=%s\n", err)
+				continue
+			}
 
-			tag := fmt.Sprintf("%s", event["convox_app"])
+			tag := d.LogGroup
 
 			err = logger.Post(tag, event)
 			if err != nil {
-				fmt.Fprint(os.Stderr, "FluentD Post: %s\n", err)
+				fmt.Fprintf(os.Stderr, "FluentD Post: %s\n", err)
 				return nil, err
 			}
 		}
@@ -68,49 +71,52 @@ func main() {
 	})
 }
 
-func decodeLogLine(msg string) map[string]interface{} {
+func decodeLogLine(msg string) (map[string]interface{}, error) {
 	s := strings.Split(msg, " ")
-	logGroup, event := s[0], s[1]
+	log_group := s[0]
+	event := strings.Join(s[1:], " ")
+	s = strings.Split(log_group, ":")
+	container_name, convox_metadata := s[0], s[1]
+	s = strings.Split(convox_metadata, "/")
+	release, container_id := s[0], s[1]
 
-	s = strings.Split(logGroup, ":")
-	app, metadata := s[0], s[1]
-
-	s = strings.Split(metadata, "/")
-	release, cid := s[0], s[1]
-
-	var decoded map[string]interface{}
-	json.Unmarshal([]byte(event), &decoded)
-
-	decoded["convox_app"] = app
-	decoded["convox_release"] = release
-	decoded["ecs_cid"] = cid
-
-	return decoded
-}
-
-func parseURL(cfURL string) (string, int) {
-	parsedURL, err := url.Parse(cfURL)
+	var decoded_json map[string]interface{}
+	err := json.Unmarshal([]byte(event), &decoded_json)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "url.Parse url=%s\n", cfURL)
+		fmt.Fprintf(os.Stderr, "Error decoding json: %s\n", err)
+		return nil, err
 	}
 
-	fluentHost, fluentPortString, _ := net.SplitHostPort(parsedURL.Host)
-	fluentPort, err := strconv.Atoi(fluentPortString)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluentPortString)
-	}
+	decoded_json["convox_release"] = release
+	decoded_json["container_name"] = container_name
+	decoded_json["ecs_container_id"] = container_id
 
-	return fluentHost, fluentPort
+	return decoded_json, nil
 }
 
-func getFluentURL(name string) (fluentURL, error) {
+func parseURL(cf_url string) (string, int) {
+	parsed_url, err := url.Parse(cf_url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "url.Parse url=%s\n", cf_url)
+	}
+
+	fluent_host, fluent_port_string, _ := net.SplitHostPort(parsed_url.Host)
+	fluent_port, err := strconv.Atoi(fluent_port_string)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "strconv.ParseInt - Failed parsing int out of port string=%s\n", fluent_port_string)
+	}
+
+	return fluent_host, fluent_port
+}
+
+func getFluentURL(name string) (FluentURL, error) {
 	data, err := ioutil.ReadFile("/tmp/url")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "URL Cache empty=%s\n", err)
 	} else {
 		fmt.Fprintf(os.Stderr, "Found cached url=%s\n", string(data))
-		fluentHost, fluentPort := parseURL(string(data))
-		return fluentURL{Host: fluentHost, Port: fluentPort}, nil
+		fluent_host, fluent_port := parseURL(string(data))
+		return FluentURL{Host: fluent_host, Port: fluent_port}, nil
 	}
 
 	cf := cloudformation.New(session.New(&aws.Config{}))
@@ -120,27 +126,27 @@ func getFluentURL(name string) (fluentURL, error) {
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cf.DescribeStacks err=%s\n", err)
-		return fluentURL{}, err
+		return FluentURL{}, err
 	}
 
 	if len(resp.Stacks) == 1 {
 		for _, p := range resp.Stacks[0].Parameters {
 			if *p.ParameterKey == "Url" {
-				cfURL := *p.ParameterValue
+				cf_url := *p.ParameterValue
 
-				fluentHost, fluentPort := parseURL(cfURL)
+				fluent_host, fluent_port := parseURL(cf_url)
 
-				err = ioutil.WriteFile("/tmp/url", []byte(cfURL), 0644)
+				err = ioutil.WriteFile("/tmp/url", []byte(cf_url), 0644)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error writing URL cache for url=%s err=%s\n", cfURL, err)
+					fmt.Fprintf(os.Stderr, "Error writing URL cache for url=%s err=%s\n", cf_url, err)
 				} else {
-					fmt.Fprintf(os.Stderr, "Wrote URL Cache w/ url=%s\n", cfURL)
+					fmt.Fprintf(os.Stderr, "Wrote URL Cache w/ url=%s\n", cf_url)
 				}
 
-				return fluentURL{Host: fluentHost, Port: fluentPort}, nil
+				return FluentURL{Host: fluent_host, Port: fluent_port}, nil
 			}
 		}
 	}
 
-	return fluentURL{}, fmt.Errorf("Could not find stack %s Url Parameter", name)
+	return FluentURL{}, fmt.Errorf("Could not find stack %s Url Parameter", name)
 }
