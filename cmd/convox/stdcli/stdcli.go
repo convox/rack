@@ -87,6 +87,7 @@ func New() *cli.App {
 
 	app.CommandNotFound = func(c *cli.Context, cmd string) {
 		fmt.Fprintf(os.Stderr, "No such command \"%s\". Try `%s help`\n", cmd, Binary)
+		os.Exit(1)
 	}
 
 	return app
