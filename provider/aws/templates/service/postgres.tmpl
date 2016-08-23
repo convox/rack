@@ -102,7 +102,7 @@
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
-          "EngineVersion": "9.4.5",
+          "EngineVersion": "9.5.2",
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
@@ -116,7 +116,7 @@
         "Type": "AWS::RDS::DBParameterGroup",
         "Properties" : {
           "Description" : { "Ref": "Database" },
-          "Family" : "postgres9.4",
+          "Family" : "postgres9.5",
           "Parameters" : {
             "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
           }
