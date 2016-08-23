@@ -113,7 +113,7 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 		Item: map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
-			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
+			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(sortableTime))},
 		},
 		TableName: aws.String(releasesTable(r.App)),
 	}
@@ -158,7 +158,7 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 }
 
 func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release {
-	created, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
+	created, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
 
 	release := &structs.Release{
 		Id:       coalesce(item["id"], ""),
