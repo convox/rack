@@ -59,6 +59,7 @@
       "User": {
         "Type": "AWS::IAM::User",
         "Properties": {
+          "Path": "/convox/",
           "Policies": [{
             "PolicyName" : "SNSAccess",
             "PolicyDocument" : {
