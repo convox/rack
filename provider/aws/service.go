@@ -26,6 +26,8 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		Parameters: cfParams(params),
 		Type:       kind,
 	}
+	s.Parameters["CustomTopic"] = customTopic
+	s.Parameters["NotificationTopic"] = notificationTopic
 
 	var req *cloudformation.CreateStackInput
 
@@ -44,8 +46,6 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		req, err = createServiceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
 		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", os.Getenv("NOTIFICATION_HOST"), url.QueryEscape(s.Parameters["Url"]))
-		s.Parameters["NotificationTopic"] = notificationTopic
-		s.Parameters["CustomTopic"] = customTopic
 		req, err = createServiceURL(s, "http", "https")
 	default:
 		err = fmt.Errorf("Invalid service type: %s", s.Type)
