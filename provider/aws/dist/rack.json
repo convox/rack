@@ -912,7 +912,7 @@
       "DependsOn": "IamRole",
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
-        "Path": "/",
+        "Path": "/convox/",
         "Roles": [ { "Ref": "IamRole" } ]
       }
     },

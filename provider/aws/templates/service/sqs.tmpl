@@ -13,6 +13,7 @@
       "User": {
         "Type": "AWS::IAM::User",
         "Properties": {
+          "Path": "/convox/",
           "Policies": [{
             "PolicyName" : "SQSAccess",
             "PolicyDocument" : {
