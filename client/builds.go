@@ -181,3 +181,17 @@ func (c *Client) ExportBuild(app, id string) ([]byte, error) {
 
 	return buildData, nil
 }
+
+func (c *Client) ImportBuild(app string, source []byte, callback func(s string)) error {
+
+	files := map[string][]byte{
+		"source": source,
+	}
+
+	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds/import", app), files, nil, nil, callback)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

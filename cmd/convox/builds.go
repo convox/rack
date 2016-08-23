@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -47,6 +48,10 @@ var (
 			Value: "",
 			Usage: "description of the build",
 		},
+	}
+
+	progressFunc = func(s string) {
+		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
 	}
 )
 
@@ -105,6 +110,14 @@ func init() {
 				Description: "export a build artifact to stdout",
 				Usage:       "<ID>",
 				Action:      cmdBuildsExport,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
+
+				Name:        "import",
+				Description: "import a build artifact from stdin",
+				Usage:       "<ID>",
+				Action:      cmdBuildsImport,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
@@ -300,6 +313,28 @@ func cmdBuildsExport(c *cli.Context) error {
 	return nil
 }
 
+func cmdBuildsImport(c *cli.Context) error {
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	b, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return fmt.Errorf("error reading build: %s", err)
+	}
+
+	err = rackClient(c).ImportBuild(app, b, progressFunc)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	fmt.Println()
+
+	return nil
+}
+
 func executeBuild(c *cli.Context, source, app, manifest, description string) (string, error) {
 	u, _ := url.Parse(source)
 
@@ -452,11 +487,7 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 		return err
 	}
 
-	progress := func(s string) {
-		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
-	}
-
-	if err := rackClient(c).IndexUpdate(buf.Bytes(), progress); err != nil {
+	if err := rackClient(c).IndexUpdate(buf.Bytes(), progressFunc); err != nil {
 		return err
 	}
 
@@ -531,10 +562,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (st
 
 	cache := !c.Bool("no-cache")
 
-	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, func(s string) {
-		// Pad string with spaces at the end to clear any text left over from a longer string.
-		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
-	})
+	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, progressFunc)
 	if err != nil {
 		return "", err
 	}
