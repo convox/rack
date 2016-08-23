@@ -1,10 +1,15 @@
 package controllers
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -155,6 +160,47 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	build, err := models.Provider().BuildDelete(appName, buildID)
 	if err != nil {
 		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, build)
+}
+
+// BuildImport imports a build for an app
+func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+
+	source, _, err := r.FormFile("source")
+	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
+		helpers.TrackError("build.import", err, map[string]interface{}{"at": "FormFile"})
+		return httperr.Server(err)
+	}
+
+	a, err := models.GetApp(app)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	build, images, err := readImportArtifact(source)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	// Log into registry that we will push to
+	_, err = models.AppDockerLogin(*a)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	for _, img := range images {
+		cmd := exec.Command("docker", "load")
+		cmd.Stdin = bytes.NewReader(img)
+
+		out, err := cmd.Output()
+		if err != nil {
+			return httperr.Server(err)
+		}
+		fmt.Printf("fn=BuildImport level=info msg=\"%s\"\n", out)
 	}
 
 	return RenderJson(rw, build)
@@ -384,6 +430,56 @@ ForLoop:
 	quit <- true
 
 	return httperr.Server(err)
+}
+
+func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
+
+	var build structs.Build
+	images := make([][]byte, 0)
+
+	gzf, err := gzip.NewReader(source)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tarReader := tar.NewReader(gzf)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			raw := []byte{}
+
+			if header.Name == "builddata.json" {
+				jsonBuf := bytes.NewBuffer(raw)
+				io.Copy(jsonBuf, tarReader)
+
+				err = json.Unmarshal(jsonBuf.Bytes(), &build)
+				if err != nil {
+					return nil, nil, err
+				}
+
+			} else {
+				if strings.HasSuffix(header.Name, ".tar") {
+
+					buf := bytes.NewBuffer(raw)
+					io.Copy(buf, tarReader)
+
+					images = append(images, buf.Bytes())
+				}
+			}
+		default:
+			continue
+		}
+	}
+
+	return &build, images, nil
 }
 
 // try to find the docker host that's running a build
