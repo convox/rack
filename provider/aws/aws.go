@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
 	customTopic       = os.Getenv("CUSTOM_TOPIC")
+	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
 	sortableTime      = "20060102.150405.000000000"
 )
 
