@@ -275,7 +275,7 @@
 		},
 		{
 			"ImportPath": "github.com/convox/version",
-			"Rev": "d71d26416eb88f994d1bd99ac040f19afdc47cd0"
+			"Rev": "ffefa0d565d21a0fece3b2bc6ef37ea5753dc5fe"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",

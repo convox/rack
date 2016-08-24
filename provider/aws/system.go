@@ -92,7 +92,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 			Item: map[string]*dynamodb.AttributeValue{
 				"id":      &dynamodb.AttributeValue{S: aws.String(system.Version)},
 				"app":     &dynamodb.AttributeValue{S: aws.String(rack)},
-				"created": &dynamodb.AttributeValue{S: aws.String(time.Now().Format(SortableTime))},
+				"created": &dynamodb.AttributeValue{S: aws.String(time.Now().Format(sortableTime))},
 			},
 			TableName: aws.String(releasesTable(rack)),
 		})

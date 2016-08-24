@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -22,9 +21,9 @@ import (
 )
 
 var (
-	CustomTopic  = os.Getenv("CUSTOM_TOPIC")
-	SortableTime = "20060102.150405.000000000"
-	ValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+	customTopic       = os.Getenv("CUSTOM_TOPIC")
+	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
+	sortableTime      = "20060102.150405.000000000"
 )
 
 type AWSProvider struct {
