@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/rack/api/structs"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -147,7 +148,7 @@ func DockerLogout(ac docker.AuthConfiguration) error {
 
 // Log into the appropriate registry for the given app
 // This could be the self-hosted v1 registry or an ECR registry
-func AppDockerLogin(app App) (string, error) {
+func AppDockerLogin(app structs.App) (string, error) {
 	if registryId := app.Outputs["RegistryId"]; registryId != "" {
 		return DockerLogin(docker.AuthConfiguration{
 			Email:         "user@convox.com",
@@ -183,8 +184,7 @@ func PullAppImages() {
 	}
 
 	for _, app := range apps {
-		a, err := GetApp(app.Name)
-
+		a, err := Provider().AppGet(app.Name)
 		if err != nil {
 			log.Step("GetApp").Error(err)
 			continue
@@ -192,7 +192,7 @@ func PullAppImages() {
 
 		// retry login a few times in case v1 registry is not yet available
 		for i := 0; i < maxRetries; i++ {
-			_, err = AppDockerLogin(app)
+			_, err = AppDockerLogin(*a)
 
 			if err == nil {
 				break
@@ -202,8 +202,7 @@ func PullAppImages() {
 			time.Sleep(30 * time.Second)
 		}
 
-		resources, err := a.Resources()
-
+		resources, err := ListResources(a.Name)
 		if err != nil {
 			log.Step("Resources").Error(err)
 		}
