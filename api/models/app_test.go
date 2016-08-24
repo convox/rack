@@ -2,6 +2,7 @@ package models_test
 
 import (
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/convox/rack/api/models"
@@ -80,6 +81,7 @@ func TestAppCronJobs(t *testing.T) {
 	}
 
 	cj := a.CronJobs(m)
+	sort.Sort(models.CronJobs(cj))
 
 	assert.Equal(t, len(cj), 3)
 	assert.Equal(t, cj[0].Name, "task1")
