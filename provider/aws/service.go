@@ -37,10 +37,14 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	case "fluentd":
 		req, err = createServiceURL(s, "tcp")
 	case "s3":
-		s.Parameters["Topic"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Topic"])
+		if s.Parameters["Topic"] != "" {
+			s.Parameters["Topic"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Topic"])
+		}
 		req, err = createService(s)
 	case "sns":
-		s.Parameters["Queue"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Queue"])
+		if s.Parameters["Queue"] != "" {
+			s.Parameters["Queue"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Queue"])
+		}
 		req, err = createService(s)
 	case "syslog":
 		req, err = createServiceURL(s, "tcp", "tcp+tls", "udp")
