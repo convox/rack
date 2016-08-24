@@ -1,11 +1,13 @@
 package aws
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -135,6 +137,9 @@ func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstan
 			Cluster:   aws.String(os.Getenv("CLUSTER")),
 			NextToken: &nextToken,
 		})
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
+			return nil, ErrorNotFound(fmt.Sprintf("cluster not found: %s", os.Getenv("CLUSTER")))
+		}
 		if err != nil {
 			return nil, err
 		}

@@ -248,7 +248,7 @@ func TestFormationSaveBadCluster(t *testing.T) {
 
 	err := provider.FormationSave("httpd", pf)
 
-	assert.Equal(t, aws.ErrorNotFound("unknown cluster: "), err)
+	assert.Equal(t, aws.ErrorNotFound("cluster not found: "), err)
 }
 
 func TestFormationSaveBadCount(t *testing.T) {
@@ -423,7 +423,7 @@ var cycleCapacityListContainerInstances = awsutil.Cycle{
 	awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListContainerInstances",
-		Body:       `{"cluster":""}`,
+		Body:       `{"cluster":"", "nextToken":""}`,
 	},
 	awsutil.Response{
 		StatusCode: 200,
@@ -441,7 +441,7 @@ var cycleCapacityListContainerInstancesBadCluster = awsutil.Cycle{
 	awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListContainerInstances",
-		Body:       `{"cluster":""}`},
+		Body:       `{"cluster":"","nextToken":""}`},
 	awsutil.Response{
 		StatusCode: 400,
 		Body:       `{"__type":"ClusterNotFoundException","message":"Cluster not found."}`},
