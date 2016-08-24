@@ -13,22 +13,7 @@ import (
 )
 
 func (p *AWSProvider) InstanceList() (structs.Instances, error) {
-	res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ecsRes, err := p.ecs().DescribeContainerInstances(
-		&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: res.ContainerInstanceArns,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
+	ecsRes, err := p.describeContainerInstances()
 
 	var instanceIds []*string
 	for _, i := range ecsRes.ContainerInstances {
@@ -36,9 +21,8 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	ec2Res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
-		},
+		InstanceIds: instanceIds,
+		MaxResults:  aws.Int64(1000),
 	})
 	if err != nil {
 		return nil, err
@@ -136,4 +120,43 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	return instances, nil
+}
+
+// describeContainerInstances lists and describes all the ECS instances.
+// It handles pagination for clusters > 100 instances.
+func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+	instances := []*ecs.ContainerInstance{}
+	var nextToken string
+
+	for {
+		res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
+			Cluster:   aws.String(os.Getenv("CLUSTER")),
+			NextToken: &nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		dres, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, dres.ContainerInstances...)
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
+	}
+
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
 }

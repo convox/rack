@@ -12,19 +12,7 @@ import (
 func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	capacity := &structs.Capacity{}
 
-	lres, err := p.ecs().ListContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	ires, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: lres.ContainerInstanceArns,
-	})
-
+	ires, err := p.describeContainerInstances()
 	if err != nil {
 		return nil, err
 	}
