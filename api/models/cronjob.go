@@ -15,6 +15,7 @@ type CronJob struct {
 	App      *App
 }
 
+//CronJobs is a wrapper for sorting
 type CronJobs []CronJob
 
 func (a CronJobs) Len() int           { return len(a) }
