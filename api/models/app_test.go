@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,4 +46,46 @@ func TestAppStackName(t *testing.T) {
 	}
 
 	assert.Equal(t, "convox-test-httpd", a.StackName())
+}
+
+func TestAppCronJobs(t *testing.T) {
+
+	m := manifest.Manifest{
+		Version: "1",
+		Services: map[string]manifest.Service{
+			"one": manifest.Service{
+				Name: "one",
+				Labels: manifest.Labels{
+					"convox.cron.task1": "00 19 * * ? ls -la",
+				},
+			},
+			"two": manifest.Service{
+				Name: "two",
+				Labels: manifest.Labels{
+					"convox.cron.task2": "00 20 * * ? ls -la",
+					"convox.cron.task3": "00 21 * * ? ls -la",
+				},
+			},
+		},
+	}
+
+	a := models.App{
+		Name: "httpd",
+		Tags: map[string]string{
+			"Name":   "httpd",
+			"Type":   "app",
+			"System": "convox",
+			"Rack":   "convox-test",
+		},
+	}
+
+	cj := a.CronJobs(m)
+
+	assert.Equal(t, len(cj), 3)
+	assert.Equal(t, cj[0].Name, "task1")
+	assert.Equal(t, cj[0].Service.Name, "one")
+	assert.Equal(t, cj[1].Service.Name, "two")
+	assert.Equal(t, cj[1].Name, "task2")
+	assert.Equal(t, cj[2].Service.Name, "two")
+	assert.Equal(t, cj[2].Name, "task3")
 }
