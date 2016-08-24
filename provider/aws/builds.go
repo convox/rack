@@ -420,7 +420,7 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string)
 		"-e", "MANIFEST_PATH",
 		"-e", "REPOSITORY",
 		"-e", "NO_CACHE",
-		p.DockerImageApi,
+		p.DockerImageAPI,
 		"build",
 		source,
 	}
@@ -704,11 +704,11 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
-func (p *AWSProvider) registryTag(a *structs.App, serviceName, buildId string) string {
-	tag := fmt.Sprintf("%s/%s-%s:%s", p.RegistryHost, a.Name, serviceName, buildId)
+func (p *AWSProvider) registryTag(a *structs.App, serviceName, buildID string) string {
+	tag := fmt.Sprintf("%s/%s-%s:%s", p.RegistryHost, a.Name, serviceName, buildID)
 
 	if registryId := a.Outputs["RegistryId"]; registryId != "" {
-		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, p.Region, a.Outputs["RegistryRepository"], serviceName, buildId)
+		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, p.Region, a.Outputs["RegistryRepository"], serviceName, buildID)
 	}
 
 	return tag

@@ -63,6 +63,7 @@ type Provider interface {
 	SystemSave(system structs.System) error
 }
 
+// NewAwsProviderFromEnv returns a new AWS provider based on env vars
 func NewAwsProviderFromEnv() *aws.AWSProvider {
 	return aws.NewProviderFromEnv()
 }

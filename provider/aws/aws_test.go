@@ -31,7 +31,7 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		Token:            "test-token",
 		Cluster:          "cluster-test",
 		Development:      true,
-		DockerImageApi:   "rack/web",
+		DockerImageAPI:   "rack/web",
 		DynamoBuilds:     "convox-builds",
 		DynamoReleases:   "convox-releases",
 		NotificationHost: "notifications.example.org",

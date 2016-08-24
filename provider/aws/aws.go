@@ -35,7 +35,7 @@ type AWSProvider struct {
 
 	Cluster           string
 	Development       bool
-	DockerImageApi    string
+	DockerImageAPI    string
 	DynamoBuilds      string
 	DynamoReleases    string
 	NotificationHost  string
@@ -62,7 +62,7 @@ func NewProviderFromEnv() *AWSProvider {
 		Token:             os.Getenv("AWS_TOKEN"),
 		Cluster:           os.Getenv("CLUSTER"),
 		Development:       os.Getenv("DEVELOPMENT") == "true",
-		DockerImageApi:    os.Getenv("DOCKER_IMAGE_API"),
+		DockerImageAPI:    os.Getenv("DOCKER_IMAGE_API"),
 		DynamoBuilds:      os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:    os.Getenv("DYNAMO_RELEASES"),
 		NotificationHost:  os.Getenv("NOTIFICATION_HOST"),
