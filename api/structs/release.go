@@ -13,10 +13,12 @@ type Release struct {
 
 type Releases []Release
 
+// NewRelease creates a new release
 func NewRelease(app string) *Release {
 	return &Release{
-		App: app,
-		Id:  generateId("R", 10),
+		App:     app,
+		Created: time.Now(),
+		Id:      generateId("R", 10),
 	}
 }
 
