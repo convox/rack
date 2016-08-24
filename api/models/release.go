@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/crypt"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 )
 
@@ -36,8 +37,9 @@ type Releases []Release
 
 func NewRelease(app string) Release {
 	return Release{
-		Id:  generateId("R", 10),
-		App: app,
+		App:     app,
+		Created: time.Now(),
+		Id:      generateId("R", 10),
 	}
 }
 
@@ -408,8 +410,18 @@ func (r *Release) Formation() (string, error) {
 func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.Manifest, error) {
 	m := *manifest
 
-	endpoint, err := AppDockerLogin(app)
-
+	// HACK: need an app of type structs.App for docker login.
+	// Should be fixed/removed once proper logic is moved over to structs.App
+	// That includes moving Formation() around
+	sa := structs.App{
+		Name:       app.Name,
+		Release:    app.Release,
+		Status:     app.Status,
+		Outputs:    app.Outputs,
+		Parameters: app.Parameters,
+		Tags:       app.Tags,
+	}
+	endpoint, err := AppDockerLogin(sa)
 	if err != nil {
 		return &m, fmt.Errorf("could not log into %q", endpoint)
 	}

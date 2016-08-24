@@ -101,7 +101,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	a, err := models.GetApp(app)
+	a, err := models.Provider().AppGet(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -176,7 +176,7 @@ func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	a, err := models.GetApp(app)
+	a, err := models.Provider().AppGet(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -201,6 +201,25 @@ func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 		fmt.Printf("fn=BuildImport level=info msg=\"%s\"\n", out)
+	}
+
+	rel, err := ForkRelease(a)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	rel.Build = build.Id
+	rel.Manifest = build.Manifest
+	err = models.Provider().ReleaseSave(rel, a.Outputs["Settings"], a.Parameters["Key"])
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	build.Release = rel.Id
+	build.App = a.Name
+	err = models.Provider().BuildSave(build)
+	if err != nil {
+		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, build)
