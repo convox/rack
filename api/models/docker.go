@@ -61,6 +61,7 @@ func DockerHost() (string, error) {
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{&id}},
 		},
+		MaxResults: aws.Int64(1000),
 	})
 
 	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {

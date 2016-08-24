@@ -24,6 +24,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
 		},
+		MaxResults: aws.Int64(1000),
 	})
 	if err != nil {
 		return nil, err
@@ -126,7 +127,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 // describeContainerInstances lists and describes all the ECS instances.
 // It handles pagination for clusters > 100 instances.
 func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
-	arns := []*string{}
+	instances := []*ecs.ContainerInstance{}
 	var nextToken string
 
 	for {
@@ -138,7 +139,15 @@ func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstan
 			return nil, err
 		}
 
-		arns = append(arns, res.ContainerInstanceArns...)
+		dres, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, dres.ContainerInstances...)
 
 		// No more container results
 		if res.NextToken == nil {
@@ -149,8 +158,7 @@ func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstan
 		nextToken = *res.NextToken
 	}
 
-	return p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: arns,
-	})
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
 }

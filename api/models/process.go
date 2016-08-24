@@ -36,7 +36,7 @@ type Processes []*Process
 // DescribeContainerInstances lists and describes all the ECS instances.
 // It handles pagination for clusters > 100 instances.
 func DescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
-	arns := []*string{}
+	instances := []*ecs.ContainerInstance{}
 	var nextToken string
 
 	for {
@@ -48,7 +48,15 @@ func DescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error)
 			return nil, err
 		}
 
-		arns = append(arns, res.ContainerInstanceArns...)
+		dres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, dres.ContainerInstances...)
 
 		// No more container results
 		if res.NextToken == nil {
@@ -59,10 +67,9 @@ func DescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error)
 		nextToken = *res.NextToken
 	}
 
-	return ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: arns,
-	})
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
 }
 
 func GetAppServices(app string) ([]*ecs.Service, error) {
