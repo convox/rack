@@ -12,7 +12,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/ddollar/logger"
 )
 
@@ -133,47 +132,18 @@ func (instances Instances) describeASG() error {
 }
 
 func (instances Instances) describeECS() error {
-	var nextToken string
-	for {
-		res, err := models.ECS().ListContainerInstances(
-			&ecs.ListContainerInstancesInput{
-				Cluster: aws.String(os.Getenv("CLUSTER")),
-				NextToken: &nextToken,
+	dres, err := models.DescribeContainerInstances()
+	if err != nil {
+		return err
+	}
 
-			},
-		)
+	for _, i := range dres.ContainerInstances {
+		instance := instances[*i.Ec2InstanceId]
 
-		if err != nil {
-			return err
-		}
+		instance.Id = *i.Ec2InstanceId
+		instance.ECS = *i.AgentConnected
 
-		dres, err := models.ECS().DescribeContainerInstances(
-			&ecs.DescribeContainerInstancesInput{
-				Cluster:            aws.String(os.Getenv("CLUSTER")),
-				ContainerInstances: res.ContainerInstanceArns,
-			},
-		)
-
-		if err != nil {
-			return err
-		}
-
-		for _, i := range dres.ContainerInstances {
-			instance := instances[*i.Ec2InstanceId]
-
-			instance.Id = *i.Ec2InstanceId
-			instance.ECS = *i.AgentConnected
-
-			instances[*i.Ec2InstanceId] = instance
-		}
-
-		// No more container results
-		if res.NextToken == nil {
-			break
-		}
-
-		// set the nextToken to be used for the next iteration
-		nextToken = *res.NextToken
+		instances[*i.Ec2InstanceId] = instance
 	}
 
 	return nil
