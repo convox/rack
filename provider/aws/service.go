@@ -40,7 +40,9 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		}
 		req, err = createService(s)
 	case "sns":
-		s.Parameters["Queue"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Queue"])
+		if s.Parameters["Queue"] != "" {
+			s.Parameters["Queue"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Queue"])
+		}
 		req, err = createService(s)
 	case "syslog":
 		req, err = createServiceURL(s, "tcp", "tcp+tls", "udp")
