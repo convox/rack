@@ -2,7 +2,6 @@ package aws_test
 
 import (
 	"net/http/httptest"
-	"os"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/provider/aws"
@@ -24,14 +23,24 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	handler := awsutil.NewHandler(cycles)
 	s := httptest.NewServer(handler)
 
-	os.Setenv("AWS_ACCESS", "test")
-	os.Setenv("AWS_SECRET", "test")
-	os.Setenv("AWS_ENDPOINT", s.URL)
-	os.Setenv("AWS_REGION", "us-test-1")
-	os.Setenv("RACK", "convox")
-
-	p := aws.NewProvider("us-test-1", s.URL, "test", "test", "")
-	p.Cache = false
+	p := &aws.AWSProvider{
+		Region:           "us-test-1",
+		Endpoint:         s.URL,
+		Access:           "test-access",
+		Secret:           "test-secret",
+		Token:            "test-token",
+		Cluster:          "cluster-test",
+		Development:      true,
+		DockerImageApi:   "rack/web",
+		DynamoBuilds:     "convox-builds",
+		DynamoReleases:   "convox-releases",
+		NotificationHost: "notifications.example.org",
+		Password:         "password",
+		Rack:             "convox",
+		RegistryHost:     "registry.example.org",
+		SettingsBucket:   "convox-settings",
+		SkipCache:        true,
+	}
 
 	return &AwsStub{p, s}
 }

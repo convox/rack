@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -134,18 +133,18 @@ func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstan
 
 	for {
 		res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
-			Cluster:   aws.String(os.Getenv("CLUSTER")),
+			Cluster:   aws.String(p.Cluster),
 			NextToken: &nextToken,
 		})
 		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
-			return nil, ErrorNotFound(fmt.Sprintf("cluster not found: %s", os.Getenv("CLUSTER")))
+			return nil, ErrorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
 		}
 		if err != nil {
 			return nil, err
 		}
 
 		dres, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			Cluster:            aws.String(p.Cluster),
 			ContainerInstances: res.ContainerInstanceArns,
 		})
 		if err != nil {

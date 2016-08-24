@@ -14,8 +14,8 @@ func TestInstancesList(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
 	provider := StubAwsProvider(
-		listContainerInstancesCycle("convox-test-cluster"),
-		describeContainerInstancesCycle("convox-test-cluster"),
+		listContainerInstancesCycle("cluster-test"),
+		describeContainerInstancesCycle("cluster-test"),
 		describeInstancesCycle(),
 		// TODO: GetMetricStatistics x 3
 	)

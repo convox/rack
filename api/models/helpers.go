@@ -391,7 +391,7 @@ var TestProvider = &provider.TestProvider{}
 func Provider() provider.Provider {
 	switch os.Getenv("PROVIDER") {
 	case "aws":
-		return provider.NewAwsProvider(os.Getenv("AWS_REGION"), os.Getenv("AWS_ENDPOINT"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), os.Getenv("AWS_TOKEN"))
+		return provider.NewAwsProviderFromEnv()
 	case "test":
 		return TestProvider
 	default:

@@ -3,7 +3,6 @@ package aws
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -51,7 +50,7 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 	resp, err := p.sns().Publish(&sns.PublishInput{
 		Message:   aws.String(string(msg)), // Required
 		Subject:   aws.String(e.Action),
-		TargetArn: aws.String(os.Getenv("NOTIFICATION_TOPIC")),
+		TargetArn: aws.String(p.NotificationTopic),
 	})
 	if err != nil {
 		helpers.Error(log, err) // report internal errors to Rollbar

@@ -1,9 +1,7 @@
 package provider
 
 import (
-	"fmt"
 	"io"
-	"os"
 
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/provider/aws"
@@ -65,14 +63,6 @@ type Provider interface {
 	SystemSave(system structs.System) error
 }
 
-// NewAwsProvider returns a new AWS provider
-func NewAwsProvider(region, endpoint, access, secret, token string) Provider {
-	return aws.NewProvider(region, endpoint, access, secret, token)
-}
-
-/** helpers ****************************************************************************************/
-
-func die(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	os.Exit(1)
+func NewAwsProviderFromEnv() *aws.AWSProvider {
+	return aws.NewProviderFromEnv()
 }

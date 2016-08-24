@@ -18,14 +18,12 @@ var (
 func (p *AWSProvider) IndexDiff(index *structs.Index) ([]string, error) {
 	missing := []string{}
 
-	bucket := os.Getenv("SETTINGS_BUCKET")
-
 	inch := make(chan string)
 	outch := make(chan string)
 	errch := make(chan error)
 
 	for i := 1; i < IndexOperationConcurrency; i++ {
-		go p.missingHashes(bucket, inch, outch, errch)
+		go p.missingHashes(p.SettingsBucket, inch, outch, errch)
 	}
 
 	go func() {
@@ -51,13 +49,11 @@ func (p *AWSProvider) IndexDiff(index *structs.Index) ([]string, error) {
 }
 
 func (p *AWSProvider) IndexDownload(index *structs.Index, dir string) error {
-	bucket := os.Getenv("SETTINGS_BUCKET")
-
 	inch := make(chan string)
 	errch := make(chan error)
 
 	for i := 1; i < IndexOperationConcurrency; i++ {
-		go p.downloadItems(bucket, *index, dir, inch, errch)
+		go p.downloadItems(p.SettingsBucket, *index, dir, inch, errch)
 	}
 
 	go func() {
@@ -76,7 +72,7 @@ func (p *AWSProvider) IndexDownload(index *structs.Index, dir string) error {
 }
 
 func (p *AWSProvider) IndexUpload(hash string, data []byte) error {
-	return p.s3Put(os.Getenv("SETTINGS_BUCKET"), fmt.Sprintf("index/%s", hash), data, false)
+	return p.s3Put(p.SettingsBucket, fmt.Sprintf("index/%s", hash), data, false)
 }
 
 func (p *AWSProvider) downloadItems(bucket string, index structs.Index, dir string, inch chan string, errch chan error) {

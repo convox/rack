@@ -33,18 +33,48 @@ type AWSProvider struct {
 	Secret   string
 	Token    string
 
-	Cache bool
+	Cluster           string
+	Development       bool
+	DockerImageApi    string
+	DynamoBuilds      string
+	DynamoReleases    string
+	NotificationHost  string
+	NotificationTopic string
+	Password          string
+	Rack              string
+	RegistryHost      string
+	SettingsBucket    string
+	Subnets           string
+	SubnetsPrivate    string
+	Vpc               string
+	VpcCidr           string
+
+	SkipCache bool
 }
 
-// NewProvider returns the AWS provider
-func NewProvider(region, endpoint, access, secret, token string) *AWSProvider {
+// NewProviderFromEnv returns a new AWS provider from env vars
+func NewProviderFromEnv() *AWSProvider {
 	return &AWSProvider{
-		Region:   region,
-		Endpoint: endpoint,
-		Access:   access,
-		Secret:   secret,
-		Token:    token,
-		Cache:    true,
+		Region:            os.Getenv("AWS_REGION"),
+		Endpoint:          os.Getenv("AWS_ENDPOINT"),
+		Access:            os.Getenv("AWS_ACCESS"),
+		Secret:            os.Getenv("AWS_SECRET"),
+		Token:             os.Getenv("AWS_TOKEN"),
+		Cluster:           os.Getenv("CLUSTER"),
+		Development:       os.Getenv("DEVELOPMENT") == "true",
+		DockerImageApi:    os.Getenv("DOCKER_IMAGE_API"),
+		DynamoBuilds:      os.Getenv("DYNAMO_BUILDS"),
+		DynamoReleases:    os.Getenv("DYNAMO_RELEASES"),
+		NotificationHost:  os.Getenv("NOTIFICATION_HOST"),
+		NotificationTopic: os.Getenv("NOTIFICATION_TOPIC"),
+		Password:          os.Getenv("PASSWORD"),
+		Rack:              os.Getenv("RACK"),
+		RegistryHost:      os.Getenv("REGISTRY_HOST"),
+		SettingsBucket:    os.Getenv("SETTINGS_BUCKET"),
+		Subnets:           os.Getenv("SUBNETS"),
+		SubnetsPrivate:    os.Getenv("SUBNETS_PRIVATE"),
+		Vpc:               os.Getenv("VPC"),
+		VpcCidr:           os.Getenv("VPCCIDR"),
 	}
 }
 
