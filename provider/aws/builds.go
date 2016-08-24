@@ -343,7 +343,7 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
-			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
+			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
 		},
 		TableName: aws.String(buildsTable(b.App)),
 	}
@@ -361,7 +361,7 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 	}
 
 	if !b.Ended.IsZero() {
-		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
+		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(sortableTime))}
 	}
 
 	if b.Logs != "" {
@@ -485,8 +485,8 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 // from an S3 object if a bucket is passed in and a builds/B1234.log object exists.
 func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bucket string) *structs.Build {
 	id := coalesce(item["id"], "")
-	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
-	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
+	started, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
+	ended, _ := time.Parse(sortableTime, coalesce(item["ended"], ""))
 
 	// if an app bucket was passed in, try to get logs from S3
 	logs := ""

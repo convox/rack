@@ -26,6 +26,8 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		Parameters: cfParams(params),
 		Type:       kind,
 	}
+	s.Parameters["CustomTopic"] = customTopic
+	s.Parameters["NotificationTopic"] = notificationTopic
 
 	var req *cloudformation.CreateStackInput
 
