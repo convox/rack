@@ -192,15 +192,47 @@ func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	// load the images to repo
 	for _, img := range images {
 		cmd := exec.Command("docker", "load")
 		cmd.Stdin = bytes.NewReader(img)
 
 		out, err := cmd.Output()
+		output := string(out)
+		if err != nil {
+			return httperr.Server(fmt.Errorf("docker load failed: %s", err))
+		}
+
+		fmt.Printf("fn=BuildImport at=DockerLoad level=info msg=\"%s\"\n", output)
+
+		loadPrefix := "Loaded image: "
+		if !strings.HasPrefix(output, loadPrefix) {
+			return httperr.Server(fmt.Errorf("unexpected docker load output: %s", output))
+		}
+
+		imageSplit := strings.Split(output, loadPrefix)
+		if len(imageSplit) < 2 {
+			return httperr.Server(fmt.Errorf("docker load output split failed: %s", output))
+		}
+
+		tag := strings.Split(imageSplit[1], ":")[1]
+
+		repo, err := models.Provider().AppRepository(a.Name)
 		if err != nil {
 			return httperr.Server(err)
 		}
-		fmt.Printf("fn=BuildImport level=info msg=\"%s\"\n", out)
+
+		newName := fmt.Sprintf("%s:%s", repo.Uri, strings.TrimSpace(tag))
+		cmd = exec.Command("docker", "tag", strings.TrimSpace(imageSplit[1]), newName)
+
+		out, err = cmd.Output()
+		if err != nil {
+			return httperr.Server(fmt.Errorf("docker tag failed: %s", err))
+		}
+
+		//TODO: Remove the orignal import tag (from imageSplit) if it didn't originally exist
+
+		fmt.Printf("fn=BuildImport at=DockerTag level=info msg=\"new tag %s\"\n", newName)
 	}
 
 	rel, err := ForkRelease(a)
