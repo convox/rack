@@ -150,7 +150,10 @@ func ListProcesses(app string) ([]*Process, error) {
 	}
 
 	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-		InstanceIds: instanceIds,
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+		},
+		MaxResults: aws.Int64(1000),
 	})
 
 	if err != nil {

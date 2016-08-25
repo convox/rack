@@ -21,8 +21,10 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	ec2Res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
-		InstanceIds: instanceIds,
-		MaxResults:  aws.Int64(1000),
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+		},
+		MaxResults: aws.Int64(1000),
 	})
 	if err != nil {
 		return nil, err
