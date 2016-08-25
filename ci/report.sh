@@ -6,6 +6,8 @@ export CIRCLE_BUILD_NUM=${CIRCLE_BUILD_NUM:-0}
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
+convox logs --app $STACK_NAME --follow=false --since=24h > $CIRCLE_ARTIFACTS/convox.log
+
 # Save App ECS Artifacts
 aws ecs list-clusters | tee $CIRCLE_ARTIFACTS/list-clusters.json
 aws ecs describe-clusters --clusters $(jq -r '.clusterArns[]' $CIRCLE_ARTIFACTS/list-clusters.json) | tee $CIRCLE_ARTIFACTS/describe-clusters.json
