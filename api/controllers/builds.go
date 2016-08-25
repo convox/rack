@@ -233,6 +233,12 @@ func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		//TODO: Remove the orignal import tag (from imageSplit) if it didn't originally exist
 
 		fmt.Printf("fn=BuildImport at=DockerTag level=info msg=\"new tag %s\"\n", newName)
+
+		cmd = exec.Command("docker", "push", newName)
+		out, err = cmd.Output()
+		if err != nil {
+			return httperr.Server(fmt.Errorf("docker push failed: %s", err))
+		}
 	}
 
 	rel, err := ForkRelease(a)

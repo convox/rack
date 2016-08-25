@@ -310,6 +310,7 @@ func cmdBuildsExport(c *cli.Context) error {
 	buf := bytes.NewBuffer(build)
 	buf.WriteTo(os.Stdout)
 
+	fmt.Println("Done")
 	return nil
 }
 
@@ -330,7 +331,7 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Println()
+	fmt.Println("Done")
 
 	return nil
 }
