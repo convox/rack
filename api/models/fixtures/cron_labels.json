@@ -780,7 +780,7 @@
     },
     "Really-Long-Process-Type-NameMy-JobRule": {
       "Properties": {
-        "Name": "convox-test-httpd-really-long-process-type-name-my-job-schedule",
+        "Name": "convox-test-httpd-really-long-process-type-name-M6MEVIK-schedule",
         "ScheduleExpression": "cron(0 * * * ? *)",
         "Targets": [
           {
@@ -790,7 +790,7 @@
                 "Arn"
               ]
             },
-            "Id": "convox-test-httpd-really-long-process-type-name-my-jobTarget",
+            "Id": "convox-test-httpd-really-long-process-type-name-M6MEVIKTarget",
             "Input": "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\"}"
           }
         ]
@@ -818,7 +818,7 @@
     },
     "Really-Long-Process-Type-NameReally-Long-Cron-Job-NameRule": {
       "Properties": {
-        "Name": "convox-test-httpd-really-long-process-type-name-really-long-cron-job-name-schedule",
+        "Name": "convox-test-httpd-really-long-process-type-name-BAZNKBZ-schedule",
         "ScheduleExpression": "cron(0 * * * ? *)",
         "Targets": [
           {
@@ -828,7 +828,7 @@
                 "Arn"
               ]
             },
-            "Id": "convox-test-httpd-really-long-process-type-name-really-long-cron-job-nameTarget",
+            "Id": "convox-test-httpd-really-long-process-type-name-BAZNKBZTarget",
             "Input": "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\"}"
           }
         ]
