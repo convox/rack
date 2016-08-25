@@ -13,8 +13,11 @@ import (
 
 // FormationList lists the Formation
 func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
+	log := p.Logger().At("FormationList").Start()
+
 	a, err := p.AppGet(app)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 	if a.Release == "" {
@@ -23,6 +26,7 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 
 	release, err := p.ReleaseGet(a.Name, a.Release)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -41,6 +45,8 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 
 		formation = append(formation, *pf)
 	}
+
+	log.Success()
 
 	return formation, nil
 }

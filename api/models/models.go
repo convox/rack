@@ -22,7 +22,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/convox/logger"
 )
+
+var Logger = logger.New("ns=api.models")
 
 var SortableTime = "20060102.150405.000000000"
 

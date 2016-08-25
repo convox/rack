@@ -3,13 +3,12 @@ package controllers
 import (
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/convox/logger"
 	"github.com/convox/rack/api/httperr"
 	"golang.org/x/net/websocket"
 )
@@ -21,9 +20,10 @@ type ApiWebsocketFunc func(*websocket.Conn) *httperr.Error
 
 func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		log := logger.New("ns=api.controllers").At(at).Start()
 
 		if !passwordCheck(r) {
+			log.Errorf("invalid authorization")
 			rw.Header().Set("WWW-Authenticate", `Basic realm="Convox System"`)
 			rw.WriteHeader(401)
 			rw.Write([]byte("invalid authorization"))
@@ -31,6 +31,7 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		}
 
 		if !versionCheck(r) {
+			log.Errorf("invalid version")
 			rw.WriteHeader(403)
 			rw.Write([]byte("client outdated, please update with `convox update`"))
 			return
@@ -39,47 +40,13 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		err := handler(rw, r)
 
 		if err != nil {
+			log.Error(err)
 			rw.WriteHeader(err.Code())
 			RenderError(rw, err)
-			logError(at, err)
 			return
 		}
 
-		log.WithFields(log.Fields{
-			"ns":                      "kernel",
-			"at":                      at,
-			"state":                   "success",
-			"measure#handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Since(start).Nanoseconds())/1000000),
-		}).Info()
-	}
-}
-
-func logError(at string, err *httperr.Error) {
-	l := log.WithFields(log.Fields{
-		"ns":    "kernel",
-		"at":    at,
-		"state": "error",
-	})
-
-	if err.User() {
-		l.WithField("count#error.user", 1).Warn(err.Error())
-		return
-	}
-
-	err.Save()
-
-	id := rand.Int31()
-
-	l.WithFields(log.Fields{
-		"id":          id,
-		"count#error": 1,
-	}).Warn(err.Error())
-
-	for i, t := range err.Trace() {
-		l.WithFields(log.Fields{
-			"id":   id,
-			"line": i,
-		}).Warn(t)
+		log.Success()
 	}
 }
 
@@ -138,7 +105,7 @@ func versionCheck(r *http.Request) bool {
 
 func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
-		start := time.Now()
+		log := logger.New("ns=api.controllers").At(at).Start()
 
 		if !passwordCheck(ws.Request()) {
 			ws.Write([]byte("ERROR: invalid authorization\n"))
@@ -153,16 +120,11 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 		err := handler(ws)
 
 		if err != nil {
+			log.Error(err)
 			ws.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-			logError(at, err)
 			return
 		}
 
-		log.WithFields(log.Fields{
-			"ns":    "kernel",
-			"at":    at,
-			"state": "success",
-			"measure#websocket.handler.elapsed": fmt.Sprintf("%0.3fms", float64(time.Since(start).Nanoseconds())/1000000),
-		}).Info()
+		log.Success()
 	})
 }

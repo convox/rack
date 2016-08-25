@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"fmt"
+	"io"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/convox/logger"
 )
 
 var (
@@ -49,6 +50,7 @@ type AWSProvider struct {
 	Vpc               string
 	VpcCidr           string
 
+	LogOutput io.Writer
 	SkipCache bool
 }
 
@@ -76,6 +78,14 @@ func NewProviderFromEnv() *AWSProvider {
 		Vpc:               os.Getenv("VPC"),
 		VpcCidr:           os.Getenv("VPCCIDR"),
 	}
+}
+
+func (p *AWSProvider) Logger() *logger.Logger {
+	if p.LogOutput == nil {
+		return logger.New("ns=provider.aws")
+	}
+
+	return logger.NewWriter("ns=provider.aws", p.LogOutput)
 }
 
 /** services ****************************************************************************************/

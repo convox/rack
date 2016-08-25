@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/convox/logger"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/models"
-	"github.com/ddollar/logger"
 )
 
 func StartHeartbeat() {
