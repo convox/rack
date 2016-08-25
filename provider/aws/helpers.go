@@ -102,6 +102,48 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 	return formation.String(), nil
 }
 
+func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, tableName string) error {
+
+	if len(wrs) > 0 {
+
+		if len(wrs) <= 25 {
+			_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+				RequestItems: map[string][]*dynamodb.WriteRequest{
+					tableName: wrs,
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+		} else {
+
+			// if more than 25 items to delete, we have to make multiple calls
+			maxLen := 25
+			for i := 0; i < len(wrs); i += maxLen {
+				high := i + maxLen
+				if high > len(wrs) {
+					high = len(wrs)
+				}
+
+				_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+					RequestItems: map[string][]*dynamodb.WriteRequest{
+						tableName: wrs[i:high],
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+	} else {
+		fmt.Println("ns=api fn=dynamoBatchDeleteItems level=info msg=\"no builds to delete\"")
+	}
+
+	return nil
+}
+
 func formationParameters(templateURL string) (map[string]TemplateParameter, error) {
 	var t Template
 
