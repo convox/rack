@@ -15,6 +15,13 @@ type CronJob struct {
 	App      *App
 }
 
+//CronJobs is a wrapper for sorting
+type CronJobs []CronJob
+
+func (a CronJobs) Len() int           { return len(a) }
+func (a CronJobs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a CronJobs) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
 func NewCronJobFromLabel(key, value string) CronJob {
 	keySlice := strings.Split(key, ".")
 	name := keySlice[len(keySlice)-1]
