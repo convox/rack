@@ -25,6 +25,8 @@ type Logger struct {
 	writer    io.Writer
 }
 
+var Output io.Writer = nil
+
 func New(ns string) *Logger {
 	return NewWriter(ns, os.Stdout)
 }
@@ -70,10 +72,10 @@ func (l *Logger) ErrorBacktrace(err error) {
 
 func (l *Logger) Logf(format string, args ...interface{}) {
 	if l.started.IsZero() {
-		l.writer.Write([]byte(fmt.Sprintf("%s %s\n", l.namespace, fmt.Sprintf(format, args...))))
+		l.Writer().Write([]byte(fmt.Sprintf("%s %s\n", l.namespace, fmt.Sprintf(format, args...))))
 	} else {
 		elapsed := float64(time.Now().Sub(l.started).Nanoseconds()) / 1000000
-		l.writer.Write([]byte(fmt.Sprintf("%s %s elapsed=%0.3f\n", l.namespace, fmt.Sprintf(format, args...), elapsed)))
+		l.Writer().Write([]byte(fmt.Sprintf("%s %s elapsed=%0.3f\n", l.namespace, fmt.Sprintf(format, args...), elapsed)))
 	}
 }
 
@@ -115,4 +117,12 @@ func (l *Logger) Success() {
 
 func (l *Logger) Successf(format string, args ...interface{}) {
 	l.Logf("state=success %s", fmt.Sprintf(format, args...))
+}
+
+func (l *Logger) Writer() io.Writer {
+	if Output != nil {
+		return Output
+	}
+
+	return l.writer
 }

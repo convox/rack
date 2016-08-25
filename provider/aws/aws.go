@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"io"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,6 +26,9 @@ var (
 	sortableTime      = "20060102.150405.000000000"
 )
 
+// Logger is a package-wide logger
+var Logger = logger.New("ns=provider.aws")
+
 type AWSProvider struct {
 	Region   string
 	Endpoint string
@@ -50,7 +52,6 @@ type AWSProvider struct {
 	Vpc               string
 	VpcCidr           string
 
-	LogOutput io.Writer
 	SkipCache bool
 }
 
@@ -78,14 +79,6 @@ func NewProviderFromEnv() *AWSProvider {
 		Vpc:               os.Getenv("VPC"),
 		VpcCidr:           os.Getenv("VPCCIDR"),
 	}
-}
-
-func (p *AWSProvider) Logger() *logger.Logger {
-	if p.LogOutput == nil {
-		return logger.New("ns=provider.aws")
-	}
-
-	return logger.NewWriter("ns=provider.aws", p.LogOutput)
 }
 
 /** services ****************************************************************************************/

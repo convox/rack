@@ -1,11 +1,17 @@
 package aws_test
 
 import (
+	"bytes"
 	"net/http/httptest"
 
+	"github.com/convox/logger"
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/provider/aws"
 )
+
+func init() {
+	logger.Output = &bytes.Buffer{}
+}
 
 type AwsStub struct {
 	*aws.AWSProvider

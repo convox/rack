@@ -13,7 +13,7 @@ import (
 
 // FormationList lists the Formation
 func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
-	log := p.Logger().At("FormationList").Start()
+	log := Logger.At("FormationList").Start()
 
 	a, err := p.AppGet(app)
 	if err != nil {
