@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewProcess(t *testing.T) {
+func TestProcessNew(t *testing.T) {
 	s := manifest.Service{
 		Name: "foo",
 		Volumes: []string{
@@ -43,4 +43,42 @@ func TestNewProcess(t *testing.T) {
 
 	assert.Equal(t, p.Name, "api-foo")
 	assert.Equal(t, p.Args, expectedArgs)
+}
+
+func TestProcessCommandString(t *testing.T) {
+	s := manifest.Service{
+		Name:    "foo",
+		Command: manifest.Command{String: "ls -la"},
+	}
+
+	m := manifest.Manifest{
+		Services: map[string]manifest.Service{
+			"foo": s,
+		},
+	}
+
+	p := manifest.NewProcess("api", s, m)
+
+	if assert.NotNil(t, p) {
+		assert.Equal(t, []string{"-i", "--rm", "--name", "api-foo", "api/foo", "sh", "-c", "ls -la"}, p.Args)
+	}
+}
+
+func TestProcessStringArray(t *testing.T) {
+	s := manifest.Service{
+		Name:    "foo",
+		Command: manifest.Command{Array: []string{"ls", "-la"}},
+	}
+
+	m := manifest.Manifest{
+		Services: map[string]manifest.Service{
+			"foo": s,
+		},
+	}
+
+	p := manifest.NewProcess("api", s, m)
+
+	if assert.NotNil(t, p) {
+		assert.Equal(t, []string{"-i", "--rm", "--name", "api-foo", "api/foo", "ls", "-la"}, p.Args)
+	}
 }
