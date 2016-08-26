@@ -19,7 +19,7 @@ type Provider interface {
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildGet(app, id string) (*structs.Build, error)
-	BuildGetLogs(app, id string) (string, error)
+	BuildLogs(app, id string) (string, error)
 	BuildList(app string, limit int64) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)
 	BuildSave(*structs.Build) error
