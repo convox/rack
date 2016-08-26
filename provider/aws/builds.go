@@ -217,17 +217,12 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(a.Name)),
+		TableName: aws.String(buildsTable(app)),
 	}
 
 	res, err := p.dynamodb().GetItem(req)
@@ -239,9 +234,35 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 		return nil, fmt.Errorf("no such build: %s", id)
 	}
 
-	build := p.buildFromItem(res.Item, a.Outputs["Settings"])
+	build := p.buildFromItem(res.Item)
 
 	return build, nil
+}
+
+func (p *AWSProvider) BuildGetLogs(app, id string) (string, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return "", err
+	}
+
+	key := fmt.Sprintf("builds/%s.log", id)
+
+	req := &s3.GetObjectInput{
+		Bucket: aws.String(a.Outputs["Settings"]),
+		Key:    aws.String(key),
+	}
+
+	res, err := p.s3().GetObject(req)
+	if err != nil {
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit
@@ -272,7 +293,7 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 	builds := make(structs.Builds, len(res.Items))
 
 	for i, item := range res.Items {
-		builds[i] = *p.buildFromItem(item, a.Outputs["Settings"])
+		builds[i] = *p.buildFromItem(item)
 	}
 
 	return builds, nil
@@ -481,44 +502,16 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	return env, nil
 }
 
-// buildFromItem populates a Build struct from a DynamoDB Item. It also populates build.Logs
-// from an S3 object if a bucket is passed in and a builds/B1234.log object exists.
-func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bucket string) *structs.Build {
+// buildFromItem populates a Build struct from a DynamoDB Item
+func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
 	id := coalesce(item["id"], "")
 	started, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(sortableTime, coalesce(item["ended"], ""))
-
-	// if an app bucket was passed in, try to get logs from S3
-	logs := ""
-
-	if bucket != "" {
-		key := fmt.Sprintf("builds/%s.log", id)
-
-		req := &s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		}
-
-		res, err := p.s3().GetObject(req)
-		if err != nil {
-			if awsError(err) != "NoSuchKey" {
-				fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
-			}
-		} else {
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				fmt.Printf("aws buildFromItem ioutil.ReadAll err=%s\n", err)
-			} else {
-				logs = string(body)
-			}
-		}
-	}
 
 	return &structs.Build{
 		Id:          id,
 		App:         coalesce(item["app"], ""),
 		Description: coalesce(item["description"], ""),
-		Logs:        logs,
 		Manifest:    coalesce(item["manifest"], ""),
 		Release:     coalesce(item["release"], ""),
 		Status:      coalesce(item["status"], ""),
@@ -722,7 +715,6 @@ func registryTag(a *structs.App, serviceName, buildId string) string {
 }
 
 func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
-
 	// query dynamo for all builds belonging to app
 	qi := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("app = :app"),
@@ -742,7 +734,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 	wrs := []*dynamodb.WriteRequest{}
 	fmt.Println()
 	for _, item := range res.Items {
-		b := p.buildFromItem(item, app.Outputs["Settings"])
+		b := p.buildFromItem(item)
 
 		wr := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
