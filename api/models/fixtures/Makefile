@@ -9,4 +9,4 @@ fixture:
 	go build -o ./fixture fixture.go
 
 %.json: %.yml
-	env AWS_REGION=test PROVIDER=test RACK=convox-test ./fixture $< > $@
+	env AWS_REGION=test PROVIDER=test CLUSTER=convox-test RACK=convox-test ./fixture $< > $@
