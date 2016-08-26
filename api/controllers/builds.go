@@ -222,7 +222,7 @@ func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
-		newName := fmt.Sprintf("%s:%s", repo.Uri, strings.TrimSpace(tag))
+		newName := fmt.Sprintf("%s:%s", repo.URI, strings.TrimSpace(tag))
 		cmd = exec.Command("docker", "tag", strings.TrimSpace(imageSplit[1]), newName)
 
 		out, err = cmd.Output()
@@ -369,6 +369,7 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
+// BuildExport creats an artifact, representing a build, to be used with another Rack
 func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -390,7 +391,7 @@ func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	bbytes, err := b.Export(repo.Uri)
+	bbytes, err := b.Export(repo.URI)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -492,7 +493,7 @@ ForLoop:
 func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
 
 	var build structs.Build
-	images := make([][]byte, 0)
+	var images [][]byte
 
 	gzf, err := gzip.NewReader(source)
 	if err != nil {
