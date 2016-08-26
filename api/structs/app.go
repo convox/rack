@@ -14,9 +14,10 @@ type App struct {
 
 type Apps []App
 
+// AppRepository defines an image repository for an App
 type AppRepository struct {
-	Id  string `json:"id"`
-	Uri string `json:"uri"`
+	ID  string `json:"id"`
+	URI string `json:"uri"`
 }
 
 // IsBound checks if the app is bound returns true if it is, false otherwise

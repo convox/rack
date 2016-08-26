@@ -80,7 +80,7 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, rr)
 }
 
-// ForkRleases creates a new release based on the app's release
+// ForkRlease creates a new release based on the app's release
 func ForkRelease(app *structs.App) (*structs.Release, error) {
 	release := structs.NewRelease(app.Name)
 
@@ -89,7 +89,12 @@ func ForkRelease(app *structs.App) (*structs.Release, error) {
 		if err != nil {
 			return nil, err
 		}
+		id := release.Id
+		created := release.Created
+
 		release = r
+		release.Id = id
+		release.Created = created
 	}
 
 	env, err := models.Provider().EnvironmentGet(app.Name)
