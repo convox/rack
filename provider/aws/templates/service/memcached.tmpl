@@ -49,7 +49,7 @@
         "Properties": {
           "GroupDescription": { "Ref": "AWS::StackName" },
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Ref": "VpcCidr" } }
+            { "IpProtocol": "tcp", "FromPort": "11211", "ToPort": "11211", "CidrIp": { "Ref": "VpcCidr" } }
           ],
           "VpcId": { "Ref": "Vpc" }
         }
