@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -390,10 +391,19 @@ var TestProvider = &provider.TestProvider{}
 func Provider() provider.Provider {
 	switch os.Getenv("PROVIDER") {
 	case "aws":
-		return provider.NewAwsProvider(os.Getenv("AWS_REGION"), os.Getenv("AWS_ENDPOINT"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"), os.Getenv("AWS_TOKEN"))
+		return provider.NewAwsProviderFromEnv()
 	case "test":
 		return TestProvider
 	default:
 		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
 	}
+}
+
+// Test provides a wrapping helper for running model tests
+func Test(t *testing.T, fn func()) {
+	tp := TestProvider
+	TestProvider = &provider.TestProvider{}
+	defer func() { TestProvider = tp }()
+	fn()
+	TestProvider.AssertExpectations(t)
 }

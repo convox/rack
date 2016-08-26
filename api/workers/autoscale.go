@@ -24,7 +24,7 @@ func StartAutoscale() {
 }
 
 func autoscaleRack() {
-	log := logger.New("ns=workers.autoscale at=autoscaleRack")
+	log := logger.New("ns=workers.autoscale").At("autoscaleRack")
 
 	capacity, err := models.Provider().CapacityGet()
 	if err != nil {

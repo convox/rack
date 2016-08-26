@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/structs"
@@ -66,7 +64,7 @@ func (p *AWSProvider) clusterServices() (ECSServices, error) {
 	services := ECSServices{}
 
 	lsres, err := p.ecs().ListServices(&ecs.ListServicesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Cluster: aws.String(p.Cluster),
 	})
 
 	if err != nil {
@@ -74,7 +72,7 @@ func (p *AWSProvider) clusterServices() (ECSServices, error) {
 	}
 
 	dsres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Cluster:  aws.String(p.Cluster),
 		Services: lsres.ServiceArns,
 	})
 

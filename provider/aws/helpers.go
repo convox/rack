@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/structs"
 )
 
 type Template struct {
@@ -100,6 +102,48 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 	return formation.String(), nil
 }
 
+func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, tableName string) error {
+
+	if len(wrs) > 0 {
+
+		if len(wrs) <= 25 {
+			_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+				RequestItems: map[string][]*dynamodb.WriteRequest{
+					tableName: wrs,
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+		} else {
+
+			// if more than 25 items to delete, we have to make multiple calls
+			maxLen := 25
+			for i := 0; i < len(wrs); i += maxLen {
+				high := i + maxLen
+				if high > len(wrs) {
+					high = len(wrs)
+				}
+
+				_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+					RequestItems: map[string][]*dynamodb.WriteRequest{
+						tableName: wrs[i:high],
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+	} else {
+		fmt.Println("ns=api fn=dynamoBatchDeleteItems level=info msg=\"no builds to delete\"")
+	}
+
+	return nil
+}
+
 func formationParameters(templateURL string) (map[string]TemplateParameter, error) {
 	var t Template
 
@@ -155,6 +199,14 @@ func humanStatus(original string) string {
 		fmt.Printf("unknown status: %s\n", original)
 		return "unknown"
 	}
+}
+
+func stackName(app *structs.App) string {
+	if _, ok := app.Tags["Rack"]; ok {
+		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)
+	}
+
+	return app.Name
 }
 
 func stackParameters(stack *cloudformation.Stack) map[string]string {
@@ -274,6 +326,34 @@ func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[s
 	}
 
 	_, err = p.updateStack(req)
+
+	return err
+}
+
+func (p *AWSProvider) stackUpdateParameters(name string, params map[string]string) error {
+	req := &cloudformation.UpdateStackInput{
+		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
+		StackName:           aws.String(name),
+		UsePreviousTemplate: aws.Bool(true),
+	}
+
+	keys := []string{}
+
+	for key := range params {
+		keys = append(keys, key)
+	}
+
+	// sort the keys so tests are predictable
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
+			ParameterKey:   aws.String(key),
+			ParameterValue: aws.String(params[key]),
+		})
+	}
+
+	_, err := p.updateStack(req)
 
 	return err
 }
