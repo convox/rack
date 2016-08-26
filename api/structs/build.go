@@ -39,6 +39,7 @@ func NewBuild(app string) *Build {
 	}
 }
 
+// Export returns a build artifact
 func (b *Build) Export(imageRepo string) ([]byte, error) {
 
 	buf := &bytes.Buffer{}

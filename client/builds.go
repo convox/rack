@@ -171,6 +171,7 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 	return &build, nil
 }
 
+// ExportBuild creats an artifact, representing a build, to be used with another Rack
 func (c *Client) ExportBuild(app, id string) ([]byte, error) {
 
 	var buildData []byte
@@ -182,6 +183,7 @@ func (c *Client) ExportBuild(app, id string) ([]byte, error) {
 	return buildData, nil
 }
 
+// ImportBuild imports a build artifact
 func (c *Client) ImportBuild(app string, source []byte, callback func(s string)) error {
 
 	files := map[string][]byte{

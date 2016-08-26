@@ -82,8 +82,8 @@ func (p *AWSProvider) AppRepository(name string) (*structs.AppRepository, error)
 
 	if len(resp.Repositories) > 0 {
 		return &structs.AppRepository{
-			Id:  repoName,
-			Uri: *resp.Repositories[0].RepositoryUri,
+			ID:  repoName,
+			URI: *resp.Repositories[0].RepositoryUri,
 		}, nil
 	}
 
