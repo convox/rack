@@ -759,7 +759,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "Really-Long-Process-Type-NameMy-JobLambdaPermission": {
+    "MainMy-JobLambdaPermission": {
       "Properties": {
         "Action": "lambda:InvokeFunction",
         "FunctionName": {
@@ -771,16 +771,16 @@
         "Principal": "events.amazonaws.com",
         "SourceArn": {
           "Fn::GetAtt": [
-            "Really-Long-Process-Type-NameMy-JobRule",
+            "MainMy-JobRule",
             "Arn"
           ]
         }
       },
       "Type": "AWS::Lambda::Permission"
     },
-    "Really-Long-Process-Type-NameMy-JobRule": {
+    "MainMy-JobRule": {
       "Properties": {
-        "Name": "convox-test-httpd-really-long-process-type-name-M6MEVIK-schedule",
+        "Name": "convox-test-httpd-main-my-job-VZPBTBB-schedule",
         "ScheduleExpression": "cron(0 * * * ? *)",
         "Targets": [
           {
@@ -790,8 +790,8 @@
                 "Arn"
               ]
             },
-            "Id": "convox-test-httpd-really-long-process-type-name-M6MEVIKTarget",
-            "Input": "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\"}"
+            "Id": "convox-test-httpd-main-my-job-VZPBTBBTarget",
+            "Input": "{\"process\": \"main\", \"command\": \"bin/myjob\"}"
           }
         ]
       },
