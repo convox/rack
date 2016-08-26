@@ -1,6 +1,8 @@
 package models
 
 import (
+	"crypto/sha256"
+	"encoding/base32"
 	"fmt"
 	"strings"
 
@@ -47,5 +49,13 @@ func (cr *CronJob) ShortName() string {
 }
 
 func (cr *CronJob) LongName() string {
-	return fmt.Sprintf("%s-%s-%s", cr.App.StackName(), cr.Process(), cr.Name)
+	prefix := fmt.Sprintf("%s-%s-%s", cr.App.StackName(), cr.Process(), cr.Name)
+	hash := sha256.Sum256([]byte(prefix))
+	suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
+
+	// $prefix-$suffix-schedule" needs to be <= 64 characters
+	if len(prefix) > 55-len(suffix) {
+		prefix = prefix[:55-len(suffix)]
+	}
+	return prefix + suffix
 }
