@@ -254,6 +254,9 @@ func (p *AWSProvider) BuildGetLogs(app, id string) (string, error) {
 
 	res, err := p.s3().GetObject(req)
 	if err != nil {
+		if awsError(err) == "NoSuchKey" {
+			return "", nil
+		}
 		return "", err
 	}
 
