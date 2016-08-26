@@ -7,7 +7,7 @@ for region in $(cat $base/REGIONS); do
 
   for stack in $(aws cloudformation describe-stacks | jq -r '.Stacks[].StackName'); do
     if [[ "$stack" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$stack" =~ ^convox-0 ]]; then
-      echo "deleting: $stack on $region"
+      echo "deleting stack: $stack ($region)"
       aws cloudformation delete-stack --stack-name $stack
     fi
   done
@@ -15,7 +15,7 @@ for region in $(cat $base/REGIONS); do
   for bucket in $(aws s3api list-buckets --region us-east-1 | jq -r '.Buckets[].Name'); do
     if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
       if [[ "$region" =~ "$(aws s3api get-bucket-location --bucket $bucket --region $region | jq -r .LocationConstraint)" ]]; then
-        echo "deleting: $bucket on $region"
+        echo "deleting bucket: $bucket ($region)"
         aws s3 rb s3://$bucket --force --region $region
       fi
     fi
@@ -24,8 +24,15 @@ for region in $(cat $base/REGIONS); do
 done
 
 for cert in $(aws iam list-server-certificates | jq -r '.ServerCertificateMetadataList[].ServerCertificateName'); do
-  if [[ "$cert" =~ ^cert-convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^cert-convox-0 ]]; then
-    echo "deleting: $cert"
+  if [[ "$cert" =~ ^cert-convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$cert" =~ ^cert-convox-0 ]]; then
+    echo "deleting cert: $cert"
     aws iam delete-server-certificate --server-certificate-name $cert
+  fi
+done
+
+for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
+  if [[ "$role" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$role" =~ ^convox-0 ]]; then
+    echo "deleting role: $role"
+    aws iam delete-role --role-name $role
   fi
 done
