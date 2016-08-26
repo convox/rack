@@ -62,6 +62,13 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
+	l, err := models.Provider().BuildGetLogs(app, build)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	b.Logs = l
+
 	return RenderJson(rw, b)
 }
 
