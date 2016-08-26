@@ -275,7 +275,7 @@
 		},
 		{
 			"ImportPath": "github.com/convox/nlogger",
-			"Rev": "1a2c3a205e082ae17f32bd9f9113c07cfa7f31e2"
+			"Rev": "021d214e1bf86ccc6a4f8e918685bd72dda3cfae"
 		},
 		{
 			"ImportPath": "github.com/convox/version",

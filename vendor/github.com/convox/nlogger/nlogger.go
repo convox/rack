@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/ddollar/logger"
+	"github.com/convox/logger"
 )
 
 type logResponseWriter struct {
@@ -69,5 +69,5 @@ func (nl *Nlogger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		status = 200
 	}
 
-	rlog.At("request").Success("status=%d method=%q path=%q", status, r.Method, r.RequestURI)
+	rlog.At("request").Successf("status=%d method=%q path=%q", status, r.Method, r.RequestURI)
 }
