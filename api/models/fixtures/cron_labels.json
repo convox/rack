@@ -540,7 +540,7 @@
           ],
           "Version": "2012-10-17"
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyDocument": {
@@ -638,7 +638,7 @@
           ],
           "Version": "2012-10-17"
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyDocument": {
@@ -1029,7 +1029,7 @@
           ],
           "Version": "2012-10-17"
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyDocument": {
