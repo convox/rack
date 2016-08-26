@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/ddollar/logger"
+	"github.com/convox/logger"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
 )
@@ -39,7 +39,7 @@ func init() {
 
 func Error(log *logger.Logger, err error) {
 	if log != nil {
-		log.Error(err)
+		log.ErrorBacktrace(err)
 	}
 
 	if rollbar.Token != "" {

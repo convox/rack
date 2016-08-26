@@ -12,7 +12,7 @@ Easy logging in Go
 var log = logger.New("ns=project")
 
 // ns=project foo=bar num=5 pct=68.9 arg="test"
-log.Log("foo=bar num=%d pct=%0.1f arg=%q", 5, 68.99, "test")
+log.Logf("foo=bar num=%d pct=%0.1f arg=%q", 5, 68.99, "test")
 
 // ns=project sub=worker state=success foo=bar
 log.Namespace("sub=worker").Success("foo=bar")
@@ -24,7 +24,7 @@ log.Error(fmt.Errorf("invalid token"))
 
 // ns=project foo=bar elapsed=2.398
 l := log.Start()
-l.Log("foo=bar")
+l.Logf("foo=bar")
 ```
 
 ## License

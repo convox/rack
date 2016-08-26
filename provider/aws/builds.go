@@ -28,10 +28,6 @@ import (
 
 var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
 
-func buildsTable(app string) string {
-	return os.Getenv("DYNAMO_BUILDS")
-}
-
 func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
 	srcA, err := p.AppGet(srcApp)
 	if err != nil {
@@ -59,7 +55,7 @@ func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, err
 
 	for name, entry := range m.Services {
 		entry.Build.Context = ""
-		entry.Image = registryTag(srcA, name, srcB.Id)
+		entry.Image = p.registryTag(srcA, name, srcB.Id)
 		m.Services[name] = entry
 	}
 
@@ -205,7 +201,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(app)),
+		TableName: aws.String(p.DynamoBuilds),
 	})
 	if err != nil {
 		return b, err
@@ -222,7 +218,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(app)),
+		TableName: aws.String(p.DynamoBuilds),
 	}
 
 	res, err := p.dynamodb().GetItem(req)
@@ -286,7 +282,7 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Int64(limit),
 		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(buildsTable(a.Name)),
+		TableName:        aws.String(p.DynamoBuilds),
 	}
 
 	res, err := p.dynamodb().Query(req)
@@ -370,7 +366,7 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
 			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
 		},
-		TableName: aws.String(buildsTable(b.App)),
+		TableName: aws.String(p.DynamoBuilds),
 	}
 
 	if b.Description != "" {
@@ -424,7 +420,7 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string)
 		"-e", "MANIFEST_PATH",
 		"-e", "REPOSITORY",
 		"-e", "NO_CACHE",
-		os.Getenv("DOCKER_IMAGE_API"),
+		p.DockerImageAPI,
 		"build",
 		source,
 	}
@@ -434,8 +430,8 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	// self-hosted registry auth
 	email := "user@convox.com"
 	username := "convox"
-	password := os.Getenv("PASSWORD")
-	address := os.Getenv("REGISTRY_HOST")
+	password := p.Password
+	address := p.RegistryHost
 
 	// ECR auth
 	if registryId := a.Outputs["RegistryId"]; registryId != "" {
@@ -474,9 +470,9 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	}
 
 	// Determin callback host. Local Rack should use a variant of localhost
-	host := os.Getenv("NOTIFICATION_HOST")
+	host := p.NotificationHost
 
-	if os.Getenv("DEVELOPMENT") == "true" {
+	if p.Development {
 		out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
 		if err != nil {
 			return nil, err
@@ -491,7 +487,7 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
 		fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
 		fmt.Sprintf("RACK_HOST=%s", host),
-		fmt.Sprintf("RACK_PASSWORD=%s", os.Getenv("PASSWORD")),
+		fmt.Sprintf("RACK_PASSWORD=%s", p.Password),
 		fmt.Sprintf("REGISTRY_EMAIL=%s", email),
 		fmt.Sprintf("REGISTRY_USERNAME=%s", username),
 		fmt.Sprintf("REGISTRY_PASSWORD=%s", password),
@@ -679,7 +675,7 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	urls := []string{}
 
 	for name, _ := range m.Services {
-		urls = append(urls, registryTag(a, name, b.Id))
+		urls = append(urls, p.registryTag(a, name, b.Id))
 	}
 
 	imageIds := []*ecr.ImageIdentifier{}
@@ -708,11 +704,11 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
-func registryTag(a *structs.App, serviceName, buildId string) string {
-	tag := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, serviceName, buildId)
+func (p *AWSProvider) registryTag(a *structs.App, serviceName, buildID string) string {
+	tag := fmt.Sprintf("%s/%s-%s:%s", p.RegistryHost, a.Name, serviceName, buildID)
 
 	if registryId := a.Outputs["RegistryId"]; registryId != "" {
-		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"], serviceName, buildId)
+		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, p.Region, a.Outputs["RegistryRepository"], serviceName, buildID)
 	}
 
 	return tag
@@ -726,7 +722,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 			":app": &dynamodb.AttributeValue{S: aws.String(app.Name)},
 		},
 		IndexName: aws.String("app.created"),
-		TableName: aws.String(buildsTable(app.Name)),
+		TableName: aws.String(p.DynamoBuilds),
 	}
 
 	res, err := p.dynamodb().Query(qi)
@@ -753,5 +749,5 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 		wrs = append(wrs, wr)
 	}
 
-	return p.dynamoBatchDeleteItems(wrs, buildsTable(app.Name))
+	return p.dynamoBatchDeleteItems(wrs, p.DynamoBuilds)
 }

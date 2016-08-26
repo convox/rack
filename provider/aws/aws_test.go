@@ -1,27 +1,52 @@
 package aws_test
 
 import (
+	"bytes"
 	"net/http/httptest"
-	"os"
 
+	"github.com/convox/logger"
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/provider/aws"
 )
 
+func init() {
+	logger.Output = &bytes.Buffer{}
+}
+
+type AwsStub struct {
+	*aws.AWSProvider
+	server *httptest.Server
+}
+
+func (a *AwsStub) Close() {
+	a.server.Close()
+}
+
 // StubAwsProvider creates an httptest server with canned Request / Response
 // cycles, and sets CurrentProvider to a new AWS provider that uses
 // the test server as the endpoint
-func StubAwsProvider(cycles ...awsutil.Cycle) (s *httptest.Server, p *aws.AWSProvider) {
+func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	handler := awsutil.NewHandler(cycles)
-	s = httptest.NewServer(handler)
+	s := httptest.NewServer(handler)
 
-	os.Setenv("AWS_ACCESS", "test")
-	os.Setenv("AWS_SECRET", "test")
-	os.Setenv("AWS_ENDPOINT", s.URL)
-	os.Setenv("AWS_REGION", "test")
+	p := &aws.AWSProvider{
+		Region:           "us-test-1",
+		Endpoint:         s.URL,
+		Access:           "test-access",
+		Secret:           "test-secret",
+		Token:            "test-token",
+		Cluster:          "cluster-test",
+		Development:      true,
+		DockerImageAPI:   "rack/web",
+		DynamoBuilds:     "convox-builds",
+		DynamoReleases:   "convox-releases",
+		NotificationHost: "notifications.example.org",
+		Password:         "password",
+		Rack:             "convox",
+		RegistryHost:     "registry.example.org",
+		SettingsBucket:   "convox-settings",
+		SkipCache:        true,
+	}
 
-	p = aws.NewProvider("test", s.URL, "test", "test", "")
-	p.Cache = false
-
-	return httptest.NewServer(handler), p
+	return &AwsStub{p, s}
 }

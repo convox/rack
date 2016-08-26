@@ -8,13 +8,11 @@ import (
 
 func recoverWith(f func(err error)) {
 	if r := recover(); r != nil {
-		// coerce r to error type
-		err, ok := r.(error)
-		if !ok {
-			err = fmt.Errorf("%v", r)
+		if err, ok := r.(error); ok {
+			f(err)
+		} else {
+			f(fmt.Errorf("%v", r))
 		}
-
-		f(err)
 	}
 }
 

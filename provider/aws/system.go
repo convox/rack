@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -14,10 +13,8 @@ import (
 )
 
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
-	rack := os.Getenv("RACK")
-
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(rack),
+		StackName: aws.String(p.Rack),
 	})
 
 	if err != nil {
@@ -25,7 +22,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	if len(res.Stacks) != 1 {
-		return nil, fmt.Errorf("could not load stack for app: %s", rack)
+		return nil, fmt.Errorf("could not load stack for app: %s", p.Rack)
 	}
 
 	stack := res.Stacks[0]
@@ -39,19 +36,17 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 
 	r := &structs.System{
 		Count:   count,
-		Name:    rack,
-		Region:  os.Getenv("AWS_REGION"),
+		Name:    p.Rack,
+		Region:  p.Region,
 		Status:  humanStatus(*stack.StackStatus),
 		Type:    params["InstanceType"],
-		Version: os.Getenv("RELEASE"),
+		Version: params["Version"],
 	}
 
 	return r, nil
 }
 
 func (p *AWSProvider) SystemSave(system structs.System) error {
-	rack := os.Getenv("RACK")
-
 	typeValid := false
 	// Better search method could work here if needed
 	// sort.SearchString() return value doesn't indicate if string is not in slice
@@ -74,7 +69,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	//   return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
 	// }
 
-	app, err := p.AppGet(rack)
+	app, err := p.AppGet(p.Rack)
 	if err != nil {
 		return err
 	}
@@ -91,10 +86,10 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
 				"id":      &dynamodb.AttributeValue{S: aws.String(system.Version)},
-				"app":     &dynamodb.AttributeValue{S: aws.String(rack)},
+				"app":     &dynamodb.AttributeValue{S: aws.String(p.Rack)},
 				"created": &dynamodb.AttributeValue{S: aws.String(time.Now().Format(sortableTime))},
 			},
-			TableName: aws.String(releasesTable(rack)),
+			TableName: aws.String(p.DynamoReleases),
 		})
 
 		if err != nil {

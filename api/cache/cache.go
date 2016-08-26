@@ -7,8 +7,9 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/convox/logger"
 )
-import "github.com/convox/logger"
 
 type Cache map[string]map[string]*CacheItem
 
@@ -20,7 +21,7 @@ type CacheItem struct {
 var (
 	cache = Cache{}
 	lock  = sync.Mutex{}
-	log   = logger.New("ns=rack.api.cache")
+	log   = logger.New("ns=api.cache")
 )
 
 func Get(collection string, key interface{}) interface{} {
@@ -34,28 +35,28 @@ func Get(collection string, key interface{}) interface{} {
 	hash, err := hashKey(key)
 
 	if err != nil {
-		log.Log("fn=get collection=%q key=%q status=error error=%q", collection, hash, err)
+		log.Logf("fn=get collection=%q key=%q status=error error=%q", collection, hash, err)
 		return nil
 	}
 
 	if cache[collection] == nil {
-		log.Log("fn=get collection=%q key=%q status=miss", collection, hash)
+		log.Logf("fn=get collection=%q key=%q status=miss", collection, hash)
 		return nil
 	}
 
 	item := cache[collection][hash]
 
 	if item == nil {
-		log.Log("fn=get collection=%q key=%q status=miss", collection, hash)
+		log.Logf("fn=get collection=%q key=%q status=miss", collection, hash)
 		return nil
 	}
 
 	if item.Expires.Before(time.Now()) {
-		log.Log("fn=get collection=%q key=%q status=expired", collection, hash)
+		log.Logf("fn=get collection=%q key=%q status=expired", collection, hash)
 		return nil
 	}
 
-	log.Log("fn=get collection=%q key=%q status=hit", collection, hash)
+	log.Logf("fn=get collection=%q key=%q status=hit", collection, hash)
 	return item.Item
 }
 
@@ -70,7 +71,7 @@ func Set(collection string, key, value interface{}, ttl time.Duration) error {
 	hash, err := hashKey(key)
 
 	if err != nil {
-		log.Log("fn=set collection=%q key=%q status=error error=%q", collection, hash, err)
+		log.Logf("fn=set collection=%q key=%q status=error error=%q", collection, hash, err)
 		return err
 	}
 
@@ -79,7 +80,7 @@ func Set(collection string, key, value interface{}, ttl time.Duration) error {
 		Expires: time.Now().Add(ttl),
 	}
 
-	log.Log("fn=set collection=%q key=%q status=success", collection, hash)
+	log.Logf("fn=set collection=%q key=%q status=success", collection, hash)
 	return nil
 }
 
@@ -90,7 +91,7 @@ func Clear(collection string, key interface{}) error {
 	hash, err := hashKey(key)
 
 	if err != nil {
-		log.Log("fn=clearcollection=%q key=%q status=error error=%q", collection, hash, err)
+		log.Logf("fn=clearcollection=%q key=%q status=error error=%q", collection, hash, err)
 		return err
 	}
 
