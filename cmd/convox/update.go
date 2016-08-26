@@ -40,10 +40,11 @@ func cmdUpdate(c *cli.Context) error {
 	stdcli.Spinner.Start()
 
 	if err := updateProxy(); err != nil {
-		return stdcli.ExitError(err)
+		fmt.Printf("\x08\x08FAILED\n")
+	} else {
+		fmt.Printf("\x08\x08OK\n")
 	}
 
-	fmt.Printf("\x08\x08OK\n")
 	stdcli.Spinner.Stop()
 
 	stdcli.Spinner.Prefix = "Updating convox: "
