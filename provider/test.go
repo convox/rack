@@ -71,8 +71,8 @@ func (p *TestProvider) BuildGet(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
-// BuildGetLogs gets a Build's logs
-func (p *TestProvider) BuildGetLogs(app, id string) (string, error) {
+// BuildLogs gets a Build's logs
+func (p *TestProvider) BuildLogs(app, id string) (string, error) {
 	p.Called(app, id)
 	return "", nil
 }

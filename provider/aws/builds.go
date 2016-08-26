@@ -239,7 +239,8 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	return build, nil
 }
 
-func (p *AWSProvider) BuildGetLogs(app, id string) (string, error) {
+// BuildLogs gets a Build's logs from S3. If there is no log file in S3, that is not an error.
+func (p *AWSProvider) BuildLogs(app, id string) (string, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return "", err
