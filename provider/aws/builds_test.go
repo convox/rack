@@ -21,8 +21,6 @@ func init() {
 
 func TestBuildGet(t *testing.T) {
 	provider := StubAwsProvider(
-		describeStacksCycle,
-
 		build1GetItemCycle,
 	)
 	defer provider.Close()
@@ -44,8 +42,6 @@ func TestBuildGet(t *testing.T) {
 
 func TestBuildDelete(t *testing.T) {
 	provider := StubAwsProvider(
-		describeStacksCycle,
-
 		build2GetItemCycle,
 
 		describeStacksCycle,
@@ -112,11 +108,11 @@ func TestBuildList(t *testing.T) {
 }
 
 func TestBuildLogs(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
 		describeStacksCycle,
 		build1GetObjectCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	l, err := provider.BuildLogs("httpd", "BHINCLZYYVN")
 
