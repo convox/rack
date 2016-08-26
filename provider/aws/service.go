@@ -32,7 +32,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "mysql", "postgres", "redis", "sqs":
+	case "memcached", "mysql", "postgres", "redis", "sqs":
 		req, err = p.createService(s)
 	case "fluentd":
 		req, err = p.createServiceURL(s, "tcp")
