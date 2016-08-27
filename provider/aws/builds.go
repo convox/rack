@@ -562,7 +562,14 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 	timeout := time.After(1 * time.Hour)
 
 	go func() {
-		waitErr <- cmd.Wait() // Make sure to read all stdout before calling this.
+		err := cmd.Wait()
+
+		switch err.(type) {
+		case *exec.ExitError:
+			waitErr <- err
+		default:
+			waitErr <- nil
+		}
 	}()
 
 	select {
