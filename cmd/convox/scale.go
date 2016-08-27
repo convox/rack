@@ -90,15 +90,15 @@ func cmdScale(c *cli.Context) error {
 	}
 
 	if c.Bool("wait") {
-		fmt.Printf("Waiting for %s... ", process)
+		fmt.Printf("Waiting for stabilization... ")
 
 		a, err := rackClient(c).GetApp(app)
 		if err != nil {
-			stdcli.ExitError(err)
+			return stdcli.ExitError(err)
 		}
 
 		if err := waitForReleasePromotion(c, app, a.Release); err != nil {
-			stdcli.ExitError(err)
+			return stdcli.ExitError(err)
 		}
 
 		fmt.Println("OK")
