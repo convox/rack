@@ -108,12 +108,12 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 		return fmt.Errorf("requested memory %d greater than instance size %d", pf.Memory, capacity.InstanceMemory)
 	}
 
-	if _, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(pf.Name))]; ok {
-		params[fmt.Sprintf("%sFormation", UpperName(pf.Name))] = fmt.Sprintf("%d,%d,%d", pf.Count, pf.CPU, pf.Memory)
+	if _, ok := a.Parameters[fmt.Sprintf("%sFormation", upperName(pf.Name))]; ok {
+		params[fmt.Sprintf("%sFormation", upperName(pf.Name))] = fmt.Sprintf("%d,%d,%d", pf.Count, pf.CPU, pf.Memory)
 	} else {
-		params[fmt.Sprintf("%sDesiredCount", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.Count)
-		params[fmt.Sprintf("%sCpu", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.CPU)
-		params[fmt.Sprintf("%sMemory", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.Memory)
+		params[fmt.Sprintf("%sDesiredCount", upperName(pf.Name))] = fmt.Sprintf("%d", pf.Count)
+		params[fmt.Sprintf("%sCpu", upperName(pf.Name))] = fmt.Sprintf("%d", pf.CPU)
+		params[fmt.Sprintf("%sMemory", upperName(pf.Name))] = fmt.Sprintf("%d", pf.Memory)
 	}
 
 	p.EventSend(&structs.Event{
@@ -141,7 +141,7 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 }
 
 func parseFormationParameters(app *structs.App, process string) (count, cpu, memory int, err error) {
-	if _, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(process))]; ok {
+	if _, ok := app.Parameters[fmt.Sprintf("%sFormation", upperName(process))]; ok {
 		return parseFormationCombined(app, process)
 	}
 
@@ -149,7 +149,7 @@ func parseFormationParameters(app *structs.App, process string) (count, cpu, mem
 }
 
 func parseFormationCombined(app *structs.App, process string) (count, cpu, memory int, err error) {
-	parts := strings.SplitN(app.Parameters[fmt.Sprintf("%sFormation", UpperName(process))], ",", 3)
+	parts := strings.SplitN(app.Parameters[fmt.Sprintf("%sFormation", upperName(process))], ",", 3)
 
 	if len(parts) != 3 {
 		return 0, 0, 0, fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", process)
@@ -174,20 +174,20 @@ func parseFormationCombined(app *structs.App, process string) (count, cpu, memor
 }
 
 func parseFormationIndividual(app *structs.App, process string) (count, cpu, memory int, err error) {
-	count, err = strconv.Atoi(app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(process))])
+	count, err = strconv.Atoi(app.Parameters[fmt.Sprintf("%sDesiredCount", upperName(process))])
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("%s count not numeric", process)
 	}
 
 	// backwards compatibility: old stacks that do not have a WebCpu Parameter should return 0, not an error
-	if c, ok := app.Parameters[fmt.Sprintf("%sCpu", UpperName(process))]; ok {
+	if c, ok := app.Parameters[fmt.Sprintf("%sCpu", upperName(process))]; ok {
 		cpu, err = strconv.Atoi(c)
 		if err != nil {
 			return 0, 0, 0, fmt.Errorf("%s cpu not numeric", process)
 		}
 	}
 
-	memory, err = strconv.Atoi(app.Parameters[fmt.Sprintf("%sMemory", UpperName(process))])
+	memory, err = strconv.Atoi(app.Parameters[fmt.Sprintf("%sMemory", upperName(process))])
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("%s memory not numeric", process)
 	}
@@ -201,7 +201,7 @@ func processFormation(a *structs.App, s manifest.Service) (*structs.ProcessForma
 		return nil, err
 	}
 
-	re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, UpperName(s.Name)))
+	re := regexp.MustCompile(fmt.Sprintf(`%sPort(\d+)Host`, upperName(s.Name)))
 
 	ports := []int{}
 
@@ -215,7 +215,7 @@ func processFormation(a *structs.App, s manifest.Service) (*structs.ProcessForma
 	}
 
 	pf := &structs.ProcessFormation{
-		Balancer: coalesceString(a.Outputs[fmt.Sprintf("Balancer%sHost", UpperName(s.Name))], a.Outputs["BalancerHost"]),
+		Balancer: coalesceString(a.Outputs[fmt.Sprintf("Balancer%sHost", upperName(s.Name))], a.Outputs["BalancerHost"]),
 		Name:     s.Name,
 		Count:    count,
 		Memory:   memory,
