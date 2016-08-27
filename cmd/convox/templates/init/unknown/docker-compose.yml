@@ -1,2 +1,4 @@
-main:
-  build: .
+version: 2
+services:
+  main:
+    build: .

@@ -12,6 +12,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/cmd/convox/templates"
+	"github.com/convox/rack/manifest"
 	"gopkg.in/urfave/cli.v1"
 	"gopkg.in/yaml.v2"
 )
@@ -101,41 +102,47 @@ func initApplication(dir string) error {
 	return nil
 }
 
-type ManifestEntry struct {
-	Build   string   `yaml:"build,omitempty"`
-	Command string   `yaml:"command,omitempty"`
-	Labels  []string `yaml:"labels,omitempty"`
-	Ports   []string `yaml:"ports,omitempty"`
-}
-
-type Manifest map[string]ManifestEntry
-
 func generateManifest(dir string, def string) error {
 	if exists("Procfile") {
 		pf, err := readProcfile("Procfile")
-
 		if err != nil {
 			return err
 		}
 
-		m := Manifest{}
+		m := manifest.Manifest{
+			Services: make(map[string]manifest.Service),
+		}
 
 		for _, e := range pf {
-			me := ManifestEntry{
-				Build:   ".",
-				Command: e.Command,
+			me := manifest.Service{
+				Build: manifest.Build{
+					Context: ".",
+				},
+				Command: manifest.Command{
+					String: e.Command,
+				},
+				Labels: make(manifest.Labels),
+				Ports:  make(manifest.Ports, 0),
 			}
 
 			switch e.Name {
 			case "web":
-				me.Labels = append(me.Labels, "convox.port.443.protocol=tls")
-				me.Labels = append(me.Labels, "convox.port.443.proxy=true")
+				me.Labels["convox.port.443.protocol"] = "tls"
+				me.Labels["convox.port.443.proxy"] = "true"
 
-				me.Ports = append(me.Ports, "80:4000")
-				me.Ports = append(me.Ports, "443:4001")
+				me.Ports = append(me.Ports, manifest.Port{
+					Balancer:  80,
+					Container: 4000,
+					Public:    true,
+				})
+				me.Ports = append(me.Ports, manifest.Port{
+					Balancer:  443,
+					Container: 4001,
+					Public:    true,
+				})
 			}
 
-			m[e.Name] = me
+			m.Services[e.Name] = me
 		}
 
 		data, err := yaml.Marshal(m)
