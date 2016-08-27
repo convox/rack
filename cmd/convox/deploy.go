@@ -74,7 +74,7 @@ func cmdDeploy(c *cli.Context) error {
 		fmt.Printf("Waiting for %s... ", release)
 
 		if err := waitForReleasePromotion(c, app, release); err != nil {
-			stdcli.ExitError(err)
+			return stdcli.ExitError(err)
 		}
 
 		fmt.Println("OK")
