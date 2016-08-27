@@ -28,11 +28,21 @@
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "ThirdAvailabilityZone": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
+      { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
     ] }
   },
   "Mappings": {
+    "AvailabilityZoneConfig": {
+      "us-east-1": { "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "us-west-2": { "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "eu-central-1": { "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
+    },
     "RegionConfig": {
       "us-east-1": { "Ami": "ami-52cd5445", "ThirdAvailabilityZone": "Yes" },
       "us-west-1": { "Ami": "ami-efa1e28f", "ThirdAvailabilityZone": "Yes" },
