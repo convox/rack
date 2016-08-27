@@ -244,7 +244,7 @@ func cmdAppParamsSet(c *cli.Context) error {
 }
 
 func waitForAppRunning(c *cli.Context, app string) error {
-	timeout := time.After(10 * time.Minute)
+	timeout := time.After(30 * time.Minute)
 	tick := time.Tick(5 * time.Second)
 
 	failed := false
