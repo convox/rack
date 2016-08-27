@@ -11,12 +11,15 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/cache"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -102,67 +105,42 @@ func buildTemplate(name, section string, data interface{}) (string, error) {
 	return formation.String(), nil
 }
 
-func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, tableName string) error {
-
-	if len(wrs) > 0 {
-
-		if len(wrs) <= 25 {
-			_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-				RequestItems: map[string][]*dynamodb.WriteRequest{
-					tableName: wrs,
-				},
-			})
-			if err != nil {
-				return err
-			}
-
-		} else {
-
-			// if more than 25 items to delete, we have to make multiple calls
-			maxLen := 25
-			for i := 0; i < len(wrs); i += maxLen {
-				high := i + maxLen
-				if high > len(wrs) {
-					high = len(wrs)
-				}
-
-				_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-					RequestItems: map[string][]*dynamodb.WriteRequest{
-						tableName: wrs[i:high],
-					},
-				})
-				if err != nil {
-					return err
-				}
-
-			}
-		}
-	} else {
-		fmt.Println("ns=api fn=dynamoBatchDeleteItems level=info msg=\"no builds to delete\"")
+func (p *AWSProvider) createdTime() string {
+	if p.IsTest() {
+		return time.Time{}.Format(sortableTime)
 	}
 
-	return nil
+	return time.Now().Format(sortableTime)
 }
 
-func formationParameters(templateURL string) (map[string]TemplateParameter, error) {
-	var t Template
-
-	res, err := http.Get(templateURL)
+func formationParameters(template string) (map[string]bool, error) {
+	res, err := http.Get(template)
 	if err != nil {
 		return nil, err
 	}
+
+	defer res.Body.Close()
 
 	formation, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 
+	var t Template
+
 	err = json.Unmarshal(formation, &t)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return t.Parameters, nil
+	params := map[string]bool{}
+
+	for key := range t.Parameters {
+		params[key] = true
+	}
+
+	return params, nil
 }
 
 func humanStatus(original string) string {
@@ -239,6 +217,183 @@ func stackTags(stack *cloudformation.Stack) map[string]string {
 	return tags
 }
 
+func templateHelpers() template.FuncMap {
+	return template.FuncMap{
+		"env": func(s string) string {
+			return os.Getenv(s)
+		},
+		"upper": func(s string) string {
+			return UpperName(s)
+		},
+		"value": func(s string) template.HTML {
+			return template.HTML(fmt.Sprintf("%q", s))
+		},
+	}
+}
+
+func DashName(name string) string {
+	// Myapp -> myapp; MyApp -> my-app
+	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
+
+	k := re.ReplaceAllString(name, "${1}-${2}")
+	return strings.ToLower(k)
+}
+
+func UpperName(name string) string {
+	// myapp -> Myapp; my-app -> MyApp
+	us := strings.ToUpper(name[0:1]) + name[1:]
+
+	for {
+		i := strings.Index(us, "-")
+
+		if i == -1 {
+			break
+		}
+
+		s := us[0:i]
+
+		if len(us) > i+1 {
+			s += strings.ToUpper(us[i+1 : i+2])
+		}
+
+		if len(us) > i+2 {
+			s += us[i+2:]
+		}
+
+		us = s
+	}
+
+	return us
+}
+
+/****************************************************************************
+ * AWS API HELPERS
+ ****************************************************************************/
+
+func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, tableName string) error {
+
+	if len(wrs) > 0 {
+
+		if len(wrs) <= 25 {
+			_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+				RequestItems: map[string][]*dynamodb.WriteRequest{
+					tableName: wrs,
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+		} else {
+
+			// if more than 25 items to delete, we have to make multiple calls
+			maxLen := 25
+			for i := 0; i < len(wrs); i += maxLen {
+				high := i + maxLen
+				if high > len(wrs) {
+					high = len(wrs)
+				}
+
+				_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
+					RequestItems: map[string][]*dynamodb.WriteRequest{
+						tableName: wrs[i:high],
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+	} else {
+		fmt.Println("ns=api fn=dynamoBatchDeleteItems level=info msg=\"no builds to delete\"")
+	}
+
+	return nil
+}
+
+func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
+	res, ok := cache.Get("describeStacks", input.StackName).(*cloudformation.DescribeStacksOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.cloudformation().DescribeStacks(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeStacks", input.StackName, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
+func (p *AWSProvider) describeStack(name string) (*cloudformation.Stack, error) {
+	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(name),
+	})
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Stacks) != 1 {
+		return nil, fmt.Errorf("could not load stack: %s", name)
+	}
+
+	return res.Stacks[0], nil
+}
+
+func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+	res, ok := cache.Get("describeStackEvents", input.StackName).(*cloudformation.DescribeStackEventsOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.cloudformation().DescribeStackEvents(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeStackEvents", input.StackName, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
+func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
+	res, ok := cache.Get("listContainerInstances", input).(*ecs.ListContainerInstancesOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.ecs().ListContainerInstances(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("listContainerInstances", input, res, 10*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) s3Exists(bucket, key string) (bool, error) {
 	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
@@ -299,110 +454,71 @@ func (p *AWSProvider) s3Put(bucket, key string, data []byte, public bool) error 
 	return err
 }
 
-func (p *AWSProvider) stackUpdate(name string, templateUrl string, changes map[string]string) error {
+// updateStack updates a stack
+//   template is url to a template or empty string to reuse previous
+//   changes is a list of parameter changes to make (does not need to include every param)
+func (p *AWSProvider) updateStack(name string, template string, changes map[string]string) error {
+	cache.Clear("describeStacks", nil)
+	cache.Clear("describeStacks", name)
+
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(name),
-		TemplateURL:  aws.String(templateUrl),
 	}
 
-	params, err := formationParameters(templateUrl)
-	if err != nil {
-		return err
+	params := map[string]bool{}
+
+	if template != "" {
+		req.TemplateURL = aws.String(template)
+
+		fp, err := formationParameters(template)
+		if err != nil {
+			return err
+		}
+
+		for p := range fp {
+			params[p] = true
+		}
+	} else {
+		req.UsePreviousTemplate = aws.Bool(true)
+
+		stack, err := p.describeStack(name)
+		if err != nil {
+			return err
+		}
+
+		for _, p := range stack.Parameters {
+			params[*p.ParameterKey] = true
+		}
 	}
 
-	for key := range params {
-		if _, present := changes[key]; present {
+	sorted := []string{}
+
+	for param := range params {
+		sorted = append(sorted, param)
+	}
+
+	// sort params for easier testing
+	sort.Strings(sorted)
+
+	for _, param := range sorted {
+		if value, ok := changes[param]; ok {
 			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-				ParameterKey:   aws.String(key),
-				ParameterValue: aws.String(changes[key]),
+				ParameterKey:   aws.String(param),
+				ParameterValue: aws.String(value),
 			})
 		} else {
 			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-				ParameterKey:     aws.String(key),
+				ParameterKey:     aws.String(param),
 				UsePreviousValue: aws.Bool(true),
 			})
 		}
 	}
 
-	_, err = p.updateStack(req)
+	_, err := p.cloudformation().UpdateStack(req)
+
+	cache.Clear("describeStacks", nil)
+	cache.Clear("describeStacks", name)
 
 	return err
-}
-
-func (p *AWSProvider) stackUpdateParameters(name string, params map[string]string) error {
-	req := &cloudformation.UpdateStackInput{
-		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
-		StackName:           aws.String(name),
-		UsePreviousTemplate: aws.Bool(true),
-	}
-
-	keys := []string{}
-
-	for key := range params {
-		keys = append(keys, key)
-	}
-
-	// sort the keys so tests are predictable
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
-			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(params[key]),
-		})
-	}
-
-	_, err := p.updateStack(req)
-
-	return err
-}
-
-func templateHelpers() template.FuncMap {
-	return template.FuncMap{
-		"env": func(s string) string {
-			return os.Getenv(s)
-		},
-		"upper": func(s string) string {
-			return UpperName(s)
-		},
-		"value": func(s string) template.HTML {
-			return template.HTML(fmt.Sprintf("%q", s))
-		},
-	}
-}
-
-func DashName(name string) string {
-	// Myapp -> myapp; MyApp -> my-app
-	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
-
-	k := re.ReplaceAllString(name, "${1}-${2}")
-	return strings.ToLower(k)
-}
-
-func UpperName(name string) string {
-	// myapp -> Myapp; my-app -> MyApp
-	us := strings.ToUpper(name[0:1]) + name[1:]
-
-	for {
-		i := strings.Index(us, "-")
-
-		if i == -1 {
-			break
-		}
-
-		s := us[0:i]
-
-		if len(us) > i+1 {
-			s += strings.ToUpper(us[i+1 : i+2])
-		}
-
-		if len(us) > i+2 {
-			s += us[i+2:]
-		}
-
-		us = s
-	}
-
-	return us
 }
