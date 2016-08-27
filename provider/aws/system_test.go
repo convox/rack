@@ -82,104 +82,12 @@ var cycleSystemDescribeStacks = awsutil.Cycle{
 					<member>
 						<Outputs>
 							<member>
-								<OutputKey>CustomTopic</OutputKey>
-								<OutputValue>arn:aws:lambda:us-east-1:778743527532:function:convox-CustomTopic-1VJ75T6FBGORL</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Internal</OutputKey>
-								<OutputValue>No</OutputValue>
-							</member>
-							<member>
-								<OutputKey>SettingsBucket</OutputKey>
-								<OutputValue>convox-settings-c21v4pfz9zpc</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Vpc</OutputKey>
-								<OutputValue>vpc-08c5726c</OutputValue>
-							</member>
-							<member>
 								<OutputKey>Dashboard</OutputKey>
 								<OutputValue>convox-1423604943.us-east-1.elb.amazonaws.com</OutputValue>
 							</member>
 							<member>
-								<OutputKey>EncryptionKey</OutputKey>
-								<OutputValue>arn:aws:kms:us-east-1:778743527532:key/f1752bdd-5805-4891-9208-f16be3a4ccd6</OutputValue>
-							</member>
-							<member>
-								<OutputKey>DockerImageApi</OutputKey>
-								<OutputValue>convox/api:20160820033210</OutputValue>
-							</member>
-							<member>
-								<OutputKey>NotificationTopic</OutputKey>
-								<OutputValue>arn:aws:sns:us-east-1:778743527532:convox-notifications</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Rack</OutputKey>
-								<OutputValue>convox</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Autoscale</OutputKey>
-								<OutputValue>false</OutputValue>
-							</member>
-							<member>
-								<OutputKey>AwsRegion</OutputKey>
-								<OutputValue>us-east-1</OutputValue>
-							</member>
-							<member>
-								<OutputKey>DynamoBuilds</OutputKey>
-								<OutputValue>convox-builds</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Private</OutputKey>
-								<OutputValue>No</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Release</OutputKey>
-								<OutputValue>20160820033210</OutputValue>
-							</member>
-							<member>
-								<OutputKey>NotificationHost</OutputKey>
-								<OutputValue>convox-1423604943.us-east-1.elb.amazonaws.com</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Password</OutputKey>
-								<OutputValue>rZPfAaETBaRcmWSYTqulMXcfyXlFlR</OutputValue>
-							</member>
-							<member>
-								<OutputKey>SubnetsPrivate</OutputKey>
-								<OutputValue/>
-							</member>
-							<member>
-								<OutputKey>AwsAccess</OutputKey>
-								<OutputValue>AKIAIQWYIWCZS6S3K5AA</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Cluster</OutputKey>
-								<OutputValue>convox-Cluster-1EQQWK182GWYD</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Provider</OutputKey>
-								<OutputValue>aws</OutputValue>
-							</member>
-							<member>
-								<OutputKey>Subnets</OutputKey>
-								<OutputValue>subnet-8ea696a5,subnet-95a841e3,subnet-5387870a</OutputValue>
-							</member>
-							<member>
-								<OutputKey>AwsSecret</OutputKey>
-								<OutputValue>W/OCgS7Yw2WixHjrCsTyhU3h+ykLpnBjfWew2zZn</OutputValue>
-							</member>
-							<member>
-								<OutputKey>DynamoReleases</OutputKey>
-								<OutputValue>convox-releases</OutputValue>
-							</member>
-							<member>
 								<OutputKey>LogGroup</OutputKey>
 								<OutputValue>convox-LogGroup-BVJVTMIP5AKJ</OutputValue>
-							</member>
-							<member>
-								<OutputKey>StackId</OutputKey>
-								<OutputValue>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</OutputValue>
 							</member>
 						</Outputs>
 						<Capabilities>
