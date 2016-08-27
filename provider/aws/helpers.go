@@ -223,7 +223,7 @@ func templateHelpers() template.FuncMap {
 			return os.Getenv(s)
 		},
 		"upper": func(s string) string {
-			return UpperName(s)
+			return upperName(s)
 		},
 		"value": func(s string) template.HTML {
 			return template.HTML(fmt.Sprintf("%q", s))
@@ -231,7 +231,7 @@ func templateHelpers() template.FuncMap {
 	}
 }
 
-func DashName(name string) string {
+func dashName(name string) string {
 	// Myapp -> myapp; MyApp -> my-app
 	re := regexp.MustCompile("([a-z])([A-Z])") // lower case letter followed by upper case
 
@@ -239,7 +239,7 @@ func DashName(name string) string {
 	return strings.ToLower(k)
 }
 
-func UpperName(name string) string {
+func upperName(name string) string {
 	// myapp -> Myapp; my-app -> MyApp
 	us := strings.ToUpper(name[0:1]) + name[1:]
 

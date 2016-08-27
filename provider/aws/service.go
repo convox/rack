@@ -194,7 +194,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	// Populate linked apps
 	for k, _ := range s.Outputs {
 		if strings.HasSuffix(k, "Link") {
-			n := DashName(k)
+			n := dashName(k)
 			app := n[:len(n)-4]
 
 			a, err := p.AppGet(app)
