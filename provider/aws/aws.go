@@ -150,3 +150,8 @@ func (p *AWSProvider) s3() *s3.S3 {
 func (p *AWSProvider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
 }
+
+// IsTest returns true when we're in test mode
+func (p *AWSProvider) IsTest() bool {
+	return p.Region == "us-test-1"
+}

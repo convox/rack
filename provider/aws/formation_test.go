@@ -36,7 +36,7 @@ func TestFormationList(t *testing.T) {
 
 func TestFormationListBadApp(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleFormationDescribeStacksNotFound("convox-httpe"),
+		cycleDescribeStacksNotFound("convox-httpe"),
 	)
 	defer provider.Close()
 
@@ -123,7 +123,7 @@ func TestFormationGet(t *testing.T) {
 
 func TestFormationGetBadApp(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleFormationDescribeStacksNotFound("convox-httpe"),
+		cycleDescribeStacksNotFound("convox-httpe"),
 	)
 	defer provider.Close()
 
@@ -195,10 +195,9 @@ func TestFormationSave(t *testing.T) {
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
 		test.DescribeTaskDefinition1Cycle(""),
-		test.DescribeAppStackCycle("convox-httpd"),
-		cycleReleaseGetItem,
 		cycleNotificationPublish,
-		cycleUpdateStack,
+		test.DescribeAppStackCycle("convox-httpd"),
+		cycleFormationUpdateStack,
 	)
 	defer provider.Close()
 
@@ -216,7 +215,7 @@ func TestFormationSave(t *testing.T) {
 
 func TestFormationSaveBadApp(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleFormationDescribeStacksNotFound("convox-httpe"),
+		cycleDescribeStacksNotFound("convox-httpe"),
 	)
 	defer provider.Close()
 
@@ -789,7 +788,7 @@ var cycleFormationDescribeStacksEmptyRelease = awsutil.Cycle{
 	},
 }
 
-func cycleFormationDescribeStacksNotFound(name string) awsutil.Cycle {
+func cycleDescribeStacksNotFound(name string) awsutil.Cycle {
 	return awsutil.Cycle{
 		awsutil.Request{"/", "", `Action=DescribeStacks&StackName=` + name + `&Version=2010-05-15`},
 		awsutil.Response{
@@ -826,46 +825,10 @@ var cycleNotificationPublish = awsutil.Cycle{
 	},
 }
 
-var cycleReleaseGetItem = awsutil.Cycle{
+var cycleFormationUpdateStack = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Operation:  "DynamoDB_20120810.GetItem",
-		Body:       `{"ConsistentRead":true,"Key":{"id":{"S":"RVFETUHHKKD"}},"TableName":"convox-releases"}`,
-	},
-	Response: awsutil.Response{
-		StatusCode: 200,
-		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"httpd"},"manifest":{"S":"web:\n  image: httpd\n  ports:\n  - 80:80\n"},"env":{"S":"foo=bar"},"created":{"S":"20160404.143542.627770380"}}}`,
-	},
-}
-
-var cycleReleaseGetItemNotFound = awsutil.Cycle{
-	Request: awsutil.Request{
-		RequestURI: "/",
-		Operation:  "DynamoDB_20120810.GetItem",
-		Body:       `{"ConsistentRead":true,"Key":{"id":{"S":"RVFETUHHKKD"}},"TableName":"convox-releases"}`,
-	},
-	Response: awsutil.Response{
-		StatusCode: 200,
-		Body:       `{}`,
-	},
-}
-
-var cycleReleaseGetItemBadManifest = awsutil.Cycle{
-	Request: awsutil.Request{
-		RequestURI: "/",
-		Operation:  "DynamoDB_20120810.GetItem",
-		Body:       `{"ConsistentRead":true,"Key":{"id":{"S":"RVFETUHHKKD"}},"TableName":"convox-releases"}`,
-	},
-	Response: awsutil.Response{
-		StatusCode: 200,
-		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"httpd"},"manifest":{"S":"!!garbage/::"},"env":{"S":"foo=bar"},"created":{"S":"20160404.143542.627770380"}}}`,
-	},
-}
-
-var cycleUpdateStack = awsutil.Cycle{
-	Request: awsutil.Request{
-		RequestURI: "/",
-		Body:       `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=Cluster&Parameters.member.1.ParameterValue=convox-Cluster-1E4XJ0PQWNAYS&Parameters.member.10.ParameterKey=Version&Parameters.member.10.ParameterValue=20160330143438-command-exec-form&Parameters.member.11.ParameterKey=WebCpu&Parameters.member.11.ParameterValue=256&Parameters.member.12.ParameterKey=WebDesiredCount&Parameters.member.12.ParameterValue=1&Parameters.member.13.ParameterKey=WebMemory&Parameters.member.13.ParameterValue=512&Parameters.member.14.ParameterKey=WebPort80Balancer&Parameters.member.14.ParameterValue=80&Parameters.member.15.ParameterKey=WebPort80Certificate&Parameters.member.15.ParameterValue=&Parameters.member.16.ParameterKey=WebPort80Host&Parameters.member.16.ParameterValue=56694&Parameters.member.17.ParameterKey=WebPort80ProxyProtocol&Parameters.member.17.ParameterValue=No&Parameters.member.18.ParameterKey=WebPort80Secure&Parameters.member.18.ParameterValue=No&Parameters.member.2.ParameterKey=Environment&Parameters.member.2.ParameterValue=https%3A%2F%2Fconvox-httpd-settings-139bidzalmbtu.s3.amazonaws.com%2Freleases%2FRVFETUHHKKD%2Fenv&Parameters.member.3.ParameterKey=Key&Parameters.member.3.ParameterValue=arn%3Aaws%3Akms%3Aus-east-1%3A132866487567%3Akey%2Fd9f38426-9017-4931-84f8-604ad1524920&Parameters.member.4.ParameterKey=Private&Parameters.member.4.ParameterValue=Yes&Parameters.member.5.ParameterKey=Release&Parameters.member.5.ParameterValue=RVFETUHHKKD&Parameters.member.6.ParameterKey=Repository&Parameters.member.6.ParameterValue=&Parameters.member.7.ParameterKey=Subnets&Parameters.member.7.ParameterValue=subnet-13de3139%2Csubnet-b5578fc3%2Csubnet-21c13379&Parameters.member.8.ParameterKey=SubnetsPrivate&Parameters.member.8.ParameterValue=subnet-d4e85cfe%2Csubnet-103d5a66%2Csubnet-57952a0f&Parameters.member.9.ParameterKey=VPC&Parameters.member.9.ParameterValue=vpc-f8006b9c&StackName=convox-httpd&UsePreviousTemplate=true&Version=2010-05-15`,
+		Body:       `Action=UpdateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=Cluster&Parameters.member.1.UsePreviousValue=true&Parameters.member.10.ParameterKey=MainPort80Host&Parameters.member.10.UsePreviousValue=true&Parameters.member.11.ParameterKey=MainService&Parameters.member.11.UsePreviousValue=true&Parameters.member.12.ParameterKey=Release&Parameters.member.12.UsePreviousValue=true&Parameters.member.13.ParameterKey=Repository&Parameters.member.13.UsePreviousValue=true&Parameters.member.14.ParameterKey=Subnets&Parameters.member.14.UsePreviousValue=true&Parameters.member.15.ParameterKey=VPC&Parameters.member.15.UsePreviousValue=true&Parameters.member.16.ParameterKey=Version&Parameters.member.16.UsePreviousValue=true&Parameters.member.2.ParameterKey=Cpu&Parameters.member.2.UsePreviousValue=true&Parameters.member.3.ParameterKey=Environment&Parameters.member.3.UsePreviousValue=true&Parameters.member.4.ParameterKey=Key&Parameters.member.4.UsePreviousValue=true&Parameters.member.5.ParameterKey=MainCommand&Parameters.member.5.UsePreviousValue=true&Parameters.member.6.ParameterKey=MainDesiredCount&Parameters.member.6.UsePreviousValue=true&Parameters.member.7.ParameterKey=MainImage&Parameters.member.7.UsePreviousValue=true&Parameters.member.8.ParameterKey=MainMemory&Parameters.member.8.UsePreviousValue=true&Parameters.member.9.ParameterKey=MainPort80Balancer&Parameters.member.9.UsePreviousValue=true&StackName=convox-httpd&UsePreviousTemplate=true&Version=2010-05-15`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,

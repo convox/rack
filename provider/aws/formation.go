@@ -90,6 +90,8 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 		return err
 	}
 
+	params := map[string]string{}
+
 	if pf.Count < -1 {
 		return fmt.Errorf("requested count %d must be -1 or greater", pf.Count)
 	}
@@ -107,27 +109,22 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 	}
 
 	if _, ok := a.Parameters[fmt.Sprintf("%sFormation", UpperName(pf.Name))]; ok {
-		a.Parameters[fmt.Sprintf("%sFormation", UpperName(pf.Name))] = fmt.Sprintf("%d,%d,%d", pf.Count, pf.CPU, pf.Memory)
+		params[fmt.Sprintf("%sFormation", UpperName(pf.Name))] = fmt.Sprintf("%d,%d,%d", pf.Count, pf.CPU, pf.Memory)
 	} else {
-		a.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.Count)
-		a.Parameters[fmt.Sprintf("%sCpu", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.CPU)
-		a.Parameters[fmt.Sprintf("%sMemory", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.Memory)
-	}
-
-	release, err := p.ReleaseGet(a.Name, a.Release)
-	if err != nil {
-		return err
+		params[fmt.Sprintf("%sDesiredCount", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.Count)
+		params[fmt.Sprintf("%sCpu", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.CPU)
+		params[fmt.Sprintf("%sMemory", UpperName(pf.Name))] = fmt.Sprintf("%d", pf.Memory)
 	}
 
 	p.EventSend(&structs.Event{
 		Action: "release:scale",
 		Data: map[string]string{
-			"app": release.App,
-			"id":  release.Id,
+			"app": a.Name,
+			"id":  a.Release,
 		},
 	}, nil)
 
-	err = p.stackUpdateParameters(stackName(a), a.Parameters)
+	err = p.updateStack(stackName(a), "", params)
 
 	if ae, ok := err.(awserr.Error); ok {
 		if ae.Code() == "ValidationError" {
