@@ -32,7 +32,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "mysql", "postgres", "redis", "sqs":
+	case "memcached", "mysql", "postgres", "redis", "sqs":
 		req, err = p.createService(s)
 	case "fluentd":
 		req, err = p.createServiceURL(s, "tcp")
@@ -165,6 +165,8 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	}
 
 	switch s.Tags["Service"] {
+	case "memcached":
+		s.Exports["URL"] = fmt.Sprintf("%s:%s", s.Outputs["Port11211TcpAddr"], s.Outputs["Port11211TcpPort"])
 	case "mysql":
 		s.Exports["URL"] = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", s.Outputs["EnvMysqlUsername"], s.Outputs["EnvMysqlPassword"], s.Outputs["Port3306TcpAddr"], s.Outputs["Port3306TcpPort"], s.Outputs["EnvMysqlDatabase"])
 	case "papertrail":
