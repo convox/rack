@@ -244,8 +244,10 @@ func cmdAppParamsSet(c *cli.Context) error {
 }
 
 func waitForAppRunning(c *cli.Context, app string) error {
-	timeout := time.After(10 * time.Minute)
+	timeout := time.After(30 * time.Minute)
 	tick := time.Tick(5 * time.Second)
+
+	failed := false
 
 	for {
 		select {
@@ -255,8 +257,18 @@ func waitForAppRunning(c *cli.Context, app string) error {
 				return err
 			}
 
-			if a.Status == "running" {
+			switch a.Status {
+			case "running":
+				if failed {
+					fmt.Println("DONE")
+					return fmt.Errorf("Update rolled back")
+				}
 				return nil
+			case "rollback":
+				if !failed {
+					failed = true
+					fmt.Print("FAILED\nRolling back... ")
+				}
 			}
 		case <-timeout:
 			return fmt.Errorf("timeout")

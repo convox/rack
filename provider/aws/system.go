@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/api/structs"
@@ -16,11 +16,12 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack),
 	})
-
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, ErrorNotFound(fmt.Sprintf("%s not found", p.Rack))
+	}
 	if err != nil {
 		return nil, err
 	}
-
 	if len(res.Stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for app: %s", p.Rack)
 	}
@@ -69,10 +70,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	//   return fmt.Errorf("max process concurrency is %d, can't scale rack below %d instances", mac, mac+1)
 	// }
 
-	app, err := p.AppGet(p.Rack)
-	if err != nil {
-		return err
-	}
+	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", system.Version)
 
 	params := map[string]string{
 		"InstanceCount": strconv.Itoa(system.Count),
@@ -80,14 +78,18 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		"Version":       system.Version,
 	}
 
-	template := fmt.Sprintf("https://convox.s3.amazonaws.com/release/%s/formation.json", system.Version)
+	stack, err := p.describeStack(p.Rack)
+	if err != nil {
+		return err
+	}
 
-	if system.Version != app.Parameters["Version"] {
+	// if there is a version update then record it
+	if system.Version != stackParameters(stack)["Version"] {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
 				"id":      &dynamodb.AttributeValue{S: aws.String(system.Version)},
 				"app":     &dynamodb.AttributeValue{S: aws.String(p.Rack)},
-				"created": &dynamodb.AttributeValue{S: aws.String(time.Now().Format(sortableTime))},
+				"created": &dynamodb.AttributeValue{S: aws.String(p.createdTime())},
 			},
 			TableName: aws.String(p.DynamoReleases),
 		})
@@ -97,8 +99,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
-	err = p.stackUpdate(app.Name, template, params)
-
+	err = p.updateStack(p.Rack, template, params)
 	if awsError(err) == "ValidationError" {
 		switch {
 		case strings.Contains(err.Error(), "No updates are to be performed"):
@@ -107,6 +108,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 			return fmt.Errorf("system is already updating")
 		}
 	}
+
 	return err
 }
 

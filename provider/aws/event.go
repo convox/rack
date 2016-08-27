@@ -28,7 +28,7 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 	e.Status = "success"
 	e.Timestamp = time.Now().UTC()
 
-	if p.Region == "us-test-1" {
+	if p.IsTest() {
 		e.Timestamp = time.Time{}
 	}
 
