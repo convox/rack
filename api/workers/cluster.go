@@ -12,7 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/ddollar/logger"
+	"github.com/convox/logger"
 )
 
 type Instance struct {
@@ -38,7 +38,7 @@ func StartCluster() {
 	})
 
 	for range time.Tick(5 * time.Minute) {
-		log.Log("tick")
+		log.Logf("tick")
 
 		instances := Instances{}
 
@@ -84,7 +84,7 @@ func StartCluster() {
 			}
 		}
 
-		log.Log(instances.log())
+		log.Logf(instances.log())
 	}
 }
 

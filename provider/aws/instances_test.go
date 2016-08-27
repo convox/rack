@@ -13,13 +13,13 @@ import (
 func TestInstancesList(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test-cluster")
 
-	aws, provider := StubAwsProvider(
-		listContainerInstancesCycle("convox-test-cluster"),
-		describeContainerInstancesCycle("convox-test-cluster"),
+	provider := StubAwsProvider(
+		listContainerInstancesCycle("cluster-test"),
+		describeContainerInstancesCycle("cluster-test"),
 		describeInstancesCycle(),
 		// TODO: GetMetricStatistics x 3
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	is, err := provider.InstanceList()
 

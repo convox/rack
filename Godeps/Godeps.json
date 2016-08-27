@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/convox/rack",
-	"GoVersion": "go1.6",
-	"GodepVersion": "v62",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
 	"Packages": [
 		"./..."
 	],
@@ -271,7 +271,11 @@
 		},
 		{
 			"ImportPath": "github.com/convox/logger",
-			"Rev": "fb77cefadaabc03ec376e1ffabacd619dd58fd71"
+			"Rev": "83dac67db9513d027318b06248a27d373c29ff5c"
+		},
+		{
+			"ImportPath": "github.com/convox/nlogger",
+			"Rev": "021d214e1bf86ccc6a4f8e918685bd72dda3cfae"
 		},
 		{
 			"ImportPath": "github.com/convox/version",

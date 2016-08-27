@@ -137,6 +137,34 @@ func (p *TestProvider) EnvironmentGet(app string) (structs.Environment, error) {
 	return nil, nil
 }
 
+// FormationList lists the Formation
+func (p *TestProvider) FormationList(app string) (structs.Formation, error) {
+	args := p.Called(app)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Formation), args.Error(1)
+}
+
+// FormationGet gets the Formation for a Process
+func (p *TestProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
+	args := p.Called(app, process)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*structs.ProcessFormation), args.Error(1)
+}
+
+// FormationSave saves the Formation for a Process
+func (p *TestProvider) FormationSave(app string, pf *structs.ProcessFormation) error {
+	args := p.Called(app, pf)
+	return args.Error(0)
+}
+
 // IndexDiff gets a list of missing Index hashes
 func (p *TestProvider) IndexDiff(i *structs.Index) ([]string, error) {
 	p.Called(i)
