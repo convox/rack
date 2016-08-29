@@ -45,6 +45,12 @@ type Provider interface {
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
 
+	ProcessAttach(pid string, stream io.ReadWriter) error
+	ProcessExec(app, pid, command string, stream io.ReadWriter) error
+	ProcessList(app string) (structs.Processes, error)
+	ProcessRun(app, process string, opts structs.ProcessRunOptions) (*structs.Process, error)
+	ProcessStop(app, pid string) error
+
 	ReleaseDelete(app, buildID string) error
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string, limit int64) (structs.Releases, error)

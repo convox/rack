@@ -17,6 +17,7 @@ type TestProvider struct {
 	Certificate  structs.Certificate
 	Certificates structs.Certificates
 	Instances    structs.Instances
+	Process      structs.Process
 	Release      structs.Release
 	Releases     structs.Releases
 	Service      structs.Service
@@ -193,6 +194,42 @@ func (p *TestProvider) InstanceList() (structs.Instances, error) {
 func (p *TestProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	p.Called(app, w, opts)
 	return nil
+}
+
+// ProcessAttach attaches to a Process
+func (p *TestProvider) ProcessAttach(id string, stream io.ReadWriter) error {
+	p.Called(id, stream)
+	return nil
+}
+
+// ProcessExec execs a new command on an existing Process
+func (p *TestProvider) ProcessExec(app, pid, command string, stream io.ReadWriter) error {
+	p.Called(app, pid, command, stream)
+	return nil
+}
+
+// FormationList lists the Formation
+func (p *TestProvider) ProcessList(app string) (structs.Processes, error) {
+	args := p.Called(app)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Processes), args.Error(1)
+}
+
+// ProcessRun runs a new Process
+func (p *TestProvider) ProcessRun(app, process string, opts structs.ProcessRunOptions) (*structs.Process, error) {
+	p.Called(app, process, opts)
+	return &p.Process, nil
+}
+
+// ProcessStop stops a Process
+func (p *TestProvider) ProcessStop(app, pid string) error {
+	args := p.Called(app, pid)
+
+	return args.Error(0)
 }
 
 // ReleaseDelete deletes all releases for an App and Build
