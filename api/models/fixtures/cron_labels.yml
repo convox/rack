@@ -7,4 +7,4 @@ main:
 really-long-process-type-name:
   build: .
   labels:
-    - convox.cron.really-long-cron-job-name=0 * * * ? bin/myjob
+    - convox.cron.ReallyLongCronJobName=0 * * * ? bin/myjob

@@ -797,44 +797,6 @@
       },
       "Type": "AWS::Events::Rule"
     },
-    "Really-Long-Process-Type-NameReally-Long-Cron-Job-NameLambdaPermission": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "CronFunction",
-            "Arn"
-          ]
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": {
-          "Fn::GetAtt": [
-            "Really-Long-Process-Type-NameReally-Long-Cron-Job-NameRule",
-            "Arn"
-          ]
-        }
-      },
-      "Type": "AWS::Lambda::Permission"
-    },
-    "Really-Long-Process-Type-NameReally-Long-Cron-Job-NameRule": {
-      "Properties": {
-        "Name": "convox-test-httpd-really-long-process-type-name-BAZNKBZ-schedule",
-        "ScheduleExpression": "cron(0 * * * ? *)",
-        "Targets": [
-          {
-            "Arn": {
-              "Fn::GetAtt": [
-                "CronFunction",
-                "Arn"
-              ]
-            },
-            "Id": "convox-test-httpd-really-long-process-type-name-BAZNKBZTarget",
-            "Input": "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\"}"
-          }
-        ]
-      },
-      "Type": "AWS::Events::Rule"
-    },
     "ReallyLongProcessTypeNameECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
@@ -922,6 +884,44 @@
       },
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
+    },
+    "ReallyLongProcessTypeNameReallyLongCronJobNameLambdaPermission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CronFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "ReallyLongProcessTypeNameReallyLongCronJobNameRule",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Permission"
+    },
+    "ReallyLongProcessTypeNameReallyLongCronJobNameRule": {
+      "Properties": {
+        "Name": "convox-test-httpd-really-long-process-type-name-573WYWT-schedule",
+        "ScheduleExpression": "cron(0 * * * ? *)",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "CronFunction",
+                "Arn"
+              ]
+            },
+            "Id": "convox-test-httpd-really-long-process-type-name-573WYWTTarget",
+            "Input": "{\"process\": \"really-long-process-type-name\", \"command\": \"bin/myjob\"}"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
     },
     "RegistryRepository": {
       "Condition": "RegionHasECR",
