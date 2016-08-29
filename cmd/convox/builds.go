@@ -118,7 +118,14 @@ func init() {
 				Description: "import a build artifact from stdin",
 				Usage:       "<ID>",
 				Action:      cmdBuildsImport,
-				Flags:       []cli.Flag{appFlag, rackFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "id",
+						Usage: "only display the release ID to stdout",
+					},
+				},
 			},
 		},
 	})
@@ -322,7 +329,11 @@ func cmdBuildsImport(c *cli.Context) error {
 	reader := bufio.NewReader(os.Stdin)
 	b, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("error reading build: %s", err)
+		return stdcli.ExitError(fmt.Errorf("error reading build: %s", err))
+	}
+
+	if c.Bool("id") {
+		progressFunc = nil
 	}
 
 	build, err := rackClient(c).ImportBuild(app, b, progressFunc)
@@ -330,8 +341,13 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Println()
-	fmt.Printf("Imported build %s and release %s created\n", build.Id, build.Release)
+	if c.Bool("id") {
+		fmt.Print(build.Release)
+
+	} else {
+		fmt.Println()
+		fmt.Printf("Imported build %s and release %s created\n", build.Id, build.Release)
+	}
 
 	return nil
 }
