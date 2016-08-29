@@ -80,6 +80,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	cache := !(r.FormValue("cache") == "false")
 	manifest := r.FormValue("manifest")
 	description := r.FormValue("description")
+	buildImport := (r.FormValue("import") == "true")
 
 	repo := r.FormValue("repo")
 	index := r.FormValue("index")
@@ -110,9 +111,17 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	var b *structs.Build
 
-	// if source file was posted, build from tar
 	if source != nil {
-		b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+
+		if buildImport {
+			b, err = models.Provider().BuildImport(a.Name, source)
+
+		} else {
+
+			// if source file was posted, build from tar
+			b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+		}
+
 	} else if repo != "" {
 		b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
 	} else if index != "" {
@@ -159,30 +168,6 @@ func BuildDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, build)
-}
-
-// BuildImport imports a build for an app
-func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	app := vars["app"]
-
-	source, _, err := r.FormFile("source")
-	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		helpers.TrackError("build.import", err, map[string]interface{}{"at": "FormFile"})
-		return httperr.Server(err)
-	}
-
-	a, err := models.Provider().AppGet(app)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	_, release, err := models.Provider().BuildImport(a.Name, source)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, release)
 }
 
 func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
