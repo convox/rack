@@ -36,12 +36,6 @@ func (p *TestProvider) AppDelete(name string) error {
 	return nil
 }
 
-// AppRepository gets an app's repository data
-func (p *TestProvider) AppRepository(name string) (*structs.AppRepository, error) {
-	p.Called(name)
-	return &structs.AppRepository{}, nil
-}
-
 // BuildCopy copies an App
 func (p *TestProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
 	p.Called(srcApp, id, destApp)
@@ -85,9 +79,9 @@ func (p *TestProvider) BuildGet(app, id string) (*structs.Build, error) {
 }
 
 // BuildImport imports a build artifact
-func (p *TestProvider) BuildImport(app, r io.Reader) (*structs.Build, error) {
+func (p *TestProvider) BuildImport(app string, r io.Reader) (*structs.Build, *structs.Release, error) {
 	p.Called(app, r)
-	return &p.Build, nil
+	return &p.Build, &p.Release, nil
 }
 
 // BuildLogs gets a Build's logs

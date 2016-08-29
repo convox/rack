@@ -255,7 +255,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	repo, err := p.AppRepository(build.App)
+	repo, err := p.appRepository(build.App)
 	if err != nil {
 		return err
 	}
@@ -315,6 +315,93 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	build := p.buildFromItem(res.Item)
 
 	return build, nil
+}
+
+// BuildImport imports a build artifact
+func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, *structs.Release, error) {
+
+	build, images, err := readImportArtifact(r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app, err := p.AppGet(appName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// load the images to repo
+	for _, img := range images {
+		cmd := exec.Command("docker", "load")
+		cmd.Stdin = bytes.NewReader(img)
+
+		out, err := cmd.Output()
+		output := string(out)
+		if err != nil {
+			return nil, nil, fmt.Errorf("docker load failed: %s", err)
+		}
+
+		fmt.Printf("fn=BuildImport at=DockerLoad level=info msg=\"%s\"\n", output)
+
+		loadPrefix := "Loaded image: "
+		if !strings.HasPrefix(output, loadPrefix) {
+			return nil, nil, fmt.Errorf("unexpected docker load output: %s", output)
+		}
+
+		imageSplit := strings.Split(output, loadPrefix)
+		if len(imageSplit) < 2 {
+			return nil, nil, fmt.Errorf("docker load output split failed: %s", output)
+		}
+
+		tag := strings.Split(imageSplit[1], ":")[1]
+
+		repo, err := p.appRepository(app.Name)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		newName := fmt.Sprintf("%s:%s", repo.URI, strings.TrimSpace(tag))
+		cmd = exec.Command("docker", "tag", strings.TrimSpace(imageSplit[1]), newName)
+
+		out, err = cmd.Output()
+		if err != nil {
+			return nil, nil, fmt.Errorf("docker tag failed: %s", err)
+		}
+
+		//TODO: Remove the orignal import tag (from imageSplit) if it didn't originally exist
+
+		fmt.Printf("fn=BuildImport at=DockerTag level=info msg=\"new tag %s\"\n", newName)
+
+		cmd = exec.Command("docker", "push", newName)
+		out, err = cmd.Output()
+		if err != nil {
+			return nil, nil, fmt.Errorf("docker push failed: %s", err)
+		}
+	}
+
+	oldEnv, err := p.EnvironmentGet(app.Name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	release := structs.NewRelease(app.Name)
+	release.Env = oldEnv.Raw()
+	release.Build = build.Id
+	release.Manifest = build.Manifest
+
+	err = p.ReleaseSave(release, app.Outputs["Settings"], app.Parameters["Key"])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	build.Release = release.Id
+	build.App = app.Name
+	err = p.BuildSave(build)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return build, release, nil
 }
 
 // BuildLogs gets a Build's logs from S3. If there is no log file in S3, that is not an error.
@@ -839,4 +926,54 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 	}
 
 	return p.dynamoBatchDeleteItems(wrs, p.DynamoBuilds)
+}
+
+func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
+
+	var build structs.Build
+	var images [][]byte
+
+	gzf, err := gzip.NewReader(source)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tarReader := tar.NewReader(gzf)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			raw := []byte{}
+
+			if header.Name == "builddata.json" {
+				jsonBuf := bytes.NewBuffer(raw)
+				io.Copy(jsonBuf, tarReader)
+
+				err = json.Unmarshal(jsonBuf.Bytes(), &build)
+				if err != nil {
+					return nil, nil, err
+				}
+
+			} else {
+				if strings.HasSuffix(header.Name, ".tar") {
+
+					buf := bytes.NewBuffer(raw)
+					io.Copy(buf, tarReader)
+
+					images = append(images, buf.Bytes())
+				}
+			}
+		default:
+			continue
+		}
+	}
+
+	return &build, images, nil
 }
