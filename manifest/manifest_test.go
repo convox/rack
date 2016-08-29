@@ -283,6 +283,14 @@ func TestLoadNonexistentFile(t *testing.T) {
 	}
 }
 
+func TestUnderscoreInServiceName(t *testing.T) {
+	m, err := manifestFixture("underscore_service")
+
+	if assert.Nil(t, m) && assert.NotNil(t, err) {
+		assert.Equal(t, err.Error(), "service name cannot contain an underscore: web_api")
+	}
+}
+
 func TestLoadUnknownVersion(t *testing.T) {
 	m, err := manifestFixture("unknown-version")
 

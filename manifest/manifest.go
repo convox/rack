@@ -53,6 +53,10 @@ func Load(data []byte) (*Manifest, error) {
 	}
 
 	for name, service := range m.Services {
+
+		if strings.Contains(name, "_") {
+			return nil, fmt.Errorf("service name cannot contain an underscore: %s", name)
+		}
 		service.Name = name
 
 		// there are two places in a docker-compose.yml to specify a dockerfile
