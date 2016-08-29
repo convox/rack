@@ -289,7 +289,7 @@ func (p *TestProvider) SystemGet() (*structs.System, error) {
 	return args.Get(0).(*structs.System), args.Error(1)
 }
 
-// SystemGet gets the System
+// SystemReleases lists the latest releases of the rack
 func (p *TestProvider) SystemReleases() (structs.Releases, error) {
 	args := p.Called()
 
