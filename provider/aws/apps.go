@@ -14,6 +14,12 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+// appRepository defines an image repository for an App
+type appRepository struct {
+	ID  string `json:"id"`
+	URI string `json:"uri"`
+}
+
 // AppGet gets an app
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	var res *cloudformation.DescribeStacksOutput
@@ -61,7 +67,7 @@ func (p *AWSProvider) AppDelete(name string) error {
 }
 
 // AppRepository gets an app's repository data
-func (p *AWSProvider) appRepository(name string) (*structs.AppRepository, error) {
+func (p *AWSProvider) appRepository(name string) (*appRepository, error) {
 	app, err := p.AppGet(name)
 	if err != nil {
 		return nil, err
@@ -81,7 +87,7 @@ func (p *AWSProvider) appRepository(name string) (*structs.AppRepository, error)
 	}
 
 	if len(resp.Repositories) > 0 {
-		return &structs.AppRepository{
+		return &appRepository{
 			ID:  repoName,
 			URI: *resp.Repositories[0].RepositoryUri,
 		}, nil
