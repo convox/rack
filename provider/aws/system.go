@@ -47,6 +47,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
+// SystemReleases lists the latest releases of the rack
 func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{

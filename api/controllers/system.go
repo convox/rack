@@ -67,6 +67,7 @@ func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, capacity)
 }
 
+// SystemReleases lists the latest releases of the rack
 func SystemReleases(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	releases, err := models.Provider().SystemReleases()
 	if err != nil {
