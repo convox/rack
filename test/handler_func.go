@@ -92,11 +92,11 @@ func (f *HandlerFuncTest) SetVersion(version string) {
 }
 
 func (f *HandlerFuncTest) request(method, url string, values url.Values) (req *http.Request, err error) {
-	if method == "POST" {
-		postBody := strings.NewReader(values.Encode())
-		req, err = http.NewRequest("POST", url, postBody)
+	switch method {
+	case "POST", "PUT":
+		req, err = http.NewRequest(method, url, strings.NewReader(values.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else {
+	default:
 		req, err = http.NewRequest(method, url+"?"+values.Encode(), nil)
 	}
 

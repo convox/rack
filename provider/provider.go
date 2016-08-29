@@ -60,6 +60,7 @@ type Provider interface {
 	ServiceUpdate(name string, params map[string]string) (*structs.Service, error)
 
 	SystemGet() (*structs.System, error)
+	SystemReleases() (structs.Releases, error)
 	SystemSave(system structs.System) error
 }
 
