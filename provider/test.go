@@ -79,9 +79,9 @@ func (p *TestProvider) BuildGet(app, id string) (*structs.Build, error) {
 }
 
 // BuildImport imports a build artifact
-func (p *TestProvider) BuildImport(app string, r io.Reader) (*structs.Build, *structs.Release, error) {
+func (p *TestProvider) BuildImport(app string, r io.Reader) (*structs.Build, error) {
 	p.Called(app, r)
-	return &p.Build, &p.Release, nil
+	return &p.Build, nil
 }
 
 // BuildLogs gets a Build's logs

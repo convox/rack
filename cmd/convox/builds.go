@@ -325,13 +325,13 @@ func cmdBuildsImport(c *cli.Context) error {
 		return fmt.Errorf("error reading build: %s", err)
 	}
 
-	err = rackClient(c).ImportBuild(app, b, progressFunc)
+	build, err := rackClient(c).ImportBuild(app, b, progressFunc)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
 	fmt.Println()
-	fmt.Println("Done")
+	fmt.Printf("Imported build %s and release %s created\n", build.Id, build.Release)
 
 	return nil
 }
