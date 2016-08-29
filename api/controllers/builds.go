@@ -1,15 +1,11 @@
 package controllers
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -181,86 +177,12 @@ func BuildImport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	build, images, err := readImportArtifact(source)
+	_, release, err := models.Provider().BuildImport(a.Name, source)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
-	// Log into registry that we will push to
-	_, err = models.AppDockerLogin(*a)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	// load the images to repo
-	for _, img := range images {
-		cmd := exec.Command("docker", "load")
-		cmd.Stdin = bytes.NewReader(img)
-
-		out, err := cmd.Output()
-		output := string(out)
-		if err != nil {
-			return httperr.Server(fmt.Errorf("docker load failed: %s", err))
-		}
-
-		fmt.Printf("fn=BuildImport at=DockerLoad level=info msg=\"%s\"\n", output)
-
-		loadPrefix := "Loaded image: "
-		if !strings.HasPrefix(output, loadPrefix) {
-			return httperr.Server(fmt.Errorf("unexpected docker load output: %s", output))
-		}
-
-		imageSplit := strings.Split(output, loadPrefix)
-		if len(imageSplit) < 2 {
-			return httperr.Server(fmt.Errorf("docker load output split failed: %s", output))
-		}
-
-		tag := strings.Split(imageSplit[1], ":")[1]
-
-		repo, err := models.Provider().AppRepository(a.Name)
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		newName := fmt.Sprintf("%s:%s", repo.URI, strings.TrimSpace(tag))
-		cmd = exec.Command("docker", "tag", strings.TrimSpace(imageSplit[1]), newName)
-
-		out, err = cmd.Output()
-		if err != nil {
-			return httperr.Server(fmt.Errorf("docker tag failed: %s", err))
-		}
-
-		//TODO: Remove the orignal import tag (from imageSplit) if it didn't originally exist
-
-		fmt.Printf("fn=BuildImport at=DockerTag level=info msg=\"new tag %s\"\n", newName)
-
-		cmd = exec.Command("docker", "push", newName)
-		out, err = cmd.Output()
-		if err != nil {
-			return httperr.Server(fmt.Errorf("docker push failed: %s", err))
-		}
-	}
-
-	rel, err := ForkRelease(a)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	rel.Build = build.Id
-	rel.Manifest = build.Manifest
-	err = models.Provider().ReleaseSave(rel, a.Outputs["Settings"], a.Parameters["Key"])
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	build.Release = rel.Id
-	build.App = a.Name
-	err = models.Provider().BuildSave(build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, build)
+	return RenderJson(rw, release)
 }
 
 func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -484,56 +406,6 @@ ForLoop:
 	quit <- true
 
 	return httperr.Server(err)
-}
-
-func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
-
-	var build structs.Build
-	var images [][]byte
-
-	gzf, err := gzip.NewReader(source)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tarReader := tar.NewReader(gzf)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-
-		switch header.Typeflag {
-		case tar.TypeReg:
-			raw := []byte{}
-
-			if header.Name == "builddata.json" {
-				jsonBuf := bytes.NewBuffer(raw)
-				io.Copy(jsonBuf, tarReader)
-
-				err = json.Unmarshal(jsonBuf.Bytes(), &build)
-				if err != nil {
-					return nil, nil, err
-				}
-
-			} else {
-				if strings.HasSuffix(header.Name, ".tar") {
-
-					buf := bytes.NewBuffer(raw)
-					io.Copy(buf, tarReader)
-
-					images = append(images, buf.Bytes())
-				}
-			}
-		default:
-			continue
-		}
-	}
-
-	return &build, images, nil
 }
 
 // try to find the docker host that's running a build

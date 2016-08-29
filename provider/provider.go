@@ -1,9 +1,7 @@
 package provider
 
 import (
-	"fmt"
 	"io"
-	"os"
 
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/provider/aws"
@@ -12,7 +10,6 @@ import (
 type Provider interface {
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
-	AppRepository(name string) (*structs.AppRepository, error)
 
 	BuildCopy(srcApp, id, destApp string) (*structs.Build, error)
 	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)
@@ -21,7 +18,7 @@ type Provider interface {
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildExport(app, id string, w io.Writer) error
 	BuildGet(app, id string) (*structs.Build, error)
-	BuildImport(app, r io.Reader) (*structs.Build, error)
+	BuildImport(app string, r io.Reader) (*structs.Build, *structs.Release, error)
 	BuildLogs(app, id string) (string, error)
 	BuildList(app string, limit int64) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)

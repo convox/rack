@@ -61,7 +61,7 @@ func (p *AWSProvider) AppDelete(name string) error {
 }
 
 // AppRepository gets an app's repository data
-func (p *AWSProvider) AppRepository(name string) (*structs.AppRepository, error) {
+func (p *AWSProvider) appRepository(name string) (*structs.AppRepository, error) {
 	app, err := p.AppGet(name)
 	if err != nil {
 		return nil, err
