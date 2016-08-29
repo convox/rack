@@ -18,7 +18,7 @@ type Provider interface {
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildExport(app, id string, w io.Writer) error
 	BuildGet(app, id string) (*structs.Build, error)
-	BuildImport(app string, r io.Reader) (*structs.Build, *structs.Release, error)
+	BuildImport(app string, r io.Reader) (*structs.Build, error)
 	BuildLogs(app, id string) (string, error)
 	BuildList(app string, limit int64) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)

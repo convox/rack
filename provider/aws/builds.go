@@ -318,16 +318,16 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 }
 
 // BuildImport imports a build artifact
-func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, *structs.Release, error) {
+func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, error) {
 
 	build, images, err := readImportArtifact(r)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	app, err := p.AppGet(appName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// load the images to repo
@@ -338,26 +338,26 @@ func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, 
 		out, err := cmd.Output()
 		output := string(out)
 		if err != nil {
-			return nil, nil, fmt.Errorf("docker load failed: %s", err)
+			return nil, fmt.Errorf("docker load failed: %s", err)
 		}
 
 		fmt.Printf("fn=BuildImport at=DockerLoad level=info msg=\"%s\"\n", output)
 
 		loadPrefix := "Loaded image: "
 		if !strings.HasPrefix(output, loadPrefix) {
-			return nil, nil, fmt.Errorf("unexpected docker load output: %s", output)
+			return nil, fmt.Errorf("unexpected docker load output: %s", output)
 		}
 
 		imageSplit := strings.Split(output, loadPrefix)
 		if len(imageSplit) < 2 {
-			return nil, nil, fmt.Errorf("docker load output split failed: %s", output)
+			return nil, fmt.Errorf("docker load output split failed: %s", output)
 		}
 
 		tag := strings.Split(imageSplit[1], ":")[1]
 
 		repo, err := p.appRepository(app.Name)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		newName := fmt.Sprintf("%s:%s", repo.URI, strings.TrimSpace(tag))
@@ -365,7 +365,7 @@ func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, 
 
 		out, err = cmd.Output()
 		if err != nil {
-			return nil, nil, fmt.Errorf("docker tag failed: %s", err)
+			return nil, fmt.Errorf("docker tag failed: %s", err)
 		}
 
 		//TODO: Remove the orignal import tag (from imageSplit) if it didn't originally exist
@@ -375,13 +375,13 @@ func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, 
 		cmd = exec.Command("docker", "push", newName)
 		out, err = cmd.Output()
 		if err != nil {
-			return nil, nil, fmt.Errorf("docker push failed: %s", err)
+			return nil, fmt.Errorf("docker push failed: %s", err)
 		}
 	}
 
 	oldEnv, err := p.EnvironmentGet(app.Name)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	release := structs.NewRelease(app.Name)
@@ -391,17 +391,17 @@ func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, 
 
 	err = p.ReleaseSave(release, app.Outputs["Settings"], app.Parameters["Key"])
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	build.Release = release.Id
 	build.App = app.Name
 	err = p.BuildSave(build)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return build, release, nil
+	return build, nil
 }
 
 // BuildLogs gets a Build's logs from S3. If there is no log file in S3, that is not an error.

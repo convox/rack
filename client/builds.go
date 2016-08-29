@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/convox/rack/api/structs"
 )
 
 type Build struct {
@@ -184,16 +186,22 @@ func (c *Client) ExportBuild(app, id string) ([]byte, error) {
 }
 
 // ImportBuild imports a build artifact
-func (c *Client) ImportBuild(app string, source []byte, callback func(s string)) error {
+func (c *Client) ImportBuild(app string, source []byte, callback func(s string)) (*structs.Build, error) {
 
 	files := map[string][]byte{
 		"source": source,
 	}
 
-	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds/import", app), files, nil, nil, callback)
-	if err != nil {
-		return err
+	params := map[string]string{
+		"import": "true",
 	}
 
-	return nil
+	build := &structs.Build{}
+
+	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, build, callback)
+	if err != nil {
+		return nil, err
+	}
+
+	return build, nil
 }
