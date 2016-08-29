@@ -117,7 +117,6 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			b, err = models.Provider().BuildImport(a.Name, source)
 
 		} else {
-
 			// if source file was posted, build from tar
 			b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
 		}
