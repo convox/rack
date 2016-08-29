@@ -46,14 +46,14 @@ func (cr *CronJob) Process() string {
 }
 
 func (cr *CronJob) ShortName() string {
+	shortName := fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
+
 	reg, err := regexp.Compile("[^A-Za-z0-9]+")
 	if err != nil {
 		panic(err)
 	}
 
-	formattedServiceName := strings.Title(cr.Service.Name)
-	formattedServiceName = reg.ReplaceAllString(formattedServiceName, "")
-	return fmt.Sprintf("%s%s", formattedServiceName, strings.Title(cr.Name))
+	return reg.ReplaceAllString(shortName, "")
 }
 
 func (cr *CronJob) LongName() string {
