@@ -47,6 +47,36 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	return r, nil
 }
 
+func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
+	req := &dynamodb.QueryInput{
+		KeyConditions: map[string]*dynamodb.Condition{
+			"app": &dynamodb.Condition{
+				AttributeValueList: []*dynamodb.AttributeValue{
+					&dynamodb.AttributeValue{S: aws.String(p.Rack)},
+				},
+				ComparisonOperator: aws.String("EQ"),
+			},
+		},
+		IndexName:        aws.String("app.created"),
+		Limit:            aws.Int64(20),
+		ScanIndexForward: aws.Bool(false),
+		TableName:        aws.String(p.DynamoReleases),
+	}
+
+	res, err := p.dynamodb().Query(req)
+	if err != nil {
+		return nil, err
+	}
+
+	releases := make(structs.Releases, len(res.Items))
+
+	for i, item := range res.Items {
+		releases[i] = *releaseFromItem(item)
+	}
+
+	return releases, nil
+}
+
 func (p *AWSProvider) SystemSave(system structs.System) error {
 	typeValid := false
 	// Better search method could work here if needed
@@ -110,67 +140,4 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	}
 
 	return err
-}
-
-// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html
-var instanceTypes = []string{
-	"c1.medium",
-	"c1.xlarge",
-	"c3.2xlarge",
-	"c3.4xlarge",
-	"c3.8xlarge",
-	"c3.large",
-	"c3.xlarge",
-	"c4.2xlarge",
-	"c4.4xlarge",
-	"c4.8xlarge",
-	"c4.large",
-	"c4.xlarge",
-	"cc1.4xlarge",
-	"cc2.8xlarge",
-	"cg1.4xlarge",
-	"cr1.8xlarge",
-	"d2.2xlarge",
-	"d2.4xlarge",
-	"d2.8xlarge",
-	"d2.xlarge",
-	"g2.2xlarge",
-	"g2.8xlarge",
-	"hi1.4xlarge",
-	"hs1.8xlarge",
-	"i2.2xlarge",
-	"i2.4xlarge",
-	"i2.8xlarge",
-	"i2.xlarge",
-	"m1.large",
-	"m1.medium",
-	"m1.small",
-	"m1.xlarge",
-	"m2.2xlarge",
-	"m2.4xlarge",
-	"m2.xlarge",
-	"m3.2xlarge",
-	"m3.large",
-	"m3.medium",
-	"m3.xlarge",
-	"m4.10xlarge",
-	"m4.2xlarge",
-	"m4.4xlarge",
-	"m4.large",
-	"m4.xlarge",
-	"r3.2xlarge",
-	"r3.4xlarge",
-	"r3.8xlarge",
-	"r3.large",
-	"r3.xlarge",
-	"t1.micro",
-	"t2.large",
-	"t2.medium",
-	"t2.micro",
-	"t2.nano",
-	"t2.small",
-	"x1.16xlarge",
-	"x1.32xlarge",
-	"x1.4xlarge",
-	"x1.8xlarge",
 }
