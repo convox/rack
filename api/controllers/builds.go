@@ -386,18 +386,14 @@ func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	repo, err := models.Provider().AppRepository(b.App)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	bbytes, err := b.Export(repo.URI)
+	buf := bytes.NewBuffer(make([]byte, 0))
+	err = models.Provider().BuildExport(app, b.Id, buf)
 	if err != nil {
 		return httperr.Server(err)
 	}
 
 	rw.Header().Set("Content-Type", "application/octet-stream")
-	_, err = rw.Write(bbytes)
+	_, err = rw.Write(buf.Bytes())
 
 	return httperr.Server(err)
 }

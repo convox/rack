@@ -1,9 +1,12 @@
 package aws
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -210,6 +213,85 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	// delete ECR images
 	err = p.deleteImages(a, b)
 	return b, err
+}
+
+// BuildExport exports a build artifact
+func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
+
+	build, err := p.BuildGet(app, id)
+	if err != nil {
+		return nil
+	}
+
+	m, err := manifest.Load([]byte(build.Manifest))
+	if err != nil {
+		return fmt.Errorf("manifest error: %s", err)
+	}
+
+	if len(m.Services) < 1 {
+		return fmt.Errorf("no services found to export")
+	}
+
+	bjson, err := json.Marshal(build)
+	if err != nil {
+		return err
+	}
+
+	gz := gzip.NewWriter(w)
+	tw := tar.NewWriter(gz)
+
+	dataHeader := &tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "builddata.json",
+		Mode:     0600,
+		Size:     int64(len(bjson)),
+	}
+
+	if err := tw.WriteHeader(dataHeader); err != nil {
+		return err
+	}
+
+	if _, err := tw.Write(bjson); err != nil {
+		return err
+	}
+
+	repo, err := p.AppRepository(build.App)
+	if err != nil {
+		return err
+	}
+
+	for service := range m.Services {
+
+		image, err := exec.Command("docker", "save", fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id)).Output()
+		if err != nil {
+			return err
+		}
+
+		header := &tar.Header{
+			Typeflag: tar.TypeReg,
+			Name:     fmt.Sprintf("%s.%s.tar", service, build.Id),
+			Mode:     0600,
+			Size:     int64(len(image)),
+		}
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if _, err := tw.Write(image); err != nil {
+			return err
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		return err
+	}
+
+	if err := gz.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {

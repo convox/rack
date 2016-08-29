@@ -72,9 +72,21 @@ func (p *TestProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
+// BuildExport exports a build artifact
+func (p *TestProvider) BuildExport(app, id string, w io.Writer) error {
+	p.Called(app, id, w)
+	return nil
+}
+
 // BuildGet gets a Build
 func (p *TestProvider) BuildGet(app, id string) (*structs.Build, error) {
 	p.Called(app, id)
+	return &p.Build, nil
+}
+
+// BuildImport imports a build artifact
+func (p *TestProvider) BuildImport(app, r io.Reader) (*structs.Build, error) {
+	p.Called(app, r)
 	return &p.Build, nil
 }
 
