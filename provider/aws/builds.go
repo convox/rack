@@ -217,18 +217,22 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 
 // BuildExport exports a build artifact
 func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
+	log := Logger.At("BuildExport").Start()
 
 	build, err := p.BuildGet(app, id)
 	if err != nil {
-		return nil
+		log.Error(err)
+		return err
 	}
 
 	m, err := manifest.Load([]byte(build.Manifest))
 	if err != nil {
+		log.Error(err)
 		return fmt.Errorf("manifest error: %s", err)
 	}
 
 	if len(m.Services) < 1 {
+		log.Errorf("no services found to export")
 		return fmt.Errorf("no services found to export")
 	}
 
@@ -248,15 +252,20 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 	}
 
 	if err := tw.WriteHeader(dataHeader); err != nil {
+		log.Error(err)
 		return err
 	}
 
 	if _, err := tw.Write(bjson); err != nil {
+		log.Error(err)
 		return err
 	}
 
 	repo, err := p.appRepository(build.App)
 	if err != nil {
+		log.Error(err)
+		return err
+	}
 		return err
 	}
 
@@ -284,13 +293,16 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 	}
 
 	if err := tw.Close(); err != nil {
+		log.Error(err)
 		return err
 	}
 
 	if err := gz.Close(); err != nil {
+		log.Error(err)
 		return err
 	}
 
+	log.Success()
 	return nil
 }
 
