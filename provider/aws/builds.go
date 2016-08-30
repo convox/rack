@@ -266,13 +266,36 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		log.Error(err)
 		return err
 	}
+
+	tmp, err := ioutil.TempDir("", "")
+	if err != nil {
+		log.Error(err)
 		return err
 	}
 
-	for service := range m.Services {
+	defer os.Remove(tmp)
 
-		image, err := exec.Command("docker", "save", fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id)).Output()
+	for service := range m.Services {
+		image := fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id)
+		file := filepath.Join(tmp, fmt.Sprintf("%s.%s.tar", service, build.Id))
+
+		log.Step("pull").Logf("image=%q", image)
+		err := exec.Command("docker", "pull", image).Run()
 		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		log.Step("save").Logf("image=%q file=%q", image, file)
+		err = exec.Command("docker", "save", "-o", file, image).Run()
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		stat, err := os.Stat(file)
+		if err != nil {
+			log.Error(err)
 			return err
 		}
 
@@ -280,14 +303,28 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 			Typeflag: tar.TypeReg,
 			Name:     fmt.Sprintf("%s.%s.tar", service, build.Id),
 			Mode:     0600,
-			Size:     int64(len(image)),
+			Size:     stat.Size(),
 		}
 
 		if err := tw.WriteHeader(header); err != nil {
+			log.Error(err)
 			return err
 		}
 
-		if _, err := tw.Write(image); err != nil {
+		fd, err := os.Open(file)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+
+		log.Step("copy").Logf("file=%q", file)
+		if _, err := io.Copy(tw, fd); err != nil {
+			log.Error(err)
+			return err
+		}
+
+		if err := os.Remove(file); err != nil {
+			log.Error(err)
 			return err
 		}
 	}
