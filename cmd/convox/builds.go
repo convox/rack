@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/tar"
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -326,8 +325,18 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	b, err := ioutil.ReadAll(reader)
+	buildInput := os.Stdin
+
+	if len(c.Args()) == 1 {
+		file, err := os.Open(c.Args()[0])
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		buildInput = file
+	}
+
+	b, err := ioutil.ReadAll(buildInput)
 	if err != nil {
 		return stdcli.ExitError(fmt.Errorf("error reading build: %s", err))
 	}
@@ -346,7 +355,8 @@ func cmdBuildsImport(c *cli.Context) error {
 
 	} else {
 		fmt.Println()
-		fmt.Printf("Imported build %s and release %s created\n", build.Id, build.Release)
+		fmt.Printf("Imported %s\n", build.Id)
+		fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", build.Release, app)
 	}
 
 	return nil
