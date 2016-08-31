@@ -64,12 +64,12 @@ func autoscaleRack() {
 		instances = int(capacity.ProcessWidth) + 1
 	}
 
-	log.Log("process.memory=%d instance.memory=%d instances=%d change=%d", capacity.ProcessMemory, capacity.InstanceMemory, instances, (instances - system.Count))
-
 	// if no change then exit
 	if system.Count == instances {
 		return
 	}
+
+	log.Log("process.memory=%d instance.memory=%d instances=%d change=%d", capacity.ProcessMemory, capacity.InstanceMemory, instances, (instances - system.Count))
 
 	system.Count = instances
 
