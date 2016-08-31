@@ -289,6 +289,13 @@ func (p *TestProvider) SystemGet() (*structs.System, error) {
 	return args.Get(0).(*structs.System), args.Error(1)
 }
 
+// SystemLogs streams logs from the System
+func (p *TestProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) error {
+	args := p.Called(w, opts)
+
+	return args.Error(0)
+}
+
 // SystemReleases lists the latest releases of the rack
 func (p *TestProvider) SystemReleases() (structs.Releases, error) {
 	args := p.Called()

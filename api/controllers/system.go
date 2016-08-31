@@ -4,9 +4,13 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
+
+	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/structs"
 )
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -68,6 +72,37 @@ func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, capacity)
+}
+
+// SystemLogs returns the logs for the Rack
+func SystemLogs(ws *websocket.Conn) *httperr.Error {
+	header := ws.Request().Header
+
+	var err error
+
+	follow := true
+	if header.Get("Follow") == "false" {
+		follow = false
+	}
+
+	since := 2 * time.Minute
+	if s := header.Get("Since"); s != "" {
+		since, err = time.ParseDuration(s)
+		if err != nil {
+			return httperr.Errorf(403, "Invalid duration %s", s)
+		}
+	}
+
+	err = models.Provider().SystemLogs(ws, structs.LogStreamOptions{
+		Filter: header.Get("Filter"),
+		Follow: follow,
+		Since:  since,
+	})
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return nil
 }
 
 // SystemReleases lists the latest releases of the rack
