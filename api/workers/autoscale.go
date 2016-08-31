@@ -11,7 +11,7 @@ import (
 
 var (
 	autoscale = (os.Getenv("AUTOSCALE") == "true")
-	tick      = 5 * time.Second
+	tick      = 1 * time.Minute
 )
 
 func StartAutoscale() {
