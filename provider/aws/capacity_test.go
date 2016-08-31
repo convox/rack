@@ -1,6 +1,38 @@
 package aws_test
 
-import "github.com/convox/rack/api/awsutil"
+import (
+	"testing"
+
+	"github.com/convox/rack/api/awsutil"
+	"github.com/convox/rack/api/structs"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestCapacityGet(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleCapacityListContainerInstances,
+		cycleCapacityDescribeContainerInstances,
+		cycleCapacityListServices,
+		cycleCapacityDescribeServices,
+		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition,
+	)
+	defer provider.Close()
+
+	r, err := provider.CapacityGet()
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, &structs.Capacity{
+		ClusterCPU:     3072,
+		ClusterMemory:  6012,
+		InstanceCPU:    1024,
+		InstanceMemory: 2004,
+		ProcessCount:   2,
+		ProcessCPU:     400,
+		ProcessMemory:  512,
+		ProcessWidth:   2,
+	}, r)
+}
 
 var cycleCapacityDescribeContainerInstances = awsutil.Cycle{
 	awsutil.Request{
@@ -108,7 +140,7 @@ var cycleCapacityDescribeServices = awsutil.Cycle{
 							}
 					],
 					"roleArn": "arn:aws:iam::901416387788:role/convox-test-myapp-staging-ServiceRole-1HNRHXNKGNLT9",
-					"desiredCount": 1,
+					"desiredCount": 2,
 					"serviceName": "convox-test-myapp-staging-worker-SCELGCIYSKF",
 					"clusterArn": "cluster-test",
 					"serviceArn": "arn:aws:ecs:us-west-2:901416387788:service/convox-test-myapp-staging-worker-SCELGCIYSKF",
@@ -135,6 +167,36 @@ var cycleCapacityDescribeServices = awsutil.Cycle{
 				}
 			],
 			"failures": []
+		}`,
+	},
+}
+
+var cycleCapacityDescribeTaskDefinition = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+		Body:       `{"taskDefinition":"arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:1"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition":{
+				"family":"convox-test-myapp-staging-worker",
+				"containerDefinitions":[
+					{
+						"name":"worker",
+						"cpu":200,
+						"memory":256,
+						"image":"test-image",
+						"environment":[{"name":"PROCESS","value":"worker"}],
+						"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}],
+						"portMappings":[{"hostPort":5000,"containerPort":80}]
+					}
+				],
+				"volumes":[
+					{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}
+				]
+			}
 		}`,
 	},
 }

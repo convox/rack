@@ -194,7 +194,8 @@ func TestFormationSave(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		test.DescribeTaskDefinition1Cycle(""),
+		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition,
 		cycleNotificationPublish,
 		test.DescribeAppStackCycle("convox-httpd"),
 		cycleFormationUpdateStack,
@@ -257,7 +258,8 @@ func TestFormationSaveBadCount(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		test.DescribeTaskDefinition1Cycle(""),
+		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition,
 	)
 	defer provider.Close()
 
@@ -278,7 +280,8 @@ func TestFormationSaveCpuTooSmall(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		test.DescribeTaskDefinition1Cycle(""),
+		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition,
 	)
 	defer provider.Close()
 
@@ -299,7 +302,8 @@ func TestFormationSaveCpuTooLarge(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		test.DescribeTaskDefinition1Cycle(""),
+		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition,
 	)
 	defer provider.Close()
 
@@ -320,7 +324,8 @@ func TestFormationSaveMemoryTooLarge(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		test.DescribeTaskDefinition1Cycle(""),
+		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition,
 	)
 	defer provider.Close()
 
