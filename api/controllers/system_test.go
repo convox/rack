@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -132,6 +133,34 @@ func TestSystemUpdateCountNoChange(t *testing.T) {
 	})
 }
 
+func TestSystemUpdateAutoscaleCount(t *testing.T) {
+	models.Test(t, func() {
+		as := os.Getenv("AUTOSCALE")
+		os.Setenv("AUTOSCALE", "true")
+		defer os.Setenv("AUTOSCALE", as)
+
+		before := &structs.System{
+			Count:   3,
+			Name:    "test",
+			Region:  "us-test-1",
+			Status:  "running",
+			Type:    "t2.small",
+			Version: "dev",
+		}
+
+		models.TestProvider.On("SystemGet").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "5")
+
+		if assert.Nil(t, hf.Request("PUT", "/system", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "scaling count prohibited when autoscale enabled")
+		}
+	})
+}
 func TestSystemUpdateBadCount(t *testing.T) {
 	models.Test(t, func() {
 		before := &structs.System{
