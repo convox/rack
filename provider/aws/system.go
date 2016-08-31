@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -45,6 +46,20 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	return r, nil
+}
+
+// SystemLogs streams logs for the Rack
+func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) error {
+	system, err := p.describeStack(p.Rack)
+	if err != nil {
+		return err
+	}
+
+	// if strings.HasSuffix(err.Error(), "write: broken pipe") {
+	//   return nil
+	// }
+
+	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
 // SystemReleases lists the latest releases of the rack

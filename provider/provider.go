@@ -56,6 +56,7 @@ type Provider interface {
 	ServiceGet(name string) (*structs.Service, error)
 	ServiceLink(name, app, process string) (*structs.Service, error)
 	ServiceList() (structs.Services, error)
+	SystemLogs(w io.Writer, opts structs.LogStreamOptions) error
 	ServiceUnlink(name, app, process string) (*structs.Service, error)
 	ServiceUpdate(name string, params map[string]string) (*structs.Service, error)
 

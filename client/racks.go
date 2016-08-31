@@ -1,5 +1,11 @@
 package client
 
+import (
+	"fmt"
+	"io"
+	"time"
+)
+
 type Organization struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
@@ -14,4 +20,12 @@ type Rack struct {
 func (c *Client) Racks() (racks []Rack, err error) {
 	err = c.Get("/racks", &racks)
 	return racks, err
+}
+
+func (c *Client) StreamRackLogs(filter string, follow bool, since time.Duration, output io.WriteCloser) error {
+	return c.Stream("/system/logs", map[string]string{
+		"Filter": filter,
+		"Follow": fmt.Sprintf("%t", follow),
+		"Since":  since.String(),
+	}, nil, output)
 }
