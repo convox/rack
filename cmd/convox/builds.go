@@ -34,6 +34,10 @@ var (
 			Usage: "pull fresh image dependencies",
 		},
 		cli.BoolFlag{
+			Name:  "id",
+			Usage: "build logs on stderr, build id on stdout (useful for scripting)",
+		},
+		cli.BoolFlag{
 			Name:  "incremental",
 			Usage: "use incremental build",
 		},
@@ -49,8 +53,10 @@ var (
 		},
 	}
 
-	progressFunc = func(s string) {
-		fmt.Printf("\rUploading... %s       ", strings.TrimSpace(s))
+	progressFunc = func(w io.WriteCloser) func(s string) {
+		return func(s string) {
+			w.Write([]byte(fmt.Sprintf("\rUploading... %s       ", strings.TrimSpace(s))))
+		}
 	}
 )
 
@@ -196,12 +202,23 @@ func cmdBuildsCreate(c *cli.Context) error {
 		dir = c.Args()[0]
 	}
 
-	release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"))
+	output := os.Stdout
+
+	if c.Bool("id") {
+		output = os.Stderr
+	}
+
+	build, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Printf("Release: %s\n", release)
+	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
+
+	if c.Bool("id") {
+		os.Stdout.Write([]byte(fmt.Sprintf("%s\n", build)))
+	}
+
 	return nil
 }
 
@@ -272,7 +289,7 @@ func cmdBuildsCopy(c *cli.Context) error {
 
 	fmt.Println("OK")
 
-	releaseID, err := finishBuild(c, destApp, b)
+	_, releaseID, err := finishBuild(c, destApp, b, os.Stdout)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
@@ -345,7 +362,7 @@ func cmdBuildsImport(c *cli.Context) error {
 		progressFunc = nil
 	}
 
-	build, err := rackClient(c).ImportBuild(app, b, progressFunc)
+	build, err := rackClient(c).ImportBuild(app, b, progressFunc(os.Stdout))
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
@@ -362,21 +379,21 @@ func cmdBuildsImport(c *cli.Context) error {
 	return nil
 }
 
-func executeBuild(c *cli.Context, source, app, manifest, description string) (string, error) {
+func executeBuild(c *cli.Context, source, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	u, _ := url.Parse(source)
 
 	switch u.Scheme {
 	case "http", "https":
-		return executeBuildUrl(c, source, app, manifest, description)
+		return executeBuildUrl(c, source, app, manifest, description, output)
 	default:
 		if c.Bool("incremental") {
-			return executeBuildDirIncremental(c, source, app, manifest, description)
+			return executeBuildDirIncremental(c, source, app, manifest, description, output)
 		} else {
-			return executeBuildDir(c, source, app, manifest, description)
+			return executeBuildDir(c, source, app, manifest, description, output)
 		}
 	}
 
-	return "", fmt.Errorf("unreachable")
+	return "", "", fmt.Errorf("unreachable")
 }
 
 func createIndex(dir string) (client.Index, error) {
@@ -463,20 +480,20 @@ func readDockerIgnore(dir string) ([]string, error) {
 	return ignore, nil
 }
 
-func uploadIndex(c *cli.Context, index client.Index) error {
+func uploadIndex(c *cli.Context, index client.Index, output io.WriteCloser) error {
 	missing, err := rackClient(c).IndexMissing(index)
 	if err != nil {
 		return err
 	}
 
-	fmt.Print("Identifying changes... ")
+	output.Write([]byte("Identifying changes... "))
 
 	if len(missing) == 0 {
-		fmt.Println("NONE")
+		output.Write([]byte("NONE\n"))
 		return nil
 	}
 
-	fmt.Printf("%d files\n", len(missing))
+	output.Write([]byte(fmt.Sprintf("%d files\n", len(missing))))
 
 	buf := &bytes.Buffer{}
 
@@ -514,100 +531,100 @@ func uploadIndex(c *cli.Context, index client.Index) error {
 		return err
 	}
 
-	if err := rackClient(c).IndexUpdate(buf.Bytes(), progressFunc); err != nil {
+	if err := rackClient(c).IndexUpdate(buf.Bytes(), progressFunc(output)); err != nil {
 		return err
 	}
 
-	fmt.Println()
+	output.Write([]byte("\n"))
 
 	return nil
 }
 
-func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description string) (string, error) {
+func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// if the rack doesnt support incremental builds then fall back
 	if system.Version < "20160226234213" {
-		return executeBuildDir(c, dir, app, manifest, description)
+		return executeBuildDir(c, dir, app, manifest, description, output)
 	}
 
 	cache := !c.Bool("no-cache")
 
 	dir, err = filepath.Abs(dir)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Printf("Analyzing source... ")
+	output.Write([]byte("Analyzing source... "))
 
 	index, err := createIndex(dir)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Println("OK")
+	output.Write([]byte("OK\n"))
 
-	err = uploadIndex(c, index)
+	err = uploadIndex(c, index, output)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Printf("Starting build... ")
+	output.Write([]byte("Starting build... "))
 
 	build, err := rackClient(c).CreateBuildIndex(app, index, cache, manifest, description)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Println("OK")
+	output.Write([]byte("OK\n"))
 
-	return finishBuild(c, app, build)
+	return finishBuild(c, app, build, output)
 }
 
-func executeBuildDir(c *cli.Context, dir, app, manifest, description string) (string, error) {
+func executeBuildDir(c *cli.Context, dir, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	err := warnUnignoredEnv(dir)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	dir, err = filepath.Abs(dir)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Print("Creating tarball... ")
+	output.Write([]byte("Creating tarball... "))
 
 	tar, err := createTarball(dir)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Println("OK")
+	output.Write([]byte("OK\n"))
 
 	cache := !c.Bool("no-cache")
 
-	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, progressFunc)
+	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, progressFunc(output))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fmt.Println()
+	output.Write([]byte("\n"))
 
-	return finishBuild(c, app, build)
+	return finishBuild(c, app, build, output)
 }
 
-func executeBuildUrl(c *cli.Context, url, app, manifest, description string) (string, error) {
+func executeBuildUrl(c *cli.Context, url, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	cache := !c.Bool("no-cache")
 
 	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest, description)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return finishBuild(c, app, build)
+	return finishBuild(c, app, build, output)
 }
 
 func createTarball(base string) ([]byte, error) {
@@ -684,25 +701,22 @@ func createTarball(base string) ([]byte, error) {
 	return bytes, nil
 }
 
-func finishBuild(c *cli.Context, app string, build *client.Build) (string, error) {
+func finishBuild(c *cli.Context, app string, build *client.Build, output io.WriteCloser) (string, string, error) {
 	if build.Id == "" {
-		return "", fmt.Errorf("unable to fetch build id")
+		return "", "", fmt.Errorf("unable to fetch build id")
 	}
 
-	reader, writer := io.Pipe()
-	go io.Copy(os.Stdout, reader)
-
-	err := rackClient(c).StreamBuildLogs(app, build.Id, writer)
+	err := rackClient(c).StreamBuildLogs(app, build.Id, output)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	release, err := waitForBuild(c, app, build.Id)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return release, nil
+	return build.Id, release, nil
 }
 
 func waitForBuild(c *cli.Context, app, id string) (string, error) {

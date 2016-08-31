@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"gopkg.in/urfave/cli.v1"
 
@@ -52,7 +53,7 @@ func cmdDeploy(c *cli.Context) error {
 	}
 
 	// build
-	release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"))
+	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), os.Stdout)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
