@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/convox/logger"
 	"github.com/convox/rack/api/models"
-	"github.com/ddollar/logger"
 )
 
 var (
@@ -25,14 +25,14 @@ func StartAutoscale() {
 func autoscaleRack() {
 	log := logger.New("ns=workers.autoscale").At("autoscaleRack")
 
-	capacity, err := models.Provider().CapacityGet()
-	if err != nil {
-		log.Error(err)
+	// do nothing unless autoscaling is on
+	if !autoscale {
 		return
 	}
 
-	log.Log("autoscale=%t", autoscale)
-	if !autoscale {
+	capacity, err := models.Provider().CapacityGet()
+	if err != nil {
+		log.Error(err)
 		return
 	}
 
@@ -42,36 +42,46 @@ func autoscaleRack() {
 		return
 	}
 
-	log.Log("status=%q", system.Status)
+	log.Logf("status=%q", system.Status)
 	if system.Status != "running" {
 		return
 	}
 
-	// calculate instance requirements based on total process memory needed divided by the memory
-	// on an individual instance
-	instances := int(math.Ceil(float64(capacity.ProcessMemory) / float64(capacity.InstanceMemory)))
+	// start with the current count
+	desired := 0
 
-	// add one instance for some breathing room
-	instances++
+	// calculate instances required to statisfy cpu reservations plus one for breathing room
+	if c := int(math.Ceil(float64(capacity.ProcessCPU)/float64(capacity.InstanceCPU))) + 1; c > desired {
+		log = log.Replace("reason", "cpu")
+		desired = c
+	}
+
+	// calculate instances required to statisfy memory reservations plus one for breathing room
+	if c := int(math.Ceil(float64(capacity.ProcessMemory)/float64(capacity.InstanceMemory))) + 1; c > desired {
+		log = log.Replace("reason", "memory")
+		desired = c
+	}
 
 	// instance count cant be less than 2
-	if instances < 2 {
-		instances = 2
+	if desired < 2 {
+		log = log.Replace("reason", "minimum")
+		desired = 2
 	}
 
 	// instance count must be at least maxconcurrency+1
-	if instances < (int(capacity.ProcessWidth) + 1) {
-		instances = int(capacity.ProcessWidth) + 1
+	if c := int(capacity.ProcessWidth) + 1; c > desired {
+		log = log.Replace("reason", "width")
+		desired = c
 	}
 
 	// if no change then exit
-	if system.Count == instances {
+	if system.Count == desired {
 		return
 	}
 
-	log.Log("process.memory=%d instance.memory=%d instances=%d change=%d", capacity.ProcessMemory, capacity.InstanceMemory, instances, (instances - system.Count))
+	log.Logf("change=%d", (desired - system.Count))
 
-	system.Count = instances
+	system.Count = desired
 
 	err = models.Provider().SystemSave(*system)
 	if err != nil {
