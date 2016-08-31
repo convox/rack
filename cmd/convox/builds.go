@@ -384,7 +384,7 @@ func executeBuild(c *cli.Context, source, app, manifest, description string, out
 
 	switch u.Scheme {
 	case "http", "https":
-		return executeBuildUrl(c, source, app, manifest, description, output)
+		return executeBuildURL(c, source, app, manifest, description, output)
 	default:
 		if c.Bool("incremental") {
 			return executeBuildDirIncremental(c, source, app, manifest, description, output)
@@ -616,7 +616,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 	return finishBuild(c, app, build, output)
 }
 
-func executeBuildUrl(c *cli.Context, url, app, manifest, description string, output io.WriteCloser) (string, string, error) {
+func executeBuildURL(c *cli.Context, url, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	cache := !c.Bool("no-cache")
 
 	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest, description)
