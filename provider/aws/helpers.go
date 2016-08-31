@@ -372,6 +372,33 @@ func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEve
 	return res, nil
 }
 
+func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, error) {
+	td, ok := cache.Get("describeTaskDefinition", name).(*ecs.TaskDefinition)
+	if ok {
+		return td, nil
+	}
+
+	res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: aws.String(name),
+	})
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	td = res.TaskDefinition
+
+	if !p.SkipCache {
+		if err := cache.Set("describeTaskDefinition", name, td, 10*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return td, nil
+}
+
 func (p *AWSProvider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
 	res, ok := cache.Get("listContainerInstances", input).(*ecs.ListContainerInstancesOutput)
 
