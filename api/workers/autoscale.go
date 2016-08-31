@@ -1,7 +1,6 @@
 package workers
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"time"
@@ -12,7 +11,7 @@ import (
 
 var (
 	autoscale = (os.Getenv("AUTOSCALE") == "true")
-	tick      = 1 * time.Minute
+	tick      = 5 * time.Second
 )
 
 func StartAutoscale() {
@@ -28,23 +27,27 @@ func autoscaleRack() {
 
 	capacity, err := models.Provider().CapacityGet()
 	if err != nil {
-		log.Log("fn=models.GetSystemCapacity err=%q", err)
+		log.Error(err)
 		return
 	}
 
 	log.Log("autoscale=%t", autoscale)
-
 	if !autoscale {
 		return
 	}
 
 	system, err := models.Provider().SystemGet()
 	if err != nil {
-		log.Log("fn=models.GetSystem err=%q", err)
+		log.Error(err)
 		return
 	}
 
-	// calaculate instance requirements based on total process memory needed divided by the memory
+	log.Log("status=%q", system.Status)
+	if system.Status != "running" {
+		return
+	}
+
+	// calculate instance requirements based on total process memory needed divided by the memory
 	// on an individual instance
 	instances := int(math.Ceil(float64(capacity.ProcessMemory) / float64(capacity.InstanceMemory)))
 
@@ -72,10 +75,7 @@ func autoscaleRack() {
 
 	err = models.Provider().SystemSave(*system)
 	if err != nil {
-		log.Log("fn=system.Save err=%q", err)
+		log.Error(err)
 		return
 	}
-
-	// log for humans
-	fmt.Printf("who=\"convox/monitor\" what=\"autoscaled instance count to %d\" why=\"a service wants %s processes behind a load balancer\"\n", system.Count)
 }
