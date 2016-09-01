@@ -25,7 +25,7 @@ type fluentURL struct {
 
 func main() {
 	lambda_proc.Run(func(context *lambda_proc.Context, eventJSON json.RawMessage) (interface{}, error) {
-		fluentURL, err := getFluentURL(context.FunctionName)
+		fluentURL, err := getfluentURL(context.FunctionName)
 		fmt.Fprintf(os.Stderr, "fluentd connection config=%s %d\n", fluentURL.Host, fluentURL.Port)
 
 		logger, err := fluent.New(fluent.Config{FluentPort: fluentURL.Port, FluentHost: fluentURL.Host})
@@ -52,14 +52,17 @@ func main() {
 		logs, errs := 0, 0
 		for _, e := range d.LogEvents {
 
-			fmt.Sprintf("Message %s", e)
-			event := decodeLogLine(e.Message)
+			event, err := decodeLogLine(e.Message)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error decoding log line err=%s\n", err)
+				continue
+			}
 
-			tag := fmt.Sprintf("%s", event["convox_app"])
+			tag := d.LogGroup
 
 			err = logger.Post(tag, event)
 			if err != nil {
-				fmt.Fprint(os.Stderr, "FluentD Post: %s\n", err)
+				fmt.Fprintf(os.Stderr, "FluentD Post: %s\n", err)
 				return nil, err
 			}
 		}
@@ -68,24 +71,27 @@ func main() {
 	})
 }
 
-func decodeLogLine(msg string) map[string]interface{} {
+func decodeLogLine(msg string) (map[string]interface{}, error) {
 	s := strings.Split(msg, " ")
-	logGroup, event := s[0], s[1]
-
+	logGroup := s[0]
+	event := strings.Join(s[1:], " ")
 	s = strings.Split(logGroup, ":")
-	app, metadata := s[0], s[1]
+	containerName, convoxMetadata := s[0], s[1]
+	s = strings.Split(convoxMetadata, "/")
+	release, containerID := s[0], s[1]
 
-	s = strings.Split(metadata, "/")
-	release, cid := s[0], s[1]
+	var decodedJSON map[string]interface{}
+	err := json.Unmarshal([]byte(event), &decodedJSON)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding json: %s\n", err)
+		return nil, err
+	}
 
-	var decoded map[string]interface{}
-	json.Unmarshal([]byte(event), &decoded)
+	decodedJSON["convox_release"] = release
+	decodedJSON["containerName"] = containerName
+	decodedJSON["ecs_containerID"] = containerID
 
-	decoded["convox_app"] = app
-	decoded["convox_release"] = release
-	decoded["ecs_cid"] = cid
-
-	return decoded
+	return decodedJSON, nil
 }
 
 func parseURL(cfURL string) (string, int) {
@@ -103,7 +109,7 @@ func parseURL(cfURL string) (string, int) {
 	return fluentHost, fluentPort
 }
 
-func getFluentURL(name string) (fluentURL, error) {
+func getfluentURL(name string) (fluentURL, error) {
 	data, err := ioutil.ReadFile("/tmp/url")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "URL Cache empty=%s\n", err)

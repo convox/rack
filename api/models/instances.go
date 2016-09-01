@@ -48,6 +48,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
 		},
+		MaxResults: aws.Int64(1000),
 	})
 
 	if err != nil {

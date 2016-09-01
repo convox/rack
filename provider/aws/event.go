@@ -3,14 +3,12 @@ package aws
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/structs"
-	"github.com/ddollar/logger"
 )
 
 // EventSend publishes an important message out to the world.
@@ -25,10 +23,14 @@ import (
 // Because these are important system events, they are also published to Segment
 // for operational metrics.
 func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
-	log := logger.New("ns=kernel")
+	// log := logger.New("ns=kernel")
 
 	e.Status = "success"
 	e.Timestamp = time.Now().UTC()
+
+	if p.IsTest() {
+		e.Timestamp = time.Time{}
+	}
 
 	if err != nil {
 		e.Data["message"] = err.Error()
@@ -37,24 +39,24 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 
 	msg, err := json.Marshal(e)
 	if err != nil {
-		helpers.Error(log, err) // report internal errors to Rollbar
+		// helpers.Error(log, err) // report internal errors to Rollbar
 		return err
 	}
 
 	fmt.Printf("aws EventSend msg=%q\n", msg)
 
 	// Publish Event to SNS
-	resp, err := p.sns().Publish(&sns.PublishInput{
+	_, err = p.sns().Publish(&sns.PublishInput{
 		Message:   aws.String(string(msg)), // Required
 		Subject:   aws.String(e.Action),
-		TargetArn: aws.String(os.Getenv("NOTIFICATION_TOPIC")),
+		TargetArn: aws.String(p.NotificationTopic),
 	})
 	if err != nil {
-		helpers.Error(log, err) // report internal errors to Rollbar
+		// helpers.Error(log, err) // report internal errors to Rollbar
 		return err
 	}
 
-	log.At("EventSend").Log("message-id=%q", *resp.MessageId)
+	// log.At("EventSend").Log("message-id=%q", *resp.MessageId)
 
 	// report event to Segment
 	params := map[string]interface{}{

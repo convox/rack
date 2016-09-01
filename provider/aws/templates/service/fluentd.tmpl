@@ -92,7 +92,7 @@
               ]
             ]
           },
-          "S3Key": "release/{{ env "RELEASE" }}/fluentd.zip"
+          "S3Key": "release/{{ env "RELEASE" }}/lambda/fluentd.zip"
         },
         "Description": {
           "Ref": "Url"
@@ -130,7 +130,7 @@
           ],
           "Version": "2012-10-17"
         },
-        "Path": "/",
+        "Path": "/convox/",
         "Policies": [
           {
             "PolicyDocument": {

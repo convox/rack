@@ -1,9 +1,7 @@
 package provider
 
 import (
-	"fmt"
 	"io"
-	"os"
 
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/provider/aws"
@@ -19,6 +17,7 @@ type Provider interface {
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildGet(app, id string) (*structs.Build, error)
+	BuildLogs(app, id string) (string, error)
 	BuildList(app string, limit int64) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)
 	BuildSave(*structs.Build) error
@@ -33,6 +32,10 @@ type Provider interface {
 	EventSend(*structs.Event, error) error
 
 	EnvironmentGet(app string) (structs.Environment, error)
+
+	FormationList(app string) (structs.Formation, error)
+	FormationGet(app, process string) (*structs.ProcessFormation, error)
+	FormationSave(app string, pf *structs.ProcessFormation) error
 
 	IndexDiff(*structs.Index) ([]string, error)
 	IndexDownload(*structs.Index, string) error
@@ -53,21 +56,16 @@ type Provider interface {
 	ServiceGet(name string) (*structs.Service, error)
 	ServiceLink(name, app, process string) (*structs.Service, error)
 	ServiceList() (structs.Services, error)
+	SystemLogs(w io.Writer, opts structs.LogStreamOptions) error
 	ServiceUnlink(name, app, process string) (*structs.Service, error)
 	ServiceUpdate(name string, params map[string]string) (*structs.Service, error)
 
 	SystemGet() (*structs.System, error)
+	SystemReleases() (structs.Releases, error)
 	SystemSave(system structs.System) error
 }
 
-// NewAwsProvider returns a new AWS provider
-func NewAwsProvider(region, endpoint, access, secret, token string) Provider {
-	return aws.NewProvider(region, endpoint, access, secret, token)
-}
-
-/** helpers ****************************************************************************************/
-
-func die(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	os.Exit(1)
+// NewAwsProviderFromEnv returns a new AWS provider based on env vars
+func NewAwsProviderFromEnv() *aws.AWSProvider {
+	return aws.NewProviderFromEnv()
 }

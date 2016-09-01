@@ -41,18 +41,11 @@ func Docker(host string) (*docker.Client, error) {
 }
 
 func DockerHost() (string, error) {
-	ares, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
+	cres, err := DescribeContainerInstances()
 
-	if len(ares.ContainerInstanceArns) == 0 {
+	if len(cres.ContainerInstances) == 0 {
 		return "", fmt.Errorf("no container instances")
 	}
-
-	cres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: ares.ContainerInstanceArns,
-	})
 
 	if err != nil {
 		return "", err
@@ -68,6 +61,7 @@ func DockerHost() (string, error) {
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{&id}},
 		},
+		MaxResults: aws.Int64(1000),
 	})
 
 	if len(ires.Reservations) != 1 || len(ires.Reservations[0].Instances) != 1 {
@@ -84,6 +78,8 @@ func DockerHost() (string, error) {
 }
 
 func DockerLogin(ac docker.AuthConfiguration) (string, error) {
+	log := Logger.At("DockerLogin").Start()
+
 	if ac.Email == "" {
 		ac.Email = "user@convox.com"
 	}
@@ -122,37 +118,31 @@ func DockerLogin(ac docker.AuthConfiguration) (string, error) {
 		ac.Username = parts[0]
 	}
 
+	log = log.Namespace("host=%q user=%q", ac.ServerAddress, ac.Username)
+
 	args := []string{"login", "-e", ac.Email, "-u", ac.Username, "-p", ac.Password, ac.ServerAddress}
 
-	out, err := exec.Command("docker", args...).CombinedOutput()
-
-	// log args with password masked
-	args[6] = "*****"
-	cmd := fmt.Sprintf("docker %s", strings.Trim(fmt.Sprint(args), "[]"))
-
-	if err != nil {
-		fmt.Printf("ns=kernel cn=docker at=DockerLogin state=error step=exec.Command cmd=%q out=%q err=%q\n", cmd, out, err)
-	} else {
-		fmt.Printf("ns=kernel cn=docker at=DockerLogin state=success step=exec.Command cmd=%q\n", cmd)
+	if _, err := exec.Command("docker", args...).CombinedOutput(); err != nil {
+		log.Error(err)
+		return "", err
 	}
 
-	return ac.ServerAddress, err
+	log.Success()
+	return ac.ServerAddress, nil
 }
 
 func DockerLogout(ac docker.AuthConfiguration) error {
+	log := Logger.At("DockerLogout").Namespace("host=%q user=%q", ac.ServerAddress, ac.Username).Start()
+
 	args := []string{"logout", ac.ServerAddress}
 
-	out, err := exec.Command("docker", args...).CombinedOutput()
-
-	cmd := fmt.Sprintf("docker %s", strings.Trim(fmt.Sprint(args), "[]"))
-
-	if err != nil {
-		fmt.Printf("ns=kernel cn=docker at=DockerLogout state=error step=exec.Command cmd=%q out=%q err=%q\n", cmd, out, err)
-	} else {
-		fmt.Printf("ns=kernel cn=docker at=DockerLogout state=success step=exec.Command cmd=%q\n", cmd)
+	if _, err := exec.Command("docker", args...).CombinedOutput(); err != nil {
+		log.Error(err)
+		return err
 	}
 
-	return err
+	log.Success()
+	return nil
 }
 
 // Log into the appropriate registry for the given app
@@ -177,7 +167,7 @@ func AppDockerLogin(app App) (string, error) {
 }
 
 func PullAppImages() {
-	fmt.Printf("ns=kernel cn=docker fn=PullAppImages\n")
+	log := Logger.At("PullAppImages").Start()
 
 	if os.Getenv("DEVELOPMENT") == "true" {
 		return
@@ -188,7 +178,7 @@ func PullAppImages() {
 	apps, err := ListApps()
 
 	if err != nil {
-		fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=ListApps err=%q\n", err)
+		log.Step("ListApps").Error(err)
 		return
 	}
 
@@ -196,7 +186,7 @@ func PullAppImages() {
 		a, err := GetApp(app.Name)
 
 		if err != nil {
-			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=GetApp err=%q\n", err.Error())
+			log.Step("GetApp").Error(err)
 			continue
 		}
 
@@ -208,14 +198,14 @@ func PullAppImages() {
 				break
 			}
 
-			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=AppDockerLogin err=%q\n", err.Error())
+			log.Step("AppDockerLogin").Error(err)
 			time.Sleep(30 * time.Second)
 		}
 
 		resources, err := a.Resources()
 
 		if err != nil {
-			fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=Resources err=%q\n", err)
+			log.Step("Resources").Error(err)
 		}
 
 		for key, r := range resources {
@@ -225,21 +215,21 @@ func PullAppImages() {
 				})
 
 				if err != nil {
-					fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=DescribeTaskDefinition err=%q\n", err.Error())
+					log.Step("DescribeTaskDefinition").Error(err)
 					continue
 				}
 
 				for _, cd := range td.TaskDefinition.ContainerDefinitions {
-					fmt.Printf("IMAGE: %s", *cd.Image)
-
-					fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=exec.Command cmd=%q\n", fmt.Sprintf("docker pull %s", *cd.Image))
-
+					log = log.Namespace("image=%q", *cd.Image).Step("Pull")
 					_, err := exec.Command("docker", "pull", *cd.Image).CombinedOutput()
 
 					if err != nil {
+						log.Error(err)
 						fmt.Printf("ns=kernel cn=docker fn=PullAppImages at=exec.Command cmd=%q err=%q\n", fmt.Sprintf("docker pull %s", *cd.Image), err.Error())
 						continue
 					}
+
+					log.Success()
 				}
 			}
 		}
@@ -247,7 +237,7 @@ func PullAppImages() {
 }
 
 func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, error) {
-	fmt.Printf("ns=kernel cn=docker fn=GetPrivateRegistriesAuth\n")
+	log := Logger.At("GetPrivateRegistriesAuth").Start()
 
 	acs := docker.AuthConfigurations119{}
 
@@ -261,19 +251,22 @@ func GetPrivateRegistriesAuth() (Environment, docker.AuthConfigurations119, erro
 
 	if len(data) > 0 {
 		if err := json.Unmarshal(data, &acs); err != nil {
-			return env, acs, err
+			log.Step("json.Unmarshal").Error(err)
+			return nil, nil, err
 		}
 	}
 
+	log.Success()
 	return env, acs, nil
 }
 
 func LoginPrivateRegistries() error {
-	fmt.Printf("ns=kernel cn=docker fn=LoginPrivateRegistries\n")
+	log := Logger.At("LoginPrivateRegistries").Start()
 
 	_, acs, err := GetPrivateRegistriesAuth()
 
 	if err != nil {
+		log.Step("GetPrivateRegistriesAuth").Error(err)
 		return err
 	}
 
@@ -281,5 +274,6 @@ func LoginPrivateRegistries() error {
 		DockerLogin(ac)
 	}
 
+	log.Success()
 	return nil
 }

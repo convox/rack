@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/crypt"
@@ -30,7 +29,7 @@ func (p *AWSProvider) EnvironmentGet(app string) (structs.Environment, error) {
 	}
 
 	if a.Parameters["Key"] != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+		cr := crypt.New(p.Region, p.Access, p.Secret)
 
 		if d, err := cr.Decrypt(a.Parameters["Key"], data); err == nil {
 			data = d

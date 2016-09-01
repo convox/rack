@@ -28,10 +28,6 @@ import (
 
 var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
 
-func buildsTable(app string) string {
-	return os.Getenv("DYNAMO_BUILDS")
-}
-
 func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
 	srcA, err := p.AppGet(srcApp)
 	if err != nil {
@@ -59,7 +55,7 @@ func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, err
 
 	for name, entry := range m.Services {
 		entry.Build.Context = ""
-		entry.Image = registryTag(srcA, name, srcB.Id)
+		entry.Image = p.registryTag(srcA, name, srcB.Id)
 		m.Services[name] = entry
 	}
 
@@ -205,7 +201,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(app)),
+		TableName: aws.String(p.DynamoBuilds),
 	})
 	if err != nil {
 		return b, err
@@ -217,17 +213,12 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 }
 
 func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(buildsTable(a.Name)),
+		TableName: aws.String(p.DynamoBuilds),
 	}
 
 	res, err := p.dynamodb().GetItem(req)
@@ -239,9 +230,39 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 		return nil, fmt.Errorf("no such build: %s", id)
 	}
 
-	build := p.buildFromItem(res.Item, a.Outputs["Settings"])
+	build := p.buildFromItem(res.Item)
 
 	return build, nil
+}
+
+// BuildLogs gets a Build's logs from S3. If there is no log file in S3, that is not an error.
+func (p *AWSProvider) BuildLogs(app, id string) (string, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return "", err
+	}
+
+	key := fmt.Sprintf("builds/%s.log", id)
+
+	req := &s3.GetObjectInput{
+		Bucket: aws.String(a.Outputs["Settings"]),
+		Key:    aws.String(key),
+	}
+
+	res, err := p.s3().GetObject(req)
+	if err != nil {
+		if awsError(err) == "NoSuchKey" {
+			return "", nil
+		}
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit
@@ -261,7 +282,7 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Int64(limit),
 		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(buildsTable(a.Name)),
+		TableName:        aws.String(p.DynamoBuilds),
 	}
 
 	res, err := p.dynamodb().Query(req)
@@ -272,7 +293,7 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 	builds := make(structs.Builds, len(res.Items))
 
 	for i, item := range res.Items {
-		builds[i] = *p.buildFromItem(item, a.Outputs["Settings"])
+		builds[i] = *p.buildFromItem(item)
 	}
 
 	return builds, nil
@@ -343,9 +364,9 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
-			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(SortableTime))},
+			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
 		},
-		TableName: aws.String(buildsTable(b.App)),
+		TableName: aws.String(p.DynamoBuilds),
 	}
 
 	if b.Description != "" {
@@ -361,7 +382,7 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 	}
 
 	if !b.Ended.IsZero() {
-		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(SortableTime))}
+		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(sortableTime))}
 	}
 
 	if b.Logs != "" {
@@ -399,7 +420,7 @@ func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string)
 		"-e", "MANIFEST_PATH",
 		"-e", "REPOSITORY",
 		"-e", "NO_CACHE",
-		os.Getenv("DOCKER_IMAGE_API"),
+		p.DockerImageAPI,
 		"build",
 		source,
 	}
@@ -409,8 +430,8 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	// self-hosted registry auth
 	email := "user@convox.com"
 	username := "convox"
-	password := os.Getenv("PASSWORD")
-	address := os.Getenv("REGISTRY_HOST")
+	password := p.Password
+	address := p.RegistryHost
 
 	// ECR auth
 	if registryId := a.Outputs["RegistryId"]; registryId != "" {
@@ -449,9 +470,9 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	}
 
 	// Determin callback host. Local Rack should use a variant of localhost
-	host := os.Getenv("NOTIFICATION_HOST")
+	host := p.NotificationHost
 
-	if os.Getenv("DEVELOPMENT") == "true" {
+	if p.Development {
 		out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
 		if err != nil {
 			return nil, err
@@ -466,7 +487,7 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 		fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
 		fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
 		fmt.Sprintf("RACK_HOST=%s", host),
-		fmt.Sprintf("RACK_PASSWORD=%s", os.Getenv("PASSWORD")),
+		fmt.Sprintf("RACK_PASSWORD=%s", p.Password),
 		fmt.Sprintf("REGISTRY_EMAIL=%s", email),
 		fmt.Sprintf("REGISTRY_USERNAME=%s", username),
 		fmt.Sprintf("REGISTRY_PASSWORD=%s", password),
@@ -481,44 +502,16 @@ func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path s
 	return env, nil
 }
 
-// buildFromItem populates a Build struct from a DynamoDB Item. It also populates build.Logs
-// from an S3 object if a bucket is passed in and a builds/B1234.log object exists.
-func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue, bucket string) *structs.Build {
+// buildFromItem populates a Build struct from a DynamoDB Item
+func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
 	id := coalesce(item["id"], "")
-	started, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
-	ended, _ := time.Parse(SortableTime, coalesce(item["ended"], ""))
-
-	// if an app bucket was passed in, try to get logs from S3
-	logs := ""
-
-	if bucket != "" {
-		key := fmt.Sprintf("builds/%s.log", id)
-
-		req := &s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		}
-
-		res, err := p.s3().GetObject(req)
-		if err != nil {
-			if awsError(err) != "NoSuchKey" {
-				fmt.Printf("aws buildFromItem s3.GetObject bucket=%s key=%s err=%s\n", bucket, key, err)
-			}
-		} else {
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				fmt.Printf("aws buildFromItem ioutil.ReadAll err=%s\n", err)
-			} else {
-				logs = string(body)
-			}
-		}
-	}
+	started, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
+	ended, _ := time.Parse(sortableTime, coalesce(item["ended"], ""))
 
 	return &structs.Build{
 		Id:          id,
 		App:         coalesce(item["app"], ""),
 		Description: coalesce(item["description"], ""),
-		Logs:        logs,
 		Manifest:    coalesce(item["manifest"], ""),
 		Release:     coalesce(item["release"], ""),
 		Status:      coalesce(item["status"], ""),
@@ -569,7 +562,14 @@ func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd,
 	timeout := time.After(1 * time.Hour)
 
 	go func() {
-		waitErr <- cmd.Wait() // Make sure to read all stdout before calling this.
+		err := cmd.Wait()
+
+		switch err.(type) {
+		case *exec.ExitError:
+			waitErr <- err
+		default:
+			waitErr <- nil
+		}
 	}()
 
 	select {
@@ -682,7 +682,7 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	urls := []string{}
 
 	for name, _ := range m.Services {
-		urls = append(urls, registryTag(a, name, b.Id))
+		urls = append(urls, p.registryTag(a, name, b.Id))
 	}
 
 	imageIds := []*ecr.ImageIdentifier{}
@@ -711,18 +711,17 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
-func registryTag(a *structs.App, serviceName, buildId string) string {
-	tag := fmt.Sprintf("%s/%s-%s:%s", os.Getenv("REGISTRY_HOST"), a.Name, serviceName, buildId)
+func (p *AWSProvider) registryTag(a *structs.App, serviceName, buildID string) string {
+	tag := fmt.Sprintf("%s/%s-%s:%s", p.RegistryHost, a.Name, serviceName, buildID)
 
 	if registryId := a.Outputs["RegistryId"]; registryId != "" {
-		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, os.Getenv("AWS_REGION"), a.Outputs["RegistryRepository"], serviceName, buildId)
+		tag = fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", registryId, p.Region, a.Outputs["RegistryRepository"], serviceName, buildID)
 	}
 
 	return tag
 }
 
 func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
-
 	// query dynamo for all builds belonging to app
 	qi := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("app = :app"),
@@ -730,7 +729,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 			":app": &dynamodb.AttributeValue{S: aws.String(app.Name)},
 		},
 		IndexName: aws.String("app.created"),
-		TableName: aws.String(buildsTable(app.Name)),
+		TableName: aws.String(p.DynamoBuilds),
 	}
 
 	res, err := p.dynamodb().Query(qi)
@@ -742,7 +741,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 	wrs := []*dynamodb.WriteRequest{}
 	fmt.Println()
 	for _, item := range res.Items {
-		b := p.buildFromItem(item, app.Outputs["Settings"])
+		b := p.buildFromItem(item)
 
 		wr := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
@@ -757,5 +756,5 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 		wrs = append(wrs, wr)
 	}
 
-	return p.dynamoBatchDeleteItems(wrs, buildsTable(app.Name))
+	return p.dynamoBatchDeleteItems(wrs, p.DynamoBuilds)
 }

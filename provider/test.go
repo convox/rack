@@ -21,6 +21,7 @@ type TestProvider struct {
 	Releases     structs.Releases
 	Service      structs.Service
 	Services     structs.Services
+	System       structs.System
 }
 
 // AppGet gets an App
@@ -71,6 +72,12 @@ func (p *TestProvider) BuildGet(app, id string) (*structs.Build, error) {
 	return &p.Build, nil
 }
 
+// BuildLogs gets a Build's logs
+func (p *TestProvider) BuildLogs(app, id string) (string, error) {
+	p.Called(app, id)
+	return "", nil
+}
+
 // BuildList lists the Builds
 func (p *TestProvider) BuildList(app string, limit int64) (structs.Builds, error) {
 	p.Called(app, limit)
@@ -91,8 +98,13 @@ func (p *TestProvider) BuildSave(b *structs.Build) error {
 
 // CapacityGet gets the Capacity
 func (p *TestProvider) CapacityGet() (*structs.Capacity, error) {
-	p.Called()
-	return &p.Capacity, nil
+	args := p.Called()
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*structs.Capacity), args.Error(1)
 }
 
 // CertificateCreate creates a Certificate
@@ -129,6 +141,34 @@ func (p *TestProvider) EventSend(e *structs.Event, err error) error {
 func (p *TestProvider) EnvironmentGet(app string) (structs.Environment, error) {
 	p.Called()
 	return nil, nil
+}
+
+// FormationList lists the Formation
+func (p *TestProvider) FormationList(app string) (structs.Formation, error) {
+	args := p.Called(app)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Formation), args.Error(1)
+}
+
+// FormationGet gets the Formation for a Process
+func (p *TestProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
+	args := p.Called(app, process)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*structs.ProcessFormation), args.Error(1)
+}
+
+// FormationSave saves the Formation for a Process
+func (p *TestProvider) FormationSave(app string, pf *structs.ProcessFormation) error {
+	args := p.Called(app, pf)
+	return args.Error(0)
 }
 
 // IndexDiff gets a list of missing Index hashes
@@ -176,6 +216,11 @@ func (p *TestProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 // ReleaseList lists the Releases
 func (p *TestProvider) ReleaseList(app string, limit int64) (structs.Releases, error) {
 	args := p.Called(app, limit)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
 	return args.Get(0).(structs.Releases), args.Error(1)
 }
 
@@ -235,12 +280,36 @@ func (p *TestProvider) ServiceUpdate(name string, params map[string]string) (*st
 
 // SystemGet gets the System
 func (p *TestProvider) SystemGet() (*structs.System, error) {
-	p.Called()
-	return nil, nil
+	args := p.Called()
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*structs.System), args.Error(1)
+}
+
+// SystemLogs streams logs from the System
+func (p *TestProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) error {
+	args := p.Called(w, opts)
+
+	return args.Error(0)
+}
+
+// SystemReleases lists the latest releases of the rack
+func (p *TestProvider) SystemReleases() (structs.Releases, error) {
+	args := p.Called()
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Releases), args.Error(1)
 }
 
 // SystemSave saves the System
 func (p *TestProvider) SystemSave(system structs.System) error {
-	p.Called(system)
-	return nil
+	args := p.Called(system)
+
+	return args.Error(0)
 }

@@ -33,6 +33,45 @@ type Process struct {
 
 type Processes []*Process
 
+// DescribeContainerInstances lists and describes all the ECS instances.
+// It handles pagination for clusters > 100 instances.
+func DescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+	instances := []*ecs.ContainerInstance{}
+	var nextToken string
+
+	for {
+		res, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
+			Cluster:   aws.String(os.Getenv("CLUSTER")),
+			NextToken: &nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		dres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, dres.ContainerInstances...)
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
+	}
+
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
+}
+
 func GetAppServices(app string) ([]*ecs.Service, error) {
 	services := []*ecs.Service{}
 
@@ -99,19 +138,7 @@ func ListProcesses(app string) ([]*Process, error) {
 	}
 
 	// get ECS and EC2 instance info up front
-	lres, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	dres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: lres.ContainerInstanceArns,
-	})
-
+	dres, err := DescribeContainerInstances()
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +150,10 @@ func ListProcesses(app string) ([]*Process, error) {
 	}
 
 	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
-		InstanceIds: instanceIds,
+		Filters: []*ec2.Filter{
+			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+		},
+		MaxResults: aws.Int64(1000),
 	})
 
 	if err != nil {

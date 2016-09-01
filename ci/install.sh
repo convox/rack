@@ -11,4 +11,4 @@ convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
 grep -v "Created Unknown" $CIRCLE_ARTIFACTS/convox-installer.log
 
-convox logs --app $STACK_NAME > $CIRCLE_ARTIFACTS/convox.log &
+convox instances

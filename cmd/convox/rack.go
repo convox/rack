@@ -137,12 +137,7 @@ func cmdRack(c *cli.Context) error {
 }
 
 func cmdRackLogs(c *cli.Context) error {
-	system, err := rackClient(c).GetSystem()
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	err = rackClient(c).StreamAppLogs(system.Name, c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
+	err := rackClient(c).StreamRackLogs(c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}

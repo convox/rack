@@ -3,7 +3,6 @@ package aws
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,18 +12,13 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
-func releasesTable(app string) string {
-	return os.Getenv("DYNAMO_RELEASES")
-}
-
 // ReleaseGet returns a release
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
-
 	if id == "" {
 		return nil, fmt.Errorf("release id must not be empty")
 	}
 
-	a, err := p.AppGet(app)
+	_, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
@@ -34,16 +28,15 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": &dynamodb.AttributeValue{S: aws.String(id)},
 		},
-		TableName: aws.String(releasesTable(a.Name)),
+		TableName: aws.String(p.DynamoReleases),
 	}
 
 	res, err := p.dynamodb().GetItem(req)
 	if err != nil {
 		return nil, err
 	}
-
 	if res.Item == nil {
-		return nil, fmt.Errorf("no such release: %s", id)
+		return nil, ErrorNotFound(fmt.Sprintf("no such release: %s", id))
 	}
 
 	release := releaseFromItem(res.Item)
@@ -70,7 +63,7 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 		IndexName:        aws.String("app.created"),
 		Limit:            aws.Int64(limit),
 		ScanIndexForward: aws.Bool(false),
-		TableName:        aws.String(releasesTable(a.Name)),
+		TableName:        aws.String(p.DynamoReleases),
 	}
 
 	res, err := p.dynamodb().Query(req)
@@ -113,9 +106,9 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 		Item: map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
-			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
+			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(sortableTime))},
 		},
-		TableName: aws.String(releasesTable(r.App)),
+		TableName: aws.String(p.DynamoReleases),
 	}
 
 	if r.Build != "" {
@@ -134,7 +127,7 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 	env := []byte(r.Env)
 
 	if key != "" {
-		cr := crypt.New(os.Getenv("AWS_REGION"), os.Getenv("AWS_ACCESS"), os.Getenv("AWS_SECRET"))
+		cr := crypt.New(p.Region, p.Access, p.Secret)
 
 		env, err = cr.Encrypt(key, []byte(env))
 		if err != nil {
@@ -158,7 +151,7 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 }
 
 func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release {
-	created, _ := time.Parse(SortableTime, coalesce(item["created"], ""))
+	created, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
 
 	release := &structs.Release{
 		Id:       coalesce(item["id"], ""),
@@ -185,10 +178,10 @@ func (p *AWSProvider) ReleaseDelete(app, buildID string) error {
 			":build": &dynamodb.AttributeValue{S: aws.String(buildID)},
 		},
 		IndexName: aws.String("app.created"),
-		TableName: aws.String(releasesTable(app)),
+		TableName: aws.String(p.DynamoReleases),
 	}
 
-	return p.deleteReleaseItems(qi, releasesTable(app))
+	return p.deleteReleaseItems(qi, p.DynamoReleases)
 }
 
 // releasesDeleteAll will delete all releases associate with app
@@ -202,10 +195,10 @@ func (p *AWSProvider) releaseDeleteAll(app string) error {
 			":app": &dynamodb.AttributeValue{S: aws.String(app)},
 		},
 		IndexName: aws.String("app.created"),
-		TableName: aws.String(releasesTable(app)),
+		TableName: aws.String(p.DynamoReleases),
 	}
 
-	return p.deleteReleaseItems(qi, releasesTable(app))
+	return p.deleteReleaseItems(qi, p.DynamoReleases)
 }
 
 // deleteReleaseItems deletes release items from Dynamodb based on query input and the tableName

@@ -20,13 +20,10 @@ func init() {
 }
 
 func TestBuildGet(t *testing.T) {
-	aws, provider := StubAwsProvider(
-		describeStacksCycle,
-
+	provider := StubAwsProvider(
 		build1GetItemCycle,
-		build1GetObjectCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	b, err := provider.BuildGet("httpd", "BHINCLZYYVN")
 
@@ -34,7 +31,7 @@ func TestBuildGet(t *testing.T) {
 	assert.EqualValues(t, &structs.Build{
 		Id:       "BHINCLZYYVN",
 		App:      "httpd",
-		Logs:     "RUNNING: docker pull httpd",
+		Logs:     "",
 		Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 		Release:  "RVFETUHHKKD",
 		Status:   "complete",
@@ -44,11 +41,8 @@ func TestBuildGet(t *testing.T) {
 }
 
 func TestBuildDelete(t *testing.T) {
-	aws, provider := StubAwsProvider(
-		describeStacksCycle,
-
+	provider := StubAwsProvider(
 		build2GetItemCycle,
-		build2GetObjectCycle,
 
 		describeStacksCycle,
 		releasesBuild2DeleteItemCycle,
@@ -58,7 +52,7 @@ func TestBuildDelete(t *testing.T) {
 
 		build2BatchDeleteImageCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	b, err := provider.BuildDelete("httpd", "BNOARQMVHUO")
 
@@ -66,7 +60,7 @@ func TestBuildDelete(t *testing.T) {
 	assert.EqualValues(t, &structs.Build{
 		Id:       "BNOARQMVHUO",
 		App:      "httpd",
-		Logs:     "RUNNING: docker pull httpd",
+		Logs:     "",
 		Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 		Release:  "RFVZFLKVTYO",
 		Status:   "complete",
@@ -76,7 +70,7 @@ func TestBuildDelete(t *testing.T) {
 }
 
 func TestBuildList(t *testing.T) {
-	aws, provider := StubAwsProvider(
+	provider := StubAwsProvider(
 		describeStacksCycle,
 
 		buildsQueryCycle,
@@ -84,7 +78,7 @@ func TestBuildList(t *testing.T) {
 		build1GetObjectCycle,
 		build2GetObjectCycle,
 	)
-	defer aws.Close()
+	defer provider.Close()
 
 	b, err := provider.BuildList("httpd", 20)
 
@@ -93,7 +87,7 @@ func TestBuildList(t *testing.T) {
 		structs.Build{
 			Id:       "BHINCLZYYVN",
 			App:      "httpd",
-			Logs:     "RUNNING: docker pull httpd",
+			Logs:     "",
 			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 			Release:  "RVFETUHHKKD",
 			Status:   "complete",
@@ -103,7 +97,7 @@ func TestBuildList(t *testing.T) {
 		structs.Build{
 			Id:       "BNOARQMVHUO",
 			App:      "httpd",
-			Logs:     "RUNNING: docker pull httpd",
+			Logs:     "",
 			Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
 			Release:  "RFVZFLKVTYO",
 			Status:   "complete",
@@ -111,6 +105,19 @@ func TestBuildList(t *testing.T) {
 			Ended:    time.Unix(1459709198, 984281955).UTC(),
 		},
 	}, b)
+}
+
+func TestBuildLogs(t *testing.T) {
+	provider := StubAwsProvider(
+		describeStacksCycle,
+		build1GetObjectCycle,
+	)
+	defer provider.Close()
+
+	l, err := provider.BuildLogs("httpd", "BHINCLZYYVN")
+
+	assert.Nil(t, err)
+	assert.Equal(t, "RUNNING: docker pull httpd", l)
 }
 
 var describeStacksCycle = awsutil.Cycle{

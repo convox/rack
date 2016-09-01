@@ -1,7 +1,10 @@
 package models
 
 import (
+	"crypto/sha256"
+	"encoding/base32"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/convox/rack/manifest"
@@ -14,6 +17,13 @@ type CronJob struct {
 	Service  *manifest.Service
 	App      *App
 }
+
+//CronJobs is a wrapper for sorting
+type CronJobs []CronJob
+
+func (a CronJobs) Len() int           { return len(a) }
+func (a CronJobs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a CronJobs) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 func NewCronJobFromLabel(key, value string) CronJob {
 	keySlice := strings.Split(key, ".")
@@ -36,9 +46,24 @@ func (cr *CronJob) Process() string {
 }
 
 func (cr *CronJob) ShortName() string {
-	return fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
+	shortName := fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
+
+	reg, err := regexp.Compile("[^A-Za-z0-9]+")
+	if err != nil {
+		panic(err)
+	}
+
+	return reg.ReplaceAllString(shortName, "")
 }
 
 func (cr *CronJob) LongName() string {
-	return fmt.Sprintf("%s-%s-%s", cr.App.StackName(), cr.Process(), cr.Name)
+	prefix := fmt.Sprintf("%s-%s-%s", cr.App.StackName(), cr.Process(), cr.Name)
+	hash := sha256.Sum256([]byte(prefix))
+	suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
+
+	// $prefix-$suffix-schedule" needs to be <= 64 characters
+	if len(prefix) > 55-len(suffix) {
+		prefix = prefix[:55-len(suffix)]
+	}
+	return prefix + suffix
 }

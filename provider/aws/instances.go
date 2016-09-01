@@ -1,11 +1,12 @@
 package aws
 
 import (
-	"os"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -13,22 +14,7 @@ import (
 )
 
 func (p *AWSProvider) InstanceList() (structs.Instances, error) {
-	res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ecsRes, err := p.ecs().DescribeContainerInstances(
-		&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: res.ContainerInstanceArns,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
+	ecsRes, err := p.describeContainerInstances()
 
 	var instanceIds []*string
 	for _, i := range ecsRes.ContainerInstances {
@@ -39,6 +25,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 		Filters: []*ec2.Filter{
 			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
 		},
+		MaxResults: aws.Int64(1000),
 	})
 	if err != nil {
 		return nil, err
@@ -136,4 +123,46 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	return instances, nil
+}
+
+// describeContainerInstances lists and describes all the ECS instances.
+// It handles pagination for clusters > 100 instances.
+func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+	instances := []*ecs.ContainerInstance{}
+	var nextToken string
+
+	for {
+		res, err := p.listContainerInstances(&ecs.ListContainerInstancesInput{
+			Cluster:   aws.String(p.Cluster),
+			NextToken: &nextToken,
+		})
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
+			return nil, ErrorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		dres, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(p.Cluster),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, dres.ContainerInstances...)
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
+	}
+
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
 }

@@ -801,7 +801,8 @@ func (a App) CronJobs(m manifest.Manifest) []CronJob {
 		labels := entry.LabelsByPrefix("convox.cron")
 		for key, value := range labels {
 			cronjob := NewCronJobFromLabel(key, value)
-			cronjob.Service = &entry
+			e := entry
+			cronjob.Service = &e
 			cronjob.App = &a
 			cronjobs = append(cronjobs, cronjob)
 		}

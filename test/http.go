@@ -55,6 +55,7 @@ func buildRequest(method, url string, values url.Values) (req *http.Request, err
 	} else {
 		req, err = http.NewRequest(method, url+"?"+values.Encode(), nil)
 	}
+
 	req.Header.Set("Version", "dev")
 
 	return

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,25 +26,31 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		Parameters: cfParams(params),
 		Type:       kind,
 	}
+	s.Parameters["CustomTopic"] = customTopic
+	s.Parameters["NotificationTopic"] = notificationTopic
 
 	var req *cloudformation.CreateStackInput
 
 	switch s.Type {
-	case "mysql", "postgres", "redis", "sqs":
-		req, err = createService(s)
+	case "memcached", "mysql", "postgres", "redis", "sqs":
+		req, err = p.createService(s)
 	case "fluentd":
-		req, err = createServiceURL(s, "tcp")
+		req, err = p.createServiceURL(s, "tcp")
 	case "s3":
-		s.Parameters["Topic"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Topic"])
-		req, err = createService(s)
+		if s.Parameters["Topic"] != "" {
+			s.Parameters["Topic"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Topic"])
+		}
+		req, err = p.createService(s)
 	case "sns":
-		s.Parameters["Queue"] = fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Parameters["Queue"])
-		req, err = createService(s)
+		if s.Parameters["Queue"] != "" {
+			s.Parameters["Queue"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Queue"])
+		}
+		req, err = p.createService(s)
 	case "syslog":
-		req, err = createServiceURL(s, "tcp", "tcp+tls", "udp")
+		req, err = p.createServiceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
-		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", os.Getenv("NOTIFICATION_HOST"), url.QueryEscape(s.Parameters["Url"]))
-		req, err = createServiceURL(s, "http", "https")
+		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationTopic, url.QueryEscape(s.Parameters["Url"]))
+		req, err = p.createServiceURL(s, "http", "https")
 	default:
 		err = fmt.Errorf("Invalid service type: %s", s.Type)
 	}
@@ -52,17 +58,26 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		return s, err
 	}
 
+	keys := []string{}
+
+	for key := range s.Parameters {
+		keys = append(keys, key)
+	}
+
+	// sort keys for easier testing
+	sort.Strings(keys)
+
 	// pass through service parameters as Cloudformation Parameters
-	for key, value := range s.Parameters {
+	for _, key := range keys {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
-			ParameterValue: aws.String(value),
+			ParameterValue: aws.String(s.Parameters[key]),
 		})
 	}
 
 	// tag the service
 	tags := map[string]string{
-		"Rack":    os.Getenv("RACK"),
+		"Rack":    p.Rack,
 		"System":  "convox",
 		"Service": s.Type,
 		"Type":    "service",
@@ -93,7 +108,7 @@ func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
 	}
 
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
-		StackName: aws.String(serviceStackName(s)),
+		StackName: aws.String(s.Stack),
 	})
 
 	p.EventSend(&structs.Event{
@@ -113,7 +128,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 
 	// try 'convox-myservice', and if not found try 'myservice'
 	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-		StackName: aws.String(os.Getenv("RACK") + "-" + name),
+		StackName: aws.String(p.Rack + "-" + name),
 	})
 	if awsError(err) == "ValidationError" {
 		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
@@ -129,7 +144,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 
 	s := serviceFromStack(res.Stacks[0])
 
-	if s.Tags["Rack"] != "" && s.Tags["Rack"] != os.Getenv("RACK") {
+	if s.Tags["Rack"] != "" && s.Tags["Rack"] != p.Rack {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
 	}
 
@@ -149,11 +164,38 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 		}
 	}
 
+	switch s.Tags["Service"] {
+	case "memcached":
+		s.Exports["URL"] = fmt.Sprintf("%s:%s", s.Outputs["Port11211TcpAddr"], s.Outputs["Port11211TcpPort"])
+	case "mysql":
+		s.Exports["URL"] = fmt.Sprintf("mysql://%s:%s@%s:%s/%s", s.Outputs["EnvMysqlUsername"], s.Outputs["EnvMysqlPassword"], s.Outputs["Port3306TcpAddr"], s.Outputs["Port3306TcpPort"], s.Outputs["EnvMysqlDatabase"])
+	case "papertrail":
+		s.Exports["URL"] = s.Parameters["Url"]
+	case "postgres":
+		s.Exports["URL"] = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", s.Outputs["EnvPostgresUsername"], s.Outputs["EnvPostgresPassword"], s.Outputs["Port5432TcpAddr"], s.Outputs["Port5432TcpPort"], s.Outputs["EnvPostgresDatabase"])
+	case "redis":
+		s.Exports["URL"] = fmt.Sprintf("redis://%s:%s/%s", s.Outputs["Port6379TcpAddr"], s.Outputs["Port6379TcpPort"], s.Outputs["EnvRedisDatabase"])
+	case "s3":
+		s.Exports["URL"] = fmt.Sprintf("s3://%s:%s@%s", s.Outputs["AccessKey"], s.Outputs["SecretAccessKey"], s.Outputs["Bucket"])
+	case "sns":
+		s.Exports["URL"] = fmt.Sprintf("sns://%s:%s@%s", s.Outputs["AccessKey"], s.Outputs["SecretAccessKey"], s.Outputs["Topic"])
+	case "sqs":
+		if u, err := url.Parse(s.Outputs["Queue"]); err == nil {
+			u.Scheme = "sqs"
+			u.User = url.UserPassword(s.Outputs["AccessKey"], s.Outputs["SecretAccessKey"])
+			s.Exports["URL"] = u.String()
+		}
+	case "webhook":
+		if parsedURL, err := url.Parse(s.Parameters["Url"]); err == nil {
+			s.Exports["URL"] = parsedURL.Query().Get("endpoint")
+		}
+	}
+
 	// Populate linked apps
 	for k, _ := range s.Outputs {
 		if strings.HasSuffix(k, "Link") {
-			n := DashName(k)
-			app := n[:len(n)-5]
+			n := dashName(k)
+			app := n[:len(n)-4]
 
 			a, err := p.AppGet(app)
 			if err != nil {
@@ -181,7 +223,7 @@ func (p *AWSProvider) ServiceList() (structs.Services, error) {
 
 		// if it's a service and the Rack tag is either the current rack or blank
 		if tags["System"] == "convox" && tags["Type"] == "service" {
-			if tags["Rack"] == os.Getenv("RACK") || tags["Rack"] == "" {
+			if tags["Rack"] == p.Rack || tags["Rack"] == "" {
 				services = append(services, serviceFromStack(stack))
 			}
 		}
@@ -270,13 +312,13 @@ func (p *AWSProvider) ServiceUpdate(name string, params map[string]string) (*str
 	return s, err
 }
 
-func createService(s *structs.Service) (*cloudformation.CreateStackInput, error) {
+func (p *AWSProvider) createService(s *structs.Service) (*cloudformation.CreateStackInput, error) {
 	formation, err := serviceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := appendSystemParameters(s); err != nil {
+	if err := p.appendSystemParameters(s); err != nil {
 		return nil, err
 	}
 
@@ -286,14 +328,14 @@ func createService(s *structs.Service) (*cloudformation.CreateStackInput, error)
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(serviceStackName(s)),
+		StackName:    aws.String(fmt.Sprintf("%s-%s", p.Rack, s.Name)),
 		TemplateBody: aws.String(formation),
 	}
 
 	return req, nil
 }
 
-func createServiceURL(s *structs.Service, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
+func (p *AWSProvider) createServiceURL(s *structs.Service, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
 	if s.Parameters["Url"] == "" {
 		return nil, fmt.Errorf("Must specify a URL")
 	}
@@ -316,7 +358,7 @@ func createServiceURL(s *structs.Service, allowedProtocols ...string) (*cloudfor
 		return nil, fmt.Errorf("Invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
 	}
 
-	return createService(s)
+	return p.createService(s)
 }
 
 func (p *AWSProvider) updateService(s *structs.Service) error {
@@ -325,7 +367,7 @@ func (p *AWSProvider) updateService(s *structs.Service) error {
 		return err
 	}
 
-	if err := appendSystemParameters(s); err != nil {
+	if err := p.appendSystemParameters(s); err != nil {
 		return err
 	}
 
@@ -335,7 +377,7 @@ func (p *AWSProvider) updateService(s *structs.Service) error {
 
 	req := &cloudformation.UpdateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(serviceStackName(s)),
+		StackName:    aws.String(s.Stack),
 		TemplateBody: aws.String(formation),
 	}
 
@@ -372,17 +414,17 @@ func (p *AWSProvider) unlinkService(a *structs.App, s *structs.Service) error {
 	return p.updateService(s)
 }
 
-func appendSystemParameters(s *structs.Service) error {
+func (p *AWSProvider) appendSystemParameters(s *structs.Service) error {
 	password, err := generatePassword()
 	if err != nil {
 		return err
 	}
 
 	s.Parameters["Password"] = password
-	s.Parameters["Subnets"] = os.Getenv("SUBNETS")
-	s.Parameters["SubnetsPrivate"] = coalesceString(os.Getenv("SUBNETS_PRIVATE"), os.Getenv("SUBNETS"))
-	s.Parameters["Vpc"] = os.Getenv("VPC")
-	s.Parameters["VpcCidr"] = os.Getenv("VPCCIDR")
+	s.Parameters["Subnets"] = p.Subnets
+	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
+	s.Parameters["Vpc"] = p.Vpc
+	s.Parameters["VpcCidr"] = p.VpcCidr
 
 	return nil
 }
@@ -448,6 +490,7 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 
 	return structs.Service{
 		Name:       name,
+		Stack:      *stack.StackName,
 		Type:       tags["Service"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
@@ -455,13 +498,4 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 		Tags:       tags,
 		Exports:    exports,
 	}
-}
-
-// if the Name tag isnt set the stack name is the service name, otherwise prefix the rack
-func serviceStackName(s *structs.Service) string {
-	if s.Tags["Name"] == "" {
-		return s.Name
-	}
-
-	return fmt.Sprintf("%s-%s", os.Getenv("RACK"), s.Name)
 }

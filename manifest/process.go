@@ -90,7 +90,7 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	args = append(args, s.Tag(app))
 
 	if s.Command.String != "" {
-		args = append(args, s.Command.String)
+		args = append(args, "sh", "-c", s.Command.String)
 	} else if len(s.Command.Array) > 0 {
 		args = append(args, s.Command.Array...)
 	}

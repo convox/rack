@@ -21,9 +21,6 @@ func init() {
 }
 
 func TestProcessesList(t *testing.T) {
-	os.Setenv("RACK", "convox-test")
-	os.Setenv("CLUSTER", "convox-test-cluster")
-
 	// set current provider
 	models.TestProvider = &provider.TestProvider{
 		Instances: []structs.Instance{
@@ -94,9 +91,6 @@ func TestGetProcessesWithDeployments(t *testing.T) {
 	// setup expectations on current provider
 	models.TestProvider.On("InstanceList").Return(models.TestProvider.Instances, nil)
 
-	os.Setenv("RACK", "convox-test")
-	os.Setenv("CLUSTER", "convox-test-cluster")
-
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),
@@ -160,9 +154,6 @@ func TestProcessesListWithAttached(t *testing.T) {
 	// setup expectations on current provider
 	models.TestProvider.On("InstanceList").Return(models.TestProvider.Instances, nil)
 
-	os.Setenv("RACK", "convox-test")
-	os.Setenv("CLUSTER", "convox-test-cluster")
-
 	aws := test.StubAws(
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),
 		test.DescribeAppStackCycle("convox-test-myapp-staging"),
@@ -187,7 +178,6 @@ func TestProcessesListWithAttached(t *testing.T) {
 		test.ListECSContainersCycle(),
 
 		// query every instance for one-off containers
-		test.ListOneoffContainersEmptyCycle(),
 		test.ListOneoffContainersCycle("79bd711b1756"),
 		test.InspectCycle("79bd711b1756"),
 		test.ListOneoffContainersEmptyCycle(),

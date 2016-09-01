@@ -12,8 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/ddollar/logger"
+	"github.com/convox/logger"
 )
 
 type Instance struct {
@@ -39,7 +38,7 @@ func StartCluster() {
 	})
 
 	for range time.Tick(5 * time.Minute) {
-		log.Log("tick")
+		log.Logf("tick")
 
 		instances := Instances{}
 
@@ -85,7 +84,7 @@ func StartCluster() {
 			}
 		}
 
-		log.Log(instances.log())
+		log.Logf(instances.log())
 	}
 }
 
@@ -133,23 +132,7 @@ func (instances Instances) describeASG() error {
 }
 
 func (instances Instances) describeECS() error {
-	res, err := models.ECS().ListContainerInstances(
-		&ecs.ListContainerInstancesInput{
-			Cluster: aws.String(os.Getenv("CLUSTER")),
-		},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	dres, err := models.ECS().DescribeContainerInstances(
-		&ecs.DescribeContainerInstancesInput{
-			Cluster:            aws.String(os.Getenv("CLUSTER")),
-			ContainerInstances: res.ContainerInstanceArns,
-		},
-	)
-
+	dres, err := models.DescribeContainerInstances()
 	if err != nil {
 		return err
 	}

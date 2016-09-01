@@ -21,7 +21,7 @@ var interpolationDollarRegex = regexp.MustCompile("\\$([0-9A-Za-z_]+)")
 
 type Manifest struct {
 	Version  string             `yaml:"version"`
-	Networks Networks           `yaml:"networks"`
+	Networks Networks           `yaml:"networks,omitempty"`
 	Services map[string]Service `yaml:"services"`
 }
 
@@ -53,6 +53,10 @@ func Load(data []byte) (*Manifest, error) {
 	}
 
 	for name, service := range m.Services {
+
+		if strings.Contains(name, "_") {
+			return nil, fmt.Errorf("service name cannot contain an underscore: %s", name)
+		}
 		service.Name = name
 
 		// there are two places in a docker-compose.yml to specify a dockerfile

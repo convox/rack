@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -19,40 +18,23 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
 
-	if name == os.Getenv("RACK") {
-		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(name),
-		})
-	} else {
-
-		// try '$RACK-myapp', and if not found try 'myapp'
-		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(os.Getenv("RACK") + "-" + name),
-		})
-
-		if awsError(err) == "ValidationError" {
-			res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-				StackName: aws.String(name),
-			})
-		}
+	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+		StackName: aws.String(p.Rack + "-" + name),
+	})
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
 	}
-
 	if err != nil {
 		return nil, err
 	}
-
 	if len(res.Stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for app: %s", name)
 	}
 
 	app := appFromStack(res.Stacks[0])
 
-	if app.Tags["Rack"] != "" && app.Tags["Rack"] != os.Getenv("RACK") {
-		return nil, fmt.Errorf("no such app on this rack: %s", name)
-	} else if len(app.Tags) == 0 && name != os.Getenv("RACK") {
-		// This checks for a rack. An app with zero tags is a rack (this assumption should be addressed).
-		// Makes sure the name equals current rack name; otherwise error out.
-		return nil, fmt.Errorf("invalid rack: %s", name)
+	if app.Tags["Rack"] != "" && app.Tags["Rack"] != p.Rack {
+		return nil, fmt.Errorf("no such app: %s", name)
 	}
 
 	return &app, nil

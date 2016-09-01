@@ -28,20 +28,30 @@
       "Fn::And": [ { "Condition": "RegionHasEFS" }, { "Condition": "ThirdAvailabilityZone" } ]
     },
     "ThirdAvailabilityZone": { "Fn::Equals": [
-      { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
+      { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
     ] }
   },
   "Mappings": {
+    "AvailabilityZoneConfig": {
+      "us-east-1": { "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "us-west-2": { "ThirdAvailabilityZone": "Yes" },
+      "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "eu-central-1": { "ThirdAvailabilityZone": "No" },
+      "ap-northeast-1": { "ThirdAvailabilityZone": "No" },
+      "ap-southeast-1": { "ThirdAvailabilityZone": "No" },
+      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
+    },
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-52cd5445", "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "Ami": "ami-efa1e28f", "ThirdAvailabilityZone": "Yes" },
-      "us-west-2": { "Ami": "ami-a426edc4", "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "Ami": "ami-7b244e08", "ThirdAvailabilityZone": "Yes" },
-      "eu-central-1": { "Ami": "ami-721aec1d", "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "Ami": "ami-058a4964", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "Ami": "ami-0d9f466e", "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "Ami": "ami-7df2c61e", "ThirdAvailabilityZone": "Yes" }
+      "us-east-1": { "Ami": "ami-6bb2d67c" },
+      "us-west-1": { "Ami": "ami-70632110" },
+      "us-west-2": { "Ami": "ami-2d1bce4d" },
+      "eu-west-1": { "Ami": "ami-078df974" },
+      "eu-central-1": { "Ami": "ami-d3cf3ebc" },
+      "ap-northeast-1": { "Ami": "ami-2b6ba64a" },
+      "ap-southeast-1": { "Ami": "ami-55598036" },
+      "ap-southeast-2": { "Ami": "ami-0e20176d" }
     }
   },
   "Outputs": {
@@ -912,7 +922,7 @@
       "DependsOn": "IamRole",
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
-        "Path": "/",
+        "Path": "/convox/",
         "Roles": [ { "Ref": "IamRole" } ]
       }
     },
@@ -1290,9 +1300,10 @@
             "InstancePort": "4101"
           }
         ],
-        "LoadBalancerName": {
-          "Ref": "AWS::StackName"
-        },
+        "LoadBalancerName": { "Fn::If": [ "PrivateApi",
+          { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] },
+          { "Ref": "AWS::StackName" }
+        ] },
         "Scheme": { "Fn::If": [ "PrivateApi", "internal", { "Ref": "AWS::NoValue" } ] },
         "SecurityGroups": [
           {
@@ -1404,8 +1415,8 @@
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "0",
-          "MaximumPercent": "100"
+          "MinimumHealthyPercent": "100",
+          "MaximumPercent": "200"
         },
         "DesiredCount": "1",
         "TaskDefinition": { "Ref": "RackMonitorTasks" }

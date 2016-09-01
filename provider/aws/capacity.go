@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -10,22 +10,13 @@ import (
 
 // returns individual server memory, total rack memory
 func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
+	log := Logger.At("CapacityGet").Start()
+
 	capacity := &structs.Capacity{}
 
-	lres, err := p.ecs().ListContainerInstances(&ecs.ListContainerInstancesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
-	})
-
+	ires, err := p.describeContainerInstances()
 	if err != nil {
-		return nil, err
-	}
-
-	ires, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
-		Cluster:            aws.String(os.Getenv("CLUSTER")),
-		ContainerInstances: lres.ContainerInstanceArns,
-	})
-
-	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -43,21 +34,41 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	}
 
 	services, err := p.clusterServices()
-
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
+	portWidth := map[int64]int64{}
+
 	for _, service := range services {
-		if len(service.LoadBalancers) > 0 && *service.DesiredCount > capacity.ProcessWidth {
-			capacity.ProcessWidth = *service.DesiredCount
+		if len(service.LoadBalancers) > 0 {
+			td, err := p.describeTaskDefinition(*service.TaskDefinition)
+			if err != nil {
+				log.Error(err)
+				return nil, err
+			}
+
+			tdPorts := map[string]int64{}
+
+			for _, cd := range td.ContainerDefinitions {
+				for _, pm := range cd.PortMappings {
+					tdPorts[fmt.Sprintf("%s.%d", *cd.Name, *pm.ContainerPort)] = *pm.HostPort
+				}
+			}
+
+			for _, lb := range service.LoadBalancers {
+				if port, ok := tdPorts[fmt.Sprintf("%s.%d", *lb.ContainerName, *lb.ContainerPort)]; ok {
+					portWidth[port] += *service.DesiredCount
+				}
+			}
 		}
 
 		res, err := p.ecs().DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
 			TaskDefinition: service.TaskDefinition,
 		})
-
 		if err != nil {
+			log.Error(err)
 			return nil, err
 		}
 
@@ -68,7 +79,18 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 		}
 	}
 
-	// return capacity, concurrency, nil
+	max := int64(0)
+
+	for _, n := range portWidth {
+		if n > max {
+			max = n
+		}
+	}
+
+	capacity.ProcessWidth = max
+
+	log.Success()
+	// "cluster.cpu=%d cluster.memory=%d instance.cpu=%d instance.memory=%d process.count=%d process.cpu=%d process.memory=%d process.width=%d", capacity.ClusterCPU, capacity.ClusterMemory, capacity.InstanceCPU, capacity.InstanceMemory, capacity.ProcessCount, capacity.ProcessCPU, capacity.ProcessMemory, capacity.ProcessWidth)
 	return capacity, nil
 }
 
@@ -78,7 +100,7 @@ func (p *AWSProvider) clusterServices() (ECSServices, error) {
 	services := ECSServices{}
 
 	lsres, err := p.ecs().ListServices(&ecs.ListServicesInput{
-		Cluster: aws.String(os.Getenv("CLUSTER")),
+		Cluster: aws.String(p.Cluster),
 	})
 
 	if err != nil {
@@ -86,7 +108,7 @@ func (p *AWSProvider) clusterServices() (ECSServices, error) {
 	}
 
 	dsres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(os.Getenv("CLUSTER")),
+		Cluster:  aws.String(p.Cluster),
 		Services: lsres.ServiceArns,
 	})
 

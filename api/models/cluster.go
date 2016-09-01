@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/ddollar/logger"
 )
 
 type ECSServices []*ecs.Service
@@ -16,7 +15,7 @@ type ECSEvents []*ecs.ServiceEvent
 var DEPLOYMENT_TIMEOUT = 10 * time.Minute
 
 func ClusterServices() (ECSServices, error) {
-	var log = logger.New("ns=ClusterServices")
+	log := Logger.At("ClusterServices").Start()
 
 	services := ECSServices{}
 
@@ -25,7 +24,7 @@ func ClusterServices() (ECSServices, error) {
 	})
 
 	if err != nil {
-		log.Log("at=ListServices err=%q", err)
+		log.Step("ListServices").Error(err)
 		return services, err
 	}
 
@@ -35,7 +34,7 @@ func ClusterServices() (ECSServices, error) {
 	})
 
 	if err != nil {
-		log.Log("at=ListServices err=%q", err)
+		log.Step("DescribeServices").Error(err)
 		return services, err
 	}
 

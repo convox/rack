@@ -1,8 +1,8 @@
 package controllers_test
 
 import (
+	"fmt"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
@@ -13,183 +13,273 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	os.Setenv("RACK", "convox-test")
-	os.Setenv("DYNAMO_RELEASES", "convox-releases")
-	models.PauseNotifications = true
-	test.HandlerFunc = controllers.HandlerFunc
-}
-
-// empty string for count should retain MainDesiredCount=1 and MainMemory=256 in the stack update
-func TestFormationScaleEmpty(t *testing.T) {
-	models.TestProvider = &provider.TestProvider{
-		Capacity: structs.Capacity{},
+func TestFormationList(t *testing.T) {
+	formation := structs.Formation{
+		structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}},
+		structs.ProcessFormation{Name: "worker", Count: 3, CPU: 129, Memory: 1025, Ports: []int{4000, 4001}},
 	}
 
-	// setup expectations on current provider
-	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
+	models.TestProvider = &provider.TestProvider{}
+	models.TestProvider.On("FormationList", "myapp").Return(formation, nil)
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "256"),
-	)
-	defer aws.Close()
+	hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	val := url.Values{"count": []string{""}, "memory": []string{""}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
-
-	assert.Equal(t, `{"success":true}`, body)
-}
-
-// post count=foo should 403
-func TestFormationScaleCountInvalid(t *testing.T) {
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "0", "256"),
-	)
-	defer aws.Close()
-
-	val := url.Values{"count": []string{"foo"}, "memory": []string{""}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
-
-	assert.Equal(t, `{"error":"count must be numeric"}`, body)
-}
-
-// post count=2 should set MainDesiredCount=2 in the stack update
-func TestFormationScaleCount2(t *testing.T) {
-	models.TestProvider = &provider.TestProvider{
-		Capacity: structs.Capacity{},
+	if assert.Nil(t, hf.Request("GET", "/apps/myapp/formation", nil)) {
+		hf.AssertCode(t, 200)
+		hf.AssertJSON(t, `[
+			{"balancer":"", "count":2, "cpu":128, "memory":1024, "name":"web", "ports":[3000,3001]},
+			{"balancer":"", "count":3, "cpu":129, "memory":1025, "name":"worker", "ports":[4000,4001]}
+		]`)
 	}
 
-	// setup expectations on current provider
-	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
-
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "2", "256"),
-	)
-	defer aws.Close()
-
-	val := url.Values{"count": []string{"2"}, "memory": []string{""}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
-
-	assert.Equal(t, `{"success":true}`, body)
+	models.TestProvider.AssertExpectations(t)
 }
 
-// post count=0 should set MainDesiredCount=0 in the stack update
-func TestFormationScaleCount0(t *testing.T) {
-	models.TestProvider = &provider.TestProvider{
-		Capacity: structs.Capacity{},
-	}
+func TestFormationListError(t *testing.T) {
+	models.TestProvider = &provider.TestProvider{}
+	models.TestProvider.On("FormationList", "myapp").Return(nil, fmt.Errorf("some error"))
 
-	// setup expectations on current provider
-	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
+	hf := test.NewHandlerFunc(controllers.HandlerFunc)
+	hf.Request("GET", "/apps/myapp/formation", nil)
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "0", "256"),
-	)
-	defer aws.Close()
+	hf.AssertCode(t, 500)
+	hf.AssertError(t, "some error")
 
-	val := url.Values{"count": []string{"0"}, "memory": []string{""}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
-
-	assert.Equal(t, `{"success":true}`, body)
+	models.TestProvider.AssertExpectations(t)
 }
 
-// post memory=foo should 403
-func TestFormationScaleMemoryInvalid(t *testing.T) {
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "256"),
-	)
-	defer aws.Close()
+func TestFormationSetAll(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 200, Memory: 300, Ports: []int{3000, 3001}}
 
-	val := url.Values{"count": []string{""}, "memory": []string{"foo"}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
 
-	assert.Equal(t, `{"error":"memory must be numeric"}`, body)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "200")
+		v.Add("memory", "300")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
 }
 
-// post memory=0 should retain MainMemory=256 in the stack update
-func TestFormationScaleMemory0(t *testing.T) {
-	models.TestProvider = &provider.TestProvider{
-		Capacity: structs.Capacity{},
-	}
+func TestFormationSetOne(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
 
-	// setup expectations on current provider
-	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "256"),
-	)
-	defer aws.Close()
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	val := url.Values{"count": []string{""}, "memory": []string{"0"}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
+		v := url.Values{}
+		v.Add("cpu", "200")
 
-	assert.Equal(t, `{"success":true}`, body)
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
 }
 
-// post memory=512 should set MainMemory=512 in the stack update
-func TestFormationScaleMemory512(t *testing.T) {
-	models.TestProvider = &provider.TestProvider{
-		Capacity: structs.Capacity{
-			InstanceMemory: 2048,
-		},
-	}
+func TestFormationSetFailedGet(t *testing.T) {
+	models.Test(t, func() {
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(nil, fmt.Errorf("could not fetch"))
 
-	// setup expectations on current provider
-	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "512"),
-	)
-	defer aws.Close()
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "200")
+		v.Add("memory", "300")
 
-	val := url.Values{"count": []string{""}, "memory": []string{"512"}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
-
-	assert.Equal(t, `{"success":true}`, body)
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 500)
+			hf.AssertError(t, "could not fetch")
+		}
+	})
 }
 
-// post memory=2048 should error
-func TestFormationScaleMemory2048(t *testing.T) {
-	// set current provider
-	models.TestProvider = &provider.TestProvider{
-		Capacity: structs.Capacity{
-			InstanceMemory: 1024,
-		},
-	}
+func TestFormationSetFailedSave(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 200, Memory: 300, Ports: []int{3000, 3001}}
 
-	models.TestProvider.On("CapacityGet").Return(models.TestProvider.Capacity, nil)
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(fmt.Errorf("could not save"))
 
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.DescribeAppStackCycle("convox-test-application"),
-		test.GetItemAppReleaseCycle("convox-test-application"),
-		test.UpdateAppStackCycle("convox-test-application", "1", "512"),
-	)
-	defer aws.Close()
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	val := url.Values{"count": []string{""}, "memory": []string{"2048"}}
-	body := test.HTTPBody("POST", "http://convox/apps/application/formation/main", val)
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "200")
+		v.Add("memory", "300")
 
-	assert.Equal(t, `{"error":"requested memory 2048 greater than instance size 1024"}`, body)
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 500)
+			hf.AssertError(t, "could not save")
+		}
+	})
+}
+
+func TestFormationSetEdgeCases(t *testing.T) {
+
+	// count=-1 with older rack versions means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+		hf.SetVersion("20160602213112")
+
+		v := url.Values{}
+		v.Add("count", "-1")
+		v.Add("cpu", "200")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// count=-2 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 200, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "-2")
+		v.Add("cpu", "200")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// cpu=-1 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("cpu", "-1")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// memory=0 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("memory", "0")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+
+	// memory=-1 means no change
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+		after := &structs.ProcessFormation{Name: "web", Count: 4, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+		models.TestProvider.On("FormationSave", "myapp", after).Return(nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "4")
+		v.Add("memory", "-1")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
+}
+
+func TestFormationSetNonNumeric(t *testing.T) {
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("count", "foo")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "count must be numeric")
+		}
+	})
+
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("cpu", "foo")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "cpu must be numeric")
+		}
+	})
+
+	models.Test(t, func() {
+		before := &structs.ProcessFormation{Name: "web", Count: 2, CPU: 128, Memory: 1024, Ports: []int{3000, 3001}}
+
+		models.TestProvider.On("FormationGet", "myapp", "web").Return(before, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		v := url.Values{}
+		v.Add("memory", "foo")
+
+		if assert.Nil(t, hf.Request("POST", "/apps/myapp/formation/web", v)) {
+			hf.AssertCode(t, 403)
+			hf.AssertError(t, "memory must be numeric")
+		}
+	})
 }

@@ -1,9 +1,7 @@
 package aws
 
 import (
-	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -19,13 +17,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/convox/logger"
 )
 
 var (
-	CustomTopic  = os.Getenv("CUSTOM_TOPIC")
-	SortableTime = "20060102.150405.000000000"
-	ValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+	customTopic       = os.Getenv("CUSTOM_TOPIC")
+	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
+	sortableTime      = "20060102.150405.000000000"
 )
+
+// Logger is a package-wide logger
+var Logger = logger.New("ns=provider.aws")
 
 type AWSProvider struct {
 	Region   string
@@ -34,18 +36,48 @@ type AWSProvider struct {
 	Secret   string
 	Token    string
 
-	Cache bool
+	Cluster           string
+	Development       bool
+	DockerImageAPI    string
+	DynamoBuilds      string
+	DynamoReleases    string
+	NotificationHost  string
+	NotificationTopic string
+	Password          string
+	Rack              string
+	RegistryHost      string
+	SettingsBucket    string
+	Subnets           string
+	SubnetsPrivate    string
+	Vpc               string
+	VpcCidr           string
+
+	SkipCache bool
 }
 
-// NewProvider returns the AWS provider
-func NewProvider(region, endpoint, access, secret, token string) *AWSProvider {
+// NewProviderFromEnv returns a new AWS provider from env vars
+func NewProviderFromEnv() *AWSProvider {
 	return &AWSProvider{
-		Region:   region,
-		Endpoint: endpoint,
-		Access:   access,
-		Secret:   secret,
-		Token:    token,
-		Cache:    true,
+		Region:            os.Getenv("AWS_REGION"),
+		Endpoint:          os.Getenv("AWS_ENDPOINT"),
+		Access:            os.Getenv("AWS_ACCESS"),
+		Secret:            os.Getenv("AWS_SECRET"),
+		Token:             os.Getenv("AWS_TOKEN"),
+		Cluster:           os.Getenv("CLUSTER"),
+		Development:       os.Getenv("DEVELOPMENT") == "true",
+		DockerImageAPI:    os.Getenv("DOCKER_IMAGE_API"),
+		DynamoBuilds:      os.Getenv("DYNAMO_BUILDS"),
+		DynamoReleases:    os.Getenv("DYNAMO_RELEASES"),
+		NotificationHost:  os.Getenv("NOTIFICATION_HOST"),
+		NotificationTopic: os.Getenv("NOTIFICATION_TOPIC"),
+		Password:          os.Getenv("PASSWORD"),
+		Rack:              os.Getenv("RACK"),
+		RegistryHost:      os.Getenv("REGISTRY_HOST"),
+		SettingsBucket:    os.Getenv("SETTINGS_BUCKET"),
+		Subnets:           os.Getenv("SUBNETS"),
+		SubnetsPrivate:    os.Getenv("SUBNETS_PRIVATE"),
+		Vpc:               os.Getenv("VPC"),
+		VpcCidr:           os.Getenv("VPCCIDR"),
 	}
 }
 
@@ -119,44 +151,7 @@ func (p *AWSProvider) sns() *sns.SNS {
 	return sns.New(session.New(), p.config())
 }
 
-func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, tableName string) error {
-
-	if len(wrs) > 0 {
-
-		if len(wrs) <= 25 {
-			_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-				RequestItems: map[string][]*dynamodb.WriteRequest{
-					tableName: wrs,
-				},
-			})
-			if err != nil {
-				return err
-			}
-
-		} else {
-
-			// if more than 25 items to delete, we have to make multiple calls
-			maxLen := 25
-			for i := 0; i < len(wrs); i += maxLen {
-				high := i + maxLen
-				if high > len(wrs) {
-					high = len(wrs)
-				}
-
-				_, err := p.dynamodb().BatchWriteItem(&dynamodb.BatchWriteItemInput{
-					RequestItems: map[string][]*dynamodb.WriteRequest{
-						tableName: wrs[i:high],
-					},
-				})
-				if err != nil {
-					return err
-				}
-
-			}
-		}
-	} else {
-		fmt.Println("ns=api fn=dynamoBatchDeleteItems level=info msg=\"no builds to delete\"")
-	}
-
-	return nil
+// IsTest returns true when we're in test mode
+func (p *AWSProvider) IsTest() bool {
+	return p.Region == "us-test-1"
 }
