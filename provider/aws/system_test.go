@@ -3,6 +3,7 @@ package aws_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/api/structs"
@@ -53,6 +54,30 @@ func TestSystemGetBadStack(t *testing.T) {
 
 	assert.Nil(t, r)
 	assert.Equal(t, aws.ErrorNotFound("convox not found"), err)
+}
+
+func TestSystemReleases(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemReleaseList,
+	)
+	defer provider.Close()
+
+	r, err := provider.SystemReleases()
+
+	assert.Nil(t, err)
+
+	assert.EqualValues(t, structs.Releases{
+		structs.Release{
+			Id:      "test1",
+			App:     "convox",
+			Created: time.Unix(1459780542, 627770380).UTC(),
+		},
+		structs.Release{
+			Id:      "test2",
+			App:     "convox",
+			Created: time.Unix(1459709199, 166694813).UTC(),
+		},
+	}, r)
 }
 
 func TestSystemSave(t *testing.T) {
@@ -322,6 +347,18 @@ var cycleSystemDescribeStacks = awsutil.Cycle{
 				<RequestId>9715cab7-6c75-11e6-837d-ebe72becd936</RequestId>
 			</ResponseMetadata>
 		</DescribeStacksResponse>`,
+	},
+}
+
+var cycleSystemReleaseList = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.Query",
+		Body:       `{"IndexName":"app.created","KeyConditions":{"app":{"AttributeValueList":[{"S":"convox"}],"ComparisonOperator":"EQ"}},"Limit":20,"ScanIndexForward":false,"TableName":"convox-releases"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"Count":2,"Items":[{"id":{"S":"test1"},"app":{"S":"convox"},"created":{"S":"20160404.143542.627770380"}},{"id":{"S":"test2"},"app":{"S":"convox"},"created":{"S":"20160403.184639.166694813"}}],"ScannedCount":2}`,
 	},
 }
 

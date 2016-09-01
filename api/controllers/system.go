@@ -2,34 +2,19 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 	"strconv"
+	"time"
+
+	"golang.org/x/net/websocket"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/structs"
 )
-
-func SystemReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.Provider().SystemGet()
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	releases, err := models.Provider().ReleaseList(rack.Name, 20)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, releases)
-}
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	rack, err := models.Provider().SystemGet()
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -43,48 +28,31 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	notifyData := map[string]string{}
-
-	if count := GetForm(r, "count"); count != "" {
-
-		count, err := strconv.Atoi(count)
+	// update based on form input
+	if cc := GetForm(r, "count"); cc != "" {
+		c, err := strconv.Atoi(cc)
 		if err != nil {
-			return httperr.Errorf(403, "count must be an integer")
+			return httperr.Errorf(403, "count must be numeric")
 		}
 
-		// -1 is an invalid value that indicates no change
-		if count != -1 {
-			if count <= 1 {
-				return httperr.Errorf(403, "count must be greater than 1")
-			}
-
-			stack, err := models.Provider().AppGet(rack.Name)
-			if err != nil {
-				return httperr.Errorf(404, "no such stack")
-			}
-
-			if stack.Parameters["Autoscale"] == "Yes" {
-				return httperr.Errorf(403, "count prohibited when autoscaling is enabled")
-			}
-
-			rack.Count = count
-
-			notifyData["count"] = strconv.Itoa(count)
+		switch {
+		case os.Getenv("AUTOSCALE") == "true":
+			return httperr.Errorf(403, "scaling count prohibited when autoscale enabled")
+		case c == -1:
+			// -1 indicates no change
+		case c <= 1:
+			return httperr.Errorf(403, "count must be greater than 1")
+		default:
+			rack.Count = c
 		}
 	}
 
 	if t := GetForm(r, "type"); t != "" {
 		rack.Type = t
-		notifyData["type"] = t
 	}
 
-	if version := GetForm(r, "version"); version != "" {
-		rack.Version = version
-		notifyData["version"] = version
-	}
-
-	if len(notifyData) == 0 {
-		return httperr.Errorf(403, "no rack updates specified")
+	if v := GetForm(r, "version"); v != "" {
+		rack.Version = v
 	}
 
 	err = models.Provider().SystemSave(*rack)
@@ -92,12 +60,7 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	rack, err = models.Provider().SystemGet()
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	models.NotifySuccess("rack:update", notifyData)
+	// models.NotifySuccess("rack:update", notifyData)
 
 	return RenderJson(rw, rack)
 }
@@ -109,4 +72,45 @@ func SystemCapacity(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, capacity)
+}
+
+// SystemLogs returns the logs for the Rack
+func SystemLogs(ws *websocket.Conn) *httperr.Error {
+	header := ws.Request().Header
+
+	var err error
+
+	follow := true
+	if header.Get("Follow") == "false" {
+		follow = false
+	}
+
+	since := 2 * time.Minute
+	if s := header.Get("Since"); s != "" {
+		since, err = time.ParseDuration(s)
+		if err != nil {
+			return httperr.Errorf(403, "Invalid duration %s", s)
+		}
+	}
+
+	err = models.Provider().SystemLogs(ws, structs.LogStreamOptions{
+		Filter: header.Get("Filter"),
+		Follow: follow,
+		Since:  since,
+	})
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return nil
+}
+
+// SystemReleases lists the latest releases of the rack
+func SystemReleases(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	releases, err := models.Provider().SystemReleases()
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderJson(rw, releases)
 }
