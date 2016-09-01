@@ -267,6 +267,38 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
+	log.Step("token").Logf("id=%q", repo.ID)
+	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+		RegistryIds: []*string{aws.String(repo.ID)},
+	})
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if len(tres.AuthorizationData) != 1 {
+		log.Errorf("no authorization data")
+		return fmt.Errorf("no authorization data")
+	}
+
+	auth, err := base64.StdEncoding.DecodeString(*tres.AuthorizationData[0].AuthorizationToken)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	authParts := strings.SplitN(string(auth), ":", 2)
+	if len(authParts) != 2 {
+		log.Errorf("invalid auth data")
+		return fmt.Errorf("invalid auth data")
+	}
+
+	log.Step("login").Logf("host=%q user=%q", repo.URI, authParts[0])
+	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo.URI).CombinedOutput()
+	if err != nil {
+		log.Errorf(lastline(out))
+		return err
+	}
+
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		log.Error(err)
