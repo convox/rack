@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"gopkg.in/urfave/cli.v1"
@@ -52,8 +53,12 @@ func cmdDeploy(c *cli.Context) error {
 		return stdcli.ExitError(fmt.Errorf("unable to build app: %s", app))
 	}
 
+	// set up a pipe so that we dont close stdout
+	r, w := io.Pipe()
+	go io.Copy(os.Stdout, r)
+
 	// build
-	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), os.Stdout)
+	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), w)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
