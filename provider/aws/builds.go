@@ -280,16 +280,16 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		file := filepath.Join(tmp, fmt.Sprintf("%s.%s.tar", service, build.Id))
 
 		log.Step("pull").Logf("image=%q", image)
-		err := exec.Command("docker", "pull", image).Run()
+		out, err := exec.Command("docker", "pull", image).CombinedOutput()
 		if err != nil {
-			log.Error(err)
+			log.Error(fmt.Errorf(lastline(out)))
 			return err
 		}
 
 		log.Step("save").Logf("image=%q file=%q", image, file)
-		err = exec.Command("docker", "save", "-o", file, image).Run()
+		out, err = exec.Command("docker", "save", "-o", file, image).CombinedOutput()
 		if err != nil {
-			log.Error(err)
+			log.Error(fmt.Errorf(lastline(out)))
 			return err
 		}
 
@@ -763,7 +763,6 @@ func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, 
 }
 
 func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
-
 	// scan all output
 	scanner := bufio.NewScanner(stdout)
 	out := ""
@@ -978,7 +977,6 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 }
 
 func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
-
 	var build structs.Build
 	var images [][]byte
 
