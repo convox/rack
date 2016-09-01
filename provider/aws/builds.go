@@ -267,35 +267,8 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	log.Step("token").Logf("id=%q", repo.ID)
-	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-		RegistryIds: []*string{aws.String(repo.ID)},
-	})
-	if err != nil {
+	if err := p.dockerLogin(repo); err != nil {
 		log.Error(err)
-		return err
-	}
-	if len(tres.AuthorizationData) != 1 {
-		log.Errorf("no authorization data")
-		return fmt.Errorf("no authorization data")
-	}
-
-	auth, err := base64.StdEncoding.DecodeString(*tres.AuthorizationData[0].AuthorizationToken)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	authParts := strings.SplitN(string(auth), ":", 2)
-	if len(authParts) != 2 {
-		log.Errorf("invalid auth data")
-		return fmt.Errorf("invalid auth data")
-	}
-
-	log.Step("login").Logf("host=%q user=%q", repo.URI, authParts[0])
-	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo.URI).CombinedOutput()
-	if err != nil {
-		log.Errorf(lastline(out))
 		return err
 	}
 
@@ -399,90 +372,129 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 }
 
 // BuildImport imports a build artifact
-func (p *AWSProvider) BuildImport(appName string, r io.Reader) (*structs.Build, error) {
+func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, error) {
+	log := Logger.At("BuildImport").Namespace("app=%s", app).Start()
 
-	build, images, err := readImportArtifact(r)
+	var sourceBuild structs.Build
+
+	// set up the new build
+	targetBuild := structs.NewBuild(app)
+	targetBuild.Description = fmt.Sprintf("imported")
+	targetBuild.Started = time.Now()
+	targetBuild.Status = "complete"
+
+	a, err := p.AppGet(app)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
-	app, err := p.AppGet(appName)
+	repo, err := p.appRepository(app)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
-	// load the images to repo
-	for _, img := range images {
-		cmd := exec.Command("docker", "load")
-		cmd.Stdin = bytes.NewReader(img)
+	if err := p.dockerLogin(repo); err != nil {
+		log.Error(err)
+		return nil, err
+	}
 
-		out, err := cmd.Output()
-		output := string(out)
+	gz, err := gzip.NewReader(r)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	tr := tar.NewReader(gz)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
-			return nil, fmt.Errorf("docker load failed: %s", err)
-		}
-
-		fmt.Printf("fn=BuildImport at=DockerLoad level=info msg=\"%s\"\n", output)
-
-		loadPrefix := "Loaded image: "
-		if !strings.HasPrefix(output, loadPrefix) {
-			return nil, fmt.Errorf("unexpected docker load output: %s", output)
-		}
-
-		imageSplit := strings.Split(output, loadPrefix)
-		if len(imageSplit) < 2 {
-			return nil, fmt.Errorf("docker load output split failed: %s", output)
-		}
-
-		tag := strings.Split(imageSplit[1], ":")[1]
-
-		repo, err := p.appRepository(app.Name)
-		if err != nil {
+			log.Error(err)
 			return nil, err
 		}
-
-		newName := fmt.Sprintf("%s:%s", repo.URI, strings.TrimSpace(tag))
-		cmd = exec.Command("docker", "tag", strings.TrimSpace(imageSplit[1]), newName)
-
-		out, err = cmd.Output()
-		if err != nil {
-			return nil, fmt.Errorf("docker tag failed: %s", err)
+		if header.Typeflag != tar.TypeReg {
+			continue
 		}
 
-		//TODO: Remove the orignal import tag (from imageSplit) if it didn't originally exist
+		if header.Name == "build.json" {
+			var buf bytes.Buffer
 
-		fmt.Printf("fn=BuildImport at=DockerTag level=info msg=\"new tag %s\"\n", newName)
+			io.Copy(&buf, tr)
 
-		cmd = exec.Command("docker", "push", newName)
-		out, err = cmd.Output()
-		if err != nil {
-			return nil, fmt.Errorf("docker push failed: %s", err)
+			if err := json.Unmarshal(buf.Bytes(), &sourceBuild); err != nil {
+				log.Error(err)
+				return nil, err
+			}
+		}
+
+		if strings.HasSuffix(header.Name, ".tar") {
+			cmd := exec.Command("docker", "load")
+			cmd.Stdin = tr
+
+			log.Step("load").Logf("tar=%q", header.Name)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Errorf(lastline(out))
+				return nil, err
+			}
+			if !strings.HasPrefix(string(out), "Loaded image: ") {
+				log.Errorf("invalid docker load output")
+				return nil, fmt.Errorf("invalid docker load output")
+			}
+
+			image := strings.TrimSpace(string(out)[14:])
+			ps := strings.Split(header.Name, ".")[0]
+			target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
+
+			log.Step("tag").Logf("from=%q to=%q", image, target)
+			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
+				log.Errorf(lastline(out))
+				return nil, err
+			}
+
+			log.Step("push").Logf("to=%q", target)
+			if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
+				log.Errorf(lastline(out))
+				return nil, err
+			}
 		}
 	}
 
-	oldEnv, err := p.EnvironmentGet(app.Name)
+	env, err := p.EnvironmentGet(app)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
-	release := structs.NewRelease(app.Name)
-	release.Env = oldEnv.Raw()
-	release.Build = build.Id
-	release.Manifest = build.Manifest
+	release := structs.NewRelease(app)
 
-	err = p.ReleaseSave(release, app.Outputs["Settings"], app.Parameters["Key"])
-	if err != nil {
+	targetBuild.Ended = time.Now()
+	targetBuild.Logs = sourceBuild.Logs
+	targetBuild.Manifest = sourceBuild.Manifest
+	targetBuild.Release = release.Id
+
+	if err := p.BuildSave(targetBuild); err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
-	build.Release = release.Id
-	build.App = app.Name
-	err = p.BuildSave(build)
-	if err != nil {
+	release.Env = env.Raw()
+	release.Build = targetBuild.Id
+	release.Manifest = targetBuild.Manifest
+
+	if err := p.ReleaseSave(release, a.Outputs["Settings"], a.Parameters["Key"]); err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
-	return build, nil
+	log.Successf("build=%q release=%q", targetBuild.Id, release.Id)
+
+	return targetBuild, nil
 }
 
 // BuildLogs gets a Build's logs from S3. If there is no log file in S3, that is not an error.
@@ -960,6 +972,45 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
+func (p *AWSProvider) dockerLogin(repo *appRepository) error {
+	log := Logger.At("dockerLogin").Namespace("repo=%q", repo).Start()
+
+	log.Step("token").Logf("id=%q", repo.ID)
+	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+		RegistryIds: []*string{aws.String(repo.ID)},
+	})
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if len(tres.AuthorizationData) != 1 {
+		log.Errorf("no authorization data")
+		return fmt.Errorf("no authorization data")
+	}
+
+	auth, err := base64.StdEncoding.DecodeString(*tres.AuthorizationData[0].AuthorizationToken)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	authParts := strings.SplitN(string(auth), ":", 2)
+	if len(authParts) != 2 {
+		log.Errorf("invalid auth data")
+		return fmt.Errorf("invalid auth data")
+	}
+
+	log.Step("login").Logf("host=%q user=%q", repo.URI, authParts[0])
+	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo.URI).CombinedOutput()
+	if err != nil {
+		log.Errorf(lastline(out))
+		return err
+	}
+
+	log.Success()
+	return nil
+}
+
 func (p *AWSProvider) registryTag(a *structs.App, serviceName, buildID string) string {
 	tag := fmt.Sprintf("%s/%s-%s:%s", p.RegistryHost, a.Name, serviceName, buildID)
 
@@ -1006,53 +1057,4 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 	}
 
 	return p.dynamoBatchDeleteItems(wrs, p.DynamoBuilds)
-}
-
-func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
-	var build structs.Build
-	var images [][]byte
-
-	gzf, err := gzip.NewReader(source)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tarReader := tar.NewReader(gzf)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-
-		switch header.Typeflag {
-		case tar.TypeReg:
-			raw := []byte{}
-
-			if header.Name == "build.json" {
-				jsonBuf := bytes.NewBuffer(raw)
-				io.Copy(jsonBuf, tarReader)
-
-				err = json.Unmarshal(jsonBuf.Bytes(), &build)
-				if err != nil {
-					return nil, nil, err
-				}
-
-			} else {
-				if strings.HasSuffix(header.Name, ".tar") {
-
-					buf := bytes.NewBuffer(raw)
-					io.Copy(buf, tarReader)
-
-					images = append(images, buf.Bytes())
-				}
-			}
-		default:
-			continue
-		}
-	}
-
-	return &build, images, nil
 }
