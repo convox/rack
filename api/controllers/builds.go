@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -292,16 +291,13 @@ func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 0))
-	err = models.Provider().BuildExport(app, b.Id, buf)
-	if err != nil {
+	rw.Header().Set("Content-Type", "application/octet-stream")
+
+	if err = models.Provider().BuildExport(app, b.Id, rw); err != nil {
 		return httperr.Server(err)
 	}
 
-	rw.Header().Set("Content-Type", "application/octet-stream")
-	_, err = rw.Write(buf.Bytes())
-
-	return httperr.Server(err)
+	return nil
 }
 
 func BuildLogs(ws *websocket.Conn) *httperr.Error {
