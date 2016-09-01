@@ -14,6 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	os.Setenv("AWS_REGION", "test")
+	os.Setenv("CLUSTER", "convox-test")
+}
+
 func TestFixtures(t *testing.T) {
 	fixtures, err := availableFixtures()
 
