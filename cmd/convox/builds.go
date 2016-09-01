@@ -128,7 +128,7 @@ func init() {
 					rackFlag,
 					cli.BoolFlag{
 						Name:  "id",
-						Usage: "only display the release ID to stdout",
+						Usage: "build logs on stderr, release id on stdout",
 					},
 				},
 			},
@@ -358,11 +358,13 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.ExitError(fmt.Errorf("error reading build: %s", err))
 	}
 
+	w := os.Stdout
+
 	if c.Bool("id") {
-		progressFunc = nil
+		w = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, b, progressFunc(os.Stdout))
+	build, err := rackClient(c).ImportBuild(app, b, progressFunc(w))
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
