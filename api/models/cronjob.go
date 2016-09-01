@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/convox/rack/manifest"
@@ -45,7 +46,14 @@ func (cr *CronJob) Process() string {
 }
 
 func (cr *CronJob) ShortName() string {
-	return fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
+	shortName := fmt.Sprintf("%s%s", strings.Title(cr.Service.Name), strings.Title(cr.Name))
+
+	reg, err := regexp.Compile("[^A-Za-z0-9]+")
+	if err != nil {
+		panic(err)
+	}
+
+	return reg.ReplaceAllString(shortName, "")
 }
 
 func (cr *CronJob) LongName() string {

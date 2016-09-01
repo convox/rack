@@ -67,7 +67,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
 	router.HandleFunc("/system/capacity", api("system.capacity", SystemCapacity)).Methods("GET")
-	router.HandleFunc("/system/releases", api("system.release.list", SystemReleaseList)).Methods("GET")
+	router.HandleFunc("/system/releases", api("system.release.list", SystemReleases)).Methods("GET")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
 
 	// websockets
@@ -77,6 +77,7 @@ func NewRouter() (router *mux.Router) {
 	router.Handle("/apps/{app}/processes/{process}/run", ws("process.run.attach", ProcessRunAttached)).Methods("GET")
 	router.Handle("/instances/{id}/ssh", ws("instance.ssh", InstanceSSH)).Methods("GET")
 	router.Handle("/proxy/{host}/{port}", ws("proxy", Proxy)).Methods("GET")
+	router.Handle("/system/logs", ws("system.logs", SystemLogs)).Methods("GET")
 
 	// utility
 	router.HandleFunc("/boom", UtilityBoom).Methods("GET")
