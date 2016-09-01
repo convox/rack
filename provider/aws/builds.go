@@ -236,7 +236,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return fmt.Errorf("no services found to export")
 	}
 
-	bjson, err := json.Marshal(build)
+	bjson, err := json.MarshalIndent(build, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 
 	dataHeader := &tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "builddata.json",
+		Name:     "build.json",
 		Mode:     0600,
 		Size:     int64(len(bjson)),
 	}
@@ -1031,7 +1031,7 @@ func readImportArtifact(source io.Reader) (*structs.Build, [][]byte, error) {
 		case tar.TypeReg:
 			raw := []byte{}
 
-			if header.Name == "builddata.json" {
+			if header.Name == "build.json" {
 				jsonBuf := bytes.NewBuffer(raw)
 				io.Copy(jsonBuf, tarReader)
 
