@@ -77,15 +77,22 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 
 	// tag the service
 	tags := map[string]string{
-		"Rack":    p.Rack,
-		"System":  "convox",
-		"Service": s.Type,
-		"Type":    "service",
 		"Name":    s.Name,
+		"Rack":    p.Rack,
+		"Service": s.Type,
+		"System":  "convox",
+		"Type":    "service",
+	}
+	tagKeys := []string{}
+
+	for key := range tags {
+		tagKeys = append(tagKeys, key)
 	}
 
-	for key, value := range tags {
-		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(value)})
+	// sort keys for easier testing
+	sort.Strings(tagKeys)
+	for _, key := range tagKeys {
+		req.Tags = append(req.Tags, &cloudformation.Tag{Key: aws.String(key), Value: aws.String(tags[key])})
 	}
 
 	_, err = p.cloudformation().CreateStack(req)
