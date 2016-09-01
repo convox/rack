@@ -129,22 +129,41 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		return err
 	}
 
+	// build a list of changes for the notification
+	sp := stackParameters(stack)
+	changes := map[string]string{}
+	if sp["InstanceCount"] != strconv.Itoa(system.Count) {
+		changes["count"] = strconv.Itoa(system.Count)
+	}
+	if sp["InstanceType"] != system.Type {
+		changes["type"] = system.Type
+	}
+	if sp["Version"] != system.Version {
+		changes["version"] = system.Version
+	}
+
 	// if there is a version update then record it
-	if system.Version != stackParameters(stack)["Version"] {
+	if v, ok := changes["version"]; ok {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
-				"id":      &dynamodb.AttributeValue{S: aws.String(system.Version)},
+				"id":      &dynamodb.AttributeValue{S: aws.String(v)},
 				"app":     &dynamodb.AttributeValue{S: aws.String(p.Rack)},
 				"created": &dynamodb.AttributeValue{S: aws.String(p.createdTime())},
 			},
 			TableName: aws.String(p.DynamoReleases),
 		})
-
 		if err != nil {
 			return err
 		}
 	}
 
+	// notify about the update
+	p.EventSend(&structs.Event{
+		Action: "rack:update",
+		Data:   changes,
+	}, nil)
+
+	// update the stack
 	err = p.updateStack(p.Rack, template, params)
 	if awsError(err) == "ValidationError" {
 		switch {
