@@ -1300,9 +1300,10 @@
             "InstancePort": "4101"
           }
         ],
-        "LoadBalancerName": {
-          "Ref": "AWS::StackName"
-        },
+        "LoadBalancerName": { "Fn::If": [ "PrivateApi",
+          { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "i" ] ] },
+          { "Ref": "AWS::StackName" }
+        ] },
         "Scheme": { "Fn::If": [ "PrivateApi", "internal", { "Ref": "AWS::NoValue" } ] },
         "SecurityGroups": [
           {
