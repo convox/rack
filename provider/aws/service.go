@@ -49,7 +49,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	case "syslog":
 		req, err = p.createServiceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
-		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationTopic, url.QueryEscape(s.Parameters["Url"]))
+		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
 		req, err = p.createServiceURL(s, "http", "https")
 	default:
 		err = fmt.Errorf("Invalid service type: %s", s.Type)
