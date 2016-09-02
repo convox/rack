@@ -202,7 +202,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	for k, _ := range s.Outputs {
 		if strings.HasSuffix(k, "Link") {
 			n := dashName(k)
-			app := n[:len(n)-4]
+			app := n[:len(n)-5] // 5 == len("-link")
 
 			a, err := p.AppGet(app)
 			if err != nil {
