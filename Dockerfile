@@ -3,7 +3,7 @@ FROM golang:1.7-alpine
 RUN apk update && apk add build-base docker git haproxy openssh openssl python tar
 
 # need a real pid 1 for signal handling, zombie reaping, etc
-ADD https://github.com/krallin/tini/releases/download/v0.10.0/tini-static /tini
+ADD http://convox-binaries.s3.amazonaws.com/tini-static /tini
 RUN chmod +x /tini
 ENTRYPOINT ["/tini", "--"]
 
