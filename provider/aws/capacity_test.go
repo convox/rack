@@ -14,8 +14,9 @@ func TestCapacityGet(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		cycleCapacityDescribeTaskDefinition,
-		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition2,
+		cycleCapacityDescribeTaskDefinition1,
+		cycleCapacityDescribeTaskDefinition1,
 	)
 	defer provider.Close()
 
@@ -30,7 +31,7 @@ func TestCapacityGet(t *testing.T) {
 		ProcessCount:   2,
 		ProcessCPU:     400,
 		ProcessMemory:  512,
-		ProcessWidth:   2,
+		ProcessWidth:   3,
 	}, r)
 }
 
@@ -149,8 +150,18 @@ var cycleCapacityDescribeServices = awsutil.Cycle{
 							"status": "ACTIVE",
 							"pendingCount": 0,
 							"createdAt": 1449511658.683,
+							"desiredCount": 2,
+							"taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:2",
+							"updatedAt": 1449511869.412,
+							"id": "ecs-svc/9223370587343117124",
+							"runningCount": 1
+						},
+						{
+							"status": "ACTIVE",
+							"pendingCount": 0,
+							"createdAt": 1449511658.683,
 							"desiredCount": 1,
-							"taskDefinition": "arn:aws:ecs:us-east-1:901416387788:task-definition/convox-test-myapp-staging-worker:1",
+							"taskDefinition": "arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:1",
 							"updatedAt": 1449511869.412,
 							"id": "ecs-svc/9223370587343117124",
 							"runningCount": 1
@@ -171,7 +182,7 @@ var cycleCapacityDescribeServices = awsutil.Cycle{
 	},
 }
 
-var cycleCapacityDescribeTaskDefinition = awsutil.Cycle{
+var cycleCapacityDescribeTaskDefinition1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
@@ -187,7 +198,37 @@ var cycleCapacityDescribeTaskDefinition = awsutil.Cycle{
 						"name":"worker",
 						"cpu":200,
 						"memory":256,
-						"image":"test-image",
+						"image":"test-image:1",
+						"environment":[{"name":"PROCESS","value":"worker"}],
+						"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}],
+						"portMappings":[{"hostPort":5000,"containerPort":80}]
+					}
+				],
+				"volumes":[
+					{"host":{"sourcePath":"/var/run/docker.sock"},"name":"convox-test-myapp-staging-0-0"}
+				]
+			}
+		}`,
+	},
+}
+
+var cycleCapacityDescribeTaskDefinition2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+		Body:       `{"taskDefinition":"arn:aws:ecs:us-west-2:901416387788:task-definition/convox-test-myapp-staging-worker:2"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition":{
+				"family":"convox-test-myapp-staging-worker",
+				"containerDefinitions":[
+					{
+						"name":"worker",
+						"cpu":200,
+						"memory":256,
+						"image":"test-image:2",
 						"environment":[{"name":"PROCESS","value":"worker"}],
 						"mountPoints":[{"sourceVolume":"worker-0-0","readOnly":false,"containerPath":"/var/run/docker.sock"}],
 						"portMappings":[{"hostPort":5000,"containerPort":80}]
