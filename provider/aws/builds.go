@@ -433,21 +433,45 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		}
 
 		if strings.HasSuffix(header.Name, ".tar") {
-			cmd := exec.Command("docker", "load")
-			cmd.Stdin = tr
-
 			log.Step("load").Logf("tar=%q", header.Name)
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				log.Errorf(lastline(out))
+
+			cmd := exec.Command("docker", "load")
+
+			pr, pw := io.Pipe()
+			tee := io.TeeReader(tr, pw)
+			outb := &bytes.Buffer{}
+
+			cmd.Stdin = pr
+			cmd.Stdout = outb
+
+			if err := cmd.Start(); err != nil {
+				log.Error(err)
 				return nil, err
 			}
-			if !strings.HasPrefix(string(out), "Loaded image: ") {
-				log.Errorf("invalid docker load output")
-				return nil, fmt.Errorf("invalid docker load output")
+
+			log.Step("manifest").Logf("tar=%q", header.Name)
+			manifest, err := extractImageManifest(tee)
+			if err != nil {
+				log.Error(err)
+				return nil, err
 			}
 
-			image := strings.TrimSpace(string(out)[14:])
+			if err := pw.Close(); err != nil {
+				log.Error(err)
+				return nil, err
+			}
+
+			if err := cmd.Wait(); err != nil {
+				log.Errorf(lastline(outb.Bytes()))
+				return nil, err
+			}
+
+			if len(manifest) != 1 || len(manifest[0].RepoTags) != 1 {
+				log.Errorf("invalid image manifest")
+				return nil, fmt.Errorf("invalid image manifest")
+			}
+
+			image := manifest[0].RepoTags[0]
 			ps := strings.Split(header.Name, ".")[0]
 			target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
 
@@ -973,7 +997,7 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 }
 
 func (p *AWSProvider) dockerLogin(repo *appRepository) error {
-	log := Logger.At("dockerLogin").Namespace("repo=%q", repo).Start()
+	log := Logger.At("dockerLogin").Namespace("repo=%q", repo.URI).Start()
 
 	log.Step("token").Logf("id=%q", repo.ID)
 	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
@@ -1009,6 +1033,42 @@ func (p *AWSProvider) dockerLogin(repo *appRepository) error {
 
 	log.Success()
 	return nil
+}
+
+type imageManifest []struct {
+	RepoTags []string
+}
+
+func extractImageManifest(r io.Reader) (imageManifest, error) {
+	mtr := tar.NewReader(r)
+
+	var manifest imageManifest
+
+	for {
+		mh, err := mtr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if mh.Name == "manifest.json" {
+			var mdata bytes.Buffer
+
+			if _, err := io.Copy(&mdata, mtr); err != nil {
+				return nil, err
+			}
+
+			if err := json.Unmarshal(mdata.Bytes(), &manifest); err != nil {
+				return nil, err
+			}
+
+			return manifest, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to locate manifest")
 }
 
 func (p *AWSProvider) registryTag(a *structs.App, serviceName, buildID string) string {
