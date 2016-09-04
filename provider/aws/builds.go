@@ -383,6 +383,10 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	targetBuild.Started = time.Now()
 	targetBuild.Status = "complete"
 
+	if p.IsTest() {
+		targetBuild.Id = "B12345"
+	}
+
 	a, err := p.AppGet(app)
 	if err != nil {
 		log.Error(err)
@@ -496,6 +500,10 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	}
 
 	release := structs.NewRelease(app)
+
+	if p.IsTest() {
+		release.Id = "R23456"
+	}
 
 	targetBuild.Ended = time.Now()
 	targetBuild.Logs = sourceBuild.Logs
@@ -643,6 +651,11 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 	if b.Started.IsZero() {
 		b.Started = time.Now()
+	}
+
+	if p.IsTest() {
+		b.Started = time.Unix(1473028693, 0).UTC()
+		b.Ended = time.Unix(1473028892, 0).UTC()
 	}
 
 	req := &dynamodb.PutItemInput{
@@ -1099,7 +1112,6 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 
 	// collect builds IDs to delete
 	wrs := []*dynamodb.WriteRequest{}
-	fmt.Println()
 	for _, item := range res.Items {
 		b := p.buildFromItem(item)
 
