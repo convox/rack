@@ -22,17 +22,14 @@ func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamO
 }
 
 func (p *AWSProvider) subscribeLogs(w io.Writer, group string, opts structs.LogStreamOptions) error {
-	if opts.Since.Nanoseconds() == 0 {
-		opts.Since = 2 * time.Minute
-	}
+	since := opts.Since
 
-	since := 2 * time.Minute
-	if opts.Since.Nanoseconds() > 0 {
-		since = opts.Since
+	if since.IsZero() {
+		since = time.Now().Add(10 * time.Minute)
 	}
 
 	// number of milliseconds since Jan 1, 1970 00:00:00 UTC
-	start := time.Now().Add(-since).UnixNano() / int64(time.Millisecond)
+	start := since.UnixNano() / int64(time.Millisecond)
 
 	for {
 		s, err := p.fetchLogs(w, group, opts.Filter, start)

@@ -94,7 +94,7 @@ func SystemLogs(ws *websocket.Conn) *httperr.Error {
 	err = models.Provider().SystemLogs(ws, structs.LogStreamOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
-		Since:  since,
+		Since:  time.Now().Add(-1 * since),
 	})
 	if err != nil {
 		return httperr.Server(err)

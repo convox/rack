@@ -129,7 +129,7 @@ func AppLogs(ws *websocket.Conn) *httperr.Error {
 	err = models.Provider().LogStream(app, ws, structs.LogStreamOptions{
 		Filter: header.Get("Filter"),
 		Follow: follow,
-		Since:  since,
+		Since:  time.Now().Add(-1 * since),
 	})
 	if err != nil {
 		if strings.HasSuffix(err.Error(), "write: broken pipe") {
