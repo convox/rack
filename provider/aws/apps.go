@@ -43,7 +43,6 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 
 // AppDelete deletes an app
 func (p *AWSProvider) AppDelete(name string) error {
-
 	app, err := p.AppGet(name)
 	if err != nil {
 		return err
@@ -100,7 +99,6 @@ func (p *AWSProvider) appRepository(name string) (*appRepository, error) {
 
 // cleanup deletes AWS resources that aren't handled by the CloudFormation during stack deletion.
 func (p *AWSProvider) cleanup(app *structs.App) error {
-
 	err := p.deleteBucket(app.Outputs["Settings"])
 	if err != nil {
 		fmt.Printf("fn=cleanup level=error msg=\"%s\"", err)
