@@ -27,7 +27,7 @@ func TestLogStream(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, "2014-03-28T15:36:18-04:00 event1\n2014-03-28T15:36:18-04:00 event2\n2014-03-28T15:36:18-04:00 event3\n2014-03-28T15:36:18-04:00 event4\n2014-03-28T15:36:18-04:00 event5\n", buf.String())
+	assert.Equal(t, "2014-03-28T19:36:18Z event1\n2014-03-28T19:36:18Z event2\n2014-03-28T19:36:18Z event3\n2014-03-28T19:36:18Z event4\n2014-03-28T19:36:18Z event5\n", buf.String())
 }
 
 var cycleLogFilterLogEvents1 = awsutil.Cycle{

@@ -116,7 +116,7 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 
 		sec := *e.Timestamp / 1000
 		nsec := *e.Timestamp - (sec * 1000)
-		t := time.Unix(sec, nsec)
+		t := time.Unix(sec, nsec).UTC()
 		line := fmt.Sprintf("%s %s\n", t.Format(time.RFC3339), *e.Message)
 
 		if _, err := w.Write([]byte(line)); err != nil {
