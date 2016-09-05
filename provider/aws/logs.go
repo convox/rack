@@ -22,17 +22,14 @@ func (p *AWSProvider) LogStream(app string, w io.Writer, opts structs.LogStreamO
 }
 
 func (p *AWSProvider) subscribeLogs(w io.Writer, group string, opts structs.LogStreamOptions) error {
-	if opts.Since.Nanoseconds() == 0 {
-		opts.Since = 2 * time.Minute
-	}
+	since := opts.Since
 
-	since := 2 * time.Minute
-	if opts.Since.Nanoseconds() > 0 {
-		since = opts.Since
+	if since.IsZero() {
+		since = time.Now().Add(10 * time.Minute)
 	}
 
 	// number of milliseconds since Jan 1, 1970 00:00:00 UTC
-	start := time.Now().Add(-since).UnixNano() / int64(time.Millisecond)
+	start := since.UnixNano() / int64(time.Millisecond)
 
 	for {
 		s, err := p.fetchLogs(w, group, opts.Filter, start)
@@ -58,18 +55,22 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 		Interleaved:  aws.Bool(true),
 		LogGroupName: aws.String(group),
 		StartTime:    aws.Int64(start),
+		EndTime:      aws.Int64(start + (1000 * 60 * 10)),
+		Limit:        aws.Int64(10000),
 	}
 
 	if filter != "" {
 		req.FilterPattern = aws.String(filter)
 	}
 
+	events := []*cloudwatchlogs.FilteredLogEvent{}
+
 	for {
 		res, err := p.cloudwatchlogs().FilterLogEvents(req)
 		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ThrottlingException" {
 			// backoff
 			log.Error(err)
-			time.Sleep(1 * time.Second)
+			time.Sleep(200 * time.Millisecond)
 			continue
 		}
 		if err != nil {
@@ -77,15 +78,7 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 			return 0, err
 		}
 
-		latest, err := p.writeLogEvents(w, res.Events)
-		if err != nil {
-			log.Error(err)
-			return 0, err
-		}
-
-		if latest > start {
-			start = latest
-		}
+		events = append(events, res.Events...)
 
 		if res.NextToken == nil {
 			break
@@ -94,8 +87,14 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 		req.NextToken = res.NextToken
 	}
 
-	log.Successf("end=%d", start)
-	return start, nil
+	latest, err := p.writeLogEvents(w, events)
+	if err != nil {
+		log.Error(err)
+		return 0, err
+	}
+
+	log.Successf("end=%d", latest)
+	return latest, nil
 }
 
 func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent) (int64, error) {
@@ -117,7 +116,7 @@ func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.Filte
 
 		sec := *e.Timestamp / 1000
 		nsec := *e.Timestamp - (sec * 1000)
-		t := time.Unix(sec, nsec)
+		t := time.Unix(sec, nsec).UTC()
 		line := fmt.Sprintf("%s %s\n", t.Format(time.RFC3339), *e.Message)
 
 		if _, err := w.Write([]byte(line)); err != nil {

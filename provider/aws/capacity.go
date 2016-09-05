@@ -43,23 +43,25 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 
 	for _, service := range services {
 		if len(service.LoadBalancers) > 0 {
-			td, err := p.describeTaskDefinition(*service.TaskDefinition)
-			if err != nil {
-				log.Error(err)
-				return nil, err
-			}
-
-			tdPorts := map[string]int64{}
-
-			for _, cd := range td.ContainerDefinitions {
-				for _, pm := range cd.PortMappings {
-					tdPorts[fmt.Sprintf("%s.%d", *cd.Name, *pm.ContainerPort)] = *pm.HostPort
+			for _, deployment := range service.Deployments {
+				td, err := p.describeTaskDefinition(*deployment.TaskDefinition)
+				if err != nil {
+					log.Error(err)
+					return nil, err
 				}
-			}
 
-			for _, lb := range service.LoadBalancers {
-				if port, ok := tdPorts[fmt.Sprintf("%s.%d", *lb.ContainerName, *lb.ContainerPort)]; ok {
-					portWidth[port] += *service.DesiredCount
+				tdPorts := map[string]int64{}
+
+				for _, cd := range td.ContainerDefinitions {
+					for _, pm := range cd.PortMappings {
+						tdPorts[fmt.Sprintf("%s.%d", *cd.Name, *pm.ContainerPort)] = *pm.HostPort
+					}
+				}
+
+				for _, lb := range service.LoadBalancers {
+					if port, ok := tdPorts[fmt.Sprintf("%s.%d", *lb.ContainerName, *lb.ContainerPort)]; ok {
+						portWidth[port] += *deployment.DesiredCount
+					}
 				}
 			}
 		}

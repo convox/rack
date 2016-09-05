@@ -194,8 +194,9 @@ func TestFormationSave(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		cycleCapacityDescribeTaskDefinition,
-		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition2,
+		cycleCapacityDescribeTaskDefinition1,
+		cycleCapacityDescribeTaskDefinition1,
 		cycleNotificationPublish,
 		test.DescribeAppStackCycle("convox-httpd"),
 		cycleFormationUpdateStack,
@@ -258,8 +259,9 @@ func TestFormationSaveBadCount(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		cycleCapacityDescribeTaskDefinition,
-		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition2,
+		cycleCapacityDescribeTaskDefinition1,
+		cycleCapacityDescribeTaskDefinition1,
 	)
 	defer provider.Close()
 
@@ -280,8 +282,9 @@ func TestFormationSaveCpuTooSmall(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		cycleCapacityDescribeTaskDefinition,
-		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition2,
+		cycleCapacityDescribeTaskDefinition1,
+		cycleCapacityDescribeTaskDefinition1,
 	)
 	defer provider.Close()
 
@@ -302,8 +305,9 @@ func TestFormationSaveCpuTooLarge(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		cycleCapacityDescribeTaskDefinition,
-		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition2,
+		cycleCapacityDescribeTaskDefinition1,
+		cycleCapacityDescribeTaskDefinition1,
 	)
 	defer provider.Close()
 
@@ -324,8 +328,9 @@ func TestFormationSaveMemoryTooLarge(t *testing.T) {
 		cycleCapacityDescribeContainerInstances,
 		cycleCapacityListServices,
 		cycleCapacityDescribeServices,
-		cycleCapacityDescribeTaskDefinition,
-		cycleCapacityDescribeTaskDefinition,
+		cycleCapacityDescribeTaskDefinition2,
+		cycleCapacityDescribeTaskDefinition1,
+		cycleCapacityDescribeTaskDefinition1,
 	)
 	defer provider.Close()
 
