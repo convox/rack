@@ -102,6 +102,10 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 		r.Created = time.Now()
 	}
 
+	if p.IsTest() {
+		r.Created = time.Unix(1473028693, 0).UTC()
+	}
+
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},

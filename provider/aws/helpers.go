@@ -179,6 +179,11 @@ func humanStatus(original string) string {
 	}
 }
 
+func lastline(data []byte) string {
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	return lines[len(lines)-1]
+}
+
 func stackName(app *structs.App) string {
 	if _, ok := app.Tags["Rack"]; ok {
 		return fmt.Sprintf("%s-%s", app.Tags["Rack"], app.Name)

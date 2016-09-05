@@ -79,6 +79,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	cache := !(r.FormValue("cache") == "false")
 	manifest := r.FormValue("manifest")
 	description := r.FormValue("description")
+	buildImport := (r.FormValue("import") == "true")
 
 	repo := r.FormValue("repo")
 	index := r.FormValue("index")
@@ -96,7 +97,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	a, err := models.GetApp(app)
+	a, err := models.Provider().AppGet(app)
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -109,9 +110,15 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	var b *structs.Build
 
-	// if source file was posted, build from tar
 	if source != nil {
-		b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+
+		if buildImport {
+			b, err = models.Provider().BuildImport(a.Name, source)
+		} else {
+			// if source file was posted, build from tar
+			b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+		}
+
 	} else if repo != "" {
 		b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
 	} else if index != "" {
@@ -264,6 +271,32 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, b)
+}
+
+// BuildExport creats an artifact, representing a build, to be used with another Rack
+func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	vars := mux.Vars(r)
+	app := vars["app"]
+	build := vars["build"]
+
+	b, err := models.Provider().BuildGet(app, build)
+	if awsError(err) == "ValidationError" {
+		return httperr.Errorf(404, "no such app: %s", app)
+	}
+	if err != nil && strings.HasPrefix(err.Error(), "no such build") {
+		return httperr.Errorf(404, err.Error())
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	rw.Header().Set("Content-Type", "application/octet-stream")
+
+	if err = models.Provider().BuildExport(app, b.Id, rw); err != nil {
+		return httperr.Server(err)
+	}
+
+	return nil
 }
 
 func BuildLogs(ws *websocket.Conn) *httperr.Error {
