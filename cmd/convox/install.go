@@ -586,6 +586,8 @@ func friendlyName(t string) string {
 		return ""
 	case "AWS::ECS::Cluster":
 		return "ECS Cluster"
+	case "AWS::ECS::Service":
+		return "ECS Service"
 	case "AWS::EFS::FileSystem":
 		return "EFS Filesystem"
 	case "AWS::EFS::MountTarget":
