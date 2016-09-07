@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -8,6 +10,7 @@ import (
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
 	"github.com/convox/version"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
@@ -90,4 +93,29 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 
 func TestConvoxInstallFileCredentials(t *testing.T) {
 
+}
+
+func TestConvoxInstallFriendlyName(t *testing.T) {
+	var formation struct {
+		Resources map[string]struct {
+			Type string
+		}
+	}
+
+	data, err := ioutil.ReadFile("../../provider/aws/dist/rack.json")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, data)
+
+	err = json.Unmarshal(data, &formation)
+	assert.Nil(t, err)
+
+	types := map[string]bool{}
+
+	for _, r := range formation.Resources {
+		types[r.Type] = true
+	}
+
+	for typ := range types {
+		assert.NotContains(t, FriendlyName(typ), "Unknown")
+	}
 }
