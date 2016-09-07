@@ -496,7 +496,7 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 			fmt.Println(msg)
 		}
 
-		name := friendlyName(*event.ResourceType)
+		name := FriendlyName(*event.ResourceType)
 
 		if name == "" {
 			continue
@@ -550,7 +550,8 @@ func displayProgress(stack string, CloudFormation *cloudformation.CloudFormation
 	return nil
 }
 
-func friendlyName(t string) string {
+// FriendlyName turns an AWS resource type into a friendly name
+func FriendlyName(t string) string {
 	switch t {
 	case "AWS::AutoScaling::AutoScalingGroup":
 		return "AutoScalingGroup"
