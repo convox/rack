@@ -462,7 +462,7 @@
               [
                 "'use strict';",
                 "var aws = require('aws-sdk');",
-                "var ecs = new aws.ECS();",
+                "var ecs = new aws.ECS({maxRetries:10});",
                 "var cluster = 'convox-test';",
                 "var taskDefinitions = {",
                 {

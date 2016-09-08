@@ -518,7 +518,7 @@
           "ZipFile": { "Fn::Join": ["\n", [
             "'use strict';",
             "var aws = require('aws-sdk');",
-            "var ecs = new aws.ECS();",
+            "var ecs = new aws.ECS({maxRetries:10});",
             "var cluster = '{{ env "CLUSTER" }}';",
             "var taskDefinitions = {",
             {{ range .Manifest.Services }}
