@@ -667,9 +667,8 @@ func createTarball(base string) ([]byte, error) {
 // Image URLs that point to the convox-hosted registry, e.g. convox-826133048.us-east-1.elb.amazonaws.com:5000/myapp-web:BSUSBFCUCSA,
 // are not yet supported and return an error.
 func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
-	var m manifest.Manifest
 
-	err := yaml.Unmarshal([]byte(b.Manifest), &m)
+	m, err := manifest.Load([]byte(b.Manifest))
 	if err != nil {
 		return err
 	}
