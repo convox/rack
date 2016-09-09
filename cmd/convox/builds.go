@@ -85,7 +85,7 @@ func init() {
 			{
 				Name:        "copy",
 				Description: "copy a build to an app",
-				Usage:       "<ID> <app>",
+				Usage:       "<id> <app>",
 				Action:      cmdBuildsCopy,
 				Flags: []cli.Flag{
 					appFlag,
@@ -99,33 +99,43 @@ func init() {
 			{
 				Name:        "info",
 				Description: "print output for a build",
-				Usage:       "<ID>",
+				Usage:       "<id>",
 				Action:      cmdBuildsInfo,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "delete",
 				Description: "archive a build and its artifacts",
-				Usage:       "<ID>",
+				Usage:       "<id>",
 				Action:      cmdBuildsDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "export",
 				Description: "export a build artifact to stdout",
-				Usage:       "<ID>",
+				Usage:       "<id>",
 				Action:      cmdBuildsExport,
-				Flags:       []cli.Flag{appFlag, rackFlag},
+				Flags: []cli.Flag{
+					appFlag,
+					rackFlag,
+					cli.StringFlag{
+						Name:  "file, f",
+						Usage: "export to file",
+					},
+				},
 			},
 			{
-
 				Name:        "import",
 				Description: "import a build artifact from stdin",
-				Usage:       "<ID>",
+				Usage:       "",
 				Action:      cmdBuildsImport,
 				Flags: []cli.Flag{
 					appFlag,
 					rackFlag,
+					cli.StringFlag{
+						Name:  "file, f",
+						Usage: "import from file",
+					},
 					cli.BoolFlag{
 						Name:  "id",
 						Usage: "build logs on stderr, release id on stdout",
@@ -235,12 +245,12 @@ func cmdBuildsDelete(c *cli.Context) error {
 
 	build := c.Args()[0]
 
-	b, err := rackClient(c).DeleteBuild(app, build)
-	if err != nil {
+	fmt.Printf("Deleting %s... ", build)
+	if _, err := rackClient(c).DeleteBuild(app, build); err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Printf("Deleted %s\n", b.Id)
+	fmt.Println("OK")
 	return nil
 }
 
@@ -318,20 +328,35 @@ func cmdBuildsExport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	if !stdcli.IsTerminal(os.Stdout) && c.String("file") == "" {
+		return stdcli.ExitError(fmt.Errorf("please pipe the output of this command to a file or specify -f"))
+	}
+
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "export")
 		return nil
 	}
 
-	buildID := c.Args()[0]
+	build := c.Args()[0]
 
-	build, err := rackClient(c).ExportBuild(app, buildID)
-	if err != nil {
+	fmt.Fprintf(os.Stderr, "Exporting %s... ", build)
+
+	out := os.Stdout
+
+	if file := c.String("file"); file != "" {
+		fd, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+		defer fd.Close()
+		out = fd
+	}
+
+	if err := rackClient(c).ExportBuild(app, build, out); err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	buf := bytes.NewBuffer(build)
-	buf.WriteTo(os.Stdout)
+	fmt.Fprintf(os.Stderr, "OK\n")
 
 	return nil
 }
@@ -342,40 +367,35 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	buildInput := os.Stdin
+	if !stdcli.IsTerminal(os.Stdin) && c.String("file") == "" {
+		return stdcli.ExitError(fmt.Errorf("please pipe a file into this command or specify -f"))
+	}
 
-	if len(c.Args()) == 1 {
-		file, err := os.Open(c.Args()[0])
+	in := os.Stdin
+	if file := c.String("file"); file != "" {
+		fd, err := os.Open(file)
 		if err != nil {
 			return stdcli.ExitError(err)
 		}
-
-		buildInput = file
+		defer fd.Close()
+		in = fd
 	}
 
-	b, err := ioutil.ReadAll(buildInput)
-	if err != nil {
-		return stdcli.ExitError(fmt.Errorf("error reading build: %s", err))
-	}
-
-	w := os.Stdout
+	out := os.Stdout
 
 	if c.Bool("id") {
-		w = os.Stderr
+		out = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, b, progressFunc(w))
+	build, err := rackClient(c).ImportBuild(app, in, progressFunc(out))
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	if c.Bool("id") {
-		fmt.Print(build.Release)
+	fmt.Fprintf(out, "\nRelease: %s\n", build.Release)
 
-	} else {
-		fmt.Println()
-		fmt.Printf("Imported %s\n", build.Id)
-		fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", build.Release, app)
+	if c.Bool("id") {
+		fmt.Println(build.Release)
 	}
 
 	return nil
