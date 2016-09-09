@@ -27,14 +27,19 @@ func TestLogStream(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, "2014-03-28T19:36:18Z event1\n2014-03-28T19:36:18Z event2\n2014-03-28T19:36:18Z event3\n2014-03-28T19:36:18Z event4\n2014-03-28T19:36:18Z event5\n", buf.String())
+	assert.Equal(t, "2014-03-28T19:36:18Z event2\n2014-03-28T19:36:18Z event3\n2014-03-28T19:36:18Z event4\n2014-03-28T19:36:18Z event1\n2014-03-28T19:36:18Z event5\n", buf.String())
 }
 
 var cycleLogFilterLogEvents1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "Logs_20140328.FilterLogEvents",
-		Body:       `{"endTime":1472946823000,"filterPattern":"test","interleaved":true,"limit":10000,"logGroupName":"convox-httpd-LogGroup-L4V203L35WRM","startTime":1472946223000}`,
+		Body: `{
+			"filterPattern": "test",
+			"interleaved": true,
+			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
+			"startTime": 1.472946223e+12
+		}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -85,7 +90,13 @@ var cycleLogFilterLogEvents2 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "Logs_20140328.FilterLogEvents",
-		Body:       `{"endTime":1472946823000,"filterPattern":"test","interleaved":true,"limit":10000,"logGroupName":"convox-httpd-LogGroup-L4V203L35WRM","startTime":1472946223000,"nextToken":"ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw"}`,
+		Body: `{
+			"filterPattern": "test",
+			"interleaved": true,
+			"logGroupName": "convox-httpd-LogGroup-L4V203L35WRM",
+			"nextToken": "ZNUEPl7FcQuXbIH4Swk9D9eFu2XBg-ijZIZlvzz4ea9zZRjw-MMtQtvcoMdmq4T29K7Q6Y1e_KvyfpcT_f_tUw",
+			"startTime": 1.472946223e+12
+		}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
