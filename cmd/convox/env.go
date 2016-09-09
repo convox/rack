@@ -136,12 +136,7 @@ func cmdEnvSet(c *cli.Context) error {
 		data += fmt.Sprintf("%s=%s\n", key, value)
 	}
 
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
+	if !stdcli.IsTerminal(os.Stdin) {
 		in, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			return stdcli.ExitError(err)

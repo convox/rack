@@ -1,9 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/convox/rack/api/structs"
@@ -174,19 +176,27 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 }
 
 // ExportBuild creats an artifact, representing a build, to be used with another Rack
-func (c *Client) ExportBuild(app, id string) ([]byte, error) {
+func (c *Client) ExportBuild(app, id string, w io.Writer) error {
+	var data []byte
 
-	var buildData []byte
-	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), &buildData)
+	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), &data)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return buildData, nil
+	if _, err := io.Copy(w, bytes.NewReader(data)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ImportBuild imports a build artifact
-func (c *Client) ImportBuild(app string, source []byte, callback func(s string)) (*structs.Build, error) {
+func (c *Client) ImportBuild(app string, r io.Reader, callback func(s string)) (*structs.Build, error) {
+	source, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
 
 	files := map[string][]byte{
 		"source": source,
@@ -198,8 +208,7 @@ func (c *Client) ImportBuild(app string, source []byte, callback func(s string))
 
 	build := &structs.Build{}
 
-	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, build, callback)
-	if err != nil {
+	if err = c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, build, callback); err != nil {
 		return nil, err
 	}
 
