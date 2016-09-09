@@ -273,7 +273,7 @@ func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
-// BuildExport creats an artifact, representing a build, to be used with another Rack
+// BuildExport creates an artifact, representing a build, to be used with another Rack
 func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
