@@ -61,6 +61,8 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 		req.FilterPattern = aws.String(filter)
 	}
 
+	end := start + 1
+
 	for {
 		res, err := p.cloudwatchlogs().FilterLogEvents(req)
 		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ThrottlingException" {
@@ -80,8 +82,10 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 			return 0, err
 		}
 
-		if latest > start {
-			start = latest
+		log = log.Namespace("events=%d", len(res.Events))
+
+		if latest >= end {
+			end = latest + 1
 		}
 
 		if res.NextToken == nil {
@@ -91,8 +95,8 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 		req.NextToken = res.NextToken
 	}
 
-	log.Successf("end=%d", start)
-	return start, nil
+	log.Successf("end=%d", end)
+	return end, nil
 }
 
 func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent) (int64, error) {
