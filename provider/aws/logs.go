@@ -55,22 +55,18 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 		Interleaved:  aws.Bool(true),
 		LogGroupName: aws.String(group),
 		StartTime:    aws.Int64(start),
-		EndTime:      aws.Int64(start + (1000 * 60 * 10)),
-		Limit:        aws.Int64(10000),
 	}
 
 	if filter != "" {
 		req.FilterPattern = aws.String(filter)
 	}
 
-	events := []*cloudwatchlogs.FilteredLogEvent{}
-
 	for {
 		res, err := p.cloudwatchlogs().FilterLogEvents(req)
 		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ThrottlingException" {
 			// backoff
 			log.Error(err)
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		if err != nil {
@@ -78,7 +74,15 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 			return 0, err
 		}
 
-		events = append(events, res.Events...)
+		latest, err := p.writeLogEvents(w, res.Events)
+		if err != nil {
+			log.Error(err)
+			return 0, err
+		}
+
+		if latest > start {
+			start = latest
+		}
 
 		if res.NextToken == nil {
 			break
@@ -87,14 +91,8 @@ func (p *AWSProvider) fetchLogs(w io.Writer, group, filter string, start int64) 
 		req.NextToken = res.NextToken
 	}
 
-	latest, err := p.writeLogEvents(w, events)
-	if err != nil {
-		log.Error(err)
-		return 0, err
-	}
-
-	log.Successf("end=%d", latest)
-	return latest, nil
+	log.Successf("end=%d", start)
+	return start, nil
 }
 
 func (p *AWSProvider) writeLogEvents(w io.Writer, events []*cloudwatchlogs.FilteredLogEvent) (int64, error) {
