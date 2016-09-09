@@ -428,10 +428,6 @@ func awsConfig(region string, creds *AwsCredentials) *aws.Config {
 		config.Endpoint = aws.String(e)
 	}
 
-	if r := os.Getenv("AWS_REGION"); r != "" {
-		config.Region = aws.String(r)
-	}
-
 	return config
 }
 
