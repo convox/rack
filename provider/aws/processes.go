@@ -239,78 +239,6 @@ func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOpt
 	return arnToPid(*task.TaskArn), nil
 }
 
-func (p *AWSProvider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
-	res, err := p.ecs().RunTask(req)
-	switch {
-	case err != nil:
-		return nil, err
-	case len(res.Failures) > 0:
-		switch *res.Failures[0].Reason {
-		case "RESOURCE:MEMORY":
-			return nil, fmt.Errorf("not enough memory available to start process")
-		case "RESOURCE:PORTS":
-			return nil, fmt.Errorf("no instance with available ports to start process")
-		}
-	case len(res.Tasks) != 1 || len(res.Tasks[0].Containers) != 1:
-		return nil, fmt.Errorf("could not start process")
-	}
-	return res.Tasks[0], nil
-}
-
-func (p *AWSProvider) processRunAttached(app, process string, opts structs.ProcessRunOptions) (string, error) {
-	td, err := p.taskDefinitionForRun(app, process, opts.Release)
-	if err != nil {
-		return "", err
-	}
-
-	req := &ecs.RunTaskInput{
-		Cluster:        aws.String(p.Cluster),
-		Count:          aws.Int64(1),
-		StartedBy:      aws.String(fmt.Sprintf("convox.%s", app)),
-		TaskDefinition: aws.String(td),
-	}
-
-	if opts.Command != "" {
-		req.Overrides = &ecs.TaskOverride{
-			ContainerOverrides: []*ecs.ContainerOverride{
-				&ecs.ContainerOverride{
-					Name: aws.String(process),
-					Command: []*string{
-						aws.String("sh"),
-						aws.String("-c"),
-						aws.String("sleep 60"),
-					},
-				},
-			},
-		}
-	}
-
-	task, err := p.runTask(req)
-	if err != nil {
-		return "", err
-	}
-
-	status, err := p.waitForTask(*task.TaskArn)
-	if err != nil {
-		return "", err
-	}
-	if status != "RUNNING" {
-		return "", fmt.Errorf("error starting container")
-	}
-
-	pid := arnToPid(*task.TaskArn)
-
-	err = p.ProcessExec(app, pid, opts.Command, opts.Stream, structs.ProcessExecOptions{
-		Height: opts.Height,
-		Width:  opts.Width,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return pid, nil
-}
-
 // ProcessStop stops a Process
 func (p *AWSProvider) ProcessStop(app, pid string) error {
 	arn, err := p.taskArnFromPid(pid)
@@ -630,6 +558,60 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	return req, nil
 }
 
+func (p *AWSProvider) processRunAttached(app, process string, opts structs.ProcessRunOptions) (string, error) {
+	td, err := p.taskDefinitionForRun(app, process, opts.Release)
+	if err != nil {
+		return "", err
+	}
+
+	req := &ecs.RunTaskInput{
+		Cluster:        aws.String(p.Cluster),
+		Count:          aws.Int64(1),
+		StartedBy:      aws.String(fmt.Sprintf("convox.%s", app)),
+		TaskDefinition: aws.String(td),
+	}
+
+	if opts.Command != "" {
+		req.Overrides = &ecs.TaskOverride{
+			ContainerOverrides: []*ecs.ContainerOverride{
+				&ecs.ContainerOverride{
+					Name: aws.String(process),
+					Command: []*string{
+						aws.String("sh"),
+						aws.String("-c"),
+						aws.String("sleep 60"),
+					},
+				},
+			},
+		}
+	}
+
+	task, err := p.runTask(req)
+	if err != nil {
+		return "", err
+	}
+
+	status, err := p.waitForTask(*task.TaskArn)
+	if err != nil {
+		return "", err
+	}
+	if status != "RUNNING" {
+		return "", fmt.Errorf("error starting container")
+	}
+
+	pid := arnToPid(*task.TaskArn)
+
+	err = p.ProcessExec(app, pid, opts.Command, opts.Stream, structs.ProcessExecOptions{
+		Height: opts.Height,
+		Width:  opts.Width,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return pid, nil
+}
+
 func (p *AWSProvider) resolveRelease(app, release string) (string, error) {
 	if release != "" {
 		return release, nil
@@ -644,6 +626,24 @@ func (p *AWSProvider) resolveRelease(app, release string) (string, error) {
 	}
 
 	return a.Release, nil
+}
+
+func (p *AWSProvider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
+	res, err := p.ecs().RunTask(req)
+	switch {
+	case err != nil:
+		return nil, err
+	case len(res.Failures) > 0:
+		switch *res.Failures[0].Reason {
+		case "RESOURCE:MEMORY":
+			return nil, fmt.Errorf("not enough memory available to start process")
+		case "RESOURCE:PORTS":
+			return nil, fmt.Errorf("no instance with available ports to start process")
+		}
+	case len(res.Tasks) != 1 || len(res.Tasks[0].Containers) != 1:
+		return nil, fmt.Errorf("could not start process")
+	}
+	return res.Tasks[0], nil
 }
 
 func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
