@@ -20,7 +20,7 @@ type Request struct {
 
 func (r *Request) String() string {
 	body := formatBody(strings.NewReader(r.Body))
-	return fmt.Sprintf("RequestURI: %s\nOperation: %s\nBody: %s", r.RequestURI, r.Operation, body)
+	return fmt.Sprintf("RequestURI: %q,\nOperation: %q,\nBody: `%s`,", r.RequestURI, r.Operation, body)
 }
 
 // Response represents a predefined response.
@@ -46,23 +46,25 @@ func NewHandler(c []Cycle) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if len(h.cycles) == 0 {
-		fmt.Println("No cycles remaining to replay.")
-		w.WriteHeader(404)
-		return
-	}
-
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}
 
-	cycle := h.cycles[0]
 	match := Request{
 		RequestURI: r.URL.RequestURI(),
 		Operation:  r.Header.Get("X-Amz-Target"),
 		Body:       string(b),
 	}
+
+	if len(h.cycles) == 0 {
+		fmt.Println("No cycles remaining to replay.")
+		fmt.Println(match.String())
+		w.WriteHeader(404)
+		return
+	}
+
+	cycle := h.cycles[0]
 
 	var matched bool
 

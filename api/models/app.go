@@ -283,7 +283,7 @@ func (a *App) ForkRelease() (*Release, error) {
 	}
 
 	release.Id = generateId("R", 10)
-	release.Created = time.Time{}
+	release.Created = time.Now()
 
 	env, err := Provider().EnvironmentGet(a.Name)
 	if err != nil {
