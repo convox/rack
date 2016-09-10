@@ -22,6 +22,7 @@ const (
 	statusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 )
 
+// ProcessExec runs a command in an existing Process
 func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
@@ -195,6 +196,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 	return pss, nil
 }
 
+// ProcessRun runs a new Process
 func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOptions) (string, error) {
 	if opts.Stream != nil {
 		return p.processRunAttached(app, process, opts)
@@ -307,6 +309,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 	return pid, nil
 }
 
+// ProcessStop stops a Process
 func (p *AWSProvider) ProcessStop(app, pid string) error {
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
