@@ -19,9 +19,8 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
-const (
-	StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:" // prefix to send to client before sending exit code
-)
+// StatusCodePrefix is sent to the client to let it know the exit code is coming next
+const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
 // ProcessExec runs a command in an existing Process
 func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
