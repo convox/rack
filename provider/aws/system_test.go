@@ -11,20 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSystemSaveWrongType(t *testing.T) {
-	sys := structs.System{
-		Name:    "name",
-		Version: "version",
-		Type:    "wrongtype",
-	}
-
-	provider := &aws.AWSProvider{}
-
-	err := provider.SystemSave(sys)
-
-	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
-}
-
 func TestSystemGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
@@ -116,6 +102,20 @@ func TestSystemSaveNewParameter(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
+}
+
+func TestSystemSaveWrongType(t *testing.T) {
+	sys := structs.System{
+		Name:    "name",
+		Version: "version",
+		Type:    "wrongtype",
+	}
+
+	provider := &aws.AWSProvider{}
+
+	err := provider.SystemSave(sys)
+
+	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
 }
 
 var cycleSystemDescribeStacks = awsutil.Cycle{
