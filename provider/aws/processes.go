@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -192,6 +193,8 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 			break
 		}
 	}
+
+	sort.Sort(pss)
 
 	return pss, nil
 }
