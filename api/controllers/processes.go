@@ -82,6 +82,7 @@ func ProcessRunAttached(ws *websocket.Conn) *httperr.Error {
 	return nil
 }
 
+// ProcessRunDetached runs a process in the background
 func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -103,6 +104,7 @@ func ProcessRunDetached(rw http.ResponseWriter, r *http.Request) *httperr.Error 
 	return RenderSuccess(rw)
 }
 
+// ProcessStop stops a Process
 func ProcessStop(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]

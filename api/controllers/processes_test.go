@@ -38,7 +38,7 @@ func TestProcessesList(t *testing.T) {
 				Image:    "image:tag",
 				Instance: "i-1234",
 				Ports:    []string{"80", "443"},
-				Cpu:      0.345,
+				CPU:      0.345,
 				Memory:   0.456,
 				Started:  time.Unix(1473483567, 0).UTC(),
 			},

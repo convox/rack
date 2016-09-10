@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Process represents a running Process
 type Process struct {
 	ID      string `json:"id"`
 	App     string `json:"app"`
@@ -18,19 +19,22 @@ type Process struct {
 	Instance string   `json:"instance"`
 	Ports    []string `json:"ports"`
 
-	Cpu    float64 `json:"cpu"`
+	CPU    float64 `json:"cpu"`
 	Memory float64 `json:"memory"`
 
 	Started time.Time `json:"started"`
 }
 
+// Processes are a list of Processes
 type Processes []Process
 
+// ProcessExecOptions are options for ProcessExec
 type ProcessExecOptions struct {
 	Height int
 	Width  int
 }
 
+// ProcessRunOptions are options for ProcessRun
 type ProcessRunOptions struct {
 	Command string
 	Height  int

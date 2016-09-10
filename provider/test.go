@@ -219,7 +219,7 @@ func (p *TestProvider) ProcessExec(app, pid, command string, stream io.ReadWrite
 	return nil
 }
 
-// FormationList lists the Formation
+// ProcessList lists Processes for an App
 func (p *TestProvider) ProcessList(app string) (structs.Processes, error) {
 	args := p.Called(app)
 
