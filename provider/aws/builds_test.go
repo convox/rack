@@ -52,11 +52,10 @@ func TestBuildDelete(t *testing.T) {
 
 		describeStacksCycle,
 		releasesBuild2DeleteItemCycle,
+		build2BatchDeleteImageCycle,
 
 		releasesBuild2BatchWriteItemCycle,
 		build2DeleteItemCycle,
-
-		build2BatchDeleteImageCycle,
 	)
 	defer provider.Close()
 
