@@ -32,6 +32,10 @@ func New(code int, err error) *Error {
 	return e
 }
 
+func NotFound(err error) *Error {
+	return New(404, err)
+}
+
 func Server(err error) *Error {
 	return New(500, err)
 }

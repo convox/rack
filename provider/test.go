@@ -213,6 +213,41 @@ func (p *TestProvider) LogStream(app string, w io.Writer, opts structs.LogStream
 	return nil
 }
 
+// ProcessExec execs a new command on an existing Process
+func (p *TestProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
+	p.Called(app, pid, command, stream, opts)
+	return nil
+}
+
+// FormationList lists the Formation
+func (p *TestProvider) ProcessList(app string) (structs.Processes, error) {
+	args := p.Called(app)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Processes), args.Error(1)
+}
+
+// ProcessRun runs a new Process
+func (p *TestProvider) ProcessRun(app, process string, opts structs.ProcessRunOptions) (string, error) {
+	args := p.Called(app, process, opts)
+
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+
+	return args.Get(0).(string), args.Error(1)
+}
+
+// ProcessStop stops a Process
+func (p *TestProvider) ProcessStop(app, pid string) error {
+	args := p.Called(app, pid)
+
+	return args.Error(0)
+}
+
 // ReleaseDelete deletes all releases for an App and Build
 func (p *TestProvider) ReleaseDelete(app, buildID string) error {
 	p.Called(app, buildID)

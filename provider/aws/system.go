@@ -87,7 +87,12 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	releases := make(structs.Releases, len(res.Items))
 
 	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
+		r, err := releaseFromItem(item)
+		if err != nil {
+			return nil, err
+		}
+
+		releases[i] = *r
 	}
 
 	return releases, nil
