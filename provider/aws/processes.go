@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	statusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
+	StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:" // prefix to send to client before sending exit code
 )
 
 // ProcessExec runs a command in an existing Process
@@ -105,7 +105,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		return err
 	}
 
-	if _, err := stream.Write([]byte(fmt.Sprintf("%s%d\n", statusCodePrefix, ires.ExitCode))); err != nil {
+	if _, err := stream.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode))); err != nil {
 		return err
 	}
 

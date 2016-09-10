@@ -1,22 +1,51 @@
 package aws_test
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider/aws"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessExec(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessListTasksAll,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleProcessDockerListContainers,
+		cycleProcessDockerCreateExec,
+		cycleProcessDockerStartExec,
+		cycleProcessDockerResizeExec,
+		cycleProcessDockerInspectExec,
+	)
+	defer d.Close()
+
+	buf := &bytes.Buffer{}
+
+	err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", buf, structs.ProcessExecOptions{
+		Height: 10,
+		Width:  20,
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), buf.Bytes())
 }
 
 func TestProcessList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessDescribeStackResources,
-		cycleProcessListTasks1,
-		cycleProcessListTasks2,
-		cycleProcessDescribeTasks,
+		cycleProcessListTasksByService,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstances,
@@ -142,6 +171,45 @@ var cycleProcessDescribeStackResources = awsutil.Cycle{
 }
 
 var cycleProcessDescribeTasks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"tasks": [
+				{
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"overrides": {
+						"containerOverrides": [
+							{
+								"command": ["sh", "-c", "foo"]
+							}
+						]
+					},
+					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containers": [
+						{
+							"name": "web",
+							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
+						}
+					]
+				}
+			]
+		}`,
+	},
+}
+
+var cycleProcessDescribeTasksAll = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
@@ -287,7 +355,25 @@ var cycleProcessDescribeTaskDefinition2 = awsutil.Cycle{
 	},
 }
 
-var cycleProcessListTasks1 = awsutil.Cycle{
+var cycleProcessListTasksAll = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
+var cycleProcessListTasksByService = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
@@ -306,7 +392,7 @@ var cycleProcessListTasks1 = awsutil.Cycle{
 	},
 }
 
-var cycleProcessListTasks2 = awsutil.Cycle{
+var cycleProcessListTasksByStarted = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
@@ -322,5 +408,90 @@ var cycleProcessListTasks2 = awsutil.Cycle{
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
+	},
+}
+
+var cycleProcessDockerListContainers = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
+		Body:       ``,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `[
+			{
+				"Id": "8dfafdbc3a40",
+				"Names":["/boring_feynman"],
+				"Image": "ubuntu:latest",
+				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"Command": "echo 1",
+				"Created": 1367854155,
+				"State": "Exited",
+				"Status": "Exit 0",
+				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
+			}
+		]`,
+	},
+}
+
+var cycleProcessDockerCreateExec = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/8dfafdbc3a40/exec",
+		Body: `{
+			"AttachStderr": true,
+			"AttachStdin": true,
+			"AttachStdout": true,
+			"Cmd": [
+				"sh",
+				"-c",
+				"ls -la"
+			],
+			"Container": "8dfafdbc3a40",
+			"Tty": true
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Id": "123456",
+			"Warnings": []
+		}`,
+	},
+}
+
+var cycleProcessDockerStartExec = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/exec/123456/start",
+		Body: `{
+			"ErrorStream": {},
+			"InputStream": {},
+			"OutputStream": {},
+			"RawTerminal": true,
+			"Tty": true
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       "foo",
+	},
+}
+
+var cycleProcessDockerResizeExec = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/exec/123456/resize?h=10&w=20",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       "",
+	},
+}
+
+var cycleProcessDockerInspectExec = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/exec/123456/json",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"ExitCode":0}`,
 	},
 }
