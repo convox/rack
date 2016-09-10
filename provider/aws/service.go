@@ -199,10 +199,12 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	}
 
 	// Populate linked apps
-	for k, _ := range s.Outputs {
-		if strings.HasSuffix(k, "Link") {
-			n := dashName(k)
-			app := n[:len(n)-4]
+	for key, value := range s.Outputs {
+		if strings.HasSuffix(key, "Link") {
+			// Extract app name from log group
+			index := strings.Index(value, "-LogGroup")
+			r := strings.NewReplacer(fmt.Sprintf("%s-", p.Rack), "", value[index:], "")
+			app := r.Replace(value)
 
 			a, err := p.AppGet(app)
 			if err != nil {

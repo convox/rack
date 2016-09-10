@@ -1,10 +1,14 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
+
+	"github.com/convox/rack/api/structs"
 )
 
 type Build struct {
@@ -169,4 +173,44 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 	}
 
 	return &build, nil
+}
+
+// ExportBuild creats an artifact, representing a build, to be used with another Rack
+func (c *Client) ExportBuild(app, id string, w io.Writer) error {
+	var data []byte
+
+	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), &data)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(w, bytes.NewReader(data)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ImportBuild imports a build artifact
+func (c *Client) ImportBuild(app string, r io.Reader, callback func(s string)) (*structs.Build, error) {
+	source, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	files := map[string][]byte{
+		"source": source,
+	}
+
+	params := map[string]string{
+		"import": "true",
+	}
+
+	build := &structs.Build{}
+
+	if err = c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, build, callback); err != nil {
+		return nil, err
+	}
+
+	return build, nil
 }

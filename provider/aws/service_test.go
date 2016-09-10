@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/convox/rack/api/awsutil"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,15 +29,99 @@ func TestServiceWebhookURL(t *testing.T) {
 	}
 }
 
+func TestServiceGet(t *testing.T) {
+	provider := StubAwsProvider(
+		test.DescribeStackNotFound("convox-syslog"),
+		cycleServiceDescribeStacks1,
+		describeStacksCycle,
+	)
+	defer provider.Close()
+
+	expected := &structs.Service{
+		Name:   "syslog",
+		Stack:  "syslog",
+		Status: "running",
+		Apps: structs.Apps{
+			structs.App{
+				Name:    "httpd",
+				Release: "RVFETUHHKKD",
+				Status:  "running",
+				Outputs: map[string]string{
+					"BalancerWebHost":       "httpd-web-7E5UPCM-1241527783.us-east-1.elb.amazonaws.com",
+					"Kinesis":               "convox-httpd-Kinesis-1MAP0GJ6RITJF",
+					"LogGroup":              "convox-httpd-LogGroup-L4V203L35WRM",
+					"RegistryId":            "132866487567",
+					"RegistryRepository":    "convox-httpd-hqvvfosgxt",
+					"Settings":              "convox-httpd-settings-139bidzalmbtu",
+					"WebPort80Balancer":     "80",
+					"WebPort80BalancerName": "httpd-web-7E5UPCM",
+				},
+				Parameters: map[string]string{
+					"WebMemory":              "256",
+					"WebCpu":                 "256",
+					"Release":                "RVFETUHHKKD",
+					"Subnets":                "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
+					"Private":                "Yes",
+					"WebPort80ProxyProtocol": "No",
+					"VPC":                  "vpc-f8006b9c",
+					"Cluster":              "convox-Cluster-1E4XJ0PQWNAYS",
+					"Key":                  "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
+					"Repository":           "",
+					"WebPort80Balancer":    "80",
+					"SubnetsPrivate":       "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f",
+					"Environment":          "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env",
+					"WebPort80Certificate": "",
+					"WebPort80Host":        "56694",
+					"WebDesiredCount":      "1",
+					"WebPort80Secure":      "No",
+					"Version":              "20160330143438-command-exec-form",
+				},
+				Tags: map[string]string{
+					"Name":   "httpd",
+					"Type":   "app",
+					"System": "convox",
+					"Rack":   "convox",
+				},
+			},
+		},
+		Tags: map[string]string{
+			"Type":   "service",
+			"Name":   "syslog",
+			"System": "convox",
+			"Rack":   "convox",
+		},
+		Outputs: map[string]string{
+			"Url":       "tcp+tls://logs1.example.com:11235",
+			"HttpdLink": "convox-httpd-LogGroup-12345678",
+		},
+		Exports:    map[string]string{},
+		Parameters: map[string]string{},
+	}
+
+	s, err := provider.ServiceGet("syslog")
+
+	if assert.Nil(t, err) {
+		assert.EqualValues(t, expected, s)
+	}
+}
+
 var cycleServiceDescribeStacks1 = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox-mywebhook&Version=2010-05-15`},
+	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
 	awsutil.Response{
-		400,
+		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>
 				<Stacks>
 					<member>
 						<Outputs>
+                                                        <member>
+								<OutputKey>Url</OutputKey>
+								<OutputValue>tcp+tls://logs1.example.com:11235</OutputValue>
+							</member>
+                                                        <member>
+								<OutputKey>HttpdLink</OutputKey>
+								<OutputValue>convox-httpd-LogGroup-12345678</OutputValue>
+							</member>
 						</Outputs>
 						<Capabilities>
 							<member>CAPABILITY_IAM</member>
@@ -44,10 +129,27 @@ var cycleServiceDescribeStacks1 = awsutil.Cycle{
 						<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
 						<NotificationARNs/>
 						<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
-						<StackName>convox-servicename</StackName>
+						<StackName>syslog</StackName>
 						<StackStatus>UPDATE_COMPLETE</StackStatus>
 						<DisableRollback>false</DisableRollback>
-						<Tags/>
+						<Tags>
+                                                        <member>
+                                                                <Value>service</Value>
+                                                                <Key>Type</Key>
+                                                          </member>
+                                                        <member>
+                                                            <Value>syslog</Value>
+                                                            <Key>Name</Key>
+                                                          </member>
+                                                          <member>
+                                                            <Value>convox</Value>
+                                                            <Key>System</Key>
+                                                          </member>
+                                                          <member>
+                                                            <Value>convox</Value>
+                                                            <Key>Rack</Key>
+                                                          </member>
+                                                </Tags>
 						<LastUpdatedTime>2016-08-27T16:29:05.963Z</LastUpdatedTime>
 						<Parameters>
 						</Parameters>
@@ -62,7 +164,7 @@ var cycleServiceDescribeStacks1 = awsutil.Cycle{
 }
 
 var cycleServiceDescribeStacks2 = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=servicename&Version=2010-05-15`},
+	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">

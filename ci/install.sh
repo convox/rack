@@ -9,6 +9,4 @@ export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
 convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
-grep -v "Created Unknown" $CIRCLE_ARTIFACTS/convox-installer.log
-
 convox instances

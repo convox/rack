@@ -235,6 +235,16 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	return nil
 }
 
+// IsTerminal tells you if a given file descriptor has a tty on the other side
+func IsTerminal(f *os.File) bool {
+	stat, err := f.Stat()
+	if err != nil {
+		return false
+	}
+
+	return (stat.Mode() & os.ModeCharDevice) == 0
+}
+
 func Usage(c *cli.Context, name string) {
 	cli.ShowCommandHelp(c, name)
 	Exiter(129)

@@ -16,7 +16,9 @@ type Provider interface {
 	BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
+	BuildExport(app, id string, w io.Writer) error
 	BuildGet(app, id string) (*structs.Build, error)
+	BuildImport(app string, r io.Reader) (*structs.Build, error)
 	BuildLogs(app, id string) (string, error)
 	BuildList(app string, limit int64) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)
