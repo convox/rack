@@ -242,7 +242,9 @@ func IsTerminal(f *os.File) bool {
 		return false
 	}
 
-	return (stat.Mode() & os.ModeCharDevice) == 0
+	// stat.Mode() & os.ModeCharDevice) == 0 means data is being piped to stdin
+	// otherwise stdin is from a terminal
+	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
 func Usage(c *cli.Context, name string) {
