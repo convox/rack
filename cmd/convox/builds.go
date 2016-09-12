@@ -328,7 +328,7 @@ func cmdBuildsExport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	if !stdcli.IsTerminal(os.Stdout) && c.String("file") == "" {
+	if stdcli.IsTerminal(os.Stdout) && c.String("file") == "" {
 		return stdcli.ExitError(fmt.Errorf("please pipe the output of this command to a file or specify -f"))
 	}
 
@@ -367,7 +367,7 @@ func cmdBuildsImport(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	if !stdcli.IsTerminal(os.Stdin) && c.String("file") == "" {
+	if stdcli.IsTerminal(os.Stdin) && c.String("file") == "" {
 		return stdcli.ExitError(fmt.Errorf("please pipe a file into this command or specify -f"))
 	}
 
