@@ -48,10 +48,10 @@ func TestProcessList(t *testing.T) {
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
 		cycleProcessDescribeTaskDefinition1,
-		cycleProcessDescribeTaskDefinition2,
-		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessDescribeTaskDefinition2,
+		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
 	)
 	defer provider.Close()
