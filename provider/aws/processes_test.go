@@ -713,7 +713,7 @@ var cycleProcessRunTaskAttached = awsutil.Cycle{
 						"command": [
 							"sh",
 							"-c",
-							"sleep 60"
+							"sleep 3600"
 						],
 						"name": "web"
 					}
