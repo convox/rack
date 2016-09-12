@@ -193,12 +193,16 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 	}
 
 	pss := structs.Processes{}
-	psch := make(chan structs.Process)
+	psch := make(chan structs.Process, len(tres.Tasks))
 	errch := make(chan error)
 	timeout := time.After(30 * time.Second)
 
 	for _, task := range tres.Tasks {
-		go p.fetchProcess(task, psch, errch)
+		if p.IsTest() {
+			p.fetchProcess(task, psch, errch)
+		} else {
+			go p.fetchProcess(task, psch, errch)
+		}
 	}
 
 	for {
