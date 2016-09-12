@@ -24,17 +24,21 @@ const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
 // ProcessExec runs a command in an existing Process
 func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
+	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pid, command).Start()
+
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	task, err := p.describeTask(arn)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	if len(task.Containers) < 1 {
-		return fmt.Errorf("no running container for process: %s", pid)
+		return log.Errorf("no running container for process: %s", pid)
 	}
 
 	cires, err := p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
@@ -42,14 +46,16 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		ContainerInstances: []*string{task.ContainerInstanceArn},
 	})
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	if len(cires.ContainerInstances) < 1 {
-		return fmt.Errorf("could not find instance for process: %s", pid)
+		return log.Errorf("could not find instance for process: %s", pid)
 	}
 
 	dc, err := p.dockerInstance(*cires.ContainerInstances[0].Ec2InstanceId)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
@@ -60,10 +66,11 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		},
 	})
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	if len(cs) != 1 {
-		return fmt.Errorf("could not find container for task: %s", arn)
+		return log.Errorf("could not find container for task: %s", arn)
 	}
 
 	eres, err := dc.CreateExec(docker.CreateExecOptions{
@@ -75,6 +82,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		Container:    cs[0].ID,
 	})
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
@@ -95,31 +103,44 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		RawTerminal:  true,
 		Success:      success,
 	})
+	// remote going away is not an error
+	if strings.Contains(err.Error(), "use of closed network") {
+		log.Success()
+		return nil
+	}
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	ires, err := dc.InspectExec(eres.ID)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	if _, err := stream.Write([]byte(fmt.Sprintf("%s%d\n", StatusCodePrefix, ires.ExitCode))); err != nil {
+		log.Error(err)
 		return err
 	}
 
+	log.Success()
 	return nil
 }
 
 // ProcessList returns a list of processes for an app
 func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
+	log := Logger.At("ProcessList").Namespace("app=%q", app).Start()
+
 	rres, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, app)),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+		log.Errorf("no such app: %s", app)
 		return nil, ErrorNotFound(fmt.Sprintf("no such app: %s", app))
 	}
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -140,6 +161,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 			ServiceName: aws.String(s),
 		})
 		if err != nil {
+			log.Error(err)
 			return nil, err
 		}
 		for _, arn := range tres.TaskArns {
@@ -153,6 +175,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 		StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
 	})
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -165,6 +188,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 		Tasks:   tasks,
 	})
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -195,17 +219,21 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 
 	sort.Sort(pss)
 
+	log.Success()
 	return pss, nil
 }
 
 // ProcessRun runs a new Process
 func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOptions) (string, error) {
+	log := Logger.At("ProcessRun").Namespace("app=%q process=%q", app, process).Start()
+
 	if opts.Stream != nil {
 		return p.processRunAttached(app, process, opts)
 	}
 
 	td, err := p.taskDefinitionForRun(app, process, opts.Release)
 	if err != nil {
+		log.Error(err)
 		return "", err
 	}
 
@@ -233,16 +261,21 @@ func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOpt
 
 	task, err := p.runTask(req)
 	if err != nil {
-		return "", nil
+		log.Error(err)
+		return "", err
 	}
 
+	log.Success()
 	return arnToPid(*task.TaskArn), nil
 }
 
 // ProcessStop stops a Process
 func (p *AWSProvider) ProcessStop(app, pid string) error {
+	log := Logger.At("ProcessStop").Namespace("app=%q pid=%q", app, pid).Start()
+
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
@@ -251,9 +284,11 @@ func (p *AWSProvider) ProcessStop(app, pid string) error {
 		Task:    aws.String(arn),
 	})
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
+	log.Success()
 	return nil
 }
 
@@ -480,6 +515,8 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		cd.Command = []*string{aws.String("sh"), aws.String("-c"), aws.String(s.Command.String)}
 	}
 
+	env := map[string]string{}
+
 	base := map[string]string{
 		"APP":        app,
 		"AWS_REGION": p.Region,
@@ -490,26 +527,17 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	}
 
 	for k, v := range base {
-		cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
-			Name:  aws.String(k),
-			Value: aws.String(v),
-		})
+		env[k] = v
 	}
 
 	for k, v := range s.Environment {
-		cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
-			Name:  aws.String(k),
-			Value: aws.String(v),
-		})
+		env[k] = v
 	}
 
 	for _, e := range strings.Split(r.Env, "\n") {
 		p := strings.SplitN(e, "=", 2)
 		if len(p) == 2 {
-			cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
-				Name:  aws.String(p[0]),
-				Value: aws.String(p[1]),
-			})
+			env[p[0]] = p[1]
 		}
 	}
 
@@ -526,11 +554,23 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 				return nil, fmt.Errorf("could not find link var: %s", k)
 			}
 
-			cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
-				Name:  aws.String(k),
-				Value: aws.String(lv),
-			})
+			env[k] = lv
 		}
+	}
+
+	keys := []string{}
+
+	for k := range env {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		cd.Environment = append(cd.Environment, &ecs.KeyValuePair{
+			Name:  aws.String(k),
+			Value: aws.String(env[k]),
+		})
 	}
 
 	req := &ecs.RegisterTaskDefinitionInput{
