@@ -37,7 +37,7 @@ func init() {
 			},
 			cli.BoolFlag{
 				Name:  "no-sync",
-				Usage: "synchronize local file changes into the running containers",
+				Usage: "do not synchronize local file changes into the running containers",
 			},
 		},
 	})
