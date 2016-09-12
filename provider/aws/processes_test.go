@@ -43,7 +43,8 @@ func TestProcessExec(t *testing.T) {
 func TestProcessList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessDescribeStackResources,
-		cycleProcessListTasksByService,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
 		cycleProcessListTasksByStarted,
 		cycleProcessDescribeTasksAll,
 		cycleProcessDescribeTaskDefinition1,
@@ -84,6 +85,88 @@ func TestProcessList(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.EqualValues(t, ps, s)
+}
+
+func TestProcessRunAttached(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessReleaseGetItem,
+		cycleProcessDescribeStacks,
+		cycleProcessDescribeStacks,
+		cycleProcessReleaseGetItem,
+		cycleProcessDescribeStackResources,
+		cycleProcessDescribeServices,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessRegisterTaskDefinition,
+		cycleProcessReleaseUpdateItem,
+		cycleProcessRunTaskAttached,
+		cycleProcessDescribeTasks,
+		cycleProcessListTasksAll,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleProcessDockerListContainers,
+		cycleProcessDockerCreateExec,
+		cycleProcessDockerStartExec,
+		cycleProcessDockerResizeExec,
+		cycleProcessDockerInspectExec,
+	)
+	defer d.Close()
+
+	buf := &bytes.Buffer{}
+
+	pid, err := provider.ProcessRun("myapp", "web", structs.ProcessRunOptions{
+		Command: "ls -la",
+		Release: "RVFETUHHKKD",
+		Stream:  buf,
+		Height:  10,
+		Width:   20,
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, "5850760f0845", pid)
+	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), buf.Bytes())
+}
+
+func TestProcessRunDetached(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessReleaseGetItem,
+		cycleProcessDescribeStacks,
+		cycleProcessDescribeStacks,
+		cycleProcessReleaseGetItem,
+		cycleProcessDescribeStackResources,
+		cycleProcessDescribeServices,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessRegisterTaskDefinition,
+		cycleProcessReleaseUpdateItem,
+		cycleProcessRunTaskDetached,
+	)
+	defer provider.Close()
+
+	pid, err := provider.ProcessRun("myapp", "web", structs.ProcessRunOptions{
+		Command: "ls test",
+		Release: "RVFETUHHKKD",
+		Height:  0,
+		Width:   0,
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, "0f51f03ff369", pid)
+}
+
+func TestProcessStop(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessListTasksAll,
+		cycleProcessStopTask,
+	)
+	defer provider.Close()
+
+	err := provider.ProcessStop("myapp", "5850760f0845")
+
+	assert.Nil(t, err)
 }
 
 var cycleProcessDescribeContainerInstances = awsutil.Cycle{
@@ -139,6 +222,126 @@ var cycleProcessDescribeInstances = awsutil.Cycle{
 	},
 }
 
+var cycleProcessDescribeServices = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
+		Body: `{
+			"cluster": "cluster-test",
+			"services": [
+				"arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1I2PTXAZ5ECRD"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"services": [
+				{
+					"status": "ACTIVE",
+					"taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"pendingCount": 0,
+					"loadBalancers": [
+						{
+							"containerName": "web",
+							"containerPort": 4000,
+							"loadBalancerName": "rails-web-HY3CGZN"
+						}
+					],
+					"roleArn": "arn:aws:iam::778743527532:role/convox/convox-myapp-ServiceRole-1U94NKEJV4H6U",
+					"createdAt": 1472493833.436,
+					"desiredCount": 1,
+					"serviceName": "convox-myapp-ServiceWeb-1OKBY3I5WYIIP",
+					"clusterArn": "arn:aws:ecs:us-east-1:778743527532:cluster/david-Cluster-11CH3SUXA7BQH",
+					"serviceArn": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1OKBY3I5WYIIP",
+					"deploymentConfiguration": {
+						"maximumPercent": 200,
+						"minimumHealthyPercent": 100
+					},
+					"deployments": [
+						{
+							"status": "PRIMARY",
+							"pendingCount": 0,
+							"createdAt": 1473481958.792,
+							"desiredCount": 1,
+							"taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+							"updatedAt": 1473481958.792,
+							"id": "ecs-svc/9223370563372817015",
+							"runningCount": 1
+						}
+					],
+					"events": [],
+					"runningCount": 1
+				}
+			],
+			"failures": []
+		}`,
+	},
+}
+
+var cycleProcessDescribeStacks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Body:       `Action=DescribeStacks&StackName=convox-myapp&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<DescribeStacksResult>
+					<Stacks>
+						<member>
+							<Outputs>
+								<member>
+									<OutputKey>RegistryId</OutputKey>
+									<OutputValue>778743527532</OutputValue>
+								</member>
+								<member>
+									<OutputKey>RegistryRepository</OutputKey>
+									<OutputValue>convox-myapp-nkdecwppkq</OutputValue>
+								</member>
+							</Outputs>
+							<Capabilities>
+								<member>CAPABILITY_IAM</member>
+							</Capabilities>
+							<CreationTime>2016-08-29T17:45:22.396Z</CreationTime>
+							<NotificationARNs/>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<StackStatus>UPDATE_COMPLETE</StackStatus>
+							<DisableRollback>false</DisableRollback>
+							<Tags>
+								<member>
+									<Value>convox</Value>
+									<Key>Rack</Key>
+								</member>
+								<member>
+									<Value>app</Value>
+									<Key>Type</Key>
+								</member>
+								<member>
+									<Value>convox</Value>
+									<Key>System</Key>
+								</member>
+								<member>
+									<Value>myapp</Value>
+									<Key>Name</Key>
+								</member>
+							</Tags>
+							<LastUpdatedTime>2016-09-10T04:32:19.081Z</LastUpdatedTime>
+							<Parameters>
+							</Parameters>
+						</member>
+					</Stacks>
+				</DescribeStacksResult>
+				<ResponseMetadata>
+					<RequestId>9627285a-7903-11e6-a36d-77452275e1ca</RequestId>
+				</ResponseMetadata>
+			</DescribeStacksResponse>
+		`,
+	},
+}
+
 var cycleProcessDescribeStackResources = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -157,6 +360,15 @@ var cycleProcessDescribeStackResources = awsutil.Cycle{
 							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
 							<StackName>convox-myapp</StackName>
 							<LogicalResourceId>ServiceDatabase</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::ECS::Service</ResourceType>
+						</member>
+						<member>
+							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1I2PTXAZ5ECRD</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>ServiceWeb</LogicalResourceId>
 							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
 							<ResourceType>AWS::ECS::Service</ResourceType>
 						</member>
@@ -195,6 +407,7 @@ var cycleProcessDescribeTasks = awsutil.Cycle{
 							}
 						]
 					},
+					"lastStatus": "RUNNING",
 					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
 					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"containers": [
@@ -217,6 +430,7 @@ var cycleProcessDescribeTasksAll = awsutil.Cycle{
 			"cluster": "cluster-test",
 			"tasks": [
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847",
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
@@ -373,7 +587,7 @@ var cycleProcessListTasksAll = awsutil.Cycle{
 	},
 }
 
-var cycleProcessListTasksByService = awsutil.Cycle{
+var cycleProcessListTasksByService1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
@@ -387,6 +601,25 @@ var cycleProcessListTasksByService = awsutil.Cycle{
 		Body: `{
 			"taskArns": [
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846"
+			]
+		}`,
+	},
+}
+
+var cycleProcessListTasksByService2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"serviceName": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1I2PTXAZ5ECRD"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0847"
 			]
 		}`,
 	},
@@ -408,6 +641,204 @@ var cycleProcessListTasksByStarted = awsutil.Cycle{
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
+	},
+}
+
+var cycleProcessRegisterTaskDefinition = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.RegisterTaskDefinition",
+		Body: `{
+			"containerDefinitions": [
+				{
+					"environment": [
+						{
+							"name": "APP",
+							"value": "myapp"
+						},
+						{
+							"name": "AWS_REGION",
+							"value": "us-test-1"
+						},
+						{
+							"name": "LOG_GROUP",
+							"value": ""
+						},
+						{
+							"name": "PROCESS",
+							"value": "web"
+						},
+						{
+							"name": "RACK",
+							"value": "convox"
+						},
+						{
+							"name": "RELEASE",
+							"value": "RVFETUHHKKD"
+						},
+						{
+							"name": "foo",
+							"value": "bar"
+						}
+					],
+					"essential": true,
+					"image": "778743527532.dkr.ecr.us-test-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BHINCLZYYVN",
+					"memoryReservation": 512,
+					"name": "web"
+				}
+			],
+			"family": "convox-myapp-web"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition": {
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4"
+			}
+		}`,
+	},
+}
+
+var cycleProcessRunTaskAttached = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.RunTask",
+		Body: `{
+			"cluster": "cluster-test",
+			"count": 1,
+			"overrides": {
+				"containerOverrides": [
+					{
+						"command": [
+							"sh",
+							"-c",
+							"sleep 60"
+						],
+						"name": "web"
+					}
+				]
+			},
+			"startedBy": "convox.myapp",
+			"taskDefinition": "arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"tasks": [
+				{
+					"containers": [
+						{
+							"containerArn": "arn:aws:ecs:us-east-1:012345678910:container/e1ed7aac-d9b2-4315-8726-d2432bf11868",
+							"lastStatus": "PENDING",
+							"name": "wordpress",
+							"taskArn": "arn:aws:ecs:us-east-1:012345678910:task/d8c67b3c-ac87-4ffe-a847-4785bc3a8b55"
+						}
+					],
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleProcessRunTaskDetached = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.RunTask",
+		Body: `{
+			"cluster": "cluster-test",
+			"count": 1,
+			"overrides": {
+				"containerOverrides": [
+					{
+						"command": [
+							"sh",
+							"-c",
+							"ls test"
+						],
+						"name": "web"
+					}
+				]
+			},
+			"startedBy": "convox.myapp",
+			"taskDefinition": "arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"tasks": [
+				{
+					"containers": [
+						{
+							"containerArn": "arn:aws:ecs:us-east-1:012345678910:container/e1ed7aac-d9b2-4315-8726-d2432bf11868",
+							"lastStatus": "PENDING",
+							"name": "wordpress",
+							"taskArn": "arn:aws:ecs:us-east-1:012345678910:task/d8c67b3c-ac87-4ffe-a847-4785bc3a8b55"
+						}
+					],
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleProcessStopTask = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.StopTask",
+		Body: `{
+			"cluster": "cluster-test",
+			"task": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"task": {
+				"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/014b7e61-cc23-47e8-9dc6-0f51f03ff369"
+			}
+		}`,
+	},
+}
+
+var cycleProcessReleaseGetItem = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.GetItem",
+		Body:       `{"ConsistentRead":true,"Key":{"id":{"S":"RVFETUHHKKD"}},"TableName":"convox-releases"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"Item":{"id":{"S":"RVFETUHHKKD"},"build":{"S":"BHINCLZYYVN"},"app":{"S":"myapp"},"manifest":{"S":"web:\n  image: myapp\n  ports:\n  - 80:80\n"},"env":{"S":"foo=bar"},"created":{"S":"20160404.143542.627770380"}}}`,
+	},
+}
+
+var cycleProcessReleaseUpdateItem = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.UpdateItem",
+		Body: `{
+			"ExpressionAttributeValues": {
+				":definitions": {
+					"S": "{\"web.run\":\"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4\"}"
+				}
+			},
+			"Key": {
+				"id": {
+					"S": "RVFETUHHKKD"
+				}
+			},
+			"TableName": "convox-releases",
+			"UpdateExpression": "set definitions = :definitions"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{}`,
 	},
 }
 
