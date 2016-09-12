@@ -103,12 +103,12 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		RawTerminal:  true,
 		Success:      success,
 	})
-	// remote going away is not an error
-	if strings.Contains(err.Error(), "use of closed network") {
-		log.Success()
-		return nil
-	}
 	if err != nil {
+		// remote going away is not an error
+		if strings.Contains(err.Error(), "use of closed network") {
+			log.Success()
+			return nil
+		}
 		log.Error(err)
 		return err
 	}
