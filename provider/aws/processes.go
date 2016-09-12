@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -301,14 +302,30 @@ func arnToPid(arn string) string {
 	return parts[len(parts)-1]
 }
 
-func commandString(cs []*string) string {
+// from https://github.com/docker/docker/blob/master/api/client/stats.go
+func calculateCPUPercent(previousCPU, previousSystem uint64, v *docker.Stats) float64 {
+	var (
+		cpuPercent = 0.0
+		// calculate the change for the cpu usage of the container in between readings
+		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage - previousCPU)
+		// calculate the change for the entire system between readings
+		systemDelta = float64(v.CPUStats.SystemCPUUsage - previousSystem)
+	)
+
+	if systemDelta > 0.0 && cpuDelta > 0.0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+	}
+	return cpuPercent
+}
+
+func commandString(cs []string) string {
 	cmd := make([]string, len(cs))
 
 	for i, c := range cs {
-		if strings.Contains(*c, " ") {
-			cmd[i] = fmt.Sprintf("%q", *c)
+		if strings.Contains(c, " ") {
+			cmd[i] = fmt.Sprintf("%q", c)
 		} else {
-			cmd[i] = *c
+			cmd[i] = c
 		}
 	}
 
@@ -408,17 +425,53 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		ports = append(ports, fmt.Sprintf("%d:%d", *p.HostPort, *p.ContainerPort))
 	}
 
-	cmd := commandString(cd.Command)
+	dc, err := p.dockerInstance(*ci.Ec2InstanceId)
+	if err != nil {
+		errch <- err
+		return
+	}
 
-	for _, o := range task.Overrides.ContainerOverrides {
-		if o.Command != nil {
-			cmd = commandString(o.Command)
+	cs, err := dc.ListContainers(docker.ListContainersOptions{
+		All: true,
+		Filters: map[string][]string{
+			"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+		},
+	})
+	if err != nil {
+		errch <- err
+		return
+	}
+	if len(cs) != 1 {
+		errch <- fmt.Errorf("could not find container for task: %s", *task.TaskArn)
+		return
+	}
+
+	ic, err := dc.InspectContainer(cs[0].ID)
+	if err != nil {
+		errch <- err
+		return
+	}
+
+	cmd := commandString(ic.Config.Cmd)
+
+	// fetch the interior process
+	if ic.Config.Labels["convox.process.type"] == "oneoff" {
+		tr, err := dc.TopContainer(cs[0].ID, "")
+		if err != nil {
+			errch <- err
+			return
+		}
+
+		// if there's an exec process grab it minus the "sh -c "
+		if len(tr.Processes) >= 2 {
+			cmd = tr.Processes[1][7][6:]
+		} else {
+			cmd = ""
 		}
 	}
 
 	ps := structs.Process{
-		ID: arnToPid(*task.TaskArn),
-		// App:      app,
+		ID:       arnToPid(*task.TaskArn),
 		Name:     *container.Name,
 		Release:  env["RELEASE"],
 		Command:  cmd,
@@ -431,6 +484,25 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	// guard for nil
 	if task.StartedAt != nil {
 		ps.Started = *task.StartedAt
+	}
+
+	sch := make(chan *docker.Stats, 1)
+
+	err = dc.Stats(docker.StatsOptions{
+		ID:     cs[0].ID,
+		Stats:  sch,
+		Stream: false,
+	})
+
+	stat := <-sch
+
+	pcpu := stat.PreCPUStats.CPUUsage.TotalUsage
+	psys := stat.PreCPUStats.SystemCPUUsage
+
+	ps.CPU = truncate(calculateCPUPercent(pcpu, psys, stat), 4)
+
+	if stat.MemoryStats.Limit > 0 {
+		ps.Memory = truncate(float64(stat.MemoryStats.Usage)/float64(stat.MemoryStats.Limit), 4)
 	}
 
 	psch <- ps
@@ -504,6 +576,9 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 	}
 
 	cd := &ecs.ContainerDefinition{
+		DockerLabels: map[string]*string{
+			"convox.process.type": aws.String("oneoff"),
+		},
 		Essential:         aws.Bool(true),
 		Image:             aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s.%s", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"], process, r.Build)),
 		MemoryReservation: aws.Int64(512),
@@ -621,9 +696,8 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 				&ecs.ContainerOverride{
 					Name: aws.String(process),
 					Command: []*string{
-						aws.String("sh"),
-						aws.String("-c"),
-						aws.String("sleep 3600"),
+						aws.String("sleep"),
+						aws.String("3600"),
 					},
 				},
 			},
@@ -796,6 +870,13 @@ func (p *AWSProvider) taskDefinitionForRun(app, process, release string) (string
 	}
 
 	return *res.TaskDefinition.TaskDefinitionArn, nil
+}
+
+// truncat a float to a given precision
+// ex:  truncate(3.1459, 2) -> 3.14
+func truncate(f float64, precision int) float64 {
+	p := math.Pow10(precision)
+	return float64(int(f*p)) / p
 }
 
 func (p *AWSProvider) waitForTask(arn string) (string, error) {
