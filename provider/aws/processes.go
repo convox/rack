@@ -619,7 +619,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 					Command: []*string{
 						aws.String("sh"),
 						aws.String("-c"),
-						aws.String("sleep 60"),
+						aws.String("sleep 3600"),
 					},
 				},
 			},
