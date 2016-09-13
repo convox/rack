@@ -43,16 +43,18 @@ func (l *Logger) Step(step string) *Logger {
 	return l.Replace("step", step)
 }
 
-func (l *Logger) Error(err error) {
+func (l *Logger) Error(err error) error {
 	if _, file, line, ok := runtime.Caller(1); ok {
 		l.Logf("state=error error=%q location=%q", strings.Replace(err.Error(), "\n", " ", -1), fmt.Sprintf("%s:%d", file, line))
 	} else {
 		l.Logf("state=error error=%q", err)
 	}
+
+	return err
 }
 
-func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.Error(fmt.Errorf(format, args...))
+func (l *Logger) Errorf(format string, args ...interface{}) error {
+	return l.Error(fmt.Errorf(format, args...))
 }
 
 func (l *Logger) ErrorBacktrace(err error) {
