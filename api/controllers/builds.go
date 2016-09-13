@@ -315,12 +315,13 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	// in production loop through docker hosts that the rack is running on
 	// to find the build
 	if os.Getenv("DEVELOPMENT") != "true" {
-		h, err := findBuildHost(build)
-		if err != nil {
-			return httperr.Server(err)
-		}
+		// h, err := findBuildHost(build)
+		// if err != nil {
+		//   return httperr.Server(err)
+		// }
+		panic("needs to be re-implemented")
 
-		host = h
+		// host = h
 	}
 
 	// proxy to docker container logs
@@ -385,39 +386,6 @@ ForLoop:
 	quit <- true
 
 	return httperr.Server(err)
-}
-
-// try to find the docker host that's running a build
-// try a few times with a sleep
-func findBuildHost(build string) (string, error) {
-	for i := 1; i < 5; i++ {
-		pss, err := models.ListProcesses(os.Getenv("RACK"))
-		if err != nil {
-			return "", httperr.Server(err)
-		}
-
-		for _, ps := range pss {
-			client, err := ps.Docker()
-			if err != nil {
-				return "", httperr.Server(err)
-			}
-
-			res, err := client.ListContainers(docker.ListContainersOptions{
-				All: true,
-				Filters: map[string][]string{
-					"name": []string{fmt.Sprintf("build-%s", build)},
-				},
-			})
-
-			if len(res) > 0 {
-				return fmt.Sprintf("http://%s:2376", ps.Host), nil
-			}
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-
-	return "", fmt.Errorf("could not find build host")
 }
 
 func keepAlive(ws *websocket.Conn, quit chan bool) {
