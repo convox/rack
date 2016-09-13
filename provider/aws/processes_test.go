@@ -21,7 +21,7 @@ func TestProcessExec(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
-		cycleProcessDockerListContainers,
+		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
 		cycleProcessDockerResizeExec,
@@ -50,11 +50,23 @@ func TestProcessList(t *testing.T) {
 		cycleProcessDescribeTaskDefinition1,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
 		cycleProcessDescribeTaskDefinition2,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
 	)
 	defer provider.Close()
+
+	d := stubDocker(
+		cycleProcessDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+	)
+	defer d.Close()
 
 	s, err := provider.ProcessList("myapp")
 
@@ -64,22 +76,26 @@ func TestProcessList(t *testing.T) {
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "sh -c foo",
+			Command:  "ls -la",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
+			CPU:      0,
+			Memory:   0.0974,
 		},
 		structs.Process{
 			ID:       "5850760f0846",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
-			Command:  "",
+			Command:  "ls -la",
 			Host:     "10.0.1.244",
 			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
 			Instance: "i-5bc45dc2",
 			Ports:    []string{},
+			CPU:      0,
+			Memory:   0.0974,
 		},
 	}
 
@@ -108,7 +124,7 @@ func TestProcessRunAttached(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
-		cycleProcessDockerListContainers,
+		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
 		cycleProcessDockerResizeExec,
@@ -651,6 +667,9 @@ var cycleProcessRegisterTaskDefinition = awsutil.Cycle{
 		Body: `{
 			"containerDefinitions": [
 				{
+					"dockerLabels": {
+						"convox.process.type": "oneoff"
+					},
 					"environment": [
 						{
 							"name": "APP",
@@ -711,9 +730,8 @@ var cycleProcessRunTaskAttached = awsutil.Cycle{
 				"containerOverrides": [
 					{
 						"command": [
-							"sh",
-							"-c",
-							"sleep 3600"
+							"sleep",
+							"3600"
 						],
 						"name": "web"
 					}
@@ -842,7 +860,7 @@ var cycleProcessReleaseUpdateItem = awsutil.Cycle{
 	},
 }
 
-var cycleProcessDockerListContainers = awsutil.Cycle{
+var cycleProcessDockerListContainers1 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
 		Body:       ``,
@@ -862,6 +880,67 @@ var cycleProcessDockerListContainers = awsutil.Cycle{
 				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
 			}
 		]`,
+	},
+}
+
+var cycleProcessDockerListContainers2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0846%22%5D%7D",
+		Body:       ``,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `[
+			{
+				"Id": "8dfafdbc3a40",
+				"Names":["/boring_feynman"],
+				"Image": "ubuntu:latest",
+				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"Command": "echo 1",
+				"Created": 1367854155,
+				"State": "Exited",
+				"Status": "Exit 0",
+				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
+			}
+		]`,
+	},
+}
+
+var cycleProcessDockerInspect = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/8dfafdbc3a40/json",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Config": {
+				"Cmd": [
+						"ls",
+						"-la"
+				]
+			}
+		}`,
+	},
+}
+
+var cycleProcessDockerStats = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/8dfafdbc3a40/stats?stream=false",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"memory_stats": {
+				"usage" : 6537216,
+				"limit" : 67108864
+			},
+			"precpu_stats" : {
+				"cpu_usage" : {
+					"total_usage" : 100093996
+				},
+				"system_cpu_usage" : 9492140000000
+			}
+		}`,
 	},
 }
 
