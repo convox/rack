@@ -709,6 +709,8 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		return "", err
 	}
 
+	defer p.stopTask(*task.TaskArn)
+
 	status, err := p.waitForTask(*task.TaskArn)
 	if err != nil {
 		return "", err
@@ -723,7 +725,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 		Height: opts.Height,
 		Width:  opts.Width,
 	})
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "use of closed network") {
 		return "", err
 	}
 
@@ -762,6 +764,15 @@ func (p *AWSProvider) runTask(req *ecs.RunTaskInput) (*ecs.Task, error) {
 		return nil, fmt.Errorf("could not start process")
 	}
 	return res.Tasks[0], nil
+}
+
+func (p *AWSProvider) stopTask(arn string) error {
+	_, err := p.ecs().StopTask(&ecs.StopTaskInput{
+		Cluster: aws.String(p.Cluster),
+		Task:    aws.String(arn),
+	})
+
+	return err
 }
 
 func (p *AWSProvider) taskArnFromPid(pid string) (string, error) {
