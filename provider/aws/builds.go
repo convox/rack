@@ -150,6 +150,32 @@ func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, ca
 	return b, err
 }
 
+func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
+	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
+
+	_, err := p.AppGet(app)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	b := structs.NewBuild(app)
+	b.Description = opts.Description
+
+	if err := p.BuildSave(b); err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	if err := p.runBuild(b, method, url, opts); err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	log.Success()
+	return b, nil
+}
+
 func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -699,6 +725,18 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 	_, err = p.dynamodb().PutItem(req)
 
 	return err
+}
+
+func (p *AWSProvider) runBuild(b *structs.Build, method, url string, opts structs.BuildOptions) error {
+	br, err := p.stackResource(p.Rack, "RackBuildTasks")
+	if err != nil {
+		return err
+	}
+
+	td := *br.PhysicalResourceId
+	fmt.Printf("td = %+v\n", td)
+
+	return nil
 }
 
 func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string) []string {

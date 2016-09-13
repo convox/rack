@@ -420,6 +420,23 @@ func (p *AWSProvider) describeStackResources(input *cloudformation.DescribeStack
 	return res, nil
 }
 
+func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.StackResource, error) {
+	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stack),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range rs.StackResources {
+		if *r.LogicalResourceId == resource {
+			return r, nil
+		}
+	}
+
+	return nil, fmt.Errorf("resource not found: %s", resource)
+}
+
 func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, error) {
 	td, ok := cache.Get("describeTaskDefinition", name).(*ecs.TaskDefinition)
 	if ok {

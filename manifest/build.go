@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 )
 
@@ -37,7 +38,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 			args = append(args, "--no-cache")
 		}
 
-		context := coalesce(service.Build.Context, ".")
+		context := filepath.Join(dir, coalesce(service.Build.Context, "."))
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 

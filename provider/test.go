@@ -42,6 +42,17 @@ func (p *TestProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, er
 	return &p.Build, nil
 }
 
+// BuildCreate gets the Capacity
+func (p *TestProvider) BuildCreate(app, method, source string, opts structs.BuildOptions) (*structs.Build, error) {
+	args := p.Called(app, method, source, opts)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*structs.Build), args.Error(1)
+}
+
 // BuildCreateIndex creates a Build from an Index
 func (p *TestProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
 	p.Called(app, index, manifest, description, cache)
@@ -211,6 +222,17 @@ func (p *TestProvider) InstanceList() (structs.Instances, error) {
 func (p *TestProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	p.Called(app, w, opts)
 	return nil
+}
+
+// ObjectStore fetches an Object
+func (p *TestProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
+	args := p.Called(key, r, opts)
+
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+
+	return args.Get(0).(string), args.Error(1)
 }
 
 // ProcessExec execs a new command on an existing Process

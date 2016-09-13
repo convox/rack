@@ -12,6 +12,7 @@ type Provider interface {
 	AppDelete(name string) error
 
 	BuildCopy(srcApp, id, destApp string) (*structs.Build, error)
+	BuildCreate(app, method, source string, opts structs.BuildOptions) (*structs.Build, error)
 	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error)
 	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
@@ -46,6 +47,8 @@ type Provider interface {
 	InstanceList() (structs.Instances, error)
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
+
+	ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error)
 
 	ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error
 	ProcessList(app string) (structs.Processes, error)

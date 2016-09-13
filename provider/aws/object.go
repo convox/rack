@@ -1,0 +1,108 @@
+package aws
+
+import (
+	"bytes"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"io"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/convox/rack/api/structs"
+)
+
+func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
+	log := Logger.At("ObjectStore").Namespace("key=%q public=%t", key, opts.Public).Start()
+
+	if key == "" {
+		k, err := generateTempKey()
+		if err != nil {
+			log.Error(err)
+			return "", err
+		}
+		key = k
+	}
+
+	log = log.Replace("key", key)
+
+	mreq := &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(p.SettingsBucket),
+		Key:    aws.String(key),
+	}
+
+	if opts.Public {
+		mreq.ACL = aws.String("public-read")
+	}
+
+	mres, err := p.s3().CreateMultipartUpload(mreq)
+	if err != nil {
+		log.Error(err)
+		return "", err
+	}
+
+	// buf := make([]byte, 5*1024*1024)
+	buf := make([]byte, 10*1024*1024)
+	i := 1
+	parts := []*s3.CompletedPart{}
+
+	for {
+		n, err := r.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Error(err)
+			return "", err
+		}
+
+		res, err := p.s3().UploadPart(&s3.UploadPartInput{
+			Body:          bytes.NewReader(buf[0:n]),
+			Bucket:        aws.String(p.SettingsBucket),
+			ContentLength: aws.Int64(int64(n)),
+			Key:           aws.String(key),
+			PartNumber:    aws.Int64(int64(i)),
+			UploadId:      mres.UploadId,
+		})
+		if err != nil {
+			log.Error(err)
+			return "", err
+		}
+
+		parts = append(parts, &s3.CompletedPart{
+			ETag:       res.ETag,
+			PartNumber: aws.Int64(int64(i)),
+		})
+
+		i++
+	}
+
+	res, err := p.s3().CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket: aws.String(p.SettingsBucket),
+		Key:    aws.String(key),
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: parts,
+		},
+		UploadId: mres.UploadId,
+	})
+	if err != nil {
+		log.Error(err)
+		return "", err
+	}
+
+	log.Success()
+	return *res.Location, nil
+}
+
+func generateTempKey() (string, error) {
+	data := make([]byte, 1024)
+
+	if _, err := rand.Read(data); err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(data)
+
+	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:30]), nil
+}

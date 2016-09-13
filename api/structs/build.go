@@ -23,6 +23,12 @@ type Build struct {
 
 type Builds []Build
 
+type BuildOptions struct {
+	Cache       bool
+	Description string
+	Manifest    string
+}
+
 func NewBuild(app string) *Build {
 	return &Build{
 		App:    app,

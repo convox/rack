@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
@@ -76,68 +74,97 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
-	cache := !(r.FormValue("cache") == "false")
-	manifest := r.FormValue("manifest")
-	description := r.FormValue("description")
-	buildImport := (r.FormValue("import") == "true")
+	opts := structs.BuildOptions{
+		Cache:       !(r.FormValue("cache") == "false"),
+		Description: r.FormValue("description"),
+		Manifest:    r.FormValue("manifest"),
+	}
 
-	repo := r.FormValue("repo")
 	index := r.FormValue("index")
+	repo := r.FormValue("repo")
+
+	image, _, err := r.FormFile("image")
+	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
+		return httperr.Server(err)
+	}
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		helpers.TrackError("build", err, map[string]interface{}{"at": "FormFile"})
 		return httperr.Server(err)
 	}
 
-	// Log into private registries that we might pull from
-	// TODO: move to prodiver BuildCreate
-	err = models.LoginPrivateRegistries()
-	if err != nil {
-		return httperr.Server(err)
-	}
+	fmt.Printf("app = %+v\n", app)
+	fmt.Printf("opts = %+v\n", opts)
 
-	a, err := models.Provider().AppGet(app)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	// Log into registry that we will push to
-	_, err = models.AppDockerLogin(*a)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	var b *structs.Build
-
-	if source != nil {
-
-		if buildImport {
-			b, err = models.Provider().BuildImport(a.Name, source)
-		} else {
-			// if source file was posted, build from tar
-			b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
-		}
-
-	} else if repo != "" {
-		b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
-	} else if index != "" {
-		var i structs.Index
-		err := json.Unmarshal([]byte(index), &i)
+	switch {
+	case image != nil:
+	case source != nil:
+		url, err := models.Provider().ObjectStore("", source, structs.ObjectOptions{})
 		if err != nil {
 			return httperr.Server(err)
 		}
 
-		b, err = models.Provider().BuildCreateIndex(app, i, manifest, description, cache)
-	} else {
-		return httperr.Errorf(403, "no source, repo or index")
+		build, err := models.Provider().BuildCreate(app, "tgz", url, opts)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, build)
+	case index != "":
+	case repo != "":
 	}
 
-	if err != nil {
-		return httperr.Server(err)
-	}
+	return httperr.Errorf(403, "no build source found")
 
-	return RenderJson(rw, b)
+	// test
+	// // Log into private registries that we might pull from
+	// // TODO: move to prodiver BuildCreate
+	// err = models.LoginPrivateRegistries()
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// a, err := models.Provider().AppGet(app)
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// // Log into registry that we will push to
+	// _, err = models.AppDockerLogin(*a)
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// var b *structs.Build
+
+	// if source != nil {
+
+	//   if buildImport {
+	//     b, err = models.Provider().BuildImport(a.Name, source)
+	//   } else {
+	//     // if source file was posted, build from tar
+	//     b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+	//   }
+
+	// } else if repo != "" {
+	//   b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
+	// } else if index != "" {
+	//   var i structs.Index
+	//   err := json.Unmarshal([]byte(index), &i)
+	//   if err != nil {
+	//     return httperr.Server(err)
+	//   }
+
+	//   b, err = models.Provider().BuildCreateIndex(app, i, manifest, description, cache)
+	// } else {
+	//   return httperr.Errorf(403, "no source, repo or index")
+	// }
+
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// return RenderJson(rw, b)
 }
 
 // BuildDelete deletes a build. Makes sure not to delete a build that is contained in the active release

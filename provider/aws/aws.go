@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -79,6 +81,10 @@ func NewProviderFromEnv() *AWSProvider {
 		Vpc:               os.Getenv("VPC"),
 		VpcCidr:           os.Getenv("VPCCIDR"),
 	}
+}
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 /** services ****************************************************************************************/
