@@ -57,10 +57,10 @@ func main() {
 
 	writeDockerAuth()
 
-	m, err := manifest.LoadFile(fmt.Sprintf("src/%s", manifestPath))
+	data, err := ioutil.ReadFile(fmt.Sprintf("src/%s", manifestPath))
 	handleError(err)
 
-	data, err := m.Raw()
+	m, err := manifest.Load(data)
 	handleError(err)
 
 	cwd, err := os.Getwd()
