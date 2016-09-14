@@ -633,7 +633,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 		return "", "", err
 	}
 
-	output.Write([]byte("\n"))
+	output.Write([]byte("\nStarting build..."))
 
 	return finishBuild(c, app, build, output)
 }

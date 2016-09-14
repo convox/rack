@@ -2,7 +2,6 @@ package aws
 
 import (
 	"archive/tar"
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
@@ -21,10 +20,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"gopkg.in/yaml.v2"
+	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/convox/rack/api/helpers"
+	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 )
@@ -32,123 +32,125 @@ import (
 var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
 
 func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
-	srcA, err := p.AppGet(srcApp)
-	if err != nil {
-		return nil, err
-	}
+	panic("implement with export and import")
+	return nil, nil
+	// srcA, err := p.AppGet(srcApp)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	srcB, err := p.BuildGet(srcApp, id)
-	if err != nil {
-		return nil, err
-	}
+	// srcB, err := p.BuildGet(srcApp, id)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	destA, err := p.AppGet(destApp)
-	if err != nil {
-		return nil, err
-	}
+	// destA, err := p.AppGet(destApp)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	// make a .tgz file that is the source build manifest
-	// with build directives removed, and image directives pointing to
-	// fully qualified URLs of source build images
-	var m manifest.Manifest
-	err = yaml.Unmarshal([]byte(srcB.Manifest), &m)
-	if err != nil {
-		return nil, err
-	}
+	// // make a .tgz file that is the source build manifest
+	// // with build directives removed, and image directives pointing to
+	// // fully qualified URLs of source build images
+	// var m manifest.Manifest
+	// err = yaml.Unmarshal([]byte(srcB.Manifest), &m)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	for name, entry := range m.Services {
-		entry.Build.Context = ""
-		entry.Image = p.registryTag(srcA, name, srcB.Id)
-		m.Services[name] = entry
-	}
+	// for name, entry := range m.Services {
+	//   entry.Build.Context = ""
+	//   entry.Image = p.registryTag(srcA, name, srcB.Id)
+	//   m.Services[name] = entry
+	// }
 
-	data, err := m.Raw()
-	if err != nil {
-		return nil, err
-	}
+	// data, err := m.Raw()
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	dir, err := ioutil.TempDir("", "source")
-	if err != nil {
-		return nil, err
-	}
+	// dir, err := ioutil.TempDir("", "source")
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	err = os.Chmod(dir, 0755)
-	if err != nil {
-		return nil, err
-	}
+	// err = os.Chmod(dir, 0755)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	err = ioutil.WriteFile(filepath.Join(dir, "docker-compose.yml"), data, 0644)
-	if err != nil {
-		return nil, err
-	}
+	// err = ioutil.WriteFile(filepath.Join(dir, "docker-compose.yml"), data, 0644)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	tgz, err := createTarball(dir)
-	if err != nil {
-		return nil, err
-	}
+	// tgz, err := createTarball(dir)
+	// if err != nil {
+	//   return nil, err
+	// }
 
-	// Build .tgz in context of destApp
-	return p.BuildCreateTar(destA.Name, bytes.NewReader(tgz), "docker-compose.yml", fmt.Sprintf("Copy of %s %s", srcA.Name, srcB.Id), false)
+	// // Build .tgz in context of destApp
+	// return p.BuildCreateTar(destA.Name, bytes.NewReader(tgz), "docker-compose.yml", fmt.Sprintf("Copy of %s %s", srcA.Name, srcB.Id), false)
 }
 
-func (p *AWSProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
-	dir, err := ioutil.TempDir("", "source")
-	if err != nil {
-		return nil, err
-	}
+// func (p *AWSProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
+//   dir, err := ioutil.TempDir("", "source")
+//   if err != nil {
+//     return nil, err
+//   }
 
-	err = os.Chmod(dir, 0755)
-	if err != nil {
-		return nil, err
-	}
+//   err = os.Chmod(dir, 0755)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	err = p.IndexDownload(&index, dir)
-	if err != nil {
-		return nil, err
-	}
+//   err = p.IndexDownload(&index, dir)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	tgz, err := createTarball(dir)
-	if err != nil {
-		return nil, err
-	}
+//   tgz, err := createTarball(dir)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	return p.BuildCreateTar(app, bytes.NewReader(tgz), manifest, description, cache)
-}
+//   return p.BuildCreateTar(app, bytes.NewReader(tgz), manifest, description, cache)
+// }
 
-func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
+// func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
+//   a, err := p.AppGet(app)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	b := structs.NewBuild(app)
-	b.Description = description
+//   b := structs.NewBuild(app)
+//   b.Description = description
 
-	err = p.BuildSave(b)
-	if err != nil {
-		return nil, err
-	}
+//   err = p.BuildSave(b)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	args := p.buildArgs(a, b, url)
+//   args := p.buildArgs(a, b, url)
 
-	env, err := p.buildEnv(a, b, manifest, cache)
-	if err != nil {
-		return b, err
-	}
+//   env, err := p.buildEnv(a, b, manifest, cache)
+//   if err != nil {
+//     return b, err
+//   }
 
-	err = p.buildRun(a, b, args, env, nil)
+//   err = p.buildRun(a, b, args, env, nil)
 
-	// build create is now complete or failed
-	p.EventSend(&structs.Event{
-		Action: "build:create",
-		Data: map[string]string{
-			"app": b.App,
-			"id":  b.Id,
-		},
-	}, err)
+//   // build create is now complete or failed
+//   p.EventSend(&structs.Event{
+//     Action: "build:create",
+//     Data: map[string]string{
+//       "app": b.App,
+//       "id":  b.Id,
+//     },
+//   }, err)
 
-	return b, err
-}
+//   return b, err
+// }
 
 func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
@@ -176,41 +178,41 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 	return b, nil
 }
 
-func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
+// func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
+//   a, err := p.AppGet(app)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	b := structs.NewBuild(app)
-	b.Description = description
+//   b := structs.NewBuild(app)
+//   b.Description = description
 
-	err = p.BuildSave(b)
-	if err != nil {
-		return nil, err
-	}
+//   err = p.BuildSave(b)
+//   if err != nil {
+//     return nil, err
+//   }
 
-	// TODO: save the tarball in s3?
+//   // TODO: save the tarball in s3?
 
-	args := p.buildArgs(a, b, "-")
+//   args := p.buildArgs(a, b, "-")
 
-	env, err := p.buildEnv(a, b, manifest, cache)
-	if err != nil {
-		return b, err
-	}
+//   env, err := p.buildEnv(a, b, manifest, cache)
+//   if err != nil {
+//     return b, err
+//   }
 
-	err = p.buildRun(a, b, args, env, src)
+//   err = p.buildRun(a, b, args, env, src)
 
-	p.EventSend(&structs.Event{
-		Action: "build:create",
-		Data: map[string]string{
-			"app": b.App,
-			"id":  b.Id,
-		},
-	}, err)
+//   p.EventSend(&structs.Event{
+//     Action: "build:create",
+//     Data: map[string]string{
+//       "app": b.App,
+//       "id":  b.Id,
+//     },
+//   }, err)
 
-	return b, err
-}
+//   return b, err
+// }
 
 // BuildDelete deletes the build specified by id belonging to app
 // Care should be taken as this could delete the build used by the active release
@@ -555,34 +557,65 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	return targetBuild, nil
 }
 
-// BuildLogs gets a Build's logs from S3. If there is no log file in S3, that is not an error.
-func (p *AWSProvider) BuildLogs(app, id string) (string, error) {
-	a, err := p.AppGet(app)
+// BuildLogs streams the logs for a Build to an io.Writer
+func (p *AWSProvider) BuildLogs(app, id string, w io.Writer) error {
+	log := Logger.At("BuildLogs").Namespace("app=%q id=%q", app, id).Start()
+
+	b, err := p.BuildGet(app, id)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	key := fmt.Sprintf("builds/%s.log", id)
-
-	req := &s3.GetObjectInput{
-		Bucket: aws.String(a.Outputs["Settings"]),
-		Key:    aws.String(key),
-	}
-
-	res, err := p.s3().GetObject(req)
-	if err != nil {
-		if awsError(err) == "NoSuchKey" {
-			return "", nil
+	switch b.Status {
+	case "running":
+		task, err := p.describeTask(b.Tags["task"])
+		if err != nil {
+			return err
 		}
-		return "", err
+
+		ci, err := p.containerInstance(*task.ContainerInstanceArn)
+		if err != nil {
+			return err
+		}
+
+		dc, err := p.dockerInstance(*ci.Ec2InstanceId)
+		if err != nil {
+			return err
+		}
+
+		cs, err := dc.ListContainers(docker.ListContainersOptions{
+			All: true,
+			Filters: map[string][]string{
+				"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if len(cs) != 1 {
+			return fmt.Errorf("could not find container for task: %s", *task.TaskArn)
+		}
+
+		err = dc.Logs(docker.LogsOptions{
+			Container:         cs[0].ID,
+			OutputStream:      w,
+			ErrorStream:       w,
+			InactivityTimeout: 20 * time.Minute,
+			Follow:            true,
+			Stdout:            true,
+			Stderr:            true,
+		})
+		if err != nil {
+			return err
+		}
+	default:
+		if _, err := w.Write([]byte(b.Logs)); err != nil {
+			return err
+		}
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
+	log.Success()
+	return nil
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit
@@ -684,12 +717,18 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 		b.Ended = time.Unix(1473028892, 0).UTC()
 	}
 
+	tags, err := json.Marshal(b.Tags)
+	if err != nil {
+		return err
+	}
+
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
 			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
+			"tags":    &dynamodb.AttributeValue{B: tags},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	}
@@ -727,123 +766,286 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 	return err
 }
 
-func (p *AWSProvider) runBuild(b *structs.Build, method, url string, opts structs.BuildOptions) error {
+func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
+	r, err := p.ObjectFetch("env")
+	fmt.Printf("err = %+v\n", err)
+	if err != nil {
+		return "", err
+	}
+
+	defer r.Close()
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+
+	if p.EncryptionKey != "" {
+		cr := crypt.New(p.Region, p.Access, p.Secret)
+
+		if d, err := cr.Decrypt(p.EncryptionKey, data); err == nil {
+			data = d
+		}
+	}
+
+	var env map[string]string
+	err = json.Unmarshal(data, &env)
+	if err != nil {
+		return "", err
+	}
+
+	type authEntry struct {
+		Username string
+		Password string
+	}
+
+	var auth map[string]authEntry
+
+	if err := json.Unmarshal([]byte(env["DOCKER_AUTH_DATA"]), &auth); err != nil {
+		return "", err
+	}
+
+	a, err := p.AppGet(build.App)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+		RegistryIds: []*string{aws.String(a.Outputs["RegistryId"])},
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(res.AuthorizationData) != 1 {
+		return "", fmt.Errorf("no authorization data")
+	}
+
+	token, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+	if err != nil {
+		return "", err
+	}
+
+	parts := strings.SplitN(string(token), ":", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid auth data")
+	}
+
+	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", a.Outputs["RegistryId"], p.Region)
+
+	auth[host] = authEntry{
+		Username: parts[0],
+		Password: parts[1],
+	}
+
+	data, err = json.Marshal(auth)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildOptions) error {
+	log := Logger.At("runBuild").Namespace("method=%q url=%q", method, url).Start()
+
 	br, err := p.stackResource(p.Rack, "RackBuildTasks")
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	a, err := p.AppGet(build.App)
 	if err != nil {
 		return err
 	}
 
 	td := *br.PhysicalResourceId
-	fmt.Printf("td = %+v\n", td)
+
+	auth, err := p.buildAuth(build)
+	if err != nil {
+		return err
+	}
+
+	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"])
+
+	req := &ecs.RunTaskInput{
+		Cluster:        aws.String(p.Cluster),
+		Count:          aws.Int64(1),
+		StartedBy:      aws.String(fmt.Sprintf("convox.%s", build.App)),
+		TaskDefinition: aws.String(td),
+		Overrides: &ecs.TaskOverride{
+			ContainerOverrides: []*ecs.ContainerOverride{
+				&ecs.ContainerOverride{
+					Name: aws.String("build"),
+					Command: []*string{
+						aws.String("build"),
+						aws.String("-method"), aws.String(method),
+						aws.String("-url"), aws.String(url),
+					},
+					Environment: []*ecs.KeyValuePair{
+						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_APP"),
+							Value: aws.String(build.App),
+						},
+						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_AUTH"),
+							Value: aws.String(auth),
+						},
+						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_CONFIG"),
+							Value: aws.String(opts.Config),
+						},
+						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_ID"),
+							Value: aws.String(build.Id),
+						},
+						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_PUSH"),
+							Value: aws.String(push),
+						},
+						&ecs.KeyValuePair{
+							Name:  aws.String("RELEASE"),
+							Value: aws.String(build.Id),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fmt.Printf("req = %+v\n", req)
+
+	task, err := p.runTask(req)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	if _, err := p.waitForTask(*task.TaskArn); err != nil {
+		return err
+	}
+
+	build.Status = "running"
+	build.Tags["task"] = *task.TaskArn
+
+	fmt.Printf("build = %+v\n", build)
+
+	if err := p.BuildSave(build); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string) []string {
-	return []string{
-		"run",
-		"-i",
-		"--name", fmt.Sprintf("build-%s", b.Id),
-		"-v", "/var/run/docker.sock:/var/run/docker.sock",
-		"-e", "APP",
-		"-e", "BUILD",
-		"-e", "DOCKER_AUTH",
-		"-e", "RACK_HOST",
-		"-e", "RACK_PASSWORD",
-		"-e", "REGISTRY_EMAIL",
-		"-e", "REGISTRY_USERNAME",
-		"-e", "REGISTRY_PASSWORD",
-		"-e", "REGISTRY_ADDRESS",
-		"-e", "MANIFEST_PATH",
-		"-e", "REPOSITORY",
-		"-e", "NO_CACHE",
-		p.DockerImageAPI,
-		"build",
-		source,
-	}
-}
+// func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string) []string {
+//   return []string{
+//     "run",
+//     "-i",
+//     "--name", fmt.Sprintf("build-%s", b.Id),
+//     "-v", "/var/run/docker.sock:/var/run/docker.sock",
+//     "-e", "APP",
+//     "-e", "BUILD",
+//     "-e", "DOCKER_AUTH",
+//     "-e", "RACK_HOST",
+//     "-e", "RACK_PASSWORD",
+//     "-e", "REGISTRY_EMAIL",
+//     "-e", "REGISTRY_USERNAME",
+//     "-e", "REGISTRY_PASSWORD",
+//     "-e", "REGISTRY_ADDRESS",
+//     "-e", "MANIFEST_PATH",
+//     "-e", "REPOSITORY",
+//     "-e", "NO_CACHE",
+//     p.DockerImageAPI,
+//     "build",
+//     source,
+//   }
+// }
 
-func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path string, cache bool) ([]string, error) {
-	// self-hosted registry auth
-	email := "user@convox.com"
-	username := "convox"
-	password := p.Password
-	address := p.RegistryHost
+// func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path string, cache bool) ([]string, error) {
+//   // self-hosted registry auth
+//   email := "user@convox.com"
+//   username := "convox"
+//   password := p.Password
+//   address := p.RegistryHost
 
-	// ECR auth
-	if registryId := a.Outputs["RegistryId"]; registryId != "" {
-		res, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-			RegistryIds: []*string{aws.String(registryId)},
-		})
+//   // ECR auth
+//   if registryId := a.Outputs["RegistryId"]; registryId != "" {
+//     res, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+//       RegistryIds: []*string{aws.String(registryId)},
+//     })
 
-		if err != nil {
-			return nil, err
-		}
+//     if err != nil {
+//       return nil, err
+//     }
 
-		if len(res.AuthorizationData) < 1 {
-			return nil, fmt.Errorf("no authorization data")
-		}
+//     if len(res.AuthorizationData) < 1 {
+//       return nil, fmt.Errorf("no authorization data")
+//     }
 
-		endpoint := *res.AuthorizationData[0].ProxyEndpoint
+//     endpoint := *res.AuthorizationData[0].ProxyEndpoint
 
-		data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+//     data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
 
-		if err != nil {
-			return nil, err
-		}
+//     if err != nil {
+//       return nil, err
+//     }
 
-		parts := strings.SplitN(string(data), ":", 2)
+//     parts := strings.SplitN(string(data), ":", 2)
 
-		password = parts[1]
-		address = endpoint[8:]
-		username = parts[0]
-	}
+//     password = parts[1]
+//     address = endpoint[8:]
+//     username = parts[0]
+//   }
 
-	// TODO: The controller logged into private registries and app registry
-	// Seems like this method should be able to generate docker auth config on its own
-	dockercfg, err := ioutil.ReadFile("/root/.docker/config.json")
-	if err != nil {
-		return nil, err
-	}
+//   // TODO: The controller logged into private registries and app registry
+//   // Seems like this method should be able to generate docker auth config on its own
+//   dockercfg, err := ioutil.ReadFile("/root/.docker/config.json")
+//   if err != nil {
+//     return nil, err
+//   }
 
-	// Determin callback host. Local Rack should use a variant of localhost
-	host := p.NotificationHost
+//   // Determin callback host. Local Rack should use a variant of localhost
+//   host := p.NotificationHost
 
-	if p.Development {
-		out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
-		if err != nil {
-			return nil, err
-		}
+//   if p.Development {
+//     out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
+//     if err != nil {
+//       return nil, err
+//     }
 
-		host = strings.TrimSpace(string(out))
-	}
+//     host = strings.TrimSpace(string(out))
+//   }
 
-	env := []string{
-		fmt.Sprintf("APP=%s", a.Name),
-		fmt.Sprintf("BUILD=%s", b.Id),
-		fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
-		fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
-		fmt.Sprintf("RACK_HOST=%s", host),
-		fmt.Sprintf("RACK_PASSWORD=%s", p.Password),
-		fmt.Sprintf("REGISTRY_EMAIL=%s", email),
-		fmt.Sprintf("REGISTRY_USERNAME=%s", username),
-		fmt.Sprintf("REGISTRY_PASSWORD=%s", password),
-		fmt.Sprintf("REGISTRY_ADDRESS=%s", address),
-		fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
-	}
+//   env := []string{
+//     fmt.Sprintf("APP=%s", a.Name),
+//     fmt.Sprintf("BUILD=%s", b.Id),
+//     fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
+//     fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
+//     fmt.Sprintf("RACK_HOST=%s", host),
+//     fmt.Sprintf("RACK_PASSWORD=%s", p.Password),
+//     fmt.Sprintf("REGISTRY_EMAIL=%s", email),
+//     fmt.Sprintf("REGISTRY_USERNAME=%s", username),
+//     fmt.Sprintf("REGISTRY_PASSWORD=%s", password),
+//     fmt.Sprintf("REGISTRY_ADDRESS=%s", address),
+//     fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
+//   }
 
-	if !cache {
-		env = append(env, "NO_CACHE=true")
-	}
+//   if !cache {
+//     env = append(env, "NO_CACHE=true")
+//   }
 
-	return env, nil
-}
+//   return env, nil
+// }
 
 // buildFromItem populates a Build struct from a DynamoDB Item
 func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
 	id := coalesce(item["id"], "")
 	started, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(sortableTime, coalesce(item["ended"], ""))
+
+	var tags map[string]string
+
+	json.Unmarshal(item["tags"].B, &tags)
 
 	return &structs.Build{
 		Id:          id,
@@ -854,147 +1056,148 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 		Status:      coalesce(item["status"], ""),
 		Started:     started,
 		Ended:       ended,
+		Tags:        tags,
 	}
 }
 
-func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) error {
-	cmd := exec.Command("docker", args...)
-	cmd.Env = env
-	cmd.Stdin = stdin
-	cmd.Stderr = cmd.Stdout // redirect cmd stderr to stdout
+// func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) error {
+//   cmd := exec.Command("docker", args...)
+//   cmd.Env = env
+//   cmd.Stdin = stdin
+//   cmd.Stderr = cmd.Stdout // redirect cmd stderr to stdout
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		helpers.Error(nil, err) // send internal error to rollbar
-		return err
-	}
+//   stdout, err := cmd.StdoutPipe()
+//   if err != nil {
+//     helpers.Error(nil, err) // send internal error to rollbar
+//     return err
+//   }
 
-	// start build command
-	err = cmd.Start()
-	if err != nil {
-		helpers.Error(nil, err) // send internal error to rollbar
-		return err
-	}
+//   // start build command
+//   err = cmd.Start()
+//   if err != nil {
+//     helpers.Error(nil, err) // send internal error to rollbar
+//     return err
+//   }
 
-	go p.buildWait(a, b, cmd, stdout)
+//   go p.buildWait(a, b, cmd, stdout)
 
-	return nil
-}
+//   return nil
+// }
 
-func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
-	// scan all output
-	scanner := bufio.NewScanner(stdout)
-	out := ""
-	for scanner.Scan() {
-		text := scanner.Text()
-		out += text + "\n"
-	}
-	if err := scanner.Err(); err != nil {
-		helpers.Error(nil, err) // send internal error to rollbar
-	}
+// func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
+//   // scan all output
+//   scanner := bufio.NewScanner(stdout)
+//   out := ""
+//   for scanner.Scan() {
+//     text := scanner.Text()
+//     out += text + "\n"
+//   }
+//   if err := scanner.Err(); err != nil {
+//     helpers.Error(nil, err) // send internal error to rollbar
+//   }
 
-	var cmdStatus string
-	waitErr := make(chan error)
-	timeout := time.After(1 * time.Hour)
+//   var cmdStatus string
+//   waitErr := make(chan error)
+//   timeout := time.After(1 * time.Hour)
 
-	go func() {
-		err := cmd.Wait()
+//   go func() {
+//     err := cmd.Wait()
 
-		switch err.(type) {
-		case *exec.ExitError:
-			waitErr <- err
-		default:
-			waitErr <- nil
-		}
-	}()
+//     switch err.(type) {
+//     case *exec.ExitError:
+//       waitErr <- err
+//     default:
+//       waitErr <- nil
+//     }
+//   }()
 
-	select {
+//   select {
 
-	case werr := <-waitErr:
-		// Wait / return code are errors, consider the build failed
-		if werr != nil {
-			cmdStatus = "failed"
-		}
+//   case werr := <-waitErr:
+//     // Wait / return code are errors, consider the build failed
+//     if werr != nil {
+//       cmdStatus = "failed"
+//     }
 
-	case <-timeout:
-		cmdStatus = "timeout"
-		// Force kill the build container since its taking way to long
-		killCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
-		killCmd.Start()
-	}
+//   case <-timeout:
+//     cmdStatus = "timeout"
+//     // Force kill the build container since its taking way to long
+//     killCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
+//     killCmd.Start()
+//   }
 
-	// reload build item to get data from BuildUpdate callback
-	b, err := p.BuildGet(b.App, b.Id)
-	if err != nil {
-		helpers.Error(nil, err) // send internal error to rollbar
-		return
-	}
+//   // reload build item to get data from BuildUpdate callback
+//   b, err := p.BuildGet(b.App, b.Id)
+//   if err != nil {
+//     helpers.Error(nil, err) // send internal error to rollbar
+//     return
+//   }
 
-	if cmdStatus != "" { // Careful not to override the status set by BuildUpdate
-		b.Status = cmdStatus
-	}
+//   if cmdStatus != "" { // Careful not to override the status set by BuildUpdate
+//     b.Status = cmdStatus
+//   }
 
-	// save final build logs / status
-	b.Logs = out
-	err = p.BuildSave(b)
-	if err != nil {
-		helpers.Error(nil, err) // send internal error to rollbar
-		return
-	}
-}
+//   // save final build logs / status
+//   b.Logs = out
+//   err = p.BuildSave(b)
+//   if err != nil {
+//     helpers.Error(nil, err) // send internal error to rollbar
+//     return
+//   }
+// }
 
-func createTarball(base string) ([]byte, error) {
-	cwd, err := os.Getwd()
+// func createTarball(base string) ([]byte, error) {
+//   cwd, err := os.Getwd()
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	err = os.Chdir(base)
+//   err = os.Chdir(base)
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	args := []string{"cz"}
+//   args := []string{"cz"}
 
-	// If .dockerignore exists, use it to exclude files from the tarball
-	if _, err = os.Stat(".dockerignore"); err == nil {
-		args = append(args, "--exclude-from", ".dockerignore")
-	}
+//   // If .dockerignore exists, use it to exclude files from the tarball
+//   if _, err = os.Stat(".dockerignore"); err == nil {
+//     args = append(args, "--exclude-from", ".dockerignore")
+//   }
 
-	args = append(args, ".")
+//   args = append(args, ".")
 
-	cmd := exec.Command("tar", args...)
+//   cmd := exec.Command("tar", args...)
 
-	out, err := cmd.StdoutPipe()
+//   out, err := cmd.StdoutPipe()
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	cmd.Start()
+//   cmd.Start()
 
-	bytes, err := ioutil.ReadAll(out)
+//   bytes, err := ioutil.ReadAll(out)
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	err = cmd.Wait()
+//   err = cmd.Wait()
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	err = os.Chdir(cwd)
+//   err = os.Chdir(cwd)
 
-	if err != nil {
-		return nil, err
-	}
+//   if err != nil {
+//     return nil, err
+//   }
 
-	return bytes, nil
-}
+//   return bytes, nil
+// }
 
 // deleteImages generates a list of fully qualified URLs for images for every process type
 // in the build manifest then deletes them.

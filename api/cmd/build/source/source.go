@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/convox/rack/provider"
 )
 
 type Source interface {
@@ -17,13 +19,15 @@ func urlReader(url_ string) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	if u.Scheme == "file" {
+	switch u.Scheme {
+	case "file":
 		fd, err := os.Open(u.Path)
 		if err != nil {
 			return nil, err
 		}
-
 		return fd, nil
+	case "object":
+		return provider.FromEnv().ObjectFetch(u.Path)
 	}
 
 	req, err := http.Get(url_)

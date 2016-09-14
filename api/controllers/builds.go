@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -60,13 +58,6 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	l, err := models.Provider().BuildLogs(app, build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	b.Logs = l
-
 	return RenderJson(rw, b)
 }
 
@@ -76,29 +67,25 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	opts := structs.BuildOptions{
 		Cache:       !(r.FormValue("cache") == "false"),
+		Config:      r.FormValue("config"),
 		Description: r.FormValue("description"),
-		Manifest:    r.FormValue("manifest"),
 	}
 
-	index := r.FormValue("index")
-	repo := r.FormValue("repo")
+	fmt.Printf("app = %+v\n", app)
+	fmt.Printf("opts = %+v\n", opts)
 
 	image, _, err := r.FormFile("image")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
 		return httperr.Server(err)
+	}
+	if image != nil {
 	}
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
 		return httperr.Server(err)
 	}
-
-	fmt.Printf("app = %+v\n", app)
-	fmt.Printf("opts = %+v\n", opts)
-
-	switch {
-	case image != nil:
-	case source != nil:
+	if source != nil {
 		url, err := models.Provider().ObjectStore("", source, structs.ObjectOptions{})
 		if err != nil {
 			return httperr.Server(err)
@@ -110,8 +97,12 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		}
 
 		return RenderJson(rw, build)
-	case index != "":
-	case repo != "":
+	}
+
+	if index := r.FormValue("index"); index != "" {
+	}
+
+	if repo := r.FormValue("repo"); repo != "" {
 	}
 
 	return httperr.Errorf(403, "no build source found")
@@ -332,87 +323,11 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.Provider().BuildGet(app, build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-	// default to local docker socket
-	host := "unix:///var/run/docker.sock"
-
-	// in production loop through docker hosts that the rack is running on
-	// to find the build
-	if os.Getenv("DEVELOPMENT") != "true" {
-		// h, err := findBuildHost(build)
-		// if err != nil {
-		//   return httperr.Server(err)
-		// }
-		panic("needs to be re-implemented")
-
-		// host = h
-	}
-
-	// proxy to docker container logs
-	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
-	client, err := docker.NewClient(host)
-
-	if err != nil {
+	if err := models.Provider().BuildLogs(app, build, ws); err != nil {
 		return httperr.Server(err)
 	}
 
-	quit := make(chan bool)
-	logErr := make(chan error)
-
-	go keepAlive(ws, quit)
-	go func() {
-		e := client.Logs(docker.LogsOptions{
-			Container:    fmt.Sprintf("build-%s", build),
-			Follow:       true,
-			Stdout:       true,
-			Stderr:       true,
-			Tail:         "all",
-			RawTerminal:  false,
-			OutputStream: ws,
-			ErrorStream:  ws,
-		})
-
-		logErr <- e
-	}()
-
-ForLoop:
-	for {
-		select {
-
-		case err = <-logErr:
-			break ForLoop
-
-		default:
-			b, err := models.Provider().BuildGet(app, build)
-			if err != nil {
-				break ForLoop
-			}
-
-			switch b.Status {
-			case "complete":
-				err = nil
-				break ForLoop
-			case "error":
-				err = fmt.Errorf("%s build failed", app)
-				break ForLoop
-			case "failed":
-				err = fmt.Errorf("%s build failed", app)
-				break ForLoop
-			case "timeout":
-				err = fmt.Errorf("%s build timeout", app)
-				break ForLoop
-			}
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-
-	quit <- true
-
-	return httperr.Server(err)
+	return nil
 }
 
 func keepAlive(ws *websocket.Conn, quit chan bool) {

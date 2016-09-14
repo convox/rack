@@ -19,14 +19,16 @@ type Build struct {
 
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`
+
+	Tags map[string]string `json:"-"`
 }
 
 type Builds []Build
 
 type BuildOptions struct {
 	Cache       bool
+	Config      string
 	Description string
-	Manifest    string
 }
 
 func NewBuild(app string) *Build {
@@ -34,6 +36,7 @@ func NewBuild(app string) *Build {
 		App:    app,
 		Id:     generateId("B", 10),
 		Status: "created",
+		Tags:   map[string]string{},
 	}
 }
 

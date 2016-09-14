@@ -43,6 +43,7 @@ type AWSProvider struct {
 	DockerImageAPI    string
 	DynamoBuilds      string
 	DynamoReleases    string
+	EncryptionKey     string
 	NotificationHost  string
 	NotificationTopic string
 	Password          string
@@ -58,7 +59,7 @@ type AWSProvider struct {
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
-func NewProviderFromEnv() *AWSProvider {
+func FromEnv() *AWSProvider {
 	return &AWSProvider{
 		Region:            os.Getenv("AWS_REGION"),
 		Endpoint:          os.Getenv("AWS_ENDPOINT"),
@@ -70,6 +71,7 @@ func NewProviderFromEnv() *AWSProvider {
 		DockerImageAPI:    os.Getenv("DOCKER_IMAGE_API"),
 		DynamoBuilds:      os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:    os.Getenv("DYNAMO_RELEASES"),
+		EncryptionKey:     os.Getenv("ENCRYPTION_KEY"),
 		NotificationHost:  os.Getenv("NOTIFICATION_HOST"),
 		NotificationTopic: os.Getenv("NOTIFICATION_TOPIC"),
 		Password:          os.Getenv("PASSWORD"),

@@ -1,13 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/convox/rack/api/cmd/build/source"
+	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/manifest"
+	"github.com/convox/rack/provider"
 )
 
 func die(err error) {
@@ -16,51 +21,144 @@ func die(err error) {
 }
 
 var (
-	app      string
-	auth     string
-	id       string
-	manifest string
-	method   string
-	registry string
-	src      string
+	flagApp    string
+	flagAuth   string
+	flagId     string
+	flagConfig string
+	flagMethod string
+	flagPush   string
+	flagUrl    string
+
+	currentBuild *structs.Build
 )
 
 func init() {
-	flag.StringVar(&app, "app", "example", "app name")
-	flag.StringVar(&auth, "auth", "", "docker auth data (base64 encoded)")
-	flag.StringVar(&id, "id", "latest", "build id")
-	flag.StringVar(&manifest, "manifest", "docker-compose.yml", "manifest file")
-	flag.StringVar(&method, "method", "", "source method")
-	flag.StringVar(&registry, "registry", "", "push to registry")
-	flag.StringVar(&src, "source", "", "source location")
+	flag.StringVar(&flagApp, "app", "example", "app name")
+	flag.StringVar(&flagAuth, "auth", "", "docker auth data (base64 encoded)")
+	flag.StringVar(&flagConfig, "config", "docker-compose.yml", "path to app config")
+	flag.StringVar(&flagId, "id", "latest", "build id")
+	flag.StringVar(&flagMethod, "method", "", "source method")
+	flag.StringVar(&flagPush, "push", "", "push to registry")
+	flag.StringVar(&flagUrl, "url", "", "source url")
 }
 
 func main() {
 	flag.Parse()
 
+	if v := os.Getenv("BUILD_APP"); v != "" {
+		flagApp = v
+	}
+
+	if v := os.Getenv("BUILD_AUTH"); v != "" {
+		flagAuth = v
+	}
+
+	if v := os.Getenv("BUILD_CONFIG"); v != "" {
+		flagConfig = v
+	}
+
+	if v := os.Getenv("BUILD_ID"); v != "" {
+		flagId = v
+	}
+
+	if v := os.Getenv("BUILD_PUSH"); v != "" {
+		flagPush = v
+	}
+
+	if v := os.Getenv("BUILD_URL"); v != "" {
+		flagUrl = v
+	}
+
+	// fmt.Printf("flagApp = %+v\n", flagApp)
+	// fmt.Printf("flagAuth = %+v\n", flagAuth)
+	// fmt.Printf("flagConfig = %+v\n", flagConfig)
+	// fmt.Printf("flagId = %+v\n", flagId)
+	// fmt.Printf("flagMethod = %+v\n", flagMethod)
+	// fmt.Printf("flagPush = %+v\n", flagPush)
+	// fmt.Printf("flagUrl = %+v\n", flagUrl)
+
+	if err := execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+
+		currentBuild.Status = "failed"
+
+		if err := provider.FromEnv().BuildSave(currentBuild); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		}
+
+		os.Exit(1)
+	}
+
+	currentBuild.Status = "complete"
+
+	if err := provider.FromEnv().BuildSave(currentBuild); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		os.Exit(1)
+	}
+}
+
+func execute() error {
+	b, err := provider.FromEnv().BuildGet(flagApp, flagId)
+	if err != nil {
+		return err
+	}
+
+	currentBuild = b
+
 	dir, err := fetch()
 	if err != nil {
-		die(err)
+		return err
 	}
 
 	defer os.RemoveAll(dir)
 
-	if err := build(dir); err != nil {
-		die(err)
+	if err := login(); err != nil {
+		return err
 	}
+
+	if err := build(dir); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func fetch() (string, error) {
 	var s source.Source
 
-	switch method {
+	switch flagMethod {
 	case "tgz":
-		s = &source.SourceTgz{src}
+		s = &source.SourceTgz{flagUrl}
 	default:
-		die(fmt.Errorf("unknown method: %s", method))
+		die(fmt.Errorf("unknown method: %s", flagMethod))
 	}
 
 	return s.Fetch()
+}
+
+func login() error {
+	var auth map[string]struct {
+		Username string
+		Password string
+	}
+
+	if err := json.Unmarshal([]byte(flagAuth), &auth); err != nil {
+		return err
+	}
+
+	for host, entry := range auth {
+		fmt.Printf("Authenticating %s: ", host)
+
+		cmd := exec.Command("docker", "login", "-u", entry.Username, "-p", entry.Password, host)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func build(dir string) error {
@@ -88,11 +186,11 @@ func build(dir string) error {
 		}
 	}()
 
-	if err := m.Build(dir, app, s, true); err != nil {
+	if err := m.Build(dir, flagApp, s, true); err != nil {
 		return err
 	}
 
-	if err := m.Push(s, app, registry, id, ""); err != nil {
+	if err := m.Push(flagPush, flagApp, flagId, s); err != nil {
 		return err
 	}
 

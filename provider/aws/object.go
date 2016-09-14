@@ -13,6 +13,18 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
+	res, err := p.s3().GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(p.SettingsBucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Body, nil
+}
+
 func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
 	log := Logger.At("ObjectStore").Namespace("key=%q public=%t", key, opts.Public).Start()
 
@@ -92,7 +104,14 @@ func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOp
 	}
 
 	log.Success()
-	return *res.Location, nil
+
+	url := fmt.Sprintf("object:///%s", key)
+
+	if opts.Public {
+		url = *res.Location
+	}
+
+	return url, nil
 }
 
 func generateTempKey() (string, error) {
@@ -104,5 +123,5 @@ func generateTempKey() (string, error) {
 
 	hash := sha256.Sum256(data)
 
-	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:30]), nil
+	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:50]), nil
 }

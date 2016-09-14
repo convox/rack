@@ -390,14 +390,7 @@ var TestProvider = &provider.TestProvider{}
 
 // Provider returns the appropriate provider interface based on the env
 func Provider() provider.Provider {
-	switch os.Getenv("PROVIDER") {
-	case "aws":
-		return provider.NewAwsProviderFromEnv()
-	case "test":
-		return TestProvider
-	default:
-		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
-	}
+	return provider.FromEnv()
 }
 
 // Test provides a wrapping helper for running model tests

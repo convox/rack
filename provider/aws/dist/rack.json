@@ -1631,10 +1631,10 @@
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
               "SETTINGS_BUCKET": { "Ref": "Settings" }
             },
-            "Image": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
+            "Image": { "Fn::Join": [ ":", [ "ddollar/rack", { "Ref": "Version" } ] ] },
             "Links": [],
             "Memory": { "Ref": "BuildMemory" },
-            "Name": "web",
+            "Name": "build",
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"
             ]

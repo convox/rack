@@ -418,6 +418,12 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		env[*e.Name] = *e.Value
 	}
 
+	for _, o := range task.Overrides.ContainerOverrides {
+		for _, p := range o.Environment {
+			env[*p.Name] = *p.Value
+		}
+	}
+
 	container := task.Containers[0]
 
 	ports := []string{}

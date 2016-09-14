@@ -53,24 +53,6 @@ func (p *TestProvider) BuildCreate(app, method, source string, opts structs.Buil
 	return args.Get(0).(*structs.Build), args.Error(1)
 }
 
-// BuildCreateIndex creates a Build from an Index
-func (p *TestProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
-	p.Called(app, index, manifest, description, cache)
-	return &p.Build, nil
-}
-
-// BuildCreateRepo creates a Build from a repository URL
-func (p *TestProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
-	p.Called(app, url, manifest, description, cache)
-	return &p.Build, nil
-}
-
-// BuildCreateTar creates a Build from a tarball
-func (p *TestProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
-	p.Called(app, src, manifest, description, cache)
-	return &p.Build, nil
-}
-
 // BuildDelete deletes a Build
 func (p *TestProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	p.Called(app, id)
@@ -96,9 +78,10 @@ func (p *TestProvider) BuildImport(app string, r io.Reader) (*structs.Build, err
 }
 
 // BuildLogs gets a Build's logs
-func (p *TestProvider) BuildLogs(app, id string) (string, error) {
-	p.Called(app, id)
-	return "", nil
+func (p *TestProvider) BuildLogs(app, id string, w io.Writer) error {
+	args := p.Called(app, id, w)
+
+	return args.Error(0)
 }
 
 // BuildList lists the Builds
@@ -224,7 +207,18 @@ func (p *TestProvider) LogStream(app string, w io.Writer, opts structs.LogStream
 	return nil
 }
 
-// ObjectStore fetches an Object
+// ObjectFetch  fetches an Object
+func (p *TestProvider) ObjectFetch(key string) (io.ReadCloser, error) {
+	args := p.Called(key)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
+// ObjectStore stores  an Object
 func (p *TestProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
 	args := p.Called(key, r, opts)
 
