@@ -138,7 +138,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
 		log.Errorf("no such app: %s", app)
-		return nil, ErrorNotFound(fmt.Sprintf("no such app: %s", app))
+		return nil, errorNotFound(fmt.Sprintf("no such app: %s", app))
 	}
 	if err != nil {
 		log.Error(err)

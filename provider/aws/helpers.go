@@ -366,7 +366,7 @@ func (p *AWSProvider) describeStack(name string) (*cloudformation.Stack, error) 
 		StackName: aws.String(name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
 	}
 	if err != nil {
 		return nil, err
@@ -447,7 +447,7 @@ func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, 
 		TaskDefinition: aws.String(name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
 	}
 	if err != nil {
 		return nil, err

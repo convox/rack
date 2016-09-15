@@ -183,7 +183,7 @@ func (p *AWSProvider) fetchRelease(app, id string) (map[string]*dynamodb.Attribu
 		return nil, err
 	}
 	if res.Item == nil {
-		return nil, ErrorNotFound(fmt.Sprintf("no such release: %s", id))
+		return nil, errorNotFound(fmt.Sprintf("no such release: %s", id))
 	}
 	if res.Item["app"] == nil || *res.Item["app"].S != app {
 		return nil, fmt.Errorf("mismatched app and release")

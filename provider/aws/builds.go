@@ -613,23 +613,27 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 	r, err := p.ObjectFetch("env")
-	fmt.Printf("err = %+v\n", err)
-	if err != nil {
+	if err != nil && !ErrorNotFound(err) {
 		return "", err
 	}
 
-	defer r.Close()
+	data := []byte("{}")
 
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return "", err
-	}
+	if r != nil {
+		defer r.Close()
 
-	if p.EncryptionKey != "" {
-		cr := crypt.New(p.Region, p.Access, p.Secret)
+		d, err := ioutil.ReadAll(r)
+		if err != nil {
+			return "", err
+		}
+		data = d
 
-		if d, err := cr.Decrypt(p.EncryptionKey, data); err == nil {
-			data = d
+		if p.EncryptionKey != "" {
+			cr := crypt.New(p.Region, p.Access, p.Secret)
+
+			if d, err := cr.Decrypt(p.EncryptionKey, data); err == nil {
+				data = d
+			}
 		}
 	}
 
@@ -644,10 +648,12 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 		Password string
 	}
 
-	var auth map[string]authEntry
+	auth := map[string]authEntry{}
 
-	if err := json.Unmarshal([]byte(env["DOCKER_AUTH_DATA"]), &auth); err != nil {
-		return "", err
+	if ea, ok := env["DOCKER_AUTH_DATA"]; ok {
+		if err := json.Unmarshal([]byte(ea), &auth); err != nil {
+			return "", err
+		}
 	}
 
 	a, err := p.AppGet(build.App)

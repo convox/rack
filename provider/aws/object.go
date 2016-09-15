@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/api/structs"
 )
@@ -19,6 +20,10 @@ func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 		Bucket: aws.String(p.SettingsBucket),
 		Key:    aws.String(key),
 	})
+	if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchKey" {
+		return nil, errorNotFound(fmt.Sprintf("no such key: %s", key))
+	}
+
 	if err != nil {
 		return nil, err
 	}
