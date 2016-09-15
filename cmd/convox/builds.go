@@ -83,20 +83,6 @@ func init() {
 				Flags:       buildCreateFlags,
 			},
 			{
-				Name:        "copy",
-				Description: "copy a build to an app",
-				Usage:       "<id> <app>",
-				Action:      cmdBuildsCopy,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:  "promote",
-						Usage: "promote the release after copy",
-					},
-				},
-			},
-			{
 				Name:        "info",
 				Description: "print output for a build",
 				Usage:       "<id>",
@@ -200,8 +186,6 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Printf("a = %+v\n", a)
-
 	switch a.Status {
 	case "creating":
 		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
@@ -275,52 +259,6 @@ func cmdBuildsInfo(c *cli.Context) error {
 	}
 
 	fmt.Println(b.Logs)
-	return nil
-}
-
-func cmdBuildsCopy(c *cli.Context) error {
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	if len(c.Args()) != 2 {
-		stdcli.Usage(c, "copy")
-		return nil
-	}
-
-	build := c.Args()[0]
-	destApp := c.Args()[1]
-
-	fmt.Print("Copying build... ")
-
-	b, err := rackClient(c).CopyBuild(app, build, destApp)
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	fmt.Println("OK")
-
-	_, releaseID, err := finishBuild(c, destApp, b, os.Stdout)
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	if releaseID != "" {
-		if c.Bool("promote") {
-			fmt.Printf("Promoting %s %s... ", destApp, releaseID)
-
-			_, err = rackClient(c).PromoteRelease(destApp, releaseID)
-			if err != nil {
-				return stdcli.ExitError(err)
-			}
-
-			fmt.Println("OK")
-		} else {
-			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseID, destApp)
-		}
-	}
-
 	return nil
 }
 

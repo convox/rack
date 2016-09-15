@@ -106,8 +106,8 @@ func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest str
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
 		"description": description,
-		"repo":        url,
 		"manifest":    manifest,
+		"url":         url,
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)

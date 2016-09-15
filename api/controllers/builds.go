@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -62,7 +63,31 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return RenderJson(rw, build)
 	}
 
+	// TODO deprecate
 	if repo := r.FormValue("repo"); repo != "" {
+	}
+
+	if url := r.FormValue("url"); url != "" {
+		method := ""
+		ext := filepath.Ext(url)
+
+		switch ext {
+		case ".git":
+			method = "git"
+		case ".tgz":
+			method = "tgz"
+		case ".zip":
+			method = "zip"
+		default:
+			return httperr.Errorf(403, "unknown extension: %s", ext)
+		}
+
+		build, err := models.Provider().BuildCreate(app, method, url, opts)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, build)
 	}
 
 	return httperr.Errorf(403, "no build source found")

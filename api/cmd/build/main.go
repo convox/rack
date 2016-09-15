@@ -110,7 +110,7 @@ func execute() error {
 		return err
 	}
 
-	defer os.RemoveAll(dir)
+	// defer os.RemoveAll(dir)
 
 	data, err := ioutil.ReadFile(filepath.Join(dir, flagConfig))
 	if err != nil {
@@ -138,6 +138,8 @@ func fetch() (string, error) {
 		s = &source.SourceIndex{flagUrl}
 	case "tgz":
 		s = &source.SourceTgz{flagUrl}
+	case "zip":
+		s = &source.SourceZip{flagUrl}
 	default:
 		return "", fmt.Errorf("unknown method: %s", flagMethod)
 	}

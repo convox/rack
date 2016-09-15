@@ -3,6 +3,7 @@
   "Conditions": {
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
+    "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
     "BlankExistingVpc": { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] },
     "BlankExistingVpcAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -195,6 +196,11 @@
       "Type": "String",
       "Description": "How much cpu should be reserved by the builder",
       "Default": "0"
+    },
+    "BuildImage": {
+      "Type": "String",
+      "Description": "Override the default build image",
+      "Default": ""
     },
     "BuildMemory": {
       "Type": "String",
@@ -1631,7 +1637,7 @@
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
               "SETTINGS_BUCKET": { "Ref": "Settings" }
             },
-            "Image": { "Fn::Join": [ ":", [ "ddollar/rack", { "Ref": "Version" } ] ] },
+            "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
             "Links": [],
             "Memory": { "Ref": "BuildMemory" },
             "Name": "build",
