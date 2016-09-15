@@ -71,12 +71,21 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	b, err := p.BuildGet(app, id)
 	if err != nil {
-		return b, err
+		return nil, err
 	}
 
 	a, err := p.AppGet(app)
 	if err != nil {
-		return b, err
+		return nil, err
+	}
+
+	r, err := p.ReleaseGet(app, a.Release)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Build == id {
+		return nil, fmt.Errorf("build is currently active")
 	}
 
 	// delete build item
@@ -792,6 +801,47 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 
 	if _, err := p.waitForTask(*task.TaskArn); err != nil {
 		return err
+	}
+
+	if err := p.waitForContainer(task); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *AWSProvider) waitForContainer(task *ecs.Task) error {
+	ci, err := p.containerInstance(*task.ContainerInstanceArn)
+	if err != nil {
+		return err
+	}
+
+	dc, err := p.dockerInstance(*ci.Ec2InstanceId)
+	if err != nil {
+		return err
+	}
+
+	tick := time.Tick(1 * time.Second)
+	timeout := time.After(60 * time.Second)
+
+	for {
+		select {
+		case <-tick:
+			cs, err := dc.ListContainers(docker.ListContainersOptions{
+				All: true,
+				Filters: map[string][]string{
+					"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+				},
+			})
+			if err != nil {
+				return err
+			}
+			if len(cs) > 0 {
+				return nil
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for container")
+		}
 	}
 
 	return nil
