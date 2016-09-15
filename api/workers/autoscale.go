@@ -81,7 +81,12 @@ func autoscaleRack() {
 
 	log.Logf("change=%d", (desired - system.Count))
 
-	system.Count = desired
+	// ok to start multiple but shut them down one at a time
+	if desired < system.Count {
+		system.Count--
+	} else {
+		system.Count = desired
+	}
 
 	err = models.Provider().SystemSave(*system)
 	if err != nil {
