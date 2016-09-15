@@ -24,6 +24,10 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		Description: r.FormValue("description"),
 	}
 
+	if r.FormValue("import") != "" {
+		return httperr.Errorf(403, "endpoint deprecated, please update your client")
+	}
+
 	image, _, err := r.FormFile("image")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
 		return httperr.Server(err)
