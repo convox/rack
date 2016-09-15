@@ -1,19 +1,16 @@
 package controllers
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/convox/rack/api/helpers"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -62,13 +59,6 @@ func BuildGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	l, err := models.Provider().BuildLogs(app, build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	b.Logs = l
-
 	return RenderJson(rw, b)
 }
 
@@ -76,68 +66,108 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 
-	cache := !(r.FormValue("cache") == "false")
-	manifest := r.FormValue("manifest")
-	description := r.FormValue("description")
-	buildImport := (r.FormValue("import") == "true")
+	opts := structs.BuildOptions{
+		Cache:       !(r.FormValue("cache") == "false"),
+		Config:      r.FormValue("config"),
+		Description: r.FormValue("description"),
+	}
 
-	repo := r.FormValue("repo")
-	index := r.FormValue("index")
+	fmt.Printf("app = %+v\n", app)
+	fmt.Printf("opts = %+v\n", opts)
+
+	image, _, err := r.FormFile("image")
+	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
+		return httperr.Server(err)
+	}
+	if image != nil {
+	}
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
-		helpers.TrackError("build", err, map[string]interface{}{"at": "FormFile"})
 		return httperr.Server(err)
 	}
-
-	// Log into private registries that we might pull from
-	// TODO: move to prodiver BuildCreate
-	err = models.LoginPrivateRegistries()
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	a, err := models.Provider().AppGet(app)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	// Log into registry that we will push to
-	_, err = models.AppDockerLogin(*a)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	var b *structs.Build
-
 	if source != nil {
-
-		if buildImport {
-			b, err = models.Provider().BuildImport(a.Name, source)
-		} else {
-			// if source file was posted, build from tar
-			b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
-		}
-
-	} else if repo != "" {
-		b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
-	} else if index != "" {
-		var i structs.Index
-		err := json.Unmarshal([]byte(index), &i)
+		url, err := models.Provider().ObjectStore("", source, structs.ObjectOptions{})
 		if err != nil {
 			return httperr.Server(err)
 		}
 
-		b, err = models.Provider().BuildCreateIndex(app, i, manifest, description, cache)
-	} else {
-		return httperr.Errorf(403, "no source, repo or index")
+		build, err := models.Provider().BuildCreate(app, "tgz", url, opts)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, build)
 	}
 
-	if err != nil {
-		return httperr.Server(err)
+	if index := r.FormValue("index"); index != "" {
+		url, err := models.Provider().ObjectStore("", bytes.NewReader([]byte(index)), structs.ObjectOptions{})
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		build, err := models.Provider().BuildCreate(app, "index", url, opts)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, build)
 	}
 
-	return RenderJson(rw, b)
+	if repo := r.FormValue("repo"); repo != "" {
+	}
+
+	return httperr.Errorf(403, "no build source found")
+
+	// test
+	// // Log into private registries that we might pull from
+	// // TODO: move to prodiver BuildCreate
+	// err = models.LoginPrivateRegistries()
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// a, err := models.Provider().AppGet(app)
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// // Log into registry that we will push to
+	// _, err = models.AppDockerLogin(*a)
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// var b *structs.Build
+
+	// if source != nil {
+
+	//   if buildImport {
+	//     b, err = models.Provider().BuildImport(a.Name, source)
+	//   } else {
+	//     // if source file was posted, build from tar
+	//     b, err = models.Provider().BuildCreateTar(app, source, r.FormValue("manifest"), r.FormValue("description"), cache)
+	//   }
+
+	// } else if repo != "" {
+	//   b, err = models.Provider().BuildCreateRepo(app, repo, r.FormValue("manifest"), r.FormValue("description"), cache)
+	// } else if index != "" {
+	//   var i structs.Index
+	//   err := json.Unmarshal([]byte(index), &i)
+	//   if err != nil {
+	//     return httperr.Server(err)
+	//   }
+
+	//   b, err = models.Provider().BuildCreateIndex(app, i, manifest, description, cache)
+	// } else {
+	//   return httperr.Errorf(403, "no source, repo or index")
+	// }
+
+	// if err != nil {
+	//   return httperr.Server(err)
+	// }
+
+	// return RenderJson(rw, b)
 }
 
 // BuildDelete deletes a build. Makes sure not to delete a build that is contained in the active release
@@ -259,20 +289,6 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, b)
 }
 
-func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	srcApp := vars["app"]
-	build := vars["build"]
-	dest := r.FormValue("app")
-
-	b, err := models.Provider().BuildCopy(srcApp, build, dest)
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	return RenderJson(rw, b)
-}
-
 // BuildExport creates an artifact, representing a build, to be used with another Rack
 func BuildExport(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
@@ -305,119 +321,11 @@ func BuildLogs(ws *websocket.Conn) *httperr.Error {
 	app := vars["app"]
 	build := vars["build"]
 
-	_, err := models.Provider().BuildGet(app, build)
-	if err != nil {
-		return httperr.Server(err)
-	}
-	// default to local docker socket
-	host := "unix:///var/run/docker.sock"
-
-	// in production loop through docker hosts that the rack is running on
-	// to find the build
-	if os.Getenv("DEVELOPMENT") != "true" {
-		h, err := findBuildHost(build)
-		if err != nil {
-			return httperr.Server(err)
-		}
-
-		host = h
-	}
-
-	// proxy to docker container logs
-	// https://docs.docker.com/reference/api/docker_remote_api_v1.19/#get-container-logs
-	client, err := docker.NewClient(host)
-
-	if err != nil {
+	if err := models.Provider().BuildLogs(app, build, ws); err != nil {
 		return httperr.Server(err)
 	}
 
-	quit := make(chan bool)
-	logErr := make(chan error)
-
-	go keepAlive(ws, quit)
-	go func() {
-		e := client.Logs(docker.LogsOptions{
-			Container:    fmt.Sprintf("build-%s", build),
-			Follow:       true,
-			Stdout:       true,
-			Stderr:       true,
-			Tail:         "all",
-			RawTerminal:  false,
-			OutputStream: ws,
-			ErrorStream:  ws,
-		})
-
-		logErr <- e
-	}()
-
-ForLoop:
-	for {
-		select {
-
-		case err = <-logErr:
-			break ForLoop
-
-		default:
-			b, err := models.Provider().BuildGet(app, build)
-			if err != nil {
-				break ForLoop
-			}
-
-			switch b.Status {
-			case "complete":
-				err = nil
-				break ForLoop
-			case "error":
-				err = fmt.Errorf("%s build failed", app)
-				break ForLoop
-			case "failed":
-				err = fmt.Errorf("%s build failed", app)
-				break ForLoop
-			case "timeout":
-				err = fmt.Errorf("%s build timeout", app)
-				break ForLoop
-			}
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-
-	quit <- true
-
-	return httperr.Server(err)
-}
-
-// try to find the docker host that's running a build
-// try a few times with a sleep
-func findBuildHost(build string) (string, error) {
-	for i := 1; i < 5; i++ {
-		pss, err := models.ListProcesses(os.Getenv("RACK"))
-		if err != nil {
-			return "", httperr.Server(err)
-		}
-
-		for _, ps := range pss {
-			client, err := ps.Docker()
-			if err != nil {
-				return "", httperr.Server(err)
-			}
-
-			res, err := client.ListContainers(docker.ListContainersOptions{
-				All: true,
-				Filters: map[string][]string{
-					"name": []string{fmt.Sprintf("build-%s", build)},
-				},
-			})
-
-			if len(res) > 0 {
-				return fmt.Sprintf("http://%s:2376", ps.Host), nil
-			}
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-
-	return "", fmt.Errorf("could not find build host")
+	return nil
 }
 
 func keepAlive(ws *websocket.Conn, quit chan bool) {

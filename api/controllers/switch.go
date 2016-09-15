@@ -7,9 +7,5 @@ import (
 )
 
 func Switch(w http.ResponseWriter, r *http.Request) *httperr.Error {
-	response := map[string]string{
-		"source": "rack",
-	}
-
-	return RenderJson(w, response)
+	return httperr.Errorf(403, "only available on console")
 }

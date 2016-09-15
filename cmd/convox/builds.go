@@ -200,6 +200,8 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	fmt.Printf("a = %+v\n", a)
+
 	switch a.Status {
 	case "creating":
 		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
@@ -633,7 +635,7 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 		return "", "", err
 	}
 
-	output.Write([]byte("\n"))
+	output.Write([]byte("\nStarting build..."))
 
 	return finishBuild(c, app, build, output)
 }

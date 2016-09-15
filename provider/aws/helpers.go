@@ -317,6 +317,28 @@ func (p *AWSProvider) dynamoBatchDeleteItems(wrs []*dynamodb.WriteRequest, table
 	return nil
 }
 
+func (p *AWSProvider) describeServices(input *ecs.DescribeServicesInput) (*ecs.DescribeServicesOutput, error) {
+	res, ok := cache.Get("describeServices", input.Services).(*ecs.DescribeServicesOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.ecs().DescribeServices(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeServices", input.Services, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
 	res, ok := cache.Get("describeStacks", input.StackName).(*cloudformation.DescribeStacksOutput)
 
@@ -375,6 +397,44 @@ func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEve
 	}
 
 	return res, nil
+}
+
+func (p *AWSProvider) describeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
+	res, ok := cache.Get("describeStackResources", input.StackName).(*cloudformation.DescribeStackResourcesOutput)
+
+	if ok {
+		return res, nil
+	}
+
+	res, err := p.cloudformation().DescribeStackResources(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.SkipCache {
+		if err := cache.Set("describeStackResources", input.StackName, res, 5*time.Second); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
+func (p *AWSProvider) stackResource(stack, resource string) (*cloudformation.StackResource, error) {
+	rs, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stack),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range rs.StackResources {
+		if *r.LogicalResourceId == resource {
+			return r, nil
+		}
+	}
+
+	return nil, fmt.Errorf("resource not found: %s", resource)
 }
 
 func (p *AWSProvider) describeTaskDefinition(name string) (*ecs.TaskDefinition, error) {

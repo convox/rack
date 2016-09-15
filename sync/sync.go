@@ -441,7 +441,11 @@ func (s *Sync) watchIncoming(st Stream) {
 func (s *Sync) watchOutgoing(st Stream) {
 	ch := make(chan changes.Change)
 
-	go changes.Watch(s.Local, ch)
+	go func() {
+		if err := changes.Watch(s.Local, ch); err != nil {
+			st <- fmt.Sprintf("error: %s", err)
+		}
+	}()
 
 	for c := range ch {
 		s.lock.Lock()
