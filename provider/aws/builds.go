@@ -566,18 +566,12 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 		b.Ended = time.Unix(1473028892, 0).UTC()
 	}
 
-	tags, err := json.Marshal(b.Tags)
-	if err != nil {
-		return err
-	}
-
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
 			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
 			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
 			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
-			"tags":    &dynamodb.AttributeValue{B: tags},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	}
@@ -604,6 +598,15 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 	if !b.Ended.IsZero() {
 		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(sortableTime))}
+	}
+
+	if len(b.Tags) > 0 {
+		tags, err := json.Marshal(b.Tags)
+		if err != nil {
+			return err
+		}
+
+		req.Item["tags"] = &dynamodb.AttributeValue{B: tags}
 	}
 
 	_, err = p.dynamodb().PutItem(req)
@@ -850,7 +853,9 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 
 	var tags map[string]string
 
-	json.Unmarshal(item["tags"].B, &tags)
+	if item["tags"] != nil {
+		json.Unmarshal(item["tags"].B, &tags)
+	}
 
 	return &structs.Build{
 		Id:          id,

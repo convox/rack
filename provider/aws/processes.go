@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"sort"
 	"strings"
@@ -95,27 +96,17 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		success <- struct{}{}
 	}()
 
-	ir, iw := io.Pipe()
-	or, ow := io.Pipe()
-
-	go io.Copy(iw, stream)
-	go io.Copy(stream, or)
-
 	err = dc.StartExec(eres.ID, docker.StartExecOptions{
 		Detach:       false,
 		Tty:          true,
-		InputStream:  ir,
-		OutputStream: ow,
-		ErrorStream:  ow,
+		InputStream:  ioutil.NopCloser(stream),
+		OutputStream: stream,
+		ErrorStream:  stream,
 		RawTerminal:  true,
 		Success:      success,
 	})
+
 	if err != nil {
-		// remote going away is not an error
-		if strings.Contains(err.Error(), "use of closed network") {
-			log.Success()
-			return nil
-		}
 		log.Error(err)
 		return err
 	}

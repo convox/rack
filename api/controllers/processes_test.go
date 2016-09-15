@@ -15,7 +15,6 @@ import (
 
 func init() {
 	models.PauseNotifications = true
-	test.HandlerFunc = controllers.HandlerFunc
 }
 
 func TestProcessList(t *testing.T) {

@@ -2,7 +2,6 @@ package aws
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,8 +22,6 @@ import (
 // Because these are important system events, they are also published to Segment
 // for operational metrics.
 func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
-	// log := logger.New("ns=kernel")
-
 	e.Status = "success"
 	e.Timestamp = time.Now().UTC()
 
@@ -39,11 +36,8 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 
 	msg, err := json.Marshal(e)
 	if err != nil {
-		// helpers.Error(log, err) // report internal errors to Rollbar
 		return err
 	}
-
-	fmt.Printf("aws EventSend msg=%q\n", msg)
 
 	// Publish Event to SNS
 	_, err = p.sns().Publish(&sns.PublishInput{
@@ -52,11 +46,8 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 		TargetArn: aws.String(p.NotificationTopic),
 	})
 	if err != nil {
-		// helpers.Error(log, err) // report internal errors to Rollbar
 		return err
 	}
-
-	// log.At("EventSend").Log("message-id=%q", *resp.MessageId)
 
 	// report event to Segment
 	params := map[string]interface{}{

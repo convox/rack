@@ -259,9 +259,10 @@ func (p *TestProvider) ProcessStop(app, pid string) error {
 }
 
 // ReleaseDelete deletes all releases for an App and Build
-func (p *TestProvider) ReleaseDelete(app, buildID string) error {
-	p.Called(app, buildID)
-	return nil
+func (p *TestProvider) ReleaseDelete(app, build string) error {
+	args := p.Called(app, build)
+
+	return args.Error(0)
 }
 
 // ReleaseGet gets a Release

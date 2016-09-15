@@ -43,7 +43,8 @@ func TestFormationListBadApp(t *testing.T) {
 	r, err := provider.FormationList("httpe")
 
 	assert.Nil(t, r)
-	assert.Equal(t, aws.ErrorNotFound("httpe not found"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "httpe not found", err.Error())
 }
 
 func TestFormationListEmptyRelease(t *testing.T) {
@@ -69,7 +70,8 @@ func TestFormationListBadRelease(t *testing.T) {
 	r, err := provider.FormationList("httpd")
 
 	assert.Nil(t, r)
-	assert.Equal(t, aws.ErrorNotFound("no such release: RVFETUHHKKD"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "no such release: RVFETUHHKKD", err.Error())
 }
 
 func TestFormationListBadManifest(t *testing.T) {
@@ -130,7 +132,8 @@ func TestFormationGetBadApp(t *testing.T) {
 	r, err := provider.FormationGet("httpe", "web")
 
 	assert.Nil(t, r)
-	assert.Equal(t, aws.ErrorNotFound("httpe not found"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "httpe not found", err.Error())
 }
 
 func TestFormationGetEmptyRelease(t *testing.T) {
@@ -156,7 +159,8 @@ func TestFormationGetBadRelease(t *testing.T) {
 	r, err := provider.FormationGet("httpd", "web")
 
 	assert.Nil(t, r)
-	assert.Equal(t, aws.ErrorNotFound("no such release: RVFETUHHKKD"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "no such release: RVFETUHHKKD", err.Error())
 }
 
 func TestFormationGetBadManifest(t *testing.T) {
@@ -230,7 +234,8 @@ func TestFormationSaveBadApp(t *testing.T) {
 
 	err := provider.FormationSave("httpe", pf)
 
-	assert.Equal(t, aws.ErrorNotFound("httpe not found"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "httpe not found", err.Error())
 }
 
 func TestFormationSaveBadCluster(t *testing.T) {
@@ -249,7 +254,8 @@ func TestFormationSaveBadCluster(t *testing.T) {
 
 	err := provider.FormationSave("httpd", pf)
 
-	assert.Equal(t, aws.ErrorNotFound("cluster not found: cluster-test"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "cluster not found: cluster-test", err.Error())
 }
 
 func TestFormationSaveBadCount(t *testing.T) {

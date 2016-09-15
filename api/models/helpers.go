@@ -390,6 +390,10 @@ var TestProvider = &provider.TestProvider{}
 
 // Provider returns the appropriate provider interface based on the env
 func Provider() provider.Provider {
+	if os.Getenv("PROVIDER") == "test" {
+		return TestProvider
+	}
+
 	return provider.FromEnv()
 }
 

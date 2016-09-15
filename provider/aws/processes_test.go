@@ -3,6 +3,7 @@ package aws_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/convox/rack/api/awsutil"
@@ -10,6 +11,11 @@ import (
 	"github.com/convox/rack/provider/aws"
 	"github.com/stretchr/testify/assert"
 )
+
+type streamTester struct {
+	io.Reader
+	io.Writer
+}
 
 func TestProcessExec(t *testing.T) {
 	provider := StubAwsProvider(
@@ -29,15 +35,16 @@ func TestProcessExec(t *testing.T) {
 	)
 	defer d.Close()
 
-	buf := &bytes.Buffer{}
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
 
-	err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", buf, structs.ProcessExecOptions{
+	err := provider.ProcessExec("myapp", "5850760f0845", "ls -la", streamTester{in, out}, structs.ProcessExecOptions{
 		Height: 10,
 		Width:  20,
 	})
 
 	assert.Nil(t, err)
-	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), buf.Bytes())
+	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), out.Bytes())
 }
 
 func TestProcessList(t *testing.T) {
@@ -120,6 +127,7 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
+		cycleProcessStopTask,
 	)
 	defer provider.Close()
 
@@ -132,19 +140,20 @@ func TestProcessRunAttached(t *testing.T) {
 	)
 	defer d.Close()
 
-	buf := &bytes.Buffer{}
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
 
 	pid, err := provider.ProcessRun("myapp", "web", structs.ProcessRunOptions{
 		Command: "ls -la",
 		Release: "RVFETUHHKKD",
-		Stream:  buf,
+		Stream:  streamTester{in, out},
 		Height:  10,
 		Width:   20,
 	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "5850760f0845", pid)
-	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), buf.Bytes())
+	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), out.Bytes())
 }
 
 func TestProcessRunDetached(t *testing.T) {
@@ -973,9 +982,20 @@ var cycleProcessDockerStartExec = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/exec/123456/start",
 		Body: `{
-			"ErrorStream": {},
-			"InputStream": {},
-			"OutputStream": {},
+			"ErrorStream": {
+				"Reader": {},
+				"Writer": {}
+			},
+			"InputStream": {
+				"Reader": {
+					"Reader": {},
+					"Writer": {}
+				}
+			},
+			"OutputStream": {
+				"Reader": {},
+				"Writer": {}
+			},
 			"RawTerminal": true,
 			"Tty": true
 		}`,

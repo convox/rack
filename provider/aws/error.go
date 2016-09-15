@@ -1,6 +1,6 @@
 package aws
 
-// ErrorNotFound means the requested item was not found
+// errorNotFound means the requested item was not found
 type errorNotFound string
 
 // Error satisfies the error interface
