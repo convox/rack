@@ -208,7 +208,9 @@ func build(dir string) error {
 }
 
 func success() error {
-	release := &structs.Release{}
+	release := &structs.Release{
+		App: flagApp,
+	}
 
 	// TODO use provider.ReleaseFork()
 
