@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/convox/rack/api/cmd/build/source"
 	"github.com/convox/rack/api/structs"
@@ -15,35 +16,41 @@ import (
 	"github.com/convox/rack/provider"
 )
 
-func die(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	os.Exit(1)
-}
-
 var (
-	flagApp    string
-	flagAuth   string
-	flagId     string
-	flagConfig string
-	flagMethod string
-	flagPush   string
-	flagUrl    string
+	flagApp     string
+	flagAuth    string
+	flagCache   string
+	flagId      string
+	flagConfig  string
+	flagMethod  string
+	flagPush    string
+	flagRelease string
+	flagUrl     string
 
-	currentBuild *structs.Build
+	currentBuild    *structs.Build
+	currentProvider provider.Provider
+	currentManifest string
 )
 
 func init() {
-	flag.StringVar(&flagApp, "app", "example", "app name")
-	flag.StringVar(&flagAuth, "auth", "", "docker auth data (base64 encoded)")
-	flag.StringVar(&flagConfig, "config", "docker-compose.yml", "path to app config")
-	flag.StringVar(&flagId, "id", "latest", "build id")
-	flag.StringVar(&flagMethod, "method", "", "source method")
-	flag.StringVar(&flagPush, "push", "", "push to registry")
-	flag.StringVar(&flagUrl, "url", "", "source url")
+	currentProvider = provider.FromEnv()
 }
 
 func main() {
-	flag.Parse()
+	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	fs.StringVar(&flagApp, "app", "example", "app name")
+	fs.StringVar(&flagAuth, "auth", "", "docker auth data (base64 encoded)")
+	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
+	fs.StringVar(&flagConfig, "config", "docker-compose.yml", "path to app config")
+	fs.StringVar(&flagId, "id", "latest", "build id")
+	fs.StringVar(&flagMethod, "method", "", "source method")
+	fs.StringVar(&flagPush, "push", "", "push to registry")
+	fs.StringVar(&flagRelease, "release", "", "release id to fork")
+	fs.StringVar(&flagUrl, "url", "", "source url")
+
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		fail(err)
+	}
 
 	if v := os.Getenv("BUILD_APP"); v != "" {
 		flagApp = v
@@ -65,6 +72,10 @@ func main() {
 		flagPush = v
 	}
 
+	if v := os.Getenv("BUILD_RELEASE"); v != "" {
+		flagRelease = v
+	}
+
 	if v := os.Getenv("BUILD_URL"); v != "" {
 		flagUrl = v
 	}
@@ -78,22 +89,11 @@ func main() {
 	// fmt.Printf("flagUrl = %+v\n", flagUrl)
 
 	if err := execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-
-		currentBuild.Status = "failed"
-
-		if err := provider.FromEnv().BuildSave(currentBuild); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-		}
-
-		os.Exit(1)
+		fail(err)
 	}
 
-	currentBuild.Status = "complete"
-
-	if err := provider.FromEnv().BuildSave(currentBuild); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-		os.Exit(1)
+	if err := success(); err != nil {
+		fail(err)
 	}
 }
 
@@ -112,6 +112,13 @@ func execute() error {
 
 	defer os.RemoveAll(dir)
 
+	data, err := ioutil.ReadFile(filepath.Join(dir, flagConfig))
+	if err != nil {
+		return err
+	}
+
+	currentBuild.Manifest = string(data)
+
 	if err := login(); err != nil {
 		return err
 	}
@@ -127,10 +134,12 @@ func fetch() (string, error) {
 	var s source.Source
 
 	switch flagMethod {
+	case "index":
+		s = &source.SourceIndex{flagUrl}
 	case "tgz":
 		s = &source.SourceTgz{flagUrl}
 	default:
-		die(fmt.Errorf("unknown method: %s", flagMethod))
+		return "", fmt.Errorf("unknown method: %s", flagMethod)
 	}
 
 	return s.Fetch()
@@ -162,10 +171,10 @@ func login() error {
 }
 
 func build(dir string) error {
-	dcy := filepath.Join(dir, "docker-compose.yml")
+	dcy := filepath.Join(dir, flagConfig)
 
 	if _, err := os.Stat(dcy); os.IsNotExist(err) {
-		return fmt.Errorf("no docker-compose.yml found")
+		return fmt.Errorf("no such file: %s", flagConfig)
 	}
 
 	data, err := ioutil.ReadFile(dcy)
@@ -186,7 +195,7 @@ func build(dir string) error {
 		}
 	}()
 
-	if err := m.Build(dir, flagApp, s, true); err != nil {
+	if err := m.Build(dir, flagApp, s, (flagCache == "true")); err != nil {
 		return err
 	}
 
@@ -195,4 +204,51 @@ func build(dir string) error {
 	}
 
 	return nil
+}
+
+func success() error {
+	var release *structs.Release
+
+	// TODO use provider.ReleaseFork()
+
+	if flagRelease != "" {
+		r, err := currentProvider.ReleaseGet(flagApp, flagRelease)
+		if err != nil {
+			return err
+		}
+		release = r
+	}
+
+	release.Build = flagId
+	release.Created = time.Now()
+	release.Id = id("R", 10)
+	release.Manifest = currentBuild.Manifest
+
+	if err := currentProvider.ReleaseSave(release); err != nil {
+		return err
+	}
+
+	currentBuild.Ended = time.Now()
+	currentBuild.Release = release.Id
+	currentBuild.Status = "complete"
+
+	if err := currentProvider.BuildSave(currentBuild); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func fail(err error) {
+	fmt.Fprintf(os.Stderr, "FAILED: %s\n", err)
+
+	currentBuild.Ended = time.Now()
+	currentBuild.Reason = err.Error()
+	currentBuild.Status = "failed"
+
+	if err := currentProvider.BuildSave(currentBuild); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	}
+
+	os.Exit(1)
 }

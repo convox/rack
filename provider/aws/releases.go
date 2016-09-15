@@ -102,7 +102,15 @@ func (p *AWSProvider) ReleasePromote(app, id string) (*structs.Release, error) {
 	return &structs.Release{}, fmt.Errorf("promote not yet implemented for AWS provider")
 }
 
-func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error {
+func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
+	a, err := p.AppGet(r.App)
+	if err != nil {
+		return err
+	}
+
+	bucket := a.Outputs["Settings"]
+	key := a.Parameters["Key"]
+
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -136,7 +144,6 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
-	var err error
 	env := []byte(r.Env)
 
 	if key != "" {

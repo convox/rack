@@ -200,6 +200,8 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	fmt.Printf("a = %+v\n", a)
+
 	switch a.Status {
 	case "creating":
 		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))

@@ -31,127 +31,6 @@ import (
 
 var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
 
-func (p *AWSProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
-	panic("implement with export and import")
-	return nil, nil
-	// srcA, err := p.AppGet(srcApp)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// srcB, err := p.BuildGet(srcApp, id)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// destA, err := p.AppGet(destApp)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// // make a .tgz file that is the source build manifest
-	// // with build directives removed, and image directives pointing to
-	// // fully qualified URLs of source build images
-	// var m manifest.Manifest
-	// err = yaml.Unmarshal([]byte(srcB.Manifest), &m)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// for name, entry := range m.Services {
-	//   entry.Build.Context = ""
-	//   entry.Image = p.registryTag(srcA, name, srcB.Id)
-	//   m.Services[name] = entry
-	// }
-
-	// data, err := m.Raw()
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// dir, err := ioutil.TempDir("", "source")
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// err = os.Chmod(dir, 0755)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// err = ioutil.WriteFile(filepath.Join(dir, "docker-compose.yml"), data, 0644)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// tgz, err := createTarball(dir)
-	// if err != nil {
-	//   return nil, err
-	// }
-
-	// // Build .tgz in context of destApp
-	// return p.BuildCreateTar(destA.Name, bytes.NewReader(tgz), "docker-compose.yml", fmt.Sprintf("Copy of %s %s", srcA.Name, srcB.Id), false)
-}
-
-// func (p *AWSProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
-//   dir, err := ioutil.TempDir("", "source")
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   err = os.Chmod(dir, 0755)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   err = p.IndexDownload(&index, dir)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   tgz, err := createTarball(dir)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   return p.BuildCreateTar(app, bytes.NewReader(tgz), manifest, description, cache)
-// }
-
-// func (p *AWSProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
-//   a, err := p.AppGet(app)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   b := structs.NewBuild(app)
-//   b.Description = description
-
-//   err = p.BuildSave(b)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   args := p.buildArgs(a, b, url)
-
-//   env, err := p.buildEnv(a, b, manifest, cache)
-//   if err != nil {
-//     return b, err
-//   }
-
-//   err = p.buildRun(a, b, args, env, nil)
-
-//   // build create is now complete or failed
-//   p.EventSend(&structs.Event{
-//     Action: "build:create",
-//     Data: map[string]string{
-//       "app": b.App,
-//       "id":  b.Id,
-//     },
-//   }, err)
-
-//   return b, err
-// }
-
 func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
 
@@ -163,6 +42,7 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 
 	b := structs.NewBuild(app)
 	b.Description = opts.Description
+	b.Started = time.Now()
 
 	if err := p.BuildSave(b); err != nil {
 		log.Error(err)
@@ -174,45 +54,17 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 		return nil, err
 	}
 
+	p.EventSend(&structs.Event{
+		Action: "build:create",
+		Data: map[string]string{
+			"app": b.App,
+			"id":  b.Id,
+		},
+	}, nil)
+
 	log.Success()
 	return b, nil
 }
-
-// func (p *AWSProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
-//   a, err := p.AppGet(app)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   b := structs.NewBuild(app)
-//   b.Description = description
-
-//   err = p.BuildSave(b)
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   // TODO: save the tarball in s3?
-
-//   args := p.buildArgs(a, b, "-")
-
-//   env, err := p.buildEnv(a, b, manifest, cache)
-//   if err != nil {
-//     return b, err
-//   }
-
-//   err = p.buildRun(a, b, args, env, src)
-
-//   p.EventSend(&structs.Event{
-//     Action: "build:create",
-//     Data: map[string]string{
-//       "app": b.App,
-//       "id":  b.Id,
-//     },
-//   }, err)
-
-//   return b, err
-// }
 
 // BuildDelete deletes the build specified by id belonging to app
 // Care should be taken as this could delete the build used by the active release
@@ -415,12 +267,6 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		targetBuild.Id = "B12345"
 	}
 
-	a, err := p.AppGet(app)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
 	repo, err := p.appRepository(app)
 	if err != nil {
 		log.Error(err)
@@ -547,7 +393,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 	release.Build = targetBuild.Id
 	release.Manifest = targetBuild.Manifest
 
-	if err := p.ReleaseSave(release, a.Outputs["Settings"], a.Parameters["Key"]); err != nil {
+	if err := p.ReleaseSave(release); err != nil {
 		log.Error(err)
 		return nil, err
 	}
@@ -670,12 +516,7 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	r.Build = b.Id
 	r.Manifest = b.Manifest
 
-	a, err := p.AppGet(b.App)
-	if err != nil {
-		return r, err
-	}
-
-	err = p.ReleaseSave(r, a.Outputs["Settings"], a.Parameters["Key"])
+	err = p.ReleaseSave(r)
 	if err != nil {
 		return r, err
 	}
@@ -739,6 +580,10 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 	if b.Manifest != "" {
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
+	}
+
+	if b.Reason != "" {
+		req.Item["reason"] = &dynamodb.AttributeValue{S: aws.String(b.Reason)}
 	}
 
 	if b.Release != "" {
@@ -880,7 +725,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 					Command: []*string{
 						aws.String("build"),
 						aws.String("-method"), aws.String(method),
-						aws.String("-url"), aws.String(url),
+						aws.String("-cache"), aws.String(fmt.Sprintf("%t", opts.Cache)),
 					},
 					Environment: []*ecs.KeyValuePair{
 						&ecs.KeyValuePair{
@@ -904,6 +749,14 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 							Value: aws.String(push),
 						},
 						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_RELEASE"),
+							Value: aws.String(a.Release),
+						},
+						&ecs.KeyValuePair{
+							Name:  aws.String("BUILD_URL"),
+							Value: aws.String(url),
+						},
+						&ecs.KeyValuePair{
 							Name:  aws.String("RELEASE"),
 							Value: aws.String(build.Id),
 						},
@@ -913,11 +766,21 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		},
 	}
 
-	fmt.Printf("req = %+v\n", req)
-
 	task, err := p.runTask(req)
 	if err != nil {
 		log.Error(err)
+		return err
+	}
+
+	b, err := p.BuildGet(build.App, build.Id)
+	if err != nil {
+		return err
+	}
+
+	b.Status = "running"
+	b.Tags["task"] = *task.TaskArn
+
+	if err := p.BuildSave(b); err != nil {
 		return err
 	}
 
@@ -925,117 +788,8 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		return err
 	}
 
-	build.Status = "running"
-	build.Tags["task"] = *task.TaskArn
-
-	fmt.Printf("build = %+v\n", build)
-
-	if err := p.BuildSave(build); err != nil {
-		return err
-	}
-
 	return nil
 }
-
-// func (p *AWSProvider) buildArgs(a *structs.App, b *structs.Build, source string) []string {
-//   return []string{
-//     "run",
-//     "-i",
-//     "--name", fmt.Sprintf("build-%s", b.Id),
-//     "-v", "/var/run/docker.sock:/var/run/docker.sock",
-//     "-e", "APP",
-//     "-e", "BUILD",
-//     "-e", "DOCKER_AUTH",
-//     "-e", "RACK_HOST",
-//     "-e", "RACK_PASSWORD",
-//     "-e", "REGISTRY_EMAIL",
-//     "-e", "REGISTRY_USERNAME",
-//     "-e", "REGISTRY_PASSWORD",
-//     "-e", "REGISTRY_ADDRESS",
-//     "-e", "MANIFEST_PATH",
-//     "-e", "REPOSITORY",
-//     "-e", "NO_CACHE",
-//     p.DockerImageAPI,
-//     "build",
-//     source,
-//   }
-// }
-
-// func (p *AWSProvider) buildEnv(a *structs.App, b *structs.Build, manifest_path string, cache bool) ([]string, error) {
-//   // self-hosted registry auth
-//   email := "user@convox.com"
-//   username := "convox"
-//   password := p.Password
-//   address := p.RegistryHost
-
-//   // ECR auth
-//   if registryId := a.Outputs["RegistryId"]; registryId != "" {
-//     res, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-//       RegistryIds: []*string{aws.String(registryId)},
-//     })
-
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     if len(res.AuthorizationData) < 1 {
-//       return nil, fmt.Errorf("no authorization data")
-//     }
-
-//     endpoint := *res.AuthorizationData[0].ProxyEndpoint
-
-//     data, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
-
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     parts := strings.SplitN(string(data), ":", 2)
-
-//     password = parts[1]
-//     address = endpoint[8:]
-//     username = parts[0]
-//   }
-
-//   // TODO: The controller logged into private registries and app registry
-//   // Seems like this method should be able to generate docker auth config on its own
-//   dockercfg, err := ioutil.ReadFile("/root/.docker/config.json")
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   // Determin callback host. Local Rack should use a variant of localhost
-//   host := p.NotificationHost
-
-//   if p.Development {
-//     out, err := exec.Command("docker", "run", "convox/docker-gateway").Output()
-//     if err != nil {
-//       return nil, err
-//     }
-
-//     host = strings.TrimSpace(string(out))
-//   }
-
-//   env := []string{
-//     fmt.Sprintf("APP=%s", a.Name),
-//     fmt.Sprintf("BUILD=%s", b.Id),
-//     fmt.Sprintf("MANIFEST_PATH=%s", manifest_path),
-//     fmt.Sprintf("DOCKER_AUTH=%s", dockercfg),
-//     fmt.Sprintf("RACK_HOST=%s", host),
-//     fmt.Sprintf("RACK_PASSWORD=%s", p.Password),
-//     fmt.Sprintf("REGISTRY_EMAIL=%s", email),
-//     fmt.Sprintf("REGISTRY_USERNAME=%s", username),
-//     fmt.Sprintf("REGISTRY_PASSWORD=%s", password),
-//     fmt.Sprintf("REGISTRY_ADDRESS=%s", address),
-//     fmt.Sprintf("REPOSITORY=%s", a.Outputs["RegistryRepository"]),
-//   }
-
-//   if !cache {
-//     env = append(env, "NO_CACHE=true")
-//   }
-
-//   return env, nil
-// }
 
 // buildFromItem populates a Build struct from a DynamoDB Item
 func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *structs.Build {
@@ -1053,151 +807,13 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 		Description: coalesce(item["description"], ""),
 		Manifest:    coalesce(item["manifest"], ""),
 		Release:     coalesce(item["release"], ""),
+		Reason:      coalesce(item["reason"], ""),
 		Status:      coalesce(item["status"], ""),
 		Started:     started,
 		Ended:       ended,
 		Tags:        tags,
 	}
 }
-
-// func (p *AWSProvider) buildRun(a *structs.App, b *structs.Build, args []string, env []string, stdin io.Reader) error {
-//   cmd := exec.Command("docker", args...)
-//   cmd.Env = env
-//   cmd.Stdin = stdin
-//   cmd.Stderr = cmd.Stdout // redirect cmd stderr to stdout
-
-//   stdout, err := cmd.StdoutPipe()
-//   if err != nil {
-//     helpers.Error(nil, err) // send internal error to rollbar
-//     return err
-//   }
-
-//   // start build command
-//   err = cmd.Start()
-//   if err != nil {
-//     helpers.Error(nil, err) // send internal error to rollbar
-//     return err
-//   }
-
-//   go p.buildWait(a, b, cmd, stdout)
-
-//   return nil
-// }
-
-// func (p *AWSProvider) buildWait(a *structs.App, b *structs.Build, cmd *exec.Cmd, stdout io.ReadCloser) {
-//   // scan all output
-//   scanner := bufio.NewScanner(stdout)
-//   out := ""
-//   for scanner.Scan() {
-//     text := scanner.Text()
-//     out += text + "\n"
-//   }
-//   if err := scanner.Err(); err != nil {
-//     helpers.Error(nil, err) // send internal error to rollbar
-//   }
-
-//   var cmdStatus string
-//   waitErr := make(chan error)
-//   timeout := time.After(1 * time.Hour)
-
-//   go func() {
-//     err := cmd.Wait()
-
-//     switch err.(type) {
-//     case *exec.ExitError:
-//       waitErr <- err
-//     default:
-//       waitErr <- nil
-//     }
-//   }()
-
-//   select {
-
-//   case werr := <-waitErr:
-//     // Wait / return code are errors, consider the build failed
-//     if werr != nil {
-//       cmdStatus = "failed"
-//     }
-
-//   case <-timeout:
-//     cmdStatus = "timeout"
-//     // Force kill the build container since its taking way to long
-//     killCmd := exec.Command("docker", "kill", fmt.Sprintf("build-%s", b.Id))
-//     killCmd.Start()
-//   }
-
-//   // reload build item to get data from BuildUpdate callback
-//   b, err := p.BuildGet(b.App, b.Id)
-//   if err != nil {
-//     helpers.Error(nil, err) // send internal error to rollbar
-//     return
-//   }
-
-//   if cmdStatus != "" { // Careful not to override the status set by BuildUpdate
-//     b.Status = cmdStatus
-//   }
-
-//   // save final build logs / status
-//   b.Logs = out
-//   err = p.BuildSave(b)
-//   if err != nil {
-//     helpers.Error(nil, err) // send internal error to rollbar
-//     return
-//   }
-// }
-
-// func createTarball(base string) ([]byte, error) {
-//   cwd, err := os.Getwd()
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   err = os.Chdir(base)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   args := []string{"cz"}
-
-//   // If .dockerignore exists, use it to exclude files from the tarball
-//   if _, err = os.Stat(".dockerignore"); err == nil {
-//     args = append(args, "--exclude-from", ".dockerignore")
-//   }
-
-//   args = append(args, ".")
-
-//   cmd := exec.Command("tar", args...)
-
-//   out, err := cmd.StdoutPipe()
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   cmd.Start()
-
-//   bytes, err := ioutil.ReadAll(out)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   err = cmd.Wait()
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   err = os.Chdir(cwd)
-
-//   if err != nil {
-//     return nil, err
-//   }
-
-//   return bytes, nil
-// }
 
 // deleteImages generates a list of fully qualified URLs for images for every process type
 // in the build manifest then deletes them.

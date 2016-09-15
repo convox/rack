@@ -6,16 +6,14 @@ import (
 )
 
 type Build struct {
-	Id       string `json:"id"`
-	App      string `json:"app"`
-	Logs     string `json:"logs"`
-	Manifest string `json:"manifest"`
-	Release  string `json:"release"`
-
-	Status string `json:"status"`
-	Reason string `json:"reason"`
-
+	Id          string `json:"id"`
+	App         string `json:"app"`
 	Description string `json:"description"`
+	Logs        string `json:"logs"`
+	Manifest    string `json:"manifest"`
+	Release     string `json:"release"`
+	Reason      string `json:"reason"`
+	Status      string `json:"status"`
 
 	Started time.Time `json:"started"`
 	Ended   time.Time `json:"ended"`

@@ -437,6 +437,21 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
+	ps := structs.Process{
+		ID:       arnToPid(*task.TaskArn),
+		Name:     *container.Name,
+		Release:  env["RELEASE"],
+		Host:     *host.PrivateIpAddress,
+		Image:    *cd.Image,
+		Instance: *ci.Ec2InstanceId,
+		Ports:    ports,
+	}
+
+	// guard for nil
+	if task.StartedAt != nil {
+		ps.Started = *task.StartedAt
+	}
+
 	cs, err := dc.ListContainers(docker.ListContainersOptions{
 		All: true,
 		Filters: map[string][]string{
@@ -448,7 +463,8 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 	if len(cs) != 1 {
-		errch <- fmt.Errorf("could not find container for task: %s", *task.TaskArn)
+		// no running container yet
+		psch <- ps
 		return
 	}
 
@@ -476,21 +492,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		}
 	}
 
-	ps := structs.Process{
-		ID:       arnToPid(*task.TaskArn),
-		Name:     *container.Name,
-		Release:  env["RELEASE"],
-		Command:  cmd,
-		Host:     *host.PrivateIpAddress,
-		Image:    *cd.Image,
-		Instance: *ci.Ec2InstanceId,
-		Ports:    ports,
-	}
-
-	// guard for nil
-	if task.StartedAt != nil {
-		ps.Started = *task.StartedAt
-	}
+	ps.Command = cmd
 
 	sch := make(chan *docker.Stats, 1)
 

@@ -123,5 +123,5 @@ func generateTempKey() (string, error) {
 
 	hash := sha256.Sum256(data)
 
-	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:50]), nil
+	return fmt.Sprintf("tmp/%s", hex.EncodeToString(hash[:])[0:30]), nil
 }

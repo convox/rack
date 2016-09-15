@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -58,7 +59,28 @@ func cmdPs(c *cli.Context) error {
 			return stdcli.ExitError(err)
 		}
 
+		system, err := rackClient(c).GetSystem()
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		params, err := rackClient(c).ListParameters(system.Name)
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		memory, err := strconv.Atoi(params["BuildMemory"])
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		fm = append(fm, client.FormationEntry{
+			Name:   "build",
+			Memory: memory,
+		})
+
 		displayProcessesStats(ps, fm)
+
 		return nil
 	}
 

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -100,6 +101,17 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	if index := r.FormValue("index"); index != "" {
+		url, err := models.Provider().ObjectStore("", bytes.NewReader([]byte(index)), structs.ObjectOptions{})
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		build, err := models.Provider().BuildCreate(app, "index", url, opts)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, build)
 	}
 
 	if repo := r.FormValue("repo"); repo != "" {
@@ -272,20 +284,6 @@ func BuildUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 				"id":  b.Id,
 			},
 		}, fmt.Errorf(b.Reason))
-	}
-
-	return RenderJson(rw, b)
-}
-
-func BuildCopy(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	vars := mux.Vars(r)
-	srcApp := vars["app"]
-	build := vars["build"]
-	dest := r.FormValue("app")
-
-	b, err := models.Provider().BuildCopy(srcApp, build, dest)
-	if err != nil {
-		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, b)

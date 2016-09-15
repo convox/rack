@@ -36,12 +36,6 @@ func (p *TestProvider) AppDelete(name string) error {
 	return nil
 }
 
-// BuildCopy copies an App
-func (p *TestProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
-	p.Called(srcApp, id, destApp)
-	return &p.Build, nil
-}
-
 // BuildCreate gets the Capacity
 func (p *TestProvider) BuildCreate(app, method, source string, opts structs.BuildOptions) (*structs.Build, error) {
 	args := p.Called(app, method, source, opts)
@@ -294,8 +288,8 @@ func (p *TestProvider) ReleasePromote(app, id string) (*structs.Release, error) 
 }
 
 // ReleaseSave saves a Release
-func (p *TestProvider) ReleaseSave(r *structs.Release, logdir, key string) error {
-	p.Called(r, logdir, key)
+func (p *TestProvider) ReleaseSave(r *structs.Release) error {
+	p.Called(r)
 	return nil
 }
 
