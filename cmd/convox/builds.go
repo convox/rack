@@ -678,7 +678,6 @@ func finishBuild(c *cli.Context, app string, build *client.Build, output io.Writ
 }
 
 func waitForBuild(c *cli.Context, app, id string) (string, error) {
-
 	for {
 		build, err := rackClient(c).GetBuild(app, id)
 		if err != nil {

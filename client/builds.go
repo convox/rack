@@ -137,7 +137,7 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 	return &build, nil
 }
 
-func (c *Client) StreamBuildLogs(app, id string, output io.WriteCloser) error {
+func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
 	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
 }
 
