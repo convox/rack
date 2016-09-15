@@ -95,12 +95,18 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 		success <- struct{}{}
 	}()
 
+	ir, iw := io.Pipe()
+	or, ow := io.Pipe()
+
+	go io.Copy(iw, stream)
+	go io.Copy(stream, or)
+
 	err = dc.StartExec(eres.ID, docker.StartExecOptions{
 		Detach:       false,
 		Tty:          true,
-		InputStream:  stream,
-		OutputStream: stream,
-		ErrorStream:  stream,
+		InputStream:  ir,
+		OutputStream: ow,
+		ErrorStream:  ow,
 		RawTerminal:  true,
 		Success:      success,
 	})
