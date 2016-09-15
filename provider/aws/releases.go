@@ -102,6 +102,7 @@ func (p *AWSProvider) ReleasePromote(app, id string) (*structs.Release, error) {
 	return &structs.Release{}, fmt.Errorf("promote not yet implemented for AWS provider")
 }
 
+// ReleaseSave saves a Release
 func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 	a, err := p.AppGet(r.App)
 	if err != nil {

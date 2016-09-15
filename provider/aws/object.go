@@ -13,6 +13,7 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+// ObjectFetch fetches an Object
 func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 	res, err := p.s3().GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(p.SettingsBucket),
@@ -25,6 +26,7 @@ func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
+// ObjectStore stores an Object
 func (p *AWSProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
 	log := Logger.At("ObjectStore").Namespace("key=%q public=%t", key, opts.Public).Start()
 

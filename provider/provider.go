@@ -76,6 +76,7 @@ type Provider interface {
 
 var testProvider = &TestProvider{}
 
+// FromEnv returns a new Provider from env vars
 func FromEnv() Provider {
 	switch os.Getenv("PROVIDER") {
 	case "aws":
