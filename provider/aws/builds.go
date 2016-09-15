@@ -21,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/s3"
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/convox/rack/api/crypt"
@@ -549,7 +548,7 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 // BuildSave creates or updates a build item in DynamoDB. It takes an optional
 // bucket argument, which if set indicates to PUT Log data into S3
 func (p *AWSProvider) BuildSave(b *structs.Build) error {
-	a, err := p.AppGet(b.App)
+	_, err := p.AppGet(b.App)
 	if err != nil {
 		return err
 	}
@@ -591,6 +590,10 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(b.Manifest)}
 	}
 
+	if b.Logs != "" {
+		req.Item["logs"] = &dynamodb.AttributeValue{S: aws.String(b.Logs)}
+	}
+
 	if b.Reason != "" {
 		req.Item["reason"] = &dynamodb.AttributeValue{S: aws.String(b.Reason)}
 	}
@@ -601,18 +604,6 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 	if !b.Ended.IsZero() {
 		req.Item["ended"] = &dynamodb.AttributeValue{S: aws.String(b.Ended.Format(sortableTime))}
-	}
-
-	if b.Logs != "" {
-		_, err := p.s3().PutObject(&s3.PutObjectInput{
-			Body:          bytes.NewReader([]byte(b.Logs)),
-			Bucket:        aws.String(a.Outputs["Settings"]),
-			ContentLength: aws.Int64(int64(len(b.Logs))),
-			Key:           aws.String(fmt.Sprintf("builds/%s.log", b.Id)),
-		})
-		if err != nil {
-			return err
-		}
 	}
 
 	_, err = p.dynamodb().PutItem(req)
@@ -781,11 +772,15 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		},
 	}
 
+	fmt.Printf("req = %+v\n", req)
+
 	task, err := p.runTask(req)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
+
+	fmt.Printf("task = %+v\n", task)
 
 	b, err := p.BuildGet(build.App, build.Id)
 	if err != nil {
@@ -862,6 +857,7 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 		App:         coalesce(item["app"], ""),
 		Description: coalesce(item["description"], ""),
 		Manifest:    coalesce(item["manifest"], ""),
+		Logs:        coalesce(item["logs"], ""),
 		Release:     coalesce(item["release"], ""),
 		Reason:      coalesce(item["reason"], ""),
 		Status:      coalesce(item["status"], ""),

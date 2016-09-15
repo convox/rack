@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/api/cmd/build/source"
@@ -28,8 +30,9 @@ var (
 	flagUrl     string
 
 	currentBuild    *structs.Build
-	currentProvider provider.Provider
+	currentLogs     string
 	currentManifest string
+	currentProvider provider.Provider
 )
 
 func init() {
@@ -158,13 +161,9 @@ func login() error {
 	}
 
 	for host, entry := range auth {
-		fmt.Printf("Authenticating %s: ", host)
-
-		cmd := exec.Command("docker", "login", "-u", entry.Username, "-p", entry.Password, host)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
+		out, err := exec.Command("docker", "login", "-u", entry.Username, "-p", entry.Password, host).CombinedOutput()
+		log(fmt.Sprintf("Authenticating %s: %s", host, strings.TrimSpace(string(out))))
+		if err != nil {
 			return err
 		}
 	}
@@ -193,7 +192,7 @@ func build(dir string) error {
 
 	go func() {
 		for l := range s {
-			fmt.Println(l)
+			log(l)
 		}
 	}()
 
@@ -230,7 +229,13 @@ func success() error {
 		return err
 	}
 
+	url, err := currentProvider.ObjectStore(fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectOptions{})
+	if err != nil {
+		return err
+	}
+
 	currentBuild.Ended = time.Now()
+	currentBuild.Logs = url
 	currentBuild.Release = release.Id
 	currentBuild.Status = "complete"
 
@@ -253,4 +258,9 @@ func fail(err error) {
 	}
 
 	os.Exit(1)
+}
+
+func log(line string) {
+	currentLogs += fmt.Sprintf("%s\n", line)
+	fmt.Println(line)
 }

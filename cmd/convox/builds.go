@@ -13,7 +13,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"gopkg.in/urfave/cli.v1"
@@ -51,12 +50,6 @@ var (
 			Value: "",
 			Usage: "description of the build",
 		},
-	}
-
-	progressFunc = func(w io.WriteCloser) func(s string) {
-		return func(s string) {
-			w.Write([]byte(fmt.Sprintf("\rUploading... %s       ", strings.TrimSpace(s))))
-		}
 	}
 )
 
@@ -327,7 +320,7 @@ func cmdBuildsImport(c *cli.Context) error {
 		out = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, progressFunc(out))
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
@@ -493,11 +486,11 @@ func uploadIndex(c *cli.Context, index client.Index, output io.WriteCloser) erro
 		return err
 	}
 
-	if err := rackClient(c).IndexUpdate(buf.Bytes(), progressFunc(output)); err != nil {
+	if err := rackClient(c).IndexUpdate(buf, client.IndexUpdateOptions{Progress: progress("Uploading: ", "Storing changes... ", output)}); err != nil {
 		return err
 	}
 
-	output.Write([]byte("\n"))
+	output.Write([]byte("OK\n"))
 
 	return nil
 }
@@ -541,8 +534,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 		return "", "", err
 	}
 
-	output.Write([]byte("OK\n"))
-
 	return finishBuild(c, app, build, output)
 }
 
@@ -566,14 +557,17 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 
 	output.Write([]byte("OK\n"))
 
-	cache := !c.Bool("no-cache")
+	opts := client.CreateBuildSourceOptions{
+		Cache:       !c.Bool("no-cache"),
+		Config:      manifest,
+		Description: description,
+		Progress:    progress("Uploading: ", "Starting build... ", output),
+	}
 
-	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, progressFunc(output))
+	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), opts)
 	if err != nil {
 		return "", "", err
 	}
-
-	output.Write([]byte("\nStarting build..."))
 
 	return finishBuild(c, app, build, output)
 }
@@ -667,6 +661,8 @@ func finishBuild(c *cli.Context, app string, build *client.Build, output io.Writ
 	if build.Id == "" {
 		return "", "", fmt.Errorf("unable to fetch build id")
 	}
+
+	output.Write([]byte("OK\n"))
 
 	err := rackClient(c).StreamBuildLogs(app, build.Id, output)
 	if err != nil {
