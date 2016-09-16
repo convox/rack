@@ -106,13 +106,16 @@ func handle(r Record) error {
 		return err
 	}
 
-	res, err := AutoScaling.CompleteLifecycleAction(&autoscaling.CompleteLifecycleActionInput{
+	_, err = AutoScaling.CompleteLifecycleAction(&autoscaling.CompleteLifecycleActionInput{
 		AutoScalingGroupName:  aws.String(m.AutoScalingGroupName),
 		InstanceId:            aws.String(m.EC2InstanceID),
 		LifecycleActionResult: aws.String("CONTINUE"),
 		LifecycleActionToken:  aws.String(m.LifecycleActionToken),
 		LifecycleHookName:     aws.String(m.LifecycleHookName),
 	})
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("success")
 
