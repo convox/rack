@@ -1,7 +1,9 @@
 package provider
 
 import (
+	"fmt"
 	"io"
+	"os"
 
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/provider/aws"
@@ -11,15 +13,12 @@ type Provider interface {
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
 
-	BuildCopy(srcApp, id, destApp string) (*structs.Build, error)
-	BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error)
-	BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error)
-	BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error)
+	BuildCreate(app, method, source string, opts structs.BuildOptions) (*structs.Build, error)
 	BuildDelete(app, id string) (*structs.Build, error)
 	BuildExport(app, id string, w io.Writer) error
 	BuildGet(app, id string) (*structs.Build, error)
 	BuildImport(app string, r io.Reader) (*structs.Build, error)
-	BuildLogs(app, id string) (string, error)
+	BuildLogs(app, id string, w io.Writer) error
 	BuildList(app string, limit int64) (structs.Builds, error)
 	BuildRelease(*structs.Build) (*structs.Release, error)
 	BuildSave(*structs.Build) error
@@ -47,11 +46,19 @@ type Provider interface {
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
 
+	ObjectFetch(key string) (io.ReadCloser, error)
+	ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error)
+
+	ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error
+	ProcessList(app string) (structs.Processes, error)
+	ProcessRun(app, process string, opts structs.ProcessRunOptions) (string, error)
+	ProcessStop(app, pid string) error
+
 	ReleaseDelete(app, buildID string) error
 	ReleaseGet(app, id string) (*structs.Release, error)
 	ReleaseList(app string, limit int64) (structs.Releases, error)
 	ReleasePromote(app, id string) (*structs.Release, error)
-	ReleaseSave(*structs.Release, string, string) error
+	ReleaseSave(*structs.Release) error
 
 	ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error)
 	ServiceDelete(name string) (*structs.Service, error)
@@ -67,7 +74,16 @@ type Provider interface {
 	SystemSave(system structs.System) error
 }
 
-// NewAwsProviderFromEnv returns a new AWS provider based on env vars
-func NewAwsProviderFromEnv() *aws.AWSProvider {
-	return aws.NewProviderFromEnv()
+var testProvider = &TestProvider{}
+
+// FromEnv returns a new Provider from env vars
+func FromEnv() Provider {
+	switch os.Getenv("PROVIDER") {
+	case "aws":
+		return aws.FromEnv()
+	case "test":
+		return testProvider
+	default:
+		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
+	}
 }

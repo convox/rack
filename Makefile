@@ -2,6 +2,10 @@
 
 all: templates
 
+builder:
+	docker build -t convox/build:$(USER) -f api/cmd/build/Dockerfile .
+	docker push convox/build:$(USER)
+
 fixtures:
 	make -C api/models/fixtures
 

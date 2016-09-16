@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/convox/rack/provider"
 )
@@ -389,14 +390,11 @@ var TestProvider = &provider.TestProvider{}
 
 // Provider returns the appropriate provider interface based on the env
 func Provider() provider.Provider {
-	switch os.Getenv("PROVIDER") {
-	case "aws":
-		return provider.NewAwsProviderFromEnv()
-	case "test":
+	if os.Getenv("PROVIDER") == "test" {
 		return TestProvider
-	default:
-		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
 	}
+
+	return provider.FromEnv()
 }
 
 // Test provides a wrapping helper for running model tests
@@ -406,4 +404,43 @@ func Test(t *testing.T, fn func()) {
 	defer func() { TestProvider = tp }()
 	fn()
 	TestProvider.AssertExpectations(t)
+}
+
+// DescribeContainerInstances lists and describes all the ECS instances.
+// It handles pagination for clusters > 100 instances.
+func DescribeContainerInstances() (*ecs.DescribeContainerInstancesOutput, error) {
+	instances := []*ecs.ContainerInstance{}
+	var nextToken string
+
+	for {
+		res, err := ECS().ListContainerInstances(&ecs.ListContainerInstancesInput{
+			Cluster:   aws.String(os.Getenv("CLUSTER")),
+			NextToken: &nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		dres, err := ECS().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+			Cluster:            aws.String(os.Getenv("CLUSTER")),
+			ContainerInstances: res.ContainerInstanceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, dres.ContainerInstances...)
+
+		// No more container results
+		if res.NextToken == nil {
+			break
+		}
+
+		// set the nextToken to be used for the next iteration
+		nextToken = *res.NextToken
+	}
+
+	return &ecs.DescribeContainerInstancesOutput{
+		ContainerInstances: instances,
+	}, nil
 }

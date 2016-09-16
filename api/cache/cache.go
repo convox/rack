@@ -7,8 +7,6 @@ import (
 	"os"
 	"sync"
 	"time"
-
-	"github.com/convox/logger"
 )
 
 type Cache map[string]map[string]*CacheItem
@@ -21,7 +19,6 @@ type CacheItem struct {
 var (
 	cache = Cache{}
 	lock  = sync.Mutex{}
-	log   = logger.New("ns=api.cache")
 )
 
 func Get(collection string, key interface{}) interface{} {
@@ -35,28 +32,23 @@ func Get(collection string, key interface{}) interface{} {
 	hash, err := hashKey(key)
 
 	if err != nil {
-		log.Logf("fn=get collection=%q key=%q status=error error=%q", collection, hash, err)
 		return nil
 	}
 
 	if cache[collection] == nil {
-		log.Logf("fn=get collection=%q key=%q status=miss", collection, hash)
 		return nil
 	}
 
 	item := cache[collection][hash]
 
 	if item == nil {
-		log.Logf("fn=get collection=%q key=%q status=miss", collection, hash)
 		return nil
 	}
 
 	if item.Expires.Before(time.Now()) {
-		log.Logf("fn=get collection=%q key=%q status=expired", collection, hash)
 		return nil
 	}
 
-	log.Logf("fn=get collection=%q key=%q status=hit", collection, hash)
 	return item.Item
 }
 
@@ -71,7 +63,6 @@ func Set(collection string, key, value interface{}, ttl time.Duration) error {
 	hash, err := hashKey(key)
 
 	if err != nil {
-		log.Logf("fn=set collection=%q key=%q status=error error=%q", collection, hash, err)
 		return err
 	}
 
@@ -80,7 +71,6 @@ func Set(collection string, key, value interface{}, ttl time.Duration) error {
 		Expires: time.Now().Add(ttl),
 	}
 
-	log.Logf("fn=set collection=%q key=%q status=success", collection, hash)
 	return nil
 }
 
@@ -91,7 +81,6 @@ func Clear(collection string, key interface{}) error {
 	hash, err := hashKey(key)
 
 	if err != nil {
-		log.Logf("fn=clearcollection=%q key=%q status=error error=%q", collection, hash, err)
 		return err
 	}
 

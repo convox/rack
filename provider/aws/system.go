@@ -18,7 +18,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		StackName: aws.String(p.Rack),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, ErrorNotFound(fmt.Sprintf("%s not found", p.Rack))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", p.Rack))
 	}
 	if err != nil {
 		return nil, err
@@ -87,7 +87,12 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	releases := make(structs.Releases, len(res.Items))
 
 	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
+		r, err := releaseFromItem(item)
+		if err != nil {
+			return nil, err
+		}
+
+		releases[i] = *r
 	}
 
 	return releases, nil
