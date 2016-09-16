@@ -27,50 +27,50 @@ func init() {
 
 func TestBuildGet(t *testing.T) {
 	provider := StubAwsProvider(
-		build1GetItemCycle,
+		cycleBuildGetItem,
 	)
 	defer provider.Close()
 
-	b, err := provider.BuildGet("httpd", "BHINCLZYYVN")
+	b, err := provider.BuildGet("httpd", "B123")
 
 	assert.Nil(t, err)
 	assert.EqualValues(t, &structs.Build{
-		Id:       "BHINCLZYYVN",
+		Id:       "BAFVEWUCAYT",
 		App:      "httpd",
 		Logs:     "",
-		Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
-		Release:  "RVFETUHHKKD",
+		Manifest: "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n",
+		Release:  "RVWOJNKRAXU",
 		Status:   "complete",
 		Started:  time.Unix(1459780456, 178278576).UTC(),
 		Ended:    time.Unix(1459780542, 440881687).UTC(),
+		Tags:     map[string]string{},
 	}, b)
 }
 
 func TestBuildDelete(t *testing.T) {
 	provider := StubAwsProvider(
-		build2GetItemCycle,
-
-		describeStacksCycle,
-		releasesBuild2DeleteItemCycle,
-		build2BatchDeleteImageCycle,
-
-		releasesBuild2BatchWriteItemCycle,
-		build2DeleteItemCycle,
+		cycleBuildGetItem,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
+		cycleReleaseGetItem,
+		cycleBuildDeleteItem,
+		cycleBuildBatchDeleteImage,
 	)
 	defer provider.Close()
 
-	b, err := provider.BuildDelete("httpd", "BNOARQMVHUO")
+	b, err := provider.BuildDelete("httpd", "B123")
 
 	assert.Nil(t, err)
 	assert.EqualValues(t, &structs.Build{
-		Id:       "BNOARQMVHUO",
+		Id:       "BAFVEWUCAYT",
 		App:      "httpd",
 		Logs:     "",
-		Manifest: "web:\n  image: httpd\n  ports:\n  - 80:80\n",
-		Release:  "RFVZFLKVTYO",
+		Manifest: "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n",
+		Release:  "RVWOJNKRAXU",
 		Status:   "complete",
-		Started:  time.Unix(1459709087, 472025215).UTC(),
-		Ended:    time.Unix(1459709198, 984281955).UTC(),
+		Started:  time.Unix(1459780456, 178278576).UTC(),
+		Ended:    time.Unix(1459780542, 440881687).UTC(),
+		Tags:     map[string]string{},
 	}, b)
 }
 
@@ -128,13 +128,13 @@ func TestBuildExport(t *testing.T) {
 func TestBuildImport(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildDescribeStacks,
-		cycleBuildDescribeStacks,
 		cycleBuildDescribeRepositories,
 		cycleBuildGetAuthorizationToken,
 		cycleBuildDescribeStacks,
 		cycleEnvironmentGet,
 		cycleBuildDescribeStacks,
 		cycleBuildPutItem,
+		cycleBuildDescribeStacks,
 		cycleEnvironmentPut,
 		cycleBuildReleasePutItem,
 	)
@@ -241,6 +241,7 @@ func TestBuildList(t *testing.T) {
 			Status:   "complete",
 			Started:  time.Unix(1459780456, 178278576).UTC(),
 			Ended:    time.Unix(1459780542, 440881687).UTC(),
+			Tags:     map[string]string{},
 		},
 		structs.Build{
 			Id:       "BNOARQMVHUO",
@@ -251,21 +252,149 @@ func TestBuildList(t *testing.T) {
 			Status:   "complete",
 			Started:  time.Unix(1459709087, 472025215).UTC(),
 			Ended:    time.Unix(1459709198, 984281955).UTC(),
+			Tags:     map[string]string{},
 		},
 	}, b)
 }
 
-func TestBuildLogs(t *testing.T) {
+func TestBuildLogsRunning(t *testing.T) {
 	provider := StubAwsProvider(
-		describeStacksCycle,
-		build1GetObjectCycle,
+		cycleBuildGetItemRunning,
+		cycleBuildDescribeTasks,
+		cycleBuildDescribeContainerInstances,
+		cycleBuildDescribeInstances,
 	)
 	defer provider.Close()
 
-	l, err := provider.BuildLogs("httpd", "BHINCLZYYVN")
+	d := stubDocker(
+		cycleBuildDockerListContainers,
+		cycleBuildDockerLogs,
+	)
+	defer d.Close()
+
+	buf := &bytes.Buffer{}
+
+	err := provider.BuildLogs("httpd", "B123", buf)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "RUNNING: docker pull httpd", l)
+	assert.Equal(t, "RUNNING: docker pull httpd", buf.String())
+}
+
+var cycleBuildBatchDeleteImage = awsutil.Cycle{
+	awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerRegistry_V20150921.BatchDeleteImage",
+		Body: `{
+			"imageIds": [
+				{
+					"imageTag": "web.BAFVEWUCAYT"
+				}
+			],
+			"registryId": "132866487567",
+			"repositoryName": "convox-httpd-hqvvfosgxt"
+		}`,
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body:       `{}`,
+	},
+}
+
+var cycleBuildDeleteItem = awsutil.Cycle{
+	awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.DeleteItem",
+		Body: `{
+			"Key": {
+				"id": {
+					"S": "B123"
+				}
+			},
+			"TableName": "convox-builds"
+		}`,
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body:       `{}`,
+	},
+}
+
+var cycleBuildDescribeContainerInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
+		Body: `{
+			"cluster": "cluster-test",
+			"containerInstances": [
+				"arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"containerInstances": [
+				{
+					"ec2InstanceId": "i-5bc45dc2"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleBuildDescribeInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-04-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<?xml version="1.0" encoding="UTF-8"?>
+			<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-04-01/">
+				<reservationSet>
+					<item>
+						<reservationId>r-003ed1d7</reservationId>
+						<ownerId>778743527532</ownerId>
+						<groupSet/>
+						<instancesSet>
+							<item>
+								<instanceId>i-5bc45dc2</instanceId>
+								<privateIpAddress>10.0.1.244</privateIpAddress>
+							</item>
+						</instancesSet>
+					</item>
+				</reservationSet>
+			</DescribeInstancesRepsonse>
+		}`,
+	},
+}
+
+var cycleBuildDescribeRepositories = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerRegistry_V20150921.DescribeRepositories",
+		Body: `{
+			"repositoryNames": [
+				"convox-httpd-hqvvfosgxt"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"repositories": [
+				{
+					"registryId": "778743527532",
+					"repositoryName": "convox-rails-sslibosttb",
+					"repositoryArn": "arn:aws:ecr:us-east-1:778743527532:repository/convox-rails-sslibosttb",
+					"repositoryUri": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb"
+				}
+			]
+		}`,
+	},
 }
 
 var cycleBuildDescribeStacks = awsutil.Cycle{
@@ -425,25 +554,40 @@ var cycleBuildDescribeStacks = awsutil.Cycle{
 	`},
 }
 
-var cycleBuildDescribeRepositories = awsutil.Cycle{
+var cycleBuildDescribeTasks = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Operation:  "AmazonEC2ContainerRegistry_V20150921.DescribeRepositories",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
 		Body: `{
-			"repositoryNames": [
-				"convox-httpd-hqvvfosgxt"
+			"cluster": "cluster-test",
+			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
 		}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body: `{
-			"repositories": [
+			"failures": [],
+			"tasks": [
 				{
-					"registryId": "778743527532",
-					"repositoryName": "convox-rails-sslibosttb",
-					"repositoryArn": "arn:aws:ecr:us-east-1:778743527532:repository/convox-rails-sslibosttb",
-					"repositoryUri": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb"
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"overrides": {
+						"containerOverrides": [
+							{
+								"command": ["sh", "-c", "foo"]
+							}
+						]
+					},
+					"lastStatus": "RUNNING",
+					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containers": [
+						{
+							"name": "web",
+							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
+						}
+					]
 				}
 			]
 		}`,
@@ -496,7 +640,7 @@ var cycleBuildGetItem = awsutil.Cycle{
 					"S": "complete"
 				},
 				"created": {
-					"S": "20160822.164730.238141819"
+					"S": "20160404.143416.178278576"
 				},
 				"app": {
 					"S": "httpd"
@@ -505,13 +649,60 @@ var cycleBuildGetItem = awsutil.Cycle{
 					"S": "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n"
 				},
 				"ended": {
-					"S": "20160822.164732.314729305"
+					"S": "20160404.143542.440881687"
 				},
 				"release": {
 					"S": "RVWOJNKRAXU"
 				},
 				"id": {
 					"S": "BAFVEWUCAYT"
+				}
+			}
+		}`,
+	},
+}
+
+var cycleBuildGetItemRunning = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.GetItem",
+		Body: `{
+			"ConsistentRead": true,
+			"Key": {
+				"id": {
+					"S": "B123"
+				}
+			},
+			"TableName": "convox-builds"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Item": {
+				"status": {
+					"S": "running"
+				},
+				"created": {
+					"S": "20160404.143416.178278576"
+				},
+				"app": {
+					"S": "httpd"
+				},
+				"manifest": {
+					"S": "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n"
+				},
+				"ended": {
+					"S": "20160404.143542.440881687"
+				},
+				"release": {
+					"S": "RVWOJNKRAXU"
+				},
+				"id": {
+					"S": "BAFVEWUCAYT"
+				},
+				"tags": {
+					"B": "eyJ0YXNrIjoiYXJuOmF3czplY3M6dXMtZWFzdC0xOjc3ODc0MzUyNzUzMjp0YXNrLzUwYjhkZTk5LWY5NGYtNGVjZC1hOThmLTU4NTA3NjBmMDg0NSJ9Cg=="
 				}
 			}
 		}`,
@@ -583,6 +774,39 @@ var cycleBuildReleasePutItem = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{}`,
+	},
+}
+
+var cycleBuildDockerListContainers = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
+		Body:       ``,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `[
+			{
+				"Id": "8dfafdbc3a40",
+				"Names":["/boring_feynman"],
+				"Image": "ubuntu:latest",
+				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"Command": "echo 1",
+				"Created": 1367854155,
+				"State": "Exited",
+				"Status": "Exit 0",
+				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
+			}
+		]`,
+	},
+}
+
+var cycleBuildDockerLogs = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/containers/8dfafdbc3a40/logs?follow=1&stderr=1&stdout=1&tail=all",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       "\x01\x00\x00\x00\x00\x00\x00\x1aRUNNING: docker pull httpd",
 	},
 }
 

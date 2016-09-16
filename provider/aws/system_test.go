@@ -39,7 +39,8 @@ func TestSystemGetBadStack(t *testing.T) {
 	r, err := provider.SystemGet()
 
 	assert.Nil(t, r)
-	assert.Equal(t, aws.ErrorNotFound("convox not found"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "convox not found", err.Error())
 }
 
 func TestSystemReleases(t *testing.T) {

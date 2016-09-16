@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"sort"
 	"strings"
@@ -98,18 +99,14 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 	err = dc.StartExec(eres.ID, docker.StartExecOptions{
 		Detach:       false,
 		Tty:          true,
-		InputStream:  stream,
+		InputStream:  ioutil.NopCloser(stream),
 		OutputStream: stream,
 		ErrorStream:  stream,
 		RawTerminal:  true,
 		Success:      success,
 	})
+
 	if err != nil {
-		// remote going away is not an error
-		if strings.Contains(err.Error(), "use of closed network") {
-			log.Success()
-			return nil
-		}
 		log.Error(err)
 		return err
 	}
@@ -138,7 +135,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
 		log.Errorf("no such app: %s", app)
-		return nil, ErrorNotFound(fmt.Sprintf("no such app: %s", app))
+		return nil, errorNotFound(fmt.Sprintf("no such app: %s", app))
 	}
 	if err != nil {
 		log.Error(err)
@@ -418,6 +415,12 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		env[*e.Name] = *e.Value
 	}
 
+	for _, o := range task.Overrides.ContainerOverrides {
+		for _, p := range o.Environment {
+			env[*p.Name] = *p.Value
+		}
+	}
+
 	container := task.Containers[0]
 
 	ports := []string{}
@@ -431,6 +434,21 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 
+	ps := structs.Process{
+		ID:       arnToPid(*task.TaskArn),
+		Name:     *container.Name,
+		Release:  env["RELEASE"],
+		Host:     *host.PrivateIpAddress,
+		Image:    *cd.Image,
+		Instance: *ci.Ec2InstanceId,
+		Ports:    ports,
+	}
+
+	// guard for nil
+	if task.StartedAt != nil {
+		ps.Started = *task.StartedAt
+	}
+
 	cs, err := dc.ListContainers(docker.ListContainersOptions{
 		All: true,
 		Filters: map[string][]string{
@@ -442,7 +460,8 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		return
 	}
 	if len(cs) != 1 {
-		errch <- fmt.Errorf("could not find container for task: %s", *task.TaskArn)
+		// no running container yet
+		psch <- ps
 		return
 	}
 
@@ -470,21 +489,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		}
 	}
 
-	ps := structs.Process{
-		ID:       arnToPid(*task.TaskArn),
-		Name:     *container.Name,
-		Release:  env["RELEASE"],
-		Command:  cmd,
-		Host:     *host.PrivateIpAddress,
-		Image:    *cd.Image,
-		Instance: *ci.Ec2InstanceId,
-		Ports:    ports,
-	}
-
-	// guard for nil
-	if task.StartedAt != nil {
-		ps.Started = *task.StartedAt
-	}
+	ps.Command = cmd
 
 	sch := make(chan *docker.Stats, 1)
 
