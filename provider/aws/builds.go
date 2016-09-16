@@ -791,6 +791,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 	}
 
 	b.Status = "running"
+
 	b.Tags["task"] = *task.TaskArn
 
 	if err := p.BuildSave(b); err != nil {
@@ -851,7 +852,7 @@ func (p *AWSProvider) buildFromItem(item map[string]*dynamodb.AttributeValue) *s
 	started, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
 	ended, _ := time.Parse(sortableTime, coalesce(item["ended"], ""))
 
-	var tags map[string]string
+	tags := map[string]string{}
 
 	if item["tags"] != nil {
 		json.Unmarshal(item["tags"].B, &tags)

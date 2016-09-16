@@ -43,6 +43,7 @@ func TestBuildGet(t *testing.T) {
 		Status:   "complete",
 		Started:  time.Unix(1459780456, 178278576).UTC(),
 		Ended:    time.Unix(1459780542, 440881687).UTC(),
+		Tags:     map[string]string{},
 	}, b)
 }
 
@@ -69,6 +70,7 @@ func TestBuildDelete(t *testing.T) {
 		Status:   "complete",
 		Started:  time.Unix(1459780456, 178278576).UTC(),
 		Ended:    time.Unix(1459780542, 440881687).UTC(),
+		Tags:     map[string]string{},
 	}, b)
 }
 
@@ -239,6 +241,7 @@ func TestBuildList(t *testing.T) {
 			Status:   "complete",
 			Started:  time.Unix(1459780456, 178278576).UTC(),
 			Ended:    time.Unix(1459780542, 440881687).UTC(),
+			Tags:     map[string]string{},
 		},
 		structs.Build{
 			Id:       "BNOARQMVHUO",
@@ -249,6 +252,7 @@ func TestBuildList(t *testing.T) {
 			Status:   "complete",
 			Started:  time.Unix(1459709087, 472025215).UTC(),
 			Ended:    time.Unix(1459709198, 984281955).UTC(),
+			Tags:     map[string]string{},
 		},
 	}, b)
 }
