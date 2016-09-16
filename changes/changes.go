@@ -137,6 +137,10 @@ func watchForChanges(files map[string]map[string]time.Time, dir string, ignore [
 				return nil
 			}
 
+			if info == nil {
+				return nil
+			}
+
 			if info.IsDir() {
 				return nil
 			}
