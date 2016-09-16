@@ -76,13 +76,6 @@ func init() {
 				Flags:       buildCreateFlags,
 			},
 			{
-				Name:        "info",
-				Description: "print output for a build",
-				Usage:       "<id>",
-				Action:      cmdBuildsInfo,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
 				Name:        "delete",
 				Description: "archive a build and its artifacts",
 				Usage:       "<id>",
@@ -104,6 +97,13 @@ func init() {
 				},
 			},
 			{
+				Name:        "logs",
+				Description: "get logs for a build",
+				Usage:       "<id>",
+				Action:      cmdBuildsLogs,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
 				Name:        "import",
 				Description: "import a build artifact from stdin",
 				Usage:       "",
@@ -120,6 +120,13 @@ func init() {
 						Usage: "build logs on stderr, release id on stdout",
 					},
 				},
+			},
+			{
+				Name:        "info",
+				Description: "print output for a build",
+				Usage:       "<id>",
+				Action:      cmdBuildsInfo,
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
 	})
@@ -251,7 +258,13 @@ func cmdBuildsInfo(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Println(b.Logs)
+	fmt.Printf("Build        %s\n", b.Id)
+	fmt.Printf("Status       %s\n", b.Status)
+	fmt.Printf("Release      %s\n", b.Release)
+	fmt.Printf("Description  %s\n", b.Description)
+	fmt.Printf("Started      %s\n", humanizeTime(b.Started))
+	fmt.Printf("Elapsed      %s\n", stdcli.Duration(b.Started, b.Ended))
+
 	return nil
 }
 
@@ -329,6 +342,26 @@ func cmdBuildsImport(c *cli.Context) error {
 
 	if c.Bool("id") {
 		fmt.Println(build.Release)
+	}
+
+	return nil
+}
+
+func cmdBuildsLogs(c *cli.Context) error {
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "info")
+		return nil
+	}
+
+	build := c.Args()[0]
+
+	if err := rackClient(c).StreamBuildLogs(app, build, os.Stdout); err != nil {
+		return stdcli.ExitError(err)
 	}
 
 	return nil

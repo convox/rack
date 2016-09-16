@@ -37,7 +37,7 @@ func TestBuildGet(t *testing.T) {
 	assert.EqualValues(t, &structs.Build{
 		Id:       "BAFVEWUCAYT",
 		App:      "httpd",
-		Logs:     "",
+		Logs:     "object:///test/foo",
 		Manifest: "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n",
 		Release:  "RVWOJNKRAXU",
 		Status:   "complete",
@@ -64,7 +64,7 @@ func TestBuildDelete(t *testing.T) {
 	assert.EqualValues(t, &structs.Build{
 		Id:       "BAFVEWUCAYT",
 		App:      "httpd",
-		Logs:     "",
+		Logs:     "object:///test/foo",
 		Manifest: "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n",
 		Release:  "RVWOJNKRAXU",
 		Status:   "complete",
@@ -103,7 +103,7 @@ func TestBuildExport(t *testing.T) {
 	h, err := tr.Next()
 	assert.Nil(t, err)
 	assert.Equal(t, "build.json", h.Name)
-	assert.Equal(t, int64(382), h.Size)
+	assert.Equal(t, int64(400), h.Size)
 
 	data, err := ioutil.ReadAll(tr)
 	assert.Nil(t, err)
@@ -271,6 +271,21 @@ func TestBuildLogsRunning(t *testing.T) {
 		cycleBuildDockerLogs,
 	)
 	defer d.Close()
+
+	buf := &bytes.Buffer{}
+
+	err := provider.BuildLogs("httpd", "B123", buf)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "RUNNING: docker pull httpd", buf.String())
+}
+
+func TestBuildLogsNotRunning(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleBuildGetItem,
+		cycleBuildFetchLogs,
+	)
+	defer provider.Close()
 
 	buf := &bytes.Buffer{}
 
@@ -645,6 +660,9 @@ var cycleBuildGetItem = awsutil.Cycle{
 				"app": {
 					"S": "httpd"
 				},
+				"logs": {
+					"S": "object:///test/foo"
+				},
 				"manifest": {
 					"S": "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n"
 				},
@@ -706,6 +724,16 @@ var cycleBuildGetItemRunning = awsutil.Cycle{
 				}
 			}
 		}`,
+	},
+}
+
+var cycleBuildFetchLogs = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/convox-settings/test/foo",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       "RUNNING: docker pull httpd",
 	},
 }
 

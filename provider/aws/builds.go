@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -463,8 +464,25 @@ func (p *AWSProvider) BuildLogs(app, id string, w io.Writer) error {
 			return err
 		}
 	default:
-		if _, err := w.Write([]byte(b.Logs)); err != nil {
+		u, err := url.Parse(b.Logs)
+		if err != nil {
 			return err
+		}
+
+		switch u.Scheme {
+		case "object":
+			r, err := p.ObjectFetch(u.Path)
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(w, r); err != nil {
+				return err
+			}
+		default:
+			if _, err := w.Write([]byte(b.Logs)); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -775,15 +793,11 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		},
 	}
 
-	fmt.Printf("req = %+v\n", req)
-
 	task, err := p.runTask(req)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-
-	fmt.Printf("task = %+v\n", task)
 
 	b, err := p.BuildGet(build.App, build.Id)
 	if err != nil {
