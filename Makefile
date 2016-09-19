@@ -19,3 +19,6 @@ templates:
 
 test:
 	env PROVIDER=test bin/test
+
+vendor:
+	godep save ./...
