@@ -30,13 +30,6 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if !versionCheck(r) {
-			log.Errorf("invalid version")
-			rw.WriteHeader(403)
-			rw.Write([]byte("client outdated, please update with `convox update`"))
-			return
-		}
-
 		err := handler(rw, r)
 
 		if err != nil {
@@ -80,40 +73,12 @@ func passwordCheck(r *http.Request) bool {
 	return true
 }
 
-const MinimumClientVersion = "20150911185301"
-
-func versionCheck(r *http.Request) bool {
-	if r.URL.Path == "/system" {
-		return true
-	}
-
-	if strings.HasPrefix(r.Header.Get("User-Agent"), "curl/") {
-		return true
-	}
-
-	switch v := r.Header.Get("Version"); v {
-	case "":
-		return false
-	case "dev":
-		return true
-	default:
-		return v >= MinimumClientVersion
-	}
-
-	return false
-}
-
 func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
 		log := logger.New("ns=api.controllers").At(at).Start()
 
 		if !passwordCheck(ws.Request()) {
 			ws.Write([]byte("ERROR: invalid authorization\n"))
-			return
-		}
-
-		if !versionCheck(ws.Request()) {
-			ws.Write([]byte("client outdated, please update with `convox update`\n"))
 			return
 		}
 
