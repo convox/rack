@@ -499,6 +499,16 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	}
 
 	params := map[string]bool{}
+	pexisting := map[string]bool{}
+
+	stack, err := p.describeStack(name)
+	if err != nil {
+		return err
+	}
+
+	for _, p := range stack.Parameters {
+		pexisting[*p.ParameterKey] = true
+	}
 
 	if template != "" {
 		req.TemplateURL = aws.String(template)
@@ -514,13 +524,8 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 	} else {
 		req.UsePreviousTemplate = aws.Bool(true)
 
-		stack, err := p.describeStack(name)
-		if err != nil {
-			return err
-		}
-
-		for _, p := range stack.Parameters {
-			params[*p.ParameterKey] = true
+		for param := range pexisting {
+			params[param] = true
 		}
 	}
 
@@ -539,7 +544,7 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 				ParameterKey:   aws.String(param),
 				ParameterValue: aws.String(value),
 			})
-		} else {
+		} else if pexisting[param] {
 			req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 				ParameterKey:     aws.String(param),
 				UsePreviousValue: aws.Bool(true),
@@ -547,7 +552,7 @@ func (p *AWSProvider) updateStack(name string, template string, changes map[stri
 		}
 	}
 
-	_, err := p.cloudformation().UpdateStack(req)
+	_, err = p.cloudformation().UpdateStack(req)
 
 	cache.Clear("describeStacks", nil)
 	cache.Clear("describeStacks", name)
