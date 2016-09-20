@@ -24,6 +24,13 @@ type TestProvider struct {
 	System       structs.System
 }
 
+// Initialize initializes the Provider
+func (p *TestProvider) Initialize(opts structs.ProviderOptions) error {
+	args := p.Called(opts)
+
+	return args.Error(0)
+}
+
 // AppGet gets an App
 func (p *TestProvider) AppGet(name string) (*structs.App, error) {
 	p.Called(name)

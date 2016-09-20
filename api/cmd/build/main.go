@@ -37,6 +37,12 @@ var (
 
 func init() {
 	currentProvider = provider.FromEnv()
+
+	var buf bytes.Buffer
+
+	currentProvider.Initialize(structs.ProviderOptions{
+		LogOutput: &buf,
+	})
 }
 
 func main() {

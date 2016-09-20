@@ -10,6 +10,8 @@ import (
 )
 
 type Provider interface {
+	Initialize(opts structs.ProviderOptions) error
+
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
 

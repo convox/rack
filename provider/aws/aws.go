@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/logger"
+	"github.com/convox/rack/api/structs"
 )
 
 var (
@@ -87,6 +88,14 @@ func FromEnv() *AWSProvider {
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
+	if opts.LogOutput != nil {
+		Logger = logger.NewWriter("ns=provider.aws", opts.LogOutput)
+	}
+
+	return nil
 }
 
 /** services ****************************************************************************************/
