@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -69,11 +71,17 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	// TODO deprecate
 	if repo := r.FormValue("repo"); repo != "" {
+		return httperr.Server(fmt.Errorf("repo param has been deprecated"))
 	}
 
-	if url := r.FormValue("url"); url != "" {
+	if surl := r.FormValue("url"); surl != "" {
+		u, err := url.Parse(surl)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
 		method := ""
-		ext := filepath.Ext(url)
+		ext := filepath.Ext(u.Path)
 
 		switch ext {
 		case ".git":
@@ -86,7 +94,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "unknown extension: %s", ext)
 		}
 
-		build, err := models.Provider().BuildCreate(app, method, url, opts)
+		build, err := models.Provider().BuildCreate(app, method, surl, opts)
 		if err != nil {
 			return httperr.Server(err)
 		}

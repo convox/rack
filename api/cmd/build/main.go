@@ -137,6 +137,8 @@ func fetch() (string, error) {
 	var s source.Source
 
 	switch flagMethod {
+	case "git":
+		s = &source.SourceGit{flagUrl}
 	case "index":
 		s = &source.SourceIndex{flagUrl}
 	case "tgz":

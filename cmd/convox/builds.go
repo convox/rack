@@ -608,6 +608,8 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 func executeBuildURL(c *cli.Context, url, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	cache := !c.Bool("no-cache")
 
+	output.Write([]byte("Starting build... "))
+
 	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest, description)
 	if err != nil {
 		return "", "", err
