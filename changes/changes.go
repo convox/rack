@@ -1,23 +1,13 @@
 package changes
 
 import (
-	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/rjeczalik/notify"
-
-	_ "net/http/pprof"
 )
-
-func init() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-}
 
 type Change struct {
 	Operation string
