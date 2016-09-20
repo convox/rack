@@ -15,7 +15,6 @@ import (
 
 func ProcessList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
-	// stats := r.URL.Query().Get("stats") == "true"
 
 	ps, err := models.Provider().ProcessList(app)
 	if provider.ErrorNotFound(err) {

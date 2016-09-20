@@ -354,6 +354,17 @@ func (p *TestProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) er
 	return args.Error(0)
 }
 
+// SystemProcesses lists Processes for the System
+func (p *TestProvider) SystemProcesses() (structs.Processes, error) {
+	args := p.Called()
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Processes), args.Error(1)
+}
+
 // SystemReleases lists the latest releases of the rack
 func (p *TestProvider) SystemReleases() (structs.Releases, error) {
 	args := p.Called()

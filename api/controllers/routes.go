@@ -65,6 +65,7 @@ func NewRouter() (router *mux.Router) {
 	router.HandleFunc("/system", api("system.show", SystemShow)).Methods("GET")
 	router.HandleFunc("/system", api("system.update", SystemUpdate)).Methods("PUT")
 	router.HandleFunc("/system/capacity", api("system.capacity", SystemCapacity)).Methods("GET")
+	router.HandleFunc("/system/processes", api("system.processes", SystemProcesses)).Methods("GET")
 	router.HandleFunc("/system/releases", api("system.release.list", SystemReleases)).Methods("GET")
 	router.HandleFunc("/switch", api("switch", Switch)).Methods("POST")
 

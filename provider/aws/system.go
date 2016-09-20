@@ -62,6 +62,26 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
+func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
+	tasks, err := p.stackTasks(p.Rack)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("tasks = %+v\n", tasks)
+
+	ps, err := p.taskProcesses(tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range ps {
+		ps[i].App = p.Rack
+	}
+
+	return ps, nil
+}
+
 // SystemReleases lists the latest releases of the rack
 func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	req := &dynamodb.QueryInput{

@@ -130,13 +130,47 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 	log := Logger.At("ProcessList").Namespace("app=%q", app).Start()
 
-	rres, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, app)),
-	})
+	tasks, err := p.stackTasks(fmt.Sprintf("%s-%s", p.Rack, app))
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
 		log.Errorf("no such app: %s", app)
 		return nil, errorNotFound(fmt.Sprintf("no such app: %s", app))
 	}
+	if err != nil {
+		return nil, err
+	}
+
+	// list one-off processes
+	ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+		Cluster:   aws.String(p.Cluster),
+		StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
+	})
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	for _, task := range ores.TaskArns {
+		tasks = append(tasks, *task)
+	}
+
+	ps, err := p.taskProcesses(tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range ps {
+		ps[i].App = app
+	}
+
+	return ps, nil
+}
+
+func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
+	log := Logger.At("stackTasks").Namespace("stack=%q", stack).Start()
+
+	rres, err := p.describeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stack),
+	})
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -151,7 +185,7 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 		}
 	}
 
-	tasks := []*string{}
+	tasks := []string{}
 
 	for _, s := range services {
 		tres, err := p.ecs().ListTasks(&ecs.ListTasksInput{
@@ -163,27 +197,26 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 			return nil, err
 		}
 		for _, arn := range tres.TaskArns {
-			tasks = append(tasks, arn)
+			tasks = append(tasks, *arn)
 		}
 	}
 
-	// list one-off processes
-	ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
-		Cluster:   aws.String(p.Cluster),
-		StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
-	})
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
+	log.Success()
+	return tasks, nil
+}
 
-	for _, task := range ores.TaskArns {
-		tasks = append(tasks, task)
+func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
+	log := Logger.At("serviceProcesses").Namespace("tasks=%q", tasks).Start()
+
+	ptasks := []*string{}
+
+	for _, t := range tasks {
+		ptasks = append(ptasks, aws.String(t))
 	}
 
 	tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
-		Tasks:   tasks,
+		Tasks:   ptasks,
 	})
 	if err != nil {
 		log.Error(err)
@@ -210,7 +243,6 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 		case err := <-errch:
 			return nil, err
 		case ps := <-psch:
-			ps.App = app
 			pss = append(pss, ps)
 		}
 
@@ -336,7 +368,7 @@ func (p *AWSProvider) containerDefinitionForTask(arn string) (*ecs.ContainerDefi
 	if err != nil {
 		return nil, err
 	}
-	if len(res.TaskDefinition.ContainerDefinitions) != 1 {
+	if len(res.TaskDefinition.ContainerDefinitions) < 1 {
 		return nil, fmt.Errorf("invalid container definitions for task: %s", arn)
 	}
 
@@ -387,7 +419,7 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 }
 
 func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
-	if len(task.Containers) != 1 {
+	if len(task.Containers) < 1 {
 		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
 	}
@@ -459,7 +491,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		errch <- err
 		return
 	}
-	if len(cs) != 1 {
+	if len(cs) < 1 {
 		// no running container yet
 		psch <- ps
 		return
