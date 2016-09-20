@@ -99,11 +99,6 @@ func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuil
 		return nil, err
 	}
 
-	// err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, &build, progressCallback)
-	// if err != nil {
-	//   return nil, err
-	// }
-
 	return &build, nil
 }
 

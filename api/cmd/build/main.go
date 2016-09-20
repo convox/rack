@@ -89,14 +89,6 @@ func main() {
 		flagUrl = v
 	}
 
-	// fmt.Printf("flagApp = %+v\n", flagApp)
-	// fmt.Printf("flagAuth = %+v\n", flagAuth)
-	// fmt.Printf("flagConfig = %+v\n", flagConfig)
-	// fmt.Printf("flagId = %+v\n", flagId)
-	// fmt.Printf("flagMethod = %+v\n", flagMethod)
-	// fmt.Printf("flagPush = %+v\n", flagPush)
-	// fmt.Printf("flagUrl = %+v\n", flagUrl)
-
 	if err := execute(); err != nil {
 		fail(err)
 	}
@@ -107,7 +99,7 @@ func main() {
 }
 
 func execute() error {
-	b, err := provider.FromEnv().BuildGet(flagApp, flagId)
+	b, err := currentProvider.BuildGet(flagApp, flagId)
 	if err != nil {
 		return err
 	}
@@ -119,7 +111,7 @@ func execute() error {
 		return err
 	}
 
-	// defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 
 	data, err := ioutil.ReadFile(filepath.Join(dir, flagConfig))
 	if err != nil {
@@ -211,6 +203,8 @@ func build(dir string) error {
 			log(l)
 		}
 	}()
+
+	defer close(s)
 
 	if err := m.Build(dir, flagApp, s, (flagCache == "true")); err != nil {
 		return err
