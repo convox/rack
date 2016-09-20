@@ -13,7 +13,7 @@ type SourceZip struct {
 	URL string
 }
 
-func (s *SourceZip) Fetch() (string, error) {
+func (s *SourceZip) Fetch(out io.Writer) (string, error) {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return "", err

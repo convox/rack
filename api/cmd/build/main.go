@@ -147,7 +147,15 @@ func fetch() (string, error) {
 		return "", fmt.Errorf("unknown method: %s", flagMethod)
 	}
 
-	return s.Fetch()
+	var buf bytes.Buffer
+
+	dir, err := s.Fetch(&buf)
+	log(strings.TrimSpace(buf.String()))
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }
 
 func login() error {
@@ -251,7 +259,10 @@ func success() error {
 func fail(err error) {
 	fmt.Fprintf(os.Stderr, "FAILED: %s\n", err)
 
+	url, _ := currentProvider.ObjectStore(fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectOptions{})
+
 	currentBuild.Ended = time.Now()
+	currentBuild.Logs = url
 	currentBuild.Reason = err.Error()
 	currentBuild.Status = "failed"
 

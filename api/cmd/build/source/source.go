@@ -10,7 +10,7 @@ import (
 )
 
 type Source interface {
-	Fetch() (string, error)
+	Fetch(out io.Writer) (string, error)
 }
 
 func urlReader(url_ string) (io.ReadCloser, error) {

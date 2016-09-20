@@ -2,6 +2,7 @@ package source
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 
 	"github.com/convox/rack/api/structs"
@@ -12,7 +13,7 @@ type SourceIndex struct {
 	URL string
 }
 
-func (s *SourceIndex) Fetch() (string, error) {
+func (s *SourceIndex) Fetch(out io.Writer) (string, error) {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return "", err

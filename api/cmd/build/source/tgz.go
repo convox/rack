@@ -13,7 +13,7 @@ type SourceTgz struct {
 	URL string
 }
 
-func (s *SourceTgz) Fetch() (string, error) {
+func (s *SourceTgz) Fetch(out io.Writer) (string, error) {
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return "", err
