@@ -90,6 +90,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			method = "tgz"
 		case ".zip":
 			method = "zip"
+		case "":
+			return httperr.Errorf(403, "building from url requires an extension such as .git")
 		default:
 			return httperr.Errorf(403, "unknown extension: %s", ext)
 		}
