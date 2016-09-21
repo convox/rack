@@ -84,6 +84,17 @@ func handle(r Record) error {
 
 	fmt.Printf("md = %+v\n", md)
 
+	lbs, err := rackBalancers(md.Rack)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("lbs = %+v\n", lbs)
+
+	if err := deregisterInstanceFromLoadBalancers(lbs, m.EC2InstanceID); err != nil {
+		return err
+	}
+
 	ci, err := containerInstance(md.Cluster, m.EC2InstanceID)
 	if err != nil {
 		return err
@@ -92,17 +103,6 @@ func handle(r Record) error {
 	fmt.Printf("ci = %+v\n", ci)
 
 	if err := deregisterClusterInstance(md.Cluster, ci); err != nil {
-		return err
-	}
-
-	lbs, err := rackBalancers(md.Rack)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("lbs = %+v\n", lbs)
-
-	if err := deregisterLoadBalancersInstance(lbs, m.EC2InstanceID); err != nil {
 		return err
 	}
 
@@ -229,7 +229,7 @@ func rackBalancers(rack string) ([]string, error) {
 	return lbs, nil
 }
 
-func deregisterLoadBalancersInstance(lbs []string, instance string) error {
+func deregisterInstanceFromLoadBalancers(lbs []string, instance string) error {
 	ch := make(chan error)
 
 	for _, lb := range lbs {
