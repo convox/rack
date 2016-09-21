@@ -371,7 +371,7 @@ func displaySystem(c *cli.Context) {
 
 func waitForRackRunning(c *cli.Context) error {
 	timeout := time.After(30 * time.Minute)
-	tick := time.Tick(5 * time.Second)
+	tick := time.Tick(2 * time.Second)
 
 	failed := false
 
