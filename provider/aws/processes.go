@@ -928,7 +928,7 @@ func truncate(f float64, precision int) float64 {
 }
 
 func (p *AWSProvider) waitForTask(arn string) (string, error) {
-	timeout := time.After(60 * time.Second)
+	timeout := time.After(300 * time.Second)
 	tick := time.Tick(1 * time.Second)
 
 	for {
