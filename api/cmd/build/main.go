@@ -259,7 +259,7 @@ func success() error {
 }
 
 func fail(err error) {
-	fmt.Fprintf(os.Stderr, "FAILED: %s\n", err)
+	log(fmt.Sprintf("ERROR: %s", err))
 
 	url, _ := currentProvider.ObjectStore(fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectOptions{})
 
