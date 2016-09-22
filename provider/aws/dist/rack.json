@@ -1127,55 +1127,15 @@
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "ZipFile":  { "Fn::Join": ["\n", [
-            "var AWS = require('aws-sdk');",
-            "var util = require('util');",
-            "exports.handler = function(input, context) {",
-            "  try {",
-            "    var as = new AWS.AutoScaling();",
-            "    var elb = new AWS.ELB();",
-            "    setTimeout(function() {",
-            "      for (var i in input.Records) {",
-            "        var message = JSON.parse(input.Records[i].Sns.Message);",
-            "        as.completeLifecycleAction({AutoScalingGroupName:message.AutoScalingGroupName,InstanceId:message.EC2InstanceId,LifecycleActionResult:'CONTINUE',LifecycleActionToken:message.LifecycleActionToken,LifecycleHookName:message.LifecycleHookName}, function(err, data) {",
-            "          console.log('completeLifecycleAction', 'err', err, 'data', data);",
-            "        });",
-            "      }",
-            "    }, 5000);",
-            "    for (var i in input.Records) {",
-            "      var message = JSON.parse(input.Records[i].Sns.Message);",
-            "      console.log('message', message);",
-            "      if (message.LifecycleTransition == 'autoscaling:EC2_INSTANCE_TERMINATING') {",
-            "        elb.describeLoadBalancers({}, function(err, data) {",
-            "          for (var j in data.LoadBalancerDescriptions) {",
-            "            var elbName = data.LoadBalancerDescriptions[j].LoadBalancerName;",
-            "            elb.describeTags({LoadBalancerNames:[elbName]}, function(err, data) {",
-            "              console.log('describeTags', 'err', err, 'data', data, 'tags', tags);",
-            "              var tags = {};",
-            "              for (var k in data.TagDescriptions[0].Tags) {",
-            "                tags[data.TagDescriptions[0].Tags[k].Key] = data.TagDescriptions[0].Tags[k].Value;",
-            "              }",
-            { "Fn::Join": [ "", [ "              if (tags.Rack == '", { "Ref": "AWS::StackName" }, "') {" ] ] },
-            "                elb.deregisterInstancesFromLoadBalancer({LoadBalancerName:elbName,Instances:[{InstanceId:message.EC2InstanceId}]}, function(err, data) {",
-            "                  console.log('deregisterInstancesFromLoadBalancer', 'err', err, 'data', data);",
-            "                });",
-            "              }",
-            "            });",
-            "          }",
-            "        });",
-            "      }",
-            "    }",
-            "  } catch (err) {",
-            "    context.fail(err);",
-            "  }",
-            "};"
-          ]]}
+          "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
+          "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/lifecycle.zip" ] ] }
         },
-        "Handler": "index.handler",
+        "Description": { "Fn::Join": [ "", [ "{\"Cluster\": \"", { "Ref": "Cluster" }, "\", \"Rack\": \"", { "Ref": "AWS::StackName" }, "\"}" ] ] },
+        "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
         "Runtime": "nodejs",
-        "Timeout": "10"
+        "Timeout": "300"
       }
     },
     "InstancesLifecycleHandlerPermission": {
@@ -1211,9 +1171,14 @@
                   "Effect": "Allow",
                   "Action": [
                     "autoscaling:CompleteLifecycleAction",
+                    "ecs:DeregisterContainerInstance",
+                    "ecs:DescribeContainerInstances",
+                    "ecs:ListContainerInstances",
                     "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:DescribeInstanceHealth",
                     "elasticloadbalancing:DescribeLoadBalancers",
                     "elasticloadbalancing:DescribeTags",
+                    "lambda:GetFunction",
                     "logs:CreateLogGroup",
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
@@ -1262,7 +1227,7 @@
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
-          "Timeout": 5
+          "Timeout": 60
         },
         "ConnectionSettings": {
           "IdleTimeout": 3600

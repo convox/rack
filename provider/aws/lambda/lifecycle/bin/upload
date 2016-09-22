@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+rack=$1
+
+if [ "$rack" == "" ]; then
+  echo "usage: upload <rack>"
+  exit 1
+fi
+
+func=$(\
+  aws cloudformation describe-stack-resources --stack-name ${rack} |\
+  jq -r '.StackResources[]|select(.LogicalResourceId=="InstancesLifecycleHandler").PhysicalResourceId' \
+)
+
+aws lambda update-function-code --function-name $func --zip fileb://lambda.zip
