@@ -8,7 +8,6 @@ import (
 
 func main() {
 	go workers.StartAutoscale()
-	go workers.StartCluster()
 	go workers.StartHeartbeat()
 
 	for {
