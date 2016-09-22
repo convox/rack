@@ -13,7 +13,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"gopkg.in/urfave/cli.v1"
@@ -52,12 +51,6 @@ var (
 			Usage: "description of the build",
 		},
 	}
-
-	progressFunc = func(w io.WriteCloser) func(s string) {
-		return func(s string) {
-			w.Write([]byte(fmt.Sprintf("\rUploading... %s       ", strings.TrimSpace(s))))
-		}
-	}
 )
 
 func init() {
@@ -83,27 +76,6 @@ func init() {
 				Flags:       buildCreateFlags,
 			},
 			{
-				Name:        "copy",
-				Description: "copy a build to an app",
-				Usage:       "<id> <app>",
-				Action:      cmdBuildsCopy,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.BoolFlag{
-						Name:  "promote",
-						Usage: "promote the release after copy",
-					},
-				},
-			},
-			{
-				Name:        "info",
-				Description: "print output for a build",
-				Usage:       "<id>",
-				Action:      cmdBuildsInfo,
-				Flags:       []cli.Flag{appFlag, rackFlag},
-			},
-			{
 				Name:        "delete",
 				Description: "archive a build and its artifacts",
 				Usage:       "<id>",
@@ -125,6 +97,13 @@ func init() {
 				},
 			},
 			{
+				Name:        "logs",
+				Description: "get logs for a build",
+				Usage:       "<id>",
+				Action:      cmdBuildsLogs,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
 				Name:        "import",
 				Description: "import a build artifact from stdin",
 				Usage:       "",
@@ -141,6 +120,13 @@ func init() {
 						Usage: "build logs on stderr, release id on stdout",
 					},
 				},
+			},
+			{
+				Name:        "info",
+				Description: "print output for a build",
+				Usage:       "<id>",
+				Action:      cmdBuildsInfo,
+				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 		},
 	})
@@ -272,52 +258,12 @@ func cmdBuildsInfo(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Println(b.Logs)
-	return nil
-}
-
-func cmdBuildsCopy(c *cli.Context) error {
-	_, app, err := stdcli.DirApp(c, ".")
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	if len(c.Args()) != 2 {
-		stdcli.Usage(c, "copy")
-		return nil
-	}
-
-	build := c.Args()[0]
-	destApp := c.Args()[1]
-
-	fmt.Print("Copying build... ")
-
-	b, err := rackClient(c).CopyBuild(app, build, destApp)
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	fmt.Println("OK")
-
-	_, releaseID, err := finishBuild(c, destApp, b, os.Stdout)
-	if err != nil {
-		return stdcli.ExitError(err)
-	}
-
-	if releaseID != "" {
-		if c.Bool("promote") {
-			fmt.Printf("Promoting %s %s... ", destApp, releaseID)
-
-			_, err = rackClient(c).PromoteRelease(destApp, releaseID)
-			if err != nil {
-				return stdcli.ExitError(err)
-			}
-
-			fmt.Println("OK")
-		} else {
-			fmt.Printf("To deploy this copy run `convox releases promote %s --app %s`\n", releaseID, destApp)
-		}
-	}
+	fmt.Printf("Build        %s\n", b.Id)
+	fmt.Printf("Status       %s\n", b.Status)
+	fmt.Printf("Release      %s\n", b.Release)
+	fmt.Printf("Description  %s\n", b.Description)
+	fmt.Printf("Started      %s\n", humanizeTime(b.Started))
+	fmt.Printf("Elapsed      %s\n", stdcli.Duration(b.Started, b.Ended))
 
 	return nil
 }
@@ -387,7 +333,7 @@ func cmdBuildsImport(c *cli.Context) error {
 		out = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, progressFunc(out))
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
@@ -396,6 +342,26 @@ func cmdBuildsImport(c *cli.Context) error {
 
 	if c.Bool("id") {
 		fmt.Println(build.Release)
+	}
+
+	return nil
+}
+
+func cmdBuildsLogs(c *cli.Context) error {
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	if len(c.Args()) != 1 {
+		stdcli.Usage(c, "info")
+		return nil
+	}
+
+	build := c.Args()[0]
+
+	if err := rackClient(c).StreamBuildLogs(app, build, os.Stdout); err != nil {
+		return stdcli.ExitError(err)
 	}
 
 	return nil
@@ -553,11 +519,11 @@ func uploadIndex(c *cli.Context, index client.Index, output io.WriteCloser) erro
 		return err
 	}
 
-	if err := rackClient(c).IndexUpdate(buf.Bytes(), progressFunc(output)); err != nil {
+	if err := rackClient(c).IndexUpdate(buf, client.IndexUpdateOptions{Progress: progress("Uploading: ", "Storing changes... ", output)}); err != nil {
 		return err
 	}
 
-	output.Write([]byte("\n"))
+	output.Write([]byte("OK\n"))
 
 	return nil
 }
@@ -601,8 +567,6 @@ func executeBuildDirIncremental(c *cli.Context, dir, app, manifest, description 
 		return "", "", err
 	}
 
-	output.Write([]byte("OK\n"))
-
 	return finishBuild(c, app, build, output)
 }
 
@@ -626,20 +590,25 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 
 	output.Write([]byte("OK\n"))
 
-	cache := !c.Bool("no-cache")
+	opts := client.CreateBuildSourceOptions{
+		Cache:       !c.Bool("no-cache"),
+		Config:      manifest,
+		Description: description,
+		Progress:    progress("Uploading: ", "Starting build... ", output),
+	}
 
-	build, err := rackClient(c).CreateBuildSourceProgress(app, tar, cache, manifest, description, progressFunc(output))
+	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), opts)
 	if err != nil {
 		return "", "", err
 	}
-
-	output.Write([]byte("\n"))
 
 	return finishBuild(c, app, build, output)
 }
 
 func executeBuildURL(c *cli.Context, url, app, manifest, description string, output io.WriteCloser) (string, string, error) {
 	cache := !c.Bool("no-cache")
+
+	output.Write([]byte("Starting build... "))
 
 	build, err := rackClient(c).CreateBuildUrl(app, url, cache, manifest, description)
 	if err != nil {
@@ -728,6 +697,8 @@ func finishBuild(c *cli.Context, app string, build *client.Build, output io.Writ
 		return "", "", fmt.Errorf("unable to fetch build id")
 	}
 
+	output.Write([]byte("OK\n"))
+
 	err := rackClient(c).StreamBuildLogs(app, build.Id, output)
 	if err != nil {
 		return "", "", err
@@ -742,7 +713,6 @@ func finishBuild(c *cli.Context, app string, build *client.Build, output io.Writ
 }
 
 func waitForBuild(c *cli.Context, app, id string) (string, error) {
-
 	for {
 		build, err := rackClient(c).GetBuild(app, id)
 		if err != nil {

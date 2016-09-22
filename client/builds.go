@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"time"
 
 	"github.com/convox/rack/api/structs"
@@ -73,27 +72,30 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 	return &build, nil
 }
 
-// CreateBuildSource will create a new build from source. If progress of the uploaded is needed, see CreateBuildSourceProgress
-func (c *Client) CreateBuildSource(app string, source []byte, cache bool, manifest string, description string) (*Build, error) {
-	return c.CreateBuildSourceProgress(app, source, cache, manifest, description, nil)
+type CreateBuildSourceOptions struct {
+	Cache       bool
+	Config      string
+	Description string
+	Progress    Progress
 }
 
-// CreateBuildSourceProgress will create a new build from source with an optional callback to provide progress of the source being uploaded.
-func (c *Client) CreateBuildSourceProgress(app string, source []byte, cache bool, manifest string, description string, progressCallback func(s string)) (*Build, error) {
+// CreateBuildSource will create a new build from source
+func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuildSourceOptions) (*Build, error) {
 	var build Build
 
-	files := map[string][]byte{
-		"source": source,
+	popts := PostMultipartOptions{
+		Files: Files{
+			"source": source,
+		},
+		Params: map[string]string{
+			"cache":       fmt.Sprintf("%t", opts.Cache),
+			"config":      opts.Config,
+			"description": opts.Description,
+		},
+		Progress: opts.Progress,
 	}
 
-	params := map[string]string{
-		"cache":       fmt.Sprintf("%t", cache),
-		"description": description,
-		"manifest":    manifest,
-	}
-
-	err := c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, &build, progressCallback)
-	if err != nil {
+	if err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), popts, &build); err != nil {
 		return nil, err
 	}
 
@@ -106,8 +108,8 @@ func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest str
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
 		"description": description,
-		"repo":        url,
 		"manifest":    manifest,
+		"url":         url,
 	}
 
 	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
@@ -130,7 +132,7 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 	return &build, nil
 }
 
-func (c *Client) StreamBuildLogs(app, id string, output io.WriteCloser) error {
+func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
 	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
 }
 
@@ -191,24 +193,22 @@ func (c *Client) ExportBuild(app, id string, w io.Writer) error {
 	return nil
 }
 
+type ImportBuildOptions struct {
+	Progress Progress
+}
+
 // ImportBuild imports a build artifact
-func (c *Client) ImportBuild(app string, r io.Reader, callback func(s string)) (*structs.Build, error) {
-	source, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	files := map[string][]byte{
-		"source": source,
-	}
-
-	params := map[string]string{
-		"import": "true",
+func (c *Client) ImportBuild(app string, r io.Reader, opts ImportBuildOptions) (*structs.Build, error) {
+	popts := PostMultipartOptions{
+		Files: map[string]io.Reader{
+			"image": r,
+		},
+		Progress: opts.Progress,
 	}
 
 	build := &structs.Build{}
 
-	if err = c.PostMultipartP(fmt.Sprintf("/apps/%s/builds", app), files, params, build, callback); err != nil {
+	if err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), popts, &build); err != nil {
 		return nil, err
 	}
 

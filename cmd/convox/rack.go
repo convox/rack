@@ -215,7 +215,7 @@ func cmdRackPs(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	ps, err := rackClient(c).GetProcesses(system.Name, c.Bool("stats"))
+	ps, err := rackClient(c).GetSystemProcesses()
 	if err != nil {
 		return stdcli.ExitError(err)
 	}

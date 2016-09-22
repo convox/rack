@@ -24,6 +24,13 @@ type TestProvider struct {
 	System       structs.System
 }
 
+// Initialize initializes the Provider
+func (p *TestProvider) Initialize(opts structs.ProviderOptions) error {
+	args := p.Called(opts)
+
+	return args.Error(0)
+}
+
 // AppGet gets an App
 func (p *TestProvider) AppGet(name string) (*structs.App, error) {
 	p.Called(name)
@@ -36,28 +43,15 @@ func (p *TestProvider) AppDelete(name string) error {
 	return nil
 }
 
-// BuildCopy copies an App
-func (p *TestProvider) BuildCopy(srcApp, id, destApp string) (*structs.Build, error) {
-	p.Called(srcApp, id, destApp)
-	return &p.Build, nil
-}
+// BuildCreate gets the Capacity
+func (p *TestProvider) BuildCreate(app, method, source string, opts structs.BuildOptions) (*structs.Build, error) {
+	args := p.Called(app, method, source, opts)
 
-// BuildCreateIndex creates a Build from an Index
-func (p *TestProvider) BuildCreateIndex(app string, index structs.Index, manifest, description string, cache bool) (*structs.Build, error) {
-	p.Called(app, index, manifest, description, cache)
-	return &p.Build, nil
-}
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 
-// BuildCreateRepo creates a Build from a repository URL
-func (p *TestProvider) BuildCreateRepo(app, url, manifest, description string, cache bool) (*structs.Build, error) {
-	p.Called(app, url, manifest, description, cache)
-	return &p.Build, nil
-}
-
-// BuildCreateTar creates a Build from a tarball
-func (p *TestProvider) BuildCreateTar(app string, src io.Reader, manifest, description string, cache bool) (*structs.Build, error) {
-	p.Called(app, src, manifest, description, cache)
-	return &p.Build, nil
+	return args.Get(0).(*structs.Build), args.Error(1)
 }
 
 // BuildDelete deletes a Build
@@ -85,9 +79,10 @@ func (p *TestProvider) BuildImport(app string, r io.Reader) (*structs.Build, err
 }
 
 // BuildLogs gets a Build's logs
-func (p *TestProvider) BuildLogs(app, id string) (string, error) {
-	p.Called(app, id)
-	return "", nil
+func (p *TestProvider) BuildLogs(app, id string, w io.Writer) error {
+	args := p.Called(app, id, w)
+
+	return args.Error(0)
 }
 
 // BuildList lists the Builds
@@ -213,10 +208,68 @@ func (p *TestProvider) LogStream(app string, w io.Writer, opts structs.LogStream
 	return nil
 }
 
-// ReleaseDelete deletes all releases for an App and Build
-func (p *TestProvider) ReleaseDelete(app, buildID string) error {
-	p.Called(app, buildID)
+// ObjectFetch  fetches an Object
+func (p *TestProvider) ObjectFetch(key string) (io.ReadCloser, error) {
+	args := p.Called(key)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
+// ObjectStore stores  an Object
+func (p *TestProvider) ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error) {
+	args := p.Called(key, r, opts)
+
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+
+	return args.Get(0).(string), args.Error(1)
+}
+
+// ProcessExec execs a new command on an existing Process
+func (p *TestProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
+	p.Called(app, pid, command, stream, opts)
 	return nil
+}
+
+// ProcessList lists Processes for an App
+func (p *TestProvider) ProcessList(app string) (structs.Processes, error) {
+	args := p.Called(app)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Processes), args.Error(1)
+}
+
+// ProcessRun runs a new Process
+func (p *TestProvider) ProcessRun(app, process string, opts structs.ProcessRunOptions) (string, error) {
+	args := p.Called(app, process, opts)
+
+	if args.Get(0) == nil {
+		return "", args.Error(1)
+	}
+
+	return args.Get(0).(string), args.Error(1)
+}
+
+// ProcessStop stops a Process
+func (p *TestProvider) ProcessStop(app, pid string) error {
+	args := p.Called(app, pid)
+
+	return args.Error(0)
+}
+
+// ReleaseDelete deletes all releases for an App and Build
+func (p *TestProvider) ReleaseDelete(app, build string) error {
+	args := p.Called(app, build)
+
+	return args.Error(0)
 }
 
 // ReleaseGet gets a Release
@@ -243,8 +296,8 @@ func (p *TestProvider) ReleasePromote(app, id string) (*structs.Release, error) 
 }
 
 // ReleaseSave saves a Release
-func (p *TestProvider) ReleaseSave(r *structs.Release, logdir, key string) error {
-	p.Called(r, logdir, key)
+func (p *TestProvider) ReleaseSave(r *structs.Release) error {
+	p.Called(r)
 	return nil
 }
 
@@ -306,6 +359,17 @@ func (p *TestProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) er
 	args := p.Called(w, opts)
 
 	return args.Error(0)
+}
+
+// SystemProcesses lists Processes for the System
+func (p *TestProvider) SystemProcesses() (structs.Processes, error) {
+	args := p.Called()
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(structs.Processes), args.Error(1)
 }
 
 // SystemReleases lists the latest releases of the rack

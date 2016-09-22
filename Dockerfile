@@ -16,7 +16,7 @@ WORKDIR /go/src/github.com/convox/rack
 COPY . /go/src/github.com/convox/rack
 
 RUN go install ./api
+RUN go install ./api/cmd/build
 RUN go install ./api/cmd/monitor
-RUN go install ./cmd/build
 
 CMD ["api/bin/web"]

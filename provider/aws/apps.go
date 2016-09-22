@@ -23,7 +23,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 		StackName: aws.String(p.Rack + "-" + name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, ErrorNotFound(fmt.Sprintf("%s not found", name))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
 	}
 	if err != nil {
 		return nil, err

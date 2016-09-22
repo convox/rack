@@ -33,7 +33,7 @@ func TestServiceGet(t *testing.T) {
 	provider := StubAwsProvider(
 		test.DescribeStackNotFound("convox-syslog"),
 		cycleServiceDescribeStacks1,
-		describeStacksCycle,
+		cycleAppDescribeStacks,
 	)
 	defer provider.Close()
 

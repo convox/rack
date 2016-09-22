@@ -32,6 +32,11 @@ func New(code int, err error) *Error {
 	return e
 }
 
+// NotFound returns a 404
+func NotFound(err error) *Error {
+	return New(404, err)
+}
+
 func Server(err error) *Error {
 	return New(500, err)
 }

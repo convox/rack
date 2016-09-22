@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -18,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/logger"
+	"github.com/convox/rack/api/structs"
 )
 
 var (
@@ -41,6 +44,7 @@ type AWSProvider struct {
 	DockerImageAPI    string
 	DynamoBuilds      string
 	DynamoReleases    string
+	EncryptionKey     string
 	NotificationHost  string
 	NotificationTopic string
 	Password          string
@@ -56,7 +60,7 @@ type AWSProvider struct {
 }
 
 // NewProviderFromEnv returns a new AWS provider from env vars
-func NewProviderFromEnv() *AWSProvider {
+func FromEnv() *AWSProvider {
 	return &AWSProvider{
 		Region:            os.Getenv("AWS_REGION"),
 		Endpoint:          os.Getenv("AWS_ENDPOINT"),
@@ -68,6 +72,7 @@ func NewProviderFromEnv() *AWSProvider {
 		DockerImageAPI:    os.Getenv("DOCKER_IMAGE_API"),
 		DynamoBuilds:      os.Getenv("DYNAMO_BUILDS"),
 		DynamoReleases:    os.Getenv("DYNAMO_RELEASES"),
+		EncryptionKey:     os.Getenv("ENCRYPTION_KEY"),
 		NotificationHost:  os.Getenv("NOTIFICATION_HOST"),
 		NotificationTopic: os.Getenv("NOTIFICATION_TOPIC"),
 		Password:          os.Getenv("PASSWORD"),
@@ -79,6 +84,18 @@ func NewProviderFromEnv() *AWSProvider {
 		Vpc:               os.Getenv("VPC"),
 		VpcCidr:           os.Getenv("VPCCIDR"),
 	}
+}
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func (p *AWSProvider) Initialize(opts structs.ProviderOptions) error {
+	if opts.LogOutput != nil {
+		Logger = logger.NewWriter("ns=provider.aws", opts.LogOutput)
+	}
+
+	return nil
 }
 
 /** services ****************************************************************************************/
@@ -139,10 +156,6 @@ func (p *AWSProvider) iam() *iam.IAM {
 	return iam.New(session.New(), p.config())
 }
 
-// s3 returns an S3 client configured to use the path style
-// (http://s3.amazonaws.com/johnsmith.net/homepage.html) vs virtual
-// hosted style (http://johnsmith.net.s3.amazonaws.com/homepage.html)
-// since path style is easier to test.
 func (p *AWSProvider) s3() *s3.S3 {
 	return s3.New(session.New(), p.config().WithS3ForcePathStyle(true))
 }

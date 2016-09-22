@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider"
 )
 
 func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
@@ -20,6 +22,20 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, rack)
+}
+
+func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	ps, err := models.Provider().SystemProcesses()
+	if provider.ErrorNotFound(err) {
+		return httperr.NotFound(err)
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	sort.Sort(ps)
+
+	return RenderJson(rw, ps)
 }
 
 func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {

@@ -60,6 +60,18 @@ func (c *Client) GetSystemCapacity() (*SystemCapacity, error) {
 	return &capacity, nil
 }
 
+func (c *Client) GetSystemProcesses() (Processes, error) {
+	var processes Processes
+
+	err := c.Get("/system/processes", &processes)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return processes, nil
+}
+
 func (c *Client) GetSystemReleases() (Releases, error) {
 	var releases Releases
 
