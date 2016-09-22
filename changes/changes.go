@@ -3,10 +3,10 @@ package changes
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/pkg/fileutils"
+	"github.com/rjeczalik/notify"
 )
 
 type Change struct {
@@ -29,8 +29,6 @@ func Partition(changes []Change) (adds []Change, removes []Change) {
 }
 
 func Watch(dir string, ch chan Change) error {
-	files := map[string]map[string]time.Time{}
-
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return err
@@ -46,25 +44,7 @@ func Watch(dir string, ch chan Change) error {
 		return err
 	}
 
-	files[sym] = map[string]time.Time{}
-
-	err = filepath.Walk(sym, func(path string, info os.FileInfo, err error) error {
-		if path == sym {
-			return nil
-		}
-
-		if info != nil {
-			files[sym][path] = info.ModTime()
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return watchForChanges(files, sym, ignore, ch)
+	return watchForChanges(sym, ignore, ch)
 }
 
 func readDockerIgnoreRecursive(root string) ([]string, error) {
@@ -112,68 +92,43 @@ func readDockerIgnore(file string) ([]string, error) {
 	return ignore, nil
 }
 
-func watchForChanges(files map[string]map[string]time.Time, dir string, ignore []string, ch chan Change) error {
-	for {
-		for file, _ := range files[dir] {
-			if _, err := os.Stat(file); os.IsNotExist(err) {
-				rel, err := filepath.Rel(dir, file)
+func watchForChanges(dir string, ignore []string, ch chan Change) error {
+	c := make(chan notify.EventInfo, 1)
 
-				if err != nil {
-					return err
-				}
+	if err := notify.Watch(filepath.Join(dir, "..."), c, notify.Write, notify.Remove); err != nil {
+		return err
+	}
 
-				delete(files[dir], file)
-
-				ch <- Change{
-					Operation: "remove",
-					Base:      dir,
-					Path:      rel,
-				}
-			}
+	for event := range c {
+		rel, err := filepath.Rel(dir, event.Path())
+		if err != nil {
+			return err
 		}
 
-		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-			if path == dir {
-				return nil
+		match, err := fileutils.Matches(rel, ignore)
+		if err != nil {
+			return err
+		}
+
+		if match {
+			continue
+		}
+
+		switch event.Event() {
+		case notify.Remove:
+			ch <- Change{
+				Operation: "remove",
+				Base:      dir,
+				Path:      rel,
 			}
-
-			if info == nil {
-				return nil
+		case notify.Write:
+			ch <- Change{
+				Operation: "add",
+				Base:      dir,
+				Path:      rel,
 			}
-
-			if info.IsDir() {
-				return nil
-			}
-
-			e, ok := files[dir][path]
-
-			if !ok || e.Before(info.ModTime()) {
-				rel, err := filepath.Rel(dir, path)
-				if err != nil {
-					return err
-				}
-
-				match, err := fileutils.Matches(rel, ignore)
-				if err != nil {
-					return err
-				}
-
-				if match {
-					return nil
-				}
-
-				files[dir][path] = info.ModTime()
-
-				ch <- Change{
-					Operation: "add",
-					Base:      dir,
-					Path:      rel,
-				}
-			}
-
-			return nil
-		})
-
-		time.Sleep(700 * time.Millisecond)
+		}
 	}
+
+	return nil
 }
