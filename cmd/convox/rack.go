@@ -93,7 +93,13 @@ func init() {
 				Description: "update rack to the given version",
 				Usage:       "[version]",
 				Action:      cmdRackUpdate,
-				Flags:       []cli.Flag{rackFlag},
+				Flags: []cli.Flag{
+					rackFlag,
+					cli.BoolFlag{
+						Name:  "wait",
+						Usage: "wait for rack update to finish before returning",
+					},
+				},
 			},
 			{
 				Name:        "releases",
@@ -246,19 +252,25 @@ func cmdRackUpdate(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	system, err := rackClient(c).UpdateSystem(version.Version)
+	fmt.Printf("Updating to %s... ", version.Version)
+
+	_, err = rackClient(c).UpdateSystem(version.Version)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Printf("Name     %s\n", system.Name)
-	fmt.Printf("Status   %s\n", system.Status)
-	fmt.Printf("Version  %s\n", system.Version)
-	fmt.Printf("Count    %d\n", system.Count)
-	fmt.Printf("Type     %s\n", system.Type)
+	fmt.Println("UPDATING")
 
-	fmt.Println()
-	fmt.Printf("Updating to version: %s\n", version.Version)
+	if c.Bool("wait") {
+		fmt.Printf("Waiting for completion... ")
+
+		if err := waitForRackRunning(c); err != nil {
+			return stdcli.ExitError(err)
+		}
+
+		fmt.Println("OK")
+	}
+
 	return nil
 }
 
@@ -355,4 +367,39 @@ func displaySystem(c *cli.Context) {
 	fmt.Printf("Version  %s\n", system.Version)
 	fmt.Printf("Count    %d\n", system.Count)
 	fmt.Printf("Type     %s\n", system.Type)
+}
+
+func waitForRackRunning(c *cli.Context) error {
+	timeout := time.After(30 * time.Minute)
+	tick := time.Tick(2 * time.Second)
+
+	failed := false
+
+	for {
+		select {
+		case <-tick:
+			s, err := rackClient(c).GetSystem()
+			if err != nil {
+				return err
+			}
+
+			switch s.Status {
+			case "running":
+				if failed {
+					fmt.Println("DONE")
+					return fmt.Errorf("Update rolled back")
+				}
+				return nil
+			case "rollback":
+				if !failed {
+					failed = true
+					fmt.Print("FAILED\nRolling back... ")
+				}
+			}
+		case <-timeout:
+			return fmt.Errorf("timeout")
+		}
+	}
+
+	return nil
 }
