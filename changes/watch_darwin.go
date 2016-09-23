@@ -1,4 +1,4 @@
-// heavily inspired by https://github.com/fsnotify/go.fsevents
+// heavily inspired by https://github.com/fsnotify/fsevents
 
 package changes
 
