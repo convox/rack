@@ -28,7 +28,7 @@ type Sync struct {
 	docker   *docker.Client
 	lock     sync.Mutex
 	incoming []changes.Change
-	outgoing map[changes.Change]bool
+	outgoing []changes.Change
 
 	incomingBlocks map[string]int
 	outgoingBlocks map[string]int
@@ -50,7 +50,6 @@ func NewSync(container, local, remote string) (*Sync, error) {
 	sync.docker, _ = docker.NewClientFromEnv()
 	sync.incomingBlocks = make(map[string]int)
 	sync.outgoingBlocks = make(map[string]int)
-	sync.outgoing = make(map[changes.Change]bool)
 
 	return sync, nil
 }
@@ -245,17 +244,34 @@ func (s *Sync) syncOutgoing(st Stream) {
 		return
 	}
 
-	keys := make([]changes.Change, 0)
-	for k := range s.outgoing {
-		keys = append(keys, k)
+	buf := []changes.Change{}
+	cur := s.outgoing[0].Operation
+
+	for _, c := range s.outgoing {
+		if c.Operation == cur {
+			buf = append(buf, c)
+			continue
+		}
+
+		switch cur {
+		case "add":
+			s.syncOutgoingAdds(buf, st)
+		case "remove":
+			s.syncOutgoingRemoves(buf, st)
+		}
+
+		buf = []changes.Change{c}
+		cur = c.Operation
 	}
 
-	adds, removes := changes.Partition(keys)
+	switch cur {
+	case "add":
+		s.syncOutgoingAdds(buf, st)
+	case "remove":
+		s.syncOutgoingRemoves(buf, st)
+	}
 
-	s.syncOutgoingAdds(adds, st)
-	s.syncOutgoingRemoves(removes, st)
-
-	s.outgoing = make(map[changes.Change]bool)
+	s.outgoing = []changes.Change{}
 }
 
 func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
@@ -439,7 +455,7 @@ func (s *Sync) watchIncoming(st Stream) {
 }
 
 func (s *Sync) watchOutgoing(st Stream) {
-	ch := make(chan changes.Change)
+	ch := make(chan changes.Change, 1)
 
 	go func() {
 		if err := changes.Watch(s.Local, ch); err != nil {
@@ -453,7 +469,7 @@ func (s *Sync) watchOutgoing(st Stream) {
 		if s.outgoingBlocks[c.Path] > 0 {
 			s.outgoingBlocks[c.Path] -= 1
 		} else {
-			s.outgoing[c] = true
+			s.outgoing = append(s.outgoing, c)
 		}
 
 		s.lock.Unlock()
