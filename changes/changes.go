@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/docker/docker/builder/dockerignore"
-	"github.com/docker/docker/pkg/fileutils"
-	"github.com/rjeczalik/notify"
 )
 
 type Change struct {
@@ -90,45 +88,4 @@ func readDockerIgnore(file string) ([]string, error) {
 	}
 
 	return ignore, nil
-}
-
-func watchForChanges(dir string, ignore []string, ch chan Change) error {
-	c := make(chan notify.EventInfo, 1)
-
-	if err := notify.Watch(filepath.Join(dir, "..."), c, notify.Write, notify.Remove); err != nil {
-		return err
-	}
-
-	for event := range c {
-		rel, err := filepath.Rel(dir, event.Path())
-		if err != nil {
-			return err
-		}
-
-		match, err := fileutils.Matches(rel, ignore)
-		if err != nil {
-			return err
-		}
-
-		if match {
-			continue
-		}
-
-		switch event.Event() {
-		case notify.Remove:
-			ch <- Change{
-				Operation: "remove",
-				Base:      dir,
-				Path:      rel,
-			}
-		case notify.Write:
-			ch <- Change{
-				Operation: "add",
-				Base:      dir,
-				Path:      rel,
-			}
-		}
-	}
-
-	return nil
 }
