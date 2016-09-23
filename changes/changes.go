@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
 )
 
 type Change struct {
@@ -137,6 +138,10 @@ func notify(ch chan Change, from, to map[string]time.Time, base string, ignore [
 func send(ch chan Change, op, file, base string, ignore []string) {
 	rel, err := filepath.Rel(base, file)
 	if err != nil {
+		return
+	}
+
+	if match, _ := fileutils.Matches(rel, ignore); match {
 		return
 	}
 
