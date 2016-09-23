@@ -1,0 +1,84 @@
+// heavily inspired by https://github.com/fsnotify/go.fsevents
+
+package changes
+
+/*
+#cgo LDFLAGS: -framework CoreServices
+#include <CoreServices/CoreServices.h>
+FSEventStreamRef fswatch_create(
+	FSEventStreamContext*,
+	CFMutableArrayRef,
+	FSEventStreamEventId,
+	CFTimeInterval,
+	FSEventStreamCreateFlags);
+static CFMutableArrayRef fswatch_make_mutable_array() {
+  return CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+}
+*/
+import "C"
+
+import (
+	"math/rand"
+	"time"
+	"unsafe"
+)
+
+var (
+	cflags   = C.FSEventStreamCreateFlags(0)
+	chans    = make(map[string](chan string))
+	interval = 250 * time.Millisecond
+	now      = C.FSEventStreamEventId((1 << 64) - 1)
+)
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+func startScanner(dir string) {
+	chans[dir] = make(chan string)
+
+	cpaths := C.fswatch_make_mutable_array()
+	defer C.free(unsafe.Pointer(cpaths))
+
+	path := C.CString(dir)
+	str := C.CFStringCreateWithCString(nil, path, C.kCFStringEncodingUTF8)
+	defer C.free(unsafe.Pointer(path))
+	defer C.free(unsafe.Pointer(str))
+
+	C.CFArrayAppendValue(cpaths, unsafe.Pointer(str))
+
+	ctx := C.FSEventStreamContext{info: unsafe.Pointer(C.CString(dir))}
+
+	stream := C.fswatch_create(&ctx, cpaths, now, C.CFTimeInterval(interval/time.Second), cflags)
+
+	go func() {
+		C.FSEventStreamScheduleWithRunLoop(stream, C.CFRunLoopGetCurrent(), C.kCFRunLoopCommonModes)
+		C.FSEventStreamStart(stream)
+		C.CFRunLoopRun()
+	}()
+}
+
+func waitForNextScan(dir string) {
+	tick := time.Tick(250 * time.Millisecond)
+	fired := false
+
+	for {
+		select {
+		case <-chans[dir]:
+			fired = true
+		case <-tick:
+			if fired {
+				return
+			}
+		}
+	}
+}
+
+//export callback
+func callback(stream C.FSEventStreamRef, info unsafe.Pointer, count C.size_t, paths **C.char, flags *C.FSEventStreamEventFlags, ids *C.FSEventStreamEventId) {
+	dir := C.GoString((*C.char)(info))
+
+	if ch, ok := chans[dir]; ok {
+		ch <- ""
+	}
+}
