@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -185,50 +184,43 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	// set default values for memory and cpu
+
 	for _, entry := range m.Services {
-		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
-		// so new deploys and rollbacks have the expected parameters
-		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {
-			parts := strings.SplitN(vals, ",", 3)
-			if len(parts) != 3 {
-				return fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", entry.Name)
-			}
+		scale := []string{"1", "0", "256"}
 
-			_, err = strconv.Atoi(parts[0])
-			if err != nil {
-				return fmt.Errorf("%s %s not numeric", entry.Name, "count")
-			}
-
-			_, err = strconv.Atoi(parts[1])
-			if err != nil {
-				return fmt.Errorf("%s %s not numeric", entry.Name, "CPU")
-			}
-
-			_, err = strconv.Atoi(parts[2])
-			if err != nil {
-				return fmt.Errorf("%s %s not numeric", entry.Name, "memory")
-			}
-
-			app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))] = parts[0]
-			app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))] = parts[1]
-			app.Parameters[fmt.Sprintf("%sMemory", UpperName(entry.Name))] = parts[2]
-		} else {
-			parts := []string{"1", "0", "256"}
-
-			if v := app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))]; v != "" {
-				parts[0] = v
-			}
-
-			if v := app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))]; v != "" {
-				parts[1] = v
-			}
-
-			if v := app.Parameters[fmt.Sprintf("%sMemory", UpperName(entry.Name))]; v != "" {
-				parts[2] = v
-			}
-
-			app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))] = strings.Join(parts, ",")
+		if entry.Cpu > 0 {
+			scale[1] = fmt.Sprintf("%d", entry.Cpu)
 		}
+
+		if entry.Memory > 0 {
+			scale[2] = fmt.Sprintf("%d", entry.Memory)
+		}
+
+		switch {
+		case app.Parameters[entry.ParamName("Formation")] != "":
+			scale = strings.Split(app.Parameters[entry.ParamName("Formation")], ",")
+			if len(scale) != 3 {
+				return fmt.Errorf("%s not in Count,Cpu,Memory format", entry.ParamName("Formation"))
+			}
+		case app.Parameters[entry.ParamName("DesiredCount")] != "":
+			if v, ok := app.Parameters[entry.ParamName("DesiredCount")]; ok {
+				scale[0] = v
+			}
+			if v, ok := app.Parameters[entry.ParamName("Cpu")]; ok {
+				scale[1] = v
+			}
+			if v, ok := app.Parameters[entry.ParamName("Memory")]; ok {
+				scale[2] = v
+			}
+		}
+
+		app.Parameters[entry.ParamName("Formation")] = strings.Join(scale, ",")
+
+		// backwards compatibility for rollbacks
+		app.Parameters[entry.ParamName("DesiredCount")] = scale[0]
+		app.Parameters[entry.ParamName("Cpu")] = scale[1]
+		app.Parameters[entry.ParamName("Memory")] = scale[2]
 
 		for _, mapping := range entry.Ports {
 			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
