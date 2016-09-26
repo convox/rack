@@ -2,6 +2,27 @@
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Parameters": {
+      "MessageRetentionPeriod": {
+        "Description": "The number of seconds Amazon SQS retains a message",
+        "Type": "Number",
+        "Default": "345600",
+        "MinValue": "0",
+        "MaxValue": "1209600"
+      },
+      "ReceiveMessageWaitTime": {
+        "Description": "Specifies the duration, in seconds, that the ReceiveMessage action call waits until a message is in the queue in order to include it in the response, as opposed to returning an empty response if a message is not yet available",
+        "Type": "Number",
+        "Default": "0",
+        "MinValue": "0",
+        "MaxValue": "20"
+      },
+      "VisibilityTimeout": {
+        "Description": "The length of time, in seconds, during which a message will be unavailable once a message is delivered from the queue. This blocks other components from receiving the same message and gives the initial component time to process and delete the message from the queue.",
+        "Type": "Number",
+        "Default": "30",
+        "MinValue": "0",
+        "MaxValue": "43200"
+      }
     },
     "Resources": {
       "Queue": {
