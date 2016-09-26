@@ -433,6 +433,12 @@ func (s *Sync) watchIncoming(st Stream) {
 				continue
 			}
 
+			// skip incoming removes for now. they make sync hard and not sure we want
+			// the container deleting local files anyway
+			if parts[0] == "remove" {
+				continue
+			}
+
 			s.lock.Lock()
 
 			if s.incomingBlocks[parts[2]] > 0 {
