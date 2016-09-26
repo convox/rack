@@ -26,7 +26,7 @@ import (
 var (
 	cflags   = C.FSEventStreamCreateFlags(0)
 	chans    = make(map[string](chan string))
-	interval = 250 * time.Millisecond
+	interval = 700 * time.Millisecond
 	now      = C.FSEventStreamEventId((1 << 64) - 1)
 )
 
