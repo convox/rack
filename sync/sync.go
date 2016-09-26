@@ -27,8 +27,8 @@ type Sync struct {
 
 	docker   *docker.Client
 	lock     sync.Mutex
-	incoming []changes.Change
-	outgoing []changes.Change
+	incoming chan changes.Change
+	outgoing chan changes.Change
 
 	incomingBlocks map[string]int
 	outgoingBlocks map[string]int
@@ -48,6 +48,8 @@ func NewSync(container, local, remote string) (*Sync, error) {
 	}
 
 	sync.docker, _ = docker.NewClientFromEnv()
+	sync.incoming = make(chan changes.Change)
+	sync.outgoing = make(chan changes.Change)
 	sync.incomingBlocks = make(map[string]int)
 	sync.outgoingBlocks = make(map[string]int)
 
@@ -94,28 +96,34 @@ func (s *Sync) Start(st Stream) error {
 	go s.watchIncoming(st)
 	go s.watchOutgoing(st)
 
-	for range time.Tick(1 * time.Second) {
-		s.syncOutgoing(st)
-		s.syncIncoming(st)
+	incoming := []changes.Change{}
+	outgoing := []changes.Change{}
+
+	for {
+		timeout := time.After(1 * time.Second)
+
+		select {
+		case c := <-s.incoming:
+			incoming = append(incoming, c)
+		case c := <-s.outgoing:
+			outgoing = append(outgoing, c)
+		case <-timeout:
+			if len(incoming) > 0 {
+				a, r := changes.Partition(incoming)
+				s.syncIncomingAdds(a, st)
+				s.syncIncomingRemoves(r, st)
+				incoming = []changes.Change{}
+			}
+			if len(outgoing) > 0 {
+				a, r := changes.Partition(outgoing)
+				s.syncOutgoingAdds(a, st)
+				s.syncOutgoingRemoves(r, st)
+				outgoing = []changes.Change{}
+			}
+		}
 	}
 
 	return nil
-}
-
-func (s *Sync) syncIncoming(st Stream) {
-	defer s.lock.Unlock()
-	s.lock.Lock()
-
-	if len(s.incoming) == 0 {
-		return
-	}
-
-	adds, removes := changes.Partition(s.incoming)
-
-	s.syncIncomingAdds(adds, st)
-	s.syncIncomingRemoves(removes, st)
-
-	s.incoming = nil
 }
 
 func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
@@ -234,44 +242,6 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 
 func (s *Sync) syncIncomingRemoves(removes []changes.Change, st Stream) {
 	// do not sync removes out from the container for safety
-}
-
-func (s *Sync) syncOutgoing(st Stream) {
-	defer s.lock.Unlock()
-	s.lock.Lock()
-
-	if len(s.outgoing) == 0 {
-		return
-	}
-
-	buf := []changes.Change{}
-	cur := s.outgoing[0].Operation
-
-	for _, c := range s.outgoing {
-		if c.Operation == cur {
-			buf = append(buf, c)
-			continue
-		}
-
-		switch cur {
-		case "add":
-			s.syncOutgoingAdds(buf, st)
-		case "remove":
-			s.syncOutgoingRemoves(buf, st)
-		}
-
-		buf = []changes.Change{c}
-		cur = c.Operation
-	}
-
-	switch cur {
-	case "add":
-		s.syncOutgoingAdds(buf, st)
-	case "remove":
-		s.syncOutgoingRemoves(buf, st)
-	}
-
-	s.outgoing = []changes.Change{}
 }
 
 func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
@@ -444,11 +414,11 @@ func (s *Sync) watchIncoming(st Stream) {
 			if s.incomingBlocks[parts[2]] > 0 {
 				s.incomingBlocks[parts[2]] -= 1
 			} else {
-				s.incoming = append(s.incoming, changes.Change{
+				s.incoming <- changes.Change{
 					Operation: parts[0],
 					Base:      parts[1],
 					Path:      parts[2],
-				})
+				}
 			}
 
 			s.lock.Unlock()
@@ -463,7 +433,11 @@ func (s *Sync) watchIncoming(st Stream) {
 func (s *Sync) watchOutgoing(st Stream) {
 	ch := make(chan changes.Change, 1)
 
-	go changes.Watch(s.Local, ch)
+	go func() {
+		if err := changes.Watch(s.Local, ch); err != nil {
+			st <- fmt.Sprintf("error: %s", err)
+		}
+	}()
 
 	for c := range ch {
 		s.lock.Lock()
@@ -471,7 +445,7 @@ func (s *Sync) watchOutgoing(st Stream) {
 		if s.outgoingBlocks[c.Path] > 0 {
 			s.outgoingBlocks[c.Path] -= 1
 		} else {
-			s.outgoing = append(s.outgoing, c)
+			s.outgoing <- c
 		}
 
 		s.lock.Unlock()
