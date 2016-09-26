@@ -59,7 +59,7 @@ func startScanner(dir string) {
 }
 
 func waitForNextScan(dir string) {
-	tick := time.Tick(250 * time.Millisecond)
+	tick := time.Tick(900 * time.Millisecond)
 	fired := false
 
 	for {
