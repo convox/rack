@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/convox/logger"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
@@ -56,8 +55,6 @@ func Error(log *logger.Logger, err error) {
 }
 
 func TrackEvent(event string, params map[string]interface{}) {
-	log := logrus.WithFields(logrus.Fields{"ns": "api.helpers", "at": "TrackEvent"})
-
 	if params == nil {
 		params = map[string]interface{}{}
 	}
@@ -67,8 +64,6 @@ func TrackEvent(event string, params map[string]interface{}) {
 	params["release"] = os.Getenv("RELEASE")
 
 	userId := RackId()
-
-	log.WithFields(logrus.Fields{"event": event, "user_id": userId}).WithFields(logrus.Fields(params)).Info()
 
 	segment.Track(&analytics.Track{
 		Event:      event,

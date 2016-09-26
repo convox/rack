@@ -93,7 +93,7 @@ func TestBuildWithCache(t *testing.T) {
 	err = m.Build(".", "web", str, true)
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
-	cmd2 := []string{"docker", "tag", "convox/postgres", "web/database"}
+	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	assert.Equal(t, len(te.Commands), 2)
 	assert.Equal(t, te.Commands[0].Args, cmd1)
@@ -123,8 +123,8 @@ func TestBuildCacheNoImage(t *testing.T) {
 	err = m.Build(".", "web", str, true)
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
-	cmd2 := []string{"docker", "pull", "convox/postgres"}
-	cmd3 := []string{"docker", "tag", "convox/postgres", "web/database"}
+	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
+	cmd3 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	assert.Equal(t, len(te.Commands), 3)
 	assert.Equal(t, te.Commands[0].Args, cmd1)
@@ -155,8 +155,8 @@ func TestBuildNoCache(t *testing.T) {
 	err = m.Build(".", "web", str, false)
 
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
-	cmd2 := []string{"docker", "pull", "convox/postgres"}
-	cmd3 := []string{"docker", "tag", "convox/postgres", "web/database"}
+	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
+	cmd3 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	assert.Equal(t, len(te.Commands), 3)
 	assert.Equal(t, te.Commands[0].Args, cmd1)
@@ -180,7 +180,7 @@ func TestBuildRepeatSimple(t *testing.T) {
 	err = m.Build(".", "web", str, false)
 
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
-	cmd2 := []string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/other", "./other"}
+	cmd2 := []string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/other", "other"}
 	cmd3 := []string{"docker", "tag", "web/monitor", "web/web"}
 
 	assert.Equal(t, len(te.Commands), 3)
@@ -210,9 +210,9 @@ func TestBuildRepeatImage(t *testing.T) {
 
 	err = m.Build(".", "web", str, false)
 
-	cmd1 := []string{"docker", "pull", "convox/rails"}
-	cmd2 := []string{"docker", "tag", "convox/rails", "web/web1"}
-	cmd3 := []string{"docker", "tag", "convox/rails", "web/web2"}
+	cmd1 := []string{"docker", "pull", "convox/rails:latest"}
+	cmd2 := []string{"docker", "tag", "convox/rails:latest", "web/web1"}
+	cmd3 := []string{"docker", "tag", "convox/rails:latest", "web/web2"}
 
 	if assert.Equal(t, len(te.Commands), 3) {
 		assert.Equal(t, te.Commands[0].Args, cmd1)
@@ -239,7 +239,7 @@ func TestBuildRepeatComplex(t *testing.T) {
 	te.AssertCommands(t, TestCommands{
 		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/first", "."},
 		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "./other/Dockerfile", "-t", "web/othera", "./other"},
+		[]string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/othera", "other"},
 		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile.other", "-t", "web/otherb", "."},
 		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherc", "."},
 		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherd", "."},
@@ -270,11 +270,12 @@ func TestPush(t *testing.T) {
 		t.Error(err)
 	}
 
-	cmd1 := []string{"docker", "tag", "app/database", "registry/flatten:database.tag"}
-	cmd2 := []string{"docker", "push", "registry/flatten:database.tag"}
-	cmd3 := []string{"docker", "tag", "app/web", "registry/flatten:web.tag"}
-	cmd4 := []string{"docker", "push", "registry/flatten:web.tag"}
-	m.Push(str, "app", "registry", "tag", "flatten")
+	cmd1 := []string{"docker", "tag", "app/database", "registry/test:database.tag"}
+	cmd2 := []string{"docker", "push", "registry/test:database.tag"}
+	cmd3 := []string{"docker", "tag", "app/web", "registry/test:web.tag"}
+	cmd4 := []string{"docker", "push", "registry/test:web.tag"}
+
+	m.Push("registry/test:{service}.{build}", "app", "tag", str)
 
 	assert.Equal(t, len(te.Commands), 4)
 	assert.Equal(t, te.Commands[0].Args, cmd1)

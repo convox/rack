@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"time"
 )
@@ -38,11 +39,18 @@ func (c *Client) IndexMissing(index Index) ([]string, error) {
 	return missing, nil
 }
 
+type IndexUpdateOptions struct {
+	Progress Progress
+}
+
 // IndexUpdate uploads a tarball of changes to the index
-func (c *Client) IndexUpdate(update []byte, progressCallback func(s string)) error {
-	files := map[string][]byte{
-		"update": update,
+func (c *Client) IndexUpdate(update io.Reader, opts IndexUpdateOptions) error {
+	popts := PostMultipartOptions{
+		Files: map[string]io.Reader{
+			"update": update,
+		},
+		Progress: opts.Progress,
 	}
 
-	return c.PostMultipartP("/index/update", files, nil, nil, progressCallback)
+	return c.PostMultipart("/index/update", popts, nil)
 }

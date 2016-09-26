@@ -12,6 +12,23 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+// ReleaseDelete will delete all releases that belong to app and buildID
+// This could includes the active release which implies this should be called with caution.
+func (p *AWSProvider) ReleaseDelete(app, buildID string) error {
+	qi := &dynamodb.QueryInput{
+		KeyConditionExpression: aws.String("app = :app"),
+		FilterExpression:       aws.String("build = :build"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":app":   &dynamodb.AttributeValue{S: aws.String(app)},
+			":build": &dynamodb.AttributeValue{S: aws.String(buildID)},
+		},
+		IndexName: aws.String("app.created"),
+		TableName: aws.String(p.DynamoReleases),
+	}
+
+	return p.deleteReleaseItems(qi, p.DynamoReleases)
+}
+
 // ReleaseGet returns a release
 func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 	if id == "" {
@@ -23,25 +40,12 @@ func (p *AWSProvider) ReleaseGet(app, id string) (*structs.Release, error) {
 		return nil, err
 	}
 
-	req := &dynamodb.GetItemInput{
-		ConsistentRead: aws.Bool(true),
-		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
-		},
-		TableName: aws.String(p.DynamoReleases),
-	}
-
-	res, err := p.dynamodb().GetItem(req)
+	item, err := p.fetchRelease(app, id)
 	if err != nil {
 		return nil, err
 	}
-	if res.Item == nil {
-		return nil, ErrorNotFound(fmt.Sprintf("no such release: %s", id))
-	}
 
-	release := releaseFromItem(res.Item)
-
-	return release, nil
+	return releaseFromItem(item)
 }
 
 // ReleaseList returns a list of the latest releases, with the length specified in limit
@@ -74,7 +78,12 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 	releases := make(structs.Releases, len(res.Items))
 
 	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
+		r, err := releaseFromItem(item)
+		if err != nil {
+			return nil, err
+		}
+
+		releases[i] = *r
 	}
 
 	return releases, nil
@@ -93,7 +102,16 @@ func (p *AWSProvider) ReleasePromote(app, id string) (*structs.Release, error) {
 	return &structs.Release{}, fmt.Errorf("promote not yet implemented for AWS provider")
 }
 
-func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error {
+// ReleaseSave saves a Release
+func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
+	a, err := p.AppGet(r.App)
+	if err != nil {
+		return err
+	}
+
+	bucket := a.Outputs["Settings"]
+	key := a.Parameters["Key"]
+
 	if r.Id == "" {
 		return fmt.Errorf("Id can not be blank")
 	}
@@ -127,7 +145,6 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 		req.Item["manifest"] = &dynamodb.AttributeValue{S: aws.String(r.Manifest)}
 	}
 
-	var err error
 	env := []byte(r.Env)
 
 	if key != "" {
@@ -154,8 +171,32 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release, bucket, key string) error 
 	return err
 }
 
-func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release {
-	created, _ := time.Parse(sortableTime, coalesce(item["created"], ""))
+func (p *AWSProvider) fetchRelease(app, id string) (map[string]*dynamodb.AttributeValue, error) {
+	res, err := p.dynamodb().GetItem(&dynamodb.GetItemInput{
+		ConsistentRead: aws.Bool(true),
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+		},
+		TableName: aws.String(p.DynamoReleases),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if res.Item == nil {
+		return nil, errorNotFound(fmt.Sprintf("no such release: %s", id))
+	}
+	if res.Item["app"] == nil || *res.Item["app"].S != app {
+		return nil, fmt.Errorf("mismatched app and release")
+	}
+
+	return res.Item, nil
+}
+
+func releaseFromItem(item map[string]*dynamodb.AttributeValue) (*structs.Release, error) {
+	created, err := time.Parse(sortableTime, coalesce(item["created"], ""))
+	if err != nil {
+		return nil, err
+	}
 
 	release := &structs.Release{
 		Id:       coalesce(item["id"], ""),
@@ -166,26 +207,7 @@ func releaseFromItem(item map[string]*dynamodb.AttributeValue) *structs.Release 
 		Created:  created,
 	}
 
-	return release
-}
-
-// ReleaseDelete will delete all releases that belong to app and buildID
-// This could includes the active release which implies this should be called with caution.
-func (p *AWSProvider) ReleaseDelete(app, buildID string) error {
-
-	// query dynamo for all releases for this build
-	qi := &dynamodb.QueryInput{
-		KeyConditionExpression: aws.String("app = :app"),
-		FilterExpression:       aws.String("build = :build"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app":   &dynamodb.AttributeValue{S: aws.String(app)},
-			":build": &dynamodb.AttributeValue{S: aws.String(buildID)},
-		},
-		IndexName: aws.String("app.created"),
-		TableName: aws.String(p.DynamoReleases),
-	}
-
-	return p.deleteReleaseItems(qi, p.DynamoReleases)
+	return release, nil
 }
 
 // releasesDeleteAll will delete all releases associate with app
@@ -207,7 +229,6 @@ func (p *AWSProvider) releaseDeleteAll(app string) error {
 
 // deleteReleaseItems deletes release items from Dynamodb based on query input and the tableName
 func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName string) error {
-
 	res, err := p.dynamodb().Query(qi)
 	if err != nil {
 		return err
@@ -216,7 +237,10 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 	// collect release IDs to delete
 	wrs := []*dynamodb.WriteRequest{}
 	for _, item := range res.Items {
-		r := releaseFromItem(item)
+		r, err := releaseFromItem(item)
+		if err != nil {
+			return err
+		}
 
 		wr := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{

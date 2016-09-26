@@ -19,8 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb"
-
 	"golang.org/x/net/websocket"
 )
 
@@ -37,6 +35,7 @@ type Client struct {
 	Rack string
 }
 
+type Files map[string]io.Reader
 type Params map[string]string
 
 func New(host, password, version string) *Client {
@@ -138,54 +137,48 @@ func (c *Client) PostBodyResponse(path string, body io.Reader, out interface{}) 
 	return res, nil
 }
 
-// PostMultipart posts a multipart message in the MIME internet format.
-func (c *Client) PostMultipart(path string, files map[string][]byte, params Params, out interface{}) error {
-	return c.PostMultipartP(path, files, params, out, nil)
+type PostMultipartOptions struct {
+	Files    Files
+	Params   Params
+	Progress Progress
 }
 
-// PostMultipartP posts a multipart message in the MIME internet format with a callback function with a string stating the upload Progress.
-func (c *Client) PostMultipartP(path string, files map[string][]byte, params Params, out interface{}, callback func(s string)) error {
+// PostMultipart posts a multipart message in the MIME internet format.
+func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out interface{}) error {
 	body := &bytes.Buffer{}
 
 	writer := multipart.NewWriter(body)
 
-	for name, source := range files {
-		part, err := writer.CreateFormFile(name, "source.tgz")
+	for name, file := range opts.Files {
+		part, err := writer.CreateFormFile(name, "binary-data")
 		if err != nil {
 			return err
 		}
 
-		_, err = io.Copy(part, bytes.NewReader(source))
-		if err != nil {
+		if _, err = io.Copy(part, file); err != nil {
 			return err
 		}
 	}
 
-	for name, value := range params {
+	for name, value := range opts.Params {
 		writer.WriteField(name, value)
 	}
 
-	err := writer.Close()
-	if err != nil {
+	if err := writer.Close(); err != nil {
 		return err
 	}
 
-	var bodyReader io.Reader
-	bodyReader = body
+	br := io.Reader(body)
 
-	var bar *pb.ProgressBar
+	if opts.Progress != nil {
+		opts.Progress.Start(int64(body.Len()))
 
-	if callback != nil {
-		bar = pb.New(body.Len()).SetUnits(pb.U_BYTES)
-		bar.NotPrint = true
-		bar.ShowBar = false
-		bar.Callback = callback
+		defer opts.Progress.Finish()
 
-		bar.Start()
-		bodyReader = bar.NewProxyReader(body)
+		br = NewProgressReader(br, opts.Progress.Progress)
 	}
 
-	req, err := c.request("POST", path, bodyReader)
+	req, err := c.request("POST", path, br)
 
 	if err != nil {
 		return err
@@ -219,10 +212,6 @@ func (c *Client) PostMultipartP(path string, files map[string][]byte, params Par
 		if err != nil {
 			return err
 		}
-	}
-
-	if callback != nil {
-		bar.Finish()
 	}
 
 	return nil
@@ -310,7 +299,7 @@ func (c *Client) DeleteResponse(path string, out interface{}) (*http.Response, e
 	return res, nil
 }
 
-func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.WriteCloser) error {
+func (c *Client) Stream(path string, headers map[string]string, in io.Reader, out io.Writer) error {
 	origin := fmt.Sprintf("https://%s", c.Host)
 	endpoint := fmt.Sprintf("wss://%s%s", c.Host, path)
 
@@ -375,8 +364,6 @@ func (c *Client) Stream(path string, headers map[string]string, in io.Reader, ou
 	}
 
 	wg.Wait()
-
-	out.Close()
 
 	return nil
 }
