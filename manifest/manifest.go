@@ -53,10 +53,6 @@ func Load(data []byte) (*Manifest, error) {
 	}
 
 	for name, service := range m.Services {
-
-		if strings.Contains(name, "_") {
-			return nil, fmt.Errorf("service name cannot contain an underscore: %s", name)
-		}
 		service.Name = name
 
 		// there are two places in a docker-compose.yml to specify a dockerfile
@@ -97,6 +93,10 @@ func (m Manifest) Validate() error {
 	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
 
 	for _, entry := range m.Services {
+		if strings.Contains(entry.Name, "_") {
+			return fmt.Errorf("service name cannot contain an underscore: %s", entry.Name)
+		}
+
 		labels := entry.LabelsByPrefix("convox.cron")
 		for k, _ := range labels {
 			parts := strings.Split(k, ".")

@@ -18,7 +18,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		StackName: aws.String(p.Rack),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, ErrorNotFound(fmt.Sprintf("%s not found", p.Rack))
+		return nil, errorNotFound(fmt.Sprintf("%s not found", p.Rack))
 	}
 	if err != nil {
 		return nil, err
@@ -62,6 +62,26 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
+func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
+	tasks, err := p.stackTasks(p.Rack)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("tasks = %+v\n", tasks)
+
+	ps, err := p.taskProcesses(tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range ps {
+		ps[i].App = p.Rack
+	}
+
+	return ps, nil
+}
+
 // SystemReleases lists the latest releases of the rack
 func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	req := &dynamodb.QueryInput{
@@ -87,7 +107,12 @@ func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	releases := make(structs.Releases, len(res.Items))
 
 	for i, item := range res.Items {
-		releases[i] = *releaseFromItem(item)
+		r, err := releaseFromItem(item)
+		if err != nil {
+			return nil, err
+		}
+
+		releases[i] = *r
 	}
 
 	return releases, nil

@@ -11,20 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSystemSaveWrongType(t *testing.T) {
-	sys := structs.System{
-		Name:    "name",
-		Version: "version",
-		Type:    "wrongtype",
-	}
-
-	provider := &aws.AWSProvider{}
-
-	err := provider.SystemSave(sys)
-
-	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
-}
-
 func TestSystemGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
@@ -53,7 +39,8 @@ func TestSystemGetBadStack(t *testing.T) {
 	r, err := provider.SystemGet()
 
 	assert.Nil(t, r)
-	assert.Equal(t, aws.ErrorNotFound("convox not found"), err)
+	assert.True(t, aws.ErrorNotFound(err))
+	assert.Equal(t, "convox not found", err.Error())
 }
 
 func TestSystemReleases(t *testing.T) {
@@ -116,6 +103,20 @@ func TestSystemSaveNewParameter(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
+}
+
+func TestSystemSaveWrongType(t *testing.T) {
+	sys := structs.System{
+		Name:    "name",
+		Version: "version",
+		Type:    "wrongtype",
+	}
+
+	provider := &aws.AWSProvider{}
+
+	err := provider.SystemSave(sys)
+
+	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
 }
 
 var cycleSystemDescribeStacks = awsutil.Cycle{

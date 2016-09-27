@@ -2,7 +2,8 @@ package manifest
 
 import (
 	"fmt"
-	"time"
+	"path/filepath"
+	"strings"
 )
 
 func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
@@ -14,8 +15,13 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 		if dockerFile == "" {
 			dockerFile = service.Dockerfile
 		}
-		if service.Image != "" {
-			pulls[service.Image] = append(pulls[service.Image], service.Tag(appName))
+		if image := service.Image; image != "" {
+			// make the implicit :latest explicit for caching/pulling
+			sp := strings.Split(image, "/")
+			if !strings.Contains(sp[len(sp)-1], ":") {
+				image = image + ":latest"
+			}
+			pulls[image] = append(pulls[image], service.Tag(appName))
 		} else {
 			builds = append(builds, service)
 		}
@@ -37,7 +43,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 			args = append(args, "--no-cache")
 		}
 
-		context := coalesce(service.Build.Context, ".")
+		context := filepath.Join(dir, coalesce(service.Build.Context, "."))
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 
@@ -71,52 +77,6 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 			if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
 				return fmt.Errorf("build error: %s", err)
 			}
-		}
-	}
-
-	return nil
-}
-
-func pushSync(s Stream, local, remote string) error {
-	err := run(s, Docker("tag", local, remote))
-	if err != nil {
-		return err
-	}
-
-	return run(s, Docker("push", remote))
-}
-
-const (
-	pushRetryLimit = 5
-	pushRetryDelay = 30
-)
-
-// Push will push the image for a given process up to the appropriate registry
-func (m *Manifest) Push(stream Stream, app, registry, tag string, flatten string) error {
-	if tag == "" {
-		tag = "latest"
-	}
-
-	for _, s := range m.runOrder() {
-		local := fmt.Sprintf("%s/%s", app, s.Name)
-		remote := fmt.Sprintf("%s/%s-%s:%s", registry, app, s.Name, tag)
-
-		if flatten != "" {
-			remote = fmt.Sprintf("%s/%s:%s", registry, flatten, fmt.Sprintf("%s.%s", s.Name, tag))
-		}
-
-		for i := 1; i <= pushRetryLimit; i++ {
-			if err := DefaultRunner.Run(stream, Docker("tag", local, remote)); err != nil {
-				return fmt.Errorf("could not tag build: %s", err)
-			}
-
-			if err := DefaultRunner.Run(stream, Docker("push", remote)); err == nil {
-				break
-			}
-
-			fmt.Printf("An error occurred while trying to push %s/%s\n", app, s.Name)
-			fmt.Printf("Retrying in %d seconds (attempt %d/%d)\n", pushRetryDelay, i, pushRetryLimit)
-			time.Sleep(pushRetryDelay * time.Second)
 		}
 	}
 

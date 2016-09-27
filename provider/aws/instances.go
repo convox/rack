@@ -137,7 +137,7 @@ func (p *AWSProvider) describeContainerInstances() (*ecs.DescribeContainerInstan
 			NextToken: &nextToken,
 		})
 		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ClusterNotFoundException" {
-			return nil, ErrorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
+			return nil, errorNotFound(fmt.Sprintf("cluster not found: %s", p.Cluster))
 		}
 		if err != nil {
 			return nil, err

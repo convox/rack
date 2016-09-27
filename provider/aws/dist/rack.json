@@ -3,6 +3,7 @@
   "Conditions": {
     "Autoscale": { "Fn::Equals": [ { "Ref": "Autoscale" }, "Yes" ] },
     "BlankAmi": { "Fn::Equals": [ { "Ref": "Ami" }, "" ] },
+    "BlankBuildImage": { "Fn::Equals": [ { "Ref": "BuildImage" }, "" ] },
     "BlankExistingVpc": { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] },
     "BlankExistingVpcAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "BlankExistingVpc" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -190,6 +191,21 @@
       "Description": "Autoscale rack instances",
       "Default": "No",
       "AllowedValues": [ "Yes", "No" ]
+    },
+    "BuildCpu": {
+      "Type": "String",
+      "Description": "How much cpu should be reserved by the builder",
+      "Default": "0"
+    },
+    "BuildImage": {
+      "Type": "String",
+      "Description": "Override the default build image",
+      "Default": ""
+    },
+    "BuildMemory": {
+      "Type": "String",
+      "Description": "How much memory should be reserved by the builder",
+      "Default": "1024"
     },
     "ClientId": {
       "Type": "String",
@@ -1558,6 +1574,46 @@
       },
       "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket"
+    },
+    "RackBuildTasks": {
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1" ],
+      "Properties": {
+        "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "build" ] ] },
+        "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+        "Tasks": [
+          {
+            "Cpu": { "Ref": "BuildCpu" },
+            "Environment": {
+              "AWS_REGION": { "Ref": "AWS::Region" },
+              "AWS_ACCESS": { "Ref": "KernelAccess" },
+              "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "CLUSTER": { "Ref": "Cluster" },
+              "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
+              "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
+              "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "LOG_GROUP": { "Ref": "LogGroup" },
+              "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
+              "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
+              "PROCESS": "build",
+              "PROVIDER": "aws",
+              "RACK": { "Ref": "AWS::StackName" },
+              "RELEASE": { "Ref": "Version" },
+              "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
+              "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
+              "SETTINGS_BUCKET": { "Ref": "Settings" }
+            },
+            "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
+            "Links": [],
+            "Memory": { "Ref": "BuildMemory" },
+            "Name": "build",
+            "Volumes": [
+              "/var/run/docker.sock:/var/run/docker.sock"
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
     },
     "RackWebTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1" ],

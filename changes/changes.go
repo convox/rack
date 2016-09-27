@@ -3,10 +3,10 @@ package changes
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/pkg/fileutils"
-	"github.com/rjeczalik/notify"
 )
 
 type Change struct {
@@ -93,42 +93,80 @@ func readDockerIgnore(file string) ([]string, error) {
 }
 
 func watchForChanges(dir string, ignore []string, ch chan Change) error {
-	c := make(chan notify.EventInfo, 1)
-
-	if err := notify.Watch(filepath.Join(dir, "..."), c, notify.Write, notify.Remove); err != nil {
+	cur, err := snapshot(dir)
+	if err != nil {
 		return err
 	}
 
-	for event := range c {
-		rel, err := filepath.Rel(dir, event.Path())
+	startScanner(dir)
+
+	for {
+		snap, err := snapshot(dir)
 		if err != nil {
 			return err
 		}
 
-		match, err := fileutils.Matches(rel, ignore)
-		if err != nil {
-			return err
-		}
+		notify(ch, cur, snap, dir, ignore)
 
-		if match {
-			continue
-		}
+		cur = snap
 
-		switch event.Event() {
-		case notify.Remove:
-			ch <- Change{
-				Operation: "remove",
-				Base:      dir,
-				Path:      rel,
-			}
-		case notify.Write:
-			ch <- Change{
-				Operation: "add",
-				Base:      dir,
-				Path:      rel,
-			}
-		}
+		waitForNextScan(dir)
 	}
 
 	return nil
+}
+
+func notify(ch chan Change, from, to map[string]time.Time, base string, ignore []string) {
+	for fk, ft := range from {
+		tt, ok := to[fk]
+
+		switch {
+		case !ok:
+			send(ch, "remove", fk, base, ignore)
+		case ft.Before(tt):
+			send(ch, "add", fk, base, ignore)
+		}
+	}
+
+	for tk := range to {
+		if _, ok := from[tk]; !ok {
+			send(ch, "add", tk, base, ignore)
+		}
+	}
+}
+
+func send(ch chan Change, op, file, base string, ignore []string) {
+	rel, err := filepath.Rel(base, file)
+	if err != nil {
+		return
+	}
+
+	if match, _ := fileutils.Matches(rel, ignore); match {
+		return
+	}
+
+	change := Change{
+		Operation: op,
+		Base:      base,
+		Path:      rel,
+	}
+
+	ch <- change
+}
+
+func snapshot(dir string) (map[string]time.Time, error) {
+	snap := map[string]time.Time{}
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if info == nil || info.IsDir() {
+			return nil
+		}
+		snap[path] = info.ModTime()
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return snap, nil
 }
