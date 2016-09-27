@@ -1,3 +1,5 @@
+// +build darwin,cgo
+
 #include <CoreServices/CoreServices.h>
 #include "_cgo_export.h"
 

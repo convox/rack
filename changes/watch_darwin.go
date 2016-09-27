@@ -1,3 +1,5 @@
+// +build darwin,cgo
+
 // heavily inspired by https://github.com/fsnotify/fsevents
 
 package changes
