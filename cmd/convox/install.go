@@ -117,7 +117,7 @@ func init() {
 				Name:   "region",
 				Value:  "us-east-1",
 				Usage:  "aws region",
-				EnvVar: "AWS_REGION",
+				EnvVar: "AWS_REGION,AWS_DEFAULT_REGION",
 			},
 			cli.StringFlag{
 				Name:   "stack-name",
