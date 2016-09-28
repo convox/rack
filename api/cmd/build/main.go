@@ -106,6 +106,10 @@ func execute() error {
 
 	currentBuild = b
 
+	if err := login(); err != nil {
+		return err
+	}
+
 	dir, err := fetch()
 	if err != nil {
 		return err
@@ -119,10 +123,6 @@ func execute() error {
 	}
 
 	currentBuild.Manifest = string(data)
-
-	if err := login(); err != nil {
-		return err
-	}
 
 	if err := build(dir); err != nil {
 		return err
