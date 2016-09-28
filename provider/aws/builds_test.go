@@ -47,6 +47,48 @@ func TestBuildGet(t *testing.T) {
 	}, b)
 }
 
+func TestBuildCreate(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
+		cycleBuildPutItemCreate,
+		cycleBuildDescribeStackResources,
+		cycleBuildDescribeStacks,
+		cycleEnvironmentGetRack,
+		cycleBuildGetAuthorizationToken,
+		cycleBuildDescribeStacks,
+		cycleBuildGetAuthorizationToken,
+		cycleBuildRunTask,
+		cycleBuildGetItem,
+		cycleBuildDescribeStacks,
+		cycleBuildPutItemCreate2,
+		cycleBuildDescribeTasks,
+		cycleBuildDescribeContainerInstances,
+		cycleBuildDescribeInstances,
+		cycleBuildNotificationPublish,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleBuildDockerListContainers,
+	)
+	defer d.Close()
+
+	b, err := provider.BuildCreate("httpd", "git", "http://example.org/build.tgz", structs.BuildOptions{
+		Cache: true,
+	})
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, &structs.Build{
+		Id:      "B123",
+		App:     "httpd",
+		Status:  "created",
+		Started: time.Unix(1473028693, 0).UTC(),
+		Ended:   time.Unix(1473028892, 0).UTC(),
+		Tags:    map[string]string{},
+	}, b)
+}
+
 func TestBuildDelete(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
@@ -149,7 +191,7 @@ func TestBuildImport(t *testing.T) {
 	defer d.Close()
 
 	build := &structs.Build{
-		Id:      "B12345",
+		Id:      "B123",
 		App:     "httpd",
 		Release: "R23456",
 	}
@@ -171,7 +213,7 @@ func TestBuildImport(t *testing.T) {
 
 	n, err := tw.Write(data)
 	assert.Nil(t, err)
-	assert.Equal(t, 177, n)
+	assert.Equal(t, 175, n)
 
 	lbuf := &bytes.Buffer{}
 
@@ -195,7 +237,7 @@ func TestBuildImport(t *testing.T) {
 
 	err = tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "web.B12345.tar",
+		Name:     "web.B123.tar",
 		Size:     int64(lbuf.Len()),
 	})
 	assert.Nil(t, err)
@@ -561,6 +603,32 @@ var cycleBuildDescribeStacks = awsutil.Cycle{
 	`},
 }
 
+var cycleBuildDescribeStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<DescribeStackResourcesResult>
+					<StackResources>
+						<member>
+							<PhysicalResourceId>build-task-arn</PhysicalResourceId>
+							<LogicalResourceId>RackBuildTasks</LogicalResourceId>
+						</member>
+					</StackResources>
+				</DescribeStackResourcesResult>
+				<ResponseMetadata>
+					<RequestId>8be86de9-7760-11e6-b2f2-6b253bb2c005</RequestId>
+				</ResponseMetadata>
+			</DescribeStackResourcesResponse>
+		`,
+	},
+}
+
 var cycleBuildDescribeTasks = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -605,11 +673,7 @@ var cycleBuildGetAuthorizationToken = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerRegistry_V20150921.GetAuthorizationToken",
-		Body: `{
-			"registryIds": [
-				"778743527532"
-			]
-		}`,
+		Body:       `{}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -729,6 +793,26 @@ var cycleBuildFetchLogs = awsutil.Cycle{
 	},
 }
 
+var cycleBuildNotificationPublish = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Body:       `Action=Publish&Message=%7B%22action%22%3A%22build%3Acreate%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22app%22%3A%22httpd%22%2C%22id%22%3A%22B123%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=build%3Acreate&TargetArn=&Version=2010-03-31`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<PublishResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+				<PublishResult>
+					<MessageId>94f20ce6-13c5-43a0-9a9e-ca52d816e90b</MessageId>
+				</PublishResult>
+				<ResponseMetadata>
+					<RequestId>f187a3c1-376f-11df-8963-01868b7c937a</RequestId>
+				</ResponseMetadata>
+			</PublishResponse>
+		`,
+	},
+}
+
 var cycleBuildPutItem = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -755,6 +839,80 @@ var cycleBuildPutItem = awsutil.Cycle{
 				},
 				"status": {
 					"S": "complete"
+				}
+			},
+			"TableName": "convox-builds"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{}`,
+	},
+}
+
+var cycleBuildPutItemCreate = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.PutItem",
+		Body: `{
+			"Item": {
+				"app": {
+					"S": "httpd"
+				},
+				"created": {
+					"S": "20160904.223813.000000000"
+				},
+				"ended": {
+					"S": "20160904.224132.000000000"
+				},
+				"id": {
+					"S": "B123"
+				},
+				"status": {
+					"S": "created"
+				}
+			},
+			"TableName": "convox-builds"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{}`,
+	},
+}
+
+var cycleBuildPutItemCreate2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.PutItem",
+		Body: `{
+			"Item": {
+				"app": {
+					"S": "httpd"
+				},
+				"created": {
+					"S": "20160904.223813.000000000"
+				},
+				"ended": {
+					"S": "20160904.224132.000000000"
+				},
+				"id": {
+					"S": "BAFVEWUCAYT"
+				},
+				"logs": {
+					"S": "object:///test/foo"
+				},
+				"manifest": {
+					"S": "version: \"2\"\nnetworks: {}\nservices:\n  web:\n    build: {}\n    command: null\n    image: httpd\n    ports:\n    - 80:80\n"
+				},
+				"release": {
+					"S": "RVWOJNKRAXU"
+				},
+				"status": {
+					"S": "running"
+				},
+				"tags": {
+					"B": "eyJ0YXNrIjoiYXJuOmF3czplY3M6dXMtZWFzdC0xOjc3ODc0MzUyNzUzMjp0YXNrLzUwYjhkZTk5LWY5NGYtNGVjZC1hOThmLTU4NTA3NjBmMDg0NSJ9"
 				}
 			},
 			"TableName": "convox-builds"
@@ -831,6 +989,86 @@ var cycleBuildReleasePutItem = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       `{}`,
+	},
+}
+
+var cycleBuildRunTask = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.RunTask",
+		Body: `{
+			"cluster": "cluster-test",
+			"count": 1,
+			"overrides": {
+				"containerOverrides": [
+					{
+						"command": [
+							"build",
+							"-method",
+							"git",
+							"-cache",
+							"true"
+						],
+						"environment": [
+							{
+								"name": "BUILD_APP",
+								"value": "httpd"
+							},
+							{
+								"name": "BUILD_AUTH",
+								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"922560784203.dkr.ecr.us-east-1.amazonaws.com/test-repo\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"r.example.org\":{\"Username\":\"foo\",\"Password\":\"bar\"}}"
+							},
+							{
+								"name": "BUILD_CONFIG",
+								"value": ""
+							},
+							{
+								"name": "BUILD_ID",
+								"value": "B123"
+							},
+							{
+								"name": "BUILD_PUSH",
+								"value": "132866487567.dkr.ecr.us-test-1.amazonaws.com/convox-httpd-hqvvfosgxt:{service}.{build}"
+							},
+							{
+								"name": "BUILD_RELEASE",
+								"value": "RVFETUHHKKD"
+							},
+							{
+								"name": "BUILD_URL",
+								"value": "http://example.org/build.tgz"
+							},
+							{
+								"name": "RELEASE",
+								"value": "B123"
+							}
+						],
+						"name": "build"
+      }
+    ]
+  },
+  "startedBy": "convox.httpd",
+  "taskDefinition": "build-task-arn"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"tasks": [
+				{
+					"containers": [
+						{
+							"containerArn": "arn:aws:ecs:us-east-1:012345678910:container/e1ed7aac-d9b2-4315-8726-d2432bf11868",
+							"lastStatus": "PENDING",
+							"name": "wordpress",
+							"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+						}
+					],
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				}
+			]
+		}`,
 	},
 }
 
@@ -942,6 +1180,16 @@ var cycleEnvironmentGet = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body:       "FOO=bar\nBAZ=qux",
+	},
+}
+
+var cycleEnvironmentGetRack = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/convox-settings/env",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"DOCKER_AUTH_DATA":"{\"r.example.org\":{\"Username\":\"foo\",\"Password\":\"bar\"},\"922560784203.dkr.ecr.us-east-1.amazonaws.com/test-repo\":{\"Username\":\"access\",\"Password\":\"secret\"}}"}`,
 	},
 }
 
