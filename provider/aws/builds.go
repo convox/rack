@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -29,7 +31,8 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
-var regexpECR = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
+var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
+var regexpECRRepository = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/(.+)`)
 
 func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
@@ -41,8 +44,15 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 	}
 
 	b := structs.NewBuild(app)
+
 	b.Description = opts.Description
 	b.Started = time.Now()
+
+	if p.IsTest() {
+		b.Id = "B123"
+		b.Started = time.Unix(1473028693, 0).UTC()
+		b.Ended = time.Unix(1473028892, 0).UTC()
+	}
 
 	if err := p.BuildSave(b); err != nil {
 		log.Error(err)
@@ -677,36 +687,35 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 		}
 	}
 
+	for host, entry := range auth {
+		if regexpECRRepository.MatchString(host) {
+			un, pw, err := p.authECR(host, entry.Username, entry.Password)
+			if err != nil {
+				return "", err
+			}
+
+			auth[host] = authEntry{
+				Username: un,
+				Password: pw,
+			}
+		}
+	}
+
 	a, err := p.AppGet(build.App)
 	if err != nil {
 		return "", err
 	}
 
-	res, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-		RegistryIds: []*string{aws.String(a.Outputs["RegistryId"])},
-	})
-	if err != nil {
-		return "", err
-	}
-	if len(res.AuthorizationData) != 1 {
-		return "", fmt.Errorf("no authorization data")
-	}
-
-	token, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
-	if err != nil {
-		return "", err
-	}
-
-	parts := strings.SplitN(string(token), ":", 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid auth data")
-	}
-
 	host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", a.Outputs["RegistryId"], p.Region)
 
+	un, pw, err := p.authECR(host, "", "")
+	if err != nil {
+		return "", err
+	}
+
 	auth[host] = authEntry{
-		Username: parts[0],
-		Password: parts[1],
+		Username: un,
+		Password: pw,
 	}
 
 	data, err = json.Marshal(auth)
@@ -715,6 +724,36 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func (p *AWSProvider) authECR(host, access, secret string) (string, string, error) {
+	config := p.config()
+
+	if access != "" {
+		config.Credentials = credentials.NewStaticCredentials(access, secret, "")
+	}
+
+	e := ecr.New(session.New(), config)
+
+	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	if err != nil {
+		return "", "", err
+	}
+	if len(res.AuthorizationData) != 1 {
+		return "", "", fmt.Errorf("no authorization data")
+	}
+
+	token, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	parts := strings.SplitN(string(token), ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid auth data")
+	}
+
+	return parts[0], parts[1], nil
 }
 
 func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts structs.BuildOptions) error {
@@ -916,7 +955,7 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	repositoryName := ""
 
 	for _, url := range urls {
-		if match := regexpECR.FindStringSubmatch(url); match != nil {
+		if match := regexpECRImage.FindStringSubmatch(url); match != nil {
 			registryId = match[1]
 			repositoryName = match[3]
 
@@ -941,9 +980,7 @@ func (p *AWSProvider) dockerLogin(repo *appRepository) error {
 	log := Logger.At("dockerLogin").Namespace("repo=%q", repo.URI).Start()
 
 	log.Step("token").Logf("id=%q", repo.ID)
-	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
-		RegistryIds: []*string{aws.String(repo.ID)},
-	})
+	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		log.Error(err)
 		return err

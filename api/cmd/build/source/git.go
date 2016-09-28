@@ -1,12 +1,13 @@
 package source
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"os/exec"
-	"time"
 )
 
 type SourceGit struct {
@@ -30,7 +31,20 @@ func (s *SourceGit) Fetch(out io.Writer) (string, error) {
 		ref = u.Fragment
 	}
 
-	cmd := exec.Command("git", "clone", "-b", ref, fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path), tmp)
+	repo := fmt.Sprintf("%s://%s@%s%s", u.Scheme, u.User.String(), u.Host, u.Path)
+
+	switch u.Scheme {
+	case "ssh":
+		r, err := configureSSH(u)
+		if err != nil {
+			return "", err
+		}
+
+		repo = r
+	}
+
+	cmd := exec.Command("git", "clone", "-b", ref, repo, tmp)
+
 	cmd.Stdout = out
 	cmd.Stderr = out
 
@@ -38,7 +52,28 @@ func (s *SourceGit) Fetch(out io.Writer) (string, error) {
 		return "", err
 	}
 
-	time.Sleep(10 * time.Second)
-
 	return tmp, nil
+}
+
+func configureSSH(u *url.URL) (string, error) {
+	if pw, ok := u.User.Password(); ok {
+		key, err := base64.StdEncoding.DecodeString(pw)
+		if err != nil {
+			return "", err
+		}
+
+		err = os.Mkdir("/root/.ssh", 0700)
+		if err != nil {
+			return "", err
+		}
+
+		err = ioutil.WriteFile("/root/.ssh/id_rsa", key, 0400)
+		if err != nil {
+			return "", err
+		}
+
+		os.Setenv("GIT_SSH_COMMAND", "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no")
+	}
+
+	return fmt.Sprintf("%s@%s:%s", u.User.Username(), u.Host, u.Path), nil
 }
