@@ -371,7 +371,7 @@ func executeBuild(c *cli.Context, source, app, manifest, description string, out
 	u, _ := url.Parse(source)
 
 	switch u.Scheme {
-	case "http", "https":
+	case "http", "https", "ssh":
 		return executeBuildURL(c, source, app, manifest, description, output)
 	default:
 		if c.Bool("incremental") {
