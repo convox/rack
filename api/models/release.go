@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -194,7 +195,7 @@ func (r *Release) Promote() error {
 		}
 
 		if entry.Memory > 0 {
-			scale[2] = fmt.Sprintf("%d", entry.Memory)
+			scale[2] = fmt.Sprintf("%d", int64(math.Ceil(float64(entry.Memory)/(1024*1024))))
 		}
 
 		switch {
