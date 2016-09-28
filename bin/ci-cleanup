@@ -32,6 +32,11 @@ done
 
 for role in $(aws iam list-roles | jq -r '.Roles[].RoleName'); do
   if [[ "$role" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$role" =~ ^convox-0 ]]; then
+    echo "removing policies for role: $role"
+    for policy in $(aws iam list-role-policies --role-name $role | jq -r '.PolicyNames[]'); do
+      echo "  removing: $policy"
+      aws iam delete-role-policy --role-name $role --policy-name $policy
+    done
     echo "deleting role: $role"
     aws iam delete-role --role-name $role
   fi
