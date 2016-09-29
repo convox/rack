@@ -31,8 +31,8 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
+var regexpECRHost = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com`)
 var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
-var regexpECRRepository = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/(.+)`)
 
 func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
@@ -688,7 +688,7 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 	}
 
 	for host, entry := range auth {
-		if regexpECRRepository.MatchString(host) {
+		if regexpECRHost.MatchString(host) {
 			un, pw, err := p.authECR(host, entry.Username, entry.Password)
 			if err != nil {
 				return "", err
@@ -735,7 +735,16 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 
 	e := ecr.New(session.New(), config)
 
-	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	if !regexpECRHost.MatchString(host) {
+		return "", "", fmt.Errorf("invalid ECR hostname")
+	}
+
+	registry := regexpECRHost.FindStringSubmatch(host)
+
+	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+		RegistryIds: []*string{aws.String(registry[1])},
+	})
+
 	if err != nil {
 		return "", "", err
 	}
