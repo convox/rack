@@ -55,9 +55,9 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDescribeStackResources,
 		cycleBuildDescribeStacks,
 		cycleEnvironmentGetRack,
-		cycleBuildGetAuthorizationToken,
+		cycleBuildGetAuthorizationTokenPrivate1,
 		cycleBuildDescribeStacks,
-		cycleBuildGetAuthorizationToken,
+		cycleBuildGetAuthorizationTokenPrivate2,
 		cycleBuildRunTask,
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
@@ -689,6 +689,54 @@ var cycleBuildGetAuthorizationToken = awsutil.Cycle{
 	},
 }
 
+var cycleBuildGetAuthorizationTokenPrivate1 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerRegistry_V20150921.GetAuthorizationToken",
+		Body: `{
+			"registryIds": [
+				"922560784203"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"authorizationData": [
+				{
+					"authorizationToken": "dXNlcjoxMjM0NQo=",
+					"expiresAt": 1473039114.46,
+					"proxyEndpoint": "https://778743527532.dkr.ecr.us-east-1.amazonaws.com"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleBuildGetAuthorizationTokenPrivate2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerRegistry_V20150921.GetAuthorizationToken",
+		Body: `{
+			"registryIds": [
+				"132866487567"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"authorizationData": [
+				{
+					"authorizationToken": "dXNlcjoxMjM0NQo=",
+					"expiresAt": 1473039114.46,
+					"proxyEndpoint": "https://778743527532.dkr.ecr.us-east-1.amazonaws.com"
+				}
+			]
+		}`,
+	},
+}
+
 var cycleBuildGetItem = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -824,9 +872,6 @@ var cycleBuildPutItem = awsutil.Cycle{
 				},
 				"created": {
 					"S": "20160904.223813.000000000"
-				},
-				"description": {
-					"S": "imported"
 				},
 				"ended": {
 					"S": "20160904.224132.000000000"
