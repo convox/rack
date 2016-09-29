@@ -35,6 +35,9 @@ type Service struct {
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 
+	Cpu    int64  `yaml:"cpu_shares,omitempty"`
+	Memory Memory `yaml:"mem_limit,omitempty"`
+
 	//TODO from models manifest, not passive and used at runtime
 	Exports  map[string]string        `yaml:"-"`
 	LinkVars map[string]template.HTML `yaml:"-"`
@@ -61,7 +64,7 @@ type Command struct {
 }
 type Environment map[string]string
 type Labels map[string]string
-
+type Memory int64
 type Networks map[string]InternalNetwork
 
 type InternalNetwork map[string]ExternalNetwork
@@ -367,6 +370,10 @@ func (s Service) ContainerPorts() []string {
 	sort.Strings(ext)
 
 	return ext
+}
+
+func (s Service) ParamName(name string) string {
+	return fmt.Sprintf("%s%s", UpperName(s.Name), name)
 }
 
 func (s Service) RegistryImage(appName, buildId string, outputs map[string]string) string {
