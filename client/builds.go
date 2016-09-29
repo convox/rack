@@ -163,6 +163,26 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 }
 
 func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
+	system, err := c.GetSystem()
+	if err != nil {
+		return err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		build, err := c.GetBuild(app, id)
+		if err != nil {
+			return err
+		}
+
+		_, err = output.Write([]byte(build.Logs))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
 }
 
