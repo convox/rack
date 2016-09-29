@@ -31,7 +31,12 @@ func (s *SourceGit) Fetch(out io.Writer) (string, error) {
 		ref = u.Fragment
 	}
 
-	repo := fmt.Sprintf("%s://%s@%s%s", u.Scheme, u.User.String(), u.Host, u.Path)
+	repo := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
+
+	// if we have a user, add it
+	if u.User != nil {
+		repo = fmt.Sprintf("%s://%s@%s%s", u.Scheme, u.User.String(), u.Host, u.Path)
+	}
 
 	switch u.Scheme {
 	case "ssh":
