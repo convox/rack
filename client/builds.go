@@ -49,7 +49,7 @@ func (c *Client) GetBuildsWithLimit(app string, limit int) (Builds, error) {
 	return builds, nil
 }
 
-func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest string, description string) (*Build, error) {
+func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config string, description string) (*Build, error) {
 	var build Build
 
 	data, err := json.Marshal(index)
@@ -59,9 +59,19 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
+		"config":      config,
 		"description": description,
 		"index":       string(data),
-		"manifest":    manifest,
+	}
+
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		params["manifest"] = params["config"]
 	}
 
 	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
@@ -95,6 +105,16 @@ func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuil
 		Progress: opts.Progress,
 	}
 
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		popts.Params["manifest"] = popts.Params["config"]
+	}
+
 	if err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), popts, &build); err != nil {
 		return nil, err
 	}
@@ -102,13 +122,13 @@ func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuil
 	return &build, nil
 }
 
-func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest string, description string) (*Build, error) {
+func (c *Client) CreateBuildUrl(app string, url string, cache bool, config string, description string) (*Build, error) {
 	var build Build
 
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
 		"description": description,
-		"manifest":    manifest,
+		"config":      config,
 		"url":         url,
 	}
 
@@ -119,6 +139,7 @@ func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest str
 
 	// backwards compatible
 	if system.Version < "20160928105531" {
+		params["manifest"] = params["config"]
 		params["repo"] = params["url"]
 	}
 
@@ -142,6 +163,26 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 }
 
 func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
+	system, err := c.GetSystem()
+	if err != nil {
+		return err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		build, err := c.GetBuild(app, id)
+		if err != nil {
+			return err
+		}
+
+		_, err = output.Write([]byte(build.Logs))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
 }
 
