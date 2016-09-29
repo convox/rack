@@ -28,7 +28,10 @@
       "Queue": {
         "Type": "AWS::SQS::Queue",
         "Properties": {
-          "QueueName": {"Ref": "AWS::StackName"}
+          "MessageRetentionPeriod": { "Ref": "MessageRetentionPeriod" },
+          "ReceiveMessageWaitTimeSeconds": { "Ref": "ReceiveMessageWaitTime" },
+          "QueueName": { "Ref": "AWS::StackName" },
+          "VisibilityTimeout": { "Ref": "VisibilityTimeout" }
         }
       },
       "User": {
