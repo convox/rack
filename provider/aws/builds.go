@@ -278,7 +278,6 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 	// set up the new build
 	targetBuild := structs.NewBuild(app)
-	targetBuild.Description = fmt.Sprintf("imported")
 	targetBuild.Started = time.Now()
 	targetBuild.Status = "complete"
 
@@ -398,6 +397,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		release.Id = "R23456"
 	}
 
+	targetBuild.Description = sourceBuild.Description
 	targetBuild.Ended = time.Now()
 	targetBuild.Logs = sourceBuild.Logs
 	targetBuild.Manifest = sourceBuild.Manifest

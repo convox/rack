@@ -825,9 +825,6 @@ var cycleBuildPutItem = awsutil.Cycle{
 				"created": {
 					"S": "20160904.223813.000000000"
 				},
-				"description": {
-					"S": "imported"
-				},
 				"ended": {
 					"S": "20160904.224132.000000000"
 				},
