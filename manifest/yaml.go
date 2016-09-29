@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/docker/go-units"
 )
 
 // MarshalYAML implements the Marshaller interface for the Manifest type
@@ -214,6 +216,31 @@ func (l *Labels) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 	default:
 		return fmt.Errorf("cannot parse labels: %v", t)
+	}
+
+	return nil
+}
+
+func (m *Memory) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var v interface{}
+
+	if err := unmarshal(&v); err != nil {
+		return err
+	}
+
+	switch t := v.(type) {
+	case string:
+		ram, err := units.RAMInBytes(t)
+		if err != nil {
+			return err
+		}
+		*m = Memory(ram)
+	case int:
+		*m = Memory(t)
+	case float64:
+		*m = Memory(t)
+	default:
+		return fmt.Errorf("could not parse mem_limit: %v", t)
 	}
 
 	return nil
