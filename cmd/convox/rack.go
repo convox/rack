@@ -236,25 +236,48 @@ func cmdRackPs(c *cli.Context) error {
 }
 
 func cmdRackUpdate(c *cli.Context) error {
-	versions, err := version.All()
+	vs, err := version.All()
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	specified := "stable"
+	target, err := vs.Latest()
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
 
 	if len(c.Args()) > 0 {
-		specified = c.Args()[0]
+		t, err := vs.Find(c.Args()[0])
+		if err != nil {
+			return stdcli.ExitError(err)
+		}
+		target = t
 	}
 
-	version, err := versions.Resolve(specified)
+	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Printf("Updating to %s... ", version.Version)
+	nv, err := vs.Next(system.Version)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
 
-	_, err = rackClient(c).UpdateSystem(version.Version)
+	next, err := vs.Find(nv)
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
+	// stop at a required release if necessary
+	if next.Version < target.Version {
+		fmt.Printf("WARNING: Required update found.\nPlease run `convox rack update` again once this update completes.\n")
+		target = next
+	}
+
+	fmt.Printf("Updating to %s... ", target.Version)
+
+	_, err = rackClient(c).UpdateSystem(target.Version)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
