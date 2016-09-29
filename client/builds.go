@@ -112,8 +112,17 @@ func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest str
 		"url":         url,
 	}
 
-	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
 
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		params["repo"] = params["url"]
+	}
+
+	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
 	if err != nil {
 		return nil, err
 	}
@@ -199,9 +208,39 @@ type ImportBuildOptions struct {
 
 // ImportBuild imports a build artifact
 func (c *Client) ImportBuild(app string, r io.Reader, opts ImportBuildOptions) (*structs.Build, error) {
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		return c.importBuildClassic(app, r, opts)
+	}
+
 	popts := PostMultipartOptions{
 		Files: map[string]io.Reader{
 			"image": r,
+		},
+		Progress: opts.Progress,
+	}
+
+	build := &structs.Build{}
+
+	if err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), popts, &build); err != nil {
+		return nil, err
+	}
+
+	return build, nil
+}
+
+func (c *Client) importBuildClassic(app string, r io.Reader, opts ImportBuildOptions) (*structs.Build, error) {
+	popts := PostMultipartOptions{
+		Files: map[string]io.Reader{
+			"source": r,
+		},
+		Params: map[string]string{
+			"import": "true",
 		},
 		Progress: opts.Progress,
 	}
