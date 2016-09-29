@@ -78,8 +78,9 @@ func TestLoadFullVersion1(t *testing.T) {
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
+			assert.Equal(t, web.Build.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
-			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
+			assert.Equal(t, web.Dockerfile, "")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
 			assert.Equal(t, len(web.Environment), 2)
 			assert.Equal(t, web.Environment["FOO"], "bar")
@@ -138,8 +139,9 @@ func TestLoadFullVersion2(t *testing.T) {
 	if assert.Nil(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
+			assert.Equal(t, web.Build.Dockerfile, "Dockerfile.dev")
 			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
-			assert.Equal(t, web.Dockerfile, "Dockerfile.dev")
+			assert.Equal(t, web.Dockerfile, "")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
 			assert.Equal(t, len(web.Environment), 2)
 			assert.Equal(t, web.Environment["FOO"], "bar")
@@ -228,7 +230,8 @@ func TestLoadEnvVar(t *testing.T) {
 	if assert.Nil(t, err) {
 		assert.Equal(t, m.Services["web"].Image, rando1)
 		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s", rando2, rando2, rando3))
-		assert.Equal(t, m.Services["web"].Dockerfile, "$REMAIN")
+		assert.Equal(t, m.Services["web"].Build.Dockerfile, "$REMAIN")
+		assert.Equal(t, m.Services["web"].Dockerfile, "")
 		assert.Equal(t, m.Services["web"].Volumes[0], "${broken")
 	}
 }
@@ -401,7 +404,6 @@ func TestShift(t *testing.T) {
 }
 
 func TestManifestMarshalYaml(t *testing.T) {
-
 	strCmd := manifest.Command{
 		String: "bin/web",
 	}

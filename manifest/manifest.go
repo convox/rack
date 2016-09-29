@@ -62,6 +62,7 @@ func Load(data []byte) (*Manifest, error) {
 				return nil, fmt.Errorf("dockerfile specified twice for %s", name)
 			}
 			service.Build.Dockerfile = service.Dockerfile
+			service.Dockerfile = ""
 		}
 
 		// denormalize a bit
