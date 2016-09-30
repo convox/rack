@@ -44,7 +44,7 @@ func init() {
 		},
 		ServiceType{
 			"sqs",
-			"",
+			"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
 		},
 		ServiceType{
 			"syslog",
