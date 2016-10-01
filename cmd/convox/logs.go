@@ -38,16 +38,16 @@ func init() {
 func cmdLogsStream(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox logs` does not take arguments. Perhaps you meant `convox logs`?"))
+		return stdcli.Error(fmt.Errorf("`convox logs` does not take arguments. Perhaps you meant `convox logs`?"))
 	}
 
 	err = rackClient(c).StreamAppLogs(app, c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 	return nil
 }

@@ -68,7 +68,7 @@ func cmdRegistryAdd(c *cli.Context) error {
 
 	_, err := rackClient(c).AddRegistry(server, username, password, email)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("Done.")
@@ -77,7 +77,7 @@ func cmdRegistryAdd(c *cli.Context) error {
 
 func cmdRegistryList(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox registries` does not take arguments. Perhaps you meant `convox registries add`?"))
+		return stdcli.Error(fmt.Errorf("`convox registries` does not take arguments. Perhaps you meant `convox registries add`?"))
 	}
 
 	if c.Bool("help") {
@@ -87,7 +87,7 @@ func cmdRegistryList(c *cli.Context) error {
 
 	registries, err := rackClient(c).ListRegistries()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("SERVER", "USERNAME")
@@ -108,8 +108,9 @@ func cmdRegistryRemove(c *cli.Context) error {
 
 	server := c.Args()[0]
 
-	if err := rackClient(c).RemoveRegistry(server); err != nil {
-		return stdcli.ExitError(err)
+	_, err := rackClient(c).RemoveRegistry(server)
+	if err != nil {
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("Done.")

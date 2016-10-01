@@ -45,11 +45,11 @@ func init() {
 func cmdReleases(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox registries info`?"))
+		return stdcli.Error(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox registries info`?"))
 	}
 
 	if c.Bool("help") {
@@ -59,12 +59,12 @@ func cmdReleases(c *cli.Context) error {
 
 	a, err := rackClient(c).GetApp(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	releases, err := rackClient(c).GetReleases(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("ID", "CREATED", "BUILD", "STATUS")
@@ -93,12 +93,12 @@ func cmdReleaseInfo(c *cli.Context) error {
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	r, err := rackClient(c).GetRelease(app, release)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Id       %s\n", r.Id)
@@ -120,14 +120,14 @@ func cmdReleasePromote(c *cli.Context) error {
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Promoting %s... ", release)
 
 	_, err = rackClient(c).PromoteRelease(app, release)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("UPDATING")
@@ -136,7 +136,7 @@ func cmdReleasePromote(c *cli.Context) error {
 		fmt.Printf("Waiting for stabilization... ")
 
 		if err := waitForReleasePromotion(c, app, release); err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		fmt.Println("OK")

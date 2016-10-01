@@ -64,7 +64,7 @@ func cmdStart(c *cli.Context) error {
 	appType := detectApplication(dir)
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	err = m.Validate()
@@ -73,7 +73,7 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	if err := m.Shift(c.Int("shift")); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
@@ -85,7 +85,7 @@ func cmdStart(c *cli.Context) error {
 			AppType:         appType,
 		})
 
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	cache := !c.Bool("no-cache")

@@ -143,7 +143,7 @@ func init() {
 
 func cmdServices(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
+		return stdcli.Error(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
 	}
 
 	if c.Bool("help") {
@@ -153,7 +153,7 @@ func cmdServices(c *cli.Context) error {
 
 	services, err := rackClient(c).GetServices()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("NAME", "TYPE", "STATUS")
@@ -220,7 +220,7 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	_, err := rackClient(c).CreateService(t, options)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("CREATING")
@@ -263,7 +263,7 @@ func cmdServiceUpdate(c *cli.Context) error {
 
 	_, err := rackClient(c).UpdateService(name, options)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("UPDATING")
@@ -282,7 +282,7 @@ func cmdServiceDelete(c *cli.Context) error {
 
 	_, err := rackClient(c).DeleteService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("DELETING")
@@ -299,7 +299,7 @@ func cmdServiceInfo(c *cli.Context) error {
 
 	service, err := rackClient(c).GetService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Name    %s\n", service.Name)
@@ -333,15 +333,15 @@ func cmdServiceURL(c *cli.Context) error {
 
 	service, err := rackClient(c).GetService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if service.Status == "failed" {
-		return stdcli.ExitError(fmt.Errorf("Service failure for %s", service.StatusReason))
+		return stdcli.Error(fmt.Errorf("Service failure for %s", service.StatusReason))
 	}
 
 	if service.URL == "" {
-		return stdcli.ExitError(fmt.Errorf("URL does not exist for %s", service.Name))
+		return stdcli.Error(fmt.Errorf("URL does not exist for %s", service.Name))
 	}
 
 	fmt.Printf("%s\n", service.URL)
@@ -352,7 +352,7 @@ func cmdServiceURL(c *cli.Context) error {
 func cmdLinkCreate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -364,7 +364,7 @@ func cmdLinkCreate(c *cli.Context) error {
 
 	_, err = rackClient(c).CreateLink(app, name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Linked %s to %s\n", name, app)
@@ -374,7 +374,7 @@ func cmdLinkCreate(c *cli.Context) error {
 func cmdLinkDelete(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -386,7 +386,7 @@ func cmdLinkDelete(c *cli.Context) error {
 
 	_, err = rackClient(c).DeleteLink(app, name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Unlinked %s from %s\n", name, app)
@@ -403,22 +403,22 @@ func cmdServiceProxy(c *cli.Context) error {
 
 	service, err := rackClient(c).GetService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	export, ok := service.Exports["URL"]
 	if !ok {
-		return stdcli.ExitError(fmt.Errorf("%s does not expose a URL", name))
+		return stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
 	}
 
 	u, err := url.Parse(export)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	remotehost, remoteport, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	localhost := "127.0.0.1"
@@ -438,12 +438,12 @@ func cmdServiceProxy(c *cli.Context) error {
 
 	lp, err := strconv.Atoi(localport)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	rp, err := strconv.Atoi(remoteport)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	proxy(localhost, lp, remotehost, rp, rackClient(c))

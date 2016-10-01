@@ -39,7 +39,7 @@ func cmdRun(c *cli.Context) error {
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) < 2 {
@@ -50,7 +50,7 @@ func cmdRun(c *cli.Context) error {
 	ps := c.Args()[0]
 	err = validateProcessId(c, app, ps)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	args := strings.Join(c.Args()[1:], " ")
@@ -59,7 +59,7 @@ func cmdRun(c *cli.Context) error {
 
 	code, err := runAttached(c, app, ps, args, release)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	return cli.NewExitError("", code)
@@ -79,7 +79,7 @@ func cmdRunDetached(c *cli.Context) error {
 	ps := c.Args()[0]
 	err = validateProcessId(c, app, ps)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	command := ""
@@ -95,7 +95,7 @@ func cmdRunDetached(c *cli.Context) error {
 
 	err = rackClient(c).RunProcessDetached(app, ps, command, release)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")
