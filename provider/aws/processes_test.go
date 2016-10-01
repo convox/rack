@@ -110,6 +110,37 @@ func TestProcessList(t *testing.T) {
 	assert.EqualValues(t, ps, s)
 }
 
+func TestProcessListEmpty(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleProcessDescribeStackResources,
+		cycleProcessListTasksByService1Empty,
+		cycleProcessListTasksByService2Empty,
+		cycleProcessListTasksByStartedEmpty,
+		cycleProcessDescribeTasks,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeTaskDefinition2,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+	)
+	defer d.Close()
+
+	s, err := provider.ProcessList("myapp")
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, structs.Processes{}, s)
+}
+
 func TestProcessRunAttached(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleProcessReleaseGetItem,
@@ -631,6 +662,23 @@ var cycleProcessListTasksByService1 = awsutil.Cycle{
 	},
 }
 
+var cycleProcessListTasksByService1Empty = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"serviceName": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": []
+		}`,
+	},
+}
+
 var cycleProcessListTasksByService2 = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -650,6 +698,23 @@ var cycleProcessListTasksByService2 = awsutil.Cycle{
 	},
 }
 
+var cycleProcessListTasksByService2Empty = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"serviceName": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceWeb-1I2PTXAZ5ECRD"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": []
+		}`,
+	},
+}
+
 var cycleProcessListTasksByStarted = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -665,6 +730,23 @@ var cycleProcessListTasksByStarted = awsutil.Cycle{
 			"taskArns": [
 				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
 			]
+		}`,
+	},
+}
+
+var cycleProcessListTasksByStartedEmpty = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"startedBy": "convox.myapp"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": []
 		}`,
 	},
 }

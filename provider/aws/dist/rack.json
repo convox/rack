@@ -1375,7 +1375,7 @@
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "50",
+          "MinimumHealthyPercent": "100",
           "MaximumPercent": "200"
         },
         "DesiredCount": "2",

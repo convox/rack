@@ -260,7 +260,9 @@ func cmdRackUpdate(c *cli.Context) error {
 	}
 
 	nv, err := vs.Next(system.Version)
-	if err != nil {
+	if err != nil && strings.HasSuffix(err.Error(), "is latest") {
+		nv = target.Version
+	} else if err != nil {
 		return stdcli.ExitError(err)
 	}
 

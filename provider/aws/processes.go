@@ -214,6 +214,10 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 		ptasks = append(ptasks, aws.String(t))
 	}
 
+	if len(ptasks) == 0 {
+		return structs.Processes{}, nil
+	}
+
 	tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
 		Cluster: aws.String(p.Cluster),
 		Tasks:   ptasks,
