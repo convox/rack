@@ -547,7 +547,7 @@
             "    '':''",
             "}",
             "exports.handler = function(event, context) {",
-            "    var command = event.command.replace(/&#(\d+);/g, function(match, dec) {",
+            "    var command = event.command.replace(/&#(\\d+);/g, function(match, dec) {",
             "      return String.fromCharCode(dec);",
             "    });",
             "    var params = {",
