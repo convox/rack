@@ -67,6 +67,11 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	err = m.Validate()
+	if err != nil {
+		return stdcli.ExitError(err)
+	}
+
 	if err := m.Shift(c.Int("shift")); err != nil {
 		return stdcli.ExitError(err)
 	}

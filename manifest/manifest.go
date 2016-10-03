@@ -71,18 +71,12 @@ func Load(data []byte) (*Manifest, error) {
 		m.Services[name] = service
 	}
 
-	err = m.Validate()
-	if err != nil {
-		return nil, err
-	}
-
 	return m, nil
 }
 
 // Load a Manifest from a file
 func LoadFile(path string) (*Manifest, error) {
 	data, err := ioutil.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}

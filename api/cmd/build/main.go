@@ -196,6 +196,11 @@ func build(dir string) error {
 		return err
 	}
 
+	err = m.Validate()
+	if err != nil {
+		return err
+	}
+
 	s := make(chan string)
 
 	go func() {
