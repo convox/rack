@@ -12,6 +12,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/equinox-io/equinox"
 	cli "gopkg.in/urfave/cli.v1"
 )
@@ -32,6 +33,7 @@ var (
 		checkMissingDockerFiles,
 		syncVolumeConflict,
 		missingEnvValues,
+		checkLargeFiles,
 	}
 )
 
@@ -199,5 +201,28 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 }
 
 func checkLargeFiles(m *manifest.Manifest) error {
+	di, err := readDockerIgnore(".")
+	if err != nil {
+		return err
+	}
+
+	f := func(path string, info os.FileInfo, err error) error {
+		m, err := fileutils.Matches(path, di)
+		if err != nil {
+			return err
+		}
+		if m {
+			return nil
+		}
+		if info.Size() >= 200000000 {
+			return fmt.Errorf("%s is %d, perhaps you should add it to your .dockerignore to speed up builds and deploys", info.Name(), info.Size())
+		}
+		return nil
+	}
+
+	err = filepath.Walk(".", f)
+	if err != nil {
+		return err
+	}
 	return nil
 }
