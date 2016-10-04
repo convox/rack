@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,23 +31,42 @@ type Diagnosis struct {
 	Description string
 }
 
+func (d Diagnosis) String() string {
+	s := ""
+	if d.Kind == "warning" {
+		s += "<warning>Warning:</warning> "
+	} else if d.Kind == "security" {
+		s += "<security>Security:</security> "
+	} else {
+		s += "<warning>Unknown:</warning> "
+	}
+
+	s += d.Description
+	s += "\n"
+	s += d.DocsLink
+	s += "\n\n"
+	return s
+}
+
 var (
 	diagnoses = []Diagnosis{}
 
 	buildChecks = []func(*manifest.Manifest) error{
+		// checkCLIVersion,
+		checkMissingDockerFiles,
 		checkDockerIgnore,
+		checkLargeFiles,
 	}
-	// devChecks   = []func(*manifest.Manifest) error{}
+
+	devChecks = []func(*manifest.Manifest) error{
+		syncVolumeConflict,
+		missingEnvValues,
+	}
+
 	// prodChecks  = []func(*manifest.Manifest) error{}
 
 	// manifestChecks = []func(*manifest.Manifest) error{
-	// 	// checkCLIVersion,
 	// 	validateManifest,
-	// 	checkDockerIgnore,
-	// 	checkMissingDockerFiles,
-	// 	syncVolumeConflict,
-	// 	missingEnvValues,
-	// 	checkLargeFiles,
 	// }
 
 	// dockerChecks = []func() error{
@@ -57,42 +75,56 @@ var (
 )
 
 func diagnose(d Diagnosis) {
-	log.Printf("diagnosing %#v", d)
 	diagnoses = append(diagnoses, d)
 }
 
 func medicalReport() {
 	if len(diagnoses) > 0 {
-		fmt.Printf("%#v", diagnoses)
+		stdcli.Writef("\n\n")
+		for _, d := range diagnoses {
+			stdcli.Writef(d.String())
+		}
 		os.Exit(1)
 	}
 }
 
 func cmdDoctor(c *cli.Context) error {
+	stdcli.Writef("Running build tests: ")
 	m, err := manifest.LoadFile("docker-compose.yml")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	for _, check := range buildChecks {
 		if err := check(m); err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 	}
 
 	medicalReport()
+	stdcli.Writef("<success>\u2713</success>\n\n")
+
+	stdcli.Writef("Running development tests: ")
+	for _, check := range devChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	medicalReport()
+	stdcli.Writef("<success>\u2713</success>\n\n")
+
 	// for _, check := range dockerChecks {
 	// 	if err := check(); err != nil {
-	// 		return stdcli.ExitError(err)
+	// 		return stdcli.Error(err)
 	// 	}
 	// }
 
-	fmt.Println("Everything looks fine, deploy and pay us all your moneyz")
+	stdcli.Writef("<success>Success:</success> Your app looks ready for deployment into convox. \nHead to https://console.convox.com to get started\n")
 	return nil
 }
 
 func checkDockerIgnore(m *manifest.Manifest) error {
-	log.Printf("HERE1")
 	_, err := os.Stat(".dockerignore")
 	if err != nil {
 		diagnose(Diagnosis{
@@ -103,7 +135,6 @@ func checkDockerIgnore(m *manifest.Manifest) error {
 		return nil
 	}
 
-	log.Printf("HERE2")
 	// read the whole file at once
 	b, err := ioutil.ReadFile(".dockerignore")
 	if err != nil {
@@ -111,7 +142,6 @@ func checkDockerIgnore(m *manifest.Manifest) error {
 	}
 	s := string(b)
 
-	log.Printf("HERE3")
 	// //check whether s contains substring text
 	if !strings.Contains(s, ".git\n") {
 		diagnose(Diagnosis{
@@ -121,10 +151,7 @@ func checkDockerIgnore(m *manifest.Manifest) error {
 		})
 	}
 
-	log.Printf("HERE4")
-	log.Print(s)
 	if !strings.Contains(s, ".env\n") {
-		log.Printf("HERE5")
 		diagnose(Diagnosis{
 			Kind:        "security",
 			DocsLink:    "#TODO",
@@ -138,7 +165,7 @@ func checkDockerIgnore(m *manifest.Manifest) error {
 func checkCLIVersion(m *manifest.Manifest) error {
 	client, err := updateClient()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	opts := equinox.Options{
@@ -147,7 +174,7 @@ func checkCLIVersion(m *manifest.Manifest) error {
 		HTTPClient:     client,
 	}
 	if err := opts.SetPublicKeyPEM(publicKey); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	// check for update

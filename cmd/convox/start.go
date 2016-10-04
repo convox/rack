@@ -69,7 +69,7 @@ func cmdStart(c *cli.Context) error {
 
 	err = m.Validate()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if err := m.Shift(c.Int("shift")); err != nil {
