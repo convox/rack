@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -180,7 +179,11 @@ func checkCLIVersion(m *manifest.Manifest) error {
 	// check for update
 	_, err = equinox.Check("app_i8m2L26DxKL", opts)
 	if err == nil {
-		return errors.New("Your client is out of date, run `convox update`")
+		diagnose(Diagnosis{
+			Kind:        "warning",
+			DocsLink:    "#TODO",
+			Description: "Your client is out of date, run `convox update`",
+		})
 	}
 	return nil
 }
@@ -190,13 +193,23 @@ func validateManifest(m *manifest.Manifest) error {
 }
 
 func missingEnvValues(m *manifest.Manifest) error {
+	_, err := os.Stat(".env")
+	if err != nil {
+		diagnose(Diagnosis{
+			Kind:        "warning",
+			DocsLink:    "#TODO",
+			Description: "It looks like you are missing a .env file",
+		})
+		return nil
+	}
+
 	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
 			return err
 		}
-		scanner := bufio.NewScanner(bytes.NewReader(data))
 
+		scanner := bufio.NewScanner(bytes.NewReader(data))
 		for scanner.Scan() {
 			if strings.Contains(scanner.Text(), "=") {
 				parts := strings.SplitN(scanner.Text(), "=", 2)
@@ -241,7 +254,11 @@ func missingEnvValues(m *manifest.Manifest) error {
 		}
 
 		if len(missingEnv) > 0 {
-			return fmt.Errorf("env expected: %s", strings.Join(missingEnv, ", "))
+			diagnose(Diagnosis{
+				Kind:        "warning",
+				DocsLink:    "#TODO",
+				Description: fmt.Sprintf("env expected: %s", strings.Join(missingEnv, ", ")),
+			})
 		}
 	}
 
@@ -260,7 +277,14 @@ func syncVolumeConflict(m *manifest.Manifest) error {
 			if len(parts) == 2 {
 				for k, _ := range sps {
 					if k == parts[0] {
-						return fmt.Errorf("service: %s has a sync path conflict with volume %s", s.Name, v)
+						diagnose(Diagnosis{
+							Kind:     "warning",
+							DocsLink: "#TODO",
+							Description: fmt.Sprintf(
+								"service: %s has a sync path conflict with volume %s",
+								s.Name,
+								v),
+						})
 					}
 				}
 			}
@@ -276,7 +300,11 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 			dockerFile = coalesce(s.Build.Dockerfile, dockerFile)
 			_, err := os.Stat(fmt.Sprintf("%s/%s", s.Build.Context, dockerFile))
 			if err != nil {
-				return fmt.Errorf("service: %s is missing it's Dockerfile", s.Name)
+				diagnose(Diagnosis{
+					Kind:        "warning",
+					DocsLink:    "#TODO",
+					Description: fmt.Sprintf("service: %s is missing it's Dockerfile", s.Name),
+				})
 			}
 		}
 	}
@@ -298,7 +326,11 @@ func checkLargeFiles(m *manifest.Manifest) error {
 			return nil
 		}
 		if info.Size() >= 200000000 {
-			return fmt.Errorf("%s is %d, perhaps you should add it to your .dockerignore to speed up builds and deploys", info.Name(), info.Size())
+			diagnose(Diagnosis{
+				Kind:        "warning",
+				DocsLink:    "#TODO",
+				Description: fmt.Sprintf("%s is %d, perhaps you should add it to your .dockerignore to speed up builds and deploys", info.Name(), info.Size()),
+			})
 		}
 		return nil
 	}
