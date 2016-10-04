@@ -14,6 +14,33 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+func (p *AWSProvider) ObjectDelete(key string) error {
+	if !p.ObjectExists(key) {
+		return fmt.Errorf("no such object: %s", key)
+	}
+
+	_, err := p.s3().DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(p.SettingsBucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *AWSProvider) ObjectExists(key string) bool {
+	_, err := p.s3().HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(p.SettingsBucket),
+		Key:    aws.String(key),
+	})
+	if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
+		return false
+	}
+	return true
+}
+
 // ObjectFetch fetches an Object
 func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 	res, err := p.s3().GetObject(&s3.GetObjectInput{
@@ -29,6 +56,28 @@ func (p *AWSProvider) ObjectFetch(key string) (io.ReadCloser, error) {
 	}
 
 	return res.Body, nil
+}
+
+func (p *AWSProvider) ObjectList(prefix string) ([]string, error) {
+	log := Logger.At("ObjectList").Namespace("prefix=%q", prefix).Start()
+
+	res, err := p.s3().ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:    aws.String(p.SettingsBucket),
+		Delimiter: aws.String("/"),
+		Prefix:    aws.String(prefix),
+	})
+	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	objects := []string{}
+
+	for _, item := range res.Contents {
+		objects = append(objects, *item.Key)
+	}
+
+	log.Success()
+	return objects, nil
 }
 
 // ObjectStore stores an Object
