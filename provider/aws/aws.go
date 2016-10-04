@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -122,6 +123,10 @@ func (p *AWSProvider) config() *aws.Config {
 
 func (p *AWSProvider) acm() *acm.ACM {
 	return acm.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) autoscaling() *autoscaling.AutoScaling {
+	return autoscaling.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {

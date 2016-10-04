@@ -22,8 +22,6 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-var MinimumServerVersion = "20151023042141"
-
 //this just needs to be random enough to never show up again in a byte stream
 var StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 
