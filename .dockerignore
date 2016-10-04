@@ -1,4 +1,4 @@
-.env
+.envx
 .git
 api/models/fixtures/fixture
 cmd/changes/changes

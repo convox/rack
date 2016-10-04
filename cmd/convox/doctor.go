@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,21 +26,47 @@ func init() {
 	})
 }
 
-var (
-	manifestChecks = []func(*manifest.Manifest) error{
-		// checkCLIVersion,
-		validateManifest,
-		checkDockerIgnore,
-		checkMissingDockerFiles,
-		syncVolumeConflict,
-		missingEnvValues,
-		checkLargeFiles,
-	}
+type Diagnosis struct {
+	DocsLink    string
+	Kind        string
+	Description string
+}
 
-	dockerChecks = []func() error{
-		dockerTest,
+var (
+	diagnoses = []Diagnosis{}
+
+	buildChecks = []func(*manifest.Manifest) error{
+		checkDockerIgnore,
 	}
+	// devChecks   = []func(*manifest.Manifest) error{}
+	// prodChecks  = []func(*manifest.Manifest) error{}
+
+	// manifestChecks = []func(*manifest.Manifest) error{
+	// 	// checkCLIVersion,
+	// 	validateManifest,
+	// 	checkDockerIgnore,
+	// 	checkMissingDockerFiles,
+	// 	syncVolumeConflict,
+	// 	missingEnvValues,
+	// 	checkLargeFiles,
+	// }
+
+	// dockerChecks = []func() error{
+	// 	dockerTest,
+	// }
 )
+
+func diagnose(d Diagnosis) {
+	log.Printf("diagnosing %#v", d)
+	diagnoses = append(diagnoses, d)
+}
+
+func medicalReport() {
+	if len(diagnoses) > 0 {
+		fmt.Printf("%#v", diagnoses)
+		os.Exit(1)
+	}
+}
 
 func cmdDoctor(c *cli.Context) error {
 	m, err := manifest.LoadFile("docker-compose.yml")
@@ -47,28 +74,36 @@ func cmdDoctor(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	for _, check := range manifestChecks {
+	for _, check := range buildChecks {
 		if err := check(m); err != nil {
 			return stdcli.ExitError(err)
 		}
 	}
 
-	for _, check := range dockerChecks {
-		if err := check(); err != nil {
-			return stdcli.ExitError(err)
-		}
-	}
+	medicalReport()
+	// for _, check := range dockerChecks {
+	// 	if err := check(); err != nil {
+	// 		return stdcli.ExitError(err)
+	// 	}
+	// }
 
 	fmt.Println("Everything looks fine, deploy and pay us all your moneyz")
 	return nil
 }
 
 func checkDockerIgnore(m *manifest.Manifest) error {
+	log.Printf("HERE1")
 	_, err := os.Stat(".dockerignore")
 	if err != nil {
-		return err
+		diagnose(Diagnosis{
+			Kind:        "security",
+			DocsLink:    "#TODO",
+			Description: "You should probably have a .dockerignore file",
+		})
+		return nil
 	}
 
+	log.Printf("HERE2")
 	// read the whole file at once
 	b, err := ioutil.ReadFile(".dockerignore")
 	if err != nil {
@@ -76,13 +111,25 @@ func checkDockerIgnore(m *manifest.Manifest) error {
 	}
 	s := string(b)
 
+	log.Printf("HERE3")
 	// //check whether s contains substring text
-	if !strings.Contains(s, ".git") {
-		return errors.New("You should probably add .git to your .dockerignore")
+	if !strings.Contains(s, ".git\n") {
+		diagnose(Diagnosis{
+			Kind:        "security",
+			DocsLink:    "#TODO",
+			Description: "You should probably add .git to your .dockerignore",
+		})
 	}
 
-	if !strings.Contains(s, ".env") {
-		return errors.New("You should probably add .env to your .dockerignore")
+	log.Printf("HERE4")
+	log.Print(s)
+	if !strings.Contains(s, ".env\n") {
+		log.Printf("HERE5")
+		diagnose(Diagnosis{
+			Kind:        "security",
+			DocsLink:    "#TODO",
+			Description: "You should probably add .env to your .dockerignore",
+		})
 	}
 
 	return nil
