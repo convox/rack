@@ -189,7 +189,10 @@ func checkCLIVersion(m *manifest.Manifest) error {
 }
 
 func validateManifest(m *manifest.Manifest) error {
-	return m.Validate()
+	if errs := m.Validate(); len(errs) > 0 {
+		return errs[0]
+	}
+	return nil
 }
 
 func missingEnvValues(m *manifest.Manifest) error {
