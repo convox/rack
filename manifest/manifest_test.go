@@ -288,8 +288,13 @@ func TestLoadNonexistentFile(t *testing.T) {
 
 func TestUnderscoreInServiceName(t *testing.T) {
 	m, err := manifestFixture("underscore_service")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 
-	if assert.Nil(t, m) && assert.NotNil(t, err) {
+	err = m.Validate()
+	if assert.NotNil(t, err) {
 		assert.Equal(t, err.Error(), "service name cannot contain an underscore: web_api")
 	}
 }
@@ -466,22 +471,46 @@ func TestManifestMarshalYaml(t *testing.T) {
 }
 
 func TestManifestValidate(t *testing.T) {
-	_, cerr := manifestFixture("invalid-cron")
+	m, err := manifestFixture("invalid-cron")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	cerr := m.Validate()
 	if assert.NotNil(t, cerr) {
 		assert.Equal(t, cerr.Error(), "Cron task my_job is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)")
 	}
 
-	_, lerr := manifestFixture("invalid-link")
+	m, err = manifestFixture("invalid-link")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	lerr := m.Validate()
 	if assert.NotNil(t, lerr) {
 		assert.Equal(t, lerr.Error(), "web links to service: database2 which does not exist")
 	}
 
-	_, lperr := manifestFixture("invalid-link-no-ports")
+	m, err = manifestFixture("invalid-link-no-ports")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	lperr := m.Validate()
 	if assert.NotNil(t, lperr) {
 		assert.Equal(t, lperr.Error(), "web links to service: database which does not expose any ports")
 	}
 
-	_, herr := manifestFixture("invalid-health-timeout")
+	m, err = manifestFixture("invalid-health-timeout")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	herr := m.Validate()
 	if assert.NotNil(t, herr) {
 		assert.Equal(t, herr.Error(), "convox.health.timeout is invalid for web, must be a number between 0 and 60")
 	}
