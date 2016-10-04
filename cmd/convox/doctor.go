@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/docker/docker/pkg/fileutils"
 	"github.com/equinox-io/equinox"
+	docker "github.com/fsouza/go-dockerclient"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -25,143 +28,216 @@ func init() {
 }
 
 type Diagnosis struct {
-	DocsLink    string
 	Kind        string
+	Title       string
 	Description string
+	DocsLink    string
 }
 
 func (d Diagnosis) String() string {
-	s := ""
-	if d.Kind == "warning" {
-		s += "<warning>Warning:</warning> "
-	} else if d.Kind == "security" {
-		s += "<security>Security:</security> "
-	} else {
-		s += "<warning>Unknown:</warning> "
+	var icon string
+	var link string
+
+	switch d.Kind {
+	case "success":
+		icon = "[<success>\u2713</success>]"
+	case "warning":
+		icon = "[<warning>!</warning>]"
+	case "fail":
+		icon = "[<fail>X</fail>]"
+	default:
+		icon = "[<warning>?</warning>]"
 	}
 
-	s += d.Description
-	s += "\n"
-	s += d.DocsLink
-	s += "\n\n"
-	return s
+	body := ""
+	if d.Description != "" {
+		body = fmt.Sprintf("%s\n", d.Description)
+	}
+
+	if d.DocsLink != "" {
+		link = fmt.Sprintf("<link>%s</link>\n", d.DocsLink)
+	}
+	return fmt.Sprintf("%s %s    \n%s%s", icon, d.Title, body, link)
 }
 
 var (
-	diagnoses = []Diagnosis{}
+	diagnoses  = []Diagnosis{}
+	docContext = &cli.Context{}
 
-	buildChecks = []func(*manifest.Manifest) error{
-		// checkCLIVersion,
-		checkMissingDockerFiles,
-		checkDockerIgnore,
+	setupChecks = []func() error{
+		checkDockerRunning,
+		checkDockerVersion,
+		checkDockerPull,
+		checkCLIVersion,
+	}
+
+	buildImageChecks = []func() error{
+		checkDockerfile,
+		checkDockerignoreGit,
 		checkLargeFiles,
+		checkBuildDocker,
 	}
 
-	devChecks = []func(*manifest.Manifest) error{
-		syncVolumeConflict,
-		missingEnvValues,
+	buildServiceChecks = []func(*manifest.Manifest) error{
+		checkVersion2,
+		checkMissingDockerFiles,
+		checkValidServices,
 	}
 
-	// prodChecks  = []func(*manifest.Manifest) error{}
-
-	// manifestChecks = []func(*manifest.Manifest) error{
-	// 	validateManifest,
-	// }
-
-	// dockerChecks = []func() error{
-	// 	dockerTest,
-	// }
+	buildEnvironmentChecks = []func(*manifest.Manifest) error{
+		checkEnvFound,
+		checkEnvValid,
+		checkEnvIgnored,
+		checkMissingEnv,
+	}
 )
 
-func diagnose(d Diagnosis) {
-	diagnoses = append(diagnoses, d)
+func startCheck(title string) {
+	stdcli.Spinner.Prefix = fmt.Sprintf("[ ] %s ", stdcli.Sprintf(title))
+	stdcli.Spinner.Start()
 }
 
-func medicalReport() {
-	if len(diagnoses) > 0 {
-		stdcli.Writef("\n\n")
-		for _, d := range diagnoses {
-			stdcli.Writef(d.String())
-		}
+func diagnose(d Diagnosis) {
+	stdcli.Spinner.Stop()
+	time.Sleep(100 * time.Millisecond)
+	print("\033[K")
+
+	stdcli.Writef(d.String())
+	if d.Kind == "fail" {
 		os.Exit(1)
 	}
 }
 
 func cmdDoctor(c *cli.Context) error {
-	stdcli.Writef("Running build tests: ")
-	m, err := manifest.LoadFile("docker-compose.yml")
+	docContext = c
+	stdcli.Writef("### Setup\n")
+	for _, check := range setupChecks {
+		if err := check(); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Build: Image\n")
+	for _, check := range buildImageChecks {
+		if err := check(); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Build: Service\n")
+	startCheck("<file>docker-compose.yml</file> found")
+	_, err := os.Stat("docker-compose.yml")
 	if err != nil {
-		return stdcli.Error(err)
+		diagnose(Diagnosis{
+			Title:       "<file>docker-compose.yml</file> found",
+			Description: "<fail>A docker-compose.yml file is required in order to tell Convox what services to build for your application</fail>",
+			Kind:        "fail",
+			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+		})
+	} else {
+		diagnose(Diagnosis{
+			Title: "<file>docker-compose.yml</file> found",
+			Kind:  "success",
+		})
 	}
 
-	for _, check := range buildChecks {
+	m, err := manifest.LoadFile("docker-compose.yml")
+	checkManifestValid(m, err)
+	for _, check := range buildServiceChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
 	}
 
-	medicalReport()
-	stdcli.Writef("<success>\u2713</success>\n\n")
-
-	stdcli.Writef("Running development tests: ")
-	for _, check := range devChecks {
+	stdcli.Writef("\n\n### Build: Environment\n")
+	for _, check := range buildEnvironmentChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
 	}
 
-	medicalReport()
-	stdcli.Writef("<success>\u2713</success>\n\n")
-
-	// for _, check := range dockerChecks {
-	// 	if err := check(); err != nil {
-	// 		return stdcli.Error(err)
-	// 	}
-	// }
-
-	stdcli.Writef("<success>Success:</success> Your app looks ready for deployment into convox. \nHead to https://console.convox.com to get started\n")
+	stdcli.Writef("\n\n<success>Success:</success> Your app looks ready for deployment into convox. \nHead to https://console.convox.com to get started\n\n")
 	return nil
 }
 
-func checkDockerIgnore(m *manifest.Manifest) error {
-	_, err := os.Stat(".dockerignore")
+func checkDockerRunning() error {
+	startCheck("Docker running")
+
+	dockerTest := exec.Command("docker", "images")
+	err := dockerTest.Run()
 	if err != nil {
 		diagnose(Diagnosis{
-			Kind:        "security",
-			DocsLink:    "#TODO",
-			Description: "You should probably have a .dockerignore file",
+			Title:       "Docker running",
+			Description: "<fail>We could not connect to the Docker daemon, is it installed and running</fail>",
+			Kind:        "fail",
 		})
 		return nil
+	} else {
+		diagnose(Diagnosis{
+			Title: "Docker running",
+			Kind:  "success",
+		})
 	}
+	return nil
+}
 
-	// read the whole file at once
-	b, err := ioutil.ReadFile(".dockerignore")
+func checkDockerVersion() error {
+	startCheck("Docker up to date")
+	dockerVersionTest, err := docker.NewClientFromEnv()
 	if err != nil {
 		return err
 	}
-	s := string(b)
 
-	// //check whether s contains substring text
-	if !strings.Contains(s, ".git\n") {
-		diagnose(Diagnosis{
-			Kind:        "security",
-			DocsLink:    "#TODO",
-			Description: "You should probably add .git to your .dockerignore",
-		})
+	minDockerVersion, err := docker.NewAPIVersion("1.9")
+	e, err := dockerVersionTest.Version()
+	if err != nil {
+		return err
 	}
 
-	if !strings.Contains(s, ".env\n") {
-		diagnose(Diagnosis{
-			Kind:        "security",
-			DocsLink:    "#TODO",
-			Description: "You should probably add .env to your .dockerignore",
-		})
+	currentVersionParts := strings.Split(e.Get("Version"), ".")
+	currentVersion, err := docker.NewAPIVersion(fmt.Sprintf("%s.%s", currentVersionParts[0], currentVersionParts[1]))
+	if err != nil {
+		return err
 	}
 
+	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
+		diagnose(Diagnosis{
+			Title:       "Docker up to date",
+			Description: "<fail>Your version of docker is out of date (min: 1.9)</fail>",
+			Kind:        "fail",
+		})
+	} else {
+		diagnose(Diagnosis{
+			Title: "Docker up to date",
+			Kind:  "success",
+		})
+	}
 	return nil
 }
 
-func checkCLIVersion(m *manifest.Manifest) error {
+func checkDockerPull() error {
+	title := "Docker pull hello-world works"
+	startCheck(title)
+
+	dockerTest := exec.Command("docker", "pull", "hello-world")
+	err := dockerTest.Run()
+	if err != nil {
+		diagnose(Diagnosis{
+			Title:       title,
+			Description: "<fail>We could not pull the hello-world image, check your internet connection</fail>",
+			Kind:        "fail",
+		})
+		return nil
+	} else {
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+	}
+	return nil
+}
+
+func checkCLIVersion() error {
 	client, err := updateClient()
 	if err != nil {
 		return stdcli.Error(err)
@@ -179,33 +255,363 @@ func checkCLIVersion(m *manifest.Manifest) error {
 	// check for update
 	_, err = equinox.Check("app_i8m2L26DxKL", opts)
 	if err == nil {
+		// diagnose(Diagnosis{
+		// 	Kind:        "warning",
+		// 	Title:       "Convox CLI out of date",
+		// 	Description: "<description>Run `convox update`</description>",
+		// 	DocsLink:    "#TODO",
+		// })
+	} else {
+		// diagnose(Diagnosis{
+		// 	Kind:  "success",
+		// 	Title: "Convox CLI is up to date",
+		// })
+	}
+	return nil
+}
+
+func checkDockerfile() error {
+	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
+		m, err := manifest.LoadFile("docker-compose.yml")
+		if err != nil {
+			//This will get picked up later in the test suite
+			return nil
+		}
+		checkMissingDockerFiles(m)
+		return nil
+	}
+
+	title := "Dockerfile found"
+	startCheck(title)
+
+	//Skip if docker-compose file exists
+	_, err := os.Stat("docker-compose.yml")
+	if err == nil {
+		return nil
+	}
+
+	_, err = os.Stat("Dockerfile")
+	if err != nil {
 		diagnose(Diagnosis{
-			Kind:        "warning",
-			DocsLink:    "#TODO",
-			Description: "Your client is out of date, run `convox update`",
+			Title:       title,
+			Description: "<fail>A Dockerfile is required to tell Convox how to create an image containing your app</fail>",
+			Kind:        "fail",
+			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+		})
+	} else {
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
 		})
 	}
 	return nil
 }
 
-func validateManifest(m *manifest.Manifest) error {
-	if errs := m.Validate(); len(errs) > 0 {
-		return errs[0]
-	}
+func checkDockerfileValid() error {
+	//TODO
 	return nil
 }
 
-func missingEnvValues(m *manifest.Manifest) error {
-	_, err := os.Stat(".env")
+func checkDockerignoreGit() error {
+	title := "<file>.git</file> in <file>.dockerignore</file>"
+	startCheck(title)
+
+	_, err := os.Stat(".dockerignore")
 	if err != nil {
 		diagnose(Diagnosis{
+			Title:       title,
+			Description: "<warning>It looks like you don't have a .dockerignore file</warning>",
 			Kind:        "warning",
-			DocsLink:    "#TODO",
-			Description: "It looks like you are missing a .env file",
+			DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
 		})
 		return nil
 	}
 
+	// read the whole file at once
+	b, err := ioutil.ReadFile(".dockerignore")
+	if err != nil {
+		return err
+	}
+	s := string(b)
+
+	// //check whether s contains substring text
+	if !strings.Contains(s, ".git\n") {
+		diagnose(Diagnosis{
+			Title:       title,
+			Kind:        "warning",
+			DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+			Description: "<warning>You should probably add .git to your .dockerignore</warning>",
+		})
+		return nil
+	}
+
+	diagnose(Diagnosis{
+		Title: title,
+		Kind:  "success",
+	})
+
+	return nil
+}
+
+func checkLargeFiles() error {
+	title := "Large files in <file>.dockerignore</file>"
+	startCheck(title)
+
+	di, _ := readDockerIgnore(".")
+
+	f := func(path string, info os.FileInfo, err error) error {
+		m, err := fileutils.Matches(path, di)
+		if err != nil {
+			return err
+		}
+		if m {
+			return nil
+		}
+		if info.Size() >= 200000000 {
+			diagnose(Diagnosis{
+				Kind:        "warning",
+				DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+				Description: fmt.Sprintf("<warning>%s is %d, perhaps you should add it to your .dockerignore to speed up builds and deploys</warning>", info.Name(), info.Size()),
+			})
+		}
+		return nil
+	}
+
+	err := filepath.Walk(".", f)
+	if err != nil {
+		return err
+	}
+
+	diagnose(Diagnosis{
+		Title: title,
+		Kind:  "success",
+	})
+	return nil
+}
+
+func checkBuildDocker() error {
+	title := "Image built successfully"
+
+	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
+		m, err := manifest.LoadFile(df)
+		if err != nil {
+			//This will be handled later in the suite
+			return nil
+		}
+
+		startCheck(title)
+
+		_, app, err := stdcli.DirApp(docContext, ".")
+		if err != nil {
+			//This will be handled later in the suite
+			return nil
+		}
+
+		s := make(chan string)
+		output := []string{}
+
+		go func() {
+			for x := range s {
+				output = append(output, x)
+			}
+		}()
+		err = m.Build(".", app, s, true)
+
+		if err != nil {
+			message := ""
+			for _, x := range output {
+				message += fmt.Sprintf("<fail>%s</fail>\n", x)
+			}
+			diagnose(Diagnosis{
+				Title:       title,
+				Description: message,
+				Kind:        "fail",
+			})
+		}
+
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+		return nil
+	}
+
+	startCheck(title)
+
+	byts, err := exec.Command("docker", "build", ".").CombinedOutput()
+	if err != nil {
+		bytsArr := strings.Split(string(byts), "\n")
+		message := ""
+		for _, x := range bytsArr {
+			message += fmt.Sprintf("<description>%s</description>\n", x)
+		}
+		diagnose(Diagnosis{
+			Title:       title,
+			Description: message,
+			Kind:        "fail",
+		})
+		return nil
+	}
+
+	diagnose(Diagnosis{
+		Title: title,
+		Kind:  "success",
+	})
+	return nil
+}
+
+func checkManifestValid(m *manifest.Manifest, parseError error) error {
+	title := "<file>docker-compose.yml</file> valid"
+	startCheck(title)
+
+	if parseError != nil {
+		diagnose(Diagnosis{
+			Title:       title,
+			Kind:        "fail",
+			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+			Description: "<description>It looks like your docker-compose.yml doesn't contain valid YAML</description>",
+		})
+		return nil
+	}
+
+	errs := m.Validate()
+	if len(errs) > 0 {
+		body := ""
+		for _, err := range errs {
+			body += fmt.Sprintf("<description>%s</description>\n", err.Error())
+		}
+		diagnose(Diagnosis{
+			Title:       title,
+			Kind:        "fail",
+			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+			Description: body,
+		})
+		return nil
+	}
+
+	diagnose(Diagnosis{
+		Kind:  "success",
+		Title: title,
+	})
+	return nil
+}
+
+func checkVersion2(m *manifest.Manifest) error {
+	title := "<file>docker-compose.yml</file> version 2"
+	startCheck(title)
+	if m.Version == "2" {
+		diagnose(Diagnosis{
+			Kind:  "success",
+			Title: title,
+		})
+		return nil
+	}
+	diagnose(Diagnosis{
+		Title:       title,
+		Kind:        "warning",
+		DocsLink:    "https://docs.docker.com/compose/compose-file/#/service-configuration-reference",
+		Description: "<warning>You are using the legacy v1 docker-compose.yml</warning>",
+	})
+	return nil
+}
+
+func checkEnvFound(m *manifest.Manifest) error {
+	title := "<file>.env</file> found"
+	startCheck(title)
+
+	_, err := os.Stat(".env")
+	if err != nil {
+		diagnose(Diagnosis{
+			Title:       title,
+			Description: "<warning>A .env file is required to provide configuration and secrets to your application</warning>",
+			Kind:        "warning",
+			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+		})
+	} else {
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+	}
+	return nil
+}
+
+func checkEnvValid(m *manifest.Manifest) error {
+	//TODO
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	}
+	return nil
+}
+
+func checkEnvIgnored(m *manifest.Manifest) error {
+	//TODO
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+		title := "<file>.env</file> in <file>.gitignore</file> and <file>.dockerignore</file>"
+		startCheck(title)
+		_, err := os.Stat(".dockerignore")
+		if err != nil {
+			diagnose(Diagnosis{
+				Title:       title,
+				Description: "<warning>It looks like you don't have a .dockerignore file</warning>",
+				Kind:        "warning",
+				DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+			})
+			return nil
+		}
+
+		_, err = os.Stat(".gitignore")
+		if err != nil {
+			diagnose(Diagnosis{
+				Title:       title,
+				Description: "<warning>It looks like you don't have a .gitignore file</warning>",
+				Kind:        "warning",
+				DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+			})
+			return nil
+		}
+
+		dockerIgnore, err := ioutil.ReadFile(filepath.Join(filepath.Dir(os.Args[0]), ".dockerignore"))
+		if err != nil {
+			return err
+		}
+
+		gitIgnore, err := ioutil.ReadFile(filepath.Join(filepath.Dir(os.Args[0]), ".gitignore"))
+		if err != nil {
+			return err
+		}
+
+		dockerIgnoreLines := strings.Split(string(dockerIgnore), "\n")
+		gitIgnoreLines := strings.Split(string(gitIgnore), "\n")
+
+		dockerIgnored, _ := fileutils.Matches(".env", dockerIgnoreLines)
+		gitIgnored, _ := fileutils.Matches(".env", gitIgnoreLines)
+
+		if !gitIgnored {
+			diagnose(Diagnosis{
+				Title:       title,
+				Description: "<warning>It looks like you don't have your .env in your .gitignore file</warning>",
+				Kind:        "warning",
+				DocsLink:    "https://git-scm.com/docs/gitignore",
+			})
+		}
+
+		if !dockerIgnored {
+			diagnose(Diagnosis{
+				Title:       title,
+				Description: "<warning>It looks like you don't have your .env in your .dockerignore file</warning>",
+				Kind:        "warning",
+				DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+			})
+		}
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+	}
+	return nil
+}
+
+func checkMissingEnv(m *manifest.Manifest) error {
 	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
@@ -239,6 +645,9 @@ func missingEnvValues(m *manifest.Manifest) error {
 	}
 
 	for _, s := range m.Services {
+		title := fmt.Sprintf("Service <service>%s</service> <config>environment</config> found in <file>.env</file>", s.Name)
+		startCheck(title)
+
 		links := map[string]bool{}
 
 		for _, l := range s.Links {
@@ -258,45 +667,54 @@ func missingEnvValues(m *manifest.Manifest) error {
 
 		if len(missingEnv) > 0 {
 			diagnose(Diagnosis{
-				Kind:        "warning",
-				DocsLink:    "#TODO",
-				Description: fmt.Sprintf("env expected: %s", strings.Join(missingEnv, ", ")),
+				Title:       title,
+				Kind:        "fail",
+				DocsLink:    "https://convox.com/docs/preparing-an-application/",
+				Description: fmt.Sprintf("<fail>env expected: %s</fail>", strings.Join(missingEnv, ", ")),
 			})
 		}
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+
 	}
 
 	return nil
 }
 
-func syncVolumeConflict(m *manifest.Manifest) error {
-	for _, s := range m.Services {
-		sps, err := s.SyncPaths()
-		if err != nil {
-			return err
-		}
+// func syncVolumeConflict(m *manifest.Manifest) error {
+// 	for _, s := range m.Services {
+// 		sps, err := s.SyncPaths()
+// 		if err != nil {
+// 			return err
+// 		}
 
-		for _, v := range s.Volumes {
-			parts := strings.Split(v, ":")
-			if len(parts) == 2 {
-				for k, _ := range sps {
-					if k == parts[0] {
-						diagnose(Diagnosis{
-							Kind:     "warning",
-							DocsLink: "#TODO",
-							Description: fmt.Sprintf(
-								"service: %s has a sync path conflict with volume %s",
-								s.Name,
-								v),
-						})
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
+// 		for _, v := range s.Volumes {
+// 			parts := strings.Split(v, ":")
+// 			if len(parts) == 2 {
+// 				for k, _ := range sps {
+// 					if k == parts[0] {
+// 						// diagnose(Diagnosis{
+// 						// 	Kind:     "warning",
+// 						// 	DocsLink: "#TODO",
+// 						// 	Description: fmt.Sprintf(
+// 						// 		"<description>service: %s has a sync path conflict with volume %s</description>",
+// 						// 		s.Name,
+// 						// 		v),
+// 						// })
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 func checkMissingDockerFiles(m *manifest.Manifest) error {
+	title := "Dockerfiles found"
+	startCheck(title)
+
 	for _, s := range m.Services {
 		if s.Image == "" {
 			dockerFile := coalesce(s.Dockerfile, "Dockerfile")
@@ -304,43 +722,148 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 			_, err := os.Stat(fmt.Sprintf("%s/%s", s.Build.Context, dockerFile))
 			if err != nil {
 				diagnose(Diagnosis{
-					Kind:        "warning",
-					DocsLink:    "#TODO",
-					Description: fmt.Sprintf("service: %s is missing it's Dockerfile", s.Name),
+					Title:       title,
+					Kind:        "fail",
+					DocsLink:    "https://convox.com/docs/preparing-an-application/",
+					Description: fmt.Sprintf("<fail>service: %s is missing it's Dockerfile</fail>", s.Name),
 				})
 			}
 		}
 	}
+	diagnose(Diagnosis{
+		Title: title,
+		Kind:  "success",
+	})
 	return nil
 }
 
-func checkLargeFiles(m *manifest.Manifest) error {
-	di, err := readDockerIgnore(".")
+func checkValidServices(m *manifest.Manifest) error {
+	_, app, err := stdcli.DirApp(docContext, ".")
 	if err != nil {
 		return err
 	}
+	for _, s := range m.Services {
+		title := fmt.Sprintf("Service <service>%s</service> is valid", s.Name)
+		startCheck(title)
+		if s.Command.String != "" || (s.Command.Array != nil && len(s.Command.Array) == 0) {
+			diagnose(Diagnosis{
+				Title: title,
+				Kind:  "success",
+			})
+			continue
+		}
 
-	f := func(path string, info os.FileInfo, err error) error {
-		m, err := fileutils.Matches(path, di)
+		t := s.Tag(app)
+		dockerCli, err := docker.NewClientFromEnv()
 		if err != nil {
 			return err
 		}
-		if m {
-			return nil
-		}
-		if info.Size() >= 200000000 {
-			diagnose(Diagnosis{
-				Kind:        "warning",
-				DocsLink:    "#TODO",
-				Description: fmt.Sprintf("%s is %d, perhaps you should add it to your .dockerignore to speed up builds and deploys", info.Name(), info.Size()),
-			})
-		}
-		return nil
-	}
 
-	err = filepath.Walk(".", f)
-	if err != nil {
-		return err
+		i, err := dockerCli.InspectImage(t)
+		if err != nil {
+			return err
+		}
+
+		if len(i.Config.Cmd) > 0 {
+			diagnose(Diagnosis{
+				Title: title,
+				Kind:  "success",
+			})
+			continue
+		}
+		diagnose(Diagnosis{
+			Title:       title,
+			Kind:        "fail",
+			Description: "This service doesn't have a valid command",
+		})
 	}
 	return nil
 }
+
+// func checkUnsupportedFeatures(m *manifest.Manifest) error {
+// 	dc, err := ioutil.ReadFile("docker-compose.yml")
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	r, err := m.Raw()
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	dcLines := strings.Split(string(dc), "\n")
+// 	rLines := strings.Split(string(r), "\n")
+
+// 	adds := 0
+// 	discoveries := make([][]int, 0)
+// 	current := make([]int, 0)
+// 	removes := 0
+
+// 	d := difflib.Diff(rLines, dcLines)
+
+// 	for x, dr := range d {
+// 		switch dr.Delta {
+// 		case 0:
+// 			if len(current) > 0 {
+// 				discoveries = append(discoveries, []int{current[0], len(current)})
+// 				current = []int{}
+// 			}
+// 			removes = 0
+// 		case 1:
+// 			adds++
+// 			removes++
+// 		case 2:
+// 			if removes == 0 {
+// 				current = append(current, x-adds)
+// 			} else {
+// 				removes--
+// 			}
+// 		}
+// 	}
+
+// 	for _, d := range discoveries {
+// 		parts := []string{}
+
+// 		head := dcLines[:d[0]]
+// 		tail := dcLines[d[0]+d[1]:]
+// 		max := len(dcLines)
+
+// 		switch {
+// 		case len(head) == 1:
+// 			num := d[0] - 1
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", dcLines[num]), num, max))
+// 		case len(head) >= 2:
+// 			num1 := d[0] - 2
+// 			num2 := d[0] - 1
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", dcLines[num1]), num1, max))
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", dcLines[num2]), num2, max))
+// 		}
+
+// 		for x := d[0]; x < (d[0] + d[1]); x++ {
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<warning>%s</warning>", dcLines[x]), x, max))
+// 		}
+
+// 		switch {
+// 		case len(tail) == 1:
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", tail[0]), d[0]+d[1], max))
+// 		case len(tail) >= 2:
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", tail[0]), d[0]+d[1], max))
+// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", tail[1]), d[0]+d[1]+1, max))
+// 		}
+
+// 		// diagnose(Diagnosis{
+// 		// 	Title:       "It looks like you are using docker-compose features that convox doesn't support",
+// 		// 	Kind:        "warning",
+// 		// 	Description: strings.Join(parts, "\n"),
+// 		// 	DocsLink:    "#TODO",
+// 		// })
+// 	}
+
+// 	return nil
+// }
+
+// func numberedLine(line string, num, maxNum int) string {
+// 	b := len(fmt.Sprintf("%d", maxNum))
+// 	format := fmt.Sprintf("<linenumber>%%0%dd:</linenumber> %%s", b)
+// 	return fmt.Sprintf(format, num+1, line)
+// }

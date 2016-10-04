@@ -1,5 +1,6 @@
 .env
 .git
+docker-compose.yml
 api/models/fixtures/fixture
 cmd/changes/changes
 cmd/convox/convox

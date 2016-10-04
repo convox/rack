@@ -35,6 +35,21 @@ func (c Command) MarshalYAML() (interface{}, error) {
 	return nil, nil
 }
 
+// MarshalYAML implements the Marshaller interface for the Environment type
+func (e Environment) MarshalYAML() (interface{}, error) {
+	res := []string{}
+
+	for k, v := range e {
+		if v == "" {
+			res = append(res, k)
+		} else {
+			res = append(res, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+
+	return res, nil
+}
+
 // UnmarshalYAML implements the Unmarshaller interface.
 func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
