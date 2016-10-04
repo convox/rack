@@ -36,8 +36,8 @@ var (
 		checkLargeFiles,
 	}
 
-	doctorChecks = []func() error{
-		checkDocker,
+	dockerChecks = []func() error{
+		dockerTest,
 	}
 )
 
@@ -48,15 +48,13 @@ func cmdDoctor(c *cli.Context) error {
 	}
 
 	for _, check := range manifestChecks {
-		err := check(m)
-		if err != nil {
+		if err := check(m); err != nil {
 			return stdcli.ExitError(err)
 		}
 	}
 
-	for _, check := range doctorChecks {
-		err := check()
-		if err != nil {
+	for _, check := range dockerChecks {
+		if err := check(); err != nil {
 			return stdcli.ExitError(err)
 		}
 	}
@@ -236,8 +234,4 @@ func checkLargeFiles(m *manifest.Manifest) error {
 		return err
 	}
 	return nil
-}
-
-func checkDocker() error {
-	return dockerTest()
 }
