@@ -14,8 +14,8 @@ func init() {
 
 func TestRegistryDelete(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleRegistryGetRegistry,
-		cycleRegistryGetRegistry,
+		cycleRegistryHeadRegistry,
+		cycleRegistryHeadRegistry,
 		cycleRegistryDeleteRegistry,
 	)
 	defer provider.Close()
@@ -47,9 +47,8 @@ func TestRegistryList(t *testing.T) {
 
 var cycleRegistryGetRackEnv = awsutil.Cycle{
 	awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings/env",
-		Operation:  "",
-		Body:       "",
 	},
 	awsutil.Response{
 		StatusCode: 200,
@@ -59,9 +58,8 @@ var cycleRegistryGetRackEnv = awsutil.Cycle{
 
 var cycleRegistryListRegistries = awsutil.Cycle{
 	awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings?delimiter=%2F&list-type=2&prefix=system%2Fregistries%2F",
-		Operation:  "",
-		Body:       "",
 	},
 	awsutil.Response{
 		StatusCode: 200,
@@ -100,9 +98,23 @@ var cycleRegistryDeleteRegistry = awsutil.Cycle{
 
 var cycleRegistryGetRegistry = awsutil.Cycle{
 	awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings/system/registries/722e6578616d706c652e6f7267e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		Operation:  "",
-		Body:       "",
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"server": "foo",
+			"username": "bar",
+			"password": "baz"
+		}`,
+	},
+}
+
+var cycleRegistryHeadRegistry = awsutil.Cycle{
+	awsutil.Request{
+		Method:     "HEAD",
+		RequestURI: "/convox-settings/system/registries/722e6578616d706c652e6f7267e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 	},
 	awsutil.Response{
 		StatusCode: 200,

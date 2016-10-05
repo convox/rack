@@ -350,7 +350,7 @@ func TestFormationSaveMemoryTooLarge(t *testing.T) {
 }
 
 var cycleFormationDescribeStack = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -504,7 +504,7 @@ var cycleFormationDescribeStack = awsutil.Cycle{
 }
 
 var cycleFormationDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -658,7 +658,7 @@ var cycleFormationDescribeStacks = awsutil.Cycle{
 }
 
 var cycleFormationDescribeStacksBadFormation = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -804,7 +804,7 @@ var cycleFormationDescribeStacksBadFormation = awsutil.Cycle{
 }
 
 var cycleFormationDescribeStacksEmptyRelease = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -959,7 +959,7 @@ var cycleFormationDescribeStacksEmptyRelease = awsutil.Cycle{
 
 func cycleDescribeStacksNotFound(name string) awsutil.Cycle {
 	return awsutil.Cycle{
-		awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=` + name + `&Version=2010-05-15`},
+		awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=` + name + `&Version=2010-05-15`},
 		awsutil.Response{
 			400,
 			`<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
