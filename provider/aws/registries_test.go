@@ -87,8 +87,6 @@ var cycleRegistryDeleteRegistry = awsutil.Cycle{
 	awsutil.Request{
 		Method:     "DELETE",
 		RequestURI: "/convox-settings/system/registries/722e6578616d706c652e6f7267e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		Operation:  "",
-		Body:       "",
 	},
 	awsutil.Response{
 		StatusCode: 200,
