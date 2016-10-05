@@ -21,7 +21,7 @@ type Request struct {
 
 func (r *Request) String() string {
 	body := formatBody(strings.NewReader(r.Body))
-	return fmt.Sprintf("RequestURI: %q,\nOperation: %q,\nBody: `%s`,", r.RequestURI, r.Operation, body)
+	return fmt.Sprintf("Method: %q,\nRequestURI: %q,\nOperation: %q,\nBody: `%s`,", r.Method, r.RequestURI, r.Operation, body)
 }
 
 // Response represents a predefined response.
@@ -69,7 +69,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cycle := h.cycles[0]
 
 	if cycle.Request.Method == "" {
-		cycle.Request.Method = "GET"
+		cycle.Request.Method = "POST"
 	}
 
 	var matched bool

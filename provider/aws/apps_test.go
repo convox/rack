@@ -67,7 +67,7 @@ func TestAppGet(t *testing.T) {
 }
 
 var cycleAppDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{200, `
 		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>

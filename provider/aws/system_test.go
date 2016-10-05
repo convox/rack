@@ -120,7 +120,7 @@ func TestSystemSaveWrongType(t *testing.T) {
 }
 
 var cycleSystemDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -273,7 +273,7 @@ var cycleSystemDescribeStacks = awsutil.Cycle{
 }
 
 var cycleSystemDescribeStacksMissingParameters = awsutil.Cycle{
-	awsutil.Request{"GET", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
