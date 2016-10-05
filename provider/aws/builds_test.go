@@ -451,7 +451,7 @@ var cycleBuildDescribeRepositories = awsutil.Cycle{
 }
 
 var cycleBuildDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{200, `
 		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>
@@ -833,6 +833,7 @@ var cycleBuildGetItemRunning = awsutil.Cycle{
 
 var cycleBuildFetchLogs = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings/test/foo",
 	},
 	Response: awsutil.Response{
@@ -1119,6 +1120,7 @@ var cycleBuildRunTask = awsutil.Cycle{
 
 var cycleBuildDockerListContainers = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
 		Body:       ``,
 	},
@@ -1142,6 +1144,7 @@ var cycleBuildDockerListContainers = awsutil.Cycle{
 
 var cycleBuildDockerLogs = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/containers/8dfafdbc3a40/logs?follow=1&stderr=1&stdout=1&tail=all",
 	},
 	Response: awsutil.Response{
@@ -1200,6 +1203,7 @@ var cycleBuildDockerPush = awsutil.Cycle{
 
 var cycleBuildDockerSave = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/v1.24/images/get?names=778743527532.dkr.ecr.us-east-1.amazonaws.com%2Fconvox-rails-sslibosttb%3Aweb.BAFVEWUCAYT",
 	},
 	Response: awsutil.Response{
@@ -1220,6 +1224,7 @@ var cycleBuildDockerTag = awsutil.Cycle{
 
 var cycleEnvironmentGet = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-httpd-settings-139bidzalmbtu/env",
 	},
 	Response: awsutil.Response{
@@ -1230,6 +1235,7 @@ var cycleEnvironmentGet = awsutil.Cycle{
 
 var cycleEnvironmentGetRack = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings/env",
 	},
 	Response: awsutil.Response{
@@ -1240,6 +1246,7 @@ var cycleEnvironmentGetRack = awsutil.Cycle{
 
 var cycleEnvironmentPut = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "PUT",
 		RequestURI: "/convox-httpd-settings-139bidzalmbtu/releases/R23456/env",
 		Body:       "BAZ=qux\nFOO=bar",
 	},

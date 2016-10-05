@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/gorilla/mux"
@@ -57,24 +55,9 @@ func InstanceSSH(ws *websocket.Conn) *httperr.Error {
 }
 
 func InstanceTerminate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	rack, err := models.Provider().SystemGet()
+	id := mux.Vars(r)["id"]
 
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such stack: %s", rack)
-	}
-
-	if err != nil {
-		return httperr.Server(err)
-	}
-
-	instanceId := mux.Vars(r)["id"]
-
-	_, err = models.AutoScaling().TerminateInstanceInAutoScalingGroup(&autoscaling.TerminateInstanceInAutoScalingGroupInput{
-		InstanceId:                     aws.String(instanceId),
-		ShouldDecrementDesiredCapacity: aws.Bool(false),
-	})
-
-	if err != nil {
+	if err := models.Provider().InstanceTerminate(id); err != nil {
 		return httperr.Server(err)
 	}
 

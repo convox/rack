@@ -81,12 +81,15 @@ func cmdInstancesList(c *cli.Context) error {
 }
 
 func cmdInstancesKeyroll(c *cli.Context) error {
+	fmt.Print("Rolling SSH keys... ")
+
 	err := rackClient(c).InstanceKeyroll()
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Println("Rebooting instances")
+	fmt.Println("OK")
+
 	return nil
 }
 
@@ -98,12 +101,14 @@ func cmdInstancesTerminate(c *cli.Context) error {
 
 	id := c.Args()[0]
 
+	fmt.Printf("Terminating %s... ", id)
+
 	err := rackClient(c).TerminateInstance(id)
 	if err != nil {
 		return stdcli.ExitError(err)
 	}
 
-	fmt.Printf("Successfully sent terminate to instance %q\n", id)
+	fmt.Println("OK")
 	return nil
 }
 

@@ -386,7 +386,7 @@ func UpperName(name string) string {
 }
 
 // TestProvider is a global test provider
-var TestProvider = &provider.TestProvider{}
+var TestProvider = &provider.MockProvider{}
 
 // Provider returns the appropriate provider interface based on the env
 func Provider() provider.Provider {
@@ -400,7 +400,7 @@ func Provider() provider.Provider {
 // Test provides a wrapping helper for running model tests
 func Test(t *testing.T, fn func()) {
 	tp := TestProvider
-	TestProvider = &provider.TestProvider{}
+	TestProvider = &provider.MockProvider{}
 	defer func() { TestProvider = tp }()
 	fn()
 	TestProvider.AssertExpectations(t)
