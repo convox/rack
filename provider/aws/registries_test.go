@@ -12,6 +12,19 @@ import (
 func init() {
 }
 
+func TestRegistryDelete(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleRegistryGetRegistry,
+		cycleRegistryGetRegistry,
+		cycleRegistryDeleteRegistry,
+	)
+	defer provider.Close()
+
+	err := provider.RegistryDelete("r.example.org")
+
+	assert.Nil(t, err)
+}
+
 func TestRegistryList(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleRegistryGetRackEnv,
@@ -61,7 +74,7 @@ var cycleRegistryListRegistries = awsutil.Cycle{
 				<Delimiter>/</Delimiter>
 				<IsTruncated>false</IsTruncated>
 				<Contents>
-					<Key>system/registries/39323235</Key>
+					<Key>system/registries/722e6578616d706c652e6f7267e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</Key>
 					<LastModified>2016-10-04T19:17:48.000Z</LastModified>
 					<ETag>&quot;97469e3ca4f6cbec29d79000e1d60054-1&quot;</ETag>
 					<Size>161</Size>
@@ -72,9 +85,22 @@ var cycleRegistryListRegistries = awsutil.Cycle{
 	},
 }
 
+var cycleRegistryDeleteRegistry = awsutil.Cycle{
+	awsutil.Request{
+		Method:     "DELETE",
+		RequestURI: "/convox-settings/system/registries/722e6578616d706c652e6f7267e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		Operation:  "",
+		Body:       "",
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body:       `{}`,
+	},
+}
+
 var cycleRegistryGetRegistry = awsutil.Cycle{
 	awsutil.Request{
-		RequestURI: "/convox-settings/system/registries/39323235",
+		RequestURI: "/convox-settings/system/registries/722e6578616d706c652e6f7267e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		Operation:  "",
 		Body:       "",
 	},
