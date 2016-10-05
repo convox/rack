@@ -13,6 +13,7 @@ import (
 
 // Request represents an expected AWS API Operation.
 type Request struct {
+	Method     string
 	RequestURI string
 	Operation  string
 	Body       string
@@ -52,6 +53,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	match := Request{
+		Method:     r.Method,
 		RequestURI: r.URL.RequestURI(),
 		Operation:  r.Header.Get("X-Amz-Target"),
 		Body:       string(b),
@@ -65,6 +67,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cycle := h.cycles[0]
+
+	if cycle.Request.Method == "" {
+		cycle.Request.Method = "GET"
+	}
 
 	var matched bool
 
