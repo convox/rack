@@ -90,10 +90,10 @@ func cmdRegistryList(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
-	t := stdcli.NewTable("SERVER")
+	t := stdcli.NewTable("SERVER", "USERNAME")
 
 	for _, reg := range *registries {
-		t.AddRow(reg.ServerAddress)
+		t.AddRow(reg.Server, reg.Username)
 	}
 
 	t.Print()
@@ -108,8 +108,7 @@ func cmdRegistryRemove(c *cli.Context) error {
 
 	server := c.Args()[0]
 
-	_, err := rackClient(c).RemoveRegistry(server)
-	if err != nil {
+	if err := rackClient(c).RemoveRegistry(server); err != nil {
 		return stdcli.ExitError(err)
 	}
 

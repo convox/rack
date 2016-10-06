@@ -5,15 +5,15 @@ import (
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestServiceWebhookURL(t *testing.T) {
 	provider := StubAwsProvider(
-		test.DescribeStackNotFound("convox-mywebhook"),
-		test.DescribeStackNotFound("mywebhook"),
+		cycleDescribeStacksNotFound("convox-mywebhook"),
+		cycleDescribeStacksNotFound("mywebhook"),
 		cycleServiceCreateWebhook,
+		cycleServiceCreateNotificationPublish,
 	)
 	defer provider.Close()
 
@@ -31,7 +31,7 @@ func TestServiceWebhookURL(t *testing.T) {
 
 func TestServiceGet(t *testing.T) {
 	provider := StubAwsProvider(
-		test.DescribeStackNotFound("convox-syslog"),
+		cycleDescribeStacksNotFound("convox-syslog"),
 		cycleServiceDescribeStacks1,
 		cycleAppDescribeStacks,
 	)
@@ -106,7 +106,7 @@ func TestServiceGet(t *testing.T) {
 }
 
 var cycleServiceDescribeStacks1 = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -164,7 +164,7 @@ var cycleServiceDescribeStacks1 = awsutil.Cycle{
 }
 
 var cycleServiceDescribeStacks2 = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -197,7 +197,7 @@ var cycleServiceDescribeStacks2 = awsutil.Cycle{
 }
 
 var cycleServiceCreateWebhook = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=CreateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=CustomTopic&Parameters.member.1.ParameterValue=&Parameters.member.2.ParameterKey=NotificationTopic&Parameters.member.2.ParameterValue=&Parameters.member.3.ParameterKey=Url&Parameters.member.3.ParameterValue=http%3A%2F%2Fnotifications.example.org%2Fsns%3Fendpoint%3Dhttps%253A%252F%252Fwww.example.com&StackName=convox-mywebhook&Tags.member.1.Key=Name&Tags.member.1.Value=mywebhook&Tags.member.2.Key=Rack&Tags.member.2.Value=convox&Tags.member.3.Key=Service&Tags.member.3.Value=webhook&Tags.member.4.Key=System&Tags.member.4.Value=convox&Tags.member.5.Key=Type&Tags.member.5.Value=service&TemplateBody=%0A%7B%0A++%22AWSTemplateFormatVersion%22+%3A+%222010-09-09%22%2C%0A++%22Parameters%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22Webhook+URL%2C+e.g.+%27https%3A%2F%2Fgrid.convox.com%2Frack-hook%2F1234%27%22%0A++++%7D%2C%0A++++%22CustomTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%2C%0A++++%22NotificationTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%0A++%7D%2C%0A++%22Resources%22%3A+%7B%0A++++%22Notifications%22%3A+%7B%0A++++++%22Type%22+%3A+%22Custom%3A%3ASNSSubscription%22%2C%0A++++++%22Version%22%3A+%221.0%22%2C%0A++++++%22Properties%22%3A+%7B%0A++++++++%22ServiceToken%22%3A+%7B+%22Ref%22%3A+%22CustomTopic%22+%7D%2C%0A++++++++%22TopicArn%22+%3A+%7B+%22Ref%22%3A+%22NotificationTopic%22+%7D%2C%0A++++++++%22Protocol%22+%3A+%22http%22%2C%0A++++++++%22Endpoint%22+%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++++%7D%0A++++%7D%0A++%7D%2C%0A++%22Outputs%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Value%22%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++%7D%0A++%7D%0A%7D%0A&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=CreateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=CustomTopic&Parameters.member.1.ParameterValue=&Parameters.member.2.ParameterKey=NotificationTopic&Parameters.member.2.ParameterValue=&Parameters.member.3.ParameterKey=Url&Parameters.member.3.ParameterValue=http%3A%2F%2Fnotifications.example.org%2Fsns%3Fendpoint%3Dhttps%253A%252F%252Fwww.example.com&StackName=convox-mywebhook&Tags.member.1.Key=Name&Tags.member.1.Value=mywebhook&Tags.member.2.Key=Rack&Tags.member.2.Value=convox&Tags.member.3.Key=Service&Tags.member.3.Value=webhook&Tags.member.4.Key=System&Tags.member.4.Value=convox&Tags.member.5.Key=Type&Tags.member.5.Value=service&TemplateBody=%0A%7B%0A++%22AWSTemplateFormatVersion%22+%3A+%222010-09-09%22%2C%0A++%22Parameters%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22Webhook+URL%2C+e.g.+%27https%3A%2F%2Fgrid.convox.com%2Frack-hook%2F1234%27%22%0A++++%7D%2C%0A++++%22CustomTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%2C%0A++++%22NotificationTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%0A++%7D%2C%0A++%22Resources%22%3A+%7B%0A++++%22Notifications%22%3A+%7B%0A++++++%22Type%22+%3A+%22Custom%3A%3ASNSSubscription%22%2C%0A++++++%22Version%22%3A+%221.0%22%2C%0A++++++%22Properties%22%3A+%7B%0A++++++++%22ServiceToken%22%3A+%7B+%22Ref%22%3A+%22CustomTopic%22+%7D%2C%0A++++++++%22TopicArn%22+%3A+%7B+%22Ref%22%3A+%22NotificationTopic%22+%7D%2C%0A++++++++%22Protocol%22+%3A+%22http%22%2C%0A++++++++%22Endpoint%22+%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++++%7D%0A++++%7D%0A++%7D%2C%0A++%22Outputs%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Value%22%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++%7D%0A++%7D%0A%7D%0A&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<CreateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -208,5 +208,25 @@ var cycleServiceCreateWebhook = awsutil.Cycle{
                                         <RequestId>cd6fdfe7-7059-11e6-af63-31e395e4ce23</RequestId>
                                 </ResponseMetadata>
                         </CreateStackResponse>`,
+	},
+}
+
+var cycleServiceCreateNotificationPublish = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Body:       `Action=Publish&Message=%7B%22action%22%3A%22service%3Acreate%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22name%22%3A%22mywebhook%22%2C%22type%22%3A%22webhook%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=service%3Acreate&TargetArn=&Version=2010-03-31`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<PublishResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+				<PublishResult>
+					<MessageId>94f20ce6-13c5-43a0-9a9e-ca52d816e90b</MessageId>
+				</PublishResult>
+				<ResponseMetadata>
+					<RequestId>f187a3c1-376f-11df-8963-01868b7c937a</RequestId>
+				</ResponseMetadata>
+			</PublishResponse>
+		`,
 	},
 }

@@ -1,15 +1,13 @@
 package controllers_test
 
 import (
-	"encoding/json"
-	"os"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/client"
-	"github.com/convox/rack/provider"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,47 +18,52 @@ func init() {
 }
 
 func TestInstanceList(t *testing.T) {
-	models.TestProvider = &provider.TestProvider{
-		Instances: []structs.Instance{
-			structs.Instance{},
-			structs.Instance{},
-			structs.Instance{},
-		},
-	}
+	models.Test(t, func() {
+		instances := structs.Instances{
+			structs.Instance{
+				Agent:     true,
+				Cpu:       0.28,
+				Id:        "test",
+				Memory:    0.18,
+				PrivateIp: "1.2.3.4",
+				Processes: 5,
+				PublicIp:  "2.3.4.5",
+				Status:    "running",
+				Started:   time.Unix(1475610360, 0).UTC(),
+			},
+		}
 
-	// setup expectations on current provider
-	models.TestProvider.On("InstanceList").Return(models.TestProvider.Instances, nil)
+		models.TestProvider.On("InstanceList").Return(instances, nil)
 
-	os.Setenv("RACK", "convox-test")
-	os.Setenv("CLUSTER", "convox-test-cluster")
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	body := test.HTTPBody("GET", "http://convox/instances", nil)
-
-	var resp []client.Instance
-
-	err := json.Unmarshal([]byte(body), &resp)
-
-	if assert.Nil(t, err) {
-		assert.Equal(t, 3, len(resp))
-	}
+		if assert.Nil(t, hf.Request("GET", "/instances", nil)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "[{\"agent\":true,\"cpu\":0.28,\"id\":\"test\",\"memory\":0.18,\"private-ip\":\"1.2.3.4\",\"processes\":5,\"public-ip\":\"2.3.4.5\",\"started\":\"2016-10-04T19:46:00Z\",\"status\":\"running\"}]")
+		}
+	})
 }
 
 func TestInstanceTerminate(t *testing.T) {
-	models.TestProvider.On("SystemGet").Return(nil, nil)
+	models.Test(t, func() {
+		models.TestProvider.On("InstanceTerminate", "i-1234").Return(nil)
 
-	os.Setenv("RACK", "convox-test")
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	aws := test.StubAws(
-		test.DeleteInstanceCycle("i-4a5513f4"),
-	)
-	defer aws.Close()
+		if assert.Nil(t, hf.Request("DELETE", "/instances/i-1234", nil)) {
+			hf.AssertCode(t, 200)
+			hf.AssertSuccess(t)
+		}
+	})
 
-	body := test.HTTPBody("DELETE", "http://convox/instances/i-4a5513f4", nil)
+	models.Test(t, func() {
+		models.TestProvider.On("InstanceTerminate", "i-1234").Return(fmt.Errorf("broken"))
 
-	var resp map[string]bool
-	err := json.Unmarshal([]byte(body), &resp)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	if assert.Nil(t, err) {
-		assert.Equal(t, true, resp["success"])
-	}
+		if assert.Nil(t, hf.Request("DELETE", "/instances/i-1234", nil)) {
+			hf.AssertCode(t, 500)
+			hf.AssertError(t, "broken")
+		}
+	})
 }

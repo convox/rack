@@ -45,16 +45,24 @@ type Provider interface {
 	IndexUpload(string, []byte) error
 
 	InstanceList() (structs.Instances, error)
+	InstanceTerminate(id string) error
 
 	LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error
 
+	ObjectDelete(key string) error
+	ObjectExists(key string) bool
 	ObjectFetch(key string) (io.ReadCloser, error)
+	ObjectList(prefix string) ([]string, error)
 	ObjectStore(key string, r io.Reader, opts structs.ObjectOptions) (string, error)
 
 	ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error
 	ProcessList(app string) (structs.Processes, error)
 	ProcessRun(app, process string, opts structs.ProcessRunOptions) (string, error)
 	ProcessStop(app, pid string) error
+
+	RegistryAdd(server, username, password string) (*structs.Registry, error)
+	RegistryDelete(server string) error
+	RegistryList() (structs.Registries, error)
 
 	ReleaseDelete(app, buildID string) error
 	ReleaseGet(app, id string) (*structs.Release, error)
@@ -77,15 +85,13 @@ type Provider interface {
 	SystemSave(system structs.System) error
 }
 
-var testProvider = &TestProvider{}
-
 // FromEnv returns a new Provider from env vars
 func FromEnv() Provider {
 	switch os.Getenv("PROVIDER") {
 	case "aws":
 		return aws.FromEnv()
 	case "test":
-		return testProvider
+		return &MockProvider{}
 	default:
 		panic(fmt.Errorf("must set PROVIDER to one of (aws, test)"))
 	}
