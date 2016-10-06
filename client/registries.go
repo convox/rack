@@ -24,8 +24,7 @@ func (c *Client) AddRegistry(server, username, password, email string) (*Registr
 	}
 
 	// backwards compatible
-	// FIXME: pick the right version here
-	if system.Version < "30000000000000" {
+	if system.Version < "20161006183008" {
 		params["server"] = params["serveraddress"]
 		delete(params, "serveraddress")
 	}
