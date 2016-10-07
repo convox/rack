@@ -4,7 +4,7 @@ import "github.com/convox/rack/cmd/convox/stdcli"
 
 func init() {
 	stdcli.DefaultWriter.Tags["app"] = stdcli.RenderAttributes(39)
-	stdcli.DefaultWriter.Tags["config"] = stdcli.RenderAttributes(37)
+	stdcli.DefaultWriter.Tags["config"] = stdcli.RenderAttributes()
 	stdcli.DefaultWriter.Tags["description"] = stdcli.RenderAttributes(245)
 	stdcli.DefaultWriter.Tags["fail"] = stdcli.RenderAttributes(160)
 	stdcli.DefaultWriter.Tags["file"] = stdcli.RenderAttributes(249)

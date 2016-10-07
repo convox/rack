@@ -65,10 +65,10 @@ var (
 	docContext = &cli.Context{}
 
 	setupChecks = []func() error{
+		checkCLIVersion,
 		checkDockerRunning,
 		checkDockerVersion,
 		checkDockerPull,
-		checkCLIVersion,
 	}
 
 	buildImageChecks = []func() error{
@@ -238,6 +238,9 @@ func checkDockerPull() error {
 }
 
 func checkCLIVersion() error {
+	title := "Convox CLI version"
+	startCheck(title)
+
 	client, err := updateClient()
 	if err != nil {
 		return stdcli.Error(err)
@@ -254,18 +257,17 @@ func checkCLIVersion() error {
 
 	// check for update
 	_, err = equinox.Check("app_i8m2L26DxKL", opts)
-	if err == nil {
-		// diagnose(Diagnosis{
-		// 	Kind:        "warning",
-		// 	Title:       "Convox CLI out of date",
-		// 	Description: "<description>Run `convox update`</description>",
-		// 	DocsLink:    "#TODO",
-		// })
+	if err == nil && Version != "dev" {
+		diagnose(Diagnosis{
+			Kind:        "warning",
+			Title:       title,
+			Description: "<warning>Your Convox CLI is out of date, run `convox update`</warning>",
+		})
 	} else {
-		// diagnose(Diagnosis{
-		// 	Kind:  "success",
-		// 	Title: "Convox CLI is up to date",
-		// })
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
 	}
 	return nil
 }
@@ -407,7 +409,7 @@ func checkLargeFiles() error {
 }
 
 func checkBuildDocker() error {
-	title := "Image built successfully"
+	title := "Image builds successfully"
 
 	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
 		m, err := manifest.LoadFile(df)
