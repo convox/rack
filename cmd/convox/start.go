@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -45,6 +46,10 @@ func init() {
 
 func cmdStart(c *cli.Context) error {
 	// go handleResize()
+	log.Printf("%#v", c.Args())
+	if len(c.Args()) == 1 {
+		//startProc
+	}
 
 	id, err := currentId()
 	if err != nil {

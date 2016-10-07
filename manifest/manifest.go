@@ -198,7 +198,14 @@ func (m *Manifest) Run(dir, app string, cache, sync bool) Run {
 }
 
 // Return the Services of this Manifest in the order you should run them
-func (m *Manifest) runOrder() Services {
+func (m *Manifest) runOrder(target string) (Services, error) {
+	if target != "" {
+		targetService, ok := m.Services[target]
+		if !ok {
+			return nil, fmt.Errorf("%s not found in manifest")
+		}
+	}
+
 	services := Services{}
 
 	for _, service := range m.Services {
@@ -220,7 +227,7 @@ func (m *Manifest) runOrder() Services {
 		}
 	}
 
-	return services
+	return services, nil
 }
 
 // Shift all external ports in this Manifest by the given amount and their shift labels
