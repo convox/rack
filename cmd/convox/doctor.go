@@ -357,6 +357,9 @@ func checkLargeFiles() error {
 	title := "Large files in <file>.dockerignore</file>"
 	startCheck(title)
 
+	files := map[string]int64{}
+	message := ""
+
 	di, _ := readDockerIgnore(".")
 
 	f := func(path string, info os.FileInfo, err error) error {
@@ -368,11 +371,7 @@ func checkLargeFiles() error {
 			return nil
 		}
 		if info.Size() >= 200000000 {
-			diagnose(Diagnosis{
-				Kind:        "warning",
-				DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
-				Description: fmt.Sprintf("<warning>%s is %d, perhaps you should add it to your .dockerignore to speed up builds and deploys</warning>", info.Name(), info.Size()),
-			})
+			files[path] = info.Size()
 		}
 		return nil
 	}
@@ -382,9 +381,27 @@ func checkLargeFiles() error {
 		return err
 	}
 
+	if len(files) == 0 {
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+		return nil
+	}
+
+	for k, v := range files {
+		message += fmt.Sprintf(
+			"<warning>./%s is %d bytes, perhaps you should add it to your .dockerignore to speed up builds and deploys</warning>\n",
+			k,
+			v,
+		)
+	}
+
 	diagnose(Diagnosis{
-		Title: title,
-		Kind:  "success",
+		Title:       title,
+		Kind:        "warning",
+		DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+		Description: message,
 	})
 	return nil
 }
@@ -764,7 +781,7 @@ func checkValidServices(m *manifest.Manifest) error {
 			return err
 		}
 
-		if len(i.Config.Cmd) > 0 {
+		if (len(i.Config.Cmd) > 0) || (i.Config.Entrypoint != nil) {
 			diagnose(Diagnosis{
 				Title: title,
 				Kind:  "success",
