@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -46,9 +45,15 @@ func init() {
 
 func cmdStart(c *cli.Context) error {
 	// go handleResize()
-	log.Printf("%#v", c.Args())
-	if len(c.Args()) == 1 {
-		//startProc
+	var targetService string
+	var targetCommand []string
+
+	if len(c.Args()) > 0 {
+		targetService = c.Args()[0]
+	}
+
+	if len(c.Args()) > 1 {
+		targetCommand = c.Args()[1:]
 	}
 
 	id, err := currentId()
@@ -91,7 +96,7 @@ func cmdStart(c *cli.Context) error {
 	cache := !c.Bool("no-cache")
 	sync := !c.Bool("no-sync")
 
-	r := m.Run(dir, app, cache, sync)
+	r := m.Run(targetService, targetCommand, dir, app, cache, sync)
 
 	err = r.Start()
 	if err != nil {

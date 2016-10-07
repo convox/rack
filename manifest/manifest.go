@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"regexp"
 	"sort"
@@ -193,16 +194,38 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 }
 
 // Run Instantiate a Run object based on this manifest to be run via 'convox start'
-func (m *Manifest) Run(dir, app string, cache, sync bool) Run {
-	return NewRun(dir, app, *m, cache, sync)
+func (m *Manifest) Run(targetService string, targetCommand []string, dir, app string, cache, sync bool) Run {
+	return NewRun(targetService, targetCommand, dir, app, *m, cache, sync)
+}
+
+func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
+	deps[dep] = true
+	targetService, ok := m.Services[dep]
+	if !ok {
+		return fmt.Errorf("Dependence %s of %s not found in manifest", dep, root)
+	}
+
+	for _, x := range targetService.Links {
+		_, ok := deps[x]
+		if !ok {
+			deps[dep] = true
+			err := m.getDeps(root, x, deps)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	log.Printf("%#v", deps)
+	return nil
 }
 
 // Return the Services of this Manifest in the order you should run them
 func (m *Manifest) runOrder(target string) (Services, error) {
+	deps := make(map[string]bool)
 	if target != "" {
-		targetService, ok := m.Services[target]
-		if !ok {
-			return nil, fmt.Errorf("%s not found in manifest")
+		err := m.getDeps(target, target, deps)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -225,6 +248,16 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 				}
 			}
 		}
+	}
+
+	if len(deps) > 0 {
+		servicesFiltered := []Service{}
+		for _, s := range services {
+			if deps[s.Name] {
+				servicesFiltered = append(servicesFiltered, s)
+			}
+		}
+		return Services(servicesFiltered), nil
 	}
 
 	return services, nil

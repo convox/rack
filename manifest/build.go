@@ -10,7 +10,12 @@ func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
 	pulls := map[string][]string{}
 	builds := []Service{}
 
-	for _, service := range m.runOrder() {
+	services, err := m.runOrder("")
+	if err != nil {
+		return err
+	}
+
+	for _, service := range services {
 		dockerFile := service.Build.Dockerfile
 		if dockerFile == "" {
 			dockerFile = service.Dockerfile
