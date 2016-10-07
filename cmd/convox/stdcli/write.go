@@ -69,7 +69,7 @@ func Writef(format string, args ...interface{}) (int, error) {
 }
 
 func (w *Writer) Error(err error) error {
-	w.Writef("<error>%s</error>\n", err)
+	w.Stderr.Write([]byte(fmt.Sprintf(w.renderTags("<error>%s</error>\n"), err)))
 	return err
 }
 
