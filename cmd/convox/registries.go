@@ -108,7 +108,7 @@ func cmdRegistryRemove(c *cli.Context) error {
 
 	server := c.Args()[0]
 
-	_, err := rackClient(c).RemoveRegistry(server)
+	err := rackClient(c).RemoveRegistry(server)
 	if err != nil {
 		return stdcli.Error(err)
 	}
