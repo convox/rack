@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func (m *Manifest) Build(dir, appName string, s Stream, cache bool) error {
+func (m *Manifest) Build(targetService, dir, appName string, s Stream, cache bool) error {
 	pulls := map[string][]string{}
 	builds := []Service{}
 
-	services, err := m.runOrder("")
+	services, err := m.runOrder(targetService)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,7 +120,7 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	err = r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.Cache)
+	err = r.manifest.Build(r.TargetService, r.Dir, r.App, r.output.Stream("build"), r.Cache)
 	if err != nil {
 		return err
 	}
@@ -131,19 +130,12 @@ func (r *Run) Start() error {
 	for _, s := range services {
 		proxies := s.Proxies(r.App)
 
-		log.Printf("HERE")
-		log.Printf("%#v", r.TargetCommand)
 		if r.TargetCommand != nil && len(r.TargetCommand) > 0 && s.Name == r.TargetService {
-			log.Printf("HERE 2")
 			s.Command.String = ""
 			s.Command.Array = r.TargetCommand
 		}
 
 		p := s.Process(r.App, r.manifest)
-		log.Print("herre")
-		log.Print(len(services))
-		log.Print(r.App)
-		log.Print(p.Name)
 
 		Docker("rm", "-f", p.Name).Run()
 

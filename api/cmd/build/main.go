@@ -206,7 +206,7 @@ func build(dir string) error {
 
 	defer close(s)
 
-	if err := m.Build(dir, flagApp, s, (flagCache == "true")); err != nil {
+	if err := m.Build("", dir, flagApp, s, (flagCache == "true")); err != nil {
 		return err
 	}
 

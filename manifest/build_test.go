@@ -90,7 +90,7 @@ func TestBuildWithCache(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, true)
+	err = m.Build("", ".", "web", str, true)
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
@@ -120,7 +120,7 @@ func TestBuildCacheNoImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, true)
+	err = m.Build("", ".", "web", str, true)
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
@@ -130,6 +130,36 @@ func TestBuildCacheNoImage(t *testing.T) {
 	assert.Equal(t, te.Commands[0].Args, cmd1)
 	assert.Equal(t, te.Commands[1].Args, cmd2)
 	assert.Equal(t, te.Commands[2].Args, cmd3)
+}
+
+func TestBuildWithSpecificService(t *testing.T) {
+	output := manifest.NewOutput()
+	str := output.Stream("build")
+	dr := manifest.DefaultRunner
+	te := NewTestExecer()
+	te.CannedResponses = []ExecResponse{
+		ExecResponse{
+			Output: []byte("dockerid"),
+			Error:  nil,
+		},
+	}
+
+	manifest.DefaultRunner = te
+	defer func() { manifest.DefaultRunner = dr }()
+
+	m, err := manifestFixture("specific-service")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = m.Build("web", ".", "web", str, true)
+
+	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
+	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
+
+	assert.Equal(t, len(te.Commands), 2)
+	assert.Equal(t, te.Commands[0].Args, cmd1)
+	assert.Equal(t, te.Commands[1].Args, cmd2)
 }
 
 func TestBuildNoCache(t *testing.T) {
@@ -152,7 +182,7 @@ func TestBuildNoCache(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, false)
+	err = m.Build("", ".", "web", str, false)
 
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
@@ -177,7 +207,7 @@ func TestBuildRepeatSimple(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, false)
+	err = m.Build("", ".", "web", str, false)
 
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
 	cmd2 := []string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/other", "other"}
@@ -208,7 +238,7 @@ func TestBuildRepeatImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, false)
+	err = m.Build("", ".", "web", str, false)
 
 	cmd1 := []string{"docker", "pull", "convox/rails:latest"}
 	cmd2 := []string{"docker", "tag", "convox/rails:latest", "web/web1"}
@@ -234,7 +264,7 @@ func TestBuildRepeatComplex(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, false)
+	err = m.Build("", ".", "web", str, false)
 
 	te.AssertCommands(t, TestCommands{
 		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/first", "."},

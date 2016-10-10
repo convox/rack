@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"regexp"
 	"sort"
@@ -215,7 +214,6 @@ func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
 			}
 		}
 	}
-	log.Printf("%#v", deps)
 	return nil
 }
 
