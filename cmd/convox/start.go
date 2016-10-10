@@ -19,7 +19,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "start",
 		Description: "start an app for local development",
-		Usage:       "[directory]",
+		Usage:       "[service] [command]",
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
