@@ -181,8 +181,62 @@ func deregisterClusterInstance(cluster, arn string) error {
 		ContainerInstance: aws.String(arn),
 		Force:             aws.Bool(true),
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	for {
+		lreq := &ecs.ListServicesInput{
+			Cluster:    aws.String(cluster),
+			MaxResults: aws.Int64(10),
+		}
+
+		converged := true
+
+		for {
+			lres, err := ECS.ListServices(lreq)
+			if err != nil {
+				return err
+			}
+
+			dres, err := ECS.DescribeServices(&ecs.DescribeServicesInput{
+				Cluster:  aws.String(cluster),
+				Services: lres.ServiceArns,
+			})
+			if err != nil {
+				return err
+			}
+
+			for _, s := range dres.Services {
+				for _, d := range s.Deployments {
+					fmt.Printf("service=%s running=%d pending=%d desired=%d\n", *s.ServiceArn, *d.RunningCount, *d.PendingCount, *d.DesiredCount)
+
+					if *d.RunningCount != *d.DesiredCount {
+						converged = false
+					}
+				}
+			}
+
+			if !converged {
+				break
+			}
+
+			if lres.NextToken == nil {
+				break
+			}
+
+			lreq.NextToken = lres.NextToken
+		}
+
+		if converged {
+			fmt.Println("converged")
+			return nil
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil
 }
 
 func rackBalancers(rack string) ([]string, error) {
