@@ -12,10 +12,10 @@ type Registries []Registry
 
 func (c *Client) AddRegistry(server, username, password, email string) (*Registry, error) {
 	params := Params{
-		"username":      username,
-		"password":      password,
-		"email":         email,
-		"serveraddress": server,
+		"username": username,
+		"password": password,
+		"email":    email,
+		"server":   server,
 	}
 
 	system, err := c.GetSystem()
@@ -24,10 +24,9 @@ func (c *Client) AddRegistry(server, username, password, email string) (*Registr
 	}
 
 	// backwards compatible
-	// FIXME: pick the right version here
-	if system.Version < "30000000000000" {
-		params["server"] = params["serveraddress"]
-		delete(params, "serveraddress")
+	if system.Version < "20161006183008" {
+		params["serveraddress"] = params["server"]
+		delete(params, "server")
 	}
 
 	var registry Registry
