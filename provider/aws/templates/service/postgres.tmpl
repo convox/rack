@@ -21,6 +21,11 @@
         "Default": "db.t2.micro",
         "Description": "Instance class for database nodes"
       },
+      "Family": {
+        "Type": "String",
+        "Default": "postgres9.5",
+        "Description": "Postgres version family"
+      },
       "MaxConnections": {
         "Type": "String",
         "Default": "",
@@ -121,7 +126,7 @@
         "Type": "AWS::RDS::DBParameterGroup",
         "Properties": {
           "Description": { "Ref": "Database" },
-          "Family": { "Fn::Join": [ "postgres",  { "Ref": "Version" } ] },
+          "Family": { "Ref": "Family" },
           "Parameters": {
             "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
           }
