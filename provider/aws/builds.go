@@ -26,7 +26,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 )
@@ -643,37 +642,6 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 }
 
 func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
-	r, err := p.ObjectFetch("env")
-	if err != nil && !ErrorNotFound(err) {
-		return "", err
-	}
-
-	data := []byte("{}")
-
-	if r != nil {
-		defer r.Close()
-
-		d, err := ioutil.ReadAll(r)
-		if err != nil {
-			return "", err
-		}
-		data = d
-
-		if p.EncryptionKey != "" {
-			cr := crypt.New(p.Region, p.Access, p.Secret)
-
-			if d, err := cr.Decrypt(p.EncryptionKey, data); err == nil {
-				data = d
-			}
-		}
-	}
-
-	var env map[string]string
-	err = json.Unmarshal(data, &env)
-	if err != nil {
-		return "", err
-	}
-
 	type authEntry struct {
 		Username string
 		Password string
@@ -681,22 +649,27 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 
 	auth := map[string]authEntry{}
 
-	if ea, ok := env["DOCKER_AUTH_DATA"]; ok {
-		if err := json.Unmarshal([]byte(ea), &auth); err != nil {
-			return "", err
-		}
+	registries, err := p.RegistryList()
+	if err != nil {
+		return "", err
 	}
 
-	for host, entry := range auth {
-		if regexpECRHost.MatchString(host) {
-			un, pw, err := p.authECR(host, entry.Username, entry.Password)
+	for _, r := range registries {
+		switch {
+		case regexpECRHost.MatchString(r.Server):
+			un, pw, err := p.authECR(r.Server, r.Username, r.Password)
 			if err != nil {
 				return "", err
 			}
 
-			auth[host] = authEntry{
+			auth[r.Server] = authEntry{
 				Username: un,
 				Password: pw,
+			}
+		default:
+			auth[r.Server] = authEntry{
+				Username: r.Username,
+				Password: r.Password,
 			}
 		}
 	}
@@ -718,7 +691,7 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 		Password: pw,
 	}
 
-	data, err = json.Marshal(auth)
+	data, err := json.Marshal(auth)
 	if err != nil {
 		return "", err
 	}
