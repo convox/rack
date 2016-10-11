@@ -45,15 +45,15 @@ func init() {
 
 func cmdStart(c *cli.Context) error {
 	// go handleResize()
-	var targetService string
-	var targetCommand []string
+	var service string
+	var command []string
 
 	if len(c.Args()) > 0 {
-		targetService = c.Args()[0]
+		service = c.Args()[0]
 	}
 
 	if len(c.Args()) > 1 {
-		targetCommand = c.Args()[1:]
+		command = c.Args()[1:]
 	}
 
 	id, err := currentId()
@@ -96,7 +96,12 @@ func cmdStart(c *cli.Context) error {
 	cache := !c.Bool("no-cache")
 	sync := !c.Bool("no-sync")
 
-	r := m.Run(targetService, targetCommand, dir, app, cache, sync)
+	r := m.Run(dir, app, manifest.RunOptions{
+		Cache:   cache,
+		Sync:    sync,
+		Service: service,
+		Command: command,
+	})
 
 	err = r.Start()
 	if err != nil {

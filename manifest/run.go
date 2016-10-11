@@ -14,13 +14,9 @@ import (
 )
 
 type Run struct {
-	TargetService string
-	TargetCommand []string
-
-	App   string
-	Dir   string
-	Cache bool
-	Sync  bool
+	App  string
+	Dir  string
+	Opts RunOptions
 
 	done      chan error
 	manifest  Manifest
@@ -30,17 +26,21 @@ type Run struct {
 	syncs     []sync.Sync
 }
 
+type RunOptions struct {
+	Service string
+	Command []string
+	Cache   bool
+	Sync    bool
+}
+
 // NewRun Default constructor method for a Run object
-func NewRun(targetService string, targetCommand []string, dir, app string, m Manifest, cache, sync bool) Run {
+func NewRun(m Manifest, dir, app string, opts RunOptions) Run {
 	return Run{
-		TargetService: targetService,
-		TargetCommand: targetCommand,
-		App:           app,
-		Dir:           dir,
-		Cache:         cache,
-		Sync:          sync,
-		manifest:      m,
-		output:        NewOutput(),
+		App:      app,
+		Dir:      dir,
+		Opts:     opts,
+		manifest: m,
+		output:   NewOutput(),
 	}
 }
 
@@ -81,7 +81,7 @@ func (r *Run) Start() error {
 		}
 	}
 
-	services, err := r.manifest.runOrder(r.TargetService)
+	services, err := r.manifest.runOrder(r.Opts.Service)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,10 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	err = r.manifest.Build(r.TargetService, r.Dir, r.App, r.output.Stream("build"), r.Cache)
+	err = r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), BuildOptions{
+		NoCache: !r.Opts.Cache,
+		Service: r.Opts.Service,
+	})
 	if err != nil {
 		return err
 	}
@@ -130,9 +133,9 @@ func (r *Run) Start() error {
 	for _, s := range services {
 		proxies := s.Proxies(r.App)
 
-		if r.TargetCommand != nil && len(r.TargetCommand) > 0 && s.Name == r.TargetService {
+		if r.Opts.Command != nil && len(r.Opts.Command) > 0 && s.Name == r.Opts.Service {
 			s.Command.String = ""
-			s.Command.Array = r.TargetCommand
+			s.Command.Array = r.Opts.Command
 		}
 
 		p := s.Process(r.App, r.manifest)
@@ -146,7 +149,7 @@ func (r *Run) Start() error {
 			return err
 		}
 
-		if r.Sync {
+		if r.Opts.Sync {
 			syncs := []sync.Sync{}
 
 			for local, remote := range sp {

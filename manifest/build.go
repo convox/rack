@@ -6,11 +6,16 @@ import (
 	"strings"
 )
 
-func (m *Manifest) Build(targetService, dir, appName string, s Stream, cache bool) error {
+type BuildOptions struct {
+	NoCache bool
+	Service string
+}
+
+func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error {
 	pulls := map[string][]string{}
 	builds := []Service{}
 
-	services, err := m.runOrder(targetService)
+	services, err := m.runOrder(opts.Service)
 	if err != nil {
 		return err
 	}
@@ -44,7 +49,7 @@ func (m *Manifest) Build(targetService, dir, appName string, s Stream, cache boo
 
 		args := []string{"build"}
 
-		if !cache {
+		if opts.NoCache {
 			args = append(args, "--no-cache")
 		}
 
@@ -73,7 +78,7 @@ func (m *Manifest) Build(targetService, dir, appName string, s Stream, cache boo
 
 		args = append(args, image)
 
-		if !cache || len(output) == 0 {
+		if opts.NoCache || len(output) == 0 {
 			if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
 				return fmt.Errorf("build error: %s", err)
 			}

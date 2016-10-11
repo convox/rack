@@ -193,8 +193,8 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 }
 
 // Run Instantiate a Run object based on this manifest to be run via 'convox start'
-func (m *Manifest) Run(targetService string, targetCommand []string, dir, app string, cache, sync bool) Run {
-	return NewRun(targetService, targetCommand, dir, app, *m, cache, sync)
+func (m *Manifest) Run(dir, app string, opts RunOptions) Run {
+	return NewRun(*m, dir, app, opts)
 }
 
 func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
