@@ -1,39 +1,39 @@
 {{ define "service" }}
   {
-    "AWSTemplateFormatVersion" : "2010-09-09",
+    "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
       "BlankMaxConnections": { "Fn::Equals": [ { "Ref": "MaxConnections" }, "" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
       "AllocatedStorage": {
-        "Type" : "Number",
-        "Default" : "10",
-        "Description" : "Allocated storage size (GB)"
+        "Type": "Number",
+        "Default": "10",
+        "Description": "Allocated storage size (GB)"
       },
       "Database": {
-        "Type" : "String",
-        "Default" : "app",
-        "Description" : "Default database name"
+        "Type": "String",
+        "Default": "app",
+        "Description": "Default database name"
       },
       "InstanceType": {
-        "Type" : "String",
-        "Default" : "db.t2.micro",
-        "Description" : "Instance class for database nodes"
+        "Type": "String",
+        "Default": "db.t2.micro",
+        "Description": "Instance class for database nodes"
       },
       "MaxConnections": {
-        "Type" : "String",
-        "Default" : "",
-        "Description" : "ParameterGroup max_connections value, i.e. '{DBInstanceClassMemory/15000000}'"
+        "Type": "String",
+        "Default": "",
+        "Description": "ParameterGroup max_connections value, i.e. '{DBInstanceClassMemory/15000000}'"
       },
       "MultiAZ": {
-        "Type" : "String",
-        "Default" : "false",
-        "Description" : "Multiple availability zone"
+        "Type": "String",
+        "Default": "false",
+        "Description": "Multiple availability zone"
       },
       "Password": {
-        "Type" : "String",
-        "Description" : "Server password"
+        "Type": "String",
+        "Description": "Server password"
       },
       "Private": {
         "Type": "String",
@@ -46,14 +46,14 @@
         "Description": "VPC subnets"
       },
       "SubnetsPrivate": {
-        "Type" : "List<AWS::EC2::Subnet::Id>",
-        "Default" : "",
-        "Description" : "VPC private subnets"
+        "Type": "List<AWS::EC2::Subnet::Id>",
+        "Default": "",
+        "Description": "VPC private subnets"
       },
       "Username": {
-        "Type" : "String",
-        "Default" : "postgres",
-        "Description" : "Server username"
+        "Type": "String",
+        "Default": "postgres",
+        "Description": "Server username"
       },
       "Vpc": {
         "Type": "AWS::EC2::VPC::Id",
@@ -119,10 +119,10 @@
       },
       "ParameterGroup": {
         "Type": "AWS::RDS::DBParameterGroup",
-        "Properties" : {
-          "Description" : { "Ref": "Database" },
-          "Family" : { "Fn::Join": [ "postgres",  { "Ref": "Version" } ] },
-          "Parameters" : {
+        "Properties": {
+          "Description": { "Ref": "Database" },
+          "Family": { "Fn::Join": [ "postgres",  { "Ref": "Version" } ] },
+          "Parameters": {
             "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
           }
         }
