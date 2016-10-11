@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sort"
 
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
@@ -90,6 +91,8 @@ func (p *AWSProvider) RegistryList() (structs.Registries, error) {
 
 		registries = append(registries, reg)
 	}
+
+	sort.Sort(registries)
 
 	log.Success()
 	return registries, nil
