@@ -62,6 +62,11 @@
       "VpcCidr": {
         "Description": "VPC CIDR Block",
         "Type": "String"
+      },
+      "Version": {
+        "Description": "Version of Postgres",
+        "Default": "9.5.2",
+        "Type": "String"
       }
     },
     "Outputs": {
@@ -102,7 +107,7 @@
           "DBParameterGroupName": { "Ref": "ParameterGroup" },
           "DBSubnetGroupName": { "Ref": "SubnetGroup" },
           "Engine": "postgres",
-          "EngineVersion": "9.5.2",
+          "EngineVersion": { "Ref": "Version" },
           "MasterUsername": { "Ref": "Username" },
           "MasterUserPassword": { "Ref": "Password" },
           "MultiAZ": { "Ref": "MultiAZ" },
@@ -116,7 +121,7 @@
         "Type": "AWS::RDS::DBParameterGroup",
         "Properties" : {
           "Description" : { "Ref": "Database" },
-          "Family" : "postgres9.5",
+          "Family" : { "Fn::Join": [ "postgres",  { "Ref": "Version" } ] },
           "Parameters" : {
             "max_connections": { "Fn::If": [ "BlankMaxConnections", { "Ref": "AWS::NoValue" }, { "Ref": "MaxConnections" } ] }
           }
