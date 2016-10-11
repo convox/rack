@@ -6,13 +6,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sort"
 
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.Registry, error) {
 	log := Logger.At("RegistryAdd").Namespace("server=%q username=%q", server, username).Start()
+
+	dc, err := docker.NewClient("unix:///var/run/docker.sock")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = dc.AuthCheck(&docker.AuthConfiguration{
+		ServerAddress: server,
+		Username:      username,
+		Password:      password,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to authenticate")
+	}
 
 	r := structs.Registry{
 		Server:   server,
@@ -90,6 +106,8 @@ func (p *AWSProvider) RegistryList() (structs.Registries, error) {
 
 		registries = append(registries, reg)
 	}
+
+	sort.Sort(registries)
 
 	log.Success()
 	return registries, nil

@@ -55,9 +55,10 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDescribeStackResources,
 		cycleBuildDescribeStacks,
 		cycleEnvironmentGetRack,
-		cycleBuildGetAuthorizationTokenPrivate1,
+		cycleRegistryListRegistries,
+		cycleRegistryGetRegistry,
 		cycleBuildDescribeStacks,
-		cycleBuildGetAuthorizationTokenPrivate2,
+		cycleBuildGetAuthorizationTokenPrivate1,
 		cycleBuildRunTask,
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
@@ -695,7 +696,7 @@ var cycleBuildGetAuthorizationTokenPrivate1 = awsutil.Cycle{
 		Operation:  "AmazonEC2ContainerRegistry_V20150921.GetAuthorizationToken",
 		Body: `{
 			"registryIds": [
-				"922560784203"
+				"132866487567"
 			]
 		}`,
 	},
@@ -706,7 +707,7 @@ var cycleBuildGetAuthorizationTokenPrivate1 = awsutil.Cycle{
 				{
 					"authorizationToken": "dXNlcjoxMjM0NQo=",
 					"expiresAt": 1473039114.46,
-					"proxyEndpoint": "https://778743527532.dkr.ecr.us-east-1.amazonaws.com"
+					"proxyEndpoint": "https://132866487567.dkr.ecr.us-east-1.amazonaws.com"
 				}
 			]
 		}`,
@@ -1062,7 +1063,7 @@ var cycleBuildRunTask = awsutil.Cycle{
 							},
 							{
 								"name": "BUILD_AUTH",
-								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"922560784203.dkr.ecr.us-east-1.amazonaws.com/test-repo\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"r.example.org\":{\"Username\":\"foo\",\"Password\":\"bar\"}}"
+								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"foo\":{\"Username\":\"bar\",\"Password\":\"baz\"}}"
 							},
 							{
 								"name": "BUILD_CONFIG",
@@ -1240,7 +1241,7 @@ var cycleEnvironmentGetRack = awsutil.Cycle{
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
-		Body:       `{"DOCKER_AUTH_DATA":"{\"r.example.org\":{\"Username\":\"foo\",\"Password\":\"bar\"},\"922560784203.dkr.ecr.us-east-1.amazonaws.com/test-repo\":{\"Username\":\"access\",\"Password\":\"secret\"}}"}`,
+		Body:       `{}`,
 	},
 }
 
