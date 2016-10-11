@@ -28,7 +28,7 @@ func init() {
 		},
 		ServiceType{
 			"postgres",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private]",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private] [--version=9.5.2]",
 		},
 		ServiceType{
 			"redis",
