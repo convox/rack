@@ -57,6 +57,7 @@ func TestBuildCreate(t *testing.T) {
 		cycleEnvironmentGetRack,
 		cycleRegistryListRegistries,
 		cycleRegistryGetRegistry,
+		cycleRegistryDecrypt,
 		cycleBuildDescribeStacks,
 		cycleBuildGetAuthorizationTokenPrivate1,
 		cycleBuildRunTask,
@@ -1063,7 +1064,7 @@ var cycleBuildRunTask = awsutil.Cycle{
 							},
 							{
 								"name": "BUILD_AUTH",
-								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"foo\":{\"Username\":\"bar\",\"Password\":\"baz\"}}"
+								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"quay.io\":{\"Username\":\"ddollar+test\",\"Password\":\"B0IT2U7BZ4VDZUYFM6LFMTJPF8YGKWYBR39AWWPAUKZX6YKZX3SQNBCCQKMX08UF\"}}"
 							},
 							{
 								"name": "BUILD_CONFIG",
