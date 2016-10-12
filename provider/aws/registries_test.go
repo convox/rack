@@ -30,6 +30,7 @@ func TestRegistryList(t *testing.T) {
 		cycleRegistryGetRackEnv,
 		cycleRegistryListRegistries,
 		cycleRegistryGetRegistry,
+		cycleRegistryDecrypt,
 	)
 	defer provider.Close()
 
@@ -38,9 +39,9 @@ func TestRegistryList(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, structs.Registries{
 		structs.Registry{
-			Server:   "foo",
-			Username: "bar",
-			Password: "baz",
+			Server:   "quay.io",
+			Username: "ddollar+test",
+			Password: "B0IT2U7BZ4VDZUYFM6LFMTJPF8YGKWYBR39AWWPAUKZX6YKZX3SQNBCCQKMX08UF",
 		},
 	}, r)
 }
@@ -101,11 +102,7 @@ var cycleRegistryGetRegistry = awsutil.Cycle{
 	},
 	awsutil.Response{
 		StatusCode: 200,
-		Body: `{
-			"server": "foo",
-			"username": "bar",
-			"password": "baz"
-		}`,
+		Body:       `{"c":"cfzlIX7TNG1GAKif6/lRPazbGOOJiiQUyvcaiZiEhedPqUWlp5IoSV8lVYB7iX1U+rRILRKnPYsjN4HCDhZXj5dMmbo6NmS6twkgo0/EIRSvE49lJikHV2GImv2/RV/PpY9Dq1VsHKqDs8jK89qMGTsmDK4C98ziGvfPexSwb68vmzEN3Mw4PoosXbI=","k":"AQEBAHhZfaDM9nag/rJj14qS3jZ+uhrcVvAPT3gOpF4GL4TYAAAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDO0S9xrGCJKPJdHpDQIBEIA7m12OymJ0sCDdru7RxWOQkbnZtR2XO5WMoFUZW1QL9oU31InZ2Gg+NLqYgT5TgZjz1JhPPXur3kku4CU=","n":"AyExwRSvnP1WWaPmCvGy6+AcpCMIWanJ"}`,
 	},
 }
 
@@ -120,6 +117,22 @@ var cycleRegistryHeadRegistry = awsutil.Cycle{
 			"server": "foo",
 			"username": "bar",
 			"password": "baz"
+		}`,
+	},
+}
+
+var cycleRegistryDecrypt = awsutil.Cycle{
+	awsutil.Request{
+		RequestURI: "/",
+		Operation:  "TrentService.Decrypt",
+		Body: `{
+			"CiphertextBlob": "AQEBAHhZfaDM9nag/rJj14qS3jZ+uhrcVvAPT3gOpF4GL4TYAAAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDO0S9xrGCJKPJdHpDQIBEIA7m12OymJ0sCDdru7RxWOQkbnZtR2XO5WMoFUZW1QL9oU31InZ2Gg+NLqYgT5TgZjz1JhPPXur3kku4CU="
+		}`,
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Plaintext": "rOoFLwHSrzecza1KGCFPWxnSjL3gROW0XFxbUDAsBiQ="
 		}`,
 	},
 }

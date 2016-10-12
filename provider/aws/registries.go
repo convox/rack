@@ -21,13 +21,21 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 		return nil, err
 	}
 
-	_, err = dc.AuthCheck(&docker.AuthConfiguration{
-		ServerAddress: server,
-		Username:      username,
-		Password:      password,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to authenticate")
+	// validate login
+	switch {
+	case regexpECRHost.MatchString(server):
+		if _, _, err := p.authECR(server, username, password); err != nil {
+			return nil, fmt.Errorf("unable to authenticate")
+		}
+	default:
+		_, err := dc.AuthCheck(&docker.AuthConfiguration{
+			ServerAddress: server,
+			Username:      username,
+			Password:      password,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to authenticate")
+		}
 	}
 
 	r := structs.Registry{
@@ -43,8 +51,12 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 
 	id := fmt.Sprintf("%x", sha256.New().Sum([]byte(server)))
 
-	_, err = p.ObjectStore(fmt.Sprintf("system/registries/%s", id), bytes.NewReader(data), structs.ObjectOptions{Public: false})
+	enc, err := p.KeyEncrypt(data)
 	if err != nil {
+		return nil, log.Error(err)
+	}
+
+	if _, err := p.ObjectStore(fmt.Sprintf("system/registries/%s", id), bytes.NewReader(enc), structs.ObjectOptions{Public: false}); err != nil {
 		return nil, log.Error(err)
 	}
 
@@ -97,11 +109,32 @@ func (p *AWSProvider) RegistryList() (structs.Registries, error) {
 
 		defer r.Close()
 
-		var reg structs.Registry
-
-		err = json.NewDecoder(r).Decode(&reg)
+		data, err := ioutil.ReadAll(r)
 		if err != nil {
 			return nil, log.Error(err)
+		}
+
+		dec, err := p.KeyDecrypt(data)
+		if err != nil {
+			if err.Error() != "invalid ciphertext" {
+				return nil, err
+			}
+
+			dec = data
+		}
+
+		var reg structs.Registry
+
+		err = json.Unmarshal(dec, &reg)
+		if err != nil {
+			return nil, log.Error(err)
+		}
+
+		// if the registry is unencrypted, encrypt it
+		if bytes.Compare(data, dec) == 0 {
+			if _, err := p.RegistryAdd(reg.Server, reg.Username, reg.Password); err != nil {
+				return nil, err
+			}
 		}
 
 		registries = append(registries, reg)
