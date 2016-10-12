@@ -34,6 +34,9 @@ type Provider interface {
 
 	EventSend(*structs.Event, error) error
 
+	KeyDecrypt(data []byte) ([]byte, error)
+	KeyEncrypt(data []byte) ([]byte, error)
+
 	EnvironmentGet(app string) (structs.Environment, error)
 
 	FormationList(app string) (structs.Formation, error)
