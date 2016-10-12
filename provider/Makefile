@@ -3,7 +3,8 @@
 all: templates
 
 mocks:
-	rm mock_Provider.go
+	go get -u github.com/vektra/mockery/.../
+	rm -f mock_Provider.go
 	mockery -inpkg -name Provider
 
 release:

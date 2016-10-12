@@ -531,6 +531,52 @@ func (_m *MockProvider) InstanceTerminate(id string) error {
 	return r0
 }
 
+// KeyDecrypt provides a mock function with given fields: data
+func (_m *MockProvider) KeyDecrypt(data []byte) ([]byte, error) {
+	ret := _m.Called(data)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
+		r0 = rf(data)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte) error); ok {
+		r1 = rf(data)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// KeyEncrypt provides a mock function with given fields: data
+func (_m *MockProvider) KeyEncrypt(data []byte) ([]byte, error) {
+	ret := _m.Called(data)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
+		r0 = rf(data)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte) error); ok {
+		r1 = rf(data)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // LogStream provides a mock function with given fields: app, w, opts
 func (_m *MockProvider) LogStream(app string, w io.Writer, opts structs.LogStreamOptions) error {
 	ret := _m.Called(app, w, opts)
