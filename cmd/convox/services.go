@@ -28,7 +28,7 @@ func init() {
 		},
 		ServiceType{
 			"postgres",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private]",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private] [--version=9.5.2]",
 		},
 		ServiceType{
 			"redis",
@@ -200,6 +200,16 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	if options["name"] == "" {
 		options["name"] = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
+	}
+
+	// special cases
+	switch {
+	case t == "postgres" && options["version"] != "":
+		parts := strings.Split(options["version"], ".")
+		if len(parts) < 3 {
+			return stdcli.ExitError(fmt.Errorf("invalid version: %s", options["version"]))
+		}
+		options["family"] = fmt.Sprintf("postgres%s.%s", parts[0], parts[1])
 	}
 
 	fmt.Printf("Creating %s (%s", options["name"], t)
