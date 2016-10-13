@@ -90,6 +90,10 @@ var (
 		checkEnvIgnored,
 		checkMissingEnv,
 	}
+
+	runBalancerChecks = []func(*manifest.Manifest) error{
+		checkApplicationExposesPorts,
+	}
 )
 
 func startCheck(title string) {
@@ -151,6 +155,13 @@ func cmdDoctor(c *cli.Context) error {
 
 	stdcli.Writef("\n\n### Build: Environment\n")
 	for _, check := range buildEnvironmentChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Run: Balancer\n")
+	for _, check := range runBalancerChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -793,9 +804,30 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			Description: "This service doesn't have a valid command",
+			Description: "<fail>This service doesn't have a valid command</fail>",
 		})
 	}
+	return nil
+}
+
+func checkApplicationExposesPorts(m *manifest.Manifest) error {
+	title := "Application exposes ports"
+	startCheck(title)
+
+	for _, s := range m.Services {
+		if len(s.Ports) > 0 {
+			diagnose(Diagnosis{
+				Title: title,
+				Kind:  "success",
+			})
+			return nil
+		}
+	}
+	diagnose(Diagnosis{
+		Title:       title,
+		Kind:        "warning",
+		Description: "<warning>This application does not expose any ports</warning>",
+	})
 	return nil
 }
 
