@@ -92,7 +92,7 @@ var (
 	}
 
 	runBalancerChecks = []func(*manifest.Manifest) error{
-		checkApplicationExposesPorts,
+		checkAppExposesPorts,
 	}
 )
 
@@ -134,9 +134,9 @@ func cmdDoctor(c *cli.Context) error {
 	if err != nil {
 		diagnose(Diagnosis{
 			Title:       "<file>docker-compose.yml</file> found",
-			Description: "<fail>A docker-compose.yml file is required in order to tell Convox what services to build for your application</fail>",
+			Description: "<fail>A docker-compose.yml file is required to define Services</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+			DocsLink:    "https://convox.com/guide/service/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -167,7 +167,7 @@ func cmdDoctor(c *cli.Context) error {
 		}
 	}
 
-	stdcli.Writef("\n\n<success>Success:</success> Your app looks ready for deployment into convox. \nHead to https://console.convox.com to get started\n\n")
+	stdcli.Writef("\n\n<success>Success:</success> Your app looks ready for development. \nRun it with `convox start`.\n\n")
 	return nil
 }
 
@@ -179,7 +179,8 @@ func checkDockerRunning() error {
 	if err != nil {
 		diagnose(Diagnosis{
 			Title:       "Docker running",
-			Description: "<fail>We could not connect to the Docker daemon, is it installed and running</fail>",
+			Description: "<fail>Could not connect to the Docker daemon, is it installed and running?</fail>",
+			DocsLink:    "https://docs.docker.com/engine/installation/",
 			Kind:        "fail",
 		})
 		return nil
@@ -214,7 +215,8 @@ func checkDockerVersion() error {
 	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
 		diagnose(Diagnosis{
 			Title:       "Docker up to date",
-			Description: "<fail>Your version of docker is out of date (min: 1.9)</fail>",
+			Description: "<fail>Docker engine is out of date (min: 1.9)</fail>",
+			DocsLink:    "https://docs.docker.com/engine/installation/",
 			Kind:        "fail",
 		})
 	} else {
@@ -235,7 +237,8 @@ func checkDockerPull() error {
 	if err != nil {
 		diagnose(Diagnosis{
 			Title:       title,
-			Description: "<fail>We could not pull the hello-world image, check your internet connection</fail>",
+			Description: "<fail>Could not pull and the hello-world Image, is your internet connection ok?</fail>",
+			DocsLink:    "https://convox.com/docs/troubleshooting-docker/",
 			Kind:        "fail",
 		})
 		return nil
@@ -307,9 +310,9 @@ func checkDockerfile() error {
 	if err != nil {
 		diagnose(Diagnosis{
 			Title:       title,
-			Description: "<fail>A Dockerfile is required to tell Convox how to create an image containing your app</fail>",
+			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+			DocsLink:    "https://convox.com/guide/build/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -498,8 +501,8 @@ func checkManifestValid(m *manifest.Manifest, parseError error) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/docs/preparing-an-application/",
-			Description: "<description>It looks like your docker-compose.yml doesn't contain valid YAML</description>",
+			DocsLink:    "https://convox.com/docs/docker-compose-file/",
+			Description: "<description>docker-compose.yml is not valid YAML</description>",
 		})
 		return nil
 	}
@@ -513,7 +516,7 @@ func checkManifestValid(m *manifest.Manifest, parseError error) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+			DocsLink:    "https://convox.com/docs/docker-compose-file/",
 			Description: body,
 		})
 		return nil
@@ -539,7 +542,7 @@ func checkVersion2(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "https://docs.docker.com/compose/compose-file/#/service-configuration-reference",
+		DocsLink:    "https://convox.com/docs/docker-compose-file/",
 		Description: "<warning>You are using the legacy v1 docker-compose.yml</warning>",
 	})
 	return nil
@@ -553,9 +556,9 @@ func checkEnvFound(m *manifest.Manifest) error {
 	if err != nil {
 		diagnose(Diagnosis{
 			Title:       title,
-			Description: "<warning>A .env file is required to provide configuration and secrets to your application</warning>",
+			Description: "<warning>A .env file is recommended to manage development configuration</warning>",
 			Kind:        "warning",
-			DocsLink:    "https://convox.com/docs/preparing-an-application/",
+			DocsLink:    "https://convox.com/guide/environment/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -595,7 +598,7 @@ func checkEnvIgnored(m *manifest.Manifest) error {
 				Title:       title,
 				Description: "<warning>It looks like you don't have a .gitignore file</warning>",
 				Kind:        "warning",
-				DocsLink:    "https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+				DocsLink:    "https://git-scm.com/docs/gitignore",
 			})
 			return nil
 		}
@@ -663,6 +666,8 @@ func checkMissingEnv(m *manifest.Manifest) error {
 		if err := scanner.Err(); err != nil {
 			return err
 		}
+	} else {
+		return nil
 	}
 
 	// check for required env vars
@@ -699,8 +704,8 @@ func checkMissingEnv(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "fail",
-				DocsLink:    "https://convox.com/docs/preparing-an-application/",
-				Description: fmt.Sprintf("<fail>env expected: %s</fail>", strings.Join(missingEnv, ", ")),
+				DocsLink:    "https://convox.com/guide/environment/",
+				Description: fmt.Sprintf("<fail>development environment var not set: %s</fail>", strings.Join(missingEnv, ", ")),
 			})
 		}
 		diagnose(Diagnosis{
@@ -754,8 +759,8 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "fail",
-					DocsLink:    "https://convox.com/docs/preparing-an-application/",
-					Description: fmt.Sprintf("<fail>service: %s is missing it's Dockerfile</fail>", s.Name),
+					DocsLink:    "https://convox.com/guide/image/",
+					Description: fmt.Sprintf("<fail>Service %s is missing a Dockerfile</fail>", s.Name),
 				})
 			}
 		}
@@ -810,8 +815,8 @@ func checkValidServices(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkApplicationExposesPorts(m *manifest.Manifest) error {
-	title := "Application exposes ports"
+func checkAppExposesPorts(m *manifest.Manifest) error {
+	title := "App exposes ports"
 	startCheck(title)
 
 	for _, s := range m.Services {
@@ -826,7 +831,8 @@ func checkApplicationExposesPorts(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		Description: "<warning>This application does not expose any ports</warning>",
+		DocsLink:    "http://convox.com/guide/balancer/",
+		Description: "<warning>This app does not expose any ports</warning>",
 	})
 	return nil
 }
