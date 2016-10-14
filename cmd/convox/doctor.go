@@ -94,6 +94,10 @@ var (
 	runBalancerChecks = []func(*manifest.Manifest) error{
 		checkAppExposesPorts,
 	}
+
+	runResourceChecks = []func(*manifest.Manifest) error{
+		checkAppDefinesResource,
+	}
 )
 
 func startCheck(title string) {
@@ -162,6 +166,13 @@ func cmdDoctor(c *cli.Context) error {
 
 	stdcli.Writef("\n\n### Run: Balancer\n")
 	for _, check := range runBalancerChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Run: Resource\n")
+	for _, check := range runResourceChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -833,6 +844,28 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 		Kind:        "warning",
 		DocsLink:    "http://convox.com/guide/balancer/",
 		Description: "<warning>This app does not expose any ports</warning>",
+	})
+	return nil
+}
+
+func checkAppDefinesResource(m *manifest.Manifest) error {
+	title := "App defines Resourses"
+	startCheck(title)
+
+	// for _, s := range m.Services {
+	// 	if len(s.Ports) > 0 {
+	// 		diagnose(Diagnosis{
+	// 			Title: title,
+	// 			Kind:  "success",
+	// 		})
+	// 		return nil
+	// 	}
+	// }
+	diagnose(Diagnosis{
+		Title:       title,
+		Kind:        "warning",
+		DocsLink:    "http://convox.com/guide/resource/",
+		Description: "<warning>This app does not define any Resources</warning>",
 	})
 	return nil
 }
