@@ -99,6 +99,11 @@ var (
 		checkAppDefinesResource,
 		checkValidResources,
 	}
+
+	runLinkChecks = []func(*manifest.Manifest) error{
+		checkAppDefinesLink,
+		checkValidLinks,
+	}
 )
 
 func startCheck(title string) {
@@ -174,6 +179,13 @@ func cmdDoctor(c *cli.Context) error {
 
 	stdcli.Writef("\n\n### Run: Resource\n")
 	for _, check := range runResourceChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Run: Link\n")
+	for _, check := range runLinkChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -698,7 +710,10 @@ func checkMissingEnv(m *manifest.Manifest) error {
 		links := map[string]bool{}
 
 		for _, l := range s.Links {
-			key := fmt.Sprintf("%s_URL", strings.ToUpper(l))
+			prefix := strings.ToUpper(l) + "_"
+			prefix = strings.Replace(prefix, "-", "_", -1)
+
+			key := prefix + "URL"
 			links[key] = true
 		}
 
@@ -851,7 +866,7 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 }
 
 func checkAppDefinesResource(m *manifest.Manifest) error {
-	title := "App defines Resourses"
+	title := "App defines Resources"
 	startCheck(title)
 
 	if len(manifestResources(m)) > 0 {
@@ -923,6 +938,99 @@ func manifestResources(m *manifest.Manifest) []manifest.Service {
 	}
 
 	return resources
+}
+
+func checkAppDefinesLink(m *manifest.Manifest) error {
+	title := "App defines Links"
+	startCheck(title)
+
+	for _, s := range m.Services {
+		if len(s.Links) > 0 {
+			diagnose(Diagnosis{
+				Title: title,
+				Kind:  "success",
+			})
+			return nil
+		}
+	}
+
+	diagnose(Diagnosis{
+		Title:       title,
+		Kind:        "warning",
+		DocsLink:    "http://convox.com/guide/link/",
+		Description: "<warning>This app does not define any Links</warning>",
+	})
+	return nil
+}
+
+func checkValidLinks(m *manifest.Manifest) error {
+	resourceNames := map[string]bool{}
+
+	for _, s := range manifestServices(m) {
+		linkVars := []string{}
+		missingEnv := []string{}
+
+		for _, l := range s.Links {
+			resourceNames[l] = true
+
+			prefix := strings.ToUpper(l) + "_"
+			prefix = strings.Replace(prefix, "-", "_", -1)
+
+			key := prefix + "URL"
+			linkVars = append(linkVars, key)
+
+			missing := true
+			for k, _ := range s.Environment {
+				if k == key {
+					missing = false
+					break
+				}
+			}
+
+			if missing {
+				missingEnv = append(missingEnv, key)
+			}
+		}
+
+		title := fmt.Sprintf("Service <service>%s</service> environment includes %s", s.Name, strings.Join(linkVars, ", "))
+
+		if len(missingEnv) > 0 {
+			diagnose(Diagnosis{
+				Title:       title,
+				Kind:        "fail",
+				DocsLink:    "https://convox.com/guide/link/",
+				Description: fmt.Sprintf("<fail>Service <service>%s</service> not expecting %s</fail>", s.Name, strings.Join(missingEnv, ", ")),
+			})
+		}
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+	}
+
+	resources := manifestResources(m)
+
+	for _, r := range resources {
+		title := fmt.Sprintf("Resource <resource>%s</resource> exposes internal port", r.Name)
+
+		if _, ok := resourceNames[r.Name]; ok {
+			if len(r.InternalPorts()) == 0 {
+				diagnose(Diagnosis{
+					Title:       title,
+					Kind:        "error",
+					DocsLink:    "http://convox.com/guide/link/",
+					Description: fmt.Sprintf("<warning>Resource <resource>%s</resource> does not expose an internal port</warning>", r.Name),
+				})
+			} else {
+				diagnose(Diagnosis{
+					Title: title,
+					Kind:  "success",
+				})
+			}
+		}
+	}
+
+	return nil
 }
 
 // func checkUnsupportedFeatures(m *manifest.Manifest) error {
