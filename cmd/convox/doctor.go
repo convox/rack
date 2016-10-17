@@ -286,7 +286,7 @@ func checkCLIVersion() error {
 
 	opts := equinox.Options{
 		CurrentVersion: Version,
-		Channel:        "stable",
+		Channel:        "beta",
 		HTTPClient:     client,
 	}
 	if err := opts.SetPublicKeyPEM(publicKey); err != nil {
