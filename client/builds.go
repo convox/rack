@@ -86,6 +86,7 @@ type CreateBuildSourceOptions struct {
 	Config      string
 	Description string
 	Progress    Progress
+	Size        int64
 }
 
 // CreateBuildSource will create a new build from source
@@ -102,6 +103,7 @@ func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuil
 			"description": opts.Description,
 		},
 		Progress: opts.Progress,
+		Size:     opts.Size,
 	}
 
 	system, err := c.GetSystem()
@@ -233,6 +235,7 @@ func (c *Client) ExportBuild(app, id string, w io.Writer) error {
 
 type ImportBuildOptions struct {
 	Progress Progress
+	Size     int64
 }
 
 // ImportBuild imports a build artifact
@@ -252,6 +255,7 @@ func (c *Client) ImportBuild(app string, r io.Reader, opts ImportBuildOptions) (
 			"image": r,
 		},
 		Progress: opts.Progress,
+		Size:     opts.Size,
 	}
 
 	build := &structs.Build{}
@@ -272,6 +276,7 @@ func (c *Client) importBuildClassic(app string, r io.Reader, opts ImportBuildOpt
 			"import": "true",
 		},
 		Progress: opts.Progress,
+		Size:     opts.Size,
 	}
 
 	build := &structs.Build{}
