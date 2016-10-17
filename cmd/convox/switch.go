@@ -69,7 +69,12 @@ func cmdSwitch(c *cli.Context) error {
 	}
 
 	if len(matched) == 0 {
-		return stdcli.Error(fmt.Errorf("Rack not found. Try one of:\n" + strings.Join(all, "\n")))
+		errMessages := []string{"Rack not found."}
+
+		if len(all) > 0 {
+			errMessages = append(errMessages, ("Try one of the following:\n" + strings.Join(all, "\n")))
+		}
+		return stdcli.Error(fmt.Errorf(strings.Join(errMessages, " ")))
 	}
 
 	if len(matched) > 1 {
