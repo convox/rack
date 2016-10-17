@@ -97,6 +97,7 @@ var (
 
 	runResourceChecks = []func(*manifest.Manifest) error{
 		checkAppDefinesResource,
+		checkValidResources,
 	}
 )
 
@@ -690,7 +691,7 @@ func checkMissingEnv(m *manifest.Manifest) error {
 		}
 	}
 
-	for _, s := range m.Services {
+	for _, s := range manifestServices(m) {
 		title := fmt.Sprintf("Service <service>%s</service> <config>environment</config> found in <file>.env</file>", s.Name)
 		startCheck(title)
 
@@ -771,7 +772,7 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 					Title:       title,
 					Kind:        "fail",
 					DocsLink:    "https://convox.com/guide/image/",
-					Description: fmt.Sprintf("<fail>Service %s is missing a Dockerfile</fail>", s.Name),
+					Description: fmt.Sprintf("<fail>Service <service>%s</service> is missing a Dockerfile</fail>", s.Name),
 				})
 			}
 		}
@@ -788,7 +789,7 @@ func checkValidServices(m *manifest.Manifest) error {
 	if err != nil {
 		return err
 	}
-	for _, s := range m.Services {
+	for _, s := range manifestServices(m) {
 		title := fmt.Sprintf("Service <service>%s</service> is valid", s.Name)
 		startCheck(title)
 		if s.Command.String != "" || (s.Command.Array != nil && len(s.Command.Array) == 0) {
@@ -820,7 +821,8 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			Description: "<fail>This service doesn't have a valid command</fail>",
+			DocsLink:    "http://convox.com/guide/service/",
+			Description: fmt.Sprintf("<fail>Service <service>%s</service> doesn't have a valid command</fail>", s.Name),
 		})
 	}
 	return nil
@@ -852,15 +854,14 @@ func checkAppDefinesResource(m *manifest.Manifest) error {
 	title := "App defines Resourses"
 	startCheck(title)
 
-	// for _, s := range m.Services {
-	// 	if len(s.Ports) > 0 {
-	// 		diagnose(Diagnosis{
-	// 			Title: title,
-	// 			Kind:  "success",
-	// 		})
-	// 		return nil
-	// 	}
-	// }
+	if len(manifestResources(m)) > 0 {
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+		return nil
+	}
+
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
@@ -868,6 +869,60 @@ func checkAppDefinesResource(m *manifest.Manifest) error {
 		Description: "<warning>This app does not define any Resources</warning>",
 	})
 	return nil
+}
+
+func checkValidResources(m *manifest.Manifest) error {
+	rs := manifestResources(m)
+
+	if len(rs) == 0 {
+		return nil
+	}
+
+	for _, s := range rs {
+		title := fmt.Sprintf("Resource <resource>%s</resource> is valid", s.Name)
+		startCheck(title)
+
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+	}
+
+	return nil
+}
+
+func manifestServices(m *manifest.Manifest) []manifest.Service {
+	services := []manifest.Service{}
+
+	resources := manifestResources(m)
+	resourceNames := map[string]bool{}
+
+	for _, r := range resources {
+		resourceNames[r.Name] = true
+	}
+
+	for _, s := range m.Services {
+		if _, ok := resourceNames[s.Name]; ok {
+			continue
+		}
+		services = append(services, s)
+	}
+
+	return services
+}
+
+func manifestResources(m *manifest.Manifest) []manifest.Service {
+	resources := []manifest.Service{}
+
+	for _, s := range m.Services {
+		prebuiltImage := strings.HasPrefix(s.Image, "convox/")
+		noCommand := s.Command.String == "" && s.Command.Array == nil
+		if prebuiltImage && noCommand {
+			resources = append(resources, s)
+		}
+	}
+
+	return resources
 }
 
 // func checkUnsupportedFeatures(m *manifest.Manifest) error {
