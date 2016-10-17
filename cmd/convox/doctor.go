@@ -992,7 +992,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 			}
 		}
 
-		title := fmt.Sprintf("Service <service>%s</service> environment includes %s", s.Name, strings.Join(linkVars, ", "))
+		title := fmt.Sprintf("Service <service>%s</service> environment expects %s", s.Name, strings.Join(linkVars, ", "))
 
 		if len(missingEnv) > 0 {
 			diagnose(Diagnosis{
