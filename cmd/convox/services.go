@@ -207,7 +207,7 @@ func cmdServiceCreate(c *cli.Context) error {
 	case t == "postgres" && options["version"] != "":
 		parts := strings.Split(options["version"], ".")
 		if len(parts) < 3 {
-			return stdcli.ExitError(fmt.Errorf("invalid version: %s", options["version"]))
+			return stdcli.Error(fmt.Errorf("invalid version: %s", options["version"]))
 		}
 		options["family"] = fmt.Sprintf("postgres%s.%s", parts[0], parts[1])
 	}
