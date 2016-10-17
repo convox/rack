@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -63,21 +62,21 @@ func (c *Client) Get(path string, out interface{}) error {
 		return err
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
+	switch t := out.(type) {
+	case []byte:
+		data, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		out = data
+	case io.Writer:
+		_, err := io.Copy(t, res.Body)
 		return err
 	}
 
-	// Special case used for binary data
-	if res.Header.Get("Content-Type") == "application/octet-stream" {
-		v := reflect.ValueOf(out)
-
-		if v.Kind() != reflect.Ptr {
-			return fmt.Errorf("out param must be of type *[]byte for binary data")
-		}
-
-		v.Elem().SetBytes(data)
-		return nil
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
 	}
 
 	return json.Unmarshal(data, out)
