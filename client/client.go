@@ -2,7 +2,6 @@ package client
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -138,55 +137,61 @@ type PostMultipartOptions struct {
 	Files    Files
 	Params   Params
 	Progress Progress
+	Size     int64
 }
 
 // PostMultipart posts a multipart message in the MIME internet format.
 func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out interface{}) error {
-	body := &bytes.Buffer{}
 
-	writer := multipart.NewWriter(body)
+	r, w := io.Pipe()
+	writer := multipart.NewWriter(w)
+	errch := make(chan error)
+	go func() {
+		defer func() {
+			writer.Close()
+			w.Close()
+		}()
 
-	for name, file := range opts.Files {
-		part, err := writer.CreateFormFile(name, "binary-data")
-		if err != nil {
-			return err
+		for name, file := range opts.Files {
+
+			part, err := writer.CreateFormFile(name, "binary-data")
+			if err != nil {
+				errch <- err
+				return
+			}
+
+			_, err = io.Copy(part, file)
+			if err != nil {
+				errch <- err
+				return
+			}
 		}
 
-		if _, err = io.Copy(part, file); err != nil {
-			return err
+		errch <- nil
+
+		for name, value := range opts.Params {
+			writer.WriteField(name, value)
 		}
-	}
+	}()
 
-	for name, value := range opts.Params {
-		writer.WriteField(name, value)
-	}
-
-	if err := writer.Close(); err != nil {
-		return err
-	}
-
-	br := io.Reader(body)
-
+	var pr io.Reader = r
 	if opts.Progress != nil {
-		opts.Progress.Start(int64(body.Len()))
+		opts.Progress.Start(opts.Size)
 
 		defer opts.Progress.Finish()
 
-		br = NewProgressReader(br, opts.Progress.Progress)
+		pr = NewProgressReader(r, opts.Progress.Progress)
 	}
 
-	req, err := c.request("POST", path, br)
-
+	req, err := c.request("POST", path, pr)
 	if err != nil {
 		return err
 	}
 
 	req.SetBasicAuth("convox", string(c.Password))
-
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	res, err := c.client().Do(req)
-
 	if err != nil {
 		return err
 	}
@@ -198,19 +203,16 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
-
 	if err != nil {
 		return err
 	}
 
 	if out != nil {
 		err = json.Unmarshal(data, out)
-
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 

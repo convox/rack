@@ -519,7 +519,11 @@ func uploadIndex(c *cli.Context, index client.Index, output io.WriteCloser) erro
 		return err
 	}
 
-	if err := rackClient(c).IndexUpdate(buf, client.IndexUpdateOptions{Progress: progress("Uploading: ", "Storing changes... ", output)}); err != nil {
+	opts := client.IndexUpdateOptions{
+		Progress: progress("Uploading: ", "Storing changes... ", output),
+		Size:     int64(len(buf.Bytes())),
+	}
+	if err := rackClient(c).IndexUpdate(buf, opts); err != nil {
 		return err
 	}
 
@@ -590,14 +594,16 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 
 	output.Write([]byte("OK\n"))
 
+	br := bytes.NewReader(tar)
 	opts := client.CreateBuildSourceOptions{
 		Cache:       !c.Bool("no-cache"),
 		Config:      manifest,
 		Description: description,
 		Progress:    progress("Uploading: ", "Starting build... ", output),
+		Size:        br.Size(),
 	}
 
-	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), opts)
+	build, err := rackClient(c).CreateBuildSource(app, br, opts)
 	if err != nil {
 		return "", "", err
 	}

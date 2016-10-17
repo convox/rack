@@ -41,6 +41,7 @@ func (c *Client) IndexMissing(index Index) ([]string, error) {
 
 type IndexUpdateOptions struct {
 	Progress Progress
+	Size     int64
 }
 
 // IndexUpdate uploads a tarball of changes to the index
@@ -50,6 +51,7 @@ func (c *Client) IndexUpdate(update io.Reader, opts IndexUpdateOptions) error {
 			"update": update,
 		},
 		Progress: opts.Progress,
+		Size:     opts.Size,
 	}
 
 	return c.PostMultipart("/index/update", popts, nil)
