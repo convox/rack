@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     command: api/bin/web
     bingo: wings
-    volumes: 
-      - ".:ASDF"
     environment:
       - AUTOSCALE=false
       - DEVELOPMENT=true
