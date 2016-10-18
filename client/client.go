@@ -176,35 +176,33 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 	}
 
 	writer := multipart.NewWriter(w)
-	//errch := make(chan error)
+	streamErr := make(chan error)
 	go func() {
+		var e error
 		defer func() {
 			writer.Close()
 			w.Close()
+			streamErr <- e
 		}()
 
 		for name, file := range opts.Files {
 
 			part, err := writer.CreateFormFile(name, "binary-data")
 			if err != nil {
-				fmt.Println("1", err)
-				//errch <- err
+				e = err
 				return
 			}
 
-			_, err = io.Copy(part, file)
-			if err != nil {
-				fmt.Println("2", err)
-				//errch <- err
+			if _, err = io.Copy(part, file); err != nil {
+				e = err
 				return
 			}
 		}
-
-		//errch <- nil
 
 		for name, value := range opts.Params {
 			writer.WriteField(name, value)
 		}
+		e = nil
 	}()
 
 	req, err := c.request("POST", path, pr)
@@ -221,6 +219,10 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 	}
 
 	defer res.Body.Close()
+
+	if err := <-streamErr; err != nil {
+		return err
+	}
 
 	if err := responseError(res); err != nil {
 		return err

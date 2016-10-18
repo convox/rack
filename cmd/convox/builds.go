@@ -333,9 +333,7 @@ func cmdBuildsImport(c *cli.Context) error {
 		out = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{
-		Progress: progress("Uploading: ", "Importing build... ", out),
-	})
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -592,12 +590,14 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 
 	output.Write([]byte("OK\n"))
 
-	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), client.CreateBuildSourceOptions{
+	opts := client.CreateBuildSourceOptions{
 		Cache:       !c.Bool("no-cache"),
 		Config:      manifest,
 		Description: description,
 		Progress:    progress("Uploading: ", "Starting build... ", output),
-	})
+	}
+
+	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), opts)
 	if err != nil {
 		return "", "", err
 	}

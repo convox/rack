@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -75,4 +76,19 @@ func TestClientGetErrors(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "parse https:///%: invalid URL escape \"%\"", err.Error())
+}
+
+func TestClientGet(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/", Code: 200, Response: "this is data"},
+	)
+	defer ts.Close()
+
+	client := testClient(t, ts.URL)
+
+	w := bytes.NewBuffer([]byte{})
+
+	client.Get("/", w)
+
+	assert.Equal(t, "\"this is data\"", w.String())
 }
