@@ -19,7 +19,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "start",
 		Description: "start an app for local development",
-		Usage:       "[directory]",
+		Usage:       "[service] [command]",
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -45,6 +45,16 @@ func init() {
 
 func cmdStart(c *cli.Context) error {
 	// go handleResize()
+	var service string
+	var command []string
+
+	if len(c.Args()) > 0 {
+		service = c.Args()[0]
+	}
+
+	if len(c.Args()) > 1 {
+		command = c.Args()[1:]
+	}
 
 	id, err := currentId()
 	if err != nil {
@@ -67,6 +77,13 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	if service != "" {
+		_, ok := m.Services[service]
+		if !ok {
+			return stdcli.ExitError(fmt.Errorf("Service %s not found in manifest", service))
+		}
+	}
+
 	if err := m.Shift(c.Int("shift")); err != nil {
 		return stdcli.ExitError(err)
 	}
@@ -86,7 +103,12 @@ func cmdStart(c *cli.Context) error {
 	cache := !c.Bool("no-cache")
 	sync := !c.Bool("no-sync")
 
-	r := m.Run(dir, app, cache, sync)
+	r := m.Run(dir, app, manifest.RunOptions{
+		Cache:   cache,
+		Sync:    sync,
+		Service: service,
+		Command: command,
+	})
 
 	err = r.Start()
 	if err != nil {
