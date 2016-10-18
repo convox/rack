@@ -286,7 +286,7 @@ func checkCLIVersion() error {
 
 	opts := equinox.Options{
 		CurrentVersion: Version,
-		Channel:        "beta",
+		Channel:        "stable",
 		HTTPClient:     client,
 	}
 	if err := opts.SetPublicKeyPEM(publicKey); err != nil {
@@ -472,7 +472,10 @@ func checkBuildDocker() error {
 				output = append(output, x)
 			}
 		}()
-		err = m.Build(".", app, s, true)
+
+		err = m.Build(".", app, s, manifest.BuildOptions{
+			Cache: true,
+		})
 
 		if err != nil {
 			message := ""
