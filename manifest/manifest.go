@@ -71,18 +71,12 @@ func Load(data []byte) (*Manifest, error) {
 		m.Services[name] = service
 	}
 
-	err = m.Validate()
-	if err != nil {
-		return nil, err
-	}
-
 	return m, nil
 }
 
 // Load a Manifest from a file
 func LoadFile(path string) (*Manifest, error) {
 	data, err := ioutil.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -90,69 +84,52 @@ func LoadFile(path string) (*Manifest, error) {
 	return Load(data)
 }
 
-func (m Manifest) Validate() error {
+func (m Manifest) Validate() []error {
 	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+	errors := []error{}
 
 	for _, entry := range m.Services {
 		if strings.Contains(entry.Name, "_") {
-			return fmt.Errorf("service name cannot contain an underscore: %s", entry.Name)
+			errors = append(errors, fmt.Errorf("service name cannot contain an underscore: %s", entry.Name))
 		}
 
 		labels := entry.LabelsByPrefix("convox.cron")
 		for k, _ := range labels {
 			parts := strings.Split(k, ".")
 			if len(parts) != 3 {
-				return fmt.Errorf(
-					"Cron task is not valid (must be in format convox.cron.myjob)",
-				)
+				errors = append(errors, fmt.Errorf("Cron task is not valid (must be in format convox.cron.myjob)"))
 			}
 			name := parts[2]
 			if !regexValidCronLabel.MatchString(name) {
-				return fmt.Errorf(
-					"Cron task %s is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)",
+
+				errors = append(errors, fmt.Errorf(
+					"Cron task %s is not valid (cron names can contain only alphanumeric characters, dashes and must be between 4 and 30 characters)",
 					name,
-				)
+				))
 			}
 		}
 
 		labels = entry.LabelsByPrefix("convox.health.timeout")
 		for _, v := range labels {
 			i, err := strconv.Atoi(v)
-			if err != nil {
-				return fmt.Errorf(
-					"convox.health.timeout is invalid for %s, must be a number between 0 and 60",
-					entry.Name,
-				)
-			}
-
-			if i < 0 || i > 60 {
-				return fmt.Errorf(
-					"convox.health.timeout is invalid for %s, must be a number between 0 and 60",
-					entry.Name,
-				)
+			if err != nil || i < 0 || i > 60 {
+				errors = append(errors, fmt.Errorf("convox.health.timeout is invalid for %s, must be a number between 0 and 60", entry.Name))
 			}
 		}
 
 		for _, l := range entry.Links {
 			ls, ok := m.Services[l]
 			if !ok {
-				return fmt.Errorf(
-					"%s links to service: %s which does not exist",
-					entry.Name,
-					l,
-				)
+				errors = append(errors, fmt.Errorf("%s links to service: %s which does not exist", entry.Name, l))
 			}
 
 			if len(ls.Ports) == 0 {
-				return fmt.Errorf(
-					"%s links to service: %s which does not expose any ports",
-					entry.Name,
-					l,
-				)
+				errors = append(errors, fmt.Errorf("%s links to service: %s which does not expose any ports", entry.Name, l))
 			}
 		}
 	}
-	return nil
+
+	return errors
 }
 
 // Return a list of ports this manifest will expose when run

@@ -40,7 +40,7 @@ func init() {
 func cmdScale(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	opts := client.FormationOptions{}
@@ -61,7 +61,7 @@ func cmdScale(c *cli.Context) error {
 	switch len(c.Args()) {
 	case 0:
 		if opts.Memory != "" || opts.CPU != "" || opts.Count != "" {
-			return stdcli.ExitError(fmt.Errorf("missing process name"))
+			return stdcli.Error(fmt.Errorf("missing process name"))
 		}
 
 		displayFormation(c, app)
@@ -81,12 +81,12 @@ func cmdScale(c *cli.Context) error {
 
 	err = rackClient(c).SetFormation(app, process, opts)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	err = displayFormation(c, app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if c.Bool("wait") {
@@ -94,11 +94,11 @@ func cmdScale(c *cli.Context) error {
 
 		a, err := rackClient(c).GetApp(app)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		if err := waitForReleasePromotion(c, app, a.Release); err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		fmt.Println("OK")

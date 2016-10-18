@@ -164,7 +164,7 @@ func cmdInstall(c *cli.Context) error {
 		match := len(matchedStr) == len(stackName)
 
 		if !match {
-			return stdcli.ExitError(fmt.Errorf("Stack name is invalid, must match [a-z0-9-]*"))
+			return stdcli.Error(fmt.Errorf("Stack name is invalid, must match [a-z0-9-]*"))
 		}
 	}
 
@@ -174,7 +174,7 @@ func cmdInstall(c *cli.Context) error {
 	if c.Bool("dedicated") {
 		tenancy = "dedicated"
 		if strings.HasPrefix(instanceType, "t2") {
-			return stdcli.ExitError(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
+			return stdcli.Error(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
 		}
 	}
 
@@ -189,7 +189,7 @@ func cmdInstall(c *cli.Context) error {
 	if cidrs := c.String("subnet-cidrs"); cidrs != "" {
 		parts := strings.SplitN(cidrs, ",", 3)
 		if len(parts) < 3 {
-			return stdcli.ExitError(fmt.Errorf("subnet-cidrs must have 3 values"))
+			return stdcli.Error(fmt.Errorf("subnet-cidrs must have 3 values"))
 		}
 
 		subnet0CIDR = parts[0]
@@ -202,7 +202,7 @@ func cmdInstall(c *cli.Context) error {
 	if cidrs := c.String("private-cidrs"); cidrs != "" {
 		parts := strings.SplitN(cidrs, ",", 3)
 		if len(parts) < 3 {
-			return stdcli.ExitError(fmt.Errorf("private-cidrs must have 3 values"))
+			return stdcli.Error(fmt.Errorf("private-cidrs must have 3 values"))
 		}
 
 		subnetPrivate0CIDR = parts[0]
@@ -341,7 +341,7 @@ func cmdInstall(c *cli.Context) error {
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "AlreadyExistsException" {
-				return stdcli.ExitError(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
+				return stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
 			}
 		}
 

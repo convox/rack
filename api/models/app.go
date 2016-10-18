@@ -128,7 +128,7 @@ func (a *App) Create() error {
 	helpers.TrackEvent("kernel-app-create-start", nil)
 
 	if !regexValidAppName.MatchString(a.Name) {
-		return fmt.Errorf("app name can contain only alphanumeric characters and dashes and must be between 4 and 30 characters")
+		return fmt.Errorf("app name can contain only alphanumeric characters, dashes and must be between 4 and 30 characters")
 	}
 
 	m := manifest.Manifest{

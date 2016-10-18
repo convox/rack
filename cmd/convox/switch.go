@@ -37,7 +37,7 @@ func cmdSwitch(c *cli.Context) error {
 
 	racks, err := rackClient(c).Racks()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	rackName := c.Args()[0]
@@ -69,16 +69,16 @@ func cmdSwitch(c *cli.Context) error {
 	}
 
 	if len(matched) == 0 {
-		return stdcli.ExitError(fmt.Errorf("Rack not found. Try one of:\n" + strings.Join(all, "\n")))
+		return stdcli.Error(fmt.Errorf("Rack not found. Try one of:\n" + strings.Join(all, "\n")))
 	}
 
 	if len(matched) > 1 {
-		return stdcli.ExitError(fmt.Errorf("You have access to multiple racks with that name, try one of the following:\n" + strings.Join(matched, "\n")))
+		return stdcli.Error(fmt.Errorf("You have access to multiple racks with that name, try one of the following:\n" + strings.Join(matched, "\n")))
 	}
 
 	rack := matched[0]
 	if err := ioutil.WriteFile(filepath.Join(ConfigRoot, "rack"), []byte(rack), 0644); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Switched to %s\n", rack)

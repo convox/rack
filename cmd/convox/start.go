@@ -74,18 +74,26 @@ func cmdStart(c *cli.Context) error {
 	appType := detectApplication(dir)
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
+	}
+
+	errs := m.Validate()
+	if len(errs) > 0 {
+		for _, e := range errs[1:] {
+			stdcli.Error(e)
+		}
+		return stdcli.Error(errs[0])
 	}
 
 	if service != "" {
 		_, ok := m.Services[service]
 		if !ok {
-			return stdcli.ExitError(fmt.Errorf("Service %s not found in manifest", service))
+			return stdcli.Error(fmt.Errorf("Service %s not found in manifest", service))
 		}
 	}
 
 	if err := m.Shift(c.Int("shift")); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
@@ -97,7 +105,7 @@ func cmdStart(c *cli.Context) error {
 			AppType:         appType,
 		})
 
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	cache := !c.Bool("no-cache")

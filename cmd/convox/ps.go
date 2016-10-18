@@ -45,33 +45,33 @@ func init() {
 func cmdPs(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	ps, err := rackClient(c).GetProcesses(app, c.Bool("stats"))
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if c.Bool("stats") {
 		fm, err := rackClient(c).ListFormation(app)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		system, err := rackClient(c).GetSystem()
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		params, err := rackClient(c).ListParameters(system.Name)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		memory, err := strconv.Atoi(params["BuildMemory"])
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		fm = append(fm, client.FormationEntry{
@@ -117,7 +117,7 @@ func displayProcessesStats(ps []client.Process, fm client.Formation) {
 func cmdPsInfo(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -129,7 +129,7 @@ func cmdPsInfo(c *cli.Context) error {
 
 	p, err := rackClient(c).GetProcess(app, id)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Id       %s\n", p.Id)
@@ -146,7 +146,7 @@ func cmdPsInfo(c *cli.Context) error {
 func cmdPsStop(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -160,7 +160,7 @@ func cmdPsStop(c *cli.Context) error {
 
 	_, err = rackClient(c).StopProcess(app, id)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")

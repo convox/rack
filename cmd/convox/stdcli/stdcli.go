@@ -18,24 +18,24 @@ import (
 )
 
 var (
-	Binary   string
-	Commands []cli.Command
-	Exiter   func(code int)
-	Runner   func(bin string, args ...string) error
-	Querier  func(bin string, args ...string) ([]byte, error)
-	Spinner  *spinner.Spinner
-	Tagger   func() string
-	Writer   func(filename string, data []byte, perm os.FileMode) error
+	Binary     string
+	Commands   []cli.Command
+	FileWriter func(filename string, data []byte, perm os.FileMode) error
+	Exiter     func(code int)
+	Runner     func(bin string, args ...string) error
+	Querier    func(bin string, args ...string) ([]byte, error)
+	Spinner    *spinner.Spinner
+	Tagger     func() string
 )
 
 func init() {
 	Binary = filepath.Base(os.Args[0])
 	Exiter = os.Exit
+	FileWriter = ioutil.WriteFile
 	Querier = queryExecCommand
 	Runner = runExecCommand
 	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
-	Writer = ioutil.WriteFile
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
@@ -89,6 +89,8 @@ func New() *cli.App {
 		fmt.Fprintf(os.Stderr, "No such command \"%s\". Try `%s help`\n", cmd, Binary)
 		os.Exit(1)
 	}
+
+	app.Writer = DefaultWriter
 
 	return app
 }
@@ -162,15 +164,6 @@ func WriteSetting(setting, value string) error {
 	return err
 }
 
-func Error(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	Exiter(1)
-}
-
-func ExitError(err error) error {
-	return cli.NewExitError(fmt.Sprintf("ERROR: %s", err.Error()), 1)
-}
-
 type QOSEventProperties struct {
 	AppType         string
 	Error           error
@@ -225,11 +218,11 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	}
 
 	if ep.ValidationError != nil {
-		return ExitError(ep.ValidationError)
+		return ep.ValidationError
 	}
 
 	if ep.Error != nil {
-		return ExitError(ep.Error)
+		return ep.Error
 	}
 
 	return nil

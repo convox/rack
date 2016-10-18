@@ -35,22 +35,22 @@ func cmdDeploy(c *cli.Context) error {
 
 	dir, app, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Deploying %s\n", app)
 
 	a, err := rackClient(c).GetApp(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	switch a.Status {
 	case "creating":
-		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
+		return stdcli.Error(fmt.Errorf("app is still creating: %s", app))
 	case "running", "updating":
 	default:
-		return stdcli.ExitError(fmt.Errorf("unable to build app: %s", app))
+		return stdcli.Error(fmt.Errorf("unable to build app: %s", app))
 	}
 
 	// set up a pipe so that we dont close stdout
@@ -60,7 +60,7 @@ func cmdDeploy(c *cli.Context) error {
 	// build
 	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), w)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if release == "" {
@@ -71,7 +71,7 @@ func cmdDeploy(c *cli.Context) error {
 
 	_, err = rackClient(c).PromoteRelease(app, release)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("UPDATING")
@@ -80,7 +80,7 @@ func cmdDeploy(c *cli.Context) error {
 		fmt.Printf("Waiting for %s... ", release)
 
 		if err := waitForReleasePromotion(c, app, release); err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		fmt.Println("OK")

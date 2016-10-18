@@ -66,7 +66,7 @@ func init() {
 
 func cmdApps(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox apps` does not take arguments. Perhaps you meant `convox apps create`?"))
+		return stdcli.Error(fmt.Errorf("`convox apps` does not take arguments. Perhaps you meant `convox apps create`?"))
 	}
 
 	if c.Bool("help") {
@@ -76,7 +76,7 @@ func cmdApps(c *cli.Context) error {
 
 	apps, err := rackClient(c).GetApps()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("APP", "STATUS")
@@ -92,7 +92,7 @@ func cmdApps(c *cli.Context) error {
 func cmdAppCreate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
@@ -100,26 +100,26 @@ func cmdAppCreate(c *cli.Context) error {
 	}
 
 	if app == "" {
-		return stdcli.ExitError(fmt.Errorf("must specify an app name"))
+		return stdcli.Error(fmt.Errorf("must specify an app name"))
 	}
 
-	fmt.Printf("Creating app %s... ", app)
+	stdcli.Startf("Creating app <app>%s</app>", app)
 
 	_, err = rackClient(c).CreateApp(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Println("CREATING")
+	stdcli.Wait("CREATING")
 
 	if c.Bool("wait") {
-		fmt.Printf("Waiting for %s... ", app)
+		stdcli.Startf("Waiting for <app>%s</app>", app)
 
 		if err := waitForAppRunning(c, app); err != nil {
-			stdcli.ExitError(err)
+			stdcli.Error(err)
 		}
 
-		fmt.Println("OK")
+		stdcli.OK()
 	}
 
 	return nil
@@ -133,21 +133,22 @@ func cmdAppDelete(c *cli.Context) error {
 
 	app := c.Args()[0]
 
-	fmt.Printf("Deleting %s... ", app)
+	stdcli.Startf("Deleting <app>%s</app>", app)
 
 	_, err := rackClient(c).DeleteApp(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Println("DELETING")
+	stdcli.Wait("DELETING")
+
 	return nil
 }
 
 func cmdAppInfo(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
@@ -156,12 +157,12 @@ func cmdAppInfo(c *cli.Context) error {
 
 	a, err := rackClient(c).GetApp(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	formation, err := rackClient(c).ListFormation(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	ps := make([]string, len(formation))
@@ -177,23 +178,28 @@ func cmdAppInfo(c *cli.Context) error {
 
 	sort.Strings(ps)
 
-	fmt.Printf("Name       %s\n", a.Name)
-	fmt.Printf("Status     %s\n", a.Status)
-	fmt.Printf("Release    %s\n", stdcli.Default(a.Release, "(none)"))
-	fmt.Printf("Processes  %s\n", stdcli.Default(strings.Join(ps, " "), "(none)"))
-	fmt.Printf("Endpoints  %s\n", strings.Join(endpoints, "\n           "))
+	info := stdcli.NewInfo()
+
+	info.Add("Name", a.Name)
+	info.Add("Status", a.Status)
+	info.Add("Release", stdcli.Default(a.Release, "(none)"))
+	info.Add("Processes", stdcli.Default(strings.Join(ps, " "), "(none)"))
+	info.Add("Endpoints", strings.Join(endpoints, "\n           "))
+
+	info.Print()
+
 	return nil
 }
 
 func cmdAppParams(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	params, err := rackClient(c).ListParameters(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	keys := []string{}
@@ -217,7 +223,7 @@ func cmdAppParams(c *cli.Context) error {
 func cmdAppParamsSet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	params := map[string]string{}
@@ -226,20 +232,21 @@ func cmdAppParamsSet(c *cli.Context) error {
 		parts := strings.SplitN(arg, "=", 2)
 
 		if len(parts) != 2 {
-			return stdcli.ExitError(fmt.Errorf("invalid argument: %s", arg))
+			return stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
 		}
 
 		params[parts[0]] = parts[1]
 	}
 
-	fmt.Print("Updating parameters... ")
+	stdcli.Startf("Updating parameters")
 
 	err = rackClient(c).SetParameters(app, params)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Println("OK")
+	stdcli.OK()
+
 	return nil
 }
 
@@ -258,16 +265,17 @@ func waitForAppRunning(c *cli.Context, app string) error {
 			}
 
 			switch a.Status {
-			case "running":
+			case "failed", "running":
 				if failed {
-					fmt.Println("DONE")
+					stdcli.Writef("<ok>DONE</ok>\n")
 					return fmt.Errorf("Update rolled back")
 				}
 				return nil
 			case "rollback":
 				if !failed {
 					failed = true
-					fmt.Print("FAILED\nRolling back... ")
+					stdcli.Writef("<fail>FAILED</fail>\n")
+					stdcli.Startf("Rolling back")
 				}
 			}
 		case <-timeout:
