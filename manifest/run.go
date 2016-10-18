@@ -14,10 +14,9 @@ import (
 )
 
 type Run struct {
-	App   string
-	Dir   string
-	Cache bool
-	Sync  bool
+	App  string
+	Dir  string
+	Opts RunOptions
 
 	done      chan error
 	manifest  Manifest
@@ -27,13 +26,19 @@ type Run struct {
 	syncs     []sync.Sync
 }
 
+type RunOptions struct {
+	Service string
+	Command []string
+	Cache   bool
+	Sync    bool
+}
+
 // NewRun Default constructor method for a Run object
-func NewRun(dir, app string, m Manifest, cache, sync bool) Run {
+func NewRun(m Manifest, dir, app string, opts RunOptions) Run {
 	return Run{
 		App:      app,
 		Dir:      dir,
-		Cache:    cache,
-		Sync:     sync,
+		Opts:     opts,
 		manifest: m,
 		output:   NewOutput(),
 	}
@@ -76,7 +81,12 @@ func (r *Run) Start() error {
 		}
 	}
 
-	for _, s := range r.manifest.Services {
+	services, err := r.manifest.runOrder(r.Opts.Service)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range services {
 		links := map[string]bool{}
 
 		for _, l := range s.Links {
@@ -104,21 +114,29 @@ func (r *Run) Start() error {
 	r.output.Stream("build")
 
 	// preload process stream names so padding is set correctly
-	for _, s := range r.manifest.runOrder() {
+	for _, s := range services {
 		r.output.Stream(s.Name)
 	}
 
 	r.done = make(chan error)
 
-	err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.Cache)
+	err = r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), BuildOptions{
+		Cache:   r.Opts.Cache,
+		Service: r.Opts.Service,
+	})
 	if err != nil {
 		return err
 	}
 
 	system := r.output.Stream("convox")
 
-	for _, s := range r.manifest.runOrder() {
+	for _, s := range services {
 		proxies := s.Proxies(r.App)
+
+		if r.Opts.Command != nil && len(r.Opts.Command) > 0 && s.Name == r.Opts.Service {
+			s.Command.String = ""
+			s.Command.Array = r.Opts.Command
+		}
 
 		p := s.Process(r.App, r.manifest)
 
@@ -131,7 +149,7 @@ func (r *Run) Start() error {
 			return err
 		}
 
-		if r.Sync {
+		if r.Opts.Sync {
 			syncs := []sync.Sync{}
 
 			for local, remote := range sp {

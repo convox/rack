@@ -211,7 +211,10 @@ func build(dir string) error {
 
 	defer close(s)
 
-	if err := m.Build(dir, flagApp, s, (flagCache == "true")); err != nil {
+	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
+		Cache: flagCache == "true",
+	})
+	if err != nil {
 		return err
 	}
 
