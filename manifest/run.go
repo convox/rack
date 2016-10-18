@@ -121,7 +121,7 @@ func (r *Run) Start() error {
 	r.done = make(chan error)
 
 	err = r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), BuildOptions{
-		NoCache: !r.Opts.Cache,
+		Cache:   r.Opts.Cache,
 		Service: r.Opts.Service,
 	})
 	if err != nil {

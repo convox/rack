@@ -201,7 +201,7 @@ func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
 	deps[dep] = true
 	targetService, ok := m.Services[dep]
 	if !ok {
-		return fmt.Errorf("Dependence %s of %s not found in manifest", dep, root)
+		return fmt.Errorf("Dependency %s of %s not found in manifest", dep, root)
 	}
 
 	for _, x := range targetService.Links {

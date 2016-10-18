@@ -7,7 +7,7 @@ import (
 )
 
 type BuildOptions struct {
-	NoCache bool
+	Cache   bool
 	Service string
 }
 
@@ -49,7 +49,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 
 		args := []string{"build"}
 
-		if opts.NoCache {
+		if !opts.Cache {
 			args = append(args, "--no-cache")
 		}
 
@@ -78,7 +78,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 
 		args = append(args, image)
 
-		if opts.NoCache || len(output) == 0 {
+		if !opts.Cache || len(output) == 0 {
 			if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
 				return fmt.Errorf("build error: %s", err)
 			}

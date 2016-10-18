@@ -90,7 +90,9 @@ func TestBuildWithCache(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{})
+	err = m.Build(".", "web", str, manifest.BuildOptions{
+		Cache: true,
+	})
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
@@ -120,7 +122,9 @@ func TestBuildCacheNoImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{})
+	err = m.Build(".", "web", str, manifest.BuildOptions{
+		Cache: true,
+	})
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
@@ -154,7 +158,7 @@ func TestBuildWithSpecificService(t *testing.T) {
 
 	err = m.Build(".", "web", str, manifest.BuildOptions{
 		Service: "web",
-		NoCache: false,
+		Cache:   true,
 	})
 
 	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
@@ -187,7 +191,7 @@ func TestBuildNoCache(t *testing.T) {
 
 	err = m.Build(".", "web", str, manifest.BuildOptions{
 		Service: "web",
-		NoCache: true,
+		Cache:   false,
 	})
 
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
@@ -214,7 +218,7 @@ func TestBuildRepeatSimple(t *testing.T) {
 	}
 
 	err = m.Build(".", "web", str, manifest.BuildOptions{
-		NoCache: true,
+		Cache: false,
 	})
 
 	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
@@ -247,7 +251,7 @@ func TestBuildRepeatImage(t *testing.T) {
 	}
 
 	err = m.Build(".", "web", str, manifest.BuildOptions{
-		NoCache: true,
+		Cache: false,
 	})
 
 	cmd1 := []string{"docker", "pull", "convox/rails:latest"}
@@ -275,7 +279,7 @@ func TestBuildRepeatComplex(t *testing.T) {
 	}
 
 	err = m.Build(".", "web", str, manifest.BuildOptions{
-		NoCache: true,
+		Cache: false,
 	})
 
 	te.AssertCommands(t, TestCommands{
