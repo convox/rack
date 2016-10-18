@@ -333,7 +333,9 @@ func cmdBuildsImport(c *cli.Context) error {
 		out = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{
+		Progress: progress("Uploading: ", "Importing build... ", out),
+	})
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -519,11 +521,7 @@ func uploadIndex(c *cli.Context, index client.Index, output io.WriteCloser) erro
 		return err
 	}
 
-	opts := client.IndexUpdateOptions{
-		Progress: progress("Uploading: ", "Storing changes... ", output),
-		Size:     int64(len(buf.Bytes())),
-	}
-	if err := rackClient(c).IndexUpdate(buf, opts); err != nil {
+	if err := rackClient(c).IndexUpdate(buf, client.IndexUpdateOptions{Progress: progress("Uploading: ", "Storing changes... ", output)}); err != nil {
 		return err
 	}
 
@@ -594,16 +592,12 @@ func executeBuildDir(c *cli.Context, dir, app, manifest, description string, out
 
 	output.Write([]byte("OK\n"))
 
-	br := bytes.NewReader(tar)
-	opts := client.CreateBuildSourceOptions{
+	build, err := rackClient(c).CreateBuildSource(app, bytes.NewReader(tar), client.CreateBuildSourceOptions{
 		Cache:       !c.Bool("no-cache"),
 		Config:      manifest,
 		Description: description,
 		Progress:    progress("Uploading: ", "Starting build... ", output),
-		Size:        br.Size(),
-	}
-
-	build, err := rackClient(c).CreateBuildSource(app, br, opts)
+	})
 	if err != nil {
 		return "", "", err
 	}

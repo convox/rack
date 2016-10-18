@@ -139,15 +139,44 @@ type PostMultipartOptions struct {
 	Files    Files
 	Params   Params
 	Progress Progress
-	Size     int64
 }
 
 // PostMultipart posts a multipart message in the MIME internet format.
 func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out interface{}) error {
 
 	r, w := io.Pipe()
+	var pr io.Reader = r
+
+	// Get the files size(s) before hand if any
+	if opts.Progress != nil {
+
+		var size int64
+		for _, file := range opts.Files {
+			if rs, ok := file.(io.ReadSeeker); ok {
+				s, err := io.Copy(ioutil.Discard, rs)
+				if err != nil {
+					return err
+				}
+				size += s
+				rs.Seek(0, 0) // io.SeekStart == 0 in go1.7
+			} else {
+				size = 0 // if even one file isn't seekable, bail
+				break
+			}
+		}
+
+		if size > 0 {
+
+			opts.Progress.Start(size)
+
+			defer opts.Progress.Finish()
+
+			pr = NewProgressReader(r, opts.Progress.Progress)
+		}
+	}
+
 	writer := multipart.NewWriter(w)
-	errch := make(chan error)
+	//errch := make(chan error)
 	go func() {
 		defer func() {
 			writer.Close()
@@ -158,32 +187,25 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 
 			part, err := writer.CreateFormFile(name, "binary-data")
 			if err != nil {
-				errch <- err
+				fmt.Println("1", err)
+				//errch <- err
 				return
 			}
 
 			_, err = io.Copy(part, file)
 			if err != nil {
-				errch <- err
+				fmt.Println("2", err)
+				//errch <- err
 				return
 			}
 		}
 
-		errch <- nil
+		//errch <- nil
 
 		for name, value := range opts.Params {
 			writer.WriteField(name, value)
 		}
 	}()
-
-	var pr io.Reader = r
-	if opts.Progress != nil {
-		opts.Progress.Start(opts.Size)
-
-		defer opts.Progress.Finish()
-
-		pr = NewProgressReader(r, opts.Progress.Progress)
-	}
 
 	req, err := c.request("POST", path, pr)
 	if err != nil {
