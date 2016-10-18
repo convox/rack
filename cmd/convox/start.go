@@ -77,6 +77,13 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.ExitError(err)
 	}
 
+	if service != "" {
+		_, ok := m.Services[service]
+		if !ok {
+			return stdcli.ExitError(fmt.Errorf("Service %s not found in manifest", service))
+		}
+	}
+
 	if err := m.Shift(c.Int("shift")); err != nil {
 		return stdcli.ExitError(err)
 	}
