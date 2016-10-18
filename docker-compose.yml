@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile
     command: api/bin/web
-    bingo: wings
     environment:
       - AUTOSCALE=false
       - DEVELOPMENT=true
