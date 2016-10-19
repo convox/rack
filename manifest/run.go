@@ -135,7 +135,7 @@ func (r *Run) Start() error {
 
 		if r.Opts.Command != nil && len(r.Opts.Command) > 0 && s.Name == r.Opts.Service {
 			s.Command.String = ""
-			s.Command.Array = r.Opts.Command
+			s.Command.Array = []string{"sh", "-c", strings.Join(r.Opts.Command, " ")}
 		}
 
 		p := s.Process(r.App, r.manifest)
