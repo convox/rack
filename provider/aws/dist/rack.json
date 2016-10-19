@@ -1092,7 +1092,7 @@
       "Properties": {
         "AutoScalingGroupName": { "Ref": "Instances" },
         "DefaultResult": "CONTINUE",
-        "HeartbeatTimeout": "60",
+        "HeartbeatTimeout": "300",
         "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
         "NotificationTargetARN": { "Ref": "InstancesLifecycleTopic" },
         "RoleARN": { "Fn::GetAtt": [ "InstancesLifecycleRole", "Arn" ] }

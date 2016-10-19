@@ -84,17 +84,6 @@ func handle(r Record) error {
 
 	fmt.Printf("md = %+v\n", md)
 
-	lbs, err := rackBalancers(md.Rack)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("lbs = %+v\n", lbs)
-
-	if err := deregisterInstanceFromLoadBalancers(lbs, m.EC2InstanceID); err != nil {
-		return err
-	}
-
 	ci, err := containerInstance(md.Cluster, m.EC2InstanceID)
 	if err != nil {
 		return err
@@ -102,8 +91,35 @@ func handle(r Record) error {
 
 	fmt.Printf("ci = %+v\n", ci)
 
-	if err := deregisterClusterInstance(md.Cluster, ci); err != nil {
+	if _, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
+		Cluster:           aws.String(md.Cluster),
+		ContainerInstance: aws.String(ci),
+		Force:             aws.Bool(true),
+	}); err != nil {
 		return err
+	}
+
+	lbs, err := rackBalancers(md.Rack)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("lbs = %+v\n", lbs)
+
+	if err := waitUntilELBInstanceDeregistered(lbs, m.EC2InstanceID); err != nil {
+		return nil
+	}
+
+	// We wait for services to be running at desired count and health checks to pass so that
+	// another instance isn't terminated while the cluster is still trying to stablize.
+	if err := waitUntilServicesStable(md.Cluster); err != nil {
+		return nil
+	}
+
+	lbs = append(lbs, md.Rack)
+	fmt.Printf("lbs with rack = %+v\n", lbs)
+	if err := waitUntilELBInstancesAreHealthy(lbs); err != nil {
+		return nil
 	}
 
 	_, err = AutoScaling.CompleteLifecycleAction(&autoscaling.CompleteLifecycleActionInput{
@@ -175,15 +191,7 @@ func containerInstance(cluster string, id string) (string, error) {
 	return "", fmt.Errorf("could not find cluster instance: %s", id)
 }
 
-func deregisterClusterInstance(cluster, arn string) error {
-	_, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
-		Cluster:           aws.String(cluster),
-		ContainerInstance: aws.String(arn),
-		Force:             aws.Bool(true),
-	})
-	if err != nil {
-		return err
-	}
+func waitUntilServicesStable(cluster string) error {
 
 	for {
 		lreq := &ecs.ListServicesInput{
@@ -229,7 +237,7 @@ func deregisterClusterInstance(cluster, arn string) error {
 		}
 
 		if converged {
-			fmt.Println("converged")
+			fmt.Printf("converged")
 			return nil
 		}
 
@@ -283,11 +291,15 @@ func rackBalancers(rack string) ([]string, error) {
 	return lbs, nil
 }
 
-func deregisterInstanceFromLoadBalancers(lbs []string, instance string) error {
+func waitUntilELBInstancesAreHealthy(lbs []string) error {
 	ch := make(chan error)
 
 	for _, lb := range lbs {
-		go deregisterLoadBalancerInstance(lb, instance, ch)
+		go func(name string, c chan error) {
+			c <- ELB.WaitUntilInstanceInService(&elb.DescribeInstanceHealthInput{
+				LoadBalancerName: aws.String(name),
+			})
+		}(lb, ch)
 	}
 
 	for range lbs {
@@ -296,42 +308,41 @@ func deregisterInstanceFromLoadBalancers(lbs []string, instance string) error {
 		}
 	}
 
+	fmt.Printf("elbs healthchecks passed")
 	return nil
 }
 
-func deregisterLoadBalancerInstance(lb, instance string, ch chan error) {
+func waitForELBInstancesAreHealthy(lb string, ch chan error) {
+
+	ch <- ELB.WaitUntilInstanceInService(&elb.DescribeInstanceHealthInput{
+		LoadBalancerName: aws.String(lb),
+	})
+}
+
+func waitUntilELBInstanceDeregistered(lbs []string, instance string) error {
+	ch := make(chan error)
+
+	for _, lb := range lbs {
+		go waitForELBInstanceDeregistered(lb, instance, ch)
+	}
+
+	for range lbs {
+		if err := <-ch; err != nil {
+			return err
+		}
+	}
+
+	fmt.Printf("instance deregistered from elb")
+	return nil
+}
+
+func waitForELBInstanceDeregistered(lb, instance string, ch chan error) {
 	instances := []*elb.Instance{&elb.Instance{InstanceId: aws.String(instance)}}
 
-	_, err := ELB.DeregisterInstancesFromLoadBalancer(&elb.DeregisterInstancesFromLoadBalancerInput{
+	ch <- ELB.WaitUntilInstanceDeregistered(&elb.DescribeInstanceHealthInput{
 		LoadBalancerName: aws.String(lb),
 		Instances:        instances,
 	})
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	for {
-		res, err := ELB.DescribeInstanceHealth(&elb.DescribeInstanceHealthInput{
-			LoadBalancerName: aws.String(lb),
-			Instances:        instances,
-		})
-
-		fmt.Printf("res = %+v\n", res)
-		fmt.Printf("err = %+v\n", err)
-
-		if len(res.InstanceStates) < 1 {
-			break
-		}
-
-		if *res.InstanceStates[0].State == "OutOfService" {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	ch <- nil
 }
 
 func die(err error) {
