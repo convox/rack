@@ -165,7 +165,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	if err := p.dockerLogin(repo); err != nil {
+	if err := p.dockerLogin(); err != nil {
 		log.Error(err)
 		return err
 	}
@@ -290,7 +290,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		return nil, err
 	}
 
-	if err := p.dockerLogin(repo); err != nil {
+	if err := p.dockerLogin(); err != nil {
 		log.Error(err)
 		return nil, err
 	}
@@ -958,10 +958,9 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
-func (p *AWSProvider) dockerLogin(repo *appRepository) error {
-	log := Logger.At("dockerLogin").Namespace("repo=%q", repo.URI).Start()
+func (p *AWSProvider) dockerLogin() error {
+	log := Logger.At("dockerLogin").Start()
 
-	log.Step("token").Logf("id=%q", repo.ID)
 	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		log.Error(err)
@@ -984,8 +983,10 @@ func (p *AWSProvider) dockerLogin(repo *appRepository) error {
 		return fmt.Errorf("invalid auth data")
 	}
 
-	log.Step("login").Logf("host=%q user=%q", repo.URI, authParts[0])
-	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo.URI).CombinedOutput()
+	repo := *tres.AuthorizationData[0].ProxyEndpoint
+
+	log.Step("login").Logf("host=%q user=%q", repo, authParts[0])
+	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo).CombinedOutput()
 	if err != nil {
 		log.Errorf(lastline(out))
 		return err
