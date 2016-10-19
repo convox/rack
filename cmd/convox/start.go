@@ -96,16 +96,19 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
-		if err == nil {
-			err = fmt.Errorf("ports in use: %v", pcc)
-		}
-		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
-			ValidationError: err,
-			AppType:         appType,
-		})
+	// one-off commands don't need port validation
+	if len(command) == 0 {
+		if pcc, err := m.PortConflicts(); err != nil || len(pcc) > 0 {
+			if err == nil {
+				err = fmt.Errorf("ports in use: %v", pcc)
+			}
+			stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+				ValidationError: err,
+				AppType:         appType,
+			})
 
-		return stdcli.Error(err)
+			return stdcli.Error(err)
+		}
 	}
 
 	cache := !c.Bool("no-cache")
