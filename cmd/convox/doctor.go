@@ -95,9 +95,9 @@ var (
 		checkAppExposesPorts,
 	}
 
-	runResourceChecks = []func(*manifest.Manifest) error{
-		checkAppDefinesResource,
-		checkValidResources,
+	runDatabaseChecks = []func(*manifest.Manifest) error{
+		checkAppDefinesDatabase,
+		checkValidDatabases,
 	}
 
 	runLinkChecks = []func(*manifest.Manifest) error{
@@ -177,8 +177,8 @@ func cmdDoctor(c *cli.Context) error {
 		}
 	}
 
-	stdcli.Writef("\n\n### Run: Resource\n")
-	for _, check := range runResourceChecks {
+	stdcli.Writef("\n\n### Run: Database\n")
+	for _, check := range runDatabaseChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -840,11 +840,11 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	return nil
 }
 
-func checkAppDefinesResource(m *manifest.Manifest) error {
-	title := "App defines Resources"
+func checkAppDefinesDatabase(m *manifest.Manifest) error {
+	title := "App defines Database"
 	startCheck(title)
 
-	if len(manifestResources(m)) > 0 {
+	if len(manifestDatabases(m)) > 0 {
 		diagnose(Diagnosis{
 			Title: title,
 			Kind:  "success",
@@ -855,21 +855,21 @@ func checkAppDefinesResource(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/resource/",
-		Description: "<warning>This app does not define any Resources</warning>",
+		DocsLink:    "http://convox.com/guide/databases/",
+		Description: "<warning>This app does not define any Databases</warning>",
 	})
 	return nil
 }
 
-func checkValidResources(m *manifest.Manifest) error {
-	rs := manifestResources(m)
+func checkValidDatabases(m *manifest.Manifest) error {
+	rs := manifestDatabases(m)
 
 	if len(rs) == 0 {
 		return nil
 	}
 
 	for _, s := range rs {
-		title := fmt.Sprintf("Resource <resource>%s</resource> is valid", s.Name)
+		title := fmt.Sprintf("Database <database>%s</database> is valid", s.Name)
 		startCheck(title)
 
 		diagnose(Diagnosis{
@@ -884,15 +884,15 @@ func checkValidResources(m *manifest.Manifest) error {
 func manifestServices(m *manifest.Manifest) []manifest.Service {
 	services := []manifest.Service{}
 
-	resources := manifestResources(m)
-	resourceNames := map[string]bool{}
+	databases := manifestDatabases(m)
+	databaseNames := map[string]bool{}
 
-	for _, r := range resources {
-		resourceNames[r.Name] = true
+	for _, d := range databases {
+		databaseNames[d.Name] = true
 	}
 
 	for _, s := range m.Services {
-		if _, ok := resourceNames[s.Name]; ok {
+		if _, ok := databaseNames[s.Name]; ok {
 			continue
 		}
 		services = append(services, s)
@@ -901,18 +901,18 @@ func manifestServices(m *manifest.Manifest) []manifest.Service {
 	return services
 }
 
-func manifestResources(m *manifest.Manifest) []manifest.Service {
-	resources := []manifest.Service{}
+func manifestDatabases(m *manifest.Manifest) []manifest.Service {
+	databases := []manifest.Service{}
 
 	for _, s := range m.Services {
 		prebuiltImage := strings.HasPrefix(s.Image, "convox/")
 		noCommand := s.Command.String == "" && s.Command.Array == nil
 		if prebuiltImage && noCommand {
-			resources = append(resources, s)
+			databases = append(databases, s)
 		}
 	}
 
-	return resources
+	return databases
 }
 
 func checkAppDefinesLink(m *manifest.Manifest) error {
@@ -983,10 +983,10 @@ func checkValidLinks(m *manifest.Manifest) error {
 		})
 	}
 
-	resources := manifestResources(m)
+	databases := manifestDatabases(m)
 
-	for _, r := range resources {
-		title := fmt.Sprintf("Resource <resource>%s</resource> exposes internal port", r.Name)
+	for _, r := range databases {
+		title := fmt.Sprintf("Database <database>%s</database> exposes internal port", r.Name)
 
 		if _, ok := resourceNames[r.Name]; ok {
 			if len(r.InternalPorts()) == 0 {
@@ -994,7 +994,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 					Title:       title,
 					Kind:        "error",
 					DocsLink:    "http://convox.com/guide/link/",
-					Description: fmt.Sprintf("<warning>Resource <resource>%s</resource> does not expose an internal port</warning>", r.Name),
+					Description: fmt.Sprintf("<warning>Database <database>%s</database> does not expose an internal port</warning>", r.Name),
 				})
 			} else {
 				diagnose(Diagnosis{

@@ -13,7 +13,7 @@ func init() {
 	stdcli.DefaultWriter.Tags["release"] = stdcli.RenderAttributes(39)
 	stdcli.DefaultWriter.Tags["security"] = stdcli.RenderAttributes(226)
 	stdcli.DefaultWriter.Tags["service"] = stdcli.RenderAttributes(39)
-	stdcli.DefaultWriter.Tags["resource"] = stdcli.RenderAttributes(141)
+	stdcli.DefaultWriter.Tags["database"] = stdcli.RenderAttributes(141)
 	stdcli.DefaultWriter.Tags["success"] = stdcli.RenderAttributes(10)
 	stdcli.DefaultWriter.Tags["unsupported"] = stdcli.RenderAttributes(220)
 	stdcli.DefaultWriter.Tags["warning"] = stdcli.RenderAttributes(172)
