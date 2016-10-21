@@ -146,7 +146,7 @@ func cmdDoctor(c *cli.Context) error {
 			Title:       "<file>docker-compose.yml</file> found",
 			Description: "<fail>A docker-compose.yml file is required to define Services</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/service/",
+			DocsLink:    "https://convox.com/guide/services/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -336,7 +336,7 @@ func checkDockerfile() error {
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/build/",
+			DocsLink:    "https://convox.com/guide/builds/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -761,7 +761,7 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "fail",
-					DocsLink:    "https://convox.com/guide/image/",
+					DocsLink:    "https://convox.com/guide/images/",
 					Description: fmt.Sprintf("<fail>Service <service>%s</service> is missing a Dockerfile</fail>", s.Name),
 				})
 			}
@@ -811,7 +811,7 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "http://convox.com/guide/service/",
+			DocsLink:    "http://convox.com/guide/services/",
 			Description: fmt.Sprintf("<fail>Service <service>%s</service> doesn't have a valid command</fail>", s.Name),
 		})
 	}
@@ -834,7 +834,7 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/balancer/",
+		DocsLink:    "http://convox.com/guide/balancers/",
 		Description: "<warning>This app does not expose any ports</warning>",
 	})
 	return nil
@@ -932,7 +932,7 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/link/",
+		DocsLink:    "http://convox.com/guide/links/",
 		Description: "<warning>This app does not define any Links</warning>",
 	})
 	return nil
@@ -973,7 +973,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "fail",
-				DocsLink:    "https://convox.com/guide/link/",
+				DocsLink:    "https://convox.com/guide/links/",
 				Description: fmt.Sprintf("<fail>Service <service>%s</service> not expecting %s</fail>", s.Name, strings.Join(missingEnv, ", ")),
 			})
 		}
@@ -993,7 +993,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "error",
-					DocsLink:    "http://convox.com/guide/link/",
+					DocsLink:    "http://convox.com/guide/links/",
 					Description: fmt.Sprintf("<warning>Database <database>%s</database> does not expose an internal port</warning>", r.Name),
 				})
 			} else {
