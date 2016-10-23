@@ -32,6 +32,27 @@ func TestSystemGet(t *testing.T) {
 	}, s)
 }
 
+func TestSystemGetConverging(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
+		cycleDescribeRackStackResources,
+		cycleDescribeAutoscalingGroupsInstanceTerminating,
+	)
+	defer provider.Close()
+
+	s, err := provider.SystemGet()
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, &structs.System{
+		Count:   3,
+		Name:    "convox",
+		Region:  "us-test-1",
+		Status:  "converging",
+		Type:    "t2.small",
+		Version: "dev",
+	}, s)
+}
+
 func TestSystemGetBadStack(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleDescribeStacksNotFound("convox"),
@@ -451,6 +472,63 @@ var cycleDescribeAutoscalingGroups = awsutil.Cycle{
                     <member>
                         <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
                         <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-047a745d1d8016000</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1a</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b0fa380591282dd0</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b56f635928702c76</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1d</AvailabilityZone>
+                    </member>
+                </Instances>
+            </member>
+        </AutoScalingGroups>
+    </DescribeAutoScalingGroupsResult>
+    <ResponseMetadata>
+        <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
+    </ResponseMetadata>
+</DescribeAutoScalingGroupsResponse>		`,
+	},
+}
+
+var cycleDescribeAutoscalingGroupsInstanceTerminating = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeAutoScalingGroups&AutoScalingGroupNames.member.1=convox-Instances-1UEIK1IO8W9K3&Version=2011-01-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+    <DescribeAutoScalingGroupsResult>
+        <AutoScalingGroups>
+            <member>
+                <Instances>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-02fbf6732eac0d195</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>Terminating:Wait</LifecycleState>
                         <InstanceId>i-047a745d1d8016000</InstanceId>
                         <HealthStatus>Healthy</HealthStatus>
                         <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
