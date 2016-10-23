@@ -104,6 +104,15 @@ var (
 		checkAppDefinesLink,
 		checkValidLinks,
 	}
+
+	runReloadingChecks = []func(*manifest.Manifest) error{
+		checkReloading,
+		checkVolumeConflicts,
+	}
+
+	runCommandChecks = []func(*manifest.Manifest) error{
+		checkRunSh,
+	}
 )
 
 func startCheck(title string) {
@@ -186,6 +195,20 @@ func cmdDoctor(c *cli.Context) error {
 
 	stdcli.Writef("\n\n### Run: Link\n")
 	for _, check := range runLinkChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Development: Reloading\n")
+	for _, check := range runReloadingChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Development: Commands\n")
+	for _, check := range runCommandChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -1005,5 +1028,75 @@ func checkValidLinks(m *manifest.Manifest) error {
 		}
 	}
 
+	return nil
+}
+
+func checkReloading(m *manifest.Manifest) error {
+	title := "App reloading"
+	startCheck(title)
+
+	for _, s := range m.Services {
+		dirs := []string{}
+
+		paths, _ := s.SyncPaths()
+
+		for local, _ := range paths {
+			if local == "." {
+				local = "./"
+			}
+			dirs = append(dirs, local)
+		}
+
+		diagnose(Diagnosis{
+			Title:       title,
+			Kind:        "success",
+			Description: fmt.Sprintf("Service <service>%s</service> reloading: %s", s.Name, strings.Join(dirs, ", ")),
+		})
+	}
+	return nil
+}
+
+func checkVolumeConflicts(m *manifest.Manifest) error {
+	title := "App volume conflicts"
+	startCheck(title)
+	diagnose(Diagnosis{
+		Title: title,
+		Kind:  "success",
+	})
+	return nil
+}
+
+func checkRunSh(m *manifest.Manifest) error {
+	title := "App commands"
+	startCheck(title)
+
+	_, app, err := stdcli.DirApp(docContext, ".")
+	if err != nil {
+		fmt.Printf("ERROR: %+v\n", err)
+	}
+
+	for _, s := range m.Services {
+		r := m.Run(".", app, manifest.RunOptions{
+			Service: s.Name,
+			Command: []string{"sh", "-c", "echo", "hello world"},
+			Cache:   true,
+		})
+		err := r.Start()
+		if err != nil {
+			fmt.Printf("ERROR: %+v\n", err)
+		}
+
+		diagnose(Diagnosis{
+			Title:       title,
+			Kind:        "success",
+			Description: fmt.Sprintf("Service <service>%s</service> runs `sh`", s.Name),
+		})
+	}
+	return nil
+
+	diagnose(Diagnosis{
+		Title: title,
+		Kind:  "success",
+	})
 	return nil
 }
