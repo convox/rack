@@ -1065,20 +1065,37 @@ func checkRunSh(m *manifest.Manifest) error {
 		fmt.Printf("ERROR: %+v\n", err)
 	}
 
-	for _, s := range m.Services {
+	for _, s := range manifestServices(m) {
 		title := fmt.Sprintf("Service <service>%s</service> runs `sh`", s.Name)
 		startCheck(title)
 
 		r := m.Run(".", app, manifest.RunOptions{
 			Service: s.Name,
-			Command: []string{"sh", "-c", "echo", "hello world"},
+			Command: []string{"echo", "hello"},
 			Cache:   true,
 			Quiet:   true,
 		})
 
 		err := r.Start()
 		if err != nil {
-			fmt.Printf("ERROR: %+v\n", err)
+			diagnose(Diagnosis{
+				Title:       title,
+				Kind:        "error",
+				DocsLink:    "http://convox.com/guide/commands/",
+				Description: fmt.Sprintf("Service <service>%s</service> does not run `sh` because of %q", s.Name, err),
+			})
+			continue
+		}
+
+		err = r.Wait()
+		if err != nil {
+			diagnose(Diagnosis{
+				Title:       title,
+				Kind:        "error",
+				DocsLink:    "http://convox.com/guide/commands/",
+				Description: fmt.Sprintf("Service <service>%s</service> does not exit from `sh` because of %q", s.Name, err),
+			})
+			continue
 		}
 
 		diagnose(Diagnosis{
