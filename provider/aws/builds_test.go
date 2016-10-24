@@ -1170,7 +1170,7 @@ var cycleBuildDockerLogin = awsutil.Cycle{
 		RequestURI: "/v1.24/auth",
 		Body: `{
 			"password": "12345\n",
-			"serveraddress": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb",
+			"serveraddress": "https://778743527532.dkr.ecr.us-east-1.amazonaws.com",
 			"username": "user"
 		}`,
 	},
