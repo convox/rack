@@ -14,6 +14,8 @@ import (
 func TestSystemGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
+		cycleDescribeRackStackResources,
+		cycleDescribeAutoscalingGroups,
 	)
 	defer provider.Close()
 
@@ -25,6 +27,27 @@ func TestSystemGet(t *testing.T) {
 		Name:    "convox",
 		Region:  "us-test-1",
 		Status:  "running",
+		Type:    "t2.small",
+		Version: "dev",
+	}, s)
+}
+
+func TestSystemGetConverging(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
+		cycleDescribeRackStackResources,
+		cycleDescribeAutoscalingGroupsInstanceTerminating,
+	)
+	defer provider.Close()
+
+	s, err := provider.SystemGet()
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, &structs.System{
+		Count:   3,
+		Name:    "convox",
+		Region:  "us-test-1",
+		Status:  "converging",
 		Type:    "t2.small",
 		Version: "dev",
 	}, s)
@@ -390,5 +413,150 @@ var cycleSystemUpdateStackNewParameter = awsutil.Cycle{
 				</ResponseMetadata>
 			</UpdateStackResponse>
 		`,
+	},
+}
+
+var cycleDescribeRackStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <DescribeStackResourcesResult>
+    <StackResources>
+    <member>
+      <PhysicalResourceId>convox-Instances-1UEIK1IO8W9K3</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <StackId>arn:aws:cloudformation:us-east-1:990037048036:stack/convox/b8423690-917d-1fe6-8737-50dseaf92cd2</StackId>
+      <StackName>convox</StackName>
+      <LogicalResourceId>Instances</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::AutoScaling::AutoScalingGroup</ResourceType>
+    </member>
+    </StackResources>
+  </DescribeStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</DescribeStackResourcesResponse>
+		`,
+	},
+}
+
+var cycleDescribeAutoscalingGroups = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeAutoScalingGroups&AutoScalingGroupNames.member.1=convox-Instances-1UEIK1IO8W9K3&Version=2011-01-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+    <DescribeAutoScalingGroupsResult>
+        <AutoScalingGroups>
+            <member>
+                <Instances>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-02fbf6732eac0d195</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-047a745d1d8016000</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1a</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b0fa380591282dd0</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b56f635928702c76</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1d</AvailabilityZone>
+                    </member>
+                </Instances>
+            </member>
+        </AutoScalingGroups>
+    </DescribeAutoScalingGroupsResult>
+    <ResponseMetadata>
+        <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
+    </ResponseMetadata>
+</DescribeAutoScalingGroupsResponse>		`,
+	},
+}
+
+var cycleDescribeAutoscalingGroupsInstanceTerminating = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeAutoScalingGroups&AutoScalingGroupNames.member.1=convox-Instances-1UEIK1IO8W9K3&Version=2011-01-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+    <DescribeAutoScalingGroupsResult>
+        <AutoScalingGroups>
+            <member>
+                <Instances>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-02fbf6732eac0d195</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>Terminating:Wait</LifecycleState>
+                        <InstanceId>i-047a745d1d8016000</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1a</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b0fa380591282dd0</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b56f635928702c76</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1d</AvailabilityZone>
+                    </member>
+                </Instances>
+            </member>
+        </AutoScalingGroups>
+    </DescribeAutoScalingGroupsResult>
+    <ResponseMetadata>
+        <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
+    </ResponseMetadata>
+</DescribeAutoScalingGroupsResponse>		`,
 	},
 }
