@@ -184,7 +184,6 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 		}()
 
 		for name, file := range opts.Files {
-
 			part, err := writer.CreateFormFile(name, "binary-data")
 			if err != nil {
 				e = err
