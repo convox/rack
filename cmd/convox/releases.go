@@ -49,7 +49,7 @@ func cmdReleases(c *cli.Context) error {
 	}
 
 	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox registries info`?"))
+		return stdcli.Error(fmt.Errorf("`convox releases` does not take arguments. Perhaps you meant `convox releases help`?"))
 	}
 
 	if c.Bool("help") {

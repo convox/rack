@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/convox/rack/api/structs"
@@ -28,19 +29,54 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	stack := res.Stacks[0]
+	status := humanStatus(*stack.StackStatus)
 	params := stackParameters(stack)
 
 	count, err := strconv.Atoi(params["InstanceCount"])
-
 	if err != nil {
 		return nil, err
+	}
+
+	rres, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(p.Rack),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var asgName string
+	for _, r := range rres.StackResources {
+		if *r.LogicalResourceId == "Instances" {
+			asgName = *r.PhysicalResourceId
+			break
+		}
+	}
+
+	asgres, err := p.autoscaling().DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
+		AutoScalingGroupNames: []*string{
+			aws.String(asgName),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(asgres.AutoScalingGroups) <= 0 {
+		return nil, fmt.Errorf("scailing group %s was not found", asgName)
+	}
+
+	for _, instance := range asgres.AutoScalingGroups[0].Instances {
+		if *instance.LifecycleState != "InService" {
+			status = "converging"
+			break
+		}
 	}
 
 	r := &structs.System{
 		Count:   count,
 		Name:    p.Rack,
 		Region:  p.Region,
-		Status:  humanStatus(*stack.StackStatus),
+		Status:  status,
 		Type:    params["InstanceType"],
 		Version: params["Version"],
 	}
