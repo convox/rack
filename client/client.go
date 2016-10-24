@@ -120,16 +120,18 @@ func (c *Client) PostBodyResponse(path string, body io.Reader, out interface{}) 
 		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
+	if out != nil {
+		data, err := ioutil.ReadAll(res.Body)
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	err = json.Unmarshal(data, out)
+		err = json.Unmarshal(data, out)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
