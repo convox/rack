@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -107,7 +108,6 @@ var (
 
 	runReloadingChecks = []func(*manifest.Manifest) error{
 		checkReloading,
-		checkVolumeConflicts,
 	}
 
 	runCommandChecks = []func(*manifest.Manifest) error{
@@ -1047,56 +1047,44 @@ func checkReloading(m *manifest.Manifest) error {
 			dirs = append(dirs, local)
 		}
 
-		diagnose(Diagnosis{
-			Title:       title,
-			Kind:        "success",
-			Description: fmt.Sprintf("Service <service>%s</service> reloading: %s", s.Name, strings.Join(dirs, ", ")),
-		})
+		sort.Strings(dirs)
+
+		if len(dirs) > 0 {
+			diagnose(Diagnosis{
+				Title: fmt.Sprintf("Service <service>%s</service> reloading: %s", s.Name, strings.Join(dirs, ", ")),
+				Kind:  "success",
+			})
+		}
 	}
 	return nil
 }
 
-func checkVolumeConflicts(m *manifest.Manifest) error {
-	title := "App volume conflicts"
-	startCheck(title)
-	diagnose(Diagnosis{
-		Title: title,
-		Kind:  "success",
-	})
-	return nil
-}
-
 func checkRunSh(m *manifest.Manifest) error {
-	title := "App commands"
-	startCheck(title)
-
 	_, app, err := stdcli.DirApp(docContext, ".")
 	if err != nil {
 		fmt.Printf("ERROR: %+v\n", err)
 	}
 
 	for _, s := range m.Services {
+		title := fmt.Sprintf("Service <service>%s</service> runs `sh`", s.Name)
+		startCheck(title)
+
 		r := m.Run(".", app, manifest.RunOptions{
 			Service: s.Name,
 			Command: []string{"sh", "-c", "echo", "hello world"},
 			Cache:   true,
+			Quiet:   true,
 		})
+
 		err := r.Start()
 		if err != nil {
 			fmt.Printf("ERROR: %+v\n", err)
 		}
 
 		diagnose(Diagnosis{
-			Title:       title,
-			Kind:        "success",
-			Description: fmt.Sprintf("Service <service>%s</service> runs `sh`", s.Name),
+			Title: title,
+			Kind:  "success",
 		})
 	}
-	return nil
-
-	diagnose(Diagnosis{
-		Title: title,
-		Kind:  "success",
-	})
 	return nil
 }

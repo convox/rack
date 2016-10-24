@@ -30,6 +30,7 @@ type RunOptions struct {
 	Service string
 	Command []string
 	Cache   bool
+	Quiet   bool
 	Sync    bool
 }
 
@@ -40,7 +41,7 @@ func NewRun(m Manifest, dir, app string, opts RunOptions) Run {
 		Dir:      dir,
 		Opts:     opts,
 		manifest: m,
-		output:   NewOutput(),
+		output:   NewOutput(opts.Quiet),
 	}
 }
 

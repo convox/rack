@@ -27,13 +27,15 @@ type Output struct {
 	lock     sync.Mutex
 	prefixes map[Stream]string
 	streams  map[string]Stream
+	quiet    bool
 }
 
-func NewOutput() Output {
+func NewOutput(quiet bool) Output {
 	return Output{
 		colors:   make(map[string]color.Attribute),
 		prefixes: make(map[Stream]string),
 		streams:  make(map[string]Stream),
+		quiet:    quiet,
 	}
 }
 
@@ -69,7 +71,9 @@ func (o *Output) printLine(s Stream, line string) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
-	fmt.Printf("%s %s\n", o.paddedPrefix(s), line)
+	if !o.quiet {
+		fmt.Printf("%s %s\n", o.paddedPrefix(s), line)
+	}
 }
 
 func (o *Output) watchStream(s Stream) {
