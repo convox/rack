@@ -10,6 +10,7 @@ import (
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/provider"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -46,6 +47,20 @@ func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	}
 
 	return RenderJson(rw, a)
+}
+
+func AppCancel(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+	app := mux.Vars(r)["app"]
+
+	err := models.Provider().AppCancel(app)
+	if provider.ErrorNotFound(err) {
+		return httperr.NotFound(err)
+	}
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	return RenderSuccess(rw)
 }
 
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {

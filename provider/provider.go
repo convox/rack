@@ -12,6 +12,7 @@ import (
 type Provider interface {
 	Initialize(opts structs.ProviderOptions) error
 
+	AppCancel(name string) error
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
 

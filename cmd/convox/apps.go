@@ -18,6 +18,13 @@ func init() {
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
+				Name:        "cancel",
+				Description: "cancel an update",
+				Usage:       "",
+				Action:      cmdAppCancel,
+				Flags:       []cli.Flag{appFlag, rackFlag},
+			},
+			{
 				Name:        "create",
 				Description: "create a new application",
 				Usage:       "<name>",
@@ -86,6 +93,27 @@ func cmdApps(c *cli.Context) error {
 	}
 
 	t.Print()
+	return nil
+}
+
+func cmdAppCancel(c *cli.Context) error {
+	_, app, err := stdcli.DirApp(c, ".")
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	if app == "" {
+		return stdcli.Error(fmt.Errorf("must specify an app name"))
+	}
+
+	stdcli.Startf("Cancelling update for <app>%s</app>", app)
+
+	if err := rackClient(c).CancelApp(app); err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.Wait("CANCELLED")
+
 	return nil
 }
 
