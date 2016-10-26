@@ -274,7 +274,7 @@ var cycleCapacityListServices = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListServices",
-		Body:       `{"cluster":"cluster-test"}`,
+		Body:       `{"cluster":"cluster-test", "maxResults":10}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,

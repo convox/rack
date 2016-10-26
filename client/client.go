@@ -2,7 +2,6 @@ package client
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -14,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -63,21 +61,21 @@ func (c *Client) Get(path string, out interface{}) error {
 		return err
 	}
 
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
+	switch t := out.(type) {
+	case []byte:
+		data, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		out = data
+	case io.Writer:
+		_, err := io.Copy(t, res.Body)
 		return err
 	}
 
-	// Special case used for binary data
-	if res.Header.Get("Content-Type") == "application/octet-stream" {
-		v := reflect.ValueOf(out)
-
-		if v.Kind() != reflect.Ptr {
-			return fmt.Errorf("out param must be of type *[]byte for binary data")
-		}
-
-		v.Elem().SetBytes(data)
-		return nil
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
 	}
 
 	return json.Unmarshal(data, out)
@@ -145,75 +143,101 @@ type PostMultipartOptions struct {
 
 // PostMultipart posts a multipart message in the MIME internet format.
 func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out interface{}) error {
-	body := &bytes.Buffer{}
 
-	writer := multipart.NewWriter(body)
+	r, w := io.Pipe()
+	var pr io.Reader = r
 
-	for name, file := range opts.Files {
-		part, err := writer.CreateFormFile(name, "binary-data")
-		if err != nil {
-			return err
-		}
-
-		if _, err = io.Copy(part, file); err != nil {
-			return err
-		}
-	}
-
-	for name, value := range opts.Params {
-		writer.WriteField(name, value)
-	}
-
-	if err := writer.Close(); err != nil {
-		return err
-	}
-
-	br := io.Reader(body)
-
+	// Get the files size(s) before hand if any
 	if opts.Progress != nil {
-		opts.Progress.Start(int64(body.Len()))
 
-		defer opts.Progress.Finish()
+		var size int64
+		for _, file := range opts.Files {
+			if rs, ok := file.(io.ReadSeeker); ok {
+				s, err := io.Copy(ioutil.Discard, rs)
+				if err != nil {
+					return err
+				}
+				size += s
+				rs.Seek(0, 0) // io.SeekStart == 0 in go1.7
+			} else {
+				size = 0 // if even one file isn't seekable, bail
+				break
+			}
+		}
 
-		br = NewProgressReader(br, opts.Progress.Progress)
+		if size > 0 {
+
+			opts.Progress.Start(size)
+
+			defer opts.Progress.Finish()
+
+			pr = NewProgressReader(r, opts.Progress.Progress)
+		}
 	}
 
-	req, err := c.request("POST", path, br)
+	writer := multipart.NewWriter(w)
+	streamErr := make(chan error)
+	go func() {
+		var e error
+		defer func() {
+			writer.Close()
+			w.Close()
+			streamErr <- e
+		}()
 
+		for name, file := range opts.Files {
+			part, err := writer.CreateFormFile(name, "binary-data")
+			if err != nil {
+				e = err
+				return
+			}
+
+			if _, err = io.Copy(part, file); err != nil {
+				e = err
+				return
+			}
+		}
+
+		for name, value := range opts.Params {
+			writer.WriteField(name, value)
+		}
+		e = nil
+	}()
+
+	req, err := c.request("POST", path, pr)
 	if err != nil {
 		return err
 	}
 
 	req.SetBasicAuth("convox", string(c.Password))
-
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	res, err := c.client().Do(req)
-
 	if err != nil {
 		return err
 	}
 
 	defer res.Body.Close()
 
+	if err := <-streamErr; err != nil {
+		return err
+	}
+
 	if err := responseError(res); err != nil {
 		return err
 	}
 
 	data, err := ioutil.ReadAll(res.Body)
-
 	if err != nil {
 		return err
 	}
 
 	if out != nil {
 		err = json.Unmarshal(data, out)
-
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
