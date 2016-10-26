@@ -101,25 +101,34 @@ type ECSServices []*ecs.Service
 func (p *AWSProvider) clusterServices() (ECSServices, error) {
 	services := ECSServices{}
 
-	lsres, err := p.ecs().ListServices(&ecs.ListServicesInput{
-		Cluster: aws.String(p.Cluster),
-	})
-
-	if err != nil {
-		return services, err
+	lreq := &ecs.ListServicesInput{
+		Cluster:    aws.String(p.Cluster),
+		MaxResults: aws.Int64(10),
 	}
 
-	dsres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
-		Cluster:  aws.String(p.Cluster),
-		Services: lsres.ServiceArns,
-	})
+	for {
+		lres, err := p.ecs().ListServices(lreq)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		return services, err
-	}
+		dres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+			Cluster:  aws.String(p.Cluster),
+			Services: lres.ServiceArns,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	for i := 0; i < len(dsres.Services); i++ {
-		services = append(services, dsres.Services[i])
+		for _, s := range dres.Services {
+			services = append(services, s)
+		}
+
+		if lres.NextToken == nil {
+			break
+		}
+
+		lreq.NextToken = lres.NextToken
 	}
 
 	return services, nil
