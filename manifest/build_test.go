@@ -71,7 +71,7 @@ func (p *TestExecer) RunAsync(s manifest.Stream, cmd *exec.Cmd, done chan error)
 }
 
 func TestBuildWithCache(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -103,7 +103,7 @@ func TestBuildWithCache(t *testing.T) {
 }
 
 func TestBuildCacheNoImage(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -137,7 +137,7 @@ func TestBuildCacheNoImage(t *testing.T) {
 }
 
 func TestBuildWithSpecificService(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -170,7 +170,7 @@ func TestBuildWithSpecificService(t *testing.T) {
 }
 
 func TestBuildNoCache(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -205,7 +205,7 @@ func TestBuildNoCache(t *testing.T) {
 }
 
 func TestBuildRepeatSimple(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -232,7 +232,7 @@ func TestBuildRepeatSimple(t *testing.T) {
 }
 
 func TestBuildRepeatImage(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -266,7 +266,7 @@ func TestBuildRepeatImage(t *testing.T) {
 }
 
 func TestBuildRepeatComplex(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
@@ -304,7 +304,7 @@ func TestDoubleDockerfile(t *testing.T) {
 }
 
 func TestPush(t *testing.T) {
-	output := manifest.NewOutput()
+	output := manifest.NewOutput(true)
 	str := output.Stream("build")
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()

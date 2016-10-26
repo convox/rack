@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -95,14 +96,22 @@ var (
 		checkAppExposesPorts,
 	}
 
-	runResourceChecks = []func(*manifest.Manifest) error{
-		checkAppDefinesResource,
-		checkValidResources,
+	runDatabaseChecks = []func(*manifest.Manifest) error{
+		checkAppDefinesDatabase,
+		checkValidDatabases,
 	}
 
 	runLinkChecks = []func(*manifest.Manifest) error{
 		checkAppDefinesLink,
 		checkValidLinks,
+	}
+
+	runReloadingChecks = []func(*manifest.Manifest) error{
+		checkReloading,
+	}
+
+	runCommandChecks = []func(*manifest.Manifest) error{
+		checkRunSh,
 	}
 )
 
@@ -146,7 +155,7 @@ func cmdDoctor(c *cli.Context) error {
 			Title:       "<file>docker-compose.yml</file> found",
 			Description: "<fail>A docker-compose.yml file is required to define Services</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/service/",
+			DocsLink:    "https://convox.com/guide/services/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -177,8 +186,8 @@ func cmdDoctor(c *cli.Context) error {
 		}
 	}
 
-	stdcli.Writef("\n\n### Run: Resource\n")
-	for _, check := range runResourceChecks {
+	stdcli.Writef("\n\n### Run: Database\n")
+	for _, check := range runDatabaseChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -186,6 +195,20 @@ func cmdDoctor(c *cli.Context) error {
 
 	stdcli.Writef("\n\n### Run: Link\n")
 	for _, check := range runLinkChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Development: Reloading\n")
+	for _, check := range runReloadingChecks {
+		if err := check(m); err != nil {
+			return stdcli.Error(err)
+		}
+	}
+
+	stdcli.Writef("\n\n### Development: Commands\n")
+	for _, check := range runCommandChecks {
 		if err := check(m); err != nil {
 			return stdcli.Error(err)
 		}
@@ -336,7 +359,7 @@ func checkDockerfile() error {
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/build/",
+			DocsLink:    "https://convox.com/guide/builds/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -748,34 +771,6 @@ func checkMissingEnv(m *manifest.Manifest) error {
 	return nil
 }
 
-// func syncVolumeConflict(m *manifest.Manifest) error {
-// 	for _, s := range m.Services {
-// 		sps, err := s.SyncPaths()
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		for _, v := range s.Volumes {
-// 			parts := strings.Split(v, ":")
-// 			if len(parts) == 2 {
-// 				for k, _ := range sps {
-// 					if k == parts[0] {
-// 						// diagnose(Diagnosis{
-// 						// 	Kind:     "warning",
-// 						// 	DocsLink: "#TODO",
-// 						// 	Description: fmt.Sprintf(
-// 						// 		"<description>service: %s has a sync path conflict with volume %s</description>",
-// 						// 		s.Name,
-// 						// 		v),
-// 						// })
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return nil
-// }
-
 func checkMissingDockerFiles(m *manifest.Manifest) error {
 	title := "Dockerfiles found"
 	startCheck(title)
@@ -789,7 +784,7 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "fail",
-					DocsLink:    "https://convox.com/guide/image/",
+					DocsLink:    "https://convox.com/guide/images/",
 					Description: fmt.Sprintf("<fail>Service <service>%s</service> is missing a Dockerfile</fail>", s.Name),
 				})
 			}
@@ -839,7 +834,7 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "http://convox.com/guide/service/",
+			DocsLink:    "http://convox.com/guide/services/",
 			Description: fmt.Sprintf("<fail>Service <service>%s</service> doesn't have a valid command</fail>", s.Name),
 		})
 	}
@@ -862,17 +857,17 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/balancer/",
+		DocsLink:    "http://convox.com/guide/balancers/",
 		Description: "<warning>This app does not expose any ports</warning>",
 	})
 	return nil
 }
 
-func checkAppDefinesResource(m *manifest.Manifest) error {
-	title := "App defines Resources"
+func checkAppDefinesDatabase(m *manifest.Manifest) error {
+	title := "App defines Database"
 	startCheck(title)
 
-	if len(manifestResources(m)) > 0 {
+	if len(manifestDatabases(m)) > 0 {
 		diagnose(Diagnosis{
 			Title: title,
 			Kind:  "success",
@@ -883,21 +878,21 @@ func checkAppDefinesResource(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/resource/",
-		Description: "<warning>This app does not define any Resources</warning>",
+		DocsLink:    "http://convox.com/guide/databases/",
+		Description: "<warning>This app does not define any Databases</warning>",
 	})
 	return nil
 }
 
-func checkValidResources(m *manifest.Manifest) error {
-	rs := manifestResources(m)
+func checkValidDatabases(m *manifest.Manifest) error {
+	rs := manifestDatabases(m)
 
 	if len(rs) == 0 {
 		return nil
 	}
 
 	for _, s := range rs {
-		title := fmt.Sprintf("Resource <resource>%s</resource> is valid", s.Name)
+		title := fmt.Sprintf("Database <database>%s</database> is valid", s.Name)
 		startCheck(title)
 
 		diagnose(Diagnosis{
@@ -912,15 +907,15 @@ func checkValidResources(m *manifest.Manifest) error {
 func manifestServices(m *manifest.Manifest) []manifest.Service {
 	services := []manifest.Service{}
 
-	resources := manifestResources(m)
-	resourceNames := map[string]bool{}
+	databases := manifestDatabases(m)
+	databaseNames := map[string]bool{}
 
-	for _, r := range resources {
-		resourceNames[r.Name] = true
+	for _, d := range databases {
+		databaseNames[d.Name] = true
 	}
 
 	for _, s := range m.Services {
-		if _, ok := resourceNames[s.Name]; ok {
+		if _, ok := databaseNames[s.Name]; ok {
 			continue
 		}
 		services = append(services, s)
@@ -929,18 +924,18 @@ func manifestServices(m *manifest.Manifest) []manifest.Service {
 	return services
 }
 
-func manifestResources(m *manifest.Manifest) []manifest.Service {
-	resources := []manifest.Service{}
+func manifestDatabases(m *manifest.Manifest) []manifest.Service {
+	databases := []manifest.Service{}
 
 	for _, s := range m.Services {
 		prebuiltImage := strings.HasPrefix(s.Image, "convox/")
 		noCommand := s.Command.String == "" && s.Command.Array == nil
 		if prebuiltImage && noCommand {
-			resources = append(resources, s)
+			databases = append(databases, s)
 		}
 	}
 
-	return resources
+	return databases
 }
 
 func checkAppDefinesLink(m *manifest.Manifest) error {
@@ -960,7 +955,7 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/link/",
+		DocsLink:    "http://convox.com/guide/links/",
 		Description: "<warning>This app does not define any Links</warning>",
 	})
 	return nil
@@ -1001,7 +996,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "fail",
-				DocsLink:    "https://convox.com/guide/link/",
+				DocsLink:    "https://convox.com/guide/links/",
 				Description: fmt.Sprintf("<fail>Service <service>%s</service> not expecting %s</fail>", s.Name, strings.Join(missingEnv, ", ")),
 			})
 		}
@@ -1011,18 +1006,18 @@ func checkValidLinks(m *manifest.Manifest) error {
 		})
 	}
 
-	resources := manifestResources(m)
+	databases := manifestDatabases(m)
 
-	for _, r := range resources {
-		title := fmt.Sprintf("Resource <resource>%s</resource> exposes internal port", r.Name)
+	for _, r := range databases {
+		title := fmt.Sprintf("Database <database>%s</database> exposes internal port", r.Name)
 
 		if _, ok := resourceNames[r.Name]; ok {
 			if len(r.InternalPorts()) == 0 {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "error",
-					DocsLink:    "http://convox.com/guide/link/",
-					Description: fmt.Sprintf("<warning>Resource <resource>%s</resource> does not expose an internal port</warning>", r.Name),
+					DocsLink:    "http://convox.com/guide/links/",
+					Description: fmt.Sprintf("<warning>Database <database>%s</database> does not expose an internal port</warning>", r.Name),
 				})
 			} else {
 				diagnose(Diagnosis{
@@ -1036,90 +1031,77 @@ func checkValidLinks(m *manifest.Manifest) error {
 	return nil
 }
 
-// func checkUnsupportedFeatures(m *manifest.Manifest) error {
-// 	dc, err := ioutil.ReadFile("docker-compose.yml")
-// 	if err != nil {
-// 		return err
-// 	}
+func checkReloading(m *manifest.Manifest) error {
+	title := "App reloading"
+	startCheck(title)
 
-// 	r, err := m.Raw()
-// 	if err != nil {
-// 		return err
-// 	}
+	for _, s := range m.Services {
+		dirs := []string{}
 
-// 	dcLines := strings.Split(string(dc), "\n")
-// 	rLines := strings.Split(string(r), "\n")
+		paths, _ := s.SyncPaths()
 
-// 	adds := 0
-// 	discoveries := make([][]int, 0)
-// 	current := make([]int, 0)
-// 	removes := 0
+		for local, _ := range paths {
+			if local == "." {
+				local = "./"
+			}
+			dirs = append(dirs, local)
+		}
 
-// 	d := difflib.Diff(rLines, dcLines)
+		sort.Strings(dirs)
 
-// 	for x, dr := range d {
-// 		switch dr.Delta {
-// 		case 0:
-// 			if len(current) > 0 {
-// 				discoveries = append(discoveries, []int{current[0], len(current)})
-// 				current = []int{}
-// 			}
-// 			removes = 0
-// 		case 1:
-// 			adds++
-// 			removes++
-// 		case 2:
-// 			if removes == 0 {
-// 				current = append(current, x-adds)
-// 			} else {
-// 				removes--
-// 			}
-// 		}
-// 	}
+		if len(dirs) > 0 {
+			diagnose(Diagnosis{
+				Title: fmt.Sprintf("Service <service>%s</service> reloading: %s", s.Name, strings.Join(dirs, ", ")),
+				Kind:  "success",
+			})
+		}
+	}
+	return nil
+}
 
-// 	for _, d := range discoveries {
-// 		parts := []string{}
+func checkRunSh(m *manifest.Manifest) error {
+	_, app, err := stdcli.DirApp(docContext, ".")
+	if err != nil {
+		fmt.Printf("ERROR: %+v\n", err)
+	}
 
-// 		head := dcLines[:d[0]]
-// 		tail := dcLines[d[0]+d[1]:]
-// 		max := len(dcLines)
+	for _, s := range manifestServices(m) {
+		title := fmt.Sprintf("Service <service>%s</service> runs `sh`", s.Name)
+		startCheck(title)
 
-// 		switch {
-// 		case len(head) == 1:
-// 			num := d[0] - 1
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", dcLines[num]), num, max))
-// 		case len(head) >= 2:
-// 			num1 := d[0] - 2
-// 			num2 := d[0] - 1
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", dcLines[num1]), num1, max))
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", dcLines[num2]), num2, max))
-// 		}
+		r := m.Run(".", app, manifest.RunOptions{
+			Service: s.Name,
+			Command: []string{"echo", "hello"},
+			Cache:   true,
+			Quiet:   true,
+		})
 
-// 		for x := d[0]; x < (d[0] + d[1]); x++ {
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<warning>%s</warning>", dcLines[x]), x, max))
-// 		}
+		err := r.Start()
+		if err != nil {
+			diagnose(Diagnosis{
+				Title:       title,
+				Kind:        "error",
+				DocsLink:    "http://convox.com/guide/commands/",
+				Description: fmt.Sprintf("Service <service>%s</service> does not run `sh` because of %q", s.Name, err),
+			})
+			continue
+		}
 
-// 		switch {
-// 		case len(tail) == 1:
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", tail[0]), d[0]+d[1], max))
-// 		case len(tail) >= 2:
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", tail[0]), d[0]+d[1], max))
-// 			parts = append(parts, numberedLine(fmt.Sprintf("<description>%s</description>", tail[1]), d[0]+d[1]+1, max))
-// 		}
+		err = r.Wait()
+		if err != nil {
+			diagnose(Diagnosis{
+				Title:       title,
+				Kind:        "error",
+				DocsLink:    "http://convox.com/guide/commands/",
+				Description: fmt.Sprintf("Service <service>%s</service> does not exit from `sh` because of %q", s.Name, err),
+			})
+			continue
+		}
 
-// 		// diagnose(Diagnosis{
-// 		// 	Title:       "It looks like you are using docker-compose features that convox doesn't support",
-// 		// 	Kind:        "warning",
-// 		// 	Description: strings.Join(parts, "\n"),
-// 		// 	DocsLink:    "#TODO",
-// 		// })
-// 	}
-
-// 	return nil
-// }
-
-// func numberedLine(line string, num, maxNum int) string {
-// 	b := len(fmt.Sprintf("%d", maxNum))
-// 	format := fmt.Sprintf("<linenumber>%%0%dd:</linenumber> %%s", b)
-// 	return fmt.Sprintf(format, num+1, line)
-// }
+		diagnose(Diagnosis{
+			Title: title,
+			Kind:  "success",
+		})
+	}
+	return nil
+}
