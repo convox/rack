@@ -62,7 +62,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	if len(asgres.AutoScalingGroups) <= 0 {
-		return nil, fmt.Errorf("scailing group %s was not found", asgName)
+		return nil, fmt.Errorf("scaling group %s was not found", asgName)
 	}
 
 	for _, instance := range asgres.AutoScalingGroups[0].Instances {
