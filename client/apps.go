@@ -42,6 +42,15 @@ func (c *Client) CreateApp(name string) (*App, error) {
 	return &app, nil
 }
 
+func (c *Client) CancelApp(name string) error {
+	err := c.Post(fmt.Sprintf("/apps/%s/cancel", name), nil, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) GetApp(name string) (*App, error) {
 	var app App
 
