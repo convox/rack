@@ -9,6 +9,20 @@ type MockProvider struct {
 	mock.Mock
 }
 
+// AppCancel provides a mock function with given fields: name
+func (_m *MockProvider) AppCancel(name string) error {
+	ret := _m.Called(name)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // AppDelete provides a mock function with given fields: name
 func (_m *MockProvider) AppDelete(name string) error {
 	ret := _m.Called(name)

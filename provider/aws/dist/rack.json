@@ -45,14 +45,15 @@
       "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
     },
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-6bb2d67c" },
-      "us-west-1": { "Ami": "ami-70632110" },
-      "us-west-2": { "Ami": "ami-2d1bce4d" },
-      "eu-west-1": { "Ami": "ami-078df974" },
-      "eu-central-1": { "Ami": "ami-d3cf3ebc" },
-      "ap-northeast-1": { "Ami": "ami-2b6ba64a" },
-      "ap-southeast-1": { "Ami": "ami-55598036" },
-      "ap-southeast-2": { "Ami": "ami-0e20176d" }
+      "us-east-1": { "Ami": "ami-40286957" },
+      "us-east-2": { "Ami": "ami-abf2a9ce" },
+      "us-west-1": { "Ami": "ami-20fab440" },
+      "us-west-2": { "Ami": "ami-562cf236" },
+      "eu-west-1": { "Ami": "ami-175f1964" },
+      "eu-central-1": { "Ami": "ami-c55ea2aa" },
+      "ap-northeast-1": { "Ami": "ami-010ed160" },
+      "ap-southeast-1": { "Ami": "ami-438b2f20" },
+      "ap-southeast-2": { "Ami": "ami-862211e5" }
     }
   },
   "Outputs": {

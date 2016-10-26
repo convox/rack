@@ -14,6 +14,17 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+func (p *AWSProvider) AppCancel(name string) error {
+	_, err := p.cloudformation().CancelUpdateStack(&cloudformation.CancelUpdateStackInput{
+		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, name)),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // AppGet gets an app
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	var res *cloudformation.DescribeStacksOutput
