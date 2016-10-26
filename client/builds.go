@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -229,18 +228,7 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 
 // ExportBuild creats an artifact, representing a build, to be used with another Rack
 func (c *Client) ExportBuild(app, id string, w io.Writer) error {
-	var data []byte
-
-	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), &data)
-	if err != nil {
-		return err
-	}
-
-	if _, err := io.Copy(w, bytes.NewReader(data)); err != nil {
-		return err
-	}
-
-	return nil
+	return c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), w)
 }
 
 type ImportBuildOptions struct {
