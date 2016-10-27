@@ -21,6 +21,7 @@ import "C"
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -30,6 +31,8 @@ var (
 	chans    = make(map[string](chan string))
 	interval = 700 * time.Millisecond
 	now      = C.FSEventStreamEventId((1 << 64) - 1)
+
+	chanlock sync.Mutex
 )
 
 func init() {
@@ -37,7 +40,9 @@ func init() {
 }
 
 func startScanner(dir string) {
+	chanlock.Lock()
 	chans[dir] = make(chan string)
+	chanlock.Unlock()
 
 	cpaths := C.fswatch_make_mutable_array()
 	defer C.free(unsafe.Pointer(cpaths))
