@@ -21,6 +21,7 @@
     "RegionHasEFS": {
         "Fn::Or": [
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-2" ]},
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
         ]
@@ -36,6 +37,7 @@
   "Mappings": {
     "AvailabilityZoneConfig": {
       "us-east-1": { "ThirdAvailabilityZone": "Yes" },
+      "us-east-2": { "ThirdAvailabilityZone": "Yes" },
       "us-west-1": { "ThirdAvailabilityZone": "Yes" },
       "us-west-2": { "ThirdAvailabilityZone": "Yes" },
       "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
