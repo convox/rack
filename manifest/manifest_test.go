@@ -514,6 +514,29 @@ func TestManifestValidate(t *testing.T) {
 	if assert.NotNil(t, herr) {
 		assert.Equal(t, herr[0].Error(), "convox.health.timeout is invalid for web, must be a number between 0 and 60")
 	}
+
+	// test mem_limit
+	m, err = manifestFixture("invalid-memory-has-unit")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	merru := m.Validate()
+	if assert.NotNil(t, merru) {
+		assert.Equal(t, merru[0].Error(), "web has invalid mem_limit 3mb: should be a number in MB without a text unit label between 4 and 10000")
+	}
+
+	m, err = manifestFixture("invalid-memory-below-minimum")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	merrm := m.Validate()
+	if assert.NotNil(t, merrm) {
+		assert.Equal(t, merrm[0].Error(), "web has invalid mem_limit 2: should be a number in MB without a text unit label between 4 and 10000")
+	}
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
