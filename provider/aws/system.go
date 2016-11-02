@@ -37,38 +37,42 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		return nil, err
 	}
 
-	rres, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(p.Rack),
-	})
-	if err != nil {
-		return nil, err
-	}
+	// status precedence: (all other stack statues) > converging > running
+	if status == "running" {
 
-	var asgName string
-	for _, r := range rres.StackResources {
-		if *r.LogicalResourceId == "Instances" {
-			asgName = *r.PhysicalResourceId
-			break
+		rres, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+			StackName: aws.String(p.Rack),
+		})
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	asgres, err := p.autoscaling().DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			aws.String(asgName),
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
+		var asgName string
+		for _, r := range rres.StackResources {
+			if *r.LogicalResourceId == "Instances" {
+				asgName = *r.PhysicalResourceId
+				break
+			}
+		}
 
-	if len(asgres.AutoScalingGroups) <= 0 {
-		return nil, fmt.Errorf("scaling group %s was not found", asgName)
-	}
+		asgres, err := p.autoscaling().DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
+			AutoScalingGroupNames: []*string{
+				aws.String(asgName),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	for _, instance := range asgres.AutoScalingGroups[0].Instances {
-		if *instance.LifecycleState != "InService" {
-			status = "converging"
-			break
+		if len(asgres.AutoScalingGroups) <= 0 {
+			return nil, fmt.Errorf("scaling group %s was not found", asgName)
+		}
+
+		for _, instance := range asgres.AutoScalingGroups[0].Instances {
+			if *instance.LifecycleState != "InService" {
+				status = "converging"
+				break
+			}
 		}
 	}
 
