@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/convox/rack/sync"
@@ -85,6 +86,14 @@ func NewProcess(app string, s Service, m Manifest) Process {
 			volume = fmt.Sprintf("%s:%s", hostPath, volume)
 		}
 		args = append(args, "-v", volume)
+	}
+
+	if s.Cpu != 0 {
+		args = append(args, "--cpu-shares",  strconv.FormatInt(s.Cpu, 10))
+	}
+
+	if s.Memory != 0 {
+		args = append(args, "--memory", fmt.Sprintf("%#vMB", s.Memory))
 	}
 
 	args = append(args, s.Tag(app))
