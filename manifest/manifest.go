@@ -127,6 +127,16 @@ func (m Manifest) Validate() []error {
 				errors = append(errors, fmt.Errorf("%s links to service: %s which does not expose any ports", entry.Name, l))
 			}
 		}
+
+		// TODO test cpu_shares
+
+		// test mem_limit
+		// FIXME: Do we accept text labels or not?
+		mem_as_str := fmt.Sprintf("%#v", entry.Memory)
+		mem, err := strconv.Atoi(mem_as_str)
+		if err != nil || (mem < 4 && mem != 0) || mem > 10000 {
+			errors = append(errors, fmt.Errorf("%s has invalid mem_limit %s: should be a number in MB without a text unit label between 4 and 10000", entry.Name, mem_as_str))
+		}
 	}
 
 	return errors
