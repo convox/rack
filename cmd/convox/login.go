@@ -102,7 +102,7 @@ func cmdLogin(c *cli.Context) error {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "401") {
-			return stdcli.Error(fmt.Errorf("invalid login"))
+			return stdcli.Error(fmt.Errorf("invalid login. Create an account at https://convox.com/signup"))
 		} else {
 			return stdcli.Error(err)
 		}
