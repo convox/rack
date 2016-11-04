@@ -128,14 +128,10 @@ func (m Manifest) Validate() []error {
 			}
 		}
 
-		// TODO test cpu_shares
-
-		// test mem_limit
-		// FIXME: Do we accept text labels or not?
-		mem_as_str := fmt.Sprintf("%#v", entry.Memory)
-		mem, err := strconv.Atoi(mem_as_str)
-		if err != nil || (mem < 4 && mem != 0) || mem > 10000 {
-			errors = append(errors, fmt.Errorf("%s has invalid mem_limit %s: should be a number in MB without a text unit label between 4 and 10000", entry.Name, mem_as_str))
+		// test mem_limit: Docker requires a mem_limit of at least 4mb (or 0)
+		mem_min := Memory(4194304)
+		if entry.Memory < mem_min && entry.Memory != 0 {
+			errors = append(errors, fmt.Errorf("%s has invalid mem_limit %#v: should be either 0, or at least %#v", entry.Name, entry.Memory, mem_min))
 		}
 	}
 
