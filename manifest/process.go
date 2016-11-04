@@ -93,7 +93,7 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	}
 
 	if s.Memory != 0 {
-		args = append(args, "--memory", fmt.Sprintf("%#vMB", s.Memory))
+		args = append(args, "--memory", fmt.Sprintf("%#v", s.Memory))
 	}
 
 	args = append(args, s.Tag(app))
