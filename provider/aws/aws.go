@@ -52,6 +52,7 @@ type AWSProvider struct {
 	Password          string
 	Rack              string
 	RegistryHost      string
+	SecurityGroup     string
 	SettingsBucket    string
 	Subnets           string
 	SubnetsPrivate    string
@@ -80,6 +81,7 @@ func FromEnv() *AWSProvider {
 		Password:          os.Getenv("PASSWORD"),
 		Rack:              os.Getenv("RACK"),
 		RegistryHost:      os.Getenv("REGISTRY_HOST"),
+		SecurityGroup:     os.Getenv("SECURITY_GROUP"),
 		SettingsBucket:    os.Getenv("SETTINGS_BUCKET"),
 		Subnets:           os.Getenv("SUBNETS"),
 		SubnetsPrivate:    os.Getenv("SUBNETS_PRIVATE"),
