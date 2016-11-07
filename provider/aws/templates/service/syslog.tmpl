@@ -1,6 +1,9 @@
 {{ define "service" }}
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "IsPrivate": { "Fn::Equals": [ { "Ref": "IsPrivate" }, "true" ] }
+  },
   "Outputs": {
     {{ range $k, $app := .Apps }}
       "{{ upper $app.Name }}Link": {
@@ -14,9 +17,21 @@
     }
   },
   "Parameters": {
+    "IsPrivate": {
+        "Description": "Flag stating if Rack is priavte",
+        "Type": "String"
+    },
     "Url": {
       "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
       "Type": "String"
+    },
+    "SecurityGroups": {
+      "Description": "VpcConfig security groups",
+      "Type": "CommaDelimitedList"
+    },
+    "SubnetsPrivate": {
+      "Description": "VpcConfig private subnets",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -108,7 +123,15 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "25"
+        "Timeout": "25",
+        "VpcConfig": {
+          "Fn::If": [ "IsPrivate",
+          {
+            "SecurityGroupIds" : { "Ref": "SecurityGroups" },
+            "SubnetIds" : { "Ref": "SubnetsPrivate" }
+          },
+          { "Ref": "AWS::NoValue" }
+        ]}
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -138,7 +161,10 @@
                 {
                   "Action": [
                     "cloudwatch:PutMetricData",
-                    "lambda:InvokeFunction"
+                    "lambda:InvokeFunction",
+                    "ec2:CreateNetworkInterface",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DeleteNetworkInterface"
                   ],
                   "Effect": "Allow",
                   "Resource": "*"

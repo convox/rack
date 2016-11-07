@@ -47,6 +47,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		}
 		req, err = p.createService(s)
 	case "syslog":
+		s.Parameters["IsPrivate"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
 		req, err = p.createServiceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
 		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
@@ -430,6 +431,7 @@ func (p *AWSProvider) appendSystemParameters(s *structs.Service) error {
 	}
 
 	s.Parameters["Password"] = password
+	s.Parameters["SecurityGroups"] = p.SecurityGroup
 	s.Parameters["Subnets"] = p.Subnets
 	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
 	s.Parameters["Vpc"] = p.Vpc
@@ -483,7 +485,7 @@ func serviceFormation(kind string, data interface{}) (string, error) {
 		return "", err
 	}
 
-	return string(d), nil
+	return d, nil
 }
 
 func serviceFromStack(stack *cloudformation.Stack) structs.Service {
