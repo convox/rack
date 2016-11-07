@@ -523,7 +523,7 @@ func TestManifestValidate(t *testing.T) {
 
 	merrm := m.Validate()
 	if assert.NotNil(t, merrm) {
-		assert.Equal(t, merrm[0].Error(), "web has invalid mem_limit 2097152: should be either 0, or at least 4194304")
+		assert.Equal(t, merrm[0].Error(), "web has invalid mem_limit 2: should be either 0, or at least 4MB")
 	}
 }
 
