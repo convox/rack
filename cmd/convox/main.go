@@ -41,6 +41,30 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
+		if err.Error() == "Token expired" {
+			fmt.Println("Login:")
+			email := promptForUsername()
+			pw := promptForPassword()
+			host, _ := currentHost()
+			cl := client.New(host, "", "")
+
+			token, err := cl.CreateToken(email, pw)
+
+			if err == nil {
+				err = addLogin(host, token)
+				if err != nil {
+					stdcli.Error(err)
+				}
+				err = app.Run(os.Args)
+				if err != nil {
+					stdcli.Error(err)
+					os.Exit(1)
+				}
+			} else {
+				stdcli.Error(err)
+				os.Exit(1)
+			}
+		}
 		os.Exit(1)
 	}
 }
