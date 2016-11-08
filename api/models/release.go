@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -487,6 +488,20 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 			}
 
 			port := other.Ports[0]
+
+			if other.Exports["LINK_PORT"] != "" {
+				i, _ := strconv.Atoi(other.Exports["LINK_PORT"])
+				if err != nil {
+					// handle error
+					fmt.Println(err)
+				}
+
+				for _, p := range other.Ports {
+					if i == p.Container {
+						port = p
+					}
+				}
+			}
 
 			path := other.Exports["LINK_PATH"]
 
