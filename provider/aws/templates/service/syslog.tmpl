@@ -2,7 +2,7 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "IsPrivate": { "Fn::Equals": [ { "Ref": "IsPrivate" }, "true" ] }
+    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
   },
   "Outputs": {
     {{ range $k, $app := .Apps }}
@@ -17,7 +17,7 @@
     }
   },
   "Parameters": {
-    "IsPrivate": {
+    "Private": {
         "Description": "Flag stating if Rack is priavte",
         "Type": "String"
     },
@@ -125,7 +125,7 @@
         "Runtime": "nodejs",
         "Timeout": "25",
         "VpcConfig": {
-          "Fn::If": [ "IsPrivate",
+          "Fn::If": [ "Private",
           {
             "SecurityGroupIds" : { "Ref": "SecurityGroups" },
             "SubnetIds" : { "Ref": "SubnetsPrivate" }

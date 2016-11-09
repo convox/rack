@@ -47,7 +47,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		}
 		req, err = p.createService(s)
 	case "syslog":
-		s.Parameters["IsPrivate"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
+		s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
 		req, err = p.createServiceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
 		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
