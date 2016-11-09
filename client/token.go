@@ -1,6 +1,6 @@
 package client
 
-func (c *Client) CreateToken(email, password string) (string, error) {
+func (c *Client) RegenerateToken(email, password string) (string, error) {
 	params := Params{
 		"email":    email,
 		"password": password,
