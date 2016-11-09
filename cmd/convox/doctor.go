@@ -964,48 +964,6 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 func checkValidLinks(m *manifest.Manifest) error {
 	resourceNames := map[string]bool{}
 
-	for _, s := range manifestServices(m) {
-		linkVars := []string{}
-		missingEnv := []string{}
-
-		for _, l := range s.Links {
-			resourceNames[l] = true
-
-			prefix := strings.ToUpper(l) + "_"
-			prefix = strings.Replace(prefix, "-", "_", -1)
-
-			key := prefix + "URL"
-			linkVars = append(linkVars, key)
-
-			missing := true
-			for k, _ := range s.Environment {
-				if k == key {
-					missing = false
-					break
-				}
-			}
-
-			if missing {
-				missingEnv = append(missingEnv, key)
-			}
-		}
-
-		title := fmt.Sprintf("Service <service>%s</service> environment expects %s", s.Name, strings.Join(linkVars, ", "))
-
-		if len(missingEnv) > 0 {
-			diagnose(Diagnosis{
-				Title:       title,
-				Kind:        "fail",
-				DocsLink:    "https://convox.com/guide/links/",
-				Description: fmt.Sprintf("<fail>Service <service>%s</service> not expecting %s</fail>", s.Name, strings.Join(missingEnv, ", ")),
-			})
-		}
-		diagnose(Diagnosis{
-			Title: title,
-			Kind:  "success",
-		})
-	}
-
 	databases := manifestDatabases(m)
 
 	for _, r := range databases {
