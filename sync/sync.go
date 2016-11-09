@@ -183,9 +183,9 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 
 				local := filepath.Join(s.Local, rel)
 
+				s.lock.Lock()
 				s.outgoingBlocks[rel] += 1
-
-				os.MkdirAll(filepath.Dir(local), 0755)
+				s.lock.Unlock()
 
 				tmpfile, err := ioutil.TempFile("", filepath.Base(rel))
 				if err != nil {
@@ -206,6 +206,12 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 				}
 
 				err = os.Chmod(tmpfile.Name(), os.FileMode(header.Mode))
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
+
+				err = os.MkdirAll(filepath.Dir(local), 0755)
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return
@@ -264,7 +270,9 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 
 		remote := filepath.Join(s.Remote, a.Path)
 
+		s.lock.Lock()
 		s.incomingBlocks[a.Path] += 1
+		s.lock.Unlock()
 
 		tgz.WriteHeader(&tar.Header{
 			Name:    remote,
