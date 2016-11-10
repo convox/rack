@@ -1079,10 +1079,6 @@ var cycleBuildRunTask = awsutil.Cycle{
 								"value": "132866487567.dkr.ecr.us-test-1.amazonaws.com/convox-httpd-hqvvfosgxt:{service}.{build}"
 							},
 							{
-								"name": "BUILD_RELEASE",
-								"value": "RVFETUHHKKD"
-							},
-							{
 								"name": "BUILD_URL",
 								"value": "http://example.org/build.tgz"
 							},
