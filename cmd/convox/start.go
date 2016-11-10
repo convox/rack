@@ -123,6 +123,7 @@ func cmdStart(c *cli.Context) error {
 
 	err = r.Start()
 	if err != nil {
+		// TODO(ian@convox.com): this is not printing error message
 		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,

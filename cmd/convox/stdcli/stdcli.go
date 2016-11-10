@@ -218,6 +218,10 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	}
 
 	if ep.ValidationError != nil {
+		// TODO(ian@convox.com): figure out how to update return statement so that
+		// it prints error to STDOUT without needing a separate Println.
+		// It was `return ExitError(ep.ValidationError)` prior to 457f4089.
+		fmt.Println(ep.ValidationError)
 		return ep.ValidationError
 	}
 
