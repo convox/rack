@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
-	"github.com/convox/rack/manifest"
+	mp "github.com/convox/rack/manifest"
 )
 
 // set to false when testing for deterministic ports
@@ -181,7 +181,7 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
-	m, err := manifest.Load([]byte(r.Manifest))
+	m, err := mp.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	manifest, err := manifest.Load([]byte(r.Manifest))
+	manifest, err := mp.Load([]byte(r.Manifest))
 	if err != nil {
 		return "", err
 	}
@@ -390,7 +390,7 @@ func (r *Release) Formation() (string, error) {
 	return app.Formation(*manifest)
 }
 
-func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.Manifest, error) {
+func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, error) {
 	m := *manifest
 
 	// HACK: need an app of type structs.App for docker login.
@@ -487,19 +487,26 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 				continue
 			}
 
-			port := other.Ports[0]
-
-			if other.Exports["LINK_PORT"] != "" {
-				i, _ := strconv.Atoi(other.Exports["LINK_PORT"])
+			var port mp.Port
+			linkPort := other.Exports["LINK_PORT"]
+			if linkPort == "" {
+				port = other.Ports[0]
+			} else {
+				i, _ := strconv.Atoi(linkPort)
 				if err != nil {
-					// handle error
-					fmt.Println(err)
+					return nil, err
 				}
 
+				var matchedPort = false
 				for _, p := range other.Ports {
 					if i == p.Container {
 						port = p
+						matchedPort = true
 					}
+				}
+
+				if !matchedPort {
+					return nil, fmt.Errorf("No Port matching %s found", linkPort)
 				}
 			}
 
