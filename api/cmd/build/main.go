@@ -226,26 +226,8 @@ func build(dir string) error {
 }
 
 func success() error {
-	release := &structs.Release{
-		App: flagApp,
-	}
-
-	// TODO use provider.ReleaseFork()
-
-	if flagRelease != "" {
-		r, err := currentProvider.ReleaseGet(flagApp, flagRelease)
-		if err != nil {
-			return err
-		}
-		release = r
-	}
-
-	release.Build = flagId
-	release.Created = time.Now()
-	release.Id = id("R", 10)
-	release.Manifest = currentBuild.Manifest
-
-	if err := currentProvider.ReleaseSave(release); err != nil {
+	_, err := currentProvider.BuildRelease(currentBuild)
+	if err != nil {
 		return err
 	}
 
@@ -256,7 +238,6 @@ func success() error {
 
 	currentBuild.Ended = time.Now()
 	currentBuild.Logs = url
-	currentBuild.Release = release.Id
 	currentBuild.Status = "complete"
 
 	if err := currentProvider.BuildSave(currentBuild); err != nil {
