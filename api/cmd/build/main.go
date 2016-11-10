@@ -19,15 +19,14 @@ import (
 )
 
 var (
-	flagApp     string
-	flagAuth    string
-	flagCache   string
-	flagId      string
-	flagConfig  string
-	flagMethod  string
-	flagPush    string
-	flagRelease string
-	flagUrl     string
+	flagApp    string
+	flagAuth   string
+	flagCache  string
+	flagId     string
+	flagConfig string
+	flagMethod string
+	flagPush   string
+	flagUrl    string
 
 	currentBuild    *structs.Build
 	currentLogs     string
@@ -54,7 +53,6 @@ func main() {
 	fs.StringVar(&flagId, "id", "latest", "build id")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
-	fs.StringVar(&flagRelease, "release", "", "release id to fork")
 	fs.StringVar(&flagUrl, "url", "", "source url")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -79,10 +77,6 @@ func main() {
 
 	if v := os.Getenv("BUILD_PUSH"); v != "" {
 		flagPush = v
-	}
-
-	if v := os.Getenv("BUILD_RELEASE"); v != "" {
-		flagRelease = v
 	}
 
 	if v := os.Getenv("BUILD_URL"); v != "" {
