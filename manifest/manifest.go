@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/go-units"
 	"gopkg.in/yaml.v2"
 )
 
@@ -126,6 +127,18 @@ func (m Manifest) Validate() []error {
 			if len(ls.Ports) == 0 {
 				errors = append(errors, fmt.Errorf("%s links to service: %s which does not expose any ports", entry.Name, l))
 			}
+		}
+
+		// test mem_limit: Docker requires a mem_limit of at least 4mb (or 0)
+		mem_min := Memory(units.MB * 4)
+		mem := entry.Memory
+
+		if mem < mem_min && mem != 0 { //Memory(0) {
+			e := fmt.Errorf("%s has invalid mem_limit %#v: should be either 0, or at least %#vMB",
+								entry.Name,
+								mem / units.MB,
+								mem_min / units.MB)
+			errors = append(errors, e)
 		}
 	}
 
