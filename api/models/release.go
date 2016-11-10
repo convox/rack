@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
-	mp "github.com/convox/rack/manifest"
+	"github.com/convox/rack/manifest"
 )
 
 // set to false when testing for deterministic ports
@@ -181,7 +181,7 @@ func (r *Release) Promote() error {
 
 	app.Parameters["SubnetsPrivate"] = subnetsPrivate
 
-	m, err := mp.Load([]byte(r.Manifest))
+	m, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func (r *Release) Formation() (string, error) {
 		return "", err
 	}
 
-	manifest, err := mp.Load([]byte(r.Manifest))
+	manifest, err := manifest.Load([]byte(r.Manifest))
 	if err != nil {
 		return "", err
 	}
@@ -390,8 +390,8 @@ func (r *Release) Formation() (string, error) {
 	return app.Formation(*manifest)
 }
 
-func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, error) {
-	m := *manifest
+func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifest, error) {
+	mp := *m
 
 	// HACK: need an app of type structs.App for docker login.
 	// Should be fixed/removed once proper logic is moved over to structs.App
@@ -406,7 +406,7 @@ func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, er
 	}
 	endpoint, err := AppDockerLogin(sa)
 	if err != nil {
-		return &m, fmt.Errorf("could not log into %q", endpoint)
+		return &mp, fmt.Errorf("could not log into %q", endpoint)
 	}
 
 	for i, entry := range m.Services {
@@ -422,20 +422,20 @@ func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, er
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &m, fmt.Errorf("could not pull %q", imageName)
+			return &mp, fmt.Errorf("could not pull %q", imageName)
 		}
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
 		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &m, fmt.Errorf("could not inspect %q", imageName)
+			return &mp, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		err = json.Unmarshal(out, &inspect)
 		if err != nil {
 			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
-			return &m, fmt.Errorf("could not inspect %q", imageName)
+			return &mp, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)
@@ -465,7 +465,7 @@ func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, er
 		for _, link := range entry.Links {
 			other, ok := m.Services[link]
 			if !ok {
-				return &m, fmt.Errorf("Cannot find link %q", link)
+				return &mp, fmt.Errorf("Cannot find link %q", link)
 			}
 
 			scheme := other.Exports["LINK_SCHEME"]
@@ -473,7 +473,7 @@ func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, er
 				scheme = "tcp"
 			}
 
-			mb := manifest.GetBalancer(link)
+			mb := m.GetBalancer(link)
 			if mb == nil {
 				// commented out to be less strict, just don't create the link
 				//return m, fmt.Errorf("Cannot discover balancer for link %q", link)
@@ -487,7 +487,7 @@ func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, er
 				continue
 			}
 
-			var port mp.Port
+			var port manifest.Port
 			linkPort := other.Exports["LINK_PORT"]
 			if linkPort == "" {
 				port = other.Ports[0]
@@ -533,7 +533,7 @@ func (r *Release) resolveLinks(app App, manifest *mp.Manifest) (*mp.Manifest, er
 		}
 	}
 
-	return &m, nil
+	return &mp, nil
 }
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)
