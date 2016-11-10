@@ -61,13 +61,27 @@ func doDescribeStack(input cloudformation.DescribeStacksInput) (*cloudformation.
 	if s.RequestTime.Before(time.Now().Add(-DescribeStacksCacheTTL)) || os.Getenv("PROVIDER") == "test" {
 		log.Logf("name=%q age=%s status=miss", name, time.Since(s.RequestTime))
 
-		res, err := CloudFormation().DescribeStacks(&input)
+		var err error
+		var res *cloudformation.DescribeStacksOutput
+		var stacks []*cloudformation.Stack
 
-		if err != nil {
-			log.Namespace("name=%q", name).Error(err)
-			return nil, err
+		for {
+			res, err = CloudFormation().DescribeStacks(&input)
+			if err != nil {
+				log.Namespace("name=%q", name).Error(err)
+				return nil, err
+			}
+
+			stacks = append(stacks, res.Stacks...)
+
+			if res.NextToken == nil {
+				break
+			}
+
+			input.NextToken = res.NextToken
 		}
 
+		res.Stacks = stacks
 		DescribeStacksCache[name] = DescribeStacksResult{
 			Name:        name,
 			Output:      res,
