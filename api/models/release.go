@@ -391,8 +391,6 @@ func (r *Release) Formation() (string, error) {
 }
 
 func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifest, error) {
-	mp := *m
-
 	// HACK: need an app of type structs.App for docker login.
 	// Should be fixed/removed once proper logic is moved over to structs.App
 	// That includes moving Formation() around
@@ -406,7 +404,7 @@ func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifes
 	}
 	endpoint, err := AppDockerLogin(sa)
 	if err != nil {
-		return &mp, fmt.Errorf("could not log into %q", endpoint)
+		return m, fmt.Errorf("could not log into %q", endpoint)
 	}
 
 	for i, entry := range m.Services {
@@ -422,20 +420,20 @@ func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifes
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &mp, fmt.Errorf("could not pull %q", imageName)
+			return m, fmt.Errorf("could not pull %q", imageName)
 		}
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
 		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &mp, fmt.Errorf("could not inspect %q", imageName)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		err = json.Unmarshal(out, &inspect)
 		if err != nil {
 			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
-			return &mp, fmt.Errorf("could not inspect %q", imageName)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)
@@ -465,7 +463,7 @@ func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifes
 		for _, link := range entry.Links {
 			other, ok := m.Services[link]
 			if !ok {
-				return &mp, fmt.Errorf("Cannot find link %q", link)
+				return m, fmt.Errorf("Cannot find link %q", link)
 			}
 
 			scheme := other.Exports["LINK_SCHEME"]
@@ -533,7 +531,7 @@ func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifes
 		}
 	}
 
-	return &mp, nil
+	return m, nil
 }
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)
