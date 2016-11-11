@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,7 +41,40 @@ func main() {
 	app.Usage = "command-line application management"
 
 	err := app.Run(os.Args)
+
 	if err != nil {
+		if err.Error() == "Token expired" {
+			email, err := currentId()
+			if err != nil {
+				email = promptForUsername()
+			} else {
+				_, err := mail.ParseAddress(email)
+				if err != nil {
+					email = promptForUsername()
+				}
+			}
+
+			pw := promptForPassword()
+			host, _ := currentHost()
+			cl := client.New(host, "", "")
+
+			token, err := cl.RegenerateToken(email, pw)
+
+			if err == nil {
+				err = addLogin(host, token)
+				if err != nil {
+					stdcli.Error(err)
+				}
+				err = app.Run(os.Args)
+				if err != nil {
+					stdcli.Error(err)
+					os.Exit(1)
+				}
+			} else {
+				stdcli.Error(err)
+				os.Exit(1)
+			}
+		}
 		os.Exit(1)
 	}
 }
