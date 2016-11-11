@@ -1031,6 +1031,7 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
+            "  - /usr/bin/aws autoscaling complete-lifecycle-action --lifecycle-hook-name InstancesLifecycleStarting --auto-scaling-group-name ", {"Ref":"Instances"}," --lifecycle-action-result CONTINUE\n"
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
           ] ] }
         }
@@ -1092,6 +1093,14 @@
           ],
           "WaitOnResourceSignals": "true"
         }
+      }
+    },
+    "InstancesLifecycleStarting": {
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "HeartbeatTimeout": "900",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_LAUNCHING"
       }
     },
     "InstancesLifecycle": {
