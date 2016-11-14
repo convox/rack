@@ -71,6 +71,26 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 		},
 	}, nil)
 
+	// AWS currently has a limit of 1000 images in ECR
+	// This is a "hopefully temporary" and brute force means
+	// to prevent hitting limits during deployment
+	bs, err := p.BuildList(app, 150)
+	if err != nil {
+		fmt.Printf("Error listing builds for cleanup: %s\n", err.Error())
+	} else {
+		if len(bs) >= 50 {
+			go func() {
+				for _, b := range bs[50:] {
+					_, err := p.BuildDelete(app, b.Id)
+					if err != nil {
+						fmt.Printf("Error cleaning up build %s: %s\n", b.Id, err.Error())
+					}
+					time.Sleep(1 * time.Second)
+				}
+			}()
+		}
+	}
+
 	log.Success()
 	return b, nil
 }
