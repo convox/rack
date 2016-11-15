@@ -358,6 +358,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 			cmd.Stdin = pr
 			cmd.Stdout = outb
+			cmd.Stderr = cmd.Stdout
 
 			if err := cmd.Start(); err != nil {
 				log.Error(err)
