@@ -175,6 +175,10 @@
         { "Ref": "Vpc" },
         { "Ref": "ExistingVpc" }
       ] }
+    },
+    "VPCCIDR": {
+      "Condition": "Development",
+      "Value": { "Ref": "VPCCIDR" }
     }
   },
   "Parameters": {
