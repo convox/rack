@@ -185,15 +185,13 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		log.Step("pull").Logf("image=%q", image)
 		out, err := exec.Command("docker", "pull", image).CombinedOutput()
 		if err != nil {
-			log.Error(fmt.Errorf(lastline(out)))
-			return err
+			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 		}
 
 		log.Step("save").Logf("image=%q file=%q", image, file)
 		out, err = exec.Command("docker", "save", "-o", file, image).CombinedOutput()
 		if err != nil {
-			log.Error(fmt.Errorf(lastline(out)))
-			return err
+			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 		}
 
 		stat, err := os.Stat(file)
@@ -371,14 +369,12 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 			log.Step("tag").Logf("from=%q to=%q", image, target)
 			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
-				log.Errorf(lastline(out))
-				return nil, err
+				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 			}
 
 			log.Step("push").Logf("to=%q", target)
 			if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
-				log.Errorf(lastline(out))
-				return nil, err
+				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 			}
 		}
 	}
@@ -980,15 +976,13 @@ func (p *AWSProvider) dockerLogin() error {
 
 	registry, err := url.Parse(*tres.AuthorizationData[0].ProxyEndpoint)
 	if err != nil {
-		log.Error(err)
-		return err
+		return log.Error(err)
 	}
 
 	log.Step("login").Logf("host=%q user=%q", registry.Host, authParts[0])
 	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], registry.Host).CombinedOutput()
 	if err != nil {
-		log.Errorf(lastline(out))
-		return err
+		return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 	}
 
 	log.Success()
