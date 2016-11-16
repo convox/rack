@@ -64,7 +64,6 @@
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
     "AwsRegion": {
-      "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
     },
     "AwsAccess": {
@@ -122,7 +121,6 @@
       "Value": { "Ref": "Password" }
     },
     "Private": {
-      "Condition": "Development",
       "Value": { "Ref": "Private" }
     },
     "Provider": {
@@ -130,23 +128,18 @@
       "Value": "aws"
     },
     "Rack": {
-      "Condition": "Development",
       "Value": { "Ref": "AWS::StackName" }
     },
     "Release": {
-      "Condition": "Development",
       "Value": { "Ref": "Version" }
     },
     "SecurityGroup": {
-      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
     },
     "SettingsBucket": {
-      "Condition": "Development",
       "Value": { "Ref": "Settings" }
     },
     "Subnets": {
-      "Condition": "Development",
       "Value": {
         "Fn::Join": [
           ",",
@@ -159,18 +152,15 @@
       }
     },
     "SubnetsPrivate": {
-      "Condition": "Development",
       "Value": { "Fn::If": [ "Private",
         { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
         ""
       ] }
     },
     "StackId": {
-      "Condition": "Development",
       "Value": { "Ref": "AWS::StackId" }
     },
     "Vpc": {
-      "Condition": "Development",
       "Value": { "Fn::If": [ "BlankExistingVpc",
         { "Ref": "Vpc" },
         { "Ref": "ExistingVpc" }
