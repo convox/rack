@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -67,7 +68,7 @@ func init() {
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "services",
-		Aliases: []string{"resources"},
+		Aliases:     []string{"resources"},
 		Description: "manage resources [prev. services]",
 		Usage:       "",
 		Action:      cmdServices,
@@ -215,6 +216,7 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	fmt.Printf("Creating %s (%s", options["name"], t)
 	if len(optionsList) > 0 {
+		sort.Strings(optionsList)
 		fmt.Printf(": %s", strings.Join(optionsList, " "))
 	}
 	fmt.Printf(")... ")
