@@ -62,17 +62,19 @@ After this, `which convox` should refer to `$GOPATH/bin/convox`.
 
 The local Rack is running an API process that has AWS Access Keys, AWS resource names, and other various settings in its environment. You need to copy this to your laptop.
 
+First update the CloudFormation stack `Development` parameter to `Yes`. 
+```
+convox rack params set Development=Yes
+```
+
+Then run:
+
 ```
 $ cd $GOPATH/src/github.com/convox/rack
 
 # Introspect the dev rack to find the PID of the API web process
-
 $ STACK_NAME=$(convox api get /system | jq -r .name)
-$ WEB_PID=$(convox api get /apps/$STACK_NAME/processes | jq -r '.[] | select(.name == "web") | .id' | head -1)
-
-# Introspect the API web process to get its environment
-
-$ convox exec $WEB_PID env --app $STACK_NAME > .env
+$ bin/export-env $STACK_NAME > .env
 ```
 
 Now you have a bunch of secrets that will let you interact with AWS APIs from your laptop:
