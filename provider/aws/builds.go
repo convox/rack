@@ -978,10 +978,14 @@ func (p *AWSProvider) dockerLogin() error {
 		return fmt.Errorf("invalid auth data")
 	}
 
-	repo := *tres.AuthorizationData[0].ProxyEndpoint
+	registry, err := url.Parse(*tres.AuthorizationData[0].ProxyEndpoint)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
-	log.Step("login").Logf("host=%q user=%q", repo, authParts[0])
-	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo).CombinedOutput()
+	log.Step("login").Logf("host=%q user=%q", registry.Host, authParts[0])
+	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], registry.Host).CombinedOutput()
 	if err != nil {
 		log.Errorf(lastline(out))
 		return err
