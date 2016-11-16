@@ -255,26 +255,47 @@ func (r *Release) Promote() error {
 			switch proto {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
-					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
-
-					body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+					// if rack already has a self-signed cert, reuse it
+					certs, err := IAM().ListServerCertificates(&iam.ListServerCertificatesInput{})
 					if err != nil {
 						return err
 					}
 
-					input := &iam.UploadServerCertificateInput{
-						CertificateBody:       aws.String(string(body)),
-						PrivateKey:            aws.String(string(key)),
-						ServerCertificateName: aws.String(name),
+					for _, cert := range certs.ServerCertificateMetadataList {
+						fmt.Printf("ARN: %+v\n", *cert.Arn)
+
+						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
+							fmt.Printf("ARN FOUND! %+v\n", *cert.Arn)
+							app.Parameters[certParam] = *cert.Arn
+							break
+						}
 					}
 
-					// upload certificate
-					res, err := IAM().UploadServerCertificate(input)
-					if err != nil {
-						return err
-					}
+					// if not, generate and upload a self-signed cert
+					if app.Parameters[certParam] == "" {
+						name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
-					app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+						body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+						if err != nil {
+							return err
+						}
+
+						input := &iam.UploadServerCertificateInput{
+							CertificateBody:       aws.String(string(body)),
+							PrivateKey:            aws.String(string(key)),
+							ServerCertificateName: aws.String(name),
+						}
+
+						// upload certificate
+						res, err := IAM().UploadServerCertificate(input)
+						if err != nil {
+							return err
+						}
+
+						app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+
+						time.Sleep(45 * time.Second) // delay to let cert propagate
+					}
 				}
 			}
 		}
