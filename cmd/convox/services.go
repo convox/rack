@@ -66,16 +66,16 @@ func init() {
 	}
 
 	stdcli.RegisterCommand(cli.Command{
-		Name:        "services",
-		Aliases: []string{"resources"},
-		Description: "manage resources [prev. services]",
+		Name:        "resources",
+		Aliases: []string{"services"},
+		Description: "manage external resources [prev. services]",
 		Usage:       "",
 		Action:      cmdServices,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
-				Description:     "create a new service.",
+				Description:     "create a new resource.",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
 				Flags:           []cli.Flag{rackFlag},
@@ -83,14 +83,14 @@ func init() {
 			},
 			{
 				Name:        "delete",
-				Description: "delete a service",
+				Description: "delete a resource",
 				Usage:       "<name>",
 				Action:      cmdServiceDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "update",
-				Description:     "update a service.\n\nWARNING: updates may cause service downtime.",
+				Description:     "update a resource.\n\nWARNING: updates may cause resource downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceUpdate,
 				Flags:           []cli.Flag{rackFlag},
@@ -98,35 +98,35 @@ func init() {
 			},
 			{
 				Name:        "info",
-				Description: "info about a service.",
+				Description: "info about a resource.",
 				Usage:       "<name>",
 				Action:      cmdServiceInfo,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "link",
-				Description: "create a link between a service and an app.",
+				Description: "create a link between a resource and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "unlink",
-				Description: "delete a link between a service and an app.",
+				Description: "delete a link between a resource and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "url",
-				Description: "return url for the given service",
+				Description: "return url for the given resource",
 				Usage:       "<name>",
 				Action:      cmdServiceURL,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "proxy",
-				Description: "proxy ports from localhost to connect to a service",
+				Description: "proxy ports from localhost to connect to a resource",
 				Usage:       "<name>",
 				Action:      cmdServiceProxy,
 				Flags: []cli.Flag{
