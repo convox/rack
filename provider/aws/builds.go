@@ -797,10 +797,6 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 							Value: aws.String(push),
 						},
 						&ecs.KeyValuePair{
-							Name:  aws.String("BUILD_RELEASE"),
-							Value: aws.String(a.Release),
-						},
-						&ecs.KeyValuePair{
 							Name:  aws.String("BUILD_URL"),
 							Value: aws.String(url),
 						},

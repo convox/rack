@@ -34,7 +34,6 @@ type Apps []App
 
 func ListApps() (Apps, error) {
 	res, err := DescribeStacks()
-
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,4 @@
+version: "2"
+services:
+  web:
+    mem_limit: 2m

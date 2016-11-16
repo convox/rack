@@ -29,6 +29,7 @@ services:
       - REGISTRY_HOST
       - RELEASE
       - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
+      - SECURITY_GROUP
       - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
       - SETTINGS_BUCKET
       - STACK_ID
@@ -71,6 +72,7 @@ services:
       - REGISTRY_HOST
       - RELEASE
       - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
+      - SECURITY_GROUP
       - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
       - STACK_ID
       - SUBNETS

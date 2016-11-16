@@ -21,7 +21,7 @@ func (c *Client) Auth() error {
 	}
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("invalid login")
+		return fmt.Errorf("invalid login\nHave you created an account at https://convox.com/signup?")
 	}
 
 	resp.Body.Close()

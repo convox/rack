@@ -21,6 +21,7 @@ import "C"
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -30,6 +31,8 @@ var (
 	chans    = make(map[string](chan string))
 	interval = 700 * time.Millisecond
 	now      = C.FSEventStreamEventId((1 << 64) - 1)
+
+	lock sync.Mutex
 )
 
 func init() {
@@ -37,7 +40,9 @@ func init() {
 }
 
 func startScanner(dir string) {
+	lock.Lock()
 	chans[dir] = make(chan string)
+	lock.Unlock()
 
 	cpaths := C.fswatch_make_mutable_array()
 	defer C.free(unsafe.Pointer(cpaths))
@@ -65,8 +70,16 @@ func waitForNextScan(dir string) {
 	fired := false
 
 	for {
+		lock.Lock()
+		ch, ok := chans[dir]
+		lock.Unlock()
+
+		if !ok {
+			return
+		}
+
 		select {
-		case <-chans[dir]:
+		case <-ch:
 			fired = true
 		case <-tick:
 			if fired {
@@ -80,7 +93,11 @@ func waitForNextScan(dir string) {
 func callback(stream C.FSEventStreamRef, info unsafe.Pointer, count C.size_t, paths **C.char, flags *C.FSEventStreamEventFlags, ids *C.FSEventStreamEventId) {
 	dir := C.GoString((*C.char)(info))
 
-	if ch, ok := chans[dir]; ok {
+	lock.Lock()
+	ch, ok := chans[dir]
+	lock.Unlock()
+
+	if ok {
 		ch <- ""
 	}
 }
