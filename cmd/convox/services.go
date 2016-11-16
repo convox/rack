@@ -67,7 +67,8 @@ func init() {
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "services",
-		Description: "manage services",
+		Aliases: []string{"resources"},
+		Description: "manage resources [prev. services]",
 		Usage:       "",
 		Action:      cmdServices,
 		Flags:       []cli.Flag{rackFlag},
@@ -143,7 +144,7 @@ func init() {
 
 func cmdServices(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
+		return stdcli.Error(fmt.Errorf("`convox resources` does not take arguments. Perhaps you meant `convox resources create`?"))
 	}
 
 	if c.Bool("help") {
