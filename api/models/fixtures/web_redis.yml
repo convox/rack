@@ -11,5 +11,6 @@ redis:
     - LINK_USERNAME=user
     - LINK_PASSWORD=pass-the-word
     - LINK_PATH=/0
+    - LINK_PORT=6379
   ports:
     - 6379

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -389,9 +390,7 @@ func (r *Release) Formation() (string, error) {
 	return app.Formation(*manifest)
 }
 
-func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.Manifest, error) {
-	m := *manifest
-
+func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifest, error) {
 	// HACK: need an app of type structs.App for docker login.
 	// Should be fixed/removed once proper logic is moved over to structs.App
 	// That includes moving Formation() around
@@ -405,7 +404,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 	}
 	endpoint, err := AppDockerLogin(sa)
 	if err != nil {
-		return &m, fmt.Errorf("could not log into %q", endpoint)
+		return m, fmt.Errorf("could not log into %q", endpoint)
 	}
 
 	for i, entry := range m.Services {
@@ -421,20 +420,20 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &m, fmt.Errorf("could not pull %q", imageName)
+			return m, fmt.Errorf("could not pull %q", imageName)
 		}
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
 		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &m, fmt.Errorf("could not inspect %q", imageName)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		err = json.Unmarshal(out, &inspect)
 		if err != nil {
 			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
-			return &m, fmt.Errorf("could not inspect %q", imageName)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)
@@ -464,7 +463,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 		for _, link := range entry.Links {
 			other, ok := m.Services[link]
 			if !ok {
-				return &m, fmt.Errorf("Cannot find link %q", link)
+				return m, fmt.Errorf("Cannot find link %q", link)
 			}
 
 			scheme := other.Exports["LINK_SCHEME"]
@@ -472,7 +471,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 				scheme = "tcp"
 			}
 
-			mb := manifest.GetBalancer(link)
+			mb := m.GetBalancer(link)
 			if mb == nil {
 				// commented out to be less strict, just don't create the link
 				//return m, fmt.Errorf("Cannot discover balancer for link %q", link)
@@ -486,7 +485,28 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 				continue
 			}
 
-			port := other.Ports[0]
+			var port manifest.Port
+			linkPort := other.Exports["LINK_PORT"]
+			if linkPort == "" {
+				port = other.Ports[0]
+			} else {
+				i, _ := strconv.Atoi(linkPort)
+				if err != nil {
+					return nil, err
+				}
+
+				var matchedPort = false
+				for _, p := range other.Ports {
+					if i == p.Container {
+						port = p
+						matchedPort = true
+					}
+				}
+
+				if !matchedPort {
+					return nil, fmt.Errorf("No Port matching %s found", linkPort)
+				}
+			}
 
 			path := other.Exports["LINK_PATH"]
 
@@ -511,7 +531,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 		}
 	}
 
-	return &m, nil
+	return m, nil
 }
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)
