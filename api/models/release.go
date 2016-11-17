@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -263,10 +264,7 @@ func (r *Release) Promote() error {
 					}
 
 					for _, cert := range certs.ServerCertificateMetadataList {
-						fmt.Printf("ARN: %+v\n", *cert.Arn)
-
 						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
-							fmt.Printf("ARN FOUND! %+v\n", *cert.Arn)
 							app.Parameters[certParam] = *cert.Arn
 							break
 						}
@@ -287,7 +285,6 @@ func (r *Release) Promote() error {
 							ServerCertificateName: aws.String(name),
 						}
 
-						// upload certificate
 						res, err := IAM().UploadServerCertificate(input)
 						if err != nil {
 							return err
@@ -295,7 +292,30 @@ func (r *Release) Promote() error {
 
 						app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
 
-						time.Sleep(45 * time.Second) // delay to let cert propagate
+						// We want to make sure the new cert has propagated throughout AWS before moving on
+						sleep := 5
+						for {
+							time.Sleep(time.Duration(sleep) * time.Second)
+
+							_, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+								ServerCertificateName: &name,
+							})
+							if err != nil {
+								if ae, ok := err.(awserr.Error); ok {
+									if ae.Code() == "NoSuchEntity" {
+										if sleep >= 40 {
+											return fmt.Errorf("certificate `%s` was not found", name)
+										}
+
+										sleep *= 2
+										continue
+									}
+
+								}
+								return err
+							}
+							break
+						}
 					}
 				}
 			}
