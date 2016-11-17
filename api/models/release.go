@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -256,26 +257,66 @@ func (r *Release) Promote() error {
 			switch proto {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
-					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
-
-					body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+					// if rack already has a self-signed cert, reuse it
+					certs, err := IAM().ListServerCertificates(&iam.ListServerCertificatesInput{})
 					if err != nil {
 						return err
 					}
 
-					input := &iam.UploadServerCertificateInput{
-						CertificateBody:       aws.String(string(body)),
-						PrivateKey:            aws.String(string(key)),
-						ServerCertificateName: aws.String(name),
+					for _, cert := range certs.ServerCertificateMetadataList {
+						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
+							app.Parameters[certParam] = *cert.Arn
+							break
+						}
 					}
 
-					// upload certificate
-					res, err := IAM().UploadServerCertificate(input)
-					if err != nil {
-						return err
-					}
+					// if not, generate and upload a self-signed cert
+					if app.Parameters[certParam] == "" {
+						name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
-					app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+						body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+						if err != nil {
+							return err
+						}
+
+						input := &iam.UploadServerCertificateInput{
+							CertificateBody:       aws.String(string(body)),
+							PrivateKey:            aws.String(string(key)),
+							ServerCertificateName: aws.String(name),
+						}
+
+						res, err := IAM().UploadServerCertificate(input)
+						if err != nil {
+							return err
+						}
+
+						app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+
+						// We want to make sure the new cert has propagated throughout AWS before moving on
+						sleep := 5
+						for {
+							time.Sleep(time.Duration(sleep) * time.Second)
+
+							_, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+								ServerCertificateName: &name,
+							})
+							if err != nil {
+								if ae, ok := err.(awserr.Error); ok {
+									if ae.Code() == "NoSuchEntity" {
+										if sleep >= 40 {
+											return fmt.Errorf("certificate `%s` was not found", name)
+										}
+
+										sleep *= 2
+										continue
+									}
+
+								}
+								return err
+							}
+							break
+						}
+					}
 				}
 			}
 		}
