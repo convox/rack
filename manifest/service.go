@@ -286,7 +286,7 @@ func linkArgs(s Service, container string) []string {
 
 	scheme := coalesce(env["LINK_SCHEME"], "tcp")
 	host := containerHost(container, s.Networks)
-	port := containerPort(container)
+	port := coalesce(env["LINK_PORT"], containerPort(container))
 	path := env["LINK_PATH"]
 	username := env["LINK_USERNAME"]
 	password := env["LINK_PASSWORD"]
