@@ -42,15 +42,6 @@ func TestResourcesCreate(t *testing.T) {
 }
 
 func TestResourcesDelete(t *testing.T) {
-
-	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/services", Code: 200, Response: client.Services{
-			client.Service{Name: "syslog-1234", Type: "syslog", Status: "running"},
-		}},
-	)
-
-	defer ts.Close()
-
     tsd := testServer(t,
         test.Http{Method: "DELETE", Path: "/services/syslog-1234", Code: 200, Response: client.Service{}},
     )
