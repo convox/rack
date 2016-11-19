@@ -175,6 +175,10 @@
         { "Ref": "Vpc" },
         { "Ref": "ExistingVpc" }
       ] }
+    },
+    "VPCCIDR": {
+      "Condition": "Development",
+      "Value": { "Ref": "VPCCIDR" }
     }
   },
   "Parameters": {
@@ -260,7 +264,7 @@
     "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
-      "MinValue": "2",
+      "MinValue": "3",
       "Type": "Number"
     },
     "InstanceType": {
