@@ -1035,6 +1035,9 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
+            "  - export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export AUTO_SCALING_GROUP_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --query 'AutoScalingInstances[0].AutoScalingGroupName' --output text --region us-east-1)\n",
+            "  - /usr/bin/aws autoscaling complete-lifecycle-action --lifecycle-hook-name InstancesLifecycleStarting --auto-scaling-group-name $AUTO_SCALING_GROUP_NAME --lifecycle-action-result CONTINUE\n",
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
           ] ] }
         }
@@ -1096,6 +1099,14 @@
           ],
           "WaitOnResourceSignals": "true"
         }
+      }
+    },
+    "InstancesLifecycleStarting": {
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "HeartbeatTimeout": "900",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_LAUNCHING"
       }
     },
     "InstancesLifecycle": {
