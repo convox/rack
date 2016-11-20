@@ -20,7 +20,12 @@ func init() {
 	stdcli.VersionPrinter(func(c *cli.Context) {
 		fmt.Printf("client: %s\n", c.App.Version)
 
-		system, err := rackClient(c).GetSystem()
+		rc := rackClient(c)
+		if rc == nil {
+			return
+		}
+
+		system, err := rc.GetSystem()
 		if err != nil {
 			stdcli.Error(err)
 			return
