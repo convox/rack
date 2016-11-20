@@ -183,11 +183,13 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	props := map[string]interface{}{}
 
 	if ep.Error != nil {
+		Error(ep.Error)
 		props["error"] = ep.Error.Error()
 		rollbar.Error(rollbar.ERR, ep.Error, &rollbar.Field{"id", id})
 	}
 
 	if ep.ValidationError != nil {
+		Error(ep.ValidationError)
 		props["validation_error"] = ep.ValidationError.Error()
 	}
 
