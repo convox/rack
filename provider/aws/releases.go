@@ -19,8 +19,8 @@ func (p *AWSProvider) ReleaseDelete(app, buildID string) error {
 		KeyConditionExpression: aws.String("app = :app"),
 		FilterExpression:       aws.String("build = :build"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app":   &dynamodb.AttributeValue{S: aws.String(app)},
-			":build": &dynamodb.AttributeValue{S: aws.String(buildID)},
+			":app":   {S: aws.String(app)},
+			":build": {S: aws.String(buildID)},
 		},
 		IndexName: aws.String("app.created"),
 		TableName: aws.String(p.DynamoReleases),
@@ -57,9 +57,9 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
+			"app": {
 				AttributeValueList: []*dynamodb.AttributeValue{
-					&dynamodb.AttributeValue{S: aws.String(a.Name)},
+					{S: aws.String(a.Name)},
 				},
 				ComparisonOperator: aws.String("EQ"),
 			},
@@ -126,9 +126,9 @@ func (p *AWSProvider) ReleaseSave(r *structs.Release) error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
-			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
-			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(sortableTime))},
+			"id":      {S: aws.String(r.Id)},
+			"app":     {S: aws.String(r.App)},
+			"created": {S: aws.String(r.Created.Format(sortableTime))},
 		},
 		TableName: aws.String(p.DynamoReleases),
 	}
@@ -175,7 +175,7 @@ func (p *AWSProvider) fetchRelease(app, id string) (map[string]*dynamodb.Attribu
 	res, err := p.dynamodb().GetItem(&dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(p.DynamoReleases),
 	})
@@ -218,7 +218,7 @@ func (p *AWSProvider) releaseDeleteAll(app string) error {
 	qi := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("app = :app"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app": &dynamodb.AttributeValue{S: aws.String(app)},
+			":app": {S: aws.String(app)},
 		},
 		IndexName: aws.String("app.created"),
 		TableName: aws.String(p.DynamoReleases),
@@ -245,7 +245,7 @@ func (p *AWSProvider) deleteReleaseItems(qi *dynamodb.QueryInput, tableName stri
 		wr := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
-					"id": &dynamodb.AttributeValue{
+					"id": {
 						S: aws.String(r.Id),
 					},
 				},

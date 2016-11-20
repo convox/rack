@@ -434,20 +434,20 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"init/django/.dockerignore": initDjangoDockerignore,
-	"init/django/Dockerfile": initDjangoDockerfile,
-	"init/django/docker-compose.yml": initDjangoDockerComposeYml,
-	"init/rails/.dockerignore": initRailsDockerignore,
-	"init/rails/Dockerfile": initRailsDockerfile,
-	"init/rails/docker-compose.yml": initRailsDockerComposeYml,
-	"init/ruby/.dockerignore": initRubyDockerignore,
-	"init/ruby/Dockerfile": initRubyDockerfile,
-	"init/ruby/docker-compose.yml": initRubyDockerComposeYml,
-	"init/sinatra/.dockerignore": initSinatraDockerignore,
-	"init/sinatra/Dockerfile": initSinatraDockerfile,
+	"init/django/.dockerignore":       initDjangoDockerignore,
+	"init/django/Dockerfile":          initDjangoDockerfile,
+	"init/django/docker-compose.yml":  initDjangoDockerComposeYml,
+	"init/rails/.dockerignore":        initRailsDockerignore,
+	"init/rails/Dockerfile":           initRailsDockerfile,
+	"init/rails/docker-compose.yml":   initRailsDockerComposeYml,
+	"init/ruby/.dockerignore":         initRubyDockerignore,
+	"init/ruby/Dockerfile":            initRubyDockerfile,
+	"init/ruby/docker-compose.yml":    initRubyDockerComposeYml,
+	"init/sinatra/.dockerignore":      initSinatraDockerignore,
+	"init/sinatra/Dockerfile":         initSinatraDockerfile,
 	"init/sinatra/docker-compose.yml": initSinatraDockerComposeYml,
-	"init/unknown/.dockerignore": initUnknownDockerignore,
-	"init/unknown/Dockerfile": initUnknownDockerfile,
+	"init/unknown/.dockerignore":      initUnknownDockerignore,
+	"init/unknown/Dockerfile":         initUnknownDockerfile,
 	"init/unknown/docker-compose.yml": initUnknownDockerComposeYml,
 }
 
@@ -490,32 +490,33 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"init": &bintree{nil, map[string]*bintree{
-		"django": &bintree{nil, map[string]*bintree{
-			".dockerignore": &bintree{initDjangoDockerignore, map[string]*bintree{}},
-			"Dockerfile": &bintree{initDjangoDockerfile, map[string]*bintree{}},
-			"docker-compose.yml": &bintree{initDjangoDockerComposeYml, map[string]*bintree{}},
+	"init": {nil, map[string]*bintree{
+		"django": {nil, map[string]*bintree{
+			".dockerignore":      {initDjangoDockerignore, map[string]*bintree{}},
+			"Dockerfile":         {initDjangoDockerfile, map[string]*bintree{}},
+			"docker-compose.yml": {initDjangoDockerComposeYml, map[string]*bintree{}},
 		}},
-		"rails": &bintree{nil, map[string]*bintree{
-			".dockerignore": &bintree{initRailsDockerignore, map[string]*bintree{}},
-			"Dockerfile": &bintree{initRailsDockerfile, map[string]*bintree{}},
-			"docker-compose.yml": &bintree{initRailsDockerComposeYml, map[string]*bintree{}},
+		"rails": {nil, map[string]*bintree{
+			".dockerignore":      {initRailsDockerignore, map[string]*bintree{}},
+			"Dockerfile":         {initRailsDockerfile, map[string]*bintree{}},
+			"docker-compose.yml": {initRailsDockerComposeYml, map[string]*bintree{}},
 		}},
-		"ruby": &bintree{nil, map[string]*bintree{
-			".dockerignore": &bintree{initRubyDockerignore, map[string]*bintree{}},
-			"Dockerfile": &bintree{initRubyDockerfile, map[string]*bintree{}},
-			"docker-compose.yml": &bintree{initRubyDockerComposeYml, map[string]*bintree{}},
+		"ruby": {nil, map[string]*bintree{
+			".dockerignore":      {initRubyDockerignore, map[string]*bintree{}},
+			"Dockerfile":         {initRubyDockerfile, map[string]*bintree{}},
+			"docker-compose.yml": {initRubyDockerComposeYml, map[string]*bintree{}},
 		}},
-		"sinatra": &bintree{nil, map[string]*bintree{
-			".dockerignore": &bintree{initSinatraDockerignore, map[string]*bintree{}},
-			"Dockerfile": &bintree{initSinatraDockerfile, map[string]*bintree{}},
-			"docker-compose.yml": &bintree{initSinatraDockerComposeYml, map[string]*bintree{}},
+		"sinatra": {nil, map[string]*bintree{
+			".dockerignore":      {initSinatraDockerignore, map[string]*bintree{}},
+			"Dockerfile":         {initSinatraDockerfile, map[string]*bintree{}},
+			"docker-compose.yml": {initSinatraDockerComposeYml, map[string]*bintree{}},
 		}},
-		"unknown": &bintree{nil, map[string]*bintree{
-			".dockerignore": &bintree{initUnknownDockerignore, map[string]*bintree{}},
-			"Dockerfile": &bintree{initUnknownDockerfile, map[string]*bintree{}},
-			"docker-compose.yml": &bintree{initUnknownDockerComposeYml, map[string]*bintree{}},
+		"unknown": {nil, map[string]*bintree{
+			".dockerignore":      {initUnknownDockerignore, map[string]*bintree{}},
+			"Dockerfile":         {initUnknownDockerfile, map[string]*bintree{}},
+			"docker-compose.yml": {initUnknownDockerComposeYml, map[string]*bintree{}},
 		}},
 	}},
 }}
@@ -566,4 +567,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

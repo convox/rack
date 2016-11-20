@@ -22,7 +22,7 @@ func (p *Proxy) Start() error {
 
 	args = append(args, "--rm", "--name", p.Name)
 	args = append(args, "-p", fmt.Sprintf("%d:%d", p.Balancer, p.Balancer))
-	
+
 	// Attach proxy container to custom docker network, if configured
 	if p.Network != "" {
 		args = append(args, "--net", p.Network)
