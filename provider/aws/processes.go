@@ -518,8 +518,8 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		}
 
 		// if there's an exec process grab it minus the "sh -c "
-		if len(tr.Processes) >= 2 {
-			cmd = tr.Processes[1][7][6:]
+		if len(tr.Processes) >= 2 && len(tr.Processes[1]) == 8 {
+			cmd = strings.Replace(tr.Processes[1][7], "sh -c ", "", 1)
 		} else {
 			cmd = ""
 		}
