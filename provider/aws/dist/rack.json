@@ -60,7 +60,6 @@
   },
   "Outputs": {
     "Autoscale": {
-      "Condition": "Development",
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
     "AwsRegion": {
@@ -75,45 +74,36 @@
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
     },
     "Cluster": {
-      "Condition": "Development",
       "Value": { "Ref": "Cluster" }
     },
     "CustomTopic": {
-      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "DockerImageApi": {
-      "Condition": "Development",
       "Value": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }
     },
     "DynamoBuilds": {
-      "Condition": "Development",
       "Value": { "Ref": "DynamoBuilds" }
     },
     "DynamoReleases": {
-      "Condition": "Development",
       "Value": { "Ref": "DynamoReleases" }
     },
     "EncryptionKey": {
-      "Condition": "Development",
       "Value": { "Ref": "EncryptionKey" }
     },
     "Internal": {
-      "Condition": "Development",
       "Value": { "Ref": "Internal" }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
     },
     "NotificationHost": {
-      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "NotificationTopic": {
-      "Condition": "Development",
       "Value" : { "Ref": "NotificationTopic" }
     },
     "Password": {
