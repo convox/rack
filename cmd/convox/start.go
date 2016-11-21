@@ -3,15 +3,18 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
 
+	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/robfig/cron"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -132,6 +135,34 @@ func cmdStart(c *cli.Context) error {
 	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 		AppType: appType,
 	})
+
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		c := cron.New()
+
+		for key, value := range labels {
+			cronjob := models.NewCronJobFromLabel(key, value)
+			service := entry.Name
+
+			r := strings.NewReplacer("cron(", "0 ", ")", "")             // cron pkg takes seconds in the first field so set to 0
+			sch := strings.TrimSuffix(r.Replace(cronjob.Schedule), " *") // and doesn't recognize year so we trim it
+
+			c.AddFunc(sch, func() {
+				r := m.Run(dir, fmt.Sprintf("cron-%s-%05d", cronjob.Name, rand.Intn(100000)), manifest.RunOptions{
+					Cache:   cache,
+					Sync:    false,
+					Service: service,
+					Command: []string{cronjob.Command},
+				})
+				err := r.Start()
+				if err != nil {
+					fmt.Printf("Error starting cron %s: %s\n", cronjob.Name, err.Error())
+				}
+			})
+		}
+
+		c.Start()
+	}
 
 	go handleInterrupt(r)
 
