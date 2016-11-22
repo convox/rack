@@ -154,30 +154,19 @@ func cmdStart(c *cli.Context) error {
 
 			c.AddFunc(trigger, func() {
 				cronProccesName := fmt.Sprintf("cron-%s-%04d", cronjob.Name, rand.Intn(9000))
-				cronArgs := []string{}
 				// Replace args with cron specific ones
-				for i := range p.Args {
-					if p.Args[i] == processName {
-						cronArgs = append(cronArgs, cronProccesName)
-						continue
-					}
-
-					// no ports for the cron job
-					if p.Args[i] == "-p" {
-						p.Args[i] = ""
-						p.Args[i+1] = ""
-						continue
-					}
-
-					if p.Args[i] != "" {
-						cronArgs = append(cronArgs, p.Args[i])
-					}
-				}
-
-				cronArgs[len(cronArgs)-1] = cronjob.Command
+				cronArgs := p.GenerateArgs(&manifest.ArgOptions{
+					Command:     cronjob.Command,
+					IgnorePorts: true,
+					Name:        cronProccesName,
+				})
 
 				done := make(chan error)
-				manifest.RunAsync(r.Output.Stream(cronProccesName), manifest.Docker(append([]string{"run"}, cronArgs...)...), done)
+				manifest.RunAsync(
+					r.Output.Stream(cronProccesName),
+					manifest.Docker(append([]string{"run"}, cronArgs...)...),
+					done,
+				)
 
 				err := <-done
 				if err != nil {
