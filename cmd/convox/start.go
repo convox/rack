@@ -136,27 +136,52 @@ func cmdStart(c *cli.Context) error {
 		AppType: appType,
 	})
 
+	// Setup the local "cron jobs"
 	for _, entry := range m.Services {
 		labels := entry.LabelsByPrefix("convox.cron")
+		processName := fmt.Sprintf("%s-%s", app, entry.Name)
 		c := cron.New()
 
 		for key, value := range labels {
+			p, ok := r.Processes[processName]
+			if !ok {
+				continue
+			}
 			cronjob := models.NewCronJobFromLabel(key, value)
-			service := entry.Name
 
-			r := strings.NewReplacer("cron(", "0 ", ")", "")             // cron pkg takes seconds in the first field so set to 0
-			sch := strings.TrimSuffix(r.Replace(cronjob.Schedule), " *") // and doesn't recognize year so we trim it
+			rs := strings.NewReplacer("cron(", "0 ", ")", "")                 // cron pkg first field is in seconds so set to 0
+			trigger := strings.TrimSuffix(rs.Replace(cronjob.Schedule), " *") // and doesn't recognize year so we trim it
 
-			c.AddFunc(sch, func() {
-				r := m.Run(dir, fmt.Sprintf("cron-%s-%05d", cronjob.Name, rand.Intn(100000)), manifest.RunOptions{
-					Cache:   cache,
-					Sync:    false,
-					Service: service,
-					Command: []string{cronjob.Command},
-				})
-				err := r.Start()
+			c.AddFunc(trigger, func() {
+				cronProccesName := fmt.Sprintf("cron-%s-%04d", cronjob.Name, rand.Intn(9000))
+				cronArgs := []string{}
+				// Replace args with cron specific ones
+				for i := range p.Args {
+					if p.Args[i] == processName {
+						cronArgs = append(cronArgs, cronProccesName)
+						continue
+					}
+
+					// no ports for the cron job
+					if p.Args[i] == "-p" {
+						p.Args[i] = ""
+						p.Args[i+1] = ""
+						continue
+					}
+
+					if p.Args[i] != "" {
+						cronArgs = append(cronArgs, p.Args[i])
+					}
+				}
+
+				cronArgs[len(cronArgs)-1] = cronjob.Command
+
+				done := make(chan error)
+				manifest.RunAsync(r.Output.Stream(cronProccesName), manifest.Docker(append([]string{"run"}, cronArgs...)...), done)
+
+				err := <-done
 				if err != nil {
-					fmt.Printf("Error starting cron %s: %s\n", cronjob.Name, err.Error())
+					fmt.Printf("error running %s: %s\n", cronProccesName, err.Error())
 				}
 			})
 		}
