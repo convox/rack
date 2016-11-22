@@ -89,7 +89,7 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	}
 
 	if s.Cpu != 0 {
-		args = append(args, "--cpu-shares",  strconv.FormatInt(s.Cpu, 10))
+		args = append(args, "--cpu-shares", strconv.FormatInt(s.Cpu, 10))
 	}
 
 	if s.Memory != 0 {

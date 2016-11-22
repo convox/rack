@@ -998,7 +998,7 @@ func checkReloading(m *manifest.Manifest) error {
 
 		paths, _ := s.SyncPaths()
 
-		for local, _ := range paths {
+		for local := range paths {
 			if local == "." {
 				local = "./"
 			}

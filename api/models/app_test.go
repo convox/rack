@@ -54,13 +54,13 @@ func TestAppCronJobs(t *testing.T) {
 	m := manifest.Manifest{
 		Version: "1",
 		Services: map[string]manifest.Service{
-			"one": manifest.Service{
+			"one": {
 				Name: "one",
 				Labels: manifest.Labels{
 					"convox.cron.task1": "00 19 * * ? ls -la",
 				},
 			},
-			"two": manifest.Service{
+			"two": {
 				Name: "two",
 				Labels: manifest.Labels{
 					"convox.cron.task2": "00 20 * * ? ls -la",
