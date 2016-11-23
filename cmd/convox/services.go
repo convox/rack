@@ -183,7 +183,7 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	t := c.Args()[0]
 
-	if t == "help" || t == "--help" {
+	if t == "help" || t == "--help" || t == "-h" {
 		stdcli.Usage(c, "create")
 		return nil
 	}
