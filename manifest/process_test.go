@@ -45,6 +45,46 @@ func TestProcessNew(t *testing.T) {
 	assert.Equal(t, p.Args, expectedArgs)
 }
 
+func TestProcessGenerateArgs(t *testing.T) {
+	s := manifest.Service{
+		Name: "foo",
+	}
+
+	m := manifest.Manifest{
+		Services: map[string]manifest.Service{
+			"foo": s,
+		},
+	}
+
+	p := manifest.NewProcess("api", s, m)
+
+	expectedArgs := []string{
+		"-i",
+		"--rm",
+		"--name",
+		"api-foo",
+		"api/foo",
+	}
+
+	assert.Equal(t, p.Name, "api-foo")
+	assert.Equal(t, p.Args, expectedArgs)
+
+	p.Args = p.GenerateArgs(&manifest.ArgOptions{
+		Command:     "foobar",
+		IgnorePorts: true,
+		Name:        "fake-name",
+	})
+
+	assert.Equal(t, []string{"-i", "--rm", "--name", "fake-name", "api/foo", "sh", "-c", "foobar"}, p.Args)
+
+	p.Args = p.GenerateArgs(&manifest.ArgOptions{
+		Command: "newcommand",
+	})
+
+	assert.Equal(t, []string{"-i", "--rm", "--name", "api-foo", "api/foo", "sh", "-c", "newcommand"}, p.Args)
+
+}
+
 func TestProcessCommandString(t *testing.T) {
 	s := manifest.Service{
 		Name:    "foo",

@@ -3,15 +3,18 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
 
+	"github.com/convox/rack/api/models"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/robfig/cron"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -132,6 +135,48 @@ func cmdStart(c *cli.Context) error {
 	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 		AppType: appType,
 	})
+
+	// Setup the local "cron jobs"
+	for _, entry := range m.Services {
+		labels := entry.LabelsByPrefix("convox.cron")
+		processName := fmt.Sprintf("%s-%s", app, entry.Name)
+		c := cron.New()
+
+		for key, value := range labels {
+			p, ok := r.Processes[processName]
+			if !ok {
+				continue
+			}
+			cronjob := models.NewCronJobFromLabel(key, value)
+
+			rs := strings.NewReplacer("cron(", "0 ", ")", "")                 // cron pkg first field is in seconds so set to 0
+			trigger := strings.TrimSuffix(rs.Replace(cronjob.Schedule), " *") // and doesn't recognize year so we trim it
+
+			c.AddFunc(trigger, func() {
+				cronProccesName := fmt.Sprintf("cron-%s-%04d", cronjob.Name, rand.Intn(9000))
+				// Replace args with cron specific ones
+				cronArgs := p.GenerateArgs(&manifest.ArgOptions{
+					Command:     cronjob.Command,
+					IgnorePorts: true,
+					Name:        cronProccesName,
+				})
+
+				done := make(chan error)
+				manifest.RunAsync(
+					r.Output.Stream(cronProccesName),
+					manifest.Docker(append([]string{"run"}, cronArgs...)...),
+					done,
+				)
+
+				err := <-done
+				if err != nil {
+					fmt.Printf("error running %s: %s\n", cronProccesName, err.Error())
+				}
+			})
+		}
+
+		c.Start()
+	}
 
 	go handleInterrupt(r)
 

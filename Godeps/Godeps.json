@@ -478,6 +478,11 @@
 			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
 		},
 		{
+			"ImportPath": "github.com/robfig/cron",
+			"Comment": "v1-47-g9585fd5",
+			"Rev": "9585fd555638e77bba25f25db5c44b41f264aeb7"
+		},
+		{
 			"ImportPath": "github.com/segmentio/analytics-go",
 			"Comment": "v2.0.0-19-g2f4e6bf",
 			"Rev": "2f4e6bf54f7fe167d29eb9b6010ea8ea0551bc63"

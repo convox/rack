@@ -13,24 +13,54 @@ import (
 )
 
 type Process struct {
+	Args []string
 	Name string
 
-	Args []string
+	app      string
+	manifest Manifest
+	service  Service
+}
 
-	service Service
+type ArgOptions struct {
+	Command     string
+	IgnorePorts bool
+	Name        string
 }
 
 func NewProcess(app string, s Service, m Manifest) Process {
-	name := fmt.Sprintf("%s-%s", app, s.Name)
 
+	p := Process{
+		Name:     fmt.Sprintf("%s-%s", app, s.Name),
+		app:      app,
+		manifest: m,
+		service:  s,
+	}
+
+	p.Args = p.GenerateArgs(nil)
+
+	return p
+}
+
+// GenerateArgs generates the argument list based on a process property
+// Possible to optionally override certain fields via opts
+func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 	args := []string{}
 
 	args = append(args, "-i")
 	args = append(args, "--rm")
-	args = append(args, "--name", name)
 
-	if s.Entrypoint != "" {
-		args = append(args, "--entrypoint", s.Entrypoint)
+	if opts == nil {
+		opts = &ArgOptions{}
+	}
+
+	if opts.Name != "" {
+		args = append(args, "--name", opts.Name)
+	} else {
+		args = append(args, "--name", p.Name)
+	}
+
+	if p.service.Entrypoint != "" {
+		args = append(args, "--entrypoint", p.service.Entrypoint)
 	}
 
 	userEnv := map[string]string{}
@@ -43,7 +73,7 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		}
 	}
 
-	for k, v := range s.Environment {
+	for k, v := range p.service.Environment {
 		if v == "" {
 			args = append(args, "-e", fmt.Sprintf("%s", k))
 		} else {
@@ -55,31 +85,33 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		}
 	}
 
-	for _, v := range s.ExtraHosts {
+	for _, v := range p.service.ExtraHosts {
 		args = append(args, "--add-host", v)
 	}
 
-	for _, n := range s.Networks {
+	for _, n := range p.service.Networks {
 		for _, in := range n {
 			args = append(args, "--net", in.Name)
 		}
 	}
 
-	for _, link := range s.Links {
-		args = append(args, linkArgs(m.Services[link], fmt.Sprintf("%s-%s", app, link))...)
+	for _, link := range p.service.Links {
+		args = append(args, linkArgs(p.manifest.Services[link], fmt.Sprintf("%s-%s", p.app, link))...)
 	}
 
-	for _, port := range s.Ports {
-		args = append(args, "-p", port.String())
+	if !opts.IgnorePorts {
+		for _, port := range p.service.Ports {
+			args = append(args, "-p", port.String())
+		}
 	}
 
-	for _, volume := range s.Volumes {
+	for _, volume := range p.service.Volumes {
 		if !strings.Contains(volume, ":") {
 			home, err := homedir.Dir()
 			if err != nil {
 				log.Fatal(err)
 			}
-			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, app, s.Name, volume))
+			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume))
 			if err != nil {
 				//this won't break
 			}
@@ -88,27 +120,25 @@ func NewProcess(app string, s Service, m Manifest) Process {
 		args = append(args, "-v", volume)
 	}
 
-	if s.Cpu != 0 {
-		args = append(args, "--cpu-shares",  strconv.FormatInt(s.Cpu, 10))
+	if p.service.Cpu != 0 {
+		args = append(args, "--cpu-shares", strconv.FormatInt(p.service.Cpu, 10))
 	}
 
-	if s.Memory != 0 {
-		args = append(args, "--memory", fmt.Sprintf("%#v", s.Memory))
+	if p.service.Memory != 0 {
+		args = append(args, "--memory", fmt.Sprintf("%#v", p.service.Memory))
 	}
 
-	args = append(args, s.Tag(app))
+	args = append(args, p.service.Tag(p.app))
 
-	if s.Command.String != "" {
-		args = append(args, "sh", "-c", s.Command.String)
-	} else if len(s.Command.Array) > 0 {
-		args = append(args, s.Command.Array...)
+	if opts.Command != "" {
+		args = append(args, "sh", "-c", opts.Command)
+	} else if p.service.Command.String != "" {
+		args = append(args, "sh", "-c", p.service.Command.String)
+	} else if len(p.service.Command.Array) > 0 {
+		args = append(args, p.service.Command.Array...)
 	}
 
-	return Process{
-		Name:    name,
-		Args:    args,
-		service: s,
-	}
+	return args
 }
 
 func (p *Process) Sync(local, remote string) (*sync.Sync, error) {
