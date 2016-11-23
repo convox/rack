@@ -329,16 +329,16 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"templates/service/fluentd.tmpl":   templatesServiceFluentdTmpl,
+	"templates/service/fluentd.tmpl": templatesServiceFluentdTmpl,
 	"templates/service/memcached.tmpl": templatesServiceMemcachedTmpl,
-	"templates/service/mysql.tmpl":     templatesServiceMysqlTmpl,
-	"templates/service/postgres.tmpl":  templatesServicePostgresTmpl,
-	"templates/service/redis.tmpl":     templatesServiceRedisTmpl,
-	"templates/service/s3.tmpl":        templatesServiceS3Tmpl,
-	"templates/service/sns.tmpl":       templatesServiceSnsTmpl,
-	"templates/service/sqs.tmpl":       templatesServiceSqsTmpl,
-	"templates/service/syslog.tmpl":    templatesServiceSyslogTmpl,
-	"templates/service/webhook.tmpl":   templatesServiceWebhookTmpl,
+	"templates/service/mysql.tmpl": templatesServiceMysqlTmpl,
+	"templates/service/postgres.tmpl": templatesServicePostgresTmpl,
+	"templates/service/redis.tmpl": templatesServiceRedisTmpl,
+	"templates/service/s3.tmpl": templatesServiceS3Tmpl,
+	"templates/service/sns.tmpl": templatesServiceSnsTmpl,
+	"templates/service/sqs.tmpl": templatesServiceSqsTmpl,
+	"templates/service/syslog.tmpl": templatesServiceSyslogTmpl,
+	"templates/service/webhook.tmpl": templatesServiceWebhookTmpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -380,20 +380,19 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
-	"templates": {nil, map[string]*bintree{
-		"service": {nil, map[string]*bintree{
-			"fluentd.tmpl":   {templatesServiceFluentdTmpl, map[string]*bintree{}},
-			"memcached.tmpl": {templatesServiceMemcachedTmpl, map[string]*bintree{}},
-			"mysql.tmpl":     {templatesServiceMysqlTmpl, map[string]*bintree{}},
-			"postgres.tmpl":  {templatesServicePostgresTmpl, map[string]*bintree{}},
-			"redis.tmpl":     {templatesServiceRedisTmpl, map[string]*bintree{}},
-			"s3.tmpl":        {templatesServiceS3Tmpl, map[string]*bintree{}},
-			"sns.tmpl":       {templatesServiceSnsTmpl, map[string]*bintree{}},
-			"sqs.tmpl":       {templatesServiceSqsTmpl, map[string]*bintree{}},
-			"syslog.tmpl":    {templatesServiceSyslogTmpl, map[string]*bintree{}},
-			"webhook.tmpl":   {templatesServiceWebhookTmpl, map[string]*bintree{}},
+	"templates": &bintree{nil, map[string]*bintree{
+		"service": &bintree{nil, map[string]*bintree{
+			"fluentd.tmpl": &bintree{templatesServiceFluentdTmpl, map[string]*bintree{}},
+			"memcached.tmpl": &bintree{templatesServiceMemcachedTmpl, map[string]*bintree{}},
+			"mysql.tmpl": &bintree{templatesServiceMysqlTmpl, map[string]*bintree{}},
+			"postgres.tmpl": &bintree{templatesServicePostgresTmpl, map[string]*bintree{}},
+			"redis.tmpl": &bintree{templatesServiceRedisTmpl, map[string]*bintree{}},
+			"s3.tmpl": &bintree{templatesServiceS3Tmpl, map[string]*bintree{}},
+			"sns.tmpl": &bintree{templatesServiceSnsTmpl, map[string]*bintree{}},
+			"sqs.tmpl": &bintree{templatesServiceSqsTmpl, map[string]*bintree{}},
+			"syslog.tmpl": &bintree{templatesServiceSyslogTmpl, map[string]*bintree{}},
+			"webhook.tmpl": &bintree{templatesServiceWebhookTmpl, map[string]*bintree{}},
 		}},
 	}},
 }}
@@ -444,3 +443,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+
