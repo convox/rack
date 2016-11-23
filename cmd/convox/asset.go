@@ -184,8 +184,8 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"data": &bintree{nil, map[string]*bintree{
-		"root.pem": &bintree{dataRootPem, map[string]*bintree{}},
+	"data": {nil, map[string]*bintree{
+		"root.pem": {dataRootPem, map[string]*bintree{}},
 	}},
 }}
 

@@ -46,7 +46,7 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 	instanceIds := []*string{&id}
 	ec2Res, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+			{Name: aws.String("instance-id"), Values: instanceIds},
 		},
 		MaxResults: aws.Int64(1000),
 	})
