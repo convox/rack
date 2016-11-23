@@ -155,6 +155,10 @@
         { "Ref": "Vpc" },
         { "Ref": "ExistingVpc" }
       ] }
+    },
+    "VPCCIDR": {
+      "Condition": "Development",
+      "Value": { "Ref": "VPCCIDR" }
     }
   },
   "Parameters": {
@@ -240,7 +244,7 @@
     "InstanceCount": {
       "Default": "3",
       "Description": "The number of instances in the runtime cluster",
-      "MinValue": "2",
+      "MinValue": "3",
       "Type": "Number"
     },
     "InstanceType": {
@@ -891,7 +895,9 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "autoscaling:CompleteLifecycleAction",
                     "autoscaling:DescribeAutoScalingInstances",
+                    "autoscaling:DescribeLifecycleHooks",
                     "autoscaling:SetInstanceHealth",
                     "ecr:GetAuthorizationToken",
                     "ecr:GetDownloadUrlForLayer",
@@ -969,7 +975,7 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
-            "  - yum install -y nfs-utils\n",
+            "  - yum install -y aws-cli nfs-utils\n",
             "  - mkdir /volumes\n",
             { "Fn::If": [ "RegionHasEFS",
               { "Fn::Join": [ "", [
@@ -1011,6 +1017,10 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
+            "  - export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export ASG_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
+            "  - export LIFECYCLE_HOOK=$(/usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
+            "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", {"Ref":"AWS::Region"}, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
           ] ] }
         }
@@ -1074,7 +1084,18 @@
         }
       }
     },
-    "InstancesLifecycle": {
+    "InstancesLifecycleLaunching": {
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "DefaultResult": "CONTINUE",
+        "HeartbeatTimeout": "600",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_LAUNCHING",
+        "NotificationTargetARN": { "Ref": "InstancesLifecycleTopic" },
+        "RoleARN": { "Fn::GetAtt": [ "InstancesLifecycleRole", "Arn" ] }
+      }
+    },
+    "InstancesLifecycleTerminating": {
       "Type": "AWS::AutoScaling::LifecycleHook",
       "Properties": {
         "AutoScalingGroupName": { "Ref": "Instances" },

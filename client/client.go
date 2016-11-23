@@ -44,13 +44,11 @@ func New(host, password, version string) *Client {
 
 func (c *Client) Get(path string, out interface{}) error {
 	req, err := c.request("GET", path, nil)
-
 	if err != nil {
 		return err
 	}
 
 	res, err := c.client().Do(req)
-
 	if err != nil {
 		return err
 	}

@@ -180,8 +180,8 @@ func cmdInstall(c *cli.Context) error {
 
 	numInstances := c.Int("instance-count")
 	instanceCount := fmt.Sprintf("%d", numInstances)
-	if numInstances < 2 {
-		stdcli.Error(fmt.Errorf("instance-count must be greater than 1"))
+	if numInstances <= 2 {
+		return stdcli.Error(fmt.Errorf("instance-count must be greater than 2"))
 	}
 
 	var subnet0CIDR, subnet1CIDR, subnet2CIDR string
