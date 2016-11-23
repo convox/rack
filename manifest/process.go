@@ -41,6 +41,8 @@ func NewProcess(app string, s Service, m Manifest) Process {
 	return p
 }
 
+// GenerateArgs generates the argument list based on a process property
+// Possible to optionally override certain fields via opts
 func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 	args := []string{}
 
