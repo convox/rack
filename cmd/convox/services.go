@@ -19,43 +19,43 @@ type ServiceType struct {
 
 func init() {
 	types := []ServiceType{
-		ServiceType{
+		{
 			"memcached",
 			"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
 		},
-		ServiceType{
+		{
 			"mysql",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
-		ServiceType{
+		{
 			"postgres",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private] [--version=9.5.2]",
 		},
-		ServiceType{
+		{
 			"redis",
 			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
-		ServiceType{
+		{
 			"s3",
 			"[--topic=sns-service-name] [--versioning]",
 		},
-		ServiceType{
+		{
 			"sns",
 			"[--queue=sqs-service-name]",
 		},
-		ServiceType{
+		{
 			"sqs",
 			"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
 		},
-		ServiceType{
+		{
 			"syslog",
 			"--url=tcp+tls://logs1.papertrailapp.com:11235",
 		},
-		ServiceType{
+		{
 			"fluentd",
 			"--url=tcp://fluentd-collector.example.com:24224",
 		},
-		ServiceType{
+		{
 			"webhook",
 			"--url=https://console.convox.com/webhooks/1234",
 		},

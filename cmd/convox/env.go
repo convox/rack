@@ -81,7 +81,7 @@ func cmdEnvList(c *cli.Context) error {
 
 	keys := []string{}
 
-	for key, _ := range env {
+	for key := range env {
 		keys = append(keys, key)
 	}
 

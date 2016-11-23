@@ -120,7 +120,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	// delete build item
 	_, err = p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	})
@@ -268,7 +268,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	}
@@ -465,7 +465,7 @@ func (p *AWSProvider) BuildLogs(app, id string, w io.Writer) error {
 		cs, err := dc.ListContainers(docker.ListContainersOptions{
 			All: true,
 			Filters: map[string][]string{
-				"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
 			},
 		})
 		if err != nil {
@@ -523,8 +523,8 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
-				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(a.Name)}},
+			"app": {
+				AttributeValueList: []*dynamodb.AttributeValue{{S: aws.String(a.Name)}},
 				ComparisonOperator: aws.String("EQ"),
 			},
 		},
@@ -610,10 +610,10 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
-			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
-			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
-			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
+			"id":      {S: aws.String(b.Id)},
+			"app":     {S: aws.String(b.App)},
+			"status":  {S: aws.String(b.Status)},
+			"created": {S: aws.String(b.Started.Format(sortableTime))},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	}
@@ -783,7 +783,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		TaskDefinition: aws.String(td),
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
-				&ecs.ContainerOverride{
+				{
 					Name: aws.String("build"),
 					Command: []*string{
 						aws.String("build"),
@@ -791,31 +791,31 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						aws.String("-cache"), aws.String(fmt.Sprintf("%t", opts.Cache)),
 					},
 					Environment: []*ecs.KeyValuePair{
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_APP"),
 							Value: aws.String(build.App),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_AUTH"),
 							Value: aws.String(auth),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_CONFIG"),
 							Value: aws.String(opts.Config),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_ID"),
 							Value: aws.String(build.Id),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_PUSH"),
 							Value: aws.String(push),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_URL"),
 							Value: aws.String(url),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("RELEASE"),
 							Value: aws.String(build.Id),
 						},
@@ -875,7 +875,7 @@ func (p *AWSProvider) waitForContainer(task *ecs.Task) error {
 			cs, err := dc.ListContainers(docker.ListContainersOptions{
 				All: true,
 				Filters: map[string][]string{
-					"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+					"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
 				},
 			})
 			if err != nil {
@@ -939,7 +939,7 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 
 	urls := []string{}
 
-	for name, _ := range m.Services {
+	for name := range m.Services {
 		urls = append(urls, p.registryTag(a, name, b.Id))
 	}
 
@@ -1060,7 +1060,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 	qi := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("app = :app"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app": &dynamodb.AttributeValue{S: aws.String(app.Name)},
+			":app": {S: aws.String(app.Name)},
 		},
 		IndexName: aws.String("app.created"),
 		TableName: aws.String(p.DynamoBuilds),
@@ -1079,7 +1079,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 		wr := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
-					"id": &dynamodb.AttributeValue{
+					"id": {
 						S: aws.String(b.Id),
 					},
 				},

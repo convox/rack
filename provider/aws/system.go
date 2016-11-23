@@ -126,9 +126,9 @@ func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
 func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
+			"app": {
 				AttributeValueList: []*dynamodb.AttributeValue{
-					&dynamodb.AttributeValue{S: aws.String(p.Rack)},
+					{S: aws.String(p.Rack)},
 				},
 				ComparisonOperator: aws.String("EQ"),
 			},
@@ -211,9 +211,9 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	if v, ok := changes["version"]; ok {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
-				"id":      &dynamodb.AttributeValue{S: aws.String(v)},
-				"app":     &dynamodb.AttributeValue{S: aws.String(p.Rack)},
-				"created": &dynamodb.AttributeValue{S: aws.String(p.createdTime())},
+				"id":      {S: aws.String(v)},
+				"app":     {S: aws.String(p.Rack)},
+				"created": {S: aws.String(p.createdTime())},
 			},
 			TableName: aws.String(p.DynamoReleases),
 		})

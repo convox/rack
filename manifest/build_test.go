@@ -76,7 +76,7 @@ func TestBuildWithCache(t *testing.T) {
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
 	te.CannedResponses = []ExecResponse{
-		ExecResponse{
+		{
 			Output: []byte("dockerid"),
 			Error:  nil,
 		},
@@ -108,7 +108,7 @@ func TestBuildCacheNoImage(t *testing.T) {
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
 	te.CannedResponses = []ExecResponse{
-		ExecResponse{
+		{
 			Output: []byte(""),
 			Error:  nil,
 		},
@@ -142,7 +142,7 @@ func TestBuildWithSpecificService(t *testing.T) {
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
 	te.CannedResponses = []ExecResponse{
-		ExecResponse{
+		{
 			Output: []byte("dockerid"),
 			Error:  nil,
 		},
@@ -175,7 +175,7 @@ func TestBuildNoCache(t *testing.T) {
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
 	te.CannedResponses = []ExecResponse{
-		ExecResponse{
+		{
 			Output: []byte("dockeid"),
 			Error:  nil,
 		},
@@ -237,7 +237,7 @@ func TestBuildRepeatImage(t *testing.T) {
 	dr := manifest.DefaultRunner
 	te := NewTestExecer()
 	te.CannedResponses = []ExecResponse{
-		ExecResponse{
+		{
 			Output: []byte(""),
 			Error:  nil,
 		},

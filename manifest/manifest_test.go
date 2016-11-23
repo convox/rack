@@ -420,7 +420,7 @@ func TestManifestMarshalYaml(t *testing.T) {
 	m := manifest.Manifest{
 		Version: "1",
 		Services: map[string]manifest.Service{
-			"food": manifest.Service{
+			"food": {
 				Name: "food",
 				Build: manifest.Build{
 					Context:    ".",
