@@ -25,7 +25,7 @@ func (e *Exec) Run(s Stream, cmd *exec.Cmd) error {
 
 //RunAsync synchronously calls the command and pipes the output to the stream,
 func (e *Exec) RunAsync(s Stream, cmd *exec.Cmd, done chan error) {
-	runAsync(s, cmd, done)
+	RunAsync(s, cmd, done)
 }
 
 //CombinedOutput synchronously calls the command and returns the output,
@@ -36,11 +36,11 @@ func (e *Exec) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
 
 func run(s Stream, cmd *exec.Cmd) error {
 	done := make(chan error, 1)
-	runAsync(s, cmd, done)
+	RunAsync(s, cmd, done)
 	return <-done
 }
 
-func runAsync(s Stream, cmd *exec.Cmd, done chan error) {
+func RunAsync(s Stream, cmd *exec.Cmd, done chan error) {
 	s <- fmt.Sprintf("running: %s", strings.Join(cmd.Args, " "))
 
 	r, w := io.Pipe()
