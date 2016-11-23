@@ -284,8 +284,8 @@ func checkDockerPull() error {
 	if err != nil {
 		diagnose(Diagnosis{
 			Title:       title,
-			Description: "<fail>Could not pull and the hello-world Image, is your internet connection ok?</fail>",
-			DocsLink:    "https://convox.com/docs/troubleshooting-docker/",
+			Description: "<fail>Could not pull the hello-world image. Is your internet connection ok?</fail>",
+			DocsLink:    "https://convox.com/docs/troubleshooting/",
 			Kind:        "fail",
 		})
 		return nil
@@ -359,7 +359,7 @@ func checkDockerfile() error {
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/builds/",
+			DocsLink:    "https://convox.com/guide/build/images",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -998,7 +998,7 @@ func checkReloading(m *manifest.Manifest) error {
 
 		paths, _ := s.SyncPaths()
 
-		for local, _ := range paths {
+		for local := range paths {
 			if local == "." {
 				local = "./"
 			}
@@ -1039,7 +1039,7 @@ func checkRunSh(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "error",
-				DocsLink:    "http://convox.com/guide/commands/",
+				DocsLink:    "https://convox.com/guide/one-off-commands/",
 				Description: fmt.Sprintf("Service <service>%s</service> does not run `sh` because of %q", s.Name, err),
 			})
 			continue
@@ -1050,7 +1050,7 @@ func checkRunSh(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "error",
-				DocsLink:    "http://convox.com/guide/commands/",
+				DocsLink:    "https://convox.com/guide/one-off-commands/",
 				Description: fmt.Sprintf("Service <service>%s</service> does not exit from `sh` because of %q", s.Name, err),
 			})
 			continue

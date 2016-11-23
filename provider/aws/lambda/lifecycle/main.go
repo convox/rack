@@ -337,7 +337,7 @@ func waitUntilELBInstanceDeregistered(lbs []string, instance string) error {
 }
 
 func waitForELBInstanceDeregistered(lb, instance string, ch chan error) {
-	instances := []*elb.Instance{&elb.Instance{InstanceId: aws.String(instance)}}
+	instances := []*elb.Instance{{InstanceId: aws.String(instance)}}
 
 	ch <- ELB.WaitUntilInstanceDeregistered(&elb.DescribeInstanceHealthInput{
 		LoadBalancerName: aws.String(lb),

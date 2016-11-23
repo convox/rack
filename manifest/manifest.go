@@ -95,7 +95,7 @@ func (m Manifest) Validate() []error {
 		}
 
 		labels := entry.LabelsByPrefix("convox.cron")
-		for k, _ := range labels {
+		for k := range labels {
 			parts := strings.Split(k, ".")
 			if len(parts) != 3 {
 				errors = append(errors, fmt.Errorf("Cron task is not valid (must be in format convox.cron.myjob)"))
@@ -135,9 +135,9 @@ func (m Manifest) Validate() []error {
 
 		if mem < mem_min && mem != 0 { //Memory(0) {
 			e := fmt.Errorf("%s has invalid mem_limit %#v: should be either 0, or at least %#vMB",
-								entry.Name,
-								mem / units.MB,
-								mem_min / units.MB)
+				entry.Name,
+				mem/units.MB,
+				mem_min/units.MB)
 			errors = append(errors, e)
 		}
 	}
@@ -310,7 +310,7 @@ func (m Manifest) EntryNames() []string {
 	names := make([]string, len(m.Services))
 	x := 0
 
-	for k, _ := range m.Services {
+	for k := range m.Services {
 		names[x] = k
 		x += 1
 	}

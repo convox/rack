@@ -183,7 +183,7 @@ func PutRackSettings(env Environment) error {
 func (e Environment) SortedNames() []string {
 	names := []string{}
 
-	for key, _ := range e {
+	for key := range e {
 		names = append(names, key)
 	}
 
