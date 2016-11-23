@@ -16,11 +16,11 @@ import (
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
 	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
-		awsutil.Cycle{
+		{
 			awsutil.Request{"GET", "/", "", "/./"},
 			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
 		},
-		awsutil.Cycle{
+		{
 			awsutil.Request{"GET", "/", "", ""},
 			awsutil.Response{200, ""},
 		},
@@ -47,11 +47,11 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 func TestConvoxInstallValidateStackName(t *testing.T) {
 	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
-		awsutil.Cycle{
+		{
 			awsutil.Request{"GET", "/", "", "/./"},
 			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
 		},
-		awsutil.Cycle{
+		{
 			awsutil.Request{"GET", "/", "", ""},
 			awsutil.Response{200, ""},
 		},

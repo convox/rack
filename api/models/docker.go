@@ -60,7 +60,7 @@ func DockerHost() (string, error) {
 
 	ires, err := EC2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: []*string{&id}},
+			{Name: aws.String("instance-id"), Values: []*string{&id}},
 		},
 		MaxResults: aws.Int64(1000),
 	})

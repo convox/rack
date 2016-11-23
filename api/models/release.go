@@ -53,7 +53,7 @@ func GetRelease(app, id string) (*Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(releasesTable(app)),
 	}
@@ -84,9 +84,9 @@ func (r *Release) Save() error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
-			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
-			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
+			"id":      {S: aws.String(r.Id)},
+			"app":     {S: aws.String(r.App)},
+			"created": {S: aws.String(r.Created.Format(SortableTime))},
 		},
 		TableName: aws.String(releasesTable(r.App)),
 	}

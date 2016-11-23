@@ -24,7 +24,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 
 	ec2Res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+			{Name: aws.String("instance-id"), Values: instanceIds},
 		},
 		MaxResults: aws.Int64(1000),
 	})
@@ -43,7 +43,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 
 			res, err := p.cloudwatch().GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
 				Dimensions: []*cloudwatch.Dimension{
-					&cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: i.InstanceId},
+					{Name: aws.String("InstanceId"), Value: i.InstanceId},
 				},
 				EndTime:    aws.Time(time.Now()),
 				MetricName: aws.String("CPUUtilization"),
