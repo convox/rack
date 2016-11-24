@@ -108,7 +108,6 @@ func cmdStart(c *cli.Context) error {
 				ValidationError: err,
 				AppType:         appType,
 			})
-
 			return stdcli.Error(err)
 		}
 	}
