@@ -183,11 +183,13 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	props := map[string]interface{}{}
 
 	if ep.Error != nil {
+		Error(ep.Error)
 		props["error"] = ep.Error.Error()
 		rollbar.Error(rollbar.ERR, ep.Error, &rollbar.Field{"id", id})
 	}
 
 	if ep.ValidationError != nil {
+		Error(ep.ValidationError)
 		props["validation_error"] = ep.ValidationError.Error()
 	}
 
@@ -218,6 +220,10 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	}
 
 	if ep.ValidationError != nil {
+		// TODO(ian@convox.com): figure out how to update return statement so that
+		// it prints error to STDOUT without needing a separate Println.
+		// It was `return ExitError(ep.ValidationError)` prior to 457f4089.
+		fmt.Println(ep.ValidationError)
 		return ep.ValidationError
 	}
 
