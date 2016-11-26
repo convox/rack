@@ -60,11 +60,9 @@
   },
   "Outputs": {
     "Autoscale": {
-      "Condition": "Development",
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
     "AwsRegion": {
-      "Condition": "Development",
       "Value": { "Ref": "AWS::Region" }
     },
     "AwsAccess": {
@@ -76,45 +74,36 @@
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
     },
     "Cluster": {
-      "Condition": "Development",
       "Value": { "Ref": "Cluster" }
     },
     "CustomTopic": {
-      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] }
     },
     "Dashboard": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "DockerImageApi": {
-      "Condition": "Development",
       "Value": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }
     },
     "DynamoBuilds": {
-      "Condition": "Development",
       "Value": { "Ref": "DynamoBuilds" }
     },
     "DynamoReleases": {
-      "Condition": "Development",
       "Value": { "Ref": "DynamoReleases" }
     },
     "EncryptionKey": {
-      "Condition": "Development",
       "Value": { "Ref": "EncryptionKey" }
     },
     "Internal": {
-      "Condition": "Development",
       "Value": { "Ref": "Internal" }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
     },
     "NotificationHost": {
-      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
     },
     "NotificationTopic": {
-      "Condition": "Development",
       "Value" : { "Ref": "NotificationTopic" }
     },
     "Password": {
@@ -122,7 +111,6 @@
       "Value": { "Ref": "Password" }
     },
     "Private": {
-      "Condition": "Development",
       "Value": { "Ref": "Private" }
     },
     "Provider": {
@@ -130,23 +118,18 @@
       "Value": "aws"
     },
     "Rack": {
-      "Condition": "Development",
       "Value": { "Ref": "AWS::StackName" }
     },
     "Release": {
-      "Condition": "Development",
       "Value": { "Ref": "Version" }
     },
     "SecurityGroup": {
-      "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
     },
     "SettingsBucket": {
-      "Condition": "Development",
       "Value": { "Ref": "Settings" }
     },
     "Subnets": {
-      "Condition": "Development",
       "Value": {
         "Fn::Join": [
           ",",
@@ -159,18 +142,15 @@
       }
     },
     "SubnetsPrivate": {
-      "Condition": "Development",
       "Value": { "Fn::If": [ "Private",
         { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
         ""
       ] }
     },
     "StackId": {
-      "Condition": "Development",
       "Value": { "Ref": "AWS::StackId" }
     },
     "Vpc": {
-      "Condition": "Development",
       "Value": { "Fn::If": [ "BlankExistingVpc",
         { "Ref": "Vpc" },
         { "Ref": "ExistingVpc" }
@@ -915,7 +895,9 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "autoscaling:CompleteLifecycleAction",
                     "autoscaling:DescribeAutoScalingInstances",
+                    "autoscaling:DescribeLifecycleHooks",
                     "autoscaling:SetInstanceHealth",
                     "ecr:GetAuthorizationToken",
                     "ecr:GetDownloadUrlForLayer",
@@ -993,7 +975,7 @@
             "bootcmd:\n",
             "  - mkswap /dev/xvdb\n",
             "  - swapon /dev/xvdb\n",
-            "  - yum install -y nfs-utils\n",
+            "  - yum install -y aws-cli nfs-utils\n",
             "  - mkdir /volumes\n",
             { "Fn::If": [ "RegionHasEFS",
               { "Fn::Join": [ "", [
@@ -1035,6 +1017,10 @@
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
             ] },
+            "  - export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
+            "  - export ASG_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
+            "  - export LIFECYCLE_HOOK=$(/usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
+            "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", {"Ref":"AWS::Region"}, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
             "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
           ] ] }
         }
@@ -1098,7 +1084,18 @@
         }
       }
     },
-    "InstancesLifecycle": {
+    "InstancesLifecycleLaunching": {
+      "Type": "AWS::AutoScaling::LifecycleHook",
+      "Properties": {
+        "AutoScalingGroupName": { "Ref": "Instances" },
+        "DefaultResult": "CONTINUE",
+        "HeartbeatTimeout": "600",
+        "LifecycleTransition": "autoscaling:EC2_INSTANCE_LAUNCHING",
+        "NotificationTargetARN": { "Ref": "InstancesLifecycleTopic" },
+        "RoleARN": { "Fn::GetAtt": [ "InstancesLifecycleRole", "Arn" ] }
+      }
+    },
+    "InstancesLifecycleTerminating": {
       "Type": "AWS::AutoScaling::LifecycleHook",
       "Properties": {
         "AutoScalingGroupName": { "Ref": "Instances" },

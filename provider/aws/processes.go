@@ -64,7 +64,7 @@ func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter
 	cs, err := dc.ListContainers(docker.ListContainersOptions{
 		All: true,
 		Filters: map[string][]string{
-			"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn)},
+			"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", arn)},
 		},
 	})
 	if err != nil {
@@ -285,7 +285,7 @@ func (p *AWSProvider) ProcessRun(app, process string, opts structs.ProcessRunOpt
 	if opts.Command != "" {
 		req.Overrides = &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
-				&ecs.ContainerOverride{
+				{
 					Name: aws.String(process),
 					Command: []*string{
 						aws.String("sh"),
@@ -488,7 +488,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	cs, err := dc.ListContainers(docker.ListContainersOptions{
 		All: true,
 		Filters: map[string][]string{
-			"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+			"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
 		},
 	})
 	if err != nil {
@@ -518,8 +518,8 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 		}
 
 		// if there's an exec process grab it minus the "sh -c "
-		if len(tr.Processes) >= 2 {
-			cmd = tr.Processes[1][7][6:]
+		if len(tr.Processes) >= 2 && len(tr.Processes[1]) == 8 {
+			cmd = strings.Replace(tr.Processes[1][7], "sh -c ", "", 1)
 		} else {
 			cmd = ""
 		}
@@ -734,7 +734,7 @@ func (p *AWSProvider) processRunAttached(app, process string, opts structs.Proce
 	if opts.Command != "" {
 		req.Overrides = &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
-				&ecs.ContainerOverride{
+				{
 					Name: aws.String(process),
 					Command: []*string{
 						aws.String("sleep"),
@@ -910,11 +910,11 @@ func (p *AWSProvider) taskDefinitionForRun(app, process, release string) (string
 	_, err = p.dynamodb().UpdateItem(&dynamodb.UpdateItemInput{
 		TableName: aws.String(p.DynamoReleases),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(release)},
+			"id": {S: aws.String(release)},
 		},
 		UpdateExpression: aws.String("set definitions = :definitions"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":definitions": &dynamodb.AttributeValue{S: aws.String(string(jtasks))},
+			":definitions": {S: aws.String(string(jtasks))},
 		},
 	})
 	if err != nil {

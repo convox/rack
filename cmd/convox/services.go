@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -18,43 +19,43 @@ type ServiceType struct {
 
 func init() {
 	types := []ServiceType{
-		ServiceType{
+		{
 			"memcached",
 			"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
 		},
-		ServiceType{
+		{
 			"mysql",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
-		ServiceType{
+		{
 			"postgres",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private] [--version=9.5.2]",
 		},
-		ServiceType{
+		{
 			"redis",
 			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
-		ServiceType{
+		{
 			"s3",
 			"[--topic=sns-service-name] [--versioning]",
 		},
-		ServiceType{
+		{
 			"sns",
 			"[--queue=sqs-service-name]",
 		},
-		ServiceType{
+		{
 			"sqs",
 			"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
 		},
-		ServiceType{
+		{
 			"syslog",
 			"--url=tcp+tls://logs1.papertrailapp.com:11235",
 		},
-		ServiceType{
+		{
 			"fluentd",
 			"--url=tcp://fluentd-collector.example.com:24224",
 		},
-		ServiceType{
+		{
 			"webhook",
 			"--url=https://console.convox.com/webhooks/1234",
 		},
@@ -66,15 +67,16 @@ func init() {
 	}
 
 	stdcli.RegisterCommand(cli.Command{
-		Name:        "services",
-		Description: "manage services",
+		Name:        "resources",
+		Aliases: []string{"services"},
+		Description: "manage external resources [prev. services]",
 		Usage:       "",
 		Action:      cmdServices,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
-				Description:     "create a new service.",
+				Description:     "create a new resource.",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
 				Flags:           []cli.Flag{rackFlag},
@@ -82,14 +84,14 @@ func init() {
 			},
 			{
 				Name:        "delete",
-				Description: "delete a service",
+				Description: "delete a resource",
 				Usage:       "<name>",
 				Action:      cmdServiceDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "update",
-				Description:     "update a service.\n\nWARNING: updates may cause service downtime.",
+				Description:     "update a resource.\n\nWARNING: updates may cause resource downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceUpdate,
 				Flags:           []cli.Flag{rackFlag},
@@ -97,35 +99,35 @@ func init() {
 			},
 			{
 				Name:        "info",
-				Description: "info about a service.",
+				Description: "info about a resource.",
 				Usage:       "<name>",
 				Action:      cmdServiceInfo,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "link",
-				Description: "create a link between a service and an app.",
+				Description: "create a link between a resource and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "unlink",
-				Description: "delete a link between a service and an app.",
+				Description: "delete a link between a resource and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "url",
-				Description: "return url for the given service",
+				Description: "return url for the given resource",
 				Usage:       "<name>",
 				Action:      cmdServiceURL,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "proxy",
-				Description: "proxy ports from localhost to connect to a service",
+				Description: "proxy ports from localhost to connect to a resource",
 				Usage:       "<name>",
 				Action:      cmdServiceProxy,
 				Flags: []cli.Flag{
@@ -143,7 +145,7 @@ func init() {
 
 func cmdServices(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
+		return stdcli.Error(fmt.Errorf("`convox resources` does not take arguments. Perhaps you meant `convox resources create`?"))
 	}
 
 	if c.Bool("help") {
@@ -181,7 +183,7 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	t := c.Args()[0]
 
-	if t == "help" || t == "--help" {
+	if t == "help" || t == "--help" || t == "-h" {
 		stdcli.Usage(c, "create")
 		return nil
 	}
@@ -214,6 +216,7 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	fmt.Printf("Creating %s (%s", options["name"], t)
 	if len(optionsList) > 0 {
+		sort.Strings(optionsList)
 		fmt.Printf(": %s", strings.Join(optionsList, " "))
 	}
 	fmt.Printf(")... ")

@@ -44,7 +44,7 @@ func TestLabelsByPrefix(t *testing.T) {
 func TestNetworkName(t *testing.T) {
 	networks := manifest.Networks{
 		"foo": manifest.InternalNetwork{
-			"external": manifest.ExternalNetwork {
+			"external": manifest.ExternalNetwork{
 				Name: "foonet",
 			},
 		},
@@ -58,9 +58,9 @@ func TestNetworkName(t *testing.T) {
 }
 
 func TestDefaultNetworkName(t *testing.T) {
-	networks := manifest.Networks {}
+	networks := manifest.Networks{}
 
-	s := manifest.Service {
+	s := manifest.Service{
 		Networks: networks,
 	}
 

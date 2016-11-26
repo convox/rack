@@ -232,7 +232,7 @@ func cmdAppParams(c *cli.Context) error {
 
 	keys := []string{}
 
-	for key, _ := range params {
+	for key := range params {
 		keys = append(keys, key)
 	}
 

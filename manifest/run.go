@@ -14,16 +14,16 @@ import (
 )
 
 type Run struct {
-	App  string
-	Dir  string
-	Opts RunOptions
+	App       string
+	Dir       string
+	Opts      RunOptions
+	Output    Output
+	Processes map[string]Process
 
-	done      chan error
-	manifest  Manifest
-	output    Output
-	processes []Process
-	proxies   []Proxy
-	syncs     []sync.Sync
+	done     chan error
+	manifest Manifest
+	proxies  []Proxy
+	syncs    []sync.Sync
 }
 
 type RunOptions struct {
@@ -37,11 +37,12 @@ type RunOptions struct {
 // NewRun Default constructor method for a Run object
 func NewRun(m Manifest, dir, app string, opts RunOptions) Run {
 	return Run{
-		App:      app,
-		Dir:      dir,
-		Opts:     opts,
-		manifest: m,
-		output:   NewOutput(opts.Quiet),
+		App:       app,
+		Dir:       dir,
+		Opts:      opts,
+		Processes: make(map[string]Process),
+		manifest:  m,
+		Output:    NewOutput(opts.Quiet),
 	}
 }
 
@@ -111,17 +112,17 @@ func (r *Run) Start() error {
 	}
 
 	// preload system-level stream names
-	r.output.Stream("convox")
-	r.output.Stream("build")
+	r.Output.Stream("convox")
+	r.Output.Stream("build")
 
 	// preload process stream names so padding is set correctly
 	for _, s := range services {
-		r.output.Stream(s.Name)
+		r.Output.Stream(s.Name)
 	}
 
 	r.done = make(chan error)
 
-	err = r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), BuildOptions{
+	err = r.manifest.Build(r.Dir, r.App, r.Output.Stream("build"), BuildOptions{
 		Cache:   r.Opts.Cache,
 		Service: r.Opts.Service,
 	})
@@ -129,7 +130,7 @@ func (r *Run) Start() error {
 		return err
 	}
 
-	system := r.output.Stream("convox")
+	system := r.Output.Stream("convox")
 
 	for _, s := range services {
 		proxies := s.Proxies(r.App)
@@ -143,7 +144,7 @@ func (r *Run) Start() error {
 
 		Docker("rm", "-f", p.Name).Run()
 
-		runAsync(r.output.Stream(p.service.Name), Docker(append([]string{"run"}, p.Args...)...), r.done)
+		RunAsync(r.Output.Stream(p.service.Name), Docker(append([]string{"run"}, p.Args...)...), r.done)
 
 		sp, err := p.service.SyncPaths()
 		if err != nil {
@@ -174,7 +175,7 @@ func (r *Run) Start() error {
 			}
 		}
 
-		r.processes = append(r.processes, p)
+		r.Processes[p.Name] = p
 
 		waitForContainer(p.Name, s)
 
@@ -200,7 +201,7 @@ func (r *Run) Stop() {
 		args = append(args, p.Name)
 	}
 
-	for _, p := range r.processes {
+	for _, p := range r.Processes {
 		args = append(args, p.Name)
 	}
 
