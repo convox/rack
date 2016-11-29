@@ -67,6 +67,7 @@ func StartCluster() {
 
 				if !seenBefore {
 					disconnectedInstances[i.Id] = struct{}{}
+					fmt.Printf("who=\"convox/monitor\" what=\"instance %s missed it's first heartbeat\" why=\"ECS reported agent disconnected\"\n", i.Id)
 					continue
 				}
 				// Not registered or not connected => set Unhealthy
