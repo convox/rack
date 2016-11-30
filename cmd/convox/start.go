@@ -66,12 +66,14 @@ func cmdStart(c *cli.Context) error {
 
 	err = dockerTest()
 	if err != nil {
-		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+		return stdcli.Error(err)
 	}
 
 	dir, app, err := stdcli.DirApp(c, filepath.Dir(c.String("file")))
 	if err != nil {
-		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
+		return stdcli.Error(err)
 	}
 
 	appType := detectApplication(dir)
@@ -109,7 +111,6 @@ func cmdStart(c *cli.Context) error {
 				ValidationError: err,
 				AppType:         appType,
 			})
-
 			return stdcli.Error(err)
 		}
 	}
@@ -126,10 +127,11 @@ func cmdStart(c *cli.Context) error {
 
 	err = r.Start()
 	if err != nil {
-		return stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
+		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
 		})
+		return stdcli.Error(err)
 	}
 
 	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
