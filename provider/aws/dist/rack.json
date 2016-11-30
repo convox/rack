@@ -1051,7 +1051,7 @@
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "1",
+        "MinSize" : { "Ref": "InstanceCount" },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
