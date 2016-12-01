@@ -1012,7 +1012,7 @@
             ] },
             "runcmd:\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
-              "  - sleep 30\n",
+              "  - sleep 5\n",
               { "Fn::Join": [ "", [
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
