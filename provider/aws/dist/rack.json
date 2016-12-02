@@ -62,6 +62,12 @@
     "Autoscale": {
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
+    "AutoscalingGroup": {
+      "Value": { "Ref": "Instances" }
+    },
+    "AvailabilityZones": {
+      "Value": { "Ref": "AvailabilityZones" }
+    },
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
     },
@@ -72,6 +78,9 @@
     "AwsSecret": {
       "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
+    },
+    "BalancerSecurityGroup": {
+      "Value": { "Ref": "BalancerSecurityGroup" }
     },
     "Cluster": {
       "Value": { "Ref": "Cluster" }
@@ -94,11 +103,47 @@
     "EncryptionKey": {
       "Value": { "Ref": "EncryptionKey" }
     },
+    "Gateway": {
+      "Value": { "Ref": "Gateway" }
+    },
+    "GatewayAttachment": {
+      "Value": { "Ref": "GatewayAttachment" }
+    },
+    "IamRole": {
+      "Value": { "Ref": "IamRole" }
+    },
+    "InstanceProfile": {
+      "Value": { "Ref": "InstanceProfile" }
+    },
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
+    },
+    "NatGateways": {
+      "Value": {
+        "Fn::Join": [
+          ",",
+          [
+            { "Ref": "Nat0" },
+            { "Ref": "Nat1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+          ]
+        ]
+      }
+    },
+    "NatIPs": {
+      "Value": {
+        "Fn::Join": [
+          ",",
+          [
+            { "Ref": "NatAddress0" },
+            { "Ref": "NatAddress1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "NatAddress2" }, { "Ref": "AWS::NoValue" } ] }
+          ]
+        ]
+      }
     },
     "NotificationHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
