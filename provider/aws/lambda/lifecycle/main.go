@@ -106,21 +106,21 @@ func handle(r Record) error {
 
 	fmt.Printf("lbs = %+v\n", lbs)
 
-	if err := waitUntilELBInstanceDeregistered(lbs, m.EC2InstanceID); err != nil {
-		return nil
-	}
+	//if err := waitUntilELBInstanceDeregistered(lbs, m.EC2InstanceID); err != nil {
+	//	return nil
+	//}
 
 	// We wait for services to be running at desired count and health checks to pass so that
 	// another instance isn't terminated while the cluster is still trying to stablize.
-	if err := waitUntilServicesStable(md.Cluster); err != nil {
-		return nil
-	}
+	//if err := waitUntilServicesStable(md.Cluster); err != nil {
+	//	return nil
+	//}
 
 	lbs = append(lbs, md.Rack)
 	fmt.Printf("lbs with rack = %+v\n", lbs)
-	if err := waitUntilELBInstancesAreHealthy(lbs); err != nil {
-		return nil
-	}
+	//if err := waitUntilELBInstancesAreHealthy(lbs); err != nil {
+	//	return nil
+	//}
 
 	_, err = AutoScaling.CompleteLifecycleAction(&autoscaling.CompleteLifecycleActionInput{
 		AutoScalingGroupName:  aws.String(m.AutoScalingGroupName),
