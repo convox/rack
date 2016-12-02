@@ -1,6 +1,9 @@
 package client
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type System struct {
 	Count   int    `json:"count"`
@@ -60,11 +63,10 @@ func (c *Client) GetSystemCapacity() (*SystemCapacity, error) {
 	return &capacity, nil
 }
 
-func (c *Client) GetSystemProcesses() (Processes, error) {
+func (c *Client) GetSystemProcesses(all bool) (Processes, error) {
 	var processes Processes
 
-	err := c.Get("/system/processes", &processes)
-
+	err := c.Get(fmt.Sprintf("/system/processes?all=%t", all), &processes)
 	if err != nil {
 		return nil, err
 	}

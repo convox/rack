@@ -13,6 +13,7 @@ type Provider interface {
 	Initialize(opts structs.ProviderOptions) error
 
 	AppCancel(name string) error
+
 	AppGet(name string) (*structs.App, error)
 	AppDelete(name string) error
 
@@ -84,7 +85,7 @@ type Provider interface {
 
 	SystemGet() (*structs.System, error)
 	SystemLogs(w io.Writer, opts structs.LogStreamOptions) error
-	SystemProcesses() (structs.Processes, error)
+	SystemProcesses(all bool) (structs.Processes, error)
 	SystemReleases() (structs.Releases, error)
 	SystemSave(system structs.System) error
 }

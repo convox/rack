@@ -69,6 +69,10 @@ func init() {
 						Name:  "stats",
 						Usage: "display process cpu/memory stats",
 					},
+					cli.BoolFlag{
+						Name:  "a, all",
+						Usage: "display all processes including apps",
+					},
 				},
 			},
 			{
@@ -215,7 +219,7 @@ func cmdRackPs(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	ps, err := rackClient(c).GetSystemProcesses()
+	ps, err := rackClient(c).GetSystemProcesses(c.Bool("all"))
 	if err != nil {
 		return stdcli.Error(err)
 	}

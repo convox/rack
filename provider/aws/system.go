@@ -11,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -102,13 +104,28 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
-func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
-	tasks, err := p.stackTasks(p.Rack)
-	if err != nil {
-		return nil, err
-	}
+func (p *AWSProvider) SystemProcesses(all bool) (structs.Processes, error) {
+	var tasks []string
+	var err error
 
-	fmt.Printf("tasks = %+v\n", tasks)
+	if all {
+		tres, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+			Cluster: aws.String(p.Cluster),
+		})
+
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+		for _, arn := range tres.TaskArns {
+			tasks = append(tasks, *arn)
+		}
+	} else {
+		tasks, err = p.stackTasks(p.Rack)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	ps, err := p.taskProcesses(tasks)
 	if err != nil {
@@ -116,7 +133,9 @@ func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
 	}
 
 	for i := range ps {
-		ps[i].App = p.Rack
+		if ps[i].App == "" {
+			ps[i].App = p.Rack
+		}
 	}
 
 	return ps, nil

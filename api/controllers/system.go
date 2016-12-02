@@ -25,7 +25,9 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	ps, err := models.Provider().SystemProcesses()
+	all := r.URL.Query().Get("all")
+
+	ps, err := models.Provider().SystemProcesses(all == "true")
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
 	}

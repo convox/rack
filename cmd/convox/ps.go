@@ -90,10 +90,10 @@ func cmdPs(c *cli.Context) error {
 }
 
 func displayProcesses(ps []client.Process) {
-	t := stdcli.NewTable("ID", "NAME", "RELEASE", "STARTED", "COMMAND")
+	t := stdcli.NewTable("ID", "APP", "NAME", "RELEASE", "STARTED", "COMMAND")
 
 	for _, p := range ps {
-		t.AddRow(prettyId(p), p.Name, p.Release, humanizeTime(p.Started), p.Command)
+		t.AddRow(prettyId(p), p.App, p.Name, p.Release, humanizeTime(p.Started), p.Command)
 	}
 
 	t.Print()
