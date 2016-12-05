@@ -168,6 +168,15 @@
     "Release": {
       "Value": { "Ref": "Version" }
     },
+    "RouteTablePublic": {
+      "value": { "Ref": "Routes" }
+    },
+    "RouteTablesPrivate": {
+      "Value": { "Fn::If": [ "Private",
+        { "Fn::Join": [ ",", [ { "Ref": "RouteTable0" }, { "Ref": "RouteTable1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "RouteTable2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
+        ""
+      ] }
+    },
     "SecurityGroup": {
       "Value": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
     },
