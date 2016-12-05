@@ -2,6 +2,9 @@ FROM golang:1.7-alpine
 
 RUN apk update && apk add build-base docker git haproxy openssh openssl python tar
 
+# add nobody to the docker group
+RUN addgroup nobody docker
+
 # need a real pid 1 for signal handling, zombie reaping, etc
 ADD http://convox-binaries.s3.amazonaws.com/tini-static /tini
 RUN chmod +x /tini
