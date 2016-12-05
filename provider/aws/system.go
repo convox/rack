@@ -101,8 +101,6 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 
 			for _, s := range dres.Services {
 				for _, d := range s.Deployments {
-					fmt.Printf("service=%s running=%d pending=%d desired=%d\n", *s.ServiceArn, *d.RunningCount, *d.PendingCount, *d.DesiredCount)
-
 					if *d.RunningCount != *d.DesiredCount {
 						status = "converging"
 						break Loop
@@ -136,10 +134,6 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	if err != nil {
 		return err
 	}
-
-	// if strings.HasSuffix(err.Error(), "write: broken pipe") {
-	//   return nil
-	// }
 
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
