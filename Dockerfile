@@ -9,6 +9,10 @@ ENTRYPOINT ["/tini", "--"]
 
 RUN go get github.com/convox/rerun
 
+RUN mkdir -p /etc/ssl/convox
+RUN chown -R nobody:nogroup /etc/ssl/convox
+RUN chown -R nobody:nogroup /var/lib/haproxy
+
 COPY dist/haproxy.cfg /etc/haproxy/haproxy.cfg
 
 ENV PORT 3000
@@ -18,6 +22,8 @@ COPY . /go/src/github.com/convox/rack
 RUN go install ./api
 RUN go install ./api/cmd/build
 RUN go install ./api/cmd/monitor
+
+RUN chown -R nobody:nogroup /go/src/github.com/convox/rack
 
 USER nobody
 
