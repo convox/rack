@@ -1,0 +1,70 @@
+{
+    "failures": [],
+    "services": [{
+        "clusterArn": "arn:aws:ecs:us-east-1:111111111111:cluster/rack-Cluster-DFMP83Z2KMOB",
+        "createdAt": 1.479163546803E9,
+        "deploymentConfiguration": {
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [{
+            "createdAt": 1.48095261184E9,
+            "desiredCount": 1,
+            "id": "ecs-svc/9223370555902163967",
+            "pendingCount": 0,
+            "runningCount": 1,
+            "status": "PRIMARY",
+            "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-monitor:104",
+            "updatedAt": 1.48095261184E9
+        }],
+        "desiredCount": 1,
+        "events": [
+          {
+            "createdAt": 1.480959425817E9,
+            "id": "11111111-c7f4-1111-8faa-1111111f8daa",
+            "message": "(service rack-RackMonitor-1JI86R98ZU0M2) has reached a steady state."
+        }],
+        "loadBalancers": [],
+        "pendingCount": 0,
+        "runningCount": 1,
+        "serviceArn": "arn:aws:ecs:us-east-1:111111111111:service/rack-RackMonitor-1JI86R98ZU0M2",
+        "serviceName": "rack-RackMonitor-1JI86R98ZU0M2",
+        "status": "ACTIVE",
+        "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-monitor:104"
+    }, {
+        "clusterArn": "arn:aws:ecs:us-east-1:111111111111:cluster/rack-Cluster-DFMP83Z2KMOB",
+        "createdAt": 1.479163547885E9,
+        "deploymentConfiguration": {
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [{
+            "createdAt": 1.480952617042E9,
+            "desiredCount": 2,
+            "id": "ecs-svc/9223370555902158765",
+            "pendingCount": 0,
+            "runningCount": 2,
+            "status": "PRIMARY",
+            "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-web:101",
+            "updatedAt": 1.480952617042E9
+        }],
+        "desiredCount": 2,
+        "events": [{
+            "createdAt": 1.480729663517E9,
+            "id": "4a111112-ba11-111b-9136-19111116a0e3",
+            "message": "(service rack-RackWeb-1W1WQRB8CUUW4) has started 1 tasks: (task foo-bar-49c2f91081)."
+        }],
+        "loadBalancers": [{
+            "containerName": "web",
+            "containerPort": 3000,
+            "loadBalancerName": "rack"
+        }],
+        "pendingCount": 0,
+        "roleArn": "arn:aws:iam::111111111111:role/convox/rack-ServiceRole-1UHAEF0KU6PQP",
+        "runningCount": 2,
+        "serviceArn": "arn:aws:ecs:us-east-1:111111111111:service/rack-RackWeb-1W1WQRB8CUUW4",
+        "serviceName": "rack-RackWeb-1W1WQRB8CUUW4",
+        "status": "ACTIVE",
+        "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-web:101"
+    }]
+}
