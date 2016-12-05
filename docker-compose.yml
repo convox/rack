@@ -14,7 +14,6 @@ services:
       - CLIENT_ID=dev@convox.com
       - CLUSTER
       - CUSTOM_TOPIC
-      - DEBUG=false
       - DOCKER_IMAGE_API=rack/web
       - DYNAMO_BUILDS
       - DYNAMO_RELEASES
@@ -57,7 +56,6 @@ services:
       - CLIENT_ID=dev@convox.com
       - CLUSTER
       - CUSTOM_TOPIC
-      - DEBUG=false
       - DOCKER_IMAGE_API=rack/web
       - DYNAMO_BUILDS
       - DYNAMO_RELEASES
