@@ -19,4 +19,6 @@ RUN go install ./api
 RUN go install ./api/cmd/build
 RUN go install ./api/cmd/monitor
 
+USER nobody
+
 CMD ["api/bin/web"]
