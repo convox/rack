@@ -258,6 +258,11 @@
       "MinValue": "1",
       "Type": "Number"
     },
+    "InternetGateway": {
+      "Description": "The InternetGatway to route to if an Existing VPC is specified",
+      "Type": "String",
+      "Default": ""
+    },
     "Key": {
       "Default": "",
       "Description": "SSH key name for access to cluster instances",
@@ -575,12 +580,17 @@
       }
     },
     "GatewayAttachment": {
-      "DependsOn": [ "Gateway", "Vpc" ],
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Condition": "BlankExistingVpc",
       "Properties": {
-        "InternetGatewayId": { "Ref": "Gateway" },
-        "VpcId": { "Ref": "Vpc" }
+        "InternetGatewayId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Gateway" },
+          { "Ref": "InternetGateway" }
+        ] },
+        "VpcId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Vpc" },
+          { "Ref": "ExistingVpc" }
+        ] }
       }
     },
     "Nat0": {
@@ -723,20 +733,24 @@
       }
     },
     "Routes": {
-      "DependsOn": [ "Gateway", "GatewayAttachment", "Vpc" ],
+      "DependsOn": [ "GatewayAttachment" ],
       "Type": "AWS::EC2::RouteTable",
-      "Condition": "BlankExistingVpc",
       "Properties": {
-        "VpcId": { "Ref": "Vpc" }
+        "VpcId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Vpc" },
+          { "Ref": "ExistingVpc" }
+        ] }
       }
     },
     "RouteDefault": {
-      "DependsOn": [ "Gateway", "GatewayAttachment", "Routes" ],
+      "DependsOn": [ "GatewayAttachment", "Routes" ],
       "Type": "AWS::EC2::Route",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": { "Ref": "Gateway" },
+        "GatewayId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Gateway" },
+          { "Ref": "InternetGateway" }
+        ] },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
@@ -804,7 +818,6 @@
       }
     },
     "Subnet0Routes": {
-      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -813,7 +826,6 @@
       }
     },
     "Subnet1Routes": {
-      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -822,7 +834,6 @@
       }
     },
     "Subnet2Routes": {
-      "Condition": "BlankExistingVpcAndThirdAvailabilityZone",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
