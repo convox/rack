@@ -581,6 +581,7 @@
     },
     "GatewayAttachment": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
+      "DeletionPolicy": "Retain",
       "Properties": {
         "InternetGatewayId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Gateway" },
