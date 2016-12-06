@@ -229,12 +229,14 @@ func cmdInstall(c *cli.Context) error {
 
 	versions, err := version.All()
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
+		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
+		return stdcli.Error(err)
 	}
 
 	version, err := versions.Resolve(c.String("version"))
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
+		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
+		return stdcli.Error(err)
 	}
 
 	versionName := version.Version
@@ -244,7 +246,8 @@ func cmdInstall(c *cli.Context) error {
 
 	distinctID, err := currentId()
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Installing Convox (%s)...\n", versionName)
@@ -263,7 +266,8 @@ func cmdInstall(c *cli.Context) error {
 
 		email, err := reader.ReadString('\n')
 		if err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+			return stdcli.Error(err)
 		}
 
 		if strings.TrimSpace(email) != "" {
@@ -279,10 +283,12 @@ func cmdInstall(c *cli.Context) error {
 
 	creds, err := readCredentials(credentialsFile)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 	if creds == nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
+		return stdcli.Error(err)
 	}
 
 	err = validateUserAccess(region, creds)
@@ -325,12 +331,14 @@ func cmdInstall(c *cli.Context) error {
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
 		dat, err := ioutil.ReadFile(tf)
 		if err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
+			return stdcli.Error(err)
 		}
 
 		t := new(bytes.Buffer)
 		if err := json.Compact(t, dat); err != nil {
-			return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+			return stdcli.Error(err)
 		}
 
 		req.TemplateURL = nil
@@ -345,7 +353,8 @@ func cmdInstall(c *cli.Context) error {
 			}
 		}
 
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	// NOTE: we start making lots of network requests here
@@ -357,30 +366,35 @@ func cmdInstall(c *cli.Context) error {
 
 	host, err := waitForCompletion(*res.StackId, CloudFormation, false)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("Waiting for load balancer...")
 
 	if err := waitForAvailability(fmt.Sprintf("http://%s/", host)); err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("Logging in...")
 
 	err = addLogin(host, password)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	err = switchHost(host)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("Success, try `convox apps`")
 
-	return stdcli.QOSEventSend("cli-install", distinctID, ep)
+	stdcli.QOSEventSend("cli-install", distinctID, ep)
+	return stdcli.Error(err)
 }
 
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
