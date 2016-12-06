@@ -169,7 +169,7 @@
       "Value": { "Ref": "Version" }
     },
     "RouteTablePublic": {
-      "value": { "Ref": "Routes" }
+      "Value": { "Ref": "Routes" }
     },
     "RouteTablesPrivate": {
       "Value": { "Fn::If": [ "Private",
