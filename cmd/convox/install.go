@@ -166,7 +166,7 @@ func cmdInstall(c *cli.Context) error {
 
 		if !match {
 			msg := fmt.Errorf("Stack name '%s' is invalid, must match [a-z0-9-]*", stackName)
-			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: msg})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{ValidationError: msg})
 			return stdcli.Error(msg)
 		}
 	}
@@ -177,6 +177,7 @@ func cmdInstall(c *cli.Context) error {
 	if c.Bool("dedicated") {
 		tenancy = "dedicated"
 		if strings.HasPrefix(instanceType, "t2") {
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{ValidationError: fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type.")})
 			return stdcli.Error(fmt.Errorf("t2 instance types aren't supported in dedicated tenancy, please set --instance-type."))
 		}
 	}
@@ -184,6 +185,7 @@ func cmdInstall(c *cli.Context) error {
 	numInstances := c.Int("instance-count")
 	instanceCount := fmt.Sprintf("%d", numInstances)
 	if numInstances <= 2 {
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{ValidationError: fmt.Errorf("instance-count must be greater than 2")})
 		return stdcli.Error(fmt.Errorf("instance-count must be greater than 2"))
 	}
 
@@ -192,6 +194,7 @@ func cmdInstall(c *cli.Context) error {
 	if cidrs := c.String("subnet-cidrs"); cidrs != "" {
 		parts := strings.SplitN(cidrs, ",", 3)
 		if len(parts) < 3 {
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{ValidationError: fmt.Errorf("subnet-cidrs must have 3 values")})
 			return stdcli.Error(fmt.Errorf("subnet-cidrs must have 3 values"))
 		}
 
@@ -205,6 +208,7 @@ func cmdInstall(c *cli.Context) error {
 	if cidrs := c.String("private-cidrs"); cidrs != "" {
 		parts := strings.SplitN(cidrs, ",", 3)
 		if len(parts) < 3 {
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("private-cidrs must have 3 values")})
 			return stdcli.Error(fmt.Errorf("private-cidrs must have 3 values"))
 		}
 
