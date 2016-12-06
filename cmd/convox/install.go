@@ -213,7 +213,7 @@ func cmdInstall(c *cli.Context) error {
 	if cidrs := c.String("private-cidrs"); cidrs != "" {
 		parts := strings.SplitN(cidrs, ",", 3)
 		if len(parts) < 3 {
-			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("private-cidrs must have 3 values")})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{ValidationError: fmt.Errorf("private-cidrs must have 3 values")})
 			return stdcli.Error(fmt.Errorf("private-cidrs must have 3 values"))
 		}
 
