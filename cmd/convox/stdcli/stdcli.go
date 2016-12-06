@@ -222,7 +222,7 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	}
 
 	if ep.Error != nil {
-		return Error(ep.Error)
+		return ep.Error
 	}
 
 	return nil
