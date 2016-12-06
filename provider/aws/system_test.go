@@ -170,6 +170,33 @@ func TestSystemProcessesList(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestSystemProcessesListAll(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemListTasksAll,
+		cycleSystemDescribeTasks,
+		cycleSystemDescribeTaskDefinition,
+		cycleSystemDescribeContainerInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeTaskDefinition2,
+		cycleSystemDescribeContainerInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleSystemDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+	)
+	defer d.Close()
+
+	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
+		All: true,
+	})
+
+	assert.Nil(t, err)
+}
+
 var cycleSystemDescribeStacks = awsutil.Cycle{
 	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
 	awsutil.Response{
@@ -627,6 +654,24 @@ var cycleSystemListTasks = awsutil.Cycle{
 		Body: `{
 			  "cluster": "cluster-test",
 				  "serviceName": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD"
+				}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
+var cycleSystemListTasksAll = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			  "cluster": "cluster-test"
 				}`,
 	},
 	Response: awsutil.Response{

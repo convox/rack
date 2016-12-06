@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math"
 	"sort"
 	"strings"
@@ -207,7 +206,6 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 }
 
 func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
-	log.Print("taskProcesses")
 	log := Logger.At("serviceProcesses").Namespace("tasks=%q", tasks).Start()
 
 	ptasks := []*string{}
@@ -425,65 +423,52 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 }
 
 func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, errch chan error) {
-	log.Print("fetchProcess")
 	if len(task.Containers) < 1 {
 		errch <- fmt.Errorf("invalid task: %s", *task.TaskDefinitionArn)
 		return
 	}
 
-	log.Print("HERE 1")
 	cd, err := p.containerDefinitionForTask(*task.TaskDefinitionArn)
 	if err != nil {
 		errch <- err
 		return
 	}
 
-	log.Print("HERE 2")
 	ci, err := p.containerInstance(*task.ContainerInstanceArn)
 	if err != nil {
 		errch <- err
 		return
 	}
 
-	log.Print("HERE 3")
 	host, err := p.describeInstance(*ci.Ec2InstanceId)
 	if err != nil {
 		errch <- err
 		return
 	}
 
-	log.Print("HERE 4")
 	env := map[string]string{}
 	for _, e := range cd.Environment {
 		env[*e.Name] = *e.Value
 	}
 
-	log.Print("HERE 5")
 	for _, o := range task.Overrides.ContainerOverrides {
-		log.Print(o)
 		for _, p := range o.Environment {
 			env[*p.Name] = *p.Value
 		}
 	}
-	log.Print("HERE 6")
 
 	container := task.Containers[0]
-	log.Print(container)
 
 	ports := []string{}
 	for _, p := range container.NetworkBindings {
-		log.Print("port")
-		log.Print(p)
 		ports = append(ports, fmt.Sprintf("%d:%d", *p.HostPort, *p.ContainerPort))
 	}
 
-	log.Print("blocking here")
 	dc, err := p.dockerInstance(*ci.Ec2InstanceId)
 	if err != nil {
 		errch <- err
 		return
 	}
-	log.Print("wait no im not")
 
 	ps := structs.Process{
 		ID:       arnToPid(*task.TaskArn),
