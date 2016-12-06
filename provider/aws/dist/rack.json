@@ -1012,7 +1012,7 @@
             ] },
             "runcmd:\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
-              "  - sleep 30\n",
+              "  - sleep 5\n",
               { "Fn::Join": [ "", [
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
@@ -1051,7 +1051,7 @@
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "1",
+        "MinSize" : { "Ref": "InstanceCount" },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
