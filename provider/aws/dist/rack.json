@@ -123,25 +123,33 @@
     },
     "NatGateways": {
       "Value": {
-        "Fn::Join": [
-          ",",
-          [
-            { "Ref": "Nat0" },
-            { "Ref": "Nat1" },
-            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
-          ]
+        "Fn::If": [
+          "Private",
+          { "Fn::Join": [
+            ",",
+            [
+              { "Ref": "Nat0" },
+              { "Ref": "Nat1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
         ]
       }
     },
     "NatIPs": {
       "Value": {
-        "Fn::Join": [
-          ",",
-          [
-            { "Ref": "NatAddress0" },
-            { "Ref": "NatAddress1" },
-            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "NatAddress2" }, { "Ref": "AWS::NoValue" } ] }
-          ]
+        "Fn::If": [
+          "Private",
+          { "Fn::Join": [
+            ",",
+            [
+              { "Ref": "NatAddress0" },
+              { "Ref": "NatAddress1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "NatAddress2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
         ]
       }
     },
