@@ -896,6 +896,7 @@
       }
     },
     "Subnet2Routes": {
+      "Condition": "ThirdAvailabilityZone",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
