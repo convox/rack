@@ -148,6 +148,7 @@ func init() {
 func cmdInstall(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
+	distinctID, _ := currentId()
 	region := c.String("region")
 
 	stackName := c.String("stack-name")
@@ -164,7 +165,9 @@ func cmdInstall(c *cli.Context) error {
 		match := len(matchedStr) == len(stackName)
 
 		if !match {
-			return stdcli.Error(fmt.Errorf("Stack name is invalid, must match [a-z0-9-]*"))
+			msg := fmt.Errorf("Stack name '%s' is invalid, must match [a-z0-9-]*", stackName)
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: msg})
+			return stdcli.Error(msg)
 		}
 	}
 
@@ -229,13 +232,13 @@ func cmdInstall(c *cli.Context) error {
 
 	versions, err := version.All()
 	if err != nil {
-		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions")})
+		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions: %s", err)})
 		return stdcli.Error(err)
 	}
 
 	version, err := versions.Resolve(c.String("version"))
 	if err != nil {
-		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version")})
+		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version: %s", err)})
 		return stdcli.Error(err)
 	}
 
@@ -244,7 +247,6 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Println(Banner)
 
-	distinctID, err := currentId()
 	if err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
@@ -283,7 +285,7 @@ func cmdInstall(c *cli.Context) error {
 
 	creds, err := readCredentials(credentialsFile)
 	if err != nil {
-		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error: %s", err)})
 		return stdcli.Error(err)
 	}
 	if creds == nil {
@@ -331,7 +333,7 @@ func cmdInstall(c *cli.Context) error {
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
 		dat, err := ioutil.ReadFile(tf)
 		if err != nil {
-			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file")})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading template file: %s", tf)})
 			return stdcli.Error(err)
 		}
 
@@ -349,7 +351,8 @@ func cmdInstall(c *cli.Context) error {
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "AlreadyExistsException" {
-				return stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again.", stackName))
+				stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+				return stdcli.Error(fmt.Errorf("Stack %q already exists. Run `convox uninstall` then try again", stackName))
 			}
 		}
 
@@ -429,7 +432,9 @@ func validateUserAccess(region string, creds *AwsCredentials) error {
 		}
 	}
 
-	return fmt.Errorf("Administrator access needed. See %s", iamUserURL)
+	distinctID, _ := currentId()
+	stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
+	return stdcli.Error(fmt.Errorf("Administrator access needed. See %s", iamUserURL))
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {
@@ -446,6 +451,7 @@ func awsConfig(region string, creds *AwsCredentials) *aws.Config {
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
+	distinctID, _ := currentId()
 	for {
 		dres, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(stack),
@@ -471,14 +477,19 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 				}
 			}
 
+			stdcli.QOSEventSend("cli-install-CREATE_COMPLETE", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("could not install stack, contact support@convox.com for assistance")
 		case "CREATE_FAILED":
+			stdcli.QOSEventSend("cli-install-CREATE_FAILED", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "ROLLBACK_COMPLETE":
+			stdcli.QOSEventSend("cli-install-ROLLBACK_COMPLETE", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "DELETE_COMPLETE":
+			stdcli.QOSEventSend("cli-install-DELETE_COMPLETE", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", nil
 		case "DELETE_FAILED":
+			stdcli.QOSEventSend("cli-install-DELETE_FAILED", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("stack deletion failed, contact support@convox.com for assistance")
 		}
 
@@ -645,6 +656,7 @@ func FriendlyName(t string) string {
 func waitForAvailability(url string) error {
 	tick := time.Tick(10 * time.Second)
 	timeout := time.After(20 * time.Minute)
+	distinctID, err := currentId()
 
 	for {
 		select {
@@ -665,6 +677,7 @@ func waitForAvailability(url string) error {
 		}
 	}
 
+	stdcli.QOSEventSend("cli-waitForAvailability-unknown", distinctID, stdcli.QOSEventProperties{Error: err})
 	return fmt.Errorf("unknown error")
 }
 
