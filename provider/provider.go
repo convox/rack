@@ -85,7 +85,7 @@ type Provider interface {
 
 	SystemGet() (*structs.System, error)
 	SystemLogs(w io.Writer, opts structs.LogStreamOptions) error
-	SystemProcesses(all bool) (structs.Processes, error)
+	SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error)
 	SystemReleases() (structs.Releases, error)
 	SystemSave(system structs.System) error
 }

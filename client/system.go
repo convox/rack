@@ -3,6 +3,8 @@ package client
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/convox/rack/api/structs"
 )
 
 type System struct {
@@ -63,10 +65,10 @@ func (c *Client) GetSystemCapacity() (*SystemCapacity, error) {
 	return &capacity, nil
 }
 
-func (c *Client) GetSystemProcesses(all bool) (Processes, error) {
+func (c *Client) GetSystemProcesses(opts structs.SystemProcessesOptions) (Processes, error) {
 	var processes Processes
 
-	err := c.Get(fmt.Sprintf("/system/processes?all=%t", all), &processes)
+	err := c.Get(fmt.Sprintf("/system/processes?all=%t", opts.All), &processes)
 	if err != nil {
 		return nil, err
 	}

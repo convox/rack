@@ -79,35 +79,53 @@ func cmdPs(c *cli.Context) error {
 			Memory: memory,
 		})
 
-		displayProcessesStats(ps, fm)
+		displayProcessesStats(ps, fm, false)
 
 		return nil
 	}
 
-	displayProcesses(ps)
+	displayProcesses(ps, false)
 
 	return nil
 }
 
-func displayProcesses(ps []client.Process) {
-	t := stdcli.NewTable("ID", "APP", "NAME", "RELEASE", "STARTED", "COMMAND")
+func displayProcesses(ps []client.Process, showApp bool) {
+	var t *stdcli.Table
+	if showApp {
+		t = stdcli.NewTable("ID", "APP", "NAME", "RELEASE", "STARTED", "COMMAND")
+	} else {
+		t = stdcli.NewTable("ID", "NAME", "RELEASE", "STARTED", "COMMAND")
+	}
 
 	for _, p := range ps {
-		t.AddRow(prettyId(p), p.App, p.Name, p.Release, humanizeTime(p.Started), p.Command)
+		if showApp {
+			t.AddRow(prettyId(p), p.App, p.Name, p.Release, humanizeTime(p.Started), p.Command)
+		} else {
+			t.AddRow(prettyId(p), p.Name, p.Release, humanizeTime(p.Started), p.Command)
+		}
 	}
 
 	t.Print()
 }
 
-func displayProcessesStats(ps []client.Process, fm client.Formation) {
-	t := stdcli.NewTable("ID", "NAME", "RELEASE", "CPU %", "MEM", "MEM %", "STARTED", "COMMAND")
+func displayProcessesStats(ps []client.Process, fm client.Formation, showApp bool) {
+	var t *stdcli.Table
+	if showApp {
+		t = stdcli.NewTable("ID", "NAME", "APP", "RELEASE", "CPU %", "MEM", "MEM %", "STARTED", "COMMAND")
+	} else {
+		t = stdcli.NewTable("ID", "NAME", "RELEASE", "CPU %", "MEM", "MEM %", "STARTED", "COMMAND")
+	}
 
 	for _, p := range ps {
 		for _, f := range fm {
 			if f.Name != p.Name {
 				continue
 			}
-			t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			if showApp {
+				t.AddRow(prettyId(p), p.Name, p.App, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			} else {
+				t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+			}
 		}
 	}
 

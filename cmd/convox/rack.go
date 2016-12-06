@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -219,7 +220,9 @@ func cmdRackPs(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	ps, err := rackClient(c).GetSystemProcesses(c.Bool("all"))
+	ps, err := rackClient(c).GetSystemProcesses(structs.SystemProcessesOptions{
+		All: c.Bool("all"),
+	})
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -230,11 +233,11 @@ func cmdRackPs(c *cli.Context) error {
 			return stdcli.Error(err)
 		}
 
-		displayProcessesStats(ps, fm)
+		displayProcessesStats(ps, fm, true)
 		return nil
 	}
 
-	displayProcesses(ps)
+	displayProcesses(ps, true)
 
 	return nil
 }

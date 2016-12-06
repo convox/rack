@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/cloudflare/cfssl/log"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -104,21 +103,21 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
-func (p *AWSProvider) SystemProcesses(all bool) (structs.Processes, error) {
+func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
 	var tasks []string
 	var err error
 
-	if all {
-		tres, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+	if opts.All {
+		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
 			Cluster: aws.String(p.Cluster),
+		}, func(page *ecs.ListTasksOutput, lastPage bool) bool {
+			for _, arn := range page.TaskArns {
+				tasks = append(tasks, *arn)
+			}
+			return true
 		})
-
 		if err != nil {
-			log.Error(err)
 			return nil, err
-		}
-		for _, arn := range tres.TaskArns {
-			tasks = append(tasks, *arn)
 		}
 	} else {
 		tasks, err = p.stackTasks(p.Rack)

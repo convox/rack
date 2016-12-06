@@ -142,21 +142,49 @@ func TestSystemSaveWrongType(t *testing.T) {
 	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
 }
 
+func TestSystemProcessesList(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStackResources,
+		cycleSystemListTasks,
+		cycleSystemDescribeTasks,
+		cycleSystemDescribeTaskDefinition,
+		cycleSystemDescribeContainerInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeTaskDefinition2,
+		cycleSystemDescribeContainerInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleSystemDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+	)
+	defer d.Close()
+
+	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
+		All: false,
+	})
+
+	assert.Nil(t, err)
+}
+
 var cycleSystemDescribeStacks = awsutil.Cycle{
 	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-			<DescribeStacksResult>
-				<Stacks>
-					<member>
-						<Outputs>
-						</Outputs>
-						<Capabilities>
-							<member>CAPABILITY_IAM</member>
-						</Capabilities>
-						<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
-						<NotificationARNs/>
+		<DescribeStacksResult>
+		<Stacks>
+		<member>
+		<Outputs>
+		</Outputs>
+		<Capabilities>
+		<member>CAPABILITY_IAM</member>
+		</Capabilities>
+		<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
+		<NotificationARNs/>
 						<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
 						<StackName>convox</StackName>
 						<StackStatus>UPDATE_COMPLETE</StackStatus>
@@ -558,5 +586,266 @@ var cycleDescribeAutoscalingGroupsInstanceTerminating = awsutil.Cycle{
         <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
     </ResponseMetadata>
 </DescribeAutoScalingGroupsResponse>		`,
+	},
+}
+
+var cycleSystemDescribeStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<DescribeStackResourcesResult>
+					<StackResources>
+						<member>
+							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>ServiceDatabase</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::ECS::Service</ResourceType>
+						</member>
+					</StackResources>
+				</DescribeStackResourcesResult>
+				<ResponseMetadata>
+					<RequestId>8be86de9-7760-11e6-b2f2-6b253bb2c005</RequestId>
+				</ResponseMetadata>
+			</DescribeStackResourcesResponse>
+		`,
+	},
+}
+
+var cycleSystemListTasks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			  "cluster": "cluster-test",
+				  "serviceName": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD"
+				}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeTasks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"tasks": [
+				{
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"overrides": {
+						"containerOverrides": [
+							{
+								"command": ["sh", "-c", "foo"]
+							}
+						]
+					},
+					"lastStatus": "RUNNING",
+					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containers": [
+						{
+							"name": "web",
+							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
+						}
+					]
+				}
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeTaskDefinition = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+		Body: `{
+			  "taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34"
+			}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition": {
+				"status": "ACTIVE",
+				"family": "convox-myapp-web",
+				"requiresAttributes": [
+					{
+						"name": "com.amazonaws.ecs.capability.ecr-auth"
+					}
+				],
+				"volumes": [],
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+				"containerDefinitions": [
+					{
+						"environment": [
+							{
+								"name": "RELEASE",
+								"value": "R1234"
+							}
+						],
+						"name": "web",
+						"mountPoints": [],
+						"image": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
+						"cpu": 0,
+						"portMappings": [],
+						"memory": 256,
+						"privileged": false,
+						"essential": true,
+						"volumesFrom": []
+					}
+				],
+				"revision": 34
+			}
+		}`,
+	},
+}
+
+var cycleSystemDescribeContainerInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
+		Body: `{
+			"cluster": "cluster-test",
+			"containerInstances": [
+				"arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"containerInstances": [
+				{
+					"ec2InstanceId": "i-5bc45dc2"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-04-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<?xml version="1.0" encoding="UTF-8"?>
+			<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-04-01/">
+				<reservationSet>
+					<item>
+						<reservationId>r-003ed1d7</reservationId>
+						<ownerId>778743527532</ownerId>
+						<groupSet/>
+						<instancesSet>
+							<item>
+								<instanceId>i-5bc45dc2</instanceId>
+								<privateIpAddress>10.0.1.244</privateIpAddress>
+							</item>
+						</instancesSet>
+					</item>
+				</reservationSet>
+			</DescribeInstancesRepsonse>
+		}`,
+	},
+}
+
+var cycleSystemDescribeTaskDefinition2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+		Body: `{
+			"taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition": {
+				"status": "ACTIVE",
+				"family": "convox-myapp-web",
+				"requiresAttributes": [
+					{
+						"name": "com.amazonaws.ecs.capability.ecr-auth"
+					}
+				],
+				"volumes": [],
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+				"containerDefinitions": [
+					{
+						"environment": [
+							{
+								"name": "RELEASE",
+								"value": "R1234"
+							}
+						],
+						"name": "web",
+						"mountPoints": [],
+						"image": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
+						"cpu": 0,
+						"portMappings": [],
+						"memory": 256,
+						"privileged": false,
+						"essential": true,
+						"volumesFrom": []
+					}
+				],
+				"revision": 34
+			}
+		}`,
+	},
+}
+
+var cycleSystemDockerListContainers2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "GET",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
+		Operation:  "",
+		Body:       ``,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `[
+			{
+				"Id": "8dfafdbc3a40",
+				"Names":["/boring_feynman"],
+				"Image": "ubuntu:latest",
+				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"Command": "echo 1",
+				"Created": 1367854155,
+				"State": "Exited",
+				"Status": "Exit 0",
+				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
+			}
+		]`,
 	},
 }
