@@ -58,10 +58,16 @@ https://docs.convox.com/creating-an-iam-user`
 var (
 	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
+	distinctID   = "nobody"
 )
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
+	var err error
+	distinctID, err = currentId()
+	if err != nil {
+		distinctID = ""
+	}
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "install",
@@ -148,7 +154,6 @@ func init() {
 func cmdInstall(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
-	distinctID, _ := currentId()
 	region := c.String("region")
 
 	stackName := c.String("stack-name")
@@ -435,9 +440,9 @@ func validateUserAccess(region string, creds *AwsCredentials) error {
 		}
 	}
 
-	distinctID, _ := currentId()
-	stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
-	return stdcli.Error(fmt.Errorf("Administrator access needed. See %s", iamUserURL))
+	msg := fmt.Errorf("Administrator access needed. See %s", iamUserURL)
+	stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: msg})
+	return stdcli.Error(msg)
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {
@@ -454,7 +459,6 @@ func awsConfig(region string, creds *AwsCredentials) *aws.Config {
 }
 
 func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormation, isDeleting bool) (string, error) {
-	distinctID, _ := currentId()
 	for {
 		dres, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
 			StackName: aws.String(stack),
@@ -480,19 +484,19 @@ func waitForCompletion(stack string, CloudFormation *cloudformation.CloudFormati
 				}
 			}
 
-			stdcli.QOSEventSend("cli-install-CREATE_COMPLETE", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("could not install stack, contact support@convox.com for assistance")
 		case "CREATE_FAILED":
-			stdcli.QOSEventSend("cli-install-CREATE_FAILED", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "ROLLBACK_COMPLETE":
-			stdcli.QOSEventSend("cli-install-ROLLBACK_COMPLETE", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("stack creation failed, contact support@convox.com for assistance")
 		case "DELETE_COMPLETE":
-			stdcli.QOSEventSend("cli-install-DELETE_COMPLETE", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", nil
 		case "DELETE_FAILED":
-			stdcli.QOSEventSend("cli-install-DELETE_FAILED", distinctID, stdcli.QOSEventProperties{Error: err})
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 			return "", fmt.Errorf("stack deletion failed, contact support@convox.com for assistance")
 		}
 
@@ -659,7 +663,6 @@ func FriendlyName(t string) string {
 func waitForAvailability(url string) error {
 	tick := time.Tick(10 * time.Second)
 	timeout := time.After(20 * time.Minute)
-	distinctID, err := currentId()
 
 	for {
 		select {
@@ -676,11 +679,11 @@ func waitForAvailability(url string) error {
 				return nil
 			}
 		case <-timeout:
+			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("timeout")})
 			return fmt.Errorf("timeout")
 		}
 	}
 
-	stdcli.QOSEventSend("cli-waitForAvailability-unknown", distinctID, stdcli.QOSEventProperties{Error: err})
 	return fmt.Errorf("unknown error")
 }
 
