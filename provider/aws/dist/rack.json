@@ -581,7 +581,6 @@
     },
     "GatewayAttachment": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "InternetGatewayId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Gateway" },
