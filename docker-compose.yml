@@ -1,7 +1,7 @@
 version: "2"
 services:
   web:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     command: api/bin/web
@@ -26,7 +26,6 @@ services:
       - PRIVATE
       - PROVIDER
       - RACK
-      - REGISTRY_HOST
       - RELEASE
       - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
       - SECURITY_GROUP
@@ -45,7 +44,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   monitor:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     command: api/bin/monitor
@@ -69,7 +68,6 @@ services:
       - PRIVATE
       - PROVIDER
       - RACK
-      - REGISTRY_HOST
       - RELEASE
       - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
       - SECURITY_GROUP
@@ -82,12 +80,3 @@ services:
       - PROCESS=monitor
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-  registry:
-    environment:
-      - SETTINGS_FLAVOR=local
-      - PASSWORD
-      - LOG_GROUP
-      - PROCESS=registry
-    image: convox/registry
-    ports:
-      - 5000:443

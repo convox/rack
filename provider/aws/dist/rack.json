@@ -156,7 +156,7 @@
         { "Ref": "ExistingVpc" }
       ] }
     },
-    "VPCCIDR": {
+    "Vpccidr": {
       "Condition": "Development",
       "Value": { "Ref": "VPCCIDR" }
     }
