@@ -396,8 +396,7 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Println("Success, try `convox apps`")
 
-	stdcli.QOSEventSend("cli-install", distinctID, ep)
-	return stdcli.Error(err)
+	return stdcli.QOSEventSend("cli-install", distinctID, ep)
 }
 
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
