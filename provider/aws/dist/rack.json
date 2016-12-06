@@ -643,16 +643,19 @@
     },
     "GatewayAttachment": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Condition": "BlankExistingVpc",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "Gateway" },
+        "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "ExistingGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Condition": "ExistingVpc",
       "DeletionPolicy": "Retain",
       "Properties": {
-        "InternetGatewayId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Gateway" },
-          { "Ref": "InternetGateway" }
-        ] },
-        "VpcId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Vpc" },
-          { "Ref": "ExistingVpc" }
-        ] }
+        "InternetGatewayId": { "Ref": "InternetGateway" },
+        "VpcId": { "Ref": "ExistingVpc" }
       }
     },
     "Nat0": {
@@ -795,7 +798,6 @@
       }
     },
     "Routes": {
-      "DependsOn": [ "GatewayAttachment" ],
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -805,7 +807,7 @@
       }
     },
     "RouteDefault": {
-      "DependsOn": [ "GatewayAttachment", "Routes" ],
+      "DependsOn": [ "Routes" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
