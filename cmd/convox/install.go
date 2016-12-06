@@ -241,13 +241,13 @@ func cmdInstall(c *cli.Context) error {
 
 	versions, err := version.All()
 	if err != nil {
-		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions: %s", err)})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions: %s", err)})
 		return stdcli.Error(err)
 	}
 
 	version, err := versions.Resolve(c.String("version"))
 	if err != nil {
-		stdcli.QOSEventSend("cli-install", "", stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version: %s", err)})
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error resolving version: %s", err)})
 		return stdcli.Error(err)
 	}
 
