@@ -217,6 +217,21 @@ func (s Service) MountableVolumes() []MountableVolume {
 	return volumes
 }
 
+// IsSystem white lists special host volumes to pass through to the container
+// instead of turn into an application EFS mount
+func (v MountableVolume) IsSystem() bool {
+	switch v.Host {
+	case "/var/run/docker.sock":
+		return true
+	case "/proc/":
+		return true
+	case "/cgroup/":
+		return true
+	default:
+		return false
+	}
+}
+
 // DeploymentMinimum returns the min percent of containers that are allowed during deployment
 func (s Service) DeploymentMinimum() string {
 	return s.LabelDefault("convox.deployment.minimum", "100")
