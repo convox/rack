@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -38,6 +39,7 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	// status precedence: (all other stack statues) > converging > running
+	// check if the autoscale group is shuffling instances
 	if status == "running" {
 
 		rres, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
@@ -76,6 +78,44 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 		}
 	}
 
+	// Check if ECS is rescheduling services
+	if status == "running" {
+		lreq := &ecs.ListServicesInput{
+			Cluster:    aws.String(p.Cluster),
+			MaxResults: aws.Int64(10),
+		}
+	Loop:
+		for {
+			lres, err := p.ecs().ListServices(lreq)
+			if err != nil {
+				return nil, err
+			}
+
+			dres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+				Cluster:  aws.String(p.Cluster),
+				Services: lres.ServiceArns,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, s := range dres.Services {
+				for _, d := range s.Deployments {
+					if *d.RunningCount != *d.DesiredCount {
+						status = "converging"
+						break Loop
+					}
+				}
+			}
+
+			if lres.NextToken == nil {
+				break
+			}
+
+			lreq.NextToken = lres.NextToken
+		}
+	}
+
 	r := &structs.System{
 		Count:   count,
 		Name:    p.Rack,
@@ -94,10 +134,6 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	if err != nil {
 		return err
 	}
-
-	// if strings.HasSuffix(err.Error(), "write: broken pipe") {
-	//   return nil
-	// }
 
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }

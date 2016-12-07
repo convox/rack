@@ -47,20 +47,26 @@
       "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
     },
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-1924770e" },
-      "us-east-2": { "Ami": "ami-bd3e64d8" },
-      "us-west-1": { "Ami": "ami-7f004b1f" },
-      "us-west-2": { "Ami": "ami-56ed4936" },
-      "eu-west-1": { "Ami": "ami-c8337dbb" },
-      "eu-central-1": { "Ami": "ami-dd12ebb2" },
-      "ap-northeast-1": { "Ami": "ami-c8b016a9" },
-      "ap-southeast-1": { "Ami": "ami-6d22840e" },
-      "ap-southeast-2": { "Ami": "ami-73407d10" }
+      "us-east-1": { "Ami": "ami-eca289fb" },
+      "us-east-2": { "Ami": "ami-446f3521" },
+      "us-west-1": { "Ami": "ami-9fadf8ff" },
+      "us-west-2": { "Ami": "ami-7abc111a" },
+      "eu-west-1": { "Ami": "ami-a1491ad2" },
+      "eu-central-1": { "Ami": "ami-54f5303b" },
+      "ap-northeast-1": { "Ami": "ami-9cd57ffd" },
+      "ap-southeast-1": { "Ami": "ami-a900a3ca" },
+      "ap-southeast-2": { "Ami": "ami-5781be34" }
     }
   },
   "Outputs": {
     "Autoscale": {
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
+    },
+    "AutoscalingGroup": {
+      "Value": { "Ref": "Instances" }
+    },
+    "AvailabilityZones": {
+      "Value": { "Ref": "AvailabilityZones" }
     },
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
@@ -72,6 +78,9 @@
     "AwsSecret": {
       "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
+    },
+    "BalancerSecurityGroup": {
+      "Value": { "Ref": "BalancerSecurityGroup" }
     },
     "Cluster": {
       "Value": { "Ref": "Cluster" }
@@ -94,11 +103,55 @@
     "EncryptionKey": {
       "Value": { "Ref": "EncryptionKey" }
     },
+    "Gateway": {
+      "Value": { "Ref": "Gateway" }
+    },
+    "GatewayAttachment": {
+      "Value": { "Ref": "GatewayAttachment" }
+    },
+    "IamRole": {
+      "Value": { "Ref": "IamRole" }
+    },
+    "InstanceProfile": {
+      "Value": { "Ref": "InstanceProfile" }
+    },
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
+    },
+    "NatGateways": {
+      "Value": {
+        "Fn::If": [
+          "Private",
+          { "Fn::Join": [
+            ",",
+            [
+              { "Ref": "Nat0" },
+              { "Ref": "Nat1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
+        ]
+      }
+    },
+    "NatIPs": {
+      "Value": {
+        "Fn::If": [
+          "Private",
+          { "Fn::Join": [
+            ",",
+            [
+              { "Ref": "NatAddress0" },
+              { "Ref": "NatAddress1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "NatAddress2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
+        ]
+      }
     },
     "NotificationHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
@@ -122,6 +175,15 @@
     },
     "Release": {
       "Value": { "Ref": "Version" }
+    },
+    "RouteTablePublic": {
+      "Value": { "Ref": "Routes" }
+    },
+    "RouteTablesPrivate": {
+      "Value": { "Fn::If": [ "Private",
+        { "Fn::Join": [ ",", [ { "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "RouteTablePrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
+        ""
+      ] }
     },
     "SecurityGroup": {
       "Value": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
@@ -156,7 +218,7 @@
         { "Ref": "ExistingVpc" }
       ] }
     },
-    "VPCCIDR": {
+    "Vpccidr": {
       "Condition": "Development",
       "Value": { "Ref": "VPCCIDR" }
     }
@@ -1012,7 +1074,7 @@
             ] },
             "runcmd:\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
-              "  - sleep 30\n",
+              "  - sleep 5\n",
               { "Fn::Join": [ "", [
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
@@ -1051,7 +1113,7 @@
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "1",
+        "MinSize" : { "Ref": "InstanceCount" },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
