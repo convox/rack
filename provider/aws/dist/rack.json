@@ -210,10 +210,10 @@
             [
               { "Ref": "SubnetPrivate0" },
               { "Ref": "SubnetPrivate1" },
-              { "Fn::If": [ "PrivateAndThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
-            ],
-            ""
-          ]}
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
         ]
       }
     },
