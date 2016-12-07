@@ -204,10 +204,18 @@
       }
     },
     "SubnetsPrivate": {
-      "Value": { "Fn::If": [ "Private",
-        { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
-        ""
-      ] }
+      "Value": { "Fn::If":
+        [ "Private",
+          { "Fn::Join": [ ",",
+            [
+              { "Ref": "SubnetPrivate0" },
+              { "Ref": "SubnetPrivate1" },
+              { "Fn::If": [ "PrivateAndThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+            ],
+            ""
+          ]}
+        ]
+      }
     },
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
