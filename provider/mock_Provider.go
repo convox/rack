@@ -1127,13 +1127,13 @@ func (_m *MockProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) e
 	return r0
 }
 
-// SystemProcesses provides a mock function with given fields:
-func (_m *MockProvider) SystemProcesses() (structs.Processes, error) {
-	ret := _m.Called()
+// SystemProcesses provides a mock function with given fields: opts
+func (_m *MockProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
+	ret := _m.Called(opts)
 
 	var r0 structs.Processes
-	if rf, ok := ret.Get(0).(func() structs.Processes); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(structs.SystemProcessesOptions) structs.Processes); ok {
+		r0 = rf(opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(structs.Processes)
@@ -1141,8 +1141,8 @@ func (_m *MockProvider) SystemProcesses() (structs.Processes, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(structs.SystemProcessesOptions) error); ok {
+		r1 = rf(opts)
 	} else {
 		r1 = ret.Error(1)
 	}

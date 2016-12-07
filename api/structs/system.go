@@ -8,3 +8,7 @@ type System struct {
 	Type    string `json:"type"`
 	Version string `json:"version"`
 }
+
+type SystemProcessesOptions struct {
+	All bool
+}
