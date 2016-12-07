@@ -138,13 +138,28 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
-func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
-	tasks, err := p.stackTasks(p.Rack)
-	if err != nil {
-		return nil, err
-	}
+func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
+	var tasks []string
+	var err error
 
-	fmt.Printf("tasks = %+v\n", tasks)
+	if opts.All {
+		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
+			Cluster: aws.String(p.Cluster),
+		}, func(page *ecs.ListTasksOutput, lastPage bool) bool {
+			for _, arn := range page.TaskArns {
+				tasks = append(tasks, *arn)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		tasks, err = p.stackTasks(p.Rack)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	ps, err := p.taskProcesses(tasks)
 	if err != nil {
@@ -152,7 +167,9 @@ func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
 	}
 
 	for i := range ps {
-		ps[i].App = p.Rack
+		if ps[i].App == "" {
+			ps[i].App = p.Rack
+		}
 	}
 
 	return ps, nil

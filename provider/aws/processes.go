@@ -473,6 +473,7 @@ func (p *AWSProvider) fetchProcess(task *ecs.Task, psch chan structs.Process, er
 	ps := structs.Process{
 		ID:       arnToPid(*task.TaskArn),
 		Name:     *container.Name,
+		App:      env["APP"],
 		Release:  env["RELEASE"],
 		Host:     *host.PrivateIpAddress,
 		Image:    *cd.Image,
