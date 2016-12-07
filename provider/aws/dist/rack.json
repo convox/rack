@@ -204,10 +204,18 @@
       }
     },
     "SubnetsPrivate": {
-      "Value": { "Fn::If": [ "Private",
-        { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
-        ""
-      ] }
+      "Value": { "Fn::If":
+        [ "Private",
+          { "Fn::Join": [ ",",
+            [
+              { "Ref": "SubnetPrivate0" },
+              { "Ref": "SubnetPrivate1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
+        ]
+      }
     },
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
@@ -319,6 +327,11 @@
       "Description": "The number of instances to update in a batch",
       "MinValue": "1",
       "Type": "Number"
+    },
+    "InternetGateway": {
+      "Description": "The InternetGatway to route to if an Existing VPC is specified",
+      "Type": "String",
+      "Default": ""
     },
     "Key": {
       "Default": "",
@@ -637,12 +650,20 @@
       }
     },
     "GatewayAttachment": {
-      "DependsOn": [ "Gateway", "Vpc" ],
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Condition": "BlankExistingVpc",
       "Properties": {
         "InternetGatewayId": { "Ref": "Gateway" },
         "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "ExistingGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Condition": "ExistingVpc",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "InternetGateway" },
+        "VpcId": { "Ref": "ExistingVpc" }
       }
     },
     "Nat0": {
@@ -785,20 +806,23 @@
       }
     },
     "Routes": {
-      "DependsOn": [ "Gateway", "GatewayAttachment", "Vpc" ],
       "Type": "AWS::EC2::RouteTable",
-      "Condition": "BlankExistingVpc",
       "Properties": {
-        "VpcId": { "Ref": "Vpc" }
+        "VpcId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Vpc" },
+          { "Ref": "ExistingVpc" }
+        ] }
       }
     },
     "RouteDefault": {
-      "DependsOn": [ "Gateway", "GatewayAttachment", "Routes" ],
+      "DependsOn": [ "Routes" ],
       "Type": "AWS::EC2::Route",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": { "Ref": "Gateway" },
+        "GatewayId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Gateway" },
+          { "Ref": "InternetGateway" }
+        ] },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
@@ -866,7 +890,6 @@
       }
     },
     "Subnet0Routes": {
-      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -875,7 +898,6 @@
       }
     },
     "Subnet1Routes": {
-      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -884,7 +906,7 @@
       }
     },
     "Subnet2Routes": {
-      "Condition": "BlankExistingVpcAndThirdAvailabilityZone",
+      "Condition": "ThirdAvailabilityZone",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
