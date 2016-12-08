@@ -995,7 +995,6 @@
                     "ecs:DiscoverPollEndpoint",
                     "ecs:Poll",
                     "ecs:RegisterContainerInstance",
-                    "ecs:StartTask",
                     "ecs:StartTelemetrySession",
                     "ecs:Submit*",
                     "kinesis:PutRecord",
