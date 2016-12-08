@@ -218,7 +218,7 @@ func (s Service) MountableVolumes() []MountableVolume {
 }
 
 // IsSystem white lists special host volumes to pass through to the container
-// instead of turn into an application EFS mount
+// instead of turning them into an application EFS mount
 func (v MountableVolume) IsSystem() bool {
 	switch v.Host {
 	case "/var/run/docker.sock":
