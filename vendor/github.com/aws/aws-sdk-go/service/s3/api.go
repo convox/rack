@@ -9316,6 +9316,8 @@ const (
 	BucketLocationConstraintCnNorth1 = "cn-north-1"
 	// @enum BucketLocationConstraint
 	BucketLocationConstraintEuCentral1 = "eu-central-1"
+	// @enum BucketLocationConstraint
+	BucketLocationConstraintCaCentral1 = "ca-central-1"
 )
 
 const (

@@ -23,7 +23,8 @@
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-2" ]},
           { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
-          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]}
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-west-1" ]},
+          { "Fn::Equals": [ { "Ref": "AWS::Region" }, "ca-central-1" ]}
         ]
     },
     "RegionHasEFSAndThirdAvailabilityZone": {
@@ -41,6 +42,7 @@
       "us-west-1": { "ThirdAvailabilityZone": "Yes" },
       "us-west-2": { "ThirdAvailabilityZone": "Yes" },
       "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "ca-central-1": { "ThirdAvailabilityZone": "No" },
       "eu-central-1": { "ThirdAvailabilityZone": "No" },
       "ap-northeast-1": { "ThirdAvailabilityZone": "No" },
       "ap-southeast-1": { "ThirdAvailabilityZone": "No" },
@@ -52,6 +54,7 @@
       "us-west-1": { "Ami": "ami-9fadf8ff" },
       "us-west-2": { "Ami": "ami-7abc111a" },
       "eu-west-1": { "Ami": "ami-a1491ad2" },
+      "ca-central-1": { "Ami": "ami-be45f7da" },
       "eu-central-1": { "Ami": "ami-54f5303b" },
       "ap-northeast-1": { "Ami": "ami-9cd57ffd" },
       "ap-southeast-1": { "Ami": "ami-a900a3ca" },

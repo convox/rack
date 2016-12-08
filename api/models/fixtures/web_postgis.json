@@ -122,6 +122,14 @@
             {
               "Ref": "AWS::Region"
             },
+            "ca-central-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "eu-central-1"
           ]
         },
