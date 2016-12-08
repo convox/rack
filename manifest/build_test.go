@@ -94,7 +94,7 @@ func TestBuildWithCache(t *testing.T) {
 		Cache: true,
 	})
 
-	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "-f", "Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	assert.Equal(t, len(te.Commands), 2)
@@ -126,7 +126,7 @@ func TestBuildCacheNoImage(t *testing.T) {
 		Cache: true,
 	})
 
-	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "-f", "Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
 	cmd3 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
@@ -161,7 +161,7 @@ func TestBuildWithSpecificService(t *testing.T) {
 		Cache:   true,
 	})
 
-	cmd1 := []string{"docker", "build", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "-f", "Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	assert.Equal(t, len(te.Commands), 2)
@@ -194,7 +194,7 @@ func TestBuildNoCache(t *testing.T) {
 		Cache:   false,
 	})
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "Dockerfile.dev", "-t", "web/web", "."}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
 	cmd3 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
@@ -221,7 +221,7 @@ func TestBuildRepeatSimple(t *testing.T) {
 		Cache: false,
 	})
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."}
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/monitor", "."}
 	cmd2 := []string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/other", "other"}
 	cmd3 := []string{"docker", "tag", "web/monitor", "web/web"}
 
@@ -283,14 +283,14 @@ func TestBuildRepeatComplex(t *testing.T) {
 	})
 
 	te.AssertCommands(t, TestCommands{
-		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/first", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/monitor", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/first", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/monitor", "."},
 		[]string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/othera", "other"},
-		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile.other", "-t", "web/otherb", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherc", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile", "-t", "web/otherd", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile.other", "-t", "web/otherb", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/otherc", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/otherd", "."},
 		[]string{"docker", "tag", "web/first", "web/othere"},
-		[]string{"docker", "build", "--no-cache", "-f", "./Dockerfile.otherf", "-t", "web/otherf", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile.otherf", "-t", "web/otherf", "."},
 		[]string{"docker", "tag", "web/otherf", "web/otherg"},
 		[]string{"docker", "tag", "web/monitor", "web/web"},
 	})
