@@ -20,6 +20,11 @@ for region in $(cat $base/REGIONS); do
       fi
     fi
   done
+  
+  for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
+      echo "deleting eip: $eip ($region)"
+      aws ec2 release-address --allocation-id $eip
+  done
 
 done
 
