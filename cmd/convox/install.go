@@ -116,8 +116,9 @@ func init() {
 				Usage: "internet gateway id to use in existing vpc",
 			},
 			cli.BoolFlag{
-				Name:  "private",
-				Usage: "use private subnets and NAT gateways to shield instances",
+				Name:   "private",
+				Usage:  "use private subnets and NAT gateways to shield instances",
+				EnvVar: "RACK_PRIVATE",
 			},
 			cli.StringFlag{
 				Name:  "private-cidrs",
@@ -238,7 +239,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	private := "No"
-	if c.Bool("private") {
+	if c.Bool("private") || strings.ToLower(os.Getenv("RACK_PRIVATE")) == "yes" || strings.ToLower(os.Getenv("RACK_PRIVATE")) == "true" {
 		private = "Yes"
 	}
 

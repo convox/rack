@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -111,7 +110,6 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-
 	app := c.String("app")
 
 	if app == "" {
@@ -119,11 +117,10 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	}
 
 	if app == "" {
-		app = path.Base(abs)
+		app = filepath.Base(abs)
 	}
 
 	app = strings.ToLower(app)
-
 	return abs, app, nil
 }
 
