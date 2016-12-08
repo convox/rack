@@ -57,7 +57,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 
-		args = append(args, "-f", fmt.Sprintf("%s/%s", context, dockerFile))
+		args = append(args, "-f", filepath.Join(context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
 
