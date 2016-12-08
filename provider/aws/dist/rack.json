@@ -104,9 +104,11 @@
       "Value": { "Ref": "EncryptionKey" }
     },
     "Gateway": {
+      "Condition": "BlankExistingVpc",
       "Value": { "Ref": "Gateway" }
     },
     "GatewayAttachment": {
+      "Condition": "BlankExistingVpc",
       "Value": { "Ref": "GatewayAttachment" }
     },
     "IamRole": {
