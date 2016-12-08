@@ -28,6 +28,6 @@ RUN go install ./api/cmd/monitor
 
 RUN chown -R nobody:nogroup /go/src/github.com/convox/rack
 
-USER nobody
+#USER nobody
 
 CMD ["api/bin/web"]
