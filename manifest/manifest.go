@@ -134,8 +134,9 @@ func (m Manifest) Validate() []error {
 		mem := entry.Memory
 
 		if mem < mem_min && mem != 0 { //Memory(0) {
-			e := fmt.Errorf("%s has invalid mem_limit %#v: should be either 0, or at least %#vMB",
+			e := fmt.Errorf("%s has invalid mem_limit %#v bytes / %#v MB: should be either 0, or at least %#vMB",
 				entry.Name,
+				mem,
 				mem/units.MB,
 				mem_min/units.MB)
 			errors = append(errors, e)
