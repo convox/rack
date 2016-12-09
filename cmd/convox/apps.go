@@ -123,6 +123,9 @@ func cmdAppCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	// If there are dots in the directory name, replace them with hyphens instead
+	app = strings.Replace(app, ".", "-", -1)
+
 	if len(c.Args()) > 0 {
 		app = c.Args()[0]
 	}
