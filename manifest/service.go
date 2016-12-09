@@ -129,6 +129,7 @@ func (s *Service) Proxies(app string) []Proxy {
 
 func (s *Service) SyncPaths() (map[string]string, error) {
 	sp := map[string]string{}
+	ev := map[string]string{}
 
 	if s.Build.Context == "" {
 		return sp, nil
@@ -154,9 +155,19 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 		}
 
 		switch parts[0] {
+		case "ENV":
+			if len(parts) >= 3 {
+				ev[parts[1]] = parts[2]
+			}
 		case "ADD", "COPY":
 			if len(parts) >= 3 {
-				sp[filepath.Join(s.Build.Context, parts[1])] = parts[2]
+				path := parts[2]
+				for k, v := range ev {
+					if strings.Contains(path, fmt.Sprintf("$%s", k)) {
+						path = strings.Replace(path, fmt.Sprintf("$%s", k), v, -1)
+					}
+				}
+				sp[filepath.Join(s.Build.Context, parts[1])] = path
 			}
 		}
 	}

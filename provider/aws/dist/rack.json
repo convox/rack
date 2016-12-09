@@ -62,6 +62,12 @@
     "Autoscale": {
       "Value": { "Fn::If": [ "Autoscale", "true", "false" ] }
     },
+    "AutoscalingGroup": {
+      "Value": { "Ref": "Instances" }
+    },
+    "AvailabilityZones": {
+      "Value": { "Ref": "AvailabilityZones" }
+    },
     "AwsRegion": {
       "Value": { "Ref": "AWS::Region" }
     },
@@ -72,6 +78,9 @@
     "AwsSecret": {
       "Condition": "Development",
       "Value": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] }
+    },
+    "BalancerSecurityGroup": {
+      "Value": { "Ref": "BalancerSecurityGroup" }
     },
     "Cluster": {
       "Value": { "Ref": "Cluster" }
@@ -94,11 +103,57 @@
     "EncryptionKey": {
       "Value": { "Ref": "EncryptionKey" }
     },
+    "Gateway": {
+      "Condition": "BlankExistingVpc",
+      "Value": { "Ref": "Gateway" }
+    },
+    "GatewayAttachment": {
+      "Condition": "BlankExistingVpc",
+      "Value": { "Ref": "GatewayAttachment" }
+    },
+    "IamRole": {
+      "Value": { "Ref": "IamRole" }
+    },
+    "InstanceProfile": {
+      "Value": { "Ref": "InstanceProfile" }
+    },
     "Internal": {
       "Value": { "Ref": "Internal" }
     },
     "LogGroup": {
       "Value": { "Ref": "LogGroup" }
+    },
+    "NatGateways": {
+      "Value": {
+        "Fn::If": [
+          "Private",
+          { "Fn::Join": [
+            ",",
+            [
+              { "Ref": "Nat0" },
+              { "Ref": "Nat1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Nat2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
+        ]
+      }
+    },
+    "NatIPs": {
+      "Value": {
+        "Fn::If": [
+          "Private",
+          { "Fn::Join": [
+            ",",
+            [
+              { "Ref": "NatAddress0" },
+              { "Ref": "NatAddress1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "NatAddress2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
+        ]
+      }
     },
     "NotificationHost": {
       "Value": { "Fn::GetAtt": [ "Balancer", "DNSName" ] }
@@ -123,6 +178,15 @@
     "Release": {
       "Value": { "Ref": "Version" }
     },
+    "RouteTablePublic": {
+      "Value": { "Ref": "Routes" }
+    },
+    "RouteTablesPrivate": {
+      "Value": { "Fn::If": [ "Private",
+        { "Fn::Join": [ ",", [ { "Ref": "RouteTablePrivate0" }, { "Ref": "RouteTablePrivate1" }, { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "RouteTablePrivate2" }, { "Ref": "AWS::NoValue" } ] } ] ] },
+        ""
+      ] }
+    },
     "SecurityGroup": {
       "Value": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] }
     },
@@ -142,10 +206,18 @@
       }
     },
     "SubnetsPrivate": {
-      "Value": { "Fn::If": [ "Private",
-        { "Fn::Join": [ ",", [ { "Ref": "SubnetPrivate0" }, { "Ref": "SubnetPrivate1" }, { "Ref": "SubnetPrivate2" } ] ] },
-        ""
-      ] }
+      "Value": { "Fn::If":
+        [ "Private",
+          { "Fn::Join": [ ",",
+            [
+              { "Ref": "SubnetPrivate0" },
+              { "Ref": "SubnetPrivate1" },
+              { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+            ]
+          ]},
+          ""
+        ]
+      }
     },
     "StackId": {
       "Value": { "Ref": "AWS::StackId" }
@@ -156,7 +228,7 @@
         { "Ref": "ExistingVpc" }
       ] }
     },
-    "VPCCIDR": {
+    "Vpccidr": {
       "Condition": "Development",
       "Value": { "Ref": "VPCCIDR" }
     }
@@ -257,6 +329,11 @@
       "Description": "The number of instances to update in a batch",
       "MinValue": "1",
       "Type": "Number"
+    },
+    "InternetGateway": {
+      "Description": "The InternetGatway to route to if an Existing VPC is specified",
+      "Type": "String",
+      "Default": ""
     },
     "Key": {
       "Default": "",
@@ -575,12 +652,20 @@
       }
     },
     "GatewayAttachment": {
-      "DependsOn": [ "Gateway", "Vpc" ],
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Condition": "BlankExistingVpc",
       "Properties": {
         "InternetGatewayId": { "Ref": "Gateway" },
         "VpcId": { "Ref": "Vpc" }
+      }
+    },
+    "ExistingGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Condition": "ExistingVpc",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "InternetGateway" },
+        "VpcId": { "Ref": "ExistingVpc" }
       }
     },
     "Nat0": {
@@ -723,20 +808,23 @@
       }
     },
     "Routes": {
-      "DependsOn": [ "Gateway", "GatewayAttachment", "Vpc" ],
       "Type": "AWS::EC2::RouteTable",
-      "Condition": "BlankExistingVpc",
       "Properties": {
-        "VpcId": { "Ref": "Vpc" }
+        "VpcId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Vpc" },
+          { "Ref": "ExistingVpc" }
+        ] }
       }
     },
     "RouteDefault": {
-      "DependsOn": [ "Gateway", "GatewayAttachment", "Routes" ],
+      "DependsOn": [ "Routes" ],
       "Type": "AWS::EC2::Route",
-      "Condition": "BlankExistingVpc",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": { "Ref": "Gateway" },
+        "GatewayId": { "Fn::If": [ "BlankExistingVpc",
+          { "Ref": "Gateway" },
+          { "Ref": "InternetGateway" }
+        ] },
         "RouteTableId": { "Ref": "Routes" }
       }
     },
@@ -804,7 +892,6 @@
       }
     },
     "Subnet0Routes": {
-      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -813,7 +900,6 @@
       }
     },
     "Subnet1Routes": {
-      "Condition": "BlankExistingVpc",
       "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -822,7 +908,7 @@
       }
     },
     "Subnet2Routes": {
-      "Condition": "BlankExistingVpcAndThirdAvailabilityZone",
+      "Condition": "ThirdAvailabilityZone",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -1012,7 +1098,7 @@
             ] },
             "runcmd:\n",
             { "Fn::If": [ "BlankInstanceRunCommand",
-              "  - sleep 30\n",
+              "  - sleep 5\n",
               { "Fn::Join": [ "", [
               "  - ", { "Ref": "InstanceRunCommand" }, "\n"
               ] ] }
@@ -1051,7 +1137,7 @@
         "DesiredCapacity": { "Ref": "InstanceCount" },
         "HealthCheckType": "EC2",
         "HealthCheckGracePeriod": "120",
-        "MinSize" : "1",
+        "MinSize" : { "Ref": "InstanceCount" },
         "MaxSize" : "1000",
         "MetricsCollection": [ { "Granularity": "1Minute" } ],
         "Tags": [
