@@ -102,6 +102,7 @@ func init() {
 					rackFlag,
 					cli.BoolFlag{
 						Name:  "wait",
+						EnvVar: "CONVOX_WAIT",
 						Usage: "wait for rack update to finish before returning",
 					},
 				},
