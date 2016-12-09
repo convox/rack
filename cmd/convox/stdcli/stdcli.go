@@ -121,6 +121,10 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	}
 
 	app = strings.ToLower(app)
+
+    // If there are dots in the directory name, replace them with hyphens instead
+    app = strings.Replace(app, ".", "-", -1)
+
 	return abs, app, nil
 }
 

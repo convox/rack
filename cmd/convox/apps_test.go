@@ -41,9 +41,25 @@ func TestAppsCreate(t *testing.T) {
 	)
 }
 
+func TestAppsCreateWithDotsInName(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "POST", Path: "/apps", Body: "name=foo.bar", Code: 403, Response: client.Error{Error: "invalid name"}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox apps create foo.bar",
+			Exit:    0,
+			Stdout:  "Creating app foo.bar... ERROR: app name can contain only alphanumeric characters, dashes and must be between 4 and 30 characters\n",
+		},
+	)
+}
+
 func TestAppsCreateFail(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 403, Response: client.Error{Error: "app already exists"}},
+		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 400, Response: client.Error{Error: "app already exists"}},
 	)
 
 	defer ts.Close()
