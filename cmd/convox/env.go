@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -142,7 +144,22 @@ func cmdEnvSet(c *cli.Context) error {
 			return stdcli.Error(err)
 		}
 
-		data += string(in)
+		scanner := bufio.NewScanner(bytes.NewReader(in))
+		for scanner.Scan() {
+			parts := strings.SplitN(scanner.Text(), "=", 2)
+
+			if len(parts) == 2 {
+				if key := strings.TrimSpace(parts[0]); key != "" {
+					val := parts[1]
+
+					// heroku env -s adds leading and trailing single quotes to val. Strip.
+					if string(val[0]) == "'" && string(val[len(val)-1]) == "'" {
+						val = val[1 : len(val)-2]
+					}
+					data += fmt.Sprintf("%s=%s\n", key, val)
+				}
+			}
+		}
 	}
 
 	for _, value := range c.Args() {
