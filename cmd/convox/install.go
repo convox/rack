@@ -110,11 +110,6 @@ func init() {
 				Value: "t2.small",
 				Usage: "type of instances in the rack",
 			},
-			cli.StringFlag{
-				Name:  "internet-gateway",
-				Value: "",
-				Usage: "internet gateway id to use in existing vpc",
-			},
 			cli.BoolFlag{
 				Name:   "private",
 				Usage:  "use private subnets and NAT gateways to shield instances",
@@ -232,10 +227,6 @@ func cmdInstall(c *cli.Context) error {
 
 	if vpc := c.String("existing-vpc"); vpc != "" {
 		existingVPC = vpc
-	}
-
-	if (existingVPC != "") && (c.String("internet-gateway") == "") {
-		return stdcli.Error(fmt.Errorf("must specify valid Internet Gateway for existing VPC"))
 	}
 
 	private := "No"
