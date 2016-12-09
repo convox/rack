@@ -30,7 +30,7 @@ $ convox install --stack-name dev
 You can also install a Rack with the CloudFormation template on master or with your own changes by:
 
 ```
-$ TEMPLATE_FILE=api/dist/kernel.json convox install --stack-name=convox-dev
+$ TEMPLATE_FILE=./provider/aws/dist/rack.json convox install --stack-name=convox-dev
 ```
 
 You can also use any existing Rack with the caveat that running a local Rack against it could have side effects like terminating instances.
@@ -95,22 +95,19 @@ PASSWORD=45e0f109-3f56-4b30-9b5a-b0939b8a4c25
 
 ## Local Rack Docker VM
 
-A local Rack is started with `convox start` which requires a working Docker environment. To setup a Docker environment, see the [Docker Machine](https://docs.docker.com/machine/) docs. You can then run the project:
+A local Rack is started with `convox start` which requires a working Docker environment.
 
 ```
-$ docker-machine start default
-$ eval $(docker-machine env default)
-
 $ convox start
 RUNNING: docker build -t convox-icytafnqqb /Users/noah/go/src/github.com/convox/rack
 web      | running: docker run -i --name rack-web...
 web      | [negroni] listening on :3000
 ```
 
-Now you can log into the development Rack API with the $PASSWORD environment variable you obtained in the previous step and interact with your Convox resources:
+Now you can log into the development Rack API with the `$PASSWORD` environment variable you obtained in the previous step and interact with your Convox resources:
 
 ```
-$ convox login $(docker-machine ip default)
+$ convox login localhost
 
 $ convox instances
 ID          AGENT  STATUS  STARTED      PS  CPU    MEM   
@@ -137,9 +134,9 @@ $ echo $?
 0
 ```
 
-GitHub and Travis CI are configured to require that tests are passing before a pull request can be merged.
+GitHub and Travis CI are configured to require that tests be passing before a pull request can be merged.
 
-The most complex tests, such as `TestProcessesListWithDetached` setup a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represents a very powerful way to verify Convox behavior.
+The most complex tests, such as `TestProcessesListWithDetached` set up a stub AWS and Docker httptest web servers to simulate various request and response cycles. This can be challenging to write but represents a very powerful way to verify Convox behavior.
 
 ## API Changes
 
@@ -147,12 +144,12 @@ A common thing to do is to fix a bug or make an enhancement to the Rack APIs. Fo
 
 The `convox/rack/api` package has a few key concepts:
 
-* Swagger Manifest (rack/api/manifest.yml). Defines all API endpoints and responses.
-* Golang Client (rack/client). Bindings that talk to the HTTP API and returns Golang structs, slices and errors.
-* CLI (rack/cmd/convox). High level tool that lets developers issue commands like `convox/deploy`.
-* Routes (rack/api/controllers/routes). A `gorilla/mux` configuration of request URL patterns, HTTP verbs, and handler functions.
-* Controllers (rack/api/controllers). HTTP handlers for every route.
-* Models (rack/api/models). Key primatives like "app", "service", "build", and "release" and corresponding logic to control AWS and Docker.
+* Swagger Manifest ([`/api/manifest.yml`](/api/manifest.yml)). Defines all API endpoints and responses.
+* Golang Client ([`/client`](/client)). Bindings that talk to the HTTP API and returns Golang structs, slices and errors.
+* CLI ([`/cmd/convox`](/cmd/convox/)). High level tool that lets developers issue commands like `convox/deploy`.
+* Routes ([`/api/controllers/routes.go`](/api/controllers/routes.go)). A `gorilla/mux` configuration of request URL patterns, HTTP verbs, and handler functions.
+* Controllers ([`/api/controllers/`](/api/controllers)). HTTP handlers for every route.
+* Models ([`/api/models/`](/api/models)). Key primatives like "app", "service", "build", and "release" and corresponding logic to control AWS and Docker.
 
 It is common for API changes to require corresponding changes across a model, controller, swagger manifest, client and CLI.
 
@@ -169,7 +166,7 @@ Systems engineering best practices are encouraged:
 
 * Robust error handling
 * Logging that makes a developer's life easier
-* Logging that can be turned into operational metrics (e.g. `count#push.retry=1)`
+* Logging that can be turned into operational metrics (e.g. `count#push.retry=1`)
 * Code strategies that make it easy to simulate subsystem requests/responses in a test environment
 
 ## Infrastructure Changes
@@ -183,7 +180,7 @@ Racks apps and services are created, updated and destroyed via automated means. 
 Some general notes when making changes to the infrastructure templates:
 
 * Run `make -C api templates` to compile the templates and restart the webserver. The `templates.go` file updates should be checked in.
-* Run `make test` to exercise the app template regression tests. Changes to app.tmpl almost always need accompanying test changes.
+* Run `make test` to exercise the app template regression tests. Changes to [`app.tmpl`](/api/models/templates/app.tmpl) almost always need accompanying test changes.
 * Pay careful attention to both the update and rollback safety of changes. Rollbacks are extremely important for failure recovery.
 * Convox uses [CloudFormation Custom Resources](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) by releasing `api/cmd/formation` as a Lambda handler that every Rack and App can use to provision things that aren't supported by CloudFormation.
 * Run `make fixtures` to rebuild the test fixtures after you change manifests. Carefully inspect the diff to ensure only your desired changes are made.
@@ -212,11 +209,11 @@ The ultimate goal is to package changes so that a user can apply them with `conv
 
 * Generate a release ID to tag every artifact with
 * Tagging a commit in GitHub with the release ID
-* Build Docker Images for the Rack API and Registry and publish them to Docker Hub
-* Build and publish Zip files for the Rack CloudFormation Lambda Handler and publish into public S3 files for every region Convox supports
-* Inject the release ID into kernel.json and publish it to S3
-* Appending the release ID to releases.json in S3
-* Setting/unsetting the "published" bit in the releases.json file in S3
+* Build Docker images for the Rack API and Registry and publish them to Docker Hub
+* Build and publish zip files for the Rack CloudFormation Lambda Handler and publish into public S3 files for every region Convox supports
+* Inject the release ID into [`/provider/aws/dist/rack.json`](/provider/aws/dist/rack.json) and publish it to S3
+* Appending the release ID to `releases.json` in S3
+* Setting/unsetting the "published" bit in the [`/provider/aws/dist/rack.json`](/provider/aws/dist/rack.json) file in S3
 
 Convox coordinates this with the [convox/release](https://github.com/convox/release) utility and Slack.
 
