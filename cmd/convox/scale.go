@@ -31,6 +31,7 @@ func init() {
 			},
 			cli.BoolFlag{
 				Name:  "wait",
+				EnvVar: "CONVOX_WAIT",
 				Usage: "wait for app to finish scaling before returning",
 			},
 		},
