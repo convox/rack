@@ -10,9 +10,18 @@
     },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
+    "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
+    "ExistingVpcAndBlankInternetGateway": {
+      "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
+    },
+    "ExistingVpcAndInternetGateway": {
+      "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
+    },
+    "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
+    "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PrivateAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -32,7 +41,13 @@
     "ThirdAvailabilityZone": { "Fn::Equals": [
       { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
-    ] }
+    ] },
+    "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway": {
+      "Fn::And": [
+        { "Condition": "ThirdAvailabilityZone"},
+        { "Condition": "NotExistingVpcAndBlankInternetGateway"}
+      ]
+    }
   },
   "Mappings": {
     "AvailabilityZoneConfig": {
@@ -179,6 +194,7 @@
       "Value": { "Ref": "Version" }
     },
     "RouteTablePublic": {
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Value": { "Ref": "Routes" }
     },
     "RouteTablesPrivate": {
@@ -661,7 +677,7 @@
     },
     "ExistingGatewayAttachment": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Condition": "ExistingVpc",
+      "Condition": "ExistingVpcAndInternetGateway",
       "DeletionPolicy": "Retain",
       "Properties": {
         "InternetGatewayId": { "Ref": "InternetGateway" },
@@ -809,6 +825,7 @@
     },
     "Routes": {
       "Type": "AWS::EC2::RouteTable",
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -819,11 +836,12 @@
     "RouteDefault": {
       "DependsOn": [ "Routes" ],
       "Type": "AWS::EC2::Route",
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Gateway" },
-          { "Ref": "InternetGateway" }
+        "GatewayId": { "Fn::If": [ "ExistingVpcAndInternetGateway",
+          { "Ref": "InternetGateway" },
+          { "Ref": "Gateway" }
         ] },
         "RouteTableId": { "Ref": "Routes" }
       }
@@ -892,6 +910,7 @@
       }
     },
     "Subnet0Routes": {
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -900,6 +919,7 @@
       }
     },
     "Subnet1Routes": {
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -908,7 +928,7 @@
       }
     },
     "Subnet2Routes": {
-      "Condition": "ThirdAvailabilityZone",
+      "Condition": "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
