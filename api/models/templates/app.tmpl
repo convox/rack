@@ -631,7 +631,7 @@
 {{ end }}
 
 {{ define "daemon-resources" }}
-  {{ if .App.CronJobs .Manifest }}
+  {{ if .App.Daemons .Manifest }}
     "CronRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -761,7 +761,7 @@
       }
     },
   {{ end }}
-  {{ range .App.CronJobs .Manifest }}
+  {{ range .App.Daemons .Manifest }}
     "{{ .ShortName }}Rule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
