@@ -57,23 +57,11 @@ func NewSync(container, local, remote string) (*Sync, error) {
 }
 
 func (s *Sync) Contains(t Sync) bool {
-	if !filepath.HasPrefix(t.Local, s.Local) {
+	if s.Local != t.Local {
 		return false
 	}
 
-	lr, err := filepath.Rel(s.Local, t.Local)
-
-	if err != nil {
-		return false
-	}
-
-	rr, err := filepath.Rel(s.Remote, t.Remote)
-
-	if err != nil {
-		return false
-	}
-
-	return lr == rr
+	return s.Remote == t.Remote
 }
 
 func (s *Sync) Start(st Stream) error {
