@@ -238,7 +238,7 @@
               },
               "Volumes": [
                 {{ range $e.MountableVolumes }}
-                  {{ if eq .Host "/var/run/docker.sock" }}
+                  {{ if .IsSystem }}
                     "{{.Host}}:{{.Container}}",
                   {{ else }}
                     { "Fn::Join": [ "", [ "/volumes/", { "Ref": "AWS::StackName" }, "/{{$e.Name}}{{.Host}}:{{.Container}}" ] ] },

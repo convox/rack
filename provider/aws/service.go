@@ -115,6 +115,15 @@ func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
 		return nil, err
 	}
 
+	apps, err := p.serviceApps(*s)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(apps) > 0 {
+		return nil, fmt.Errorf("service is linked to %s", apps[0].Name)
+	}
+
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
 		StackName: aws.String(s.Stack),
 	})
@@ -200,6 +209,20 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	}
 
 	// Populate linked apps
+	apps, err := p.serviceApps(s)
+	if err != nil {
+		return nil, err
+	}
+
+	s.Apps = apps
+
+	return &s, nil
+}
+
+//serviceApps returns the apps that have been linked with a service (ignoring apps that have been delete out of band)
+func (p *AWSProvider) serviceApps(s structs.Service) (structs.Apps, error) {
+	apps := structs.Apps(make([]structs.App, 0))
+
 	for key, value := range s.Outputs {
 		if strings.HasSuffix(key, "Link") {
 			// Extract app name from log group
@@ -209,14 +232,16 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 
 			a, err := p.AppGet(app)
 			if err != nil {
-				return &s, err
+				if err.Error() == fmt.Sprintf("%s not found", app) {
+					continue
+				}
+				return nil, err
 			}
 
-			s.Apps = append(s.Apps, *a)
+			apps = append(apps, *a)
 		}
 	}
-
-	return &s, nil
+	return apps, nil
 }
 
 // ServiceList lists the Services
@@ -237,6 +262,14 @@ func (p *AWSProvider) ServiceList() (structs.Services, error) {
 				services = append(services, serviceFromStack(stack))
 			}
 		}
+	}
+
+	for _, s := range services {
+		apps, err := p.serviceApps(s)
+		if err != nil {
+			return nil, err
+		}
+		s.Apps = apps
 	}
 
 	return services, nil
