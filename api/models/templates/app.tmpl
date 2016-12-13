@@ -638,7 +638,7 @@
 
 {{ define "daemon-resources" }}
   {{ if .App.Daemons .Manifest }}
-    "CronRole": {
+    "DaemonRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -654,13 +654,13 @@
         "Path": "/convox/",
         "Policies": [
           {
-            "PolicyName": "CronJob",
+            "PolicyName": "DaemonJob",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
                 {
                   "Effect": "Allow",
-                  "Action": "ecs:RunTask",
+                  "Action": "ecs:*",
                   "Resource": "*",
                   "Condition": {
                     "ArnEquals": {
@@ -698,13 +698,13 @@
         ]
       }
     },
-    "CronFunction": {
+    "DaemonFunction": {
       "Type": "AWS::Lambda::Function",
-      "DependsOn": [ "CronRole" ],
+      "DependsOn": [ "DaemonRole" ],
       "Properties": {
-        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-cron",
+        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-daemon",
         "Handler": "index.handler",
-        "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "DaemonRole", "Arn" ] },
         "Runtime": "nodejs",
         "Timeout": 50,
         "Code": {
@@ -727,7 +727,7 @@
             "      return String.fromCharCode(dec);",
             "    });",
             "    var params = {",
-            "        startedBy: 'cron',",
+            "        startedBy: 'daemon',",
             "        taskDefinition: taskDefinitions[event.process],",
             "        cluster: cluster,",
             "        count: 1,",
@@ -738,13 +738,13 @@
             "        }",
             "    };",
             "    var skew = Math.floor(Math.random()*10000);",
-            "    log(event.process + ':' + release + '/cron skew=' + skew + 'ms command=' + event.command, function(err) {",
+            "    log(event.process + ':' + release + '/daemon skew=' + skew + 'ms command=' + event.command, function(err) {",
             "        console.log('err2', err);",
             "        setTimeout(function() { ecs.runTask(params, context.done) }, skew);",
             "    });",
             "};",
             "function log(message, cb) {",
-            "    var stream = 'cron-' + (new Date()).getTime();",
+            "    var stream = 'daemon-' + (new Date()).getTime();",
             "    var params = {",
             "        logGroupName: logGroup,",
             "        logStreamName: stream",
@@ -774,7 +774,7 @@
         "Name": "{{ .LongName }}-schedule",
         "ScheduleExpression": "{{ .Schedule }}",
         "Targets": [{
-          "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
+          "Arn": { "Fn::GetAtt": [ "DaemonFunction", "Arn" ] },
           "Id": "{{ .LongName }}Target",
           "Input": "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
         }]
@@ -784,7 +784,7 @@
       "Type" : "AWS::Lambda::Permission",
       "Properties" : {
         "Action" : "lambda:InvokeFunction",
-        "FunctionName" : { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
+        "FunctionName" : { "Fn::GetAtt": [ "DaemonFunction", "Arn" ] },
         "Principal" : "events.amazonaws.com",
         "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
       }
