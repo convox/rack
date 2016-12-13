@@ -152,6 +152,7 @@
       },
       {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
+      {{ template "daemon-resources" . }}
       {{ template "process-resources" .Manifest }}
       {{ template "process-services" . }}
       {{ template "registry-resources" .Manifest }}
@@ -271,10 +272,10 @@
               "PortMappings": [
                 {{ range .Ports }}
                   {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
-                    { "Fn::Join": [ ":", [
-                      { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                  { "Fn::Join": [ ":", [
+                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
                       "{{ .Container }}/{{ .Protocol }}"
-                    ] ] },
+                  ] ] },
                   {{ else }}
                     "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
                   {{ end }}
@@ -543,6 +544,162 @@
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
         "Runtime": "nodejs4.3",
+        "Timeout": 50,
+        "Code": {
+          "ZipFile": { "Fn::Join": ["\n", [
+            "'use strict';",
+            "var aws = require('aws-sdk');",
+            "var ecs = new aws.ECS({maxRetries:10});",
+            "var logs = new aws.CloudWatchLogs();",
+            "var cluster = '{{ env "CLUSTER" }}';",
+            { "Fn::Join": [ "", [ "var logGroup = '", { "Ref": "LogGroup" }, "';" ] ] },
+            { "Fn::Join": [ "", [ "var release = '", { "Ref": "Release" }, "';" ] ] },
+            "var taskDefinitions = {",
+            {{ range .Manifest.Services }}
+              { "Fn::Join": [ "", [ "    '{{ .Name }}': '", { "Ref": "{{ upper .Name }}ECSTaskDefinition" }, "'," ] ] },
+            {{ end }}
+            "    '':''",
+            "}",
+            "exports.handler = function(event, context) {",
+            "    var command = event.command.replace(/&#(\\d+);/g, function(match, dec) {",
+            "      return String.fromCharCode(dec);",
+            "    });",
+            "    var params = {",
+            "        startedBy: 'cron',",
+            "        taskDefinition: taskDefinitions[event.process],",
+            "        cluster: cluster,",
+            "        count: 1,",
+            "        overrides: {",
+            "            containerOverrides: [",
+            "                { name:event.process, command:[ 'sh', '-c', command ] }",
+            "            ]",
+            "        }",
+            "    };",
+            "    var skew = Math.floor(Math.random()*10000);",
+            "    log(event.process + ':' + release + '/cron skew=' + skew + 'ms command=' + event.command, function(err) {",
+            "        console.log('err2', err);",
+            "        setTimeout(function() { ecs.runTask(params, context.done) }, skew);",
+            "    });",
+            "};",
+            "function log(message, cb) {",
+            "    var stream = 'cron-' + (new Date()).getTime();",
+            "    var params = {",
+            "        logGroupName: logGroup,",
+            "        logStreamName: stream",
+            "    }",
+            "    logs.createLogStream(params, function(err) {",
+            "        console.log('err', err);",
+            "        var params = {",
+            "            logEvents: [",
+            "                { message: message, timestamp: (new Date()).getTime() }",
+            "            ],",
+            "            logGroupName: logGroup,",
+            "            logStreamName: stream",
+            "        }",
+            "        console.log(message);",
+            "        logs.putLogEvents(params, cb);",
+            "    })",
+            "}"
+          ] ] }
+        }
+      }
+    },
+  {{ end }}
+  {{ range .App.CronJobs .Manifest }}
+    "{{ .ShortName }}Rule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "{{ .LongName }}-schedule",
+        "ScheduleExpression": "{{ .Schedule }}",
+        "Targets": [{
+          "Arn": { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
+          "Id": "{{ .LongName }}Target",
+          "Input": "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
+        }]
+      }
+    },
+    "{{ .ShortName }}LambdaPermission": {
+      "Type" : "AWS::Lambda::Permission",
+      "Properties" : {
+        "Action" : "lambda:InvokeFunction",
+        "FunctionName" : { "Fn::GetAtt": [ "CronFunction", "Arn" ] },
+        "Principal" : "events.amazonaws.com",
+        "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
+      }
+    },
+  {{ end }}
+{{ end }}
+
+{{ define "daemon-resources" }}
+  {{ if .App.CronJobs .Manifest }}
+    "CronRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "CronJob",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "ecs:RunTask",
+                  "Resource": "*",
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": { "Fn::Join": [ "", [
+                        "arn:aws:ecs:",
+                        { "Ref": "AWS::Region" },
+                        ":",
+                        { "Ref": "AWS::AccountId" },
+                        ":cluster/",
+                        "{{ env "CLUSTER" }}"
+                      ] ] }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": { "Fn::Join": [ "", [ "arn:aws:logs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":log-group:/aws/lambda/*" ] ] }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": { "Fn::Join": [ "", [ { "Fn::GetAtt": [ "LogGroup", "Arn" ] }, ":*" ] ] }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CronFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [ "CronRole" ],
+      "Properties": {
+        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-cron",
+        "Handler": "index.handler",
+        "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
+        "Runtime": "nodejs",
         "Timeout": 50,
         "Code": {
           "ZipFile": { "Fn::Join": ["\n", [
