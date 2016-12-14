@@ -127,6 +127,8 @@ func cmdStart(c *cli.Context) error {
 
 	err = r.Start()
 	if err != nil {
+		r.Stop()
+
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
