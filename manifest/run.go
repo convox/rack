@@ -177,7 +177,9 @@ func (r *Run) Start() error {
 
 		r.Processes[p.Name] = p
 
-		waitForContainer(p.Name, s)
+		if err := waitForContainer(p.Name, s); err != nil {
+			return err
+		}
 
 		for _, proxy := range proxies {
 			r.proxies = append(r.proxies, proxy)
@@ -233,16 +235,20 @@ func pruneSyncs(syncs []sync.Sync) []sync.Sync {
 	return pruned
 }
 
-func waitForContainer(container string, service Service) {
+func waitForContainer(container string, service Service) error {
 	i := 0
 
 	for {
 		host := containerHost(container, service.Networks)
 		i += 1
 
-		// wait 5s max
-		if host != "" || i > 50 {
-			break
+		if host != "" {
+			return nil
+		}
+
+		// wait 10s max
+		if i > 100 {
+			return fmt.Errorf("%s failed to start within 10 seconds", container)
 		}
 
 		time.Sleep(100 * time.Millisecond)
