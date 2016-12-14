@@ -6,9 +6,9 @@ info:
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
-host: docker.local
+host: console.convox.com
 schemes:
-  - http
+  - https
 consumes:
   - application/x-www-form-urlencoded
 produces:
