@@ -153,6 +153,7 @@ func (m Manifest) Validate() []error {
 				for _, p := range entry.Ports {
 					if p.Container == pi {
 						found = true
+						break
 					}
 				}
 
