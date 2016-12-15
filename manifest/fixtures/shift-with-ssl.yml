@@ -1,0 +1,10 @@
+version: "2"
+services:
+  web:
+    build: .
+    labels:
+      - convox.start.shift=2
+      - convox.port.443.protocol=https
+    ports:
+      - 80:4001
+      - 443:4001
