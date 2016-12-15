@@ -656,6 +656,7 @@ paths:
       - name: domains
         description: public key
         type: array
+
         items:
           type: string
       responses:
@@ -899,10 +900,11 @@ definitions:
       process-width:
         type: integer
   certificate:
+    properties:
       domain:
         type: string
       expiration:
-        type: date
+        type: string
       id:
         type: string
   error:
