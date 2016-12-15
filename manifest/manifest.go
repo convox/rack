@@ -141,6 +141,26 @@ func (m Manifest) Validate() []error {
 				mem_min/units.MB)
 			errors = append(errors, e)
 		}
+
+		// check that health check port is valid
+		if port, ok := entry.Labels["convox.health.port"]; ok {
+			pi, err := strconv.Atoi(port)
+			if err != nil {
+				errors = append(errors, err)
+			} else {
+				found := false
+
+				for _, p := range entry.Ports {
+					if p.Container == pi {
+						found = true
+					}
+				}
+
+				if !found {
+					errors = append(errors, fmt.Errorf("%s service has convox.health.port set to a port it does not declare", entry.Name))
+				}
+			}
+		}
 	}
 
 	return errors
