@@ -37,7 +37,7 @@ func (labels Labels) Shift(shift int) Labels {
 				new_label := fmt.Sprintf("convox.port.%d.protocol", new_port)
 				labels[new_label] = labels[ol]
 
-				// Delete the old label, since we want to replace e.g. 'convox.port.443.protocol' 
+				// Delete the old label, since we want to replace e.g. 'convox.port.443.protocol'
 				// with 'convox.port.444.protocol' entirely instead of duplicating them when we shift.
 				delete(labels, ol)
 			}
