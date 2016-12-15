@@ -252,9 +252,10 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 	return services, nil
 }
 
-// Shift all external ports in this Manifest by the given amount and their shift labels
+// Shift all external ports and labels in this Manifest by the given amount and their shift labels
 func (m *Manifest) Shift(shift int) error {
 	for _, service := range m.Services {
+		service.Labels.Shift(shift)
 		service.Ports.Shift(shift)
 
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
@@ -263,6 +264,7 @@ func (m *Manifest) Shift(shift int) error {
 				return fmt.Errorf("invalid shift: %s", ss)
 			}
 
+			service.Labels.Shift(shift)
 			service.Ports.Shift(shift)
 		}
 	}
