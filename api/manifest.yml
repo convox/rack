@@ -6,9 +6,9 @@ info:
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
-host: docker.local
+host: cx.ngrok.io
 schemes:
-  - http
+  - https
 consumes:
   - application/x-www-form-urlencoded
 produces:
@@ -656,6 +656,7 @@ paths:
       - name: domains
         description: public key
         type: array
+
         items:
           type: string
       responses:
@@ -899,10 +900,11 @@ definitions:
       process-width:
         type: integer
   certificate:
+    properties:
       domain:
         type: string
       expiration:
-        type: date
+        type: string
       id:
         type: string
   error:
