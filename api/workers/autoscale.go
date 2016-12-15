@@ -85,8 +85,10 @@ func autoscaleRack() {
 
 	// ok to start multiple
 	// when shutting down go one at a time but only if current status is "running"
-	if desired < system.Count && system.Status == "running" {
-		system.Count--
+	if desired < system.Count {
+		if system.Status == "running" {
+			system.Count--
+		}
 	} else {
 		system.Count = desired
 	}
