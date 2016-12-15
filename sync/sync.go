@@ -7,7 +7,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -175,7 +174,6 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 			switch header.Typeflag {
 			case tar.TypeReg:
 				rel, err := filepath.Rel(s.Remote, filepath.Join("/", header.Name))
-
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return
@@ -187,41 +185,42 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 				s.outgoingBlocks[rel] += 1
 				s.lock.Unlock()
 
-				tmpfile, err := ioutil.TempFile("", filepath.Base(rel))
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				_, err = io.Copy(tmpfile, tr)
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				err = tmpfile.Close()
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				err = os.Chmod(tmpfile.Name(), os.FileMode(header.Mode))
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
 				err = os.MkdirAll(filepath.Dir(local), 0755)
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return
 				}
 
-				err = os.Rename(tmpfile.Name(), local)
+				lf, err := os.Create(local)
 				if err != nil {
 					st <- fmt.Sprintf("error: %s", err)
 					return
 				}
+
+				_, err = io.Copy(lf, tr)
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
+
+				err = lf.Sync()
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
+
+				err = lf.Close()
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
+
+				err = os.Chmod(local, os.FileMode(header.Mode))
+				if err != nil {
+					st <- fmt.Sprintf("error: %s", err)
+					return
+				}
+
 			}
 		}
 	}()
