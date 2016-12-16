@@ -525,6 +525,16 @@ func TestManifestValidate(t *testing.T) {
 	if assert.NotNil(t, merrm) {
 		assert.Equal(t, merrm[0].Error(), "web service has invalid mem_limit 2097152 bytes (2 MB): should be either 0, or at least 4MB")
 	}
+
+	m, err = manifestFixture("invalid-health-check")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if errs := m.Validate(); assert.NotNil(t, errs) {
+		assert.Equal(t, errs[0].Error(), "web service has convox.health.port set to a port it does not declare")
+	}
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
