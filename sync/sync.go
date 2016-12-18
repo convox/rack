@@ -261,7 +261,7 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 		remote := filepath.Join(s.Remote, a.Path)
 
 		s.lock.Lock()
-		s.incomingBlocks[a.Path] += 1
+		s.incomingBlocks[a.Path]++
 		s.lock.Unlock()
 
 		tgz.WriteHeader(&tar.Header{
@@ -410,7 +410,7 @@ func (s *Sync) watchIncoming(st Stream) {
 
 			s.lock.Lock()
 			if s.incomingBlocks[parts[2]] > 0 {
-				s.incomingBlocks[parts[2]] -= 1
+				s.incomingBlocks[parts[2]]--
 				s.lock.Unlock()
 			} else {
 				s.lock.Unlock()
@@ -445,7 +445,7 @@ func (s *Sync) watchOutgoing(st Stream) {
 	for c := range ch {
 		s.lock.Lock()
 		if s.outgoingBlocks[c.Path] > 0 {
-			s.outgoingBlocks[c.Path] -= 1
+			s.outgoingBlocks[c.Path]--
 			s.lock.Unlock()
 		} else {
 			s.lock.Unlock()
@@ -510,7 +510,7 @@ func tgzReader(s *Sync, r io.Reader, st Stream) {
 			local := filepath.Join(s.Local, rel)
 
 			s.lock.Lock()
-			s.outgoingBlocks[rel] += 1
+			s.outgoingBlocks[rel]++
 			s.lock.Unlock()
 
 			err = os.MkdirAll(filepath.Dir(local), 0755)
