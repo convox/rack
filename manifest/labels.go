@@ -8,7 +8,7 @@ import (
 
 var rePortShifters = []*regexp.Regexp{
 	regexp.MustCompile(`^convox.port.(\d+).protocol$`),
-	regexp.MustCompile(`^convox.port.(\d+).shift$`),
+	regexp.MustCompile(`^convox.port.(\d+).proxy$`),
 	regexp.MustCompile(`^convox.port.(\d+).secure$`),
 }
 
