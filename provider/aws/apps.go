@@ -59,6 +59,24 @@ func (p *AWSProvider) AppDelete(name string) error {
 		return err
 	}
 
+	services, err := p.ServiceList()
+	if err != nil {
+		return err
+	}
+
+	for _, s := range services {
+		s.Apps, err = p.serviceApps(s)
+		if err != nil {
+			return err
+		}
+
+		for _, a := range s.Apps {
+			if a.Name == name {
+				return fmt.Errorf("app is linked to %s service", s.Name)
+			}
+		}
+	}
+
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(app.StackName())})
 	if err != nil {
 		helpers.TrackEvent("kernel-app-delete-error", nil)

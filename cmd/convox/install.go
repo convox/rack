@@ -234,7 +234,9 @@ func cmdInstall(c *cli.Context) error {
 		existingVPC = vpc
 	}
 
-	if (existingVPC != "") && (c.String("internet-gateway") == "") {
+	internetGateway := c.String("internet-gateway")
+
+	if (existingVPC != "") && (internetGateway == "") {
 		return stdcli.Error(fmt.Errorf("must specify valid Internet Gateway for existing VPC"))
 	}
 
@@ -332,6 +334,7 @@ func cmdInstall(c *cli.Context) error {
 			{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
 			{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
+			{ParameterKey: aws.String("InternetGateway"), ParameterValue: aws.String(internetGateway)},
 			{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
 			{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
 			{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
