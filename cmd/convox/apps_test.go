@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"testing"
 
 	"github.com/convox/rack/client"
@@ -43,7 +42,6 @@ func TestAppsCreate(t *testing.T) {
 }
 
 func TestAppsCreateWithDotsInDirName(t *testing.T) {
-	os.Setenv("PWD", "/tmp/with.dots")
 
 	ts := testServer(t,
 		test.Http{Method: "POST",
@@ -91,7 +89,7 @@ func TestAppsCreateWithDotsInName(t *testing.T) {
 
 func TestAppsCreateFail(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 400, Response: client.Error{Error: "app already exists"}},
+		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 403, Response: client.Error{Error: "app already exists"}},
 	)
 
 	defer ts.Close()
