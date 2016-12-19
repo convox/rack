@@ -29,6 +29,7 @@ type Run struct {
 type RunOptions struct {
 	Service string
 	Command []string
+	Build   bool
 	Cache   bool
 	Quiet   bool
 	Sync    bool
@@ -122,12 +123,14 @@ func (r *Run) Start() error {
 
 	r.done = make(chan error)
 
-	err = r.manifest.Build(r.Dir, r.App, r.Output.Stream("build"), BuildOptions{
-		Cache:   r.Opts.Cache,
-		Service: r.Opts.Service,
-	})
-	if err != nil {
-		return err
+	if r.Opts.Build {
+		err = r.manifest.Build(r.Dir, r.App, r.Output.Stream("build"), BuildOptions{
+			Cache:   r.Opts.Cache,
+			Service: r.Opts.Service,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	system := r.Output.Stream("convox")
