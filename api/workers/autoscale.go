@@ -83,7 +83,9 @@ func autoscaleRack() {
 		return
 	}
 
-	// ok to start multiple
+	oldCount := system.Count
+
+	// ok to start multiple instances in one pass
 	// when shutting down go one at a time but only if current status is "running"
 	if desired < system.Count {
 		if system.Status == "running" {
@@ -93,7 +95,11 @@ func autoscaleRack() {
 		system.Count = desired
 	}
 
-	log.Logf("change=%d", (desired - system.Count))
+	log.Logf("change=%d", (system.Count - oldCount))
+	// nothing changed, return
+	if system.Count == oldCount {
+		return
+	}
 
 	err = models.Provider().SystemSave(*system)
 	if err != nil {
