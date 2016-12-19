@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -107,15 +108,27 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 
 	for _, volume := range p.service.Volumes {
 		if !strings.Contains(volume, ":") {
-			home, err := homedir.Dir()
-			if err != nil {
-				log.Fatal(err)
+			home := ""
+
+			switch runtime.GOOS {
+			case "windows":
+				home = "/home/convox" // prefix with container path to use Docker Volume
+			default:
+				d, err := homedir.Dir() // prefix with host path to use OS File Sharing
+				if err != nil {
+					log.Fatal(err)
+				}
+				home, err = filepath.Abs(d)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
-			hostPath, err := filepath.Abs(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume))
-			if err != nil {
-				//this won't break
-			}
-			volume = fmt.Sprintf("%s:%s", hostPath, volume)
+
+			volume = fmt.Sprintf(
+				"%s:%s",
+				filepath.Clean(fmt.Sprintf("%s/.convox/volumes/%s/%s/%s", home, p.app, p.service.Name, volume)),
+				volume,
+			)
 		}
 		args = append(args, "-v", volume)
 	}
