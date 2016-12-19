@@ -63,6 +63,8 @@ func RunAsync(s Stream, cmd *exec.Cmd, done chan error) {
 func streamReader(s Stream, r io.Reader) {
 	scanner := bufio.NewScanner(r)
 
+	scanner.Buffer(make([]byte, 0, 4*1024), 10*1024*1024)
+
 	for scanner.Scan() {
 		s <- scanner.Text()
 	}

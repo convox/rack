@@ -2,46 +2,38 @@ package manifest
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
-	"strings"
 )
 
-
-// Trim "convox.port." and ".protocol" from beginning and end of label
-//
-func extractPort(label string) string {
-	label = strings.TrimSuffix(label, ".protocol")
-	label = strings.TrimPrefix(label, "convox.port.")
-	return label
+var rePortShifters = []*regexp.Regexp{
+	regexp.MustCompile(`^convox.port.(\d+).protocol$`),
+	regexp.MustCompile(`^convox.port.(\d+).proxy$`),
+	regexp.MustCompile(`^convox.port.(\d+).secure$`),
 }
 
-// "convox.port.xxx.protocol" label can be set to https.
-// Increment the 'xxx' part by the given shift amount.
-//
-func (labels Labels) Shift(shift int) Labels {
+// Shift all ports referenced by labels by a given amount
+func (labels Labels) Shift(shift int) error {
+	for k, v := range labels {
+		for _, r := range rePortShifters {
+			kn := r.ReplaceAllStringFunc(k, func(s string) string {
+				p := r.FindStringSubmatch(k)[1]
+				i := r.FindStringSubmatchIndex(k)
 
-	// Make a copy of the old labels, since we can't update them on the fly
-	oldlabels := make(map[string]string)
-	for k,v := range labels {
-	  oldlabels[k] = v
-	}
+				pi, err := strconv.Atoi(p)
+				if err != nil {
+					return s
+				}
 
-	for ol := range oldlabels {
+				return k[0:i[2]] + fmt.Sprintf("%d", pi+shift) + k[i[3]:]
+			})
 
-		// If we have a label called 'convox.port.xxx.protocol', treat 'xxx' as a port.
-		if strings.HasPrefix(ol, "convox.port.") && strings.HasSuffix(ol, ".protocol") {
-			p := extractPort(ol)
-			if p != "" {
-				p, _ := strconv.Atoi(p)
-				new_port := p + shift
-				new_label := fmt.Sprintf("convox.port.%d.protocol", new_port)
-				labels[new_label] = labels[ol]
-
-				// Delete the old label, since we want to replace e.g. 'convox.port.443.protocol'
-				// with 'convox.port.444.protocol' entirely instead of duplicating them when we shift.
-				delete(labels, ol)
+			if kn != k {
+				delete(labels, k)
+				labels[kn] = v
 			}
 		}
 	}
-	return labels
+
+	return nil
 }

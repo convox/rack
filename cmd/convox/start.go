@@ -31,8 +31,12 @@ func init() {
 				Usage: "path to an alternate docker compose manifest file",
 			},
 			cli.BoolFlag{
+				Name:  "no-build",
+				Usage: "do not build the app images",
+			},
+			cli.BoolFlag{
 				Name:  "no-cache",
-				Usage: "Pull fresh image dependencies",
+				Usage: "pull fresh image dependencies",
 			},
 			cli.IntFlag{
 				Name:  "shift",
@@ -115,14 +119,12 @@ func cmdStart(c *cli.Context) error {
 		}
 	}
 
-	cache := !c.Bool("no-cache")
-	sync := !c.Bool("no-sync")
-
 	r := m.Run(dir, app, manifest.RunOptions{
-		Cache:   cache,
-		Sync:    sync,
-		Service: service,
+		Build:   !c.Bool("no-build"),
+		Cache:   !c.Bool("no-cache"),
 		Command: command,
+		Service: service,
+		Sync:    !c.Bool("no-sync"),
 	})
 
 	err = r.Start()
