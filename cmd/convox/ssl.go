@@ -20,7 +20,7 @@ func init() {
 		Subcommands: []cli.Command{
 			{
 				Name:        "update",
-				Description: "upload a replacement ssl certificate",
+				Description: "update the certificate associated with an endpoint",
 				Usage:       "<process:port> <certificate>",
 				Action:      cmdSSLUpdate,
 				Flags: []cli.Flag{
