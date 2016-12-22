@@ -350,19 +350,3 @@ func (a App) CronJobs(m manifest.Manifest) []CronJob {
 	}
 	return cronjobs
 }
-
-func (a App) Daemons(m manifest.Manifest) []CronJob {
-	cronjobs := []CronJob{}
-
-	for _, entry := range m.Services {
-		labels := entry.LabelsByPrefix("convox.daemons")
-		for key, value := range labels {
-			cronjob := NewCronJobFromLabel(key, value)
-			e := entry
-			cronjob.Service = &e
-			cronjob.App = &a
-			cronjobs = append(cronjobs, cronjob)
-		}
-	}
-	return cronjobs
-}
