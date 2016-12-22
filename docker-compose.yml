@@ -1,85 +1,82 @@
-web:
-  build: .
-  command: api/bin/web
-  environment:
-    - AUTOSCALE=false
-    - DEVELOPMENT=true
-    - AWS_REGION
-    - AWS_ACCESS
-    - AWS_SECRET
-    - CLIENT_ID=dev@convox.com
-    - CLUSTER
-    - CUSTOM_TOPIC
-    - DEBUG=
-    - DOCKER_IMAGE_API=rack/web
-    - DYNAMO_BUILDS
-    - DYNAMO_RELEASES
-    - ENCRYPTION_KEY
-    - INTERNAL
-    - NOTIFICATION_HOST
-    - NOTIFICATION_TOPIC
-    - PASSWORD
-    - PRIVATE
-    - PROVIDER
-    - RACK
-    - REGISTRY_HOST
-    - RELEASE
-    - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
-    - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
-    - SETTINGS_BUCKET
-    - STACK_ID
-    - SUBNETS
-    - SUBNETS_PRIVATE
-    - VPC
-    - VPCCIDR
-    - LOG_GROUP
-    - PROCESS=web
-  ports:
-    - 80:3000
-    - 443:4443
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
-monitor:
-  build: .
-  command: api/bin/monitor
-  environment:
-    - DEVELOPMENT=true
-    - AUTOSCALE=false
-    - AWS_REGION
-    - AWS_ACCESS
-    - AWS_SECRET
-    - CLIENT_ID=dev@convox.com
-    - CLUSTER
-    - CUSTOM_TOPIC
-    - DEBUG=
-    - DOCKER_IMAGE_API=rack/web
-    - DYNAMO_BUILDS
-    - DYNAMO_RELEASES
-    - ENCRYPTION_KEY
-    - NOTIFICATION_HOST
-    - NOTIFICATION_TOPIC
-    - PASSWORD
-    - PRIVATE
-    - PROVIDER
-    - RACK
-    - REGISTRY_HOST
-    - RELEASE
-    - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
-    - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
-    - STACK_ID
-    - SUBNETS
-    - SUBNETS_PRIVATE
-    - VPC
-    - LOG_GROUP
-    - PROCESS=monitor
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
-registry:
-  environment:
-    - SETTINGS_FLAVOR=local
-    - PASSWORD
-    - LOG_GROUP
-    - PROCESS=registry
-  image: convox/registry
-  ports:
-    - 5000:443
+version: "2"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: api/bin/web
+    environment:
+      - AUTOSCALE=false
+      - DEVELOPMENT=true
+      - AWS_REGION
+      - AWS_ACCESS
+      - AWS_SECRET
+      - CLIENT_ID=dev@convox.com
+      - CLUSTER
+      - CUSTOM_TOPIC
+      - DEBUG=false
+      - DOCKER_IMAGE_API=rack/web
+      - DYNAMO_BUILDS
+      - DYNAMO_RELEASES
+      - ENCRYPTION_KEY
+      - INTERNAL
+      - NOTIFICATION_HOST
+      - NOTIFICATION_TOPIC
+      - PASSWORD
+      - PRIVATE
+      - PROVIDER
+      - RACK
+      - RELEASE
+      - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
+      - SECURITY_GROUP
+      - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
+      - SETTINGS_BUCKET
+      - STACK_ID
+      - SUBNETS
+      - SUBNETS_PRIVATE
+      - VPC
+      - VPCCIDR
+      - LOG_GROUP
+      - PROCESS=web
+    ports:
+      - 80:3000
+      - 443:4443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: api/bin/monitor
+    environment:
+      - DEVELOPMENT=true
+      - AUTOSCALE=false
+      - AWS_REGION
+      - AWS_ACCESS
+      - AWS_SECRET
+      - CLIENT_ID=dev@convox.com
+      - CLUSTER
+      - CUSTOM_TOPIC
+      - DEBUG=false
+      - DOCKER_IMAGE_API=rack/web
+      - DYNAMO_BUILDS
+      - DYNAMO_RELEASES
+      - ENCRYPTION_KEY
+      - NOTIFICATION_HOST
+      - NOTIFICATION_TOPIC
+      - PASSWORD
+      - PRIVATE
+      - PROVIDER
+      - RACK
+      - RELEASE
+      - ROLLBAR_TOKEN=f67f25b8a9024d5690f997bd86bf14b0
+      - SECURITY_GROUP
+      - SEGMENT_WRITE_KEY=KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i
+      - STACK_ID
+      - SUBNETS
+      - SUBNETS_PRIVATE
+      - VPC
+      - LOG_GROUP
+      - PROCESS=monitor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

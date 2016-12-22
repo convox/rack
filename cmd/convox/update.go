@@ -33,7 +33,7 @@ tYsnnPefR196tYvG62trcNZXF3qw2UCDkc9eWMnloiTVsKfEuUy3TTU3KxwOzD38
 func cmdUpdate(c *cli.Context) error {
 	client, err := updateClient()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	stdcli.Spinner.Prefix = "Updating convox/proxy: "
@@ -56,7 +56,7 @@ func cmdUpdate(c *cli.Context) error {
 		HTTPClient:     client,
 	}
 	if err := opts.SetPublicKeyPEM(publicKey); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	// check for update
@@ -66,13 +66,13 @@ func cmdUpdate(c *cli.Context) error {
 		fmt.Println("\x08\x08Already up to date")
 		return nil
 	case err != nil:
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	// apply update
 	err = r.Apply()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("\x08\x08OK, %s\n", r.ReleaseVersion)

@@ -39,11 +39,11 @@ func init() {
 func cmdSSLList(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
+		return stdcli.Error(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
 	}
 
 	if c.Bool("help") {
@@ -53,7 +53,7 @@ func cmdSSLList(c *cli.Context) error {
 
 	ssls, err := rackClient(c).ListSSL(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("TARGET", "CERTIFICATE", "DOMAIN", "EXPIRES")
@@ -69,7 +69,7 @@ func cmdSSLList(c *cli.Context) error {
 func cmdSSLUpdate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) < 2 {
@@ -82,14 +82,14 @@ func cmdSSLUpdate(c *cli.Context) error {
 	parts := strings.Split(target, ":")
 
 	if len(parts) != 2 {
-		return stdcli.ExitError(fmt.Errorf("target must be process:port"))
+		return stdcli.Error(fmt.Errorf("target must be process:port"))
 	}
 
 	fmt.Printf("Updating certificate... ")
 
 	_, err = rackClient(c).UpdateSSL(app, parts[0], parts[1], c.Args()[1])
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")

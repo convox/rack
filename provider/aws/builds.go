@@ -26,13 +26,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 )
 
+var regexpECRHost = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com`)
 var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
-var regexpECRRepository = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/(.+)`)
 
 func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
@@ -72,6 +71,26 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 		},
 	}, nil)
 
+	// AWS currently has a limit of 1000 images in ECR
+	// This is a "hopefully temporary" and brute force means
+	// to prevent hitting limits during deployment
+	bs, err := p.BuildList(app, 150)
+	if err != nil {
+		fmt.Printf("Error listing builds for cleanup: %s\n", err.Error())
+	} else {
+		if len(bs) >= 50 {
+			go func() {
+				for _, b := range bs[50:] {
+					_, err := p.BuildDelete(app, b.Id)
+					if err != nil {
+						fmt.Printf("Error cleaning up build %s: %s\n", b.Id, err.Error())
+					}
+					time.Sleep(1 * time.Second)
+				}
+			}()
+		}
+	}
+
 	log.Success()
 	return b, nil
 }
@@ -101,7 +120,7 @@ func (p *AWSProvider) BuildDelete(app, id string) (*structs.Build, error) {
 	// delete build item
 	_, err = p.dynamodb().DeleteItem(&dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	})
@@ -166,7 +185,7 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		return err
 	}
 
-	if err := p.dockerLogin(repo); err != nil {
+	if err := p.dockerLogin(); err != nil {
 		log.Error(err)
 		return err
 	}
@@ -186,15 +205,13 @@ func (p *AWSProvider) BuildExport(app, id string, w io.Writer) error {
 		log.Step("pull").Logf("image=%q", image)
 		out, err := exec.Command("docker", "pull", image).CombinedOutput()
 		if err != nil {
-			log.Error(fmt.Errorf(lastline(out)))
-			return err
+			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 		}
 
 		log.Step("save").Logf("image=%q file=%q", image, file)
 		out, err = exec.Command("docker", "save", "-o", file, image).CombinedOutput()
 		if err != nil {
-			log.Error(fmt.Errorf(lastline(out)))
-			return err
+			return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 		}
 
 		stat, err := os.Stat(file)
@@ -251,7 +268,7 @@ func (p *AWSProvider) BuildGet(app, id string) (*structs.Build, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	}
@@ -278,7 +295,6 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 	// set up the new build
 	targetBuild := structs.NewBuild(app)
-	targetBuild.Description = fmt.Sprintf("imported")
 	targetBuild.Started = time.Now()
 	targetBuild.Status = "complete"
 
@@ -292,7 +308,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		return nil, err
 	}
 
-	if err := p.dockerLogin(repo); err != nil {
+	if err := p.dockerLogin(); err != nil {
 		log.Error(err)
 		return nil, err
 	}
@@ -359,8 +375,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 			}
 
 			if err := cmd.Wait(); err != nil {
-				log.Errorf(lastline(outb.Bytes()))
-				return nil, err
+				return nil, log.Errorf("%s: %s\n", lastline(outb.Bytes()), err.Error())
 			}
 
 			if len(manifest) != 1 || len(manifest[0].RepoTags) != 1 {
@@ -374,14 +389,12 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 
 			log.Step("tag").Logf("from=%q to=%q", image, target)
 			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
-				log.Errorf(lastline(out))
-				return nil, err
+				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 			}
 
 			log.Step("push").Logf("to=%q", target)
 			if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
-				log.Errorf(lastline(out))
-				return nil, err
+				return nil, log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 			}
 		}
 	}
@@ -398,6 +411,7 @@ func (p *AWSProvider) BuildImport(app string, r io.Reader) (*structs.Build, erro
 		release.Id = "R23456"
 	}
 
+	targetBuild.Description = sourceBuild.Description
 	targetBuild.Ended = time.Now()
 	targetBuild.Logs = sourceBuild.Logs
 	targetBuild.Manifest = sourceBuild.Manifest
@@ -451,7 +465,7 @@ func (p *AWSProvider) BuildLogs(app, id string, w io.Writer) error {
 		cs, err := dc.ListContainers(docker.ListContainersOptions{
 			All: true,
 			Filters: map[string][]string{
-				"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+				"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
 			},
 		})
 		if err != nil {
@@ -509,8 +523,8 @@ func (p *AWSProvider) BuildList(app string, limit int64) (structs.Builds, error)
 
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
-				AttributeValueList: []*dynamodb.AttributeValue{&dynamodb.AttributeValue{S: aws.String(a.Name)}},
+			"app": {
+				AttributeValueList: []*dynamodb.AttributeValue{{S: aws.String(a.Name)}},
 				ComparisonOperator: aws.String("EQ"),
 			},
 		},
@@ -596,10 +610,10 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":      &dynamodb.AttributeValue{S: aws.String(b.Id)},
-			"app":     &dynamodb.AttributeValue{S: aws.String(b.App)},
-			"status":  &dynamodb.AttributeValue{S: aws.String(b.Status)},
-			"created": &dynamodb.AttributeValue{S: aws.String(b.Started.Format(sortableTime))},
+			"id":      {S: aws.String(b.Id)},
+			"app":     {S: aws.String(b.App)},
+			"status":  {S: aws.String(b.Status)},
+			"created": {S: aws.String(b.Started.Format(sortableTime))},
 		},
 		TableName: aws.String(p.DynamoBuilds),
 	}
@@ -643,37 +657,6 @@ func (p *AWSProvider) BuildSave(b *structs.Build) error {
 }
 
 func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
-	r, err := p.ObjectFetch("env")
-	if err != nil && !ErrorNotFound(err) {
-		return "", err
-	}
-
-	data := []byte("{}")
-
-	if r != nil {
-		defer r.Close()
-
-		d, err := ioutil.ReadAll(r)
-		if err != nil {
-			return "", err
-		}
-		data = d
-
-		if p.EncryptionKey != "" {
-			cr := crypt.New(p.Region, p.Access, p.Secret)
-
-			if d, err := cr.Decrypt(p.EncryptionKey, data); err == nil {
-				data = d
-			}
-		}
-	}
-
-	var env map[string]string
-	err = json.Unmarshal(data, &env)
-	if err != nil {
-		return "", err
-	}
-
 	type authEntry struct {
 		Username string
 		Password string
@@ -681,22 +664,27 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 
 	auth := map[string]authEntry{}
 
-	if ea, ok := env["DOCKER_AUTH_DATA"]; ok {
-		if err := json.Unmarshal([]byte(ea), &auth); err != nil {
-			return "", err
-		}
+	registries, err := p.RegistryList()
+	if err != nil {
+		return "", err
 	}
 
-	for host, entry := range auth {
-		if regexpECRRepository.MatchString(host) {
-			un, pw, err := p.authECR(host, entry.Username, entry.Password)
+	for _, r := range registries {
+		switch {
+		case regexpECRHost.MatchString(r.Server):
+			un, pw, err := p.authECR(r.Server, r.Username, r.Password)
 			if err != nil {
 				return "", err
 			}
 
-			auth[host] = authEntry{
+			auth[r.Server] = authEntry{
 				Username: un,
 				Password: pw,
+			}
+		default:
+			auth[r.Server] = authEntry{
+				Username: r.Username,
+				Password: r.Password,
 			}
 		}
 	}
@@ -718,7 +706,7 @@ func (p *AWSProvider) buildAuth(build *structs.Build) (string, error) {
 		Password: pw,
 	}
 
-	data, err = json.Marshal(auth)
+	data, err := json.Marshal(auth)
 	if err != nil {
 		return "", err
 	}
@@ -735,7 +723,16 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 
 	e := ecr.New(session.New(), config)
 
-	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	if !regexpECRHost.MatchString(host) {
+		return "", "", fmt.Errorf("invalid ECR hostname")
+	}
+
+	registry := regexpECRHost.FindStringSubmatch(host)
+
+	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
+		RegistryIds: []*string{aws.String(registry[1])},
+	})
+
 	if err != nil {
 		return "", "", err
 	}
@@ -786,7 +783,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		TaskDefinition: aws.String(td),
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
-				&ecs.ContainerOverride{
+				{
 					Name: aws.String("build"),
 					Command: []*string{
 						aws.String("build"),
@@ -794,35 +791,31 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						aws.String("-cache"), aws.String(fmt.Sprintf("%t", opts.Cache)),
 					},
 					Environment: []*ecs.KeyValuePair{
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_APP"),
 							Value: aws.String(build.App),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_AUTH"),
 							Value: aws.String(auth),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_CONFIG"),
 							Value: aws.String(opts.Config),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_ID"),
 							Value: aws.String(build.Id),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_PUSH"),
 							Value: aws.String(push),
 						},
-						&ecs.KeyValuePair{
-							Name:  aws.String("BUILD_RELEASE"),
-							Value: aws.String(a.Release),
-						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("BUILD_URL"),
 							Value: aws.String(url),
 						},
-						&ecs.KeyValuePair{
+						{
 							Name:  aws.String("RELEASE"),
 							Value: aws.String(build.Id),
 						},
@@ -882,7 +875,7 @@ func (p *AWSProvider) waitForContainer(task *ecs.Task) error {
 			cs, err := dc.ListContainers(docker.ListContainersOptions{
 				All: true,
 				Filters: map[string][]string{
-					"label": []string{fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
+					"label": {fmt.Sprintf("com.amazonaws.ecs.task-arn=%s", *task.TaskArn)},
 				},
 			})
 			if err != nil {
@@ -946,7 +939,7 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 
 	urls := []string{}
 
-	for name, _ := range m.Services {
+	for name := range m.Services {
 		urls = append(urls, p.registryTag(a, name, b.Id))
 	}
 
@@ -976,10 +969,9 @@ func (p *AWSProvider) deleteImages(a *structs.App, b *structs.Build) error {
 	return err
 }
 
-func (p *AWSProvider) dockerLogin(repo *appRepository) error {
-	log := Logger.At("dockerLogin").Namespace("repo=%q", repo.URI).Start()
+func (p *AWSProvider) dockerLogin() error {
+	log := Logger.At("dockerLogin").Start()
 
-	log.Step("token").Logf("id=%q", repo.ID)
 	tres, err := p.ecr().GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		log.Error(err)
@@ -1002,11 +994,15 @@ func (p *AWSProvider) dockerLogin(repo *appRepository) error {
 		return fmt.Errorf("invalid auth data")
 	}
 
-	log.Step("login").Logf("host=%q user=%q", repo.URI, authParts[0])
-	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], repo.URI).CombinedOutput()
+	registry, err := url.Parse(*tres.AuthorizationData[0].ProxyEndpoint)
 	if err != nil {
-		log.Errorf(lastline(out))
-		return err
+		return log.Error(err)
+	}
+
+	log.Step("login").Logf("host=%q user=%q", registry.Host, authParts[0])
+	out, err := exec.Command("docker", "login", "-u", authParts[0], "-p", authParts[1], registry.Host).CombinedOutput()
+	if err != nil {
+		return log.Error(fmt.Errorf("%s: %s\n", lastline(out), err.Error()))
 	}
 
 	log.Success()
@@ -1064,7 +1060,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 	qi := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("app = :app"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":app": &dynamodb.AttributeValue{S: aws.String(app.Name)},
+			":app": {S: aws.String(app.Name)},
 		},
 		IndexName: aws.String("app.created"),
 		TableName: aws.String(p.DynamoBuilds),
@@ -1083,7 +1079,7 @@ func (p *AWSProvider) buildsDeleteAll(app *structs.App) error {
 		wr := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
-					"id": &dynamodb.AttributeValue{
+					"id": {
 						S: aws.String(b.Id),
 					},
 				},

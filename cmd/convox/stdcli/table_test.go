@@ -11,9 +11,13 @@ import (
 
 func TestTableOutput(t *testing.T) {
 	buf := &bytes.Buffer{}
+	old := stdcli.DefaultWriter
+	stdcli.DefaultWriter.Stdout = buf
+	defer func() {
+		stdcli.DefaultWriter = old
+	}()
 
 	tb := stdcli.NewTable("FOO", "BAR")
-	tb.Output = buf
 
 	tb.AddRow("foo bar", "foo bar baz qux")
 	tb.AddRow("bar foo baz", "foo")

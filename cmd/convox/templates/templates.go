@@ -97,7 +97,7 @@ func initDjangoDockerignore() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/django/.dockerignore", size: 29, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/django/.dockerignore", size: 29, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -117,7 +117,7 @@ func initDjangoDockerfile() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/django/Dockerfile", size: 693, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/django/Dockerfile", size: 693, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -137,12 +137,12 @@ func initDjangoDockerComposeYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/django/docker-compose.yml", size: 296, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/django/docker-compose.yml", size: 296, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _initRailsDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x54\xc7\x4d\x0e\x84\x20\x0c\x05\xe0\xfd\x3b\x0a\xc9\xf4\x2d\xe6\x44\x22\x84\x60\x6a\xeb\x4f\x21\x1e\xdf\xb5\xcb\x8f\x92\x87\x15\xad\xa0\xac\x6e\xd3\x1f\x50\xaa\x4d\x50\x5a\x0f\xb0\x64\x26\xb9\x4f\xed\x51\xff\x5f\xfd\x36\x1f\x97\x2d\x0a\xaa\x37\x26\x30\xf6\x03\x6f\x00\x00\x00\xff\xff\xa0\x04\x95\x56\x4e\x00\x00\x00")
+var _initRailsDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\x4b\x2a\xcd\x4b\xc9\x49\xe5\xd2\x4b\xce\xcf\x2b\xcb\xaf\xe0\xd2\x4b\xcd\x2b\xe3\xd2\x4b\xcf\x2c\xe1\x4a\x49\xd2\xd7\xd2\x2b\x2e\xcc\xc9\x2c\x49\x35\x46\xe1\xe8\x66\xe5\x97\x16\xe5\x25\xe6\x70\xe5\xe4\xa7\xeb\x6b\x71\x95\xe4\x16\x70\x01\x02\x00\x00\xff\xff\xa3\x7f\x13\x17\x46\x00\x00\x00")
 
 func initRailsDockerignoreBytes() ([]byte, error) {
 	return bindataRead(
@@ -157,7 +157,7 @@ func initRailsDockerignore() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/rails/.dockerignore", size: 78, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/rails/.dockerignore", size: 70, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -177,7 +177,7 @@ func initRailsDockerfile() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/rails/Dockerfile", size: 508, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/rails/Dockerfile", size: 508, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -197,12 +197,12 @@ func initRailsDockerComposeYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/rails/docker-compose.yml", size: 169, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/rails/docker-compose.yml", size: 169, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _initRubyDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\xd7\x4b\x2a\xcd\x4b\xc9\x49\xe5\xd2\xd7\x4b\xce\xcf\x2b\xcb\xaf\xe0\xd2\xd7\x4b\xcd\x2b\xe3\xd2\xd7\x4b\xcf\x2c\xe1\x02\x04\x00\x00\xff\xff\xc9\x68\x92\x70\x1e\x00\x00\x00")
+var _initRubyDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\x4b\x2a\xcd\x4b\xc9\x49\xe5\xd2\x4b\xce\xcf\x2b\xcb\xaf\xe0\xd2\x4b\xcd\x2b\xe3\xd2\x4b\xcf\x2c\xe1\x02\x04\x00\x00\xff\xff\xfa\xe4\xeb\x58\x1a\x00\x00\x00")
 
 func initRubyDockerignoreBytes() ([]byte, error) {
 	return bindataRead(
@@ -217,7 +217,7 @@ func initRubyDockerignore() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/ruby/.dockerignore", size: 30, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/ruby/.dockerignore", size: 26, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -237,7 +237,7 @@ func initRubyDockerfile() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/ruby/Dockerfile", size: 298, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/ruby/Dockerfile", size: 298, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -257,12 +257,12 @@ func initRubyDockerComposeYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/ruby/docker-compose.yml", size: 239, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/ruby/docker-compose.yml", size: 239, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _initSinatraDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\xd7\x4b\x2a\xcd\x4b\xc9\x49\xe5\xd2\xd7\x4b\xce\xcf\x2b\xcb\xaf\xe0\xd2\xd7\x4b\xcd\x2b\xe3\xd2\xd7\x4b\xcf\x2c\xe1\x02\x04\x00\x00\xff\xff\xc9\x68\x92\x70\x1e\x00\x00\x00")
+var _initSinatraDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\x4b\x2a\xcd\x4b\xc9\x49\xe5\xd2\x4b\xce\xcf\x2b\xcb\xaf\xe0\xd2\x4b\xcd\x2b\xe3\xd2\x4b\xcf\x2c\xe1\x02\x04\x00\x00\xff\xff\xfa\xe4\xeb\x58\x1a\x00\x00\x00")
 
 func initSinatraDockerignoreBytes() ([]byte, error) {
 	return bindataRead(
@@ -277,7 +277,7 @@ func initSinatraDockerignore() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/sinatra/.dockerignore", size: 30, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/sinatra/.dockerignore", size: 26, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -297,7 +297,7 @@ func initSinatraDockerfile() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/sinatra/Dockerfile", size: 301, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/sinatra/Dockerfile", size: 301, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -317,7 +317,7 @@ func initSinatraDockerComposeYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/sinatra/docker-compose.yml", size: 169, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/sinatra/docker-compose.yml", size: 169, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -337,7 +337,7 @@ func initUnknownDockerignore() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/unknown/.dockerignore", size: 10, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/unknown/.dockerignore", size: 10, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -357,7 +357,7 @@ func initUnknownDockerfile() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/unknown/Dockerfile", size: 31, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/unknown/Dockerfile", size: 31, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -377,7 +377,7 @@ func initUnknownDockerComposeYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init/unknown/docker-compose.yml", size: 42, mode: os.FileMode(420), modTime: time.Unix(1473264153, 0)}
+	info := bindataFileInfo{name: "init/unknown/docker-compose.yml", size: 42, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

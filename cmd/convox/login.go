@@ -72,7 +72,7 @@ func cmdLogin(c *cli.Context) error {
 
 	u, err := url.Parse(host)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if u.Host != "" {
@@ -102,20 +102,20 @@ func cmdLogin(c *cli.Context) error {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "401") {
-			return stdcli.ExitError(fmt.Errorf("invalid login"))
+			return stdcli.Error(fmt.Errorf("invalid login\nHave you created an account at https://convox.com/signup?"))
 		} else {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 	}
 
 	err = addLogin(host, password)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	err = switchHost(host)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("Logged in successfully.")

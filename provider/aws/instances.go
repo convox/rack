@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -23,7 +24,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 
 	ec2Res, err := p.ec2().DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{Name: aws.String("instance-id"), Values: instanceIds},
+			{Name: aws.String("instance-id"), Values: instanceIds},
 		},
 		MaxResults: aws.Int64(1000),
 	})
@@ -42,7 +43,7 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 
 			res, err := p.cloudwatch().GetMetricStatistics(&cloudwatch.GetMetricStatisticsInput{
 				Dimensions: []*cloudwatch.Dimension{
-					&cloudwatch.Dimension{Name: aws.String("InstanceId"), Value: i.InstanceId},
+					{Name: aws.String("InstanceId"), Value: i.InstanceId},
 				},
 				EndTime:    aws.Time(time.Now()),
 				MetricName: aws.String("CPUUtilization"),
@@ -123,6 +124,36 @@ func (p *AWSProvider) InstanceList() (structs.Instances, error) {
 	}
 
 	return instances, nil
+}
+
+func (p *AWSProvider) InstanceTerminate(id string) error {
+	instances, err := p.InstanceList()
+	if err != nil {
+		return err
+	}
+
+	found := false
+
+	for _, i := range instances {
+		if i.Id == id {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("no such instance: %s", id)
+	}
+
+	_, err = p.autoscaling().TerminateInstanceInAutoScalingGroup(&autoscaling.TerminateInstanceInAutoScalingGroupInput{
+		InstanceId:                     aws.String(id),
+		ShouldDecrementDesiredCapacity: aws.Bool(false),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // describeContainerInstances lists and describes all the ECS instances.

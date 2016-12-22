@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acm"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -17,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/convox/logger"
@@ -50,6 +52,7 @@ type AWSProvider struct {
 	Password          string
 	Rack              string
 	RegistryHost      string
+	SecurityGroup     string
 	SettingsBucket    string
 	Subnets           string
 	SubnetsPrivate    string
@@ -78,6 +81,7 @@ func FromEnv() *AWSProvider {
 		Password:          os.Getenv("PASSWORD"),
 		Rack:              os.Getenv("RACK"),
 		RegistryHost:      os.Getenv("REGISTRY_HOST"),
+		SecurityGroup:     os.Getenv("SECURITY_GROUP"),
 		SettingsBucket:    os.Getenv("SETTINGS_BUCKET"),
 		Subnets:           os.Getenv("SUBNETS"),
 		SubnetsPrivate:    os.Getenv("SUBNETS_PRIVATE"),
@@ -124,6 +128,10 @@ func (p *AWSProvider) acm() *acm.ACM {
 	return acm.New(session.New(), p.config())
 }
 
+func (p *AWSProvider) autoscaling() *autoscaling.AutoScaling {
+	return autoscaling.New(session.New(), p.config())
+}
+
 func (p *AWSProvider) cloudformation() *cloudformation.CloudFormation {
 	return cloudformation.New(session.New(), p.config())
 }
@@ -150,6 +158,10 @@ func (p *AWSProvider) ecr() *ecr.ECR {
 
 func (p *AWSProvider) ecs() *ecs.ECS {
 	return ecs.New(session.New(), p.config())
+}
+
+func (p *AWSProvider) kms() *kms.KMS {
+	return kms.New(session.New(), p.config())
 }
 
 func (p *AWSProvider) iam() *iam.IAM {

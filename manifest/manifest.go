@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/go-units"
 	"gopkg.in/yaml.v2"
 )
 
@@ -62,6 +63,7 @@ func Load(data []byte) (*Manifest, error) {
 				return nil, fmt.Errorf("dockerfile specified twice for %s", name)
 			}
 			service.Build.Dockerfile = service.Dockerfile
+			service.Dockerfile = ""
 		}
 
 		// denormalize a bit
@@ -70,18 +72,12 @@ func Load(data []byte) (*Manifest, error) {
 		m.Services[name] = service
 	}
 
-	err = m.Validate()
-	if err != nil {
-		return nil, err
-	}
-
 	return m, nil
 }
 
 // Load a Manifest from a file
 func LoadFile(path string) (*Manifest, error) {
 	data, err := ioutil.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -89,69 +85,86 @@ func LoadFile(path string) (*Manifest, error) {
 	return Load(data)
 }
 
-func (m Manifest) Validate() error {
+func (m Manifest) Validate() []error {
 	regexValidCronLabel := regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{3,29}\z`)
+	errors := []error{}
 
 	for _, entry := range m.Services {
 		if strings.Contains(entry.Name, "_") {
-			return fmt.Errorf("service name cannot contain an underscore: %s", entry.Name)
+			errors = append(errors, fmt.Errorf("service name cannot contain an underscore: %s", entry.Name))
 		}
 
 		labels := entry.LabelsByPrefix("convox.cron")
-		for k, _ := range labels {
+		for k := range labels {
 			parts := strings.Split(k, ".")
 			if len(parts) != 3 {
-				return fmt.Errorf(
-					"Cron task is not valid (must be in format convox.cron.myjob)",
-				)
+				errors = append(errors, fmt.Errorf("Cron task is not valid (must be in format convox.cron.myjob)"))
 			}
 			name := parts[2]
 			if !regexValidCronLabel.MatchString(name) {
-				return fmt.Errorf(
-					"Cron task %s is not valid (cron names can contain only alphanumeric characters and dashes and must be between 4 and 30 characters)",
+
+				errors = append(errors, fmt.Errorf(
+					"Cron task %s is not valid (cron names can contain only alphanumeric characters, dashes and must be between 4 and 30 characters)",
 					name,
-				)
+				))
 			}
 		}
 
 		labels = entry.LabelsByPrefix("convox.health.timeout")
 		for _, v := range labels {
 			i, err := strconv.Atoi(v)
-			if err != nil {
-				return fmt.Errorf(
-					"convox.health.timeout is invalid for %s, must be a number between 0 and 60",
-					entry.Name,
-				)
-			}
-
-			if i < 0 || i > 60 {
-				return fmt.Errorf(
-					"convox.health.timeout is invalid for %s, must be a number between 0 and 60",
-					entry.Name,
-				)
+			if err != nil || i < 0 || i > 60 {
+				errors = append(errors, fmt.Errorf("convox.health.timeout is invalid for %s, must be a number between 0 and 60", entry.Name))
 			}
 		}
 
 		for _, l := range entry.Links {
 			ls, ok := m.Services[l]
 			if !ok {
-				return fmt.Errorf(
-					"%s links to service: %s which does not exist",
-					entry.Name,
-					l,
-				)
+				errors = append(errors, fmt.Errorf("%s links to service: %s which does not exist", entry.Name, l))
 			}
 
 			if len(ls.Ports) == 0 {
-				return fmt.Errorf(
-					"%s links to service: %s which does not expose any ports",
-					entry.Name,
-					l,
-				)
+				errors = append(errors, fmt.Errorf("%s links to service: %s which does not expose any ports", entry.Name, l))
+			}
+		}
+
+		// test mem_limit: Docker requires a mem_limit of at least 4mb (or 0)
+		mem_min := Memory(units.MB * 4)
+		mem := entry.Memory
+
+		if mem < mem_min && mem != 0 { //Memory(0) {
+			e := fmt.Errorf("%s service has invalid mem_limit %#v bytes (%#v MB): should be either 0, or at least %#vMB",
+				entry.Name,
+				mem,
+				mem/units.MB,
+				mem_min/units.MB)
+			errors = append(errors, e)
+		}
+
+		// check that health check port is valid
+		if port, ok := entry.Labels["convox.health.port"]; ok {
+			pi, err := strconv.Atoi(port)
+			if err != nil {
+				errors = append(errors, err)
+			} else {
+				found := false
+
+				for _, p := range entry.Ports {
+					if p.Container == pi {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					errors = append(errors, fmt.Errorf("%s service has convox.health.port set to a port it does not declare", entry.Name))
+				}
 			}
 		}
 	}
-	return nil
+
+	return errors
 }
 
 // Return a list of ports this manifest will expose when run
@@ -192,12 +205,40 @@ func (m *Manifest) PortConflicts() ([]int, error) {
 }
 
 // Run Instantiate a Run object based on this manifest to be run via 'convox start'
-func (m *Manifest) Run(dir, app string, cache, sync bool) Run {
-	return NewRun(dir, app, *m, cache, sync)
+func (m *Manifest) Run(dir, app string, opts RunOptions) Run {
+	return NewRun(*m, dir, app, opts)
+}
+
+func (m *Manifest) getDeps(root, dep string, deps map[string]bool) error {
+	deps[dep] = true
+	targetService, ok := m.Services[dep]
+	if !ok {
+		return fmt.Errorf("Dependency %s of %s not found in manifest", dep, root)
+	}
+
+	for _, x := range targetService.Links {
+		_, ok := deps[x]
+		if !ok {
+			deps[dep] = true
+			err := m.getDeps(root, x, deps)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Return the Services of this Manifest in the order you should run them
-func (m *Manifest) runOrder() Services {
+func (m *Manifest) runOrder(target string) (Services, error) {
+	deps := make(map[string]bool)
+	if target != "" {
+		err := m.getDeps(target, target, deps)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	services := Services{}
 
 	for _, service := range m.Services {
@@ -219,12 +260,23 @@ func (m *Manifest) runOrder() Services {
 		}
 	}
 
-	return services
+	if len(deps) > 0 {
+		servicesFiltered := []Service{}
+		for _, s := range services {
+			if deps[s.Name] {
+				servicesFiltered = append(servicesFiltered, s)
+			}
+		}
+		return Services(servicesFiltered), nil
+	}
+
+	return services, nil
 }
 
-// Shift all external ports in this Manifest by the given amount and their shift labels
+// Shift all external ports and labels in this Manifest by the given amount and their shift labels
 func (m *Manifest) Shift(shift int) error {
 	for _, service := range m.Services {
+		service.Labels.Shift(shift)
 		service.Ports.Shift(shift)
 
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
@@ -233,6 +285,7 @@ func (m *Manifest) Shift(shift int) error {
 				return fmt.Errorf("invalid shift: %s", ss)
 			}
 
+			service.Labels.Shift(shift)
 			service.Ports.Shift(shift)
 		}
 	}
@@ -281,7 +334,7 @@ func (m Manifest) EntryNames() []string {
 	names := make([]string, len(m.Services))
 	x := 0
 
-	for k, _ := range m.Services {
+	for k := range m.Services {
 		names[x] = k
 		x += 1
 	}

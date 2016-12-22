@@ -36,7 +36,7 @@ func init() {
 
 func cmdApi(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return cli.NewExitError("ERROR: `convox api` does not take arguments. Perhaps you meant `convox api get`?", 1)
+		return stdcli.Errorf("ERROR: `convox api` does not take arguments. Perhaps you meant `convox api get`?", 1)
 	}
 
 	stdcli.Usage(c, "")
@@ -55,12 +55,12 @@ func cmdApiGet(c *cli.Context) error {
 
 	err := rackClient(c).Get(path, &object)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return stdcli.Error(err)
 	}
 
 	data, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println(string(data))
@@ -79,12 +79,12 @@ func cmdApiDelete(c *cli.Context) error {
 
 	err := rackClient(c).Delete(path, &object)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return stdcli.Error(err)
 	}
 
 	data, err := json.MarshalIndent(object, "", "  ")
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println(string(data))

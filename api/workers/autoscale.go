@@ -43,7 +43,11 @@ func autoscaleRack() {
 	}
 
 	log.Logf("status=%q", system.Status)
-	if system.Status != "running" {
+
+	// only allow running and converging status through
+	switch system.Status {
+	case "running", "converging":
+	default:
 		return
 	}
 
@@ -79,13 +83,22 @@ func autoscaleRack() {
 		return
 	}
 
-	log.Logf("change=%d", (desired - system.Count))
+	oldCount := system.Count
 
-	// ok to start multiple but shut them down one at a time
+	// ok to start multiple instances in one pass
+	// when shutting down go one at a time but only if current status is "running"
 	if desired < system.Count {
-		system.Count--
+		if system.Status == "running" {
+			system.Count--
+		}
 	} else {
 		system.Count = desired
+	}
+
+	log.Logf("change=%d", (system.Count - oldCount))
+	// nothing changed, return
+	if system.Count == oldCount {
+		return
 	}
 
 	err = models.Provider().SystemSave(*system)

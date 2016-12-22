@@ -14,6 +14,10 @@ import (
 func TestSystemGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
+		cycleDescribeRackStackResources,
+		cycleDescribeAutoscalingGroups,
+		cycleECSListServices,
+		cycleECSDescribeServices,
 	)
 	defer provider.Close()
 
@@ -25,6 +29,27 @@ func TestSystemGet(t *testing.T) {
 		Name:    "convox",
 		Region:  "us-test-1",
 		Status:  "running",
+		Type:    "t2.small",
+		Version: "dev",
+	}, s)
+}
+
+func TestSystemGetConverging(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStacks,
+		cycleDescribeRackStackResources,
+		cycleDescribeAutoscalingGroupsInstanceTerminating,
+	)
+	defer provider.Close()
+
+	s, err := provider.SystemGet()
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, &structs.System{
+		Count:   3,
+		Name:    "convox",
+		Region:  "us-test-1",
+		Status:  "converging",
 		Type:    "t2.small",
 		Version: "dev",
 	}, s)
@@ -119,21 +144,76 @@ func TestSystemSaveWrongType(t *testing.T) {
 	assert.Equal(t, err, fmt.Errorf("invalid instance type: wrongtype"))
 }
 
+func TestSystemProcessesList(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemDescribeStackResources,
+		cycleSystemListTasks,
+		cycleSystemDescribeTasks,
+		cycleSystemDescribeTaskDefinition,
+		cycleSystemDescribeContainerInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeTaskDefinition2,
+		cycleSystemDescribeContainerInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleSystemDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+	)
+	defer d.Close()
+
+	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
+		All: false,
+	})
+
+	assert.Nil(t, err)
+}
+
+func TestSystemProcessesListAll(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleSystemListTasksAll,
+		cycleSystemDescribeTasks,
+		cycleSystemDescribeTaskDefinition,
+		cycleSystemDescribeContainerInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeInstances,
+		cycleSystemDescribeTaskDefinition2,
+		cycleSystemDescribeContainerInstances,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleSystemDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+	)
+	defer d.Close()
+
+	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
+		All: true,
+	})
+
+	assert.Nil(t, err)
+}
+
 var cycleSystemDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-			<DescribeStacksResult>
-				<Stacks>
-					<member>
-						<Outputs>
-						</Outputs>
-						<Capabilities>
-							<member>CAPABILITY_IAM</member>
-						</Capabilities>
-						<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
-						<NotificationARNs/>
+		<DescribeStacksResult>
+		<Stacks>
+		<member>
+		<Outputs>
+		</Outputs>
+		<Capabilities>
+		<member>CAPABILITY_IAM</member>
+		</Capabilities>
+		<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
+		<NotificationARNs/>
 						<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
 						<StackName>convox</StackName>
 						<StackStatus>UPDATE_COMPLETE</StackStatus>
@@ -273,7 +353,7 @@ var cycleSystemDescribeStacks = awsutil.Cycle{
 }
 
 var cycleSystemDescribeStacksMissingParameters = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -390,5 +470,531 @@ var cycleSystemUpdateStackNewParameter = awsutil.Cycle{
 				</ResponseMetadata>
 			</UpdateStackResponse>
 		`,
+	},
+}
+
+var cycleDescribeRackStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <DescribeStackResourcesResult>
+    <StackResources>
+    <member>
+      <PhysicalResourceId>convox-Instances-1UEIK1IO8W9K3</PhysicalResourceId>
+      <ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+      <StackId>arn:aws:cloudformation:us-east-1:990037048036:stack/convox/b8423690-917d-1fe6-8737-50dseaf92cd2</StackId>
+      <StackName>convox</StackName>
+      <LogicalResourceId>Instances</LogicalResourceId>
+      <Timestamp>2016-10-22T02:53:23.817Z</Timestamp>
+      <ResourceType>AWS::AutoScaling::AutoScalingGroup</ResourceType>
+    </member>
+    </StackResources>
+  </DescribeStackResourcesResult>
+  <ResponseMetadata>
+    <RequestId>50ce1445-9805-11e6-8ba2-2b306877d289</RequestId>
+  </ResponseMetadata>
+</DescribeStackResourcesResponse>
+		`,
+	},
+}
+
+var cycleDescribeAutoscalingGroups = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeAutoScalingGroups&AutoScalingGroupNames.member.1=convox-Instances-1UEIK1IO8W9K3&Version=2011-01-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+    <DescribeAutoScalingGroupsResult>
+        <AutoScalingGroups>
+            <member>
+                <Instances>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-02fbf6732eac0d195</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-047a745d1d8016000</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1a</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b0fa380591282dd0</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b56f635928702c76</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1d</AvailabilityZone>
+                    </member>
+                </Instances>
+            </member>
+        </AutoScalingGroups>
+    </DescribeAutoScalingGroupsResult>
+    <ResponseMetadata>
+        <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
+    </ResponseMetadata>
+</DescribeAutoScalingGroupsResponse>`,
+	},
+}
+
+var cycleECSListServices = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListServices",
+		Body:       `{"cluster": "cluster-test", "maxResults": 10}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{"serviceArns": [
+        "arn:aws:ecs:us-east-1:111111111111:service/rack-RackMonitor-1JI86RBJGU0M2",
+        "arn:aws:ecs:us-east-1:111111111111:service/rack-RackWeb-1W12WRB8CUUW4",
+        "arn:aws:ecs:us-east-1:111111111111:service/rack-httpd-ServiceWeb-1PZ7WERU0UPVN"
+    ]
+}`,
+	},
+}
+
+var cycleECSDescribeServices = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
+		Body: `{"cluster": "cluster-test", "services": [
+    "arn:aws:ecs:us-east-1:111111111111:service/rack-RackMonitor-1JI86RBJGU0M2",
+    "arn:aws:ecs:us-east-1:111111111111:service/rack-RackWeb-1W12WRB8CUUW4",
+    "arn:aws:ecs:us-east-1:111111111111:service/rack-httpd-ServiceWeb-1PZ7WERU0UPVN"
+  ]}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+    "failures": [],
+    "services": [{
+        "clusterArn": "arn:aws:ecs:us-east-1:111111111111:cluster/rack-Cluster-DFMP83Z2KMOB",
+        "createdAt": 1.479163546803E9,
+        "deploymentConfiguration": {
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [{
+            "createdAt": 1.48095261184E9,
+            "desiredCount": 1,
+            "id": "ecs-svc/9223370555902163967",
+            "pendingCount": 0,
+            "runningCount": 1,
+            "status": "PRIMARY",
+            "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-monitor:104",
+            "updatedAt": 1.48095261184E9
+        }],
+        "desiredCount": 1,
+        "events": [
+          {
+            "createdAt": 1.480959425817E9,
+            "id": "11111111-c7f4-1111-8faa-1111111f8daa",
+            "message": "(service rack-RackMonitor-1JI86R98ZU0M2) has reached a steady state."
+        }],
+        "loadBalancers": [],
+        "pendingCount": 0,
+        "runningCount": 1,
+        "serviceArn": "arn:aws:ecs:us-east-1:111111111111:service/rack-RackMonitor-1JI86R98ZU0M2",
+        "serviceName": "rack-RackMonitor-1JI86R98ZU0M2",
+        "status": "ACTIVE",
+        "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-monitor:104"
+    }, {
+        "clusterArn": "arn:aws:ecs:us-east-1:111111111111:cluster/rack-Cluster-DFMP83Z2KMOB",
+        "createdAt": 1.479163547885E9,
+        "deploymentConfiguration": {
+            "maximumPercent": 200,
+            "minimumHealthyPercent": 100
+        },
+        "deployments": [{
+            "createdAt": 1.480952617042E9,
+            "desiredCount": 2,
+            "id": "ecs-svc/9223370555902158765",
+            "pendingCount": 0,
+            "runningCount": 2,
+            "status": "PRIMARY",
+            "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-web:101",
+            "updatedAt": 1.480952617042E9
+        }],
+        "desiredCount": 2,
+        "events": [{
+            "createdAt": 1.480729663517E9,
+            "id": "4a111112-ba11-111b-9136-19111116a0e3",
+            "message": "(service rack-RackWeb-1W1WQRB8CUUW4) has started 1 tasks: (task foo-bar-49c2f91081)."
+        }],
+        "loadBalancers": [{
+            "containerName": "web",
+            "containerPort": 3000,
+            "loadBalancerName": "rack"
+        }],
+        "pendingCount": 0,
+        "roleArn": "arn:aws:iam::111111111111:role/convox/rack-ServiceRole-1UHAEF0KU6PQP",
+        "runningCount": 2,
+        "serviceArn": "arn:aws:ecs:us-east-1:111111111111:service/rack-RackWeb-1W1WQRB8CUUW4",
+        "serviceName": "rack-RackWeb-1W1WQRB8CUUW4",
+        "status": "ACTIVE",
+        "taskDefinition": "arn:aws:ecs:us-east-1:111111111111:task-definition/rack-web:101"
+    }]
+}`,
+	},
+}
+
+var cycleDescribeAutoscalingGroupsInstanceTerminating = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeAutoScalingGroups&AutoScalingGroupNames.member.1=convox-Instances-1UEIK1IO8W9K3&Version=2011-01-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+    <DescribeAutoScalingGroupsResult>
+        <AutoScalingGroups>
+            <member>
+                <Instances>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-02fbf6732eac0d195</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>Terminating:Wait</LifecycleState>
+                        <InstanceId>i-047a745d1d8016000</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1a</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b0fa380591282dd0</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1b</AvailabilityZone>
+                    </member>
+                    <member>
+                        <LaunchConfigurationName>convox-LaunchConfiguration-58846ZXWGVYY</LaunchConfigurationName>
+                        <LifecycleState>InService</LifecycleState>
+                        <InstanceId>i-0b56f635928702c76</InstanceId>
+                        <HealthStatus>Healthy</HealthStatus>
+                        <ProtectedFromScaleIn>false</ProtectedFromScaleIn>
+                        <AvailabilityZone>us-east-1d</AvailabilityZone>
+                    </member>
+                </Instances>
+            </member>
+        </AutoScalingGroups>
+    </DescribeAutoScalingGroupsResult>
+    <ResponseMetadata>
+        <RequestId>62487f00-9807-11e6-a11e-1336240b2ac0</RequestId>
+    </ResponseMetadata>
+</DescribeAutoScalingGroupsResponse>		`,
+	},
+}
+
+var cycleSystemDescribeStackResources = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeStackResources&StackName=convox&Version=2010-05-15`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<DescribeStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<DescribeStackResourcesResult>
+					<StackResources>
+						<member>
+							<PhysicalResourceId>arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD</PhysicalResourceId>
+							<ResourceStatus>UPDATE_COMPLETE</ResourceStatus>
+							<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox-myapp/5c05e0c0-6e10-11e6-8a4e-50fae98a10d2</StackId>
+							<StackName>convox-myapp</StackName>
+							<LogicalResourceId>ServiceDatabase</LogicalResourceId>
+							<Timestamp>2016-09-10T04:35:11.280Z</Timestamp>
+							<ResourceType>AWS::ECS::Service</ResourceType>
+						</member>
+					</StackResources>
+				</DescribeStackResourcesResult>
+				<ResponseMetadata>
+					<RequestId>8be86de9-7760-11e6-b2f2-6b253bb2c005</RequestId>
+				</ResponseMetadata>
+			</DescribeStackResourcesResponse>
+		`,
+	},
+}
+
+var cycleSystemListTasks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			  "cluster": "cluster-test",
+				  "serviceName": "arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD"
+				}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
+var cycleSystemListTasksAll = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.ListTasks",
+		Body: `{
+			  "cluster": "cluster-test"
+				}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskArns": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeTasks = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTasks",
+		Body: `{
+			"cluster": "cluster-test",
+			"tasks": [
+				"arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"tasks": [
+				{
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"overrides": {
+						"containerOverrides": [
+							{
+								"command": ["sh", "-c", "foo"]
+							}
+						]
+					},
+					"lastStatus": "RUNNING",
+					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34",
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"containers": [
+						{
+							"name": "web",
+							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
+						}
+					]
+				}
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeTaskDefinition = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+		Body: `{
+			  "taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34"
+			}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition": {
+				"status": "ACTIVE",
+				"family": "convox-myapp-web",
+				"requiresAttributes": [
+					{
+						"name": "com.amazonaws.ecs.capability.ecr-auth"
+					}
+				],
+				"volumes": [],
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+				"containerDefinitions": [
+					{
+						"environment": [
+							{
+								"name": "RELEASE",
+								"value": "R1234"
+							}
+						],
+						"name": "web",
+						"mountPoints": [],
+						"image": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
+						"cpu": 0,
+						"portMappings": [],
+						"memory": 256,
+						"privileged": false,
+						"essential": true,
+						"volumesFrom": []
+					}
+				],
+				"revision": 34
+			}
+		}`,
+	},
+}
+
+var cycleSystemDescribeContainerInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
+		Body: `{
+			"cluster": "cluster-test",
+			"containerInstances": [
+				"arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"failures": [],
+			"containerInstances": [
+				{
+					"ec2InstanceId": "i-5bc45dc2"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleSystemDescribeInstances = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "",
+		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-04-01`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<?xml version="1.0" encoding="UTF-8"?>
+			<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-04-01/">
+				<reservationSet>
+					<item>
+						<reservationId>r-003ed1d7</reservationId>
+						<ownerId>778743527532</ownerId>
+						<groupSet/>
+						<instancesSet>
+							<item>
+								<instanceId>i-5bc45dc2</instanceId>
+								<privateIpAddress>10.0.1.244</privateIpAddress>
+							</item>
+						</instancesSet>
+					</item>
+				</reservationSet>
+			</DescribeInstancesRepsonse>
+		}`,
+	},
+}
+
+var cycleSystemDescribeTaskDefinition2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
+		Body: `{
+			"taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"taskDefinition": {
+				"status": "ACTIVE",
+				"family": "convox-myapp-web",
+				"requiresAttributes": [
+					{
+						"name": "com.amazonaws.ecs.capability.ecr-auth"
+					}
+				],
+				"volumes": [],
+				"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
+				"containerDefinitions": [
+					{
+						"environment": [
+							{
+								"name": "RELEASE",
+								"value": "R1234"
+							}
+						],
+						"name": "web",
+						"mountPoints": [],
+						"image": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
+						"cpu": 0,
+						"portMappings": [],
+						"memory": 256,
+						"privileged": false,
+						"essential": true,
+						"volumesFrom": []
+					}
+				],
+				"revision": 34
+			}
+		}`,
+	},
+}
+
+var cycleSystemDockerListContainers2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "GET",
+		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
+		Operation:  "",
+		Body:       ``,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `[
+			{
+				"Id": "8dfafdbc3a40",
+				"Names":["/boring_feynman"],
+				"Image": "ubuntu:latest",
+				"ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
+				"Command": "echo 1",
+				"Created": 1367854155,
+				"State": "Exited",
+				"Status": "Exit 0",
+				"Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}]
+			}
+		]`,
 	},
 }

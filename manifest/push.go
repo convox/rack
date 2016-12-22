@@ -6,7 +6,12 @@ import (
 )
 
 func (m *Manifest) Push(template, app, build string, stream Stream) error {
-	for _, s := range m.runOrder() {
+	services, err := m.runOrder("")
+	if err != nil {
+		return err
+	}
+
+	for _, s := range services {
 		local := fmt.Sprintf("%s/%s", app, s.Name)
 
 		remote := template

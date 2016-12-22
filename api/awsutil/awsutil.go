@@ -13,6 +13,7 @@ import (
 
 // Request represents an expected AWS API Operation.
 type Request struct {
+	Method     string
 	RequestURI string
 	Operation  string
 	Body       string
@@ -20,7 +21,7 @@ type Request struct {
 
 func (r *Request) String() string {
 	body := formatBody(strings.NewReader(r.Body))
-	return fmt.Sprintf("RequestURI: %q,\nOperation: %q,\nBody: `%s`,", r.RequestURI, r.Operation, body)
+	return fmt.Sprintf("Method: %q,\nRequestURI: %q,\nOperation: %q,\nBody: `%s`,", r.Method, r.RequestURI, r.Operation, body)
 }
 
 // Response represents a predefined response.
@@ -52,6 +53,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	match := Request{
+		Method:     r.Method,
 		RequestURI: r.URL.RequestURI(),
 		Operation:  r.Header.Get("X-Amz-Target"),
 		Body:       string(b),
@@ -65,6 +67,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cycle := h.cycles[0]
+
+	if cycle.Request.Method == "" {
+		cycle.Request.Method = "POST"
+	}
 
 	var matched bool
 

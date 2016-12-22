@@ -82,6 +82,14 @@
             {
               "Ref": "AWS::Region"
             },
+            "us-east-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "us-west-1"
           ]
         },
@@ -216,7 +224,7 @@
       "Type": "Number"
     },
     "DeploymentMinimum": {
-      "Default": "100",
+      "Default": "50",
       "Description": "Minimum percentage of processes to keep running while deploying",
       "Type": "Number"
     },
@@ -517,6 +525,9 @@
                 "    '':''",
                 "}",
                 "exports.handler = function(event, context) {",
+                "    var command = event.command.replace(/\u0026#(\\d+);/g, function(match, dec) {",
+                "      return String.fromCharCode(dec);",
+                "    });",
                 "    var params = {",
                 "        startedBy: 'cron',",
                 "        taskDefinition: taskDefinitions[event.process],",
@@ -524,7 +535,7 @@
                 "        count: 1,",
                 "        overrides: {",
                 "            containerOverrides: [",
-                "                { name:event.process, command:[ 'sh', '-c', event.command ] }",
+                "                { name:event.process, command:[ 'sh', '-c', command ] }",
                 "            ]",
                 "        }",
                 "    };",

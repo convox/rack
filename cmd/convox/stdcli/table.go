@@ -2,8 +2,6 @@ package stdcli
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"strings"
 	"unicode"
 )
@@ -11,12 +9,10 @@ import (
 type Table struct {
 	Headers []string
 	Rows    [][]string
-
-	Output io.Writer
 }
 
 func NewTable(headers ...string) *Table {
-	return &Table{Headers: headers, Output: os.Stdout}
+	return &Table{Headers: headers}
 }
 
 func (t *Table) AddRow(values ...string) {
@@ -24,7 +20,7 @@ func (t *Table) AddRow(values ...string) {
 }
 
 func (t *Table) Print() {
-	t.printValues(t.Headers)
+	t.printHeaders(t.Headers)
 
 	for _, row := range t.Rows {
 		t.printValues(row)
@@ -55,11 +51,18 @@ func (t *Table) formatString() string {
 	return strings.Join(parts, "  ") + "\n"
 }
 
+func (t *Table) printHeaders(values []string) {
+	line := fmt.Sprintf(t.formatString(), interfaceSlice(values)...)
+	line = strings.TrimRightFunc(line, unicode.IsSpace) + "\n"
+
+	Writef("<header>%s</header>", line)
+}
+
 func (t *Table) printValues(values []string) {
 	line := fmt.Sprintf(t.formatString(), interfaceSlice(values)...)
 	line = strings.TrimRightFunc(line, unicode.IsSpace) + "\n"
 
-	fmt.Fprint(t.Output, line)
+	Write([]byte(line))
 }
 
 func interfaceSlice(ss []string) []interface{} {

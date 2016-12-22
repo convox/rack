@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -18,43 +19,43 @@ type ServiceType struct {
 
 func init() {
 	types := []ServiceType{
-		ServiceType{
+		{
 			"memcached",
 			"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
 		},
-		ServiceType{
+		{
 			"mysql",
 			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
 		},
-		ServiceType{
+		{
 			"postgres",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private]",
+			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private] [--version=9.5.2]",
 		},
-		ServiceType{
+		{
 			"redis",
 			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
-		ServiceType{
+		{
 			"s3",
 			"[--topic=sns-service-name] [--versioning]",
 		},
-		ServiceType{
+		{
 			"sns",
 			"[--queue=sqs-service-name]",
 		},
-		ServiceType{
+		{
 			"sqs",
-			"",
+			"[--message-retention-period=345600] [--receive-message-wait-time=0] [--visibility-timeout=30]",
 		},
-		ServiceType{
+		{
 			"syslog",
 			"--url=tcp+tls://logs1.papertrailapp.com:11235",
 		},
-		ServiceType{
+		{
 			"fluentd",
 			"--url=tcp://fluentd-collector.example.com:24224",
 		},
-		ServiceType{
+		{
 			"webhook",
 			"--url=https://console.convox.com/webhooks/1234",
 		},
@@ -66,15 +67,16 @@ func init() {
 	}
 
 	stdcli.RegisterCommand(cli.Command{
-		Name:        "services",
-		Description: "manage services",
+		Name:        "resources",
+		Aliases: []string{"services"},
+		Description: "manage external resources [prev. services]",
 		Usage:       "",
 		Action:      cmdServices,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
-				Description:     "create a new service.",
+				Description:     "create a new resource.",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceCreate,
 				Flags:           []cli.Flag{rackFlag},
@@ -82,14 +84,14 @@ func init() {
 			},
 			{
 				Name:        "delete",
-				Description: "delete a service",
+				Description: "delete a resource",
 				Usage:       "<name>",
 				Action:      cmdServiceDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "update",
-				Description:     "update a service.\n\nWARNING: updates may cause service downtime.",
+				Description:     "update a resource.\n\nWARNING: updates may cause resource downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				Action:          cmdServiceUpdate,
 				Flags:           []cli.Flag{rackFlag},
@@ -97,35 +99,35 @@ func init() {
 			},
 			{
 				Name:        "info",
-				Description: "info about a service.",
+				Description: "info about a resource.",
 				Usage:       "<name>",
 				Action:      cmdServiceInfo,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "link",
-				Description: "create a link between a service and an app.",
+				Description: "create a link between a resource and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "unlink",
-				Description: "delete a link between a service and an app.",
+				Description: "delete a link between a resource and an app.",
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "url",
-				Description: "return url for the given service",
+				Description: "return url for the given resource",
 				Usage:       "<name>",
 				Action:      cmdServiceURL,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "proxy",
-				Description: "proxy ports from localhost to connect to a service",
+				Description: "proxy ports from localhost to connect to a resource",
 				Usage:       "<name>",
 				Action:      cmdServiceProxy,
 				Flags: []cli.Flag{
@@ -143,7 +145,7 @@ func init() {
 
 func cmdServices(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox services` does not take arguments. Perhaps you meant `convox services create`?"))
+		return stdcli.Error(fmt.Errorf("`convox resources` does not take arguments. Perhaps you meant `convox resources create`?"))
 	}
 
 	if c.Bool("help") {
@@ -153,7 +155,7 @@ func cmdServices(c *cli.Context) error {
 
 	services, err := rackClient(c).GetServices()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("NAME", "TYPE", "STATUS")
@@ -181,7 +183,7 @@ func cmdServiceCreate(c *cli.Context) error {
 
 	t := c.Args()[0]
 
-	if t == "help" || t == "--help" {
+	if t == "help" || t == "--help" || t == "-h" {
 		stdcli.Usage(c, "create")
 		return nil
 	}
@@ -202,15 +204,26 @@ func cmdServiceCreate(c *cli.Context) error {
 		options["name"] = fmt.Sprintf("%s-%d", t, (rand.Intn(8999) + 1000))
 	}
 
+	// special cases
+	switch {
+	case t == "postgres" && options["version"] != "":
+		parts := strings.Split(options["version"], ".")
+		if len(parts) < 3 {
+			return stdcli.Error(fmt.Errorf("invalid version: %s", options["version"]))
+		}
+		options["family"] = fmt.Sprintf("postgres%s.%s", parts[0], parts[1])
+	}
+
 	fmt.Printf("Creating %s (%s", options["name"], t)
 	if len(optionsList) > 0 {
+		sort.Strings(optionsList)
 		fmt.Printf(": %s", strings.Join(optionsList, " "))
 	}
 	fmt.Printf(")... ")
 
 	_, err := rackClient(c).CreateService(t, options)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("CREATING")
@@ -253,7 +266,7 @@ func cmdServiceUpdate(c *cli.Context) error {
 
 	_, err := rackClient(c).UpdateService(name, options)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("UPDATING")
@@ -272,7 +285,7 @@ func cmdServiceDelete(c *cli.Context) error {
 
 	_, err := rackClient(c).DeleteService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("DELETING")
@@ -289,7 +302,7 @@ func cmdServiceInfo(c *cli.Context) error {
 
 	service, err := rackClient(c).GetService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Name    %s\n", service.Name)
@@ -323,15 +336,15 @@ func cmdServiceURL(c *cli.Context) error {
 
 	service, err := rackClient(c).GetService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if service.Status == "failed" {
-		return stdcli.ExitError(fmt.Errorf("Service failure for %s", service.StatusReason))
+		return stdcli.Error(fmt.Errorf("Service failure for %s", service.StatusReason))
 	}
 
 	if service.URL == "" {
-		return stdcli.ExitError(fmt.Errorf("URL does not exist for %s", service.Name))
+		return stdcli.Error(fmt.Errorf("URL does not exist for %s", service.Name))
 	}
 
 	fmt.Printf("%s\n", service.URL)
@@ -342,7 +355,7 @@ func cmdServiceURL(c *cli.Context) error {
 func cmdLinkCreate(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -354,7 +367,7 @@ func cmdLinkCreate(c *cli.Context) error {
 
 	_, err = rackClient(c).CreateLink(app, name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Linked %s to %s\n", name, app)
@@ -364,7 +377,7 @@ func cmdLinkCreate(c *cli.Context) error {
 func cmdLinkDelete(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -376,7 +389,7 @@ func cmdLinkDelete(c *cli.Context) error {
 
 	_, err = rackClient(c).DeleteLink(app, name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Unlinked %s from %s\n", name, app)
@@ -393,22 +406,22 @@ func cmdServiceProxy(c *cli.Context) error {
 
 	service, err := rackClient(c).GetService(name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	export, ok := service.Exports["URL"]
 	if !ok {
-		return stdcli.ExitError(fmt.Errorf("%s does not expose a URL", name))
+		return stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
 	}
 
 	u, err := url.Parse(export)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	remotehost, remoteport, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	localhost := "127.0.0.1"
@@ -428,12 +441,12 @@ func cmdServiceProxy(c *cli.Context) error {
 
 	lp, err := strconv.Atoi(localport)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	rp, err := strconv.Atoi(remoteport)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	proxy(localhost, lp, remotehost, rp, rackClient(c))

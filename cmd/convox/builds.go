@@ -135,11 +135,11 @@ func init() {
 func cmdBuilds(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox builds` does not take arguments. Perhaps you meant `convox builds create`?"))
+		return stdcli.Error(fmt.Errorf("`convox builds` does not take arguments. Perhaps you meant `convox builds create`?"))
 	}
 
 	if c.Bool("help") {
@@ -149,7 +149,7 @@ func cmdBuilds(c *cli.Context) error {
 
 	builds, err := rackClient(c).GetBuilds(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED", "DESC")
@@ -178,20 +178,20 @@ func cmdBuildsCreate(c *cli.Context) error {
 
 	dir, app, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	a, err := rackClient(c).GetApp(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	switch a.Status {
 	case "creating":
-		return stdcli.ExitError(fmt.Errorf("app is still creating: %s", app))
+		return stdcli.Error(fmt.Errorf("app is still creating: %s", app))
 	case "running", "updating":
 	default:
-		return stdcli.ExitError(fmt.Errorf("unable to build app: %s", app))
+		return stdcli.Error(fmt.Errorf("unable to build app: %s", app))
 	}
 
 	if len(c.Args()) > 0 {
@@ -206,7 +206,7 @@ func cmdBuildsCreate(c *cli.Context) error {
 
 	build, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
@@ -221,7 +221,7 @@ func cmdBuildsCreate(c *cli.Context) error {
 func cmdBuildsDelete(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -233,7 +233,7 @@ func cmdBuildsDelete(c *cli.Context) error {
 
 	fmt.Printf("Deleting %s... ", build)
 	if _, err := rackClient(c).DeleteBuild(app, build); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")
@@ -243,7 +243,7 @@ func cmdBuildsDelete(c *cli.Context) error {
 func cmdBuildsInfo(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -255,7 +255,7 @@ func cmdBuildsInfo(c *cli.Context) error {
 
 	b, err := rackClient(c).GetBuild(app, build)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Build        %s\n", b.Id)
@@ -271,11 +271,11 @@ func cmdBuildsInfo(c *cli.Context) error {
 func cmdBuildsExport(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if stdcli.IsTerminal(os.Stdout) && c.String("file") == "" {
-		return stdcli.ExitError(fmt.Errorf("please pipe the output of this command to a file or specify -f"))
+		return stdcli.Error(fmt.Errorf("please pipe the output of this command to a file or specify -f"))
 	}
 
 	if len(c.Args()) != 1 {
@@ -292,14 +292,14 @@ func cmdBuildsExport(c *cli.Context) error {
 	if file := c.String("file"); file != "" {
 		fd, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 		defer fd.Close()
 		out = fd
 	}
 
 	if err := rackClient(c).ExportBuild(app, build, out); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Fprintf(os.Stderr, "OK\n")
@@ -310,18 +310,18 @@ func cmdBuildsExport(c *cli.Context) error {
 func cmdBuildsImport(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if stdcli.IsTerminal(os.Stdin) && c.String("file") == "" {
-		return stdcli.ExitError(fmt.Errorf("please pipe a file into this command or specify -f"))
+		return stdcli.Error(fmt.Errorf("please pipe a file into this command or specify -f"))
 	}
 
 	in := os.Stdin
 	if file := c.String("file"); file != "" {
 		fd, err := os.Open(file)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 		defer fd.Close()
 		in = fd
@@ -335,7 +335,7 @@ func cmdBuildsImport(c *cli.Context) error {
 
 	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Fprintf(out, "\nRelease: %s\n", build.Release)
@@ -350,7 +350,7 @@ func cmdBuildsImport(c *cli.Context) error {
 func cmdBuildsLogs(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) != 1 {
@@ -361,7 +361,7 @@ func cmdBuildsLogs(c *cli.Context) error {
 	build := c.Args()[0]
 
 	if err := rackClient(c).StreamBuildLogs(app, build, os.Stdout); err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	return nil

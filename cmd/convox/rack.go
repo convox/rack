@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -69,6 +70,10 @@ func init() {
 						Name:  "stats",
 						Usage: "display process cpu/memory stats",
 					},
+					cli.BoolFlag{
+						Name:  "a, all",
+						Usage: "display all processes including apps",
+					},
 				},
 			},
 			{
@@ -120,7 +125,7 @@ func init() {
 
 func cmdRack(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox rack` does not take arguments. Perhaps you meant `convox rack update`?"))
+		return stdcli.Error(fmt.Errorf("`convox rack` does not take arguments. Perhaps you meant `convox rack update`?"))
 	}
 
 	if c.Bool("help") {
@@ -130,7 +135,7 @@ func cmdRack(c *cli.Context) error {
 
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("Name     %s\n", system.Name)
@@ -145,7 +150,7 @@ func cmdRack(c *cli.Context) error {
 func cmdRackLogs(c *cli.Context) error {
 	err := rackClient(c).StreamRackLogs(c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	return nil
@@ -154,17 +159,17 @@ func cmdRackLogs(c *cli.Context) error {
 func cmdRackParams(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	params, err := rackClient(c).ListParameters(system.Name)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	keys := []string{}
 
-	for key, _ := range params {
+	for key := range params {
 		keys = append(keys, key)
 	}
 
@@ -183,7 +188,7 @@ func cmdRackParams(c *cli.Context) error {
 func cmdRackParamsSet(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	params := map[string]string{}
@@ -192,7 +197,7 @@ func cmdRackParamsSet(c *cli.Context) error {
 		parts := strings.SplitN(arg, "=", 2)
 
 		if len(parts) != 2 {
-			return stdcli.ExitError(fmt.Errorf("invalid argument: %s", arg))
+			return stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
 		}
 
 		params[parts[0]] = parts[1]
@@ -202,7 +207,7 @@ func cmdRackParamsSet(c *cli.Context) error {
 
 	err = rackClient(c).SetParameters(system.Name, params)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")
@@ -212,63 +217,93 @@ func cmdRackParamsSet(c *cli.Context) error {
 func cmdRackPs(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	ps, err := rackClient(c).GetSystemProcesses()
+	ps, err := rackClient(c).GetSystemProcesses(structs.SystemProcessesOptions{
+		All: c.Bool("all"),
+	})
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if c.Bool("stats") {
 		fm, err := rackClient(c).ListFormation(system.Name)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
-		displayProcessesStats(ps, fm)
+		displayProcessesStats(ps, fm, true)
 		return nil
 	}
 
-	displayProcesses(ps)
+	displayProcesses(ps, true)
 
 	return nil
 }
 
 func cmdRackUpdate(c *cli.Context) error {
-	versions, err := version.All()
+	vs, err := version.All()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	specified := "stable"
+	target, err := vs.Latest()
+	if err != nil {
+		return stdcli.Error(err)
+	}
 
 	if len(c.Args()) > 0 {
-		specified = c.Args()[0]
+		t, err := vs.Find(c.Args()[0])
+		if err != nil {
+			return stdcli.Error(err)
+		}
+		target = t
 	}
 
-	version, err := versions.Resolve(specified)
+	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Printf("Updating to %s... ", version.Version)
+	nv, err := vs.Next(system.Version)
+	if err != nil && strings.HasSuffix(err.Error(), "is latest") {
+		nv = target.Version
+	} else if err != nil {
+		return stdcli.Error(err)
+	}
 
-	_, err = rackClient(c).UpdateSystem(version.Version)
+	next, err := vs.Find(nv)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Println("UPDATING")
+	// stop at a required release if necessary
+	if next.Version < target.Version {
+		stdcli.Writef("WARNING: Required update found.\nPlease run `convox rack update` again once this update completes.\n")
+		target = next
+	}
+
+	stdcli.Startf("Updating to <release>%s</release>", target.Version)
+
+	_, err = rackClient(c).UpdateSystem(target.Version)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.Wait("UPDATING")
 
 	if c.Bool("wait") {
-		fmt.Printf("Waiting for completion... ")
+		stdcli.Startf("Waiting for completion")
+
+		// give the rack a few seconds to start updating
+		time.Sleep(5 * time.Second)
 
 		if err := waitForRackRunning(c); err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
-		fmt.Println("OK")
+		stdcli.OK()
 	}
 
 	return nil
@@ -302,7 +337,7 @@ func cmdRackScale(c *cli.Context) error {
 
 	_, err := rackClient(c).ScaleSystem(count, typ)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	displaySystem(c)
@@ -312,14 +347,14 @@ func cmdRackScale(c *cli.Context) error {
 func cmdRackReleases(c *cli.Context) error {
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	pendingVersion := system.Version
 
 	releases, err := rackClient(c).GetSystemReleases()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("VERSION", "UPDATED", "STATUS")
@@ -343,7 +378,7 @@ func cmdRackReleases(c *cli.Context) error {
 
 	next, err := version.Next(system.Version)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if next > pendingVersion {
