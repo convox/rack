@@ -1,0 +1,816 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "BlankSecurityGroup": {
+      "Fn::Equals": [
+        {
+          "Ref": "SecurityGroup"
+        },
+        ""
+      ]
+    },
+    "EnabledAgent": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "AgentFormation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "Internal": {
+      "Fn::Equals": [
+        {
+          "Ref": "Internal"
+        },
+        "Yes"
+      ]
+    },
+    "Private": {
+      "Fn::Equals": [
+        {
+          "Ref": "Private"
+        },
+        "Yes"
+      ]
+    },
+    "RegionHasECR": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-east-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-east-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-west-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "us-west-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-central-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "eu-west-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-northeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-1"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
+            "ap-southeast-2"
+          ]
+        }
+      ]
+    }
+  },
+  "Mappings": {
+    "PortProtocol": {
+      "http": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTP",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "https": {
+        "InstanceProtocol": "HTTP",
+        "ListenerProtocol": "HTTPS",
+        "SecureInstanceProtocol": "HTTPS"
+      },
+      "tcp": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "TCP",
+        "SecureInstanceProtocol": "SSL"
+      },
+      "tls": {
+        "InstanceProtocol": "TCP",
+        "ListenerProtocol": "SSL",
+        "SecureInstanceProtocol": "SSL"
+      }
+    }
+  },
+  "Outputs": {
+    "LogGroup": {
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
+    "RegistryId": {
+      "Condition": "RegionHasECR",
+      "Value": {
+        "Ref": "AWS::AccountId"
+      }
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasECR",
+      "Value": {
+        "Fn::GetAtt": [
+          "RegistryRepository",
+          "RepositoryName"
+        ]
+      }
+    },
+    "Settings": {
+      "Value": {
+        "Ref": "Settings"
+      }
+    }
+  },
+  "Parameters": {
+    "AgentFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "Cluster": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "DeploymentMaximum": {
+      "Default": "200",
+      "Description": "Maximum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
+    "DeploymentMinimum": {
+      "Default": "50",
+      "Description": "Minimum percentage of processes to keep running while deploying",
+      "Type": "Number"
+    },
+    "Environment": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Internal": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Only allow access to this app from inside the VPC",
+      "Type": "String"
+    },
+    "Key": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Private": {
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Default": "No",
+      "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
+      "Type": "String"
+    },
+    "Release": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "Repository": {
+      "Default": "",
+      "Description": "Source code repository",
+      "Type": "String"
+    },
+    "SecurityGroup": {
+      "Default": "",
+      "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
+    "Subnets": {
+      "Default": "",
+      "Description": "VPC subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "SubnetsPrivate": {
+      "Default": "",
+      "Description": "VPC private subnets for this app",
+      "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
+    },
+    "VPC": {
+      "Default": "",
+      "Description": "VPC for this app",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "VPCCIDR": {
+      "Default": "",
+      "Description": "VPC CIDR for this app",
+      "Type": "String"
+    },
+    "Version": {
+      "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
+      "MinLength": "1",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "AgentECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "agent"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "Tasks": [
+          {
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "AgentFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "agent",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "datadog/docker-dd-agent:latest",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "AgentFormation"
+                }
+              ]
+            },
+            "Name": "agent",
+            "PortMappings": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "true",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              "/var/run/docker.sock:/var/run/docker.sock",
+              "/proc/:/host/proc",
+              "/cgroup/:/host/sys/fs/cgroup",
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "AgentLambdaPermission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "DaemonFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "AgentRule",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Permission"
+    },
+    "AgentRule": {
+      "Properties": {
+        "EventPattern": {
+          "detail": {
+            "clusterArn": [
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ecs:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":cluster/",
+                    {
+                      "Ref": "Cluster"
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "detail-type": [
+            "ECS Container Instance State Change"
+          ],
+          "source": [
+            "aws.ecs"
+          ]
+        },
+        "Name": "convox-test-httpd-agent-JP4SLVM-change",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "DaemonFunction",
+                "Arn"
+              ]
+            },
+            "Id": "convox-test-httpd-agent-JP4SLVMTarget"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
+    },
+    "CustomTopic": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                "release/",
+                {
+                  "Ref": "Version"
+                },
+                "/lambda/formation.zip"
+              ]
+            ]
+          }
+        },
+        "Handler": "index.external",
+        "MemorySize": "128",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomTopicRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs",
+        "Timeout": "300"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "CustomTopicRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "*",
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "Administrator"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "DaemonFunction": {
+      "DependsOn": [
+        "DaemonRole"
+      ],
+      "Properties": {
+        "Code": {
+          "ZipFile": {
+            "Fn::Join": [
+              "\n",
+              [
+                "'use strict';",
+                "var aws = require('aws-sdk');",
+                "var ecs = new aws.ECS({maxRetries:10});",
+                "var taskDefinitions = {",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "    'agent': '",
+                      {
+                        "Ref": "AgentECSTaskDefinition"
+                      },
+                      "',"
+                    ]
+                  ]
+                },
+                "    '':''",
+                "};",
+                "function startTask(event, td, callback) {",
+                "  ecs.startTask({",
+                "    cluster: event.detail.clusterArn,",
+                "    containerInstances: [event.detail.containerInstanceArn],",
+                "    taskDefinition: td,",
+                "    startedBy: 'convox daemon'",
+                "  }, function(err, data) {",
+                "    console.log('startTask Data: ', data, 'Error: ', err);",
+                "    if (err !== null) return callback(err);",
+                "    if (data.tasks.length === 0) return callback('task not started');",
+                "    callback(null, data.tasks[0].taskArn);",
+                "  });",
+                "}",
+                "function tdName(td) { return td.split(':').slice(0,-1).join(':'); }",
+                "function tdRev(td) { return parseInt(td.split(':').slice(-1)[0]); }",
+                "function stopOldTask(event, desiredTD, runningTask) {",
+                "    if (runningTask.startedBy != 'convox daemon') return false;",
+                "    if (tdName(desiredTD) != tdName(runningTask.taskDefinitionArn)) return false;",
+                "    if (tdRev(desiredTD) != tdRev(runningTask.taskDefinitionArn)) {",
+                "        ecs.stopTask({",
+                "            cluster: event.detail.clusterArn,",
+                "            reason: 'convox daemon convergence',",
+                "            task: runningTask.taskArn",
+                "        }, function(err, data) {",
+                "            console.log('stopTask Data: ', data, 'Error: ', err);",
+                "        });",
+                "    }",
+                "}",
+                "exports.handler = (event, context, callback) =\u003e {",
+                "  console.log('Event: ', event);",
+                "  ecs.listTasks({",
+                "    cluster: event.detail.clusterArn,",
+                "    containerInstance: event.detail.containerInstanceArn,",
+                "  }, function(err, data) {",
+                "    console.log('listTasks Data: ', data, 'Error: ', err);",
+                "    if (err !== null) return callback(err);",
+                "    if (data.taskArns.length === 0) return startTask(event, callback);",
+                "    ecs.describeTasks({",
+                "      cluster: event.detail.clusterArn,",
+                "      tasks: data.taskArns",
+                "    }, function(err, data) {",
+                "      console.log('describeTasks Data: ', data, 'Error: ', err);",
+                "      if (err !== null) return callback(err);",
+                "      for (var k in taskDefinitions) {",
+                "        if (k === '') continue;",
+                "          var desiredTD = taskDefinitions[k];",
+                "          var hasTask = false;",
+                "          data.tasks.forEach(function(t) {",
+                "            if (desiredTD == t.taskDefinitionArn)",
+                "              hasTask = true;",
+                "            stopOldTask(event, desiredTD, t);",
+                "          });",
+                "          if (!hasTask) return startTask(event, desiredTD, callback);",
+                "          return callback(null, 'task already running');",
+                "        }",
+                "    });",
+                "  });",
+                "};"
+              ]
+            ]
+          }
+        },
+        "FunctionName": "convox-test-httpd-daemon",
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "DaemonRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs4.3",
+        "Timeout": 50
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "DaemonRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "ecs:*",
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:aws:ecs:",
+                            {
+                              "Ref": "AWS::Region"
+                            },
+                            ":",
+                            {
+                              "Ref": "AWS::AccountId"
+                            },
+                            ":cluster/",
+                            "convox-test"
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  "Effect": "Allow",
+                  "Resource": "*"
+                },
+                {
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:logs:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":log-group:/aws/lambda/*"
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        {
+                          "Fn::GetAtt": [
+                            "LogGroup",
+                            "Arn"
+                          ]
+                        },
+                        ":*"
+                      ]
+                    ]
+                  }
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "DaemonJob"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "RegistryRepository": {
+      "Condition": "RegionHasECR",
+      "Properties": {
+        "RepositoryName": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "Custom::ECRRepository",
+      "Version": "1.0"
+    },
+    "ServiceAgent": {
+      "Condition": "EnabledAgent",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "AgentFormation"
+            }
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "AgentECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "ServiceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "elasticloadbalancing:Describe*",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "ec2:Describe*",
+                    "ec2:AuthorizeSecurityGroupIngress"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    "*"
+                  ]
+                }
+              ]
+            },
+            "PolicyName": "ServiceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Settings": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "system",
+            "Value": "convox"
+          },
+          {
+            "Key": "app",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::S3::Bucket"
+    }
+  }
+}
