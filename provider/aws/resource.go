@@ -248,7 +248,7 @@ func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
 	return apps, nil
 }
 
-// ResourceList lists the Resources
+// ResourceList lists the resources.
 func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {

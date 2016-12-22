@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// ResourceList lists resources.
 func ResourceList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	resources, err := models.Provider().ResourceList()
 
@@ -19,6 +20,7 @@ func ResourceList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, resources)
 }
 
+// ResourceShow shows a resource.
 func ResourceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	resource := mux.Vars(r)["resource"]
 
@@ -33,6 +35,7 @@ func ResourceShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, sv)
 }
 
+// ResourceCreate creates a resource.
 func ResourceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	params, err := formHash(r)
 	if err != nil {
@@ -50,6 +53,7 @@ func ResourceCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, s)
 }
 
+// ResourceDelete deletes a resource.
 func ResourceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	resource := mux.Vars(r)["resource"]
 
@@ -69,6 +73,7 @@ func ResourceDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, s)
 }
 
+// ResourceUpdate updates a resource.
 func ResourceUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	resource := mux.Vars(r)["resource"]
 
