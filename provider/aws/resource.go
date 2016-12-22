@@ -15,6 +15,8 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+// ResourceCreate creates a new resource.
+// Note: see also createResource() below.
 func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string) (*structs.Resource, error) {
 	_, err := p.ResourceGet(name)
 	if awsError(err) != "ValidationError" {
@@ -109,6 +111,7 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 	return s, err
 }
 
+// ResourceDelete deletes a resource.
 func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 	s, err := p.ResourceGet(name)
 	if err != nil {
@@ -139,6 +142,7 @@ func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 	return s, err
 }
 
+// ResourceGet retrieves a resource.
 func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
@@ -244,7 +248,7 @@ func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
 	return apps, nil
 }
 
-// ResourceList lists the Resources
+// ResourceList lists the resources.
 func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
@@ -275,6 +279,7 @@ func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 	return resources, nil
 }
 
+// ResourceLink creates a link between the provided app and resource.
 func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -304,6 +309,7 @@ func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource
 	return s, err
 }
 
+// ResourceUnlink removes a link between the provided app and resource.
 func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resource, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
@@ -339,7 +345,7 @@ func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resour
 	return s, err
 }
 
-// ResourceUpdate updates a Resource with new params
+// ResourceUpdate updates a resource with new params.
 func (p *AWSProvider) ResourceUpdate(name string, params map[string]string) (*structs.Resource, error) {
 	s, err := p.ResourceGet(name)
 	if err != nil {
@@ -355,6 +361,8 @@ func (p *AWSProvider) ResourceUpdate(name string, params map[string]string) (*st
 	return s, err
 }
 
+// createResource creates a Resource.
+// Note: see also ResourceCreate() above.
 func (p *AWSProvider) createResource(s *structs.Resource) (*cloudformation.CreateStackInput, error) {
 	formation, err := resourceFormation(s.Type, nil)
 	if err != nil {
