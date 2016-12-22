@@ -699,63 +699,77 @@
         "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-daemon",
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "DaemonRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": 50,
         "Code": {
           "ZipFile": { "Fn::Join": ["\n", [
             "'use strict';",
             "var aws = require('aws-sdk');",
             "var ecs = new aws.ECS({maxRetries:10});",
-            "var logs = new aws.CloudWatchLogs();",
-            "var cluster = '{{ env "CLUSTER" }}';",
-            { "Fn::Join": [ "", [ "var logGroup = '", { "Ref": "LogGroup" }, "';" ] ] },
-            { "Fn::Join": [ "", [ "var release = '", { "Ref": "Release" }, "';" ] ] },
             "var taskDefinitions = {",
-            {{ range .Manifest.Services }}
-              { "Fn::Join": [ "", [ "    '{{ .Name }}': '", { "Ref": "{{ upper .Name }}ECSTaskDefinition" }, "'," ] ] },
+            {{ range .App.Daemons .Manifest }}
+              { "Fn::Join": [ "", [ "    '{{ .Service.Name }}': '", { "Ref": "{{ upper .Service.Name }}ECSTaskDefinition" }, "'," ] ] },
             {{ end }}
             "    '':''",
-            "}",
-            "exports.handler = function(event, context) {",
-            "    var command = event.command.replace(/&#(\\d+);/g, function(match, dec) {",
-            "      return String.fromCharCode(dec);",
-            "    });",
-            "    var params = {",
-            "        startedBy: 'daemon',",
-            "        taskDefinition: taskDefinitions[event.process],",
-            "        cluster: cluster,",
-            "        count: 1,",
-            "        overrides: {",
-            "            containerOverrides: [",
-            "                { name:event.process, command:[ 'sh', '-c', command ] }",
-            "            ]",
-            "        }",
-            "    };",
-            "    var skew = Math.floor(Math.random()*10000);",
-            "    log(event.process + ':' + release + '/daemon skew=' + skew + 'ms command=' + event.command, function(err) {",
-            "        console.log('err2', err);",
-            "        setTimeout(function() { ecs.runTask(params, context.done) }, skew);",
-            "    });",
             "};",
-            "function log(message, cb) {",
-            "    var stream = 'daemon-' + (new Date()).getTime();",
-            "    var params = {",
-            "        logGroupName: logGroup,",
-            "        logStreamName: stream",
+            "function startTask(event, td, callback) {",
+            "  ecs.startTask({",
+            "    cluster: event.detail.clusterArn,",
+            "    containerInstances: [event.detail.containerInstanceArn],",
+            "    taskDefinition: td,",
+            "    startedBy: 'convox daemon'",
+            "  }, function(err, data) {",
+            "    console.log('startTask Data: ', data, 'Error: ', err);",
+            "    if (err !== null) return callback(err);",
+            "    if (data.tasks.length === 0) return callback('task not started');",
+            "    callback(null, data.tasks[0].taskArn);",
+            "  });",
+            "}",
+            "function tdName(td) { return td.split(':').slice(0,-1).join(':'); }",
+            "function tdRev(td) { return parseInt(td.split(':').slice(-1)[0]); }",
+            "function stopOldTask(event, desiredTD, runningTask) {",
+            "    if (runningTask.startedBy != 'convox daemon') return false;",
+            "    if (tdName(desiredTD) != tdName(runningTask.taskDefinitionArn)) return false;",
+            "    if (tdRev(desiredTD) != tdRev(runningTask.taskDefinitionArn)) {",
+            "        ecs.stopTask({",
+            "            cluster: event.detail.clusterArn,",
+            "            reason: 'convox daemon convergence',",
+            "            task: runningTask.taskArn",
+            "        }, function(err, data) {",
+            "            console.log('stopTask Data: ', data, 'Error: ', err);",
+            "        });",
             "    }",
-            "    logs.createLogStream(params, function(err) {",
-            "        console.log('err', err);",
-            "        var params = {",
-            "            logEvents: [",
-            "                { message: message, timestamp: (new Date()).getTime() }",
-            "            ],",
-            "            logGroupName: logGroup,",
-            "            logStreamName: stream",
+            "}",
+            "exports.handler = (event, context, callback) => {",
+            "  console.log('Event: ', event);",
+            "  ecs.listTasks({",
+            "    cluster: event.detail.clusterArn,",
+            "    containerInstance: event.detail.containerInstanceArn,",
+            "  }, function(err, data) {",
+            "    console.log('listTasks Data: ', data, 'Error: ', err);",
+            "    if (err !== null) return callback(err);",
+            "    if (data.taskArns.length === 0) return startTask(event, callback);",
+            "    ecs.describeTasks({",
+            "      cluster: event.detail.clusterArn,",
+            "      tasks: data.taskArns",
+            "    }, function(err, data) {",
+            "      console.log('describeTasks Data: ', data, 'Error: ', err);",
+            "      if (err !== null) return callback(err);",
+            "      for (var k in taskDefinitions) {",
+            "        if (k === '') continue;",
+            "          var desiredTD = taskDefinitions[k];",
+            "          var hasTask = false;",
+            "          data.tasks.forEach(function(t) {",
+            "            if (desiredTD == t.taskDefinitionArn)",
+            "              hasTask = true;",
+            "            stopOldTask(event, desiredTD, t);",
+            "          });",
+            "          if (!hasTask) return startTask(event, desiredTD, callback);",
+            "          return callback(null, 'task already running');",
             "        }",
-            "        console.log(message);",
-            "        logs.putLogEvents(params, cb);",
-            "    })",
-            "}"
+            "    });",
+            "  });",
+            "};"
           ] ] }
         }
       }
@@ -765,12 +779,30 @@
     "{{ .ShortName }}Rule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "Name": "{{ .LongName }}-schedule",
-        "ScheduleExpression": "{{ .Schedule }}",
+        "Name": "{{ .LongName }}-change",
+        "EventPattern": {
+          "source": [
+            "aws.ecs"
+          ],
+          "detail-type": [
+            "ECS Container Instance State Change"
+          ],
+          "detail": {
+            "clusterArn": [
+              { "Fn::Join": [ "", [
+                "arn:aws:ecs:",
+                { "Ref": "AWS::Region" },
+                ":",
+                { "Ref": "AWS::AccountId" },
+                ":cluster/",
+                { "Ref": "Cluster" }
+              ] ] }
+            ]
+          }
+        },
         "Targets": [{
           "Arn": { "Fn::GetAtt": [ "DaemonFunction", "Arn" ] },
-          "Id": "{{ .LongName }}Target",
-          "Input": "{\"process\": \"{{ .Process }}\", \"command\": \"{{ .Command }}\"}"
+          "Id": "{{ .LongName }}Target"
         }]
       }
     },
