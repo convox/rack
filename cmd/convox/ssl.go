@@ -12,7 +12,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "ssl",
 		Action:      cmdSSLList,
-		Description: "manage SSL certificates",
+		Description: "manage ssl certificates",
 		Flags: []cli.Flag{
 			appFlag,
 			rackFlag,
@@ -21,16 +21,8 @@ func init() {
 			{
 				Name:        "update",
 				Description: "update the certificate associated with an endpoint",
-				Usage:       "<process:port> <certificate>",
+				Usage:       "<process:port> <certificate-id>",
 				Action:      cmdSSLUpdate,
-				Flags: []cli.Flag{
-					appFlag,
-					rackFlag,
-					cli.StringFlag{
-						Name:  "chain",
-						Usage: "Intermediate certificate chain.",
-					},
-				},
 			},
 		},
 	})
@@ -82,7 +74,7 @@ func cmdSSLUpdate(c *cli.Context) error {
 	parts := strings.Split(target, ":")
 
 	if len(parts) != 2 {
-		return stdcli.Error(fmt.Errorf("target must be process:port"))
+		return stdcli.Error(fmt.Errorf("endpoint must be process:port"))
 	}
 
 	fmt.Printf("Updating certificate... ")
