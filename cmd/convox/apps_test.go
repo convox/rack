@@ -45,9 +45,9 @@ func TestAppsCreateWithDotsInDirName(t *testing.T) {
 
 	ts := testServer(t,
 		test.Http{Method: "POST",
-			Path: "/apps",
-			Body: "name=foo-bar",
-			Code: 200,
+			Path:     "/apps",
+			Body:     "name=foo-bar",
+			Code:     200,
 			Response: client.App{},
 		},
 	)
@@ -58,7 +58,7 @@ func TestAppsCreateWithDotsInDirName(t *testing.T) {
 		test.ExecRun{
 			Command: "convox apps create",
 			Exit:    0,
-			Dir: "../../manifest/fixtures/dir-name-with-dots/foo.bar",
+			Dir:     "../../manifest/fixtures/dir-name-with-dots/foo.bar",
 			Stdout:  "Creating app foo-bar... CREATING\n",
 		},
 	)
@@ -82,7 +82,7 @@ func TestAppsCreateWithDotsInName(t *testing.T) {
 			Command: "convox apps create foo.bar",
 			Exit:    1,
 			Stdout:  "Creating app foo.bar... ",
-			Stderr:	 "ERROR: app name can contain only alphanumeric characters, dashes and must be between 4 and 30 characters\n",
+			Stderr:  "ERROR: app name can contain only alphanumeric characters, dashes and must be between 4 and 30 characters\n",
 		},
 	)
 }
