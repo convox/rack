@@ -41,6 +41,52 @@ func TestAppsCreate(t *testing.T) {
 	)
 }
 
+func TestAppsCreateWithDotsInDirName(t *testing.T) {
+
+	ts := testServer(t,
+		test.Http{Method: "POST",
+			Path:     "/apps",
+			Body:     "name=foo-bar",
+			Code:     200,
+			Response: client.App{},
+		},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox apps create",
+			Exit:    0,
+			Dir:     "../../manifest/fixtures/dir-name-with-dots/foo.bar",
+			Stdout:  "Creating app foo-bar... CREATING\n",
+		},
+	)
+}
+
+func TestAppsCreateWithDotsInName(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "POST",
+			Path: "/apps",
+			Body: "name=foo.bar",
+			Code: 403,
+			Response: client.Error{Error: "app name can contain only " +
+				"alphanumeric characters, dashes and must be between " +
+				"4 and 30 characters"}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox apps create foo.bar",
+			Exit:    1,
+			Stdout:  "Creating app foo.bar... ",
+			Stderr:  "ERROR: app name can contain only alphanumeric characters, dashes and must be between 4 and 30 characters\n",
+		},
+	)
+}
+
 func TestAppsCreateFail(t *testing.T) {
 	ts := testServer(t,
 		test.Http{Method: "POST", Path: "/apps", Body: "name=foobar", Code: 403, Response: client.Error{Error: "app already exists"}},
