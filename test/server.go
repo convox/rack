@@ -32,7 +32,7 @@ func Server(t *testing.T, stubs ...Http) *httptest.Server {
 					w.Write(serverError(err.Error()))
 				}
 
-				assert.Equal(t, string(rb), stub.Body)
+				assert.Equal(t, stub.Body, string(rb))
 
 				w.WriteHeader(stub.Code)
 				w.Write(data)
