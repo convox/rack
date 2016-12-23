@@ -35,6 +35,9 @@ type Service struct {
 	Privileged  bool        `yaml:"privileged,omitempty"`
 	Volumes     []string    `yaml:"volumes,omitempty"`
 
+	Cpu    int64  `yaml:"cpu_shares,omitempty"`
+	Memory Memory `yaml:"mem_limit,omitempty"`
+
 	//TODO from models manifest, not passive and used at runtime
 	Exports  map[string]string        `yaml:"-"`
 	LinkVars map[string]template.HTML `yaml:"-"`
@@ -61,7 +64,7 @@ type Command struct {
 }
 type Environment map[string]string
 type Labels map[string]string
-
+type Memory int64
 type Networks map[string]InternalNetwork
 
 type InternalNetwork map[string]ExternalNetwork
@@ -126,6 +129,7 @@ func (s *Service) Proxies(app string) []Proxy {
 
 func (s *Service) SyncPaths() (map[string]string, error) {
 	sp := map[string]string{}
+	ev := map[string]string{}
 
 	if s.Build.Context == "" {
 		return sp, nil
@@ -151,9 +155,19 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 		}
 
 		switch parts[0] {
+		case "ENV":
+			if len(parts) >= 3 {
+				ev[parts[1]] = parts[2]
+			}
 		case "ADD", "COPY":
 			if len(parts) >= 3 {
-				sp[filepath.Join(s.Build.Context, parts[1])] = parts[2]
+				path := parts[2]
+				for k, v := range ev {
+					if strings.Contains(path, fmt.Sprintf("$%s", k)) {
+						path = strings.Replace(path, fmt.Sprintf("$%s", k), v, -1)
+					}
+				}
+				sp[filepath.Join(s.Build.Context, parts[1])] = path
 			}
 		}
 	}
@@ -201,6 +215,21 @@ func (s Service) MountableVolumes() []MountableVolume {
 	}
 
 	return volumes
+}
+
+// IsSystem white lists special host volumes to pass through to the container
+// instead of turning them into an application EFS mount
+func (v MountableVolume) IsSystem() bool {
+	switch v.Host {
+	case "/var/run/docker.sock":
+		return true
+	case "/proc/":
+		return true
+	case "/cgroup/":
+		return true
+	default:
+		return false
+	}
 }
 
 // DeploymentMinimum returns the min percent of containers that are allowed during deployment
@@ -283,7 +312,7 @@ func linkArgs(s Service, container string) []string {
 
 	scheme := coalesce(env["LINK_SCHEME"], "tcp")
 	host := containerHost(container, s.Networks)
-	port := containerPort(container)
+	port := coalesce(env["LINK_PORT"], containerPort(container))
 	path := env["LINK_PATH"]
 	username := env["LINK_USERNAME"]
 	password := env["LINK_PASSWORD"]
@@ -367,6 +396,10 @@ func (s Service) ContainerPorts() []string {
 	sort.Strings(ext)
 
 	return ext
+}
+
+func (s Service) ParamName(name string) string {
+	return fmt.Sprintf("%s%s", UpperName(s.Name), name)
 }
 
 func (s Service) RegistryImage(appName, buildId string, outputs map[string]string) string {

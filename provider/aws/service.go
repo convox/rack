@@ -47,6 +47,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		}
 		req, err = p.createService(s)
 	case "syslog":
+		s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
 		req, err = p.createServiceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
 		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
@@ -112,6 +113,15 @@ func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
 	s, err := p.ServiceGet(name)
 	if err != nil {
 		return nil, err
+	}
+
+	apps, err := p.serviceApps(*s)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(apps) > 0 {
+		return nil, fmt.Errorf("service is linked to %s", apps[0].Name)
 	}
 
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
@@ -199,6 +209,20 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	}
 
 	// Populate linked apps
+	apps, err := p.serviceApps(s)
+	if err != nil {
+		return nil, err
+	}
+
+	s.Apps = apps
+
+	return &s, nil
+}
+
+//serviceApps returns the apps that have been linked with a service (ignoring apps that have been delete out of band)
+func (p *AWSProvider) serviceApps(s structs.Service) (structs.Apps, error) {
+	apps := structs.Apps(make([]structs.App, 0))
+
 	for key, value := range s.Outputs {
 		if strings.HasSuffix(key, "Link") {
 			// Extract app name from log group
@@ -208,14 +232,16 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 
 			a, err := p.AppGet(app)
 			if err != nil {
-				return &s, err
+				if err.Error() == fmt.Sprintf("%s not found", app) {
+					continue
+				}
+				return nil, err
 			}
 
-			s.Apps = append(s.Apps, *a)
+			apps = append(apps, *a)
 		}
 	}
-
-	return &s, nil
+	return apps, nil
 }
 
 // ServiceList lists the Services
@@ -236,6 +262,14 @@ func (p *AWSProvider) ServiceList() (structs.Services, error) {
 				services = append(services, serviceFromStack(stack))
 			}
 		}
+	}
+
+	for _, s := range services {
+		apps, err := p.serviceApps(s)
+		if err != nil {
+			return nil, err
+		}
+		s.Apps = apps
 	}
 
 	return services, nil
@@ -430,6 +464,7 @@ func (p *AWSProvider) appendSystemParameters(s *structs.Service) error {
 	}
 
 	s.Parameters["Password"] = password
+	s.Parameters["SecurityGroups"] = p.SecurityGroup
 	s.Parameters["Subnets"] = p.Subnets
 	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
 	s.Parameters["Vpc"] = p.Vpc
@@ -483,7 +518,7 @@ func serviceFormation(kind string, data interface{}) (string, error) {
 		return "", err
 	}
 
-	return string(d), nil
+	return d, nil
 }
 
 func serviceFromStack(stack *cloudformation.Stack) structs.Service {

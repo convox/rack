@@ -63,7 +63,7 @@ func TestInstancesList(t *testing.T) {
 
 func listContainerInstancesCycle(clusterName string) awsutil.Cycle {
 	return awsutil.Cycle{
-		awsutil.Request{"/", "AmazonEC2ContainerServiceV20141113.ListContainerInstances",
+		awsutil.Request{"POST", "/", "AmazonEC2ContainerServiceV20141113.ListContainerInstances",
 			`{"cluster":"` + clusterName + `","nextToken": ""}`},
 		awsutil.Response{200,
 			`{"containerInstanceArns":["arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e","arn:aws:ecs:us-east-1:901416387788:container-instance/38a59629-6f5d-4d02-8733-fdb49500ae45","arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c"]}`},
@@ -72,7 +72,7 @@ func listContainerInstancesCycle(clusterName string) awsutil.Cycle {
 
 func describeContainerInstancesCycle(clusterName string) awsutil.Cycle {
 	return awsutil.Cycle{
-		awsutil.Request{"/", "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
+		awsutil.Request{"POST", "/", "AmazonEC2ContainerServiceV20141113.DescribeContainerInstances",
 			`{"cluster":"` + clusterName + `",
         "containerInstances": [
           "arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e",
@@ -92,7 +92,7 @@ func describeContainerInstancesResponse() string {
 
 func describeInstancesCycle() awsutil.Cycle {
 	return awsutil.Cycle{
-		awsutil.Request{"/", "", `Action=DescribeInstances&Filter.1.Name=instance-id&Filter.1.Value.1=i-4a5513f4&Filter.1.Value.2=i-3963798e&Filter.1.Value.3=i-c6a72b76&MaxResults=1000&Version=2016-04-01`},
+		awsutil.Request{"POST", "/", "", `Action=DescribeInstances&Filter.1.Name=instance-id&Filter.1.Value.1=i-4a5513f4&Filter.1.Value.2=i-3963798e&Filter.1.Value.3=i-c6a72b76&MaxResults=1000&Version=2016-04-01`},
 		awsutil.Response{200, describeInstancesResponse()},
 	}
 }

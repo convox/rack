@@ -78,7 +78,7 @@ func cmdUninstall(c *cli.Context) error {
 		return stdcli.QOSEventSend("cli-uninstall", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 	if creds == nil {
-		return stdcli.ExitError(fmt.Errorf("error reading credentials"))
+		return stdcli.Error(fmt.Errorf("error reading credentials"))
 	}
 
 	CF := cloudformation.New(session.New(), awsConfig(region, creds))
@@ -91,7 +91,7 @@ func cmdUninstall(c *cli.Context) error {
 
 	// verify that rack was detected
 	if len(stacks.Rack) == 0 || stacks.Rack[0].StackName != rackName {
-		return stdcli.ExitError(fmt.Errorf("Can not find rack named %s.", rackName))
+		return stdcli.Error(fmt.Errorf("Can not find rack named %s.", rackName))
 	}
 
 	fmt.Println("Resources to delete:\n")
@@ -115,7 +115,7 @@ func cmdUninstall(c *cli.Context) error {
 	// verify that no stack is being updated
 	for _, s := range stacks.all() {
 		if strings.HasSuffix(s.Status, "IN_PROGRESS") {
-			return stdcli.ExitError(fmt.Errorf("Can not uninstall while %s is updating.", s.StackName))
+			return stdcli.Error(fmt.Errorf("Can not uninstall while %s is updating.", s.StackName))
 		}
 	}
 
@@ -132,10 +132,10 @@ func cmdUninstall(c *cli.Context) error {
 			}
 
 			if strings.TrimSpace(confirm) != "y" {
-				return stdcli.ExitError(fmt.Errorf("Aborting uninstall."))
+				return stdcli.Error(fmt.Errorf("Aborting uninstall."))
 			}
 		} else {
-			return stdcli.ExitError(fmt.Errorf("Aborting uninstall. Use the --force for non-interactive uninstall."))
+			return stdcli.Error(fmt.Errorf("Aborting uninstall. Use the --force for non-interactive uninstall."))
 		}
 	}
 
@@ -209,7 +209,7 @@ func cmdUninstall(c *cli.Context) error {
 	if success {
 		fmt.Println("Successfully uninstalled.")
 	} else {
-		return stdcli.ExitError(fmt.Errorf("Uninstall encountered some errors, contact support@convox.com for assistance"))
+		return stdcli.Error(fmt.Errorf("Uninstall encountered some errors, contact support@convox.com for assistance"))
 	}
 
 	return stdcli.QOSEventSend("cli-uninstall", distinctId, ep)

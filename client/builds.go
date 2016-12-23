@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,7 +48,7 @@ func (c *Client) GetBuildsWithLimit(app string, limit int) (Builds, error) {
 	return builds, nil
 }
 
-func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest string, description string) (*Build, error) {
+func (c *Client) CreateBuildIndex(app string, index Index, cache bool, config string, description string) (*Build, error) {
 	var build Build
 
 	data, err := json.Marshal(index)
@@ -59,9 +58,19 @@ func (c *Client) CreateBuildIndex(app string, index Index, cache bool, manifest 
 
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
+		"config":      config,
 		"description": description,
 		"index":       string(data),
-		"manifest":    manifest,
+	}
+
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		params["manifest"] = params["config"]
 	}
 
 	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
@@ -95,6 +104,16 @@ func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuil
 		Progress: opts.Progress,
 	}
 
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		popts.Params["manifest"] = popts.Params["config"]
+	}
+
 	if err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), popts, &build); err != nil {
 		return nil, err
 	}
@@ -102,18 +121,28 @@ func (c *Client) CreateBuildSource(app string, source io.Reader, opts CreateBuil
 	return &build, nil
 }
 
-func (c *Client) CreateBuildUrl(app string, url string, cache bool, manifest string, description string) (*Build, error) {
+func (c *Client) CreateBuildUrl(app string, url string, cache bool, config string, description string) (*Build, error) {
 	var build Build
 
 	params := map[string]string{
 		"cache":       fmt.Sprintf("%t", cache),
 		"description": description,
-		"manifest":    manifest,
+		"config":      config,
 		"url":         url,
 	}
 
-	err := c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
 
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		params["manifest"] = params["config"]
+		params["repo"] = params["url"]
+	}
+
+	err = c.Post(fmt.Sprintf("/apps/%s/builds", app), params, &build)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +162,26 @@ func (c *Client) GetBuild(app, id string) (*Build, error) {
 }
 
 func (c *Client) StreamBuildLogs(app, id string, output io.Writer) error {
+	system, err := c.GetSystem()
+	if err != nil {
+		return err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		build, err := c.GetBuild(app, id)
+		if err != nil {
+			return err
+		}
+
+		_, err = output.Write([]byte(build.Logs))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	return c.Stream(fmt.Sprintf("/apps/%s/builds/%s/logs", app, id), nil, nil, output)
 }
 
@@ -179,18 +228,7 @@ func (c *Client) UpdateBuild(app, id, manifest, status, reason string) (*Build, 
 
 // ExportBuild creats an artifact, representing a build, to be used with another Rack
 func (c *Client) ExportBuild(app, id string, w io.Writer) error {
-	var data []byte
-
-	err := c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), &data)
-	if err != nil {
-		return err
-	}
-
-	if _, err := io.Copy(w, bytes.NewReader(data)); err != nil {
-		return err
-	}
-
-	return nil
+	return c.Get(fmt.Sprintf("/apps/%s/builds/%s.tgz", app, id), w)
 }
 
 type ImportBuildOptions struct {
@@ -199,9 +237,39 @@ type ImportBuildOptions struct {
 
 // ImportBuild imports a build artifact
 func (c *Client) ImportBuild(app string, r io.Reader, opts ImportBuildOptions) (*structs.Build, error) {
+	system, err := c.GetSystem()
+	if err != nil {
+		return nil, err
+	}
+
+	// backwards compatible
+	if system.Version < "20160928105531" {
+		return c.importBuildClassic(app, r, opts)
+	}
+
 	popts := PostMultipartOptions{
 		Files: map[string]io.Reader{
 			"image": r,
+		},
+		Progress: opts.Progress,
+	}
+
+	build := &structs.Build{}
+
+	if err := c.PostMultipart(fmt.Sprintf("/apps/%s/builds", app), popts, &build); err != nil {
+		return nil, err
+	}
+
+	return build, nil
+}
+
+func (c *Client) importBuildClassic(app string, r io.Reader, opts ImportBuildOptions) (*structs.Build, error) {
+	popts := PostMultipartOptions{
+		Files: map[string]io.Reader{
+			"source": r,
+		},
+		Params: map[string]string{
+			"import": "true",
 		},
 		Progress: opts.Progress,
 	}

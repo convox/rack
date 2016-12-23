@@ -39,7 +39,7 @@ func cmdProxy(c *cli.Context) error {
 
 			p, err := strconv.Atoi(parts[1])
 			if err != nil {
-				return stdcli.ExitError(err)
+				return stdcli.Error(err)
 			}
 
 			port = p
@@ -49,7 +49,7 @@ func cmdProxy(c *cli.Context) error {
 
 			p, err := strconv.Atoi(parts[0])
 			if err != nil {
-				return stdcli.ExitError(err)
+				return stdcli.Error(err)
 			}
 
 			port = p
@@ -57,12 +57,12 @@ func cmdProxy(c *cli.Context) error {
 			p, err = strconv.Atoi(parts[2])
 
 			if err != nil {
-				return stdcli.ExitError(err)
+				return stdcli.Error(err)
 			}
 
 			hostport = p
 		default:
-			return stdcli.ExitError(fmt.Errorf("invalid argument: %s", arg))
+			return stdcli.Error(fmt.Errorf("invalid argument: %s", arg))
 		}
 
 		go proxy("127.0.0.1", port, host, hostport, rackClient(c))

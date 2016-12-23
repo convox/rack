@@ -27,7 +27,7 @@
       },
       "DeploymentMinimum": {
         "Type": "Number",
-        "Default": "100",
+        "Default": "50",
         "Description": "Minimum percentage of processes to keep running while deploying"
       },
       "Environment": {
@@ -238,7 +238,7 @@
               },
               "Volumes": [
                 {{ range $e.MountableVolumes }}
-                  {{ if eq .Host "/var/run/docker.sock" }}
+                  {{ if .IsSystem }}
                     "{{.Host}}:{{.Container}}",
                   {{ else }}
                     { "Fn::Join": [ "", [ "/volumes/", { "Ref": "AWS::StackName" }, "/{{$e.Name}}{{.Host}}:{{.Container}}" ] ] },
@@ -547,6 +547,9 @@
             "    '':''",
             "}",
             "exports.handler = function(event, context) {",
+            "    var command = event.command.replace(/&#(\\d+);/g, function(match, dec) {",
+            "      return String.fromCharCode(dec);",
+            "    });",
             "    var params = {",
             "        startedBy: 'cron',",
             "        taskDefinition: taskDefinitions[event.process],",
@@ -554,7 +557,7 @@
             "        count: 1,",
             "        overrides: {",
             "            containerOverrides: [",
-            "                { name:event.process, command:[ 'sh', '-c', event.command ] }",
+            "                { name:event.process, command:[ 'sh', '-c', command ] }",
             "            ]",
             "        }",
             "    };",
@@ -617,6 +620,7 @@
   "RegionHasECR": {
       "Fn::Or": [
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]},
+        { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-2" ]},
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-1" ]},
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-west-2" ]},
         { "Fn::Equals": [ { "Ref": "AWS::Region" }, "eu-central-1" ]},

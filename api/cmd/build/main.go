@@ -19,15 +19,14 @@ import (
 )
 
 var (
-	flagApp     string
-	flagAuth    string
-	flagCache   string
-	flagId      string
-	flagConfig  string
-	flagMethod  string
-	flagPush    string
-	flagRelease string
-	flagUrl     string
+	flagApp    string
+	flagAuth   string
+	flagCache  string
+	flagId     string
+	flagConfig string
+	flagMethod string
+	flagPush   string
+	flagUrl    string
 
 	currentBuild    *structs.Build
 	currentLogs     string
@@ -54,7 +53,6 @@ func main() {
 	fs.StringVar(&flagId, "id", "latest", "build id")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
-	fs.StringVar(&flagRelease, "release", "", "release id to fork")
 	fs.StringVar(&flagUrl, "url", "", "source url")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
@@ -79,10 +77,6 @@ func main() {
 
 	if v := os.Getenv("BUILD_PUSH"); v != "" {
 		flagPush = v
-	}
-
-	if v := os.Getenv("BUILD_RELEASE"); v != "" {
-		flagRelease = v
 	}
 
 	if v := os.Getenv("BUILD_URL"); v != "" {
@@ -196,6 +190,11 @@ func build(dir string) error {
 		return err
 	}
 
+	errs := m.Validate()
+	if len(errs) > 0 {
+		return errs[0]
+	}
+
 	s := make(chan string)
 
 	go func() {
@@ -206,7 +205,10 @@ func build(dir string) error {
 
 	defer close(s)
 
-	if err := m.Build(dir, flagApp, s, (flagCache == "true")); err != nil {
+	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
+		Cache: flagCache == "true",
+	})
+	if err != nil {
 		return err
 	}
 
@@ -218,26 +220,8 @@ func build(dir string) error {
 }
 
 func success() error {
-	release := &structs.Release{
-		App: flagApp,
-	}
-
-	// TODO use provider.ReleaseFork()
-
-	if flagRelease != "" {
-		r, err := currentProvider.ReleaseGet(flagApp, flagRelease)
-		if err != nil {
-			return err
-		}
-		release = r
-	}
-
-	release.Build = flagId
-	release.Created = time.Now()
-	release.Id = id("R", 10)
-	release.Manifest = currentBuild.Manifest
-
-	if err := currentProvider.ReleaseSave(release); err != nil {
+	_, err := currentProvider.BuildRelease(currentBuild)
+	if err != nil {
 		return err
 	}
 
@@ -248,7 +232,6 @@ func success() error {
 
 	currentBuild.Ended = time.Now()
 	currentBuild.Logs = url
-	currentBuild.Release = release.Id
 	currentBuild.Status = "complete"
 
 	if err := currentProvider.BuildSave(currentBuild); err != nil {

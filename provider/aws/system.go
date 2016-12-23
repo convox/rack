@@ -8,8 +8,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/structs"
 )
 
@@ -28,19 +30,97 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	}
 
 	stack := res.Stacks[0]
+	status := humanStatus(*stack.StackStatus)
 	params := stackParameters(stack)
 
 	count, err := strconv.Atoi(params["InstanceCount"])
-
 	if err != nil {
 		return nil, err
+	}
+
+	// status precedence: (all other stack statues) > converging > running
+	// check if the autoscale group is shuffling instances
+	if status == "running" {
+
+		rres, err := p.cloudformation().DescribeStackResources(&cloudformation.DescribeStackResourcesInput{
+			StackName: aws.String(p.Rack),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		var asgName string
+		for _, r := range rres.StackResources {
+			if *r.LogicalResourceId == "Instances" {
+				asgName = *r.PhysicalResourceId
+				break
+			}
+		}
+
+		asgres, err := p.autoscaling().DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
+			AutoScalingGroupNames: []*string{
+				aws.String(asgName),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(asgres.AutoScalingGroups) <= 0 {
+			return nil, fmt.Errorf("scaling group %s was not found", asgName)
+		}
+
+		for _, instance := range asgres.AutoScalingGroups[0].Instances {
+			if *instance.LifecycleState != "InService" {
+				status = "converging"
+				break
+			}
+		}
+	}
+
+	// Check if ECS is rescheduling services
+	if status == "running" {
+		lreq := &ecs.ListServicesInput{
+			Cluster:    aws.String(p.Cluster),
+			MaxResults: aws.Int64(10),
+		}
+	Loop:
+		for {
+			lres, err := p.ecs().ListServices(lreq)
+			if err != nil {
+				return nil, err
+			}
+
+			dres, err := p.ecs().DescribeServices(&ecs.DescribeServicesInput{
+				Cluster:  aws.String(p.Cluster),
+				Services: lres.ServiceArns,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			for _, s := range dres.Services {
+				for _, d := range s.Deployments {
+					if *d.RunningCount != *d.DesiredCount {
+						status = "converging"
+						break Loop
+					}
+				}
+			}
+
+			if lres.NextToken == nil {
+				break
+			}
+
+			lreq.NextToken = lres.NextToken
+		}
 	}
 
 	r := &structs.System{
 		Count:   count,
 		Name:    p.Rack,
 		Region:  p.Region,
-		Status:  humanStatus(*stack.StackStatus),
+		Status:  status,
 		Type:    params["InstanceType"],
 		Version: params["Version"],
 	}
@@ -55,20 +135,31 @@ func (p *AWSProvider) SystemLogs(w io.Writer, opts structs.LogStreamOptions) err
 		return err
 	}
 
-	// if strings.HasSuffix(err.Error(), "write: broken pipe") {
-	//   return nil
-	// }
-
 	return p.subscribeLogs(w, stackOutputs(system)["LogGroup"], opts)
 }
 
-func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
-	tasks, err := p.stackTasks(p.Rack)
-	if err != nil {
-		return nil, err
-	}
+func (p *AWSProvider) SystemProcesses(opts structs.SystemProcessesOptions) (structs.Processes, error) {
+	var tasks []string
+	var err error
 
-	fmt.Printf("tasks = %+v\n", tasks)
+	if opts.All {
+		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
+			Cluster: aws.String(p.Cluster),
+		}, func(page *ecs.ListTasksOutput, lastPage bool) bool {
+			for _, arn := range page.TaskArns {
+				tasks = append(tasks, *arn)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		tasks, err = p.stackTasks(p.Rack)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	ps, err := p.taskProcesses(tasks)
 	if err != nil {
@@ -76,7 +167,9 @@ func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
 	}
 
 	for i := range ps {
-		ps[i].App = p.Rack
+		if ps[i].App == "" {
+			ps[i].App = p.Rack
+		}
 	}
 
 	return ps, nil
@@ -86,9 +179,9 @@ func (p *AWSProvider) SystemProcesses() (structs.Processes, error) {
 func (p *AWSProvider) SystemReleases() (structs.Releases, error) {
 	req := &dynamodb.QueryInput{
 		KeyConditions: map[string]*dynamodb.Condition{
-			"app": &dynamodb.Condition{
+			"app": {
 				AttributeValueList: []*dynamodb.AttributeValue{
-					&dynamodb.AttributeValue{S: aws.String(p.Rack)},
+					{S: aws.String(p.Rack)},
 				},
 				ComparisonOperator: aws.String("EQ"),
 			},
@@ -171,9 +264,9 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	if v, ok := changes["version"]; ok {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
-				"id":      &dynamodb.AttributeValue{S: aws.String(v)},
-				"app":     &dynamodb.AttributeValue{S: aws.String(p.Rack)},
-				"created": &dynamodb.AttributeValue{S: aws.String(p.createdTime())},
+				"id":      {S: aws.String(v)},
+				"app":     {S: aws.String(p.Rack)},
+				"created": {S: aws.String(p.createdTime())},
 			},
 			TableName: aws.String(p.DynamoReleases),
 		})

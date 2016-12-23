@@ -14,6 +14,17 @@ func init() {
 	os.Setenv("RACK", "convox")
 }
 
+func TestAppCancel(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleAppCancelUpdateStack,
+	)
+	defer provider.Close()
+
+	err := provider.AppCancel("httpd")
+
+	assert.Nil(t, err)
+}
+
 func TestAppGet(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleAppDescribeStacks,
@@ -66,8 +77,25 @@ func TestAppGet(t *testing.T) {
 	}, a)
 }
 
+var cycleAppCancelUpdateStack = awsutil.Cycle{
+	awsutil.Request{
+		RequestURI: "/",
+		Body:       `Action=CancelUpdateStack&StackName=convox-httpd&Version=2010-05-15`,
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body: `
+			<CancelUpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+				<ResponseMetadata>
+					<RequestId>5ccc7dcd-744c-11e5-be70-1b08c228efb3</RequestId>
+				</ResponseMetadata>
+			</CancelUpdateStackResponse>
+		`,
+	},
+}
+
 var cycleAppDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{200, `
 		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>

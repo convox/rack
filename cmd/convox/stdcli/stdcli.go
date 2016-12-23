@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,24 +17,24 @@ import (
 )
 
 var (
-	Binary   string
-	Commands []cli.Command
-	Exiter   func(code int)
-	Runner   func(bin string, args ...string) error
-	Querier  func(bin string, args ...string) ([]byte, error)
-	Spinner  *spinner.Spinner
-	Tagger   func() string
-	Writer   func(filename string, data []byte, perm os.FileMode) error
+	Binary     string
+	Commands   []cli.Command
+	FileWriter func(filename string, data []byte, perm os.FileMode) error
+	Exiter     func(code int)
+	Runner     func(bin string, args ...string) error
+	Querier    func(bin string, args ...string) ([]byte, error)
+	Spinner    *spinner.Spinner
+	Tagger     func() string
 )
 
 func init() {
 	Binary = filepath.Base(os.Args[0])
 	Exiter = os.Exit
+	FileWriter = ioutil.WriteFile
 	Querier = queryExecCommand
 	Runner = runExecCommand
 	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
-	Writer = ioutil.WriteFile
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
@@ -90,6 +89,8 @@ func New() *cli.App {
 		os.Exit(1)
 	}
 
+	app.Writer = DefaultWriter
+
 	return app
 }
 
@@ -109,7 +110,6 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-
 	app := c.String("app")
 
 	if app == "" {
@@ -117,11 +117,10 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	}
 
 	if app == "" {
-		app = path.Base(abs)
+		app = filepath.Base(abs)
 	}
 
 	app = strings.ToLower(app)
-
 	return abs, app, nil
 }
 
@@ -160,15 +159,6 @@ func WriteSetting(setting, value string) error {
 	err := ioutil.WriteFile(fmt.Sprintf(".convox/%s", setting), []byte(value), 0777)
 
 	return err
-}
-
-func Error(err error) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-	Exiter(1)
-}
-
-func ExitError(err error) error {
-	return cli.NewExitError(fmt.Sprintf("ERROR: %s", err.Error()), 1)
 }
 
 type QOSEventProperties struct {
@@ -225,11 +215,11 @@ func QOSEventSend(system, id string, ep QOSEventProperties) error {
 	}
 
 	if ep.ValidationError != nil {
-		return ExitError(ep.ValidationError)
+		return ep.ValidationError
 	}
 
 	if ep.Error != nil {
-		return ExitError(ep.Error)
+		return ep.Error
 	}
 
 	return nil

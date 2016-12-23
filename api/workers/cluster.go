@@ -37,6 +37,7 @@ func StartCluster() {
 		helpers.Error(log, err)
 	})
 
+	disconnectedInstances := map[string]struct{}{}
 	for range time.Tick(5 * time.Minute) {
 		log.Logf("tick")
 
@@ -62,6 +63,13 @@ func StartCluster() {
 			}
 
 			if !i.ECS {
+				_, seenBefore := disconnectedInstances[i.Id]
+
+				if !seenBefore {
+					disconnectedInstances[i.Id] = struct{}{}
+					fmt.Printf("who=\"convox/monitor\" what=\"instance %s missed it's first heartbeat\" why=\"ECS reported agent disconnected\"\n", i.Id)
+					continue
+				}
 				// Not registered or not connected => set Unhealthy
 				_, err := models.AutoScaling().SetInstanceHealth(
 					&autoscaling.SetInstanceHealthInput{
@@ -82,6 +90,7 @@ func StartCluster() {
 				// log for humans
 				fmt.Printf("who=\"convox/monitor\" what=\"marked instance %s unhealthy\" why=\"ECS reported agent disconnected\"\n", i.Id)
 			}
+			delete(disconnectedInstances, i.Id)
 		}
 
 		log.Logf(instances.log())

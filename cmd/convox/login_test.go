@@ -24,7 +24,7 @@ func TestInvalidLogin(t *testing.T) {
 			Command: fmt.Sprintf("convox login --password foobar %s", ts.URL),
 			Env:     map[string]string{"CONVOX_CONFIG": temp},
 			Exit:    1,
-			Stderr:  "ERROR: invalid login\n",
+			Stderr:  "ERROR: invalid login\nHave you created an account at https://convox.com/signup?\n",
 		},
 		test.ExecRun{
 			Command: "convox login --password foobar BAD",

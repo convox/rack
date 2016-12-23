@@ -35,6 +35,12 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 	if image != nil {
+		build, err := models.Provider().BuildImport(app, image)
+		if err != nil {
+			return httperr.Server(err)
+		}
+
+		return RenderJson(rw, build)
 	}
 
 	source, _, err := r.FormFile("source")

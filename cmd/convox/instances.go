@@ -48,7 +48,7 @@ func init() {
 
 func cmdInstancesList(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox instances` does not take arguments. Perhaps you meant `convox instances ssh`?"))
+		return stdcli.Error(fmt.Errorf("`convox instances` does not take arguments. Perhaps you meant `convox instances ssh`?"))
 	}
 
 	if c.Bool("help") {
@@ -58,7 +58,7 @@ func cmdInstancesList(c *cli.Context) error {
 
 	instances, err := rackClient(c).GetInstances()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("ID", "AGENT", "STATUS", "STARTED", "PS", "CPU", "MEM")
@@ -81,12 +81,15 @@ func cmdInstancesList(c *cli.Context) error {
 }
 
 func cmdInstancesKeyroll(c *cli.Context) error {
+	fmt.Print("Rolling SSH keys... ")
+
 	err := rackClient(c).InstanceKeyroll()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Println("Rebooting instances")
+	fmt.Println("OK")
+
 	return nil
 }
 
@@ -98,12 +101,14 @@ func cmdInstancesTerminate(c *cli.Context) error {
 
 	id := c.Args()[0]
 
+	fmt.Printf("Terminating %s... ", id)
+
 	err := rackClient(c).TerminateInstance(id)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	fmt.Printf("Successfully sent terminate to instance %q\n", id)
+	fmt.Println("OK")
 	return nil
 }
 
@@ -118,7 +123,7 @@ func cmdInstancesSSH(c *cli.Context) error {
 
 	code, err := sshWithRestore(c, id, cmd)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	return cli.NewExitError("", code)

@@ -98,6 +98,14 @@
             {
               "Ref": "AWS::Region"
             },
+            "us-east-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "us-west-1"
           ]
         },
@@ -257,7 +265,7 @@
       "Type": "Number"
     },
     "DeploymentMinimum": {
-      "Default": "100",
+      "Default": "50",
       "Description": "Minimum percentage of processes to keep running while deploying",
       "Type": "Number"
     },

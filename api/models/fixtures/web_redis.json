@@ -90,6 +90,14 @@
             {
               "Ref": "AWS::Region"
             },
+            "us-east-2"
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AWS::Region"
+            },
             "us-west-1"
           ]
         },
@@ -241,7 +249,7 @@
       "Type": "Number"
     },
     "DeploymentMinimum": {
-      "Default": "100",
+      "Default": "50",
       "Description": "Minimum percentage of processes to keep running while deploying",
       "Type": "Number"
     },
@@ -746,6 +754,7 @@
               "AWS_REGION": "test",
               "LINK_PASSWORD": "pass-the-word",
               "LINK_PATH": "/0",
+              "LINK_PORT": "6379",
               "LINK_SCHEME": "redis",
               "LINK_USERNAME": "user",
               "LOG_GROUP": {

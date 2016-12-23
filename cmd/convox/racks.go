@@ -18,12 +18,12 @@ func init() {
 
 func cmdRacks(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox racks`?"))
+		return stdcli.Error(fmt.Errorf("`convox racks` does not take arguments. Perhaps you meant `convox racks`?"))
 	}
 
 	racks, err := rackClient(c).Racks()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("RACK", "STATUS")

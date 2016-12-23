@@ -14,6 +14,17 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
+func (p *AWSProvider) AppCancel(name string) error {
+	_, err := p.cloudformation().CancelUpdateStack(&cloudformation.CancelUpdateStackInput{
+		StackName: aws.String(fmt.Sprintf("%s-%s", p.Rack, name)),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // AppGet gets an app
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	var res *cloudformation.DescribeStacksOutput
@@ -46,6 +57,24 @@ func (p *AWSProvider) AppDelete(name string) error {
 	app, err := p.AppGet(name)
 	if err != nil {
 		return err
+	}
+
+	services, err := p.ServiceList()
+	if err != nil {
+		return err
+	}
+
+	for _, s := range services {
+		s.Apps, err = p.serviceApps(s)
+		if err != nil {
+			return err
+		}
+
+		for _, a := range s.Apps {
+			if a.Name == name {
+				return fmt.Errorf("app is linked to %s service", s.Name)
+			}
+		}
 	}
 
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{StackName: aws.String(app.StackName())})

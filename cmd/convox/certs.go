@@ -48,7 +48,7 @@ func init() {
 
 func cmdCertsList(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox certs` does not take arguments. Perhaps you meant `convox certs generate`?"))
+		return stdcli.Error(fmt.Errorf("`convox certs` does not take arguments. Perhaps you meant `convox certs generate`?"))
 	}
 
 	if c.Bool("help") {
@@ -58,7 +58,7 @@ func cmdCertsList(c *cli.Context) error {
 
 	certs, err := rackClient(c).ListCertificates()
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("ID", "DOMAIN", "EXPIRES")
@@ -79,12 +79,12 @@ func cmdCertsCreate(c *cli.Context) error {
 
 	pub, err := ioutil.ReadFile(c.Args()[0])
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	key, err := ioutil.ReadFile(c.Args()[1])
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	chain := ""
@@ -92,7 +92,7 @@ func cmdCertsCreate(c *cli.Context) error {
 	if chainFile := c.String("chain"); chainFile != "" {
 		data, err := ioutil.ReadFile(chainFile)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		chain = string(data)
@@ -102,7 +102,7 @@ func cmdCertsCreate(c *cli.Context) error {
 
 	cert, err := rackClient(c).CreateCertificate(string(pub), string(key), chain)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("OK, %s\n", cert.Id)
@@ -119,7 +119,7 @@ func cmdCertsDelete(c *cli.Context) error {
 
 	err := rackClient(c).DeleteCertificate(c.Args()[0])
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")
@@ -136,7 +136,7 @@ func cmdCertsGenerate(c *cli.Context) error {
 
 	cert, err := rackClient(c).GenerateCertificate(c.Args())
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Printf("OK, %s\n", cert.Id)

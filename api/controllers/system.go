@@ -25,7 +25,11 @@ func SystemShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 }
 
 func SystemProcesses(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	ps, err := models.Provider().SystemProcesses()
+	all := r.URL.Query().Get("all")
+
+	ps, err := models.Provider().SystemProcesses(structs.SystemProcessesOptions{
+		All: (all == "true"),
+	})
 	if provider.ErrorNotFound(err) {
 		return httperr.NotFound(err)
 	}
@@ -56,8 +60,8 @@ func SystemUpdate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Errorf(403, "scaling count prohibited when autoscale enabled")
 		case c == -1:
 			// -1 indicates no change
-		case c <= 1:
-			return httperr.Errorf(403, "count must be greater than 1")
+		case c <= 2:
+			return httperr.Errorf(403, "count must be greater than 2")
 		default:
 			rack.Count = c
 		}

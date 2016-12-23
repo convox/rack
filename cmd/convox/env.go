@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -62,11 +64,11 @@ func init() {
 func cmdEnvList(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
-		return stdcli.ExitError(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
+		return stdcli.Error(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
 	}
 
 	if c.Bool("help") {
@@ -76,12 +78,12 @@ func cmdEnvList(c *cli.Context) error {
 
 	env, err := rackClient(c).GetEnvironment(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	keys := []string{}
 
-	for key, _ := range env {
+	for key := range env {
 		keys = append(keys, key)
 	}
 
@@ -97,22 +99,22 @@ func cmdEnvList(c *cli.Context) error {
 func cmdEnvGet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) == 0 {
-		return stdcli.ExitError(errors.New("No variable specified"))
+		return stdcli.Error(errors.New("No variable specified"))
 	}
 
 	if len(c.Args()) > 1 {
-		return stdcli.ExitError(errors.New("Only 1 variable can be retrieved at a time"))
+		return stdcli.Error(errors.New("Only 1 variable can be retrieved at a time"))
 	}
 
 	variable := c.Args()[0]
 
 	env, err := rackClient(c).GetEnvironment(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println(env[variable])
@@ -122,12 +124,12 @@ func cmdEnvGet(c *cli.Context) error {
 func cmdEnvSet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	env, err := rackClient(c).GetEnvironment(app)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	data := ""
@@ -139,10 +141,25 @@ func cmdEnvSet(c *cli.Context) error {
 	if !stdcli.IsTerminal(os.Stdin) {
 		in, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
-		data += string(in)
+		scanner := bufio.NewScanner(bytes.NewReader(in))
+		for scanner.Scan() {
+			parts := strings.SplitN(scanner.Text(), "=", 2)
+
+			if len(parts) == 2 {
+				if key := strings.TrimSpace(parts[0]); key != "" {
+					val := parts[1]
+
+					// heroku env -s adds leading and trailing single quotes to val. Strip.
+					if string(val[0]) == "'" && string(val[len(val)-1]) == "'" {
+						val = val[1 : len(val)-2]
+					}
+					data += fmt.Sprintf("%s=%s\n", key, val)
+				}
+			}
+		}
 	}
 
 	for _, value := range c.Args() {
@@ -153,7 +170,7 @@ func cmdEnvSet(c *cli.Context) error {
 
 	_, releaseID, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")
@@ -164,7 +181,7 @@ func cmdEnvSet(c *cli.Context) error {
 
 			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
-				return stdcli.ExitError(err)
+				return stdcli.Error(err)
 			}
 
 			fmt.Println("OK")
@@ -179,15 +196,15 @@ func cmdEnvSet(c *cli.Context) error {
 func cmdEnvUnset(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) == 0 {
-		return stdcli.ExitError(errors.New("No variable specified"))
+		return stdcli.Error(errors.New("No variable specified"))
 	}
 
 	if len(c.Args()) > 1 {
-		return stdcli.ExitError(errors.New("Only 1 variable can be unset at a time"))
+		return stdcli.Error(errors.New("Only 1 variable can be unset at a time"))
 	}
 
 	key := c.Args()[0]
@@ -196,7 +213,7 @@ func cmdEnvUnset(c *cli.Context) error {
 
 	_, releaseID, err := rackClient(c).DeleteEnvironment(app, key)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	fmt.Println("OK")
@@ -207,7 +224,7 @@ func cmdEnvUnset(c *cli.Context) error {
 
 			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
-				return stdcli.ExitError(err)
+				return stdcli.Error(err)
 			}
 
 			fmt.Println("OK")

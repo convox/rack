@@ -1,6 +1,7 @@
 package manifest_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/convox/rack/manifest"
@@ -44,7 +45,7 @@ func TestLabelsByPrefix(t *testing.T) {
 func TestNetworkName(t *testing.T) {
 	networks := manifest.Networks{
 		"foo": manifest.InternalNetwork{
-			"external": manifest.ExternalNetwork {
+			"external": manifest.ExternalNetwork{
 				Name: "foonet",
 			},
 		},
@@ -58,11 +59,36 @@ func TestNetworkName(t *testing.T) {
 }
 
 func TestDefaultNetworkName(t *testing.T) {
-	networks := manifest.Networks {}
+	networks := manifest.Networks{}
 
-	s := manifest.Service {
+	s := manifest.Service{
 		Networks: networks,
 	}
 
 	assert.Equal(t, s.NetworkName(), "")
+}
+
+func TestSyncPaths(t *testing.T) {
+	m, err := manifestFixture("sync-path")
+	if err != nil {
+		assert.FailNow(t, fmt.Sprintf("failed to read fixture: %s", err.Error()))
+	}
+
+	expectedMap := map[string]string{
+		".":            "/app",
+		"Gemfile":      "/app/Gemfile",
+		"Gemfile.lock": "/app/Gemfile.lock",
+		"Rakefile":     "/app/Rakefile",
+		"config":       "/app/config/bar",
+		"public":       "/app/public/$FAKE",
+		"app/assets":   "/app/app/assets",
+	}
+
+	for _, s := range m.Services {
+		sp, err := s.SyncPaths()
+
+		if assert.Nil(t, err) {
+			assert.EqualValues(t, expectedMap, sp)
+		}
+	}
 }

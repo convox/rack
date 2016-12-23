@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -51,7 +53,7 @@ func GetRelease(app, id string) (*Release, error) {
 	req := &dynamodb.GetItemInput{
 		ConsistentRead: aws.Bool(true),
 		Key: map[string]*dynamodb.AttributeValue{
-			"id": &dynamodb.AttributeValue{S: aws.String(id)},
+			"id": {S: aws.String(id)},
 		},
 		TableName: aws.String(releasesTable(app)),
 	}
@@ -82,9 +84,9 @@ func (r *Release) Save() error {
 
 	req := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"id":      &dynamodb.AttributeValue{S: aws.String(r.Id)},
-			"app":     &dynamodb.AttributeValue{S: aws.String(r.App)},
-			"created": &dynamodb.AttributeValue{S: aws.String(r.Created.Format(SortableTime))},
+			"id":      {S: aws.String(r.Id)},
+			"app":     {S: aws.String(r.App)},
+			"created": {S: aws.String(r.Created.Format(SortableTime))},
 		},
 		TableName: aws.String(releasesTable(r.App)),
 	}
@@ -185,50 +187,43 @@ func (r *Release) Promote() error {
 		return err
 	}
 
+	// set default values for memory and cpu
+
 	for _, entry := range m.Services {
-		// set all of WebCount=1, WebCpu=0, WebMemory=256 and WebFormation=1,0,256 style parameters
-		// so new deploys and rollbacks have the expected parameters
-		if vals, ok := app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))]; ok {
-			parts := strings.SplitN(vals, ",", 3)
-			if len(parts) != 3 {
-				return fmt.Errorf("%s formation settings not in Count,Cpu,Memory format", entry.Name)
-			}
+		scale := []string{"1", "0", "256"}
 
-			_, err = strconv.Atoi(parts[0])
-			if err != nil {
-				return fmt.Errorf("%s %s not numeric", entry.Name, "count")
-			}
-
-			_, err = strconv.Atoi(parts[1])
-			if err != nil {
-				return fmt.Errorf("%s %s not numeric", entry.Name, "CPU")
-			}
-
-			_, err = strconv.Atoi(parts[2])
-			if err != nil {
-				return fmt.Errorf("%s %s not numeric", entry.Name, "memory")
-			}
-
-			app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))] = parts[0]
-			app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))] = parts[1]
-			app.Parameters[fmt.Sprintf("%sMemory", UpperName(entry.Name))] = parts[2]
-		} else {
-			parts := []string{"1", "0", "256"}
-
-			if v := app.Parameters[fmt.Sprintf("%sDesiredCount", UpperName(entry.Name))]; v != "" {
-				parts[0] = v
-			}
-
-			if v := app.Parameters[fmt.Sprintf("%sCpu", UpperName(entry.Name))]; v != "" {
-				parts[1] = v
-			}
-
-			if v := app.Parameters[fmt.Sprintf("%sMemory", UpperName(entry.Name))]; v != "" {
-				parts[2] = v
-			}
-
-			app.Parameters[fmt.Sprintf("%sFormation", UpperName(entry.Name))] = strings.Join(parts, ",")
+		if entry.Cpu > 0 {
+			scale[1] = fmt.Sprintf("%d", entry.Cpu)
 		}
+
+		if entry.Memory > 0 {
+			scale[2] = fmt.Sprintf("%d", int64(math.Ceil(float64(entry.Memory)/(1024*1024))))
+		}
+
+		switch {
+		case app.Parameters[entry.ParamName("Formation")] != "":
+			scale = strings.Split(app.Parameters[entry.ParamName("Formation")], ",")
+			if len(scale) != 3 {
+				return fmt.Errorf("%s not in Count,Cpu,Memory format", entry.ParamName("Formation"))
+			}
+		case app.Parameters[entry.ParamName("DesiredCount")] != "":
+			if v, ok := app.Parameters[entry.ParamName("DesiredCount")]; ok {
+				scale[0] = v
+			}
+			if v, ok := app.Parameters[entry.ParamName("Cpu")]; ok {
+				scale[1] = v
+			}
+			if v, ok := app.Parameters[entry.ParamName("Memory")]; ok {
+				scale[2] = v
+			}
+		}
+
+		app.Parameters[entry.ParamName("Formation")] = strings.Join(scale, ",")
+
+		// backwards compatibility for rollbacks
+		app.Parameters[entry.ParamName("DesiredCount")] = scale[0]
+		app.Parameters[entry.ParamName("Cpu")] = scale[1]
+		app.Parameters[entry.ParamName("Memory")] = scale[2]
 
 		for _, mapping := range entry.Ports {
 			certParam := fmt.Sprintf("%sPort%dCertificate", UpperName(entry.Name), mapping.Balancer)
@@ -262,26 +257,66 @@ func (r *Release) Promote() error {
 			switch proto {
 			case "https", "tls":
 				if app.Parameters[certParam] == "" {
-					name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
-
-					body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+					// if rack already has a self-signed cert, reuse it
+					certs, err := IAM().ListServerCertificates(&iam.ListServerCertificatesInput{})
 					if err != nil {
 						return err
 					}
 
-					input := &iam.UploadServerCertificateInput{
-						CertificateBody:       aws.String(string(body)),
-						PrivateKey:            aws.String(string(key)),
-						ServerCertificateName: aws.String(name),
+					for _, cert := range certs.ServerCertificateMetadataList {
+						if strings.Contains(*cert.Arn, fmt.Sprintf("cert-%s", os.Getenv("RACK"))) {
+							app.Parameters[certParam] = *cert.Arn
+							break
+						}
 					}
 
-					// upload certificate
-					res, err := IAM().UploadServerCertificate(input)
-					if err != nil {
-						return err
-					}
+					// if not, generate and upload a self-signed cert
+					if app.Parameters[certParam] == "" {
+						name := fmt.Sprintf("cert-%s-%d-%05d", os.Getenv("RACK"), time.Now().Unix(), rand.Intn(100000))
 
-					app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+						body, key, err := generateSelfSignedCertificate("*.*.elb.amazonaws.com")
+						if err != nil {
+							return err
+						}
+
+						input := &iam.UploadServerCertificateInput{
+							CertificateBody:       aws.String(string(body)),
+							PrivateKey:            aws.String(string(key)),
+							ServerCertificateName: aws.String(name),
+						}
+
+						res, err := IAM().UploadServerCertificate(input)
+						if err != nil {
+							return err
+						}
+
+						app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
+
+						// We want to make sure the new cert has propagated throughout AWS before moving on
+						sleep := 5
+						for {
+							time.Sleep(time.Duration(sleep) * time.Second)
+
+							_, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+								ServerCertificateName: &name,
+							})
+							if err != nil {
+								if ae, ok := err.(awserr.Error); ok {
+									if ae.Code() == "NoSuchEntity" {
+										if sleep >= 40 {
+											return fmt.Errorf("certificate `%s` was not found", name)
+										}
+
+										sleep *= 2
+										continue
+									}
+
+								}
+								return err
+							}
+							break
+						}
+					}
 				}
 			}
 		}
@@ -396,9 +431,7 @@ func (r *Release) Formation() (string, error) {
 	return app.Formation(*manifest)
 }
 
-func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.Manifest, error) {
-	m := *manifest
-
+func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifest, error) {
 	// HACK: need an app of type structs.App for docker login.
 	// Should be fixed/removed once proper logic is moved over to structs.App
 	// That includes moving Formation() around
@@ -412,7 +445,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 	}
 	endpoint, err := AppDockerLogin(sa)
 	if err != nil {
-		return &m, fmt.Errorf("could not log into %q", endpoint)
+		return m, fmt.Errorf("could not log into %q", endpoint)
 	}
 
 	for i, entry := range m.Services {
@@ -428,20 +461,20 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("ns=kernel at=release.formation at=entry.pull imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &m, fmt.Errorf("could not pull %q", imageName)
+			return m, fmt.Errorf("could not pull %q", imageName)
 		}
 
 		cmd = exec.Command("docker", "inspect", imageName)
 		out, err = cmd.CombinedOutput()
 		// fmt.Printf("ns=kernel at=release.formation at=entry.inspect imageName=%q out=%q err=%q\n", imageName, string(out), err)
 		if err != nil {
-			return &m, fmt.Errorf("could not inspect %q", imageName)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		err = json.Unmarshal(out, &inspect)
 		if err != nil {
 			fmt.Printf("ns=kernel at=release.formation at=entry.unmarshal err=%q\n", err)
-			return &m, fmt.Errorf("could not inspect %q", imageName)
+			return m, fmt.Errorf("could not inspect %q", imageName)
 		}
 
 		entry.Exports = make(map[string]string)
@@ -471,7 +504,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 		for _, link := range entry.Links {
 			other, ok := m.Services[link]
 			if !ok {
-				return &m, fmt.Errorf("Cannot find link %q", link)
+				return m, fmt.Errorf("Cannot find link %q", link)
 			}
 
 			scheme := other.Exports["LINK_SCHEME"]
@@ -479,7 +512,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 				scheme = "tcp"
 			}
 
-			mb := manifest.GetBalancer(link)
+			mb := m.GetBalancer(link)
 			if mb == nil {
 				// commented out to be less strict, just don't create the link
 				//return m, fmt.Errorf("Cannot discover balancer for link %q", link)
@@ -493,7 +526,28 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 				continue
 			}
 
-			port := other.Ports[0]
+			var port manifest.Port
+			linkPort := other.Exports["LINK_PORT"]
+			if linkPort == "" {
+				port = other.Ports[0]
+			} else {
+				i, _ := strconv.Atoi(linkPort)
+				if err != nil {
+					return nil, err
+				}
+
+				var matchedPort = false
+				for _, p := range other.Ports {
+					if i == p.Container {
+						port = p
+						matchedPort = true
+					}
+				}
+
+				if !matchedPort {
+					return nil, fmt.Errorf("No Port matching %s found", linkPort)
+				}
+			}
 
 			path := other.Exports["LINK_PATH"]
 
@@ -518,7 +572,7 @@ func (r *Release) resolveLinks(app App, manifest *manifest.Manifest) (*manifest.
 		}
 	}
 
-	return &m, nil
+	return m, nil
 }
 
 var regexpPrimaryProcess = regexp.MustCompile(`\[":",\["TCP",\{"Ref":"([A-Za-z]+)Port\d+Host`)

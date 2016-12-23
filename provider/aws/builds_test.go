@@ -55,9 +55,11 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDescribeStackResources,
 		cycleBuildDescribeStacks,
 		cycleEnvironmentGetRack,
-		cycleBuildGetAuthorizationToken,
+		cycleRegistryListRegistries,
+		cycleRegistryGetRegistry,
+		cycleRegistryDecrypt,
 		cycleBuildDescribeStacks,
-		cycleBuildGetAuthorizationToken,
+		cycleBuildGetAuthorizationTokenPrivate1,
 		cycleBuildRunTask,
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
@@ -451,7 +453,7 @@ var cycleBuildDescribeRepositories = awsutil.Cycle{
 }
 
 var cycleBuildDescribeStacks = awsutil.Cycle{
-	awsutil.Request{"/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-httpd&Version=2010-05-15`},
 	awsutil.Response{200, `
 		<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
 			<DescribeStacksResult>
@@ -689,6 +691,54 @@ var cycleBuildGetAuthorizationToken = awsutil.Cycle{
 	},
 }
 
+var cycleBuildGetAuthorizationTokenPrivate1 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerRegistry_V20150921.GetAuthorizationToken",
+		Body: `{
+			"registryIds": [
+				"132866487567"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"authorizationData": [
+				{
+					"authorizationToken": "dXNlcjoxMjM0NQo=",
+					"expiresAt": 1473039114.46,
+					"proxyEndpoint": "https://132866487567.dkr.ecr.us-east-1.amazonaws.com"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleBuildGetAuthorizationTokenPrivate2 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerRegistry_V20150921.GetAuthorizationToken",
+		Body: `{
+			"registryIds": [
+				"132866487567"
+			]
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"authorizationData": [
+				{
+					"authorizationToken": "dXNlcjoxMjM0NQo=",
+					"expiresAt": 1473039114.46,
+					"proxyEndpoint": "https://778743527532.dkr.ecr.us-east-1.amazonaws.com"
+				}
+			]
+		}`,
+	},
+}
+
 var cycleBuildGetItem = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -785,6 +835,7 @@ var cycleBuildGetItemRunning = awsutil.Cycle{
 
 var cycleBuildFetchLogs = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings/test/foo",
 	},
 	Response: awsutil.Response{
@@ -824,9 +875,6 @@ var cycleBuildPutItem = awsutil.Cycle{
 				},
 				"created": {
 					"S": "20160904.223813.000000000"
-				},
-				"description": {
-					"S": "imported"
 				},
 				"ended": {
 					"S": "20160904.224132.000000000"
@@ -1016,7 +1064,7 @@ var cycleBuildRunTask = awsutil.Cycle{
 							},
 							{
 								"name": "BUILD_AUTH",
-								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"922560784203.dkr.ecr.us-east-1.amazonaws.com/test-repo\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"r.example.org\":{\"Username\":\"foo\",\"Password\":\"bar\"}}"
+								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"quay.io\":{\"Username\":\"ddollar+test\",\"Password\":\"B0IT2U7BZ4VDZUYFM6LFMTJPF8YGKWYBR39AWWPAUKZX6YKZX3SQNBCCQKMX08UF\"}}"
 							},
 							{
 								"name": "BUILD_CONFIG",
@@ -1029,10 +1077,6 @@ var cycleBuildRunTask = awsutil.Cycle{
 							{
 								"name": "BUILD_PUSH",
 								"value": "132866487567.dkr.ecr.us-test-1.amazonaws.com/convox-httpd-hqvvfosgxt:{service}.{build}"
-							},
-							{
-								"name": "BUILD_RELEASE",
-								"value": "RVFETUHHKKD"
 							},
 							{
 								"name": "BUILD_URL",
@@ -1074,6 +1118,7 @@ var cycleBuildRunTask = awsutil.Cycle{
 
 var cycleBuildDockerListContainers = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/containers/json?all=1&filters=%7B%22label%22%3A%5B%22com.amazonaws.ecs.task-arn%3Darn%3Aaws%3Aecs%3Aus-east-1%3A778743527532%3Atask%2F50b8de99-f94f-4ecd-a98f-5850760f0845%22%5D%7D",
 		Body:       ``,
 	},
@@ -1097,6 +1142,7 @@ var cycleBuildDockerListContainers = awsutil.Cycle{
 
 var cycleBuildDockerLogs = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/containers/8dfafdbc3a40/logs?follow=1&stderr=1&stdout=1&tail=all",
 	},
 	Response: awsutil.Response{
@@ -1120,7 +1166,7 @@ var cycleBuildDockerLogin = awsutil.Cycle{
 		RequestURI: "/v1.24/auth",
 		Body: `{
 			"password": "12345\n",
-			"serveraddress": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb",
+			"serveraddress": "778743527532.dkr.ecr.us-east-1.amazonaws.com",
 			"username": "user"
 		}`,
 	},
@@ -1155,6 +1201,7 @@ var cycleBuildDockerPush = awsutil.Cycle{
 
 var cycleBuildDockerSave = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/v1.24/images/get?names=778743527532.dkr.ecr.us-east-1.amazonaws.com%2Fconvox-rails-sslibosttb%3Aweb.BAFVEWUCAYT",
 	},
 	Response: awsutil.Response{
@@ -1175,6 +1222,7 @@ var cycleBuildDockerTag = awsutil.Cycle{
 
 var cycleEnvironmentGet = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-httpd-settings-139bidzalmbtu/env",
 	},
 	Response: awsutil.Response{
@@ -1185,16 +1233,18 @@ var cycleEnvironmentGet = awsutil.Cycle{
 
 var cycleEnvironmentGetRack = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "GET",
 		RequestURI: "/convox-settings/env",
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
-		Body:       `{"DOCKER_AUTH_DATA":"{\"r.example.org\":{\"Username\":\"foo\",\"Password\":\"bar\"},\"922560784203.dkr.ecr.us-east-1.amazonaws.com/test-repo\":{\"Username\":\"access\",\"Password\":\"secret\"}}"}`,
+		Body:       `{}`,
 	},
 }
 
 var cycleEnvironmentPut = awsutil.Cycle{
 	Request: awsutil.Request{
+		Method:     "PUT",
 		RequestURI: "/convox-httpd-settings-139bidzalmbtu/releases/R23456/env",
 		Body:       "BAZ=qux\nFOO=bar",
 	},

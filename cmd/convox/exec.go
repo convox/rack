@@ -28,20 +28,20 @@ func cmdExec(c *cli.Context) error {
 	if terminal.IsTerminal(int(fd)) {
 		stdinState, err := terminal.GetState(int(fd))
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 
 		defer terminal.Restore(int(fd), stdinState)
 
 		w, h, err = terminal.GetSize(int(fd))
 		if err != nil {
-			return stdcli.ExitError(err)
+			return stdcli.Error(err)
 		}
 	}
 
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) < 2 {
@@ -53,8 +53,10 @@ func cmdExec(c *cli.Context) error {
 
 	code, err := rackClient(c).ExecProcessAttached(app, ps, strings.Join(c.Args()[1:], " "), os.Stdin, os.Stdout, h, w)
 	if err != nil {
-		return stdcli.ExitError(err)
+		return stdcli.Error(err)
 	}
 
-	return cli.NewExitError("", code)
+	os.Exit(code)
+
+	return nil
 }

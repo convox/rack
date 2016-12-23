@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -84,17 +83,6 @@ func handle(r Record) error {
 
 	fmt.Printf("md = %+v\n", md)
 
-	lbs, err := rackBalancers(md.Rack)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("lbs = %+v\n", lbs)
-
-	if err := deregisterInstanceFromLoadBalancers(lbs, m.EC2InstanceID); err != nil {
-		return err
-	}
-
 	ci, err := containerInstance(md.Cluster, m.EC2InstanceID)
 	if err != nil {
 		return err
@@ -102,7 +90,11 @@ func handle(r Record) error {
 
 	fmt.Printf("ci = %+v\n", ci)
 
-	if err := deregisterClusterInstance(md.Cluster, ci); err != nil {
+	if _, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
+		Cluster:           aws.String(md.Cluster),
+		ContainerInstance: aws.String(ci),
+		Force:             aws.Bool(true),
+	}); err != nil {
 		return err
 	}
 
@@ -173,111 +165,6 @@ func containerInstance(cluster string, id string) (string, error) {
 	}
 
 	return "", fmt.Errorf("could not find cluster instance: %s", id)
-}
-
-func deregisterClusterInstance(cluster, arn string) error {
-	_, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
-		Cluster:           aws.String(cluster),
-		ContainerInstance: aws.String(arn),
-		Force:             aws.Bool(true),
-	})
-
-	return err
-}
-
-func rackBalancers(rack string) ([]string, error) {
-	breq := &elb.DescribeLoadBalancersInput{
-		PageSize: aws.Int64(20),
-	}
-
-	lbs := []string{}
-
-	for {
-		bres, err := ELB.DescribeLoadBalancers(breq)
-		if err != nil {
-			return nil, err
-		}
-
-		names := []*string{}
-
-		for _, lb := range bres.LoadBalancerDescriptions {
-			names = append(names, lb.LoadBalancerName)
-		}
-
-		tres, err := ELB.DescribeTags(&elb.DescribeTagsInput{
-			LoadBalancerNames: names,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for _, td := range tres.TagDescriptions {
-			for _, t := range td.Tags {
-				if *t.Key == "Rack" && *t.Value == rack {
-					lbs = append(lbs, *td.LoadBalancerName)
-				}
-			}
-		}
-
-		if bres.NextMarker == nil {
-			break
-		}
-
-		breq.Marker = bres.NextMarker
-	}
-
-	return lbs, nil
-}
-
-func deregisterInstanceFromLoadBalancers(lbs []string, instance string) error {
-	ch := make(chan error)
-
-	for _, lb := range lbs {
-		go deregisterLoadBalancerInstance(lb, instance, ch)
-	}
-
-	for range lbs {
-		if err := <-ch; err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func deregisterLoadBalancerInstance(lb, instance string, ch chan error) {
-	instances := []*elb.Instance{&elb.Instance{InstanceId: aws.String(instance)}}
-
-	_, err := ELB.DeregisterInstancesFromLoadBalancer(&elb.DeregisterInstancesFromLoadBalancerInput{
-		LoadBalancerName: aws.String(lb),
-		Instances:        instances,
-	})
-	if err != nil {
-		ch <- err
-		return
-	}
-
-	for {
-		res, err := ELB.DescribeInstanceHealth(&elb.DescribeInstanceHealthInput{
-			LoadBalancerName: aws.String(lb),
-			Instances:        instances,
-		})
-
-		fmt.Printf("res = %+v\n", res)
-		fmt.Printf("err = %+v\n", err)
-
-		if len(res.InstanceStates) < 1 {
-			break
-		}
-
-		if *res.InstanceStates[0].State == "OutOfService" {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	ch <- nil
 }
 
 func die(err error) {

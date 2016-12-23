@@ -14,28 +14,36 @@ import (
 )
 
 type Run struct {
-	App   string
-	Dir   string
-	Cache bool
-	Sync  bool
+	App       string
+	Dir       string
+	Opts      RunOptions
+	Output    Output
+	Processes map[string]Process
 
-	done      chan error
-	manifest  Manifest
-	output    Output
-	processes []Process
-	proxies   []Proxy
-	syncs     []sync.Sync
+	done     chan error
+	manifest Manifest
+	proxies  []Proxy
+	syncs    []sync.Sync
+}
+
+type RunOptions struct {
+	Service string
+	Command []string
+	Build   bool
+	Cache   bool
+	Quiet   bool
+	Sync    bool
 }
 
 // NewRun Default constructor method for a Run object
-func NewRun(dir, app string, m Manifest, cache, sync bool) Run {
+func NewRun(m Manifest, dir, app string, opts RunOptions) Run {
 	return Run{
-		App:      app,
-		Dir:      dir,
-		Cache:    cache,
-		Sync:     sync,
-		manifest: m,
-		output:   NewOutput(),
+		App:       app,
+		Dir:       dir,
+		Opts:      opts,
+		Processes: make(map[string]Process),
+		manifest:  m,
+		Output:    NewOutput(opts.Quiet),
 	}
 }
 
@@ -76,7 +84,12 @@ func (r *Run) Start() error {
 		}
 	}
 
-	for _, s := range r.manifest.Services {
+	services, err := r.manifest.runOrder(r.Opts.Service)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range services {
 		links := map[string]bool{}
 
 		for _, l := range s.Links {
@@ -100,38 +113,48 @@ func (r *Run) Start() error {
 	}
 
 	// preload system-level stream names
-	r.output.Stream("convox")
-	r.output.Stream("build")
+	r.Output.Stream("convox")
+	r.Output.Stream("build")
 
 	// preload process stream names so padding is set correctly
-	for _, s := range r.manifest.runOrder() {
-		r.output.Stream(s.Name)
+	for _, s := range services {
+		r.Output.Stream(s.Name)
 	}
 
 	r.done = make(chan error)
 
-	err := r.manifest.Build(r.Dir, r.App, r.output.Stream("build"), r.Cache)
-	if err != nil {
-		return err
+	if r.Opts.Build {
+		err = r.manifest.Build(r.Dir, r.App, r.Output.Stream("build"), BuildOptions{
+			Cache:   r.Opts.Cache,
+			Service: r.Opts.Service,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	system := r.output.Stream("convox")
+	system := r.Output.Stream("convox")
 
-	for _, s := range r.manifest.runOrder() {
+	for _, s := range services {
 		proxies := s.Proxies(r.App)
+
+		if r.Opts.Command != nil && len(r.Opts.Command) > 0 && s.Name == r.Opts.Service {
+			s.Command.String = ""
+			s.Command.Array = []string{"sh", "-c", strings.Join(r.Opts.Command, " ")}
+		}
 
 		p := s.Process(r.App, r.manifest)
 
 		Docker("rm", "-f", p.Name).Run()
 
-		runAsync(r.output.Stream(p.service.Name), Docker(append([]string{"run"}, p.Args...)...), r.done)
+		RunAsync(r.Output.Stream(p.service.Name), Docker(append([]string{"run"}, p.Args...)...), r.done)
 
 		sp, err := p.service.SyncPaths()
 		if err != nil {
 			return err
 		}
 
-		if r.Sync {
+		if r.Opts.Sync {
 			syncs := []sync.Sync{}
 
 			for local, remote := range sp {
@@ -155,9 +178,11 @@ func (r *Run) Start() error {
 			}
 		}
 
-		r.processes = append(r.processes, p)
+		r.Processes[p.Name] = p
 
-		waitForContainer(p.Name, s)
+		if err := waitForContainer(p.Name, s); err != nil {
+			return err
+		}
 
 		for _, proxy := range proxies {
 			r.proxies = append(r.proxies, proxy)
@@ -181,7 +206,7 @@ func (r *Run) Stop() {
 		args = append(args, p.Name)
 	}
 
-	for _, p := range r.processes {
+	for _, p := range r.Processes {
 		args = append(args, p.Name)
 	}
 
@@ -213,16 +238,20 @@ func pruneSyncs(syncs []sync.Sync) []sync.Sync {
 	return pruned
 }
 
-func waitForContainer(container string, service Service) {
+func waitForContainer(container string, service Service) error {
 	i := 0
 
 	for {
 		host := containerHost(container, service.Networks)
 		i += 1
 
-		// wait 5s max
-		if host != "" || i > 50 {
-			break
+		if host != "" {
+			return nil
+		}
+
+		// wait 10s max
+		if i > 100 {
+			return fmt.Errorf("%s failed to start within 10 seconds", container)
 		}
 
 		time.Sleep(100 * time.Millisecond)
