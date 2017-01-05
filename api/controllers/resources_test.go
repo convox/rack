@@ -140,24 +140,11 @@ func TestResourceDelete(t *testing.T) {
 	})
 }
 
-func TestServiceShow(t *testing.T) {
-	/*
-		models.Test(t, func() {
-			models.TestProvider.On("ServiceGet").Return(nil, test.ErrorNotFound("no such service"))
-			models.TestProvider.On("ServiceShow").Return(nil, test.ErrorNotFound("no such service"))
-
-			hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
-			if assert.Nil(t, hf.Request("GET", "/services/nonexistent-service-1234", nil)) {
-				hf.AssertCode(t, 404)
-				hf.AssertError(t, "no such service")
-			}
-		})
-	*/
-
+// TestResourceShow ensures a resource can be shown
+func TestResourceShow(t *testing.T) {
 	models.Test(t, func() {
-		services := structs.Services{
-			structs.Service{
+		services := structs.Resources{
+			structs.Resource{
 				Name:         "memcached-1234",
 				Stack:        "-",
 				Status:       "running",
@@ -170,10 +157,10 @@ func TestServiceShow(t *testing.T) {
 				Tags:         map[string]string{},
 			},
 		}
-		models.TestProvider.On("ServiceGet", "memcached-1234").Return(&services[0], nil)
+		models.TestProvider.On("ResourceGet", "memcached-1234").Return(&services[0], nil)
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-		if assert.Nil(t, hf.Request("GET", "/services/memcached-1234", nil)) {
+		if assert.Nil(t, hf.Request("GET", "/resources/memcached-1234", nil)) {
 			hf.AssertCode(t, 200)
 			hf.AssertJSON(t, "{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
 		}

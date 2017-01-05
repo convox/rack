@@ -248,7 +248,7 @@ func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
 	return apps, nil
 }
 
-// ResourceList lists the resources.
+// ResourceList lists the Resources
 func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
@@ -544,7 +544,7 @@ func resourceFromStack(stack *cloudformation.Stack) structs.Resource {
 	return structs.Resource{
 		Name:       name,
 		Stack:      *stack.StackName,
-		Type:       tags["Service"],
+		Type:       tags["Resource"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
 		Parameters: params,
