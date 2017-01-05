@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"fmt"
+	"net/url"
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
@@ -52,7 +53,7 @@ func TestServiceList(t *testing.T) {
 	})
 }
 
-func TestServiceShow(t *testing.T) {
+func TestServiceGet(t *testing.T) {
 	models.Test(t, func() {
 		models.TestProvider.On("ServiceGet", "nonexistent-service-1234").Return(nil, test.ErrorNotFound("no such service"))
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
@@ -76,13 +77,65 @@ func TestServiceShow(t *testing.T) {
 			Tags:         map[string]string{},
 		}
 
-		fmt.Println(service)
 		models.TestProvider.On("ServiceGet", "memcached-1234").Return(&service, nil)
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("GET", "/services/memcached-1234", nil)) {
 			hf.AssertCode(t, 200)
 			hf.AssertJSON(t, "{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
+		}
+	})
+}
+
+func TestServiceCreate(t *testing.T) {
+
+	v := url.Values{}
+	v.Add("name", "memcached-1234")
+	v.Add("type", "memcached")
+
+	models.Test(t, func() {
+		service := structs.Service{
+			Name:         "memcached-1234",
+			Stack:        "-",
+			Status:       "running",
+			StatusReason: "",
+			Type:         "memcached",
+			Apps:         nil,
+			Exports:      map[string]string{"foo": "bar"},
+			Outputs:      map[string]string{},
+			Parameters:   map[string]string{},
+			Tags:         map[string]string{},
+		}
+		models.TestProvider.On("ServiceCreate", "memcached-1234", "memcached", map[string]string{}).Return(&service, nil)
+
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+		if assert.Nil(t, hf.Request("POST", "/services", v)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "{\"apps\":null,\"exports\":{\"foo\":\"bar\"},\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
+		}
+	})
+}
+
+func TestServiceDelete(t *testing.T) {
+	models.Test(t, func() {
+		service := structs.Service{
+			Name:         "memcached-1234",
+			Stack:        "-",
+			Status:       "running",
+			StatusReason: "",
+			Type:         "memcached",
+			Apps:         nil,
+			Outputs:      map[string]string{},
+			Parameters:   map[string]string{},
+			Tags:         map[string]string{},
+		}
+		models.TestProvider.On("ServiceGet", "memcached-1234").Return(&service, nil)
+		models.TestProvider.On("ServiceDelete", "memcached-1234").Return(&service, nil)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
+
+		if assert.Nil(t, hf.Request("DELETE", "/services/memcached-1234", nil)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "{\"apps\":null,\"exports\":null,\"name\":\"memcached-1234\",\"status\":\"running\",\"status-reason\":\"\",\"type\":\"memcached\"}")
 		}
 	})
 }
