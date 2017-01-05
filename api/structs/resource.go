@@ -1,6 +1,6 @@
 package structs
 
-type Service struct {
+type Resource struct {
 	Name         string `json:"name"`
 	Stack        string `json:"-"`
 	Status       string `json:"status"`
@@ -15,4 +15,4 @@ type Service struct {
 	Tags       map[string]string `json:"-"`
 }
 
-type Services []Service
+type Resources []Resource
