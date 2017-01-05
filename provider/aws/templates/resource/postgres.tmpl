@@ -1,4 +1,4 @@
-{{ define "service" }}
+{{ define "resource" }}
   {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
@@ -85,7 +85,7 @@
       "SecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
-          "GroupDescription": "postgres service",
+          "GroupDescription": "postgres resource",
           "SecurityGroupIngress": [
             { "IpProtocol": "tcp", "FromPort": "5432", "ToPort": "5432", "CidrIp": { "Ref": "VpcCidr" } }
           ],
@@ -95,7 +95,7 @@
       "SubnetGroup": {
         "Type": "AWS::RDS::DBSubnetGroup",
         "Properties": {
-          "DBSubnetGroupDescription": "postgres service",
+          "DBSubnetGroupDescription": "postgres resource",
           "SubnetIds": { "Fn::If": [ "Private",
             { "Ref": "SubnetsPrivate" },
             { "Ref": "Subnets" }

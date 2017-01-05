@@ -59,20 +59,20 @@ func (p *AWSProvider) AppDelete(name string) error {
 		return err
 	}
 
-	services, err := p.ServiceList()
+	resources, err := p.ResourceList()
 	if err != nil {
 		return err
 	}
 
-	for _, s := range services {
-		s.Apps, err = p.serviceApps(s)
+	for _, s := range resources {
+		s.Apps, err = p.resourceApps(s)
 		if err != nil {
 			return err
 		}
 
 		for _, a := range s.Apps {
 			if a.Name == name {
-				return fmt.Errorf("app is linked to %s service", s.Name)
+				return fmt.Errorf("app is linked to %s resource", s.Name)
 			}
 		}
 	}

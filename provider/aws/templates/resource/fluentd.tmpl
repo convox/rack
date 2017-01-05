@@ -1,9 +1,6 @@
-{{ define "service" }}
+{{ define "resource" }}
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Conditions": {
-    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
-  },
   "Outputs": {
     {{ range $k, $app := .Apps }}
       "{{ upper $app.Name }}Link": {
@@ -17,22 +14,9 @@
     }
   },
   "Parameters": {
-    "Private": {
-        "Description": "Flag stating if Rack is private",
-        "Default": "false",
-        "Type": "String"
-    },
     "Url": {
-      "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
+      "Description": "FluentD URL, e.g. 'tcp://fluentd-collector.example.com:24224'",
       "Type": "String"
-    },
-    "SecurityGroups": {
-      "Description": "VpcConfig security groups",
-      "Type": "CommaDelimitedList"
-    },
-    "SubnetsPrivate": {
-      "Description": "VpcConfig private subnets",
-      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -108,7 +92,7 @@
               ]
             ]
           },
-          "S3Key": "lambda/syslog.zip"
+          "S3Key": "release/{{ env "RELEASE" }}/lambda/fluentd.zip"
         },
         "Description": {
           "Ref": "Url"
@@ -124,15 +108,7 @@
           ]
         },
         "Runtime": "nodejs",
-        "Timeout": "25",
-        "VpcConfig": {
-          "Fn::If": [ "Private",
-          {
-            "SecurityGroupIds" : { "Ref": "SecurityGroups" },
-            "SubnetIds" : { "Ref": "SubnetsPrivate" }
-          },
-          { "Ref": "AWS::NoValue" }
-        ]}
+        "Timeout": "25"
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -162,10 +138,7 @@
                 {
                   "Action": [
                     "cloudwatch:PutMetricData",
-                    "lambda:InvokeFunction",
-                    "ec2:CreateNetworkInterface",
-                    "ec2:DescribeNetworkInterfaces",
-                    "ec2:DeleteNetworkInterface"
+                    "lambda:InvokeFunction"
                   ],
                   "Effect": "Allow",
                   "Resource": "*"

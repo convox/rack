@@ -929,16 +929,16 @@ func (_m *MockProvider) ReleaseSave(_a0 *structs.Release) error {
 	return r0
 }
 
-// ServiceCreate provides a mock function with given fields: name, kind, params
-func (_m *MockProvider) ServiceCreate(name string, kind string, params map[string]string) (*structs.Service, error) {
+// ResourceCreate provides a mock function with given fields: name, kind, params
+func (_m *MockProvider) ResourceCreate(name string, kind string, params map[string]string) (*structs.Resource, error) {
 	ret := _m.Called(name, kind, params)
 
-	var r0 *structs.Service
-	if rf, ok := ret.Get(0).(func(string, string, map[string]string) *structs.Service); ok {
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string, map[string]string) *structs.Resource); ok {
 		r0 = rf(name, kind, params)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Service)
+			r0 = ret.Get(0).(*structs.Resource)
 		}
 	}
 
@@ -952,16 +952,16 @@ func (_m *MockProvider) ServiceCreate(name string, kind string, params map[strin
 	return r0, r1
 }
 
-// ServiceDelete provides a mock function with given fields: name
-func (_m *MockProvider) ServiceDelete(name string) (*structs.Service, error) {
+// ResourceDelete provides a mock function with given fields: name
+func (_m *MockProvider) ResourceDelete(name string) (*structs.Resource, error) {
 	ret := _m.Called(name)
 
-	var r0 *structs.Service
-	if rf, ok := ret.Get(0).(func(string) *structs.Service); ok {
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string) *structs.Resource); ok {
 		r0 = rf(name)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Service)
+			r0 = ret.Get(0).(*structs.Resource)
 		}
 	}
 
@@ -975,16 +975,16 @@ func (_m *MockProvider) ServiceDelete(name string) (*structs.Service, error) {
 	return r0, r1
 }
 
-// ServiceGet provides a mock function with given fields: name
-func (_m *MockProvider) ServiceGet(name string) (*structs.Service, error) {
+// ResourceGet provides a mock function with given fields: name
+func (_m *MockProvider) ResourceGet(name string) (*structs.Resource, error) {
 	ret := _m.Called(name)
 
-	var r0 *structs.Service
-	if rf, ok := ret.Get(0).(func(string) *structs.Service); ok {
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string) *structs.Resource); ok {
 		r0 = rf(name)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Service)
+			r0 = ret.Get(0).(*structs.Resource)
 		}
 	}
 
@@ -998,16 +998,16 @@ func (_m *MockProvider) ServiceGet(name string) (*structs.Service, error) {
 	return r0, r1
 }
 
-// ServiceLink provides a mock function with given fields: name, app, process
-func (_m *MockProvider) ServiceLink(name string, app string, process string) (*structs.Service, error) {
+// ResourceLink provides a mock function with given fields: name, app, process
+func (_m *MockProvider) ResourceLink(name string, app string, process string) (*structs.Resource, error) {
 	ret := _m.Called(name, app, process)
 
-	var r0 *structs.Service
-	if rf, ok := ret.Get(0).(func(string, string, string) *structs.Service); ok {
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string, string) *structs.Resource); ok {
 		r0 = rf(name, app, process)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Service)
+			r0 = ret.Get(0).(*structs.Resource)
 		}
 	}
 
@@ -1021,16 +1021,16 @@ func (_m *MockProvider) ServiceLink(name string, app string, process string) (*s
 	return r0, r1
 }
 
-// ServiceList provides a mock function with given fields:
-func (_m *MockProvider) ServiceList() (structs.Services, error) {
+// ResourceList provides a mock function with given fields:
+func (_m *MockProvider) ResourceList() (structs.Resources, error) {
 	ret := _m.Called()
 
-	var r0 structs.Services
-	if rf, ok := ret.Get(0).(func() structs.Services); ok {
+	var r0 structs.Resources
+	if rf, ok := ret.Get(0).(func() structs.Resources); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(structs.Services)
+			r0 = ret.Get(0).(structs.Resources)
 		}
 	}
 
@@ -1044,16 +1044,16 @@ func (_m *MockProvider) ServiceList() (structs.Services, error) {
 	return r0, r1
 }
 
-// ServiceUnlink provides a mock function with given fields: name, app, process
-func (_m *MockProvider) ServiceUnlink(name string, app string, process string) (*structs.Service, error) {
+// ResourceUnlink provides a mock function with given fields: name, app, process
+func (_m *MockProvider) ResourceUnlink(name string, app string, process string) (*structs.Resource, error) {
 	ret := _m.Called(name, app, process)
 
-	var r0 *structs.Service
-	if rf, ok := ret.Get(0).(func(string, string, string) *structs.Service); ok {
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, string, string) *structs.Resource); ok {
 		r0 = rf(name, app, process)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Service)
+			r0 = ret.Get(0).(*structs.Resource)
 		}
 	}
 
@@ -1067,16 +1067,16 @@ func (_m *MockProvider) ServiceUnlink(name string, app string, process string) (
 	return r0, r1
 }
 
-// ServiceUpdate provides a mock function with given fields: name, params
-func (_m *MockProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
+// ResourceUpdate provides a mock function with given fields: name, params
+func (_m *MockProvider) ResourceUpdate(name string, params map[string]string) (*structs.Resource, error) {
 	ret := _m.Called(name, params)
 
-	var r0 *structs.Service
-	if rf, ok := ret.Get(0).(func(string, map[string]string) *structs.Service); ok {
+	var r0 *structs.Resource
+	if rf, ok := ret.Get(0).(func(string, map[string]string) *structs.Resource); ok {
 		r0 = rf(name, params)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Service)
+			r0 = ret.Get(0).(*structs.Resource)
 		}
 	}
 

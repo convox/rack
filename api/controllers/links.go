@@ -9,20 +9,20 @@ import (
 )
 
 func LinkCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
-	service := mux.Vars(r)["service"]
+	resource := mux.Vars(r)["resource"]
 
-	s, err := models.Provider().ServiceGet(service)
+	s, err := models.Provider().ResourceGet(resource)
 	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such service: %s", service)
+		return httperr.Errorf(404, "no such resource: %s", resource)
 	}
 	if err != nil {
 		return httperr.Server(err)
 	}
 	if s.Status != "running" {
-		return httperr.Errorf(403, "can not link service with status: %s", s.Status)
+		return httperr.Errorf(403, "can not link resource with status: %s", s.Status)
 	}
 
-	s, err = models.Provider().ServiceLink(service, GetForm(r, "app"), GetForm(r, "process"))
+	s, err = models.Provider().ResourceLink(resource, GetForm(r, "app"), GetForm(r, "process"))
 	if err != nil {
 		return httperr.Server(err)
 	}
@@ -32,20 +32,20 @@ func LinkCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 func LinkDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
-	service := mux.Vars(r)["service"]
+	resource := mux.Vars(r)["resource"]
 
-	s, err := models.Provider().ServiceGet(service)
+	s, err := models.Provider().ResourceGet(resource)
 	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such service: %s", service)
+		return httperr.Errorf(404, "no such resource: %s", resource)
 	}
 	if err != nil {
 		return httperr.Server(err)
 	}
 	if s.Status != "running" {
-		return httperr.Errorf(403, "can not unlink service with status: %s", s.Status)
+		return httperr.Errorf(403, "can not unlink resource with status: %s", s.Status)
 	}
 
-	s, err = models.Provider().ServiceUnlink(service, app, GetForm(r, "process"))
+	s, err = models.Provider().ResourceUnlink(resource, app, GetForm(r, "process"))
 	if err != nil {
 		return httperr.Server(err)
 	}
