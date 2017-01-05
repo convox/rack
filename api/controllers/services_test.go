@@ -45,9 +45,7 @@ func TestServiceList(t *testing.T) {
 
 	models.Test(t, func() {
 		models.TestProvider.On("ServiceList").Return(nil, fmt.Errorf("unknown error"))
-
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
-
 		if assert.Nil(t, hf.Request("GET", "/services", nil)) {
 			hf.AssertCode(t, 500)
 			hf.AssertError(t, "unknown error")
@@ -172,12 +170,7 @@ func TestServiceShow(t *testing.T) {
 				Tags:         map[string]string{},
 			},
 		}
-		service := services[0]
-
-		fmt.Println(service)
-		//models.TestProvider.On("ServiceList").Return(services, nil)
-		models.TestProvider.On("ServiceGet", "memcached-1234").Return(&service, nil)
-
+		models.TestProvider.On("ServiceGet", "memcached-1234").Return(&services[0], nil)
 		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
 		if assert.Nil(t, hf.Request("GET", "/services/memcached-1234", nil)) {
