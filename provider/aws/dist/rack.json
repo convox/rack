@@ -298,6 +298,11 @@
       "Description": "Default container disk size in GB",
       "Default": "10"
     },
+    "CustomTopicRuntime": {
+      "Type": "String",
+      "Default": "nodejs",
+      "Description": ""
+    },
     "Development": {
       "Type": "String",
       "Description": "Development mode",
@@ -508,7 +513,7 @@
         "Handler": "index.handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": "30"
       }
     },
@@ -609,7 +614,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": { "Ref": "CustomTopicRuntime" },
         "Timeout": "300"
       }
     },
@@ -1266,7 +1271,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": "300"
       }
     },

@@ -243,6 +243,11 @@
       "Description": "",
       "Type": "String"
     },
+    "CustomTopicRuntime": {
+      "Default": "nodejs",
+      "Description": "",
+      "Type": "String"
+    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -662,7 +667,9 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs",
+        "Runtime": {
+          "Ref": "CustomTopicRuntime"
+        },
         "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
