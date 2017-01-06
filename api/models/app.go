@@ -148,14 +148,15 @@ func (a *App) Create() error {
 	}
 
 	params := map[string]string{
-		"Cluster":        os.Getenv("CLUSTER"),
-		"Internal":       os.Getenv("INTERNAL"),
-		"Private":        os.Getenv("PRIVATE"),
-		"Subnets":        os.Getenv("SUBNETS"),
-		"SubnetsPrivate": subnetsPrivate,
-		"Version":        os.Getenv("RELEASE"),
-		"VPC":            os.Getenv("VPC"),
-		"VPCCIDR":        os.Getenv("VPCCIDR"),
+		"Cluster":            os.Getenv("CLUSTER"),
+		"CustomTopicRuntime": "nodejs4.3",
+		"Internal":           os.Getenv("INTERNAL"),
+		"Private":            os.Getenv("PRIVATE"),
+		"Subnets":            os.Getenv("SUBNETS"),
+		"SubnetsPrivate":     subnetsPrivate,
+		"Version":            os.Getenv("RELEASE"),
+		"VPC":                os.Getenv("VPC"),
+		"VPCCIDR":            os.Getenv("VPCCIDR"),
 	}
 
 	if os.Getenv("ENCRYPTION_KEY") != "" {
