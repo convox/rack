@@ -363,6 +363,7 @@ func (p *AWSProvider) ResourceUpdate(name string, params map[string]string) (*st
 
 // createResource creates a Resource.
 // Note: see also ResourceCreate() above.
+// This should probably be renamed to createResourceStack to be in conformity with createResourceURL below.
 func (p *AWSProvider) createResource(s *structs.Resource) (*cloudformation.CreateStackInput, error) {
 	formation, err := resourceFormation(s.Type, nil)
 	if err != nil {
