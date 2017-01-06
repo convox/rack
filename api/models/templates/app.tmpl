@@ -142,7 +142,7 @@
           "Handler": "index.external",
           "MemorySize": "128",
           "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-          "Runtime": { "Ref", "CustomTopicRuntime" },
+          "Runtime": { "Ref": "CustomTopicRuntime" },
           "Timeout": "300"
         }
       },
