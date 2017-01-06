@@ -576,7 +576,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": 50
       },
       "Type": "AWS::Lambda::Function"
@@ -719,7 +719,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
