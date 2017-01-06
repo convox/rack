@@ -727,6 +727,7 @@
                       "kms:Decrypt",
                       "kms:GenerateDataKey",
                       "kms:GenerateRandom",
+                      "lambda:AddPermission",
                       "lambda:CreateFunction",
                       "lambda:DeleteFunction",
                       "lambda:GetFunctionConfiguration",
