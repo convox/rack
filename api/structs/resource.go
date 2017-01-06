@@ -1,5 +1,7 @@
 package structs
 
+// A resource is a dependency of an app that communicates with it over the network.
+// Documentation: https://convox.com/docs/about-resources/
 type Resource struct {
 	Name         string `json:"name"`
 	Stack        string `json:"-"`
@@ -15,4 +17,5 @@ type Resource struct {
 	Tags       map[string]string `json:"-"`
 }
 
+// Resources is a list of resources.
 type Resources []Resource
