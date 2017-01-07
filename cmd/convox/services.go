@@ -13,12 +13,13 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type ServiceType struct {
+// ResourceType is the type of an external resource.
+type ResourceType struct {
 	name, args string
 }
 
 func init() {
-	types := []ServiceType{
+	types := []ResourceType{
 		{
 			"memcached",
 			"[--instance-type=db.t2.micro] [--num-cache-nodes=1] [--private]",
@@ -68,17 +69,17 @@ func init() {
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "resources",
-		Aliases: []string{"services"},
+		Aliases:     []string{"services"},
 		Description: "manage external resources [prev. services]",
 		Usage:       "",
-		Action:      cmdServices,
+		Action:      cmdResources,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
 				Description:     "create a new resource.",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
-				Action:          cmdServiceCreate,
+				Action:          cmdResourceCreate,
 				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
 			},
@@ -86,14 +87,14 @@ func init() {
 				Name:        "delete",
 				Description: "delete a resource",
 				Usage:       "<name>",
-				Action:      cmdServiceDelete,
+				Action:      cmdResourceDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:            "update",
 				Description:     "update a resource.\n\nWARNING: updates may cause resource downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
-				Action:          cmdServiceUpdate,
+				Action:          cmdResourceUpdate,
 				Flags:           []cli.Flag{rackFlag},
 				SkipFlagParsing: true,
 			},
@@ -101,7 +102,7 @@ func init() {
 				Name:        "info",
 				Description: "info about a resource.",
 				Usage:       "<name>",
-				Action:      cmdServiceInfo,
+				Action:      cmdResourceInfo,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
@@ -122,14 +123,14 @@ func init() {
 				Name:        "url",
 				Description: "return url for the given resource",
 				Usage:       "<name>",
-				Action:      cmdServiceURL,
+				Action:      cmdResourceURL,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "proxy",
 				Description: "proxy ports from localhost to connect to a resource",
 				Usage:       "<name>",
-				Action:      cmdServiceProxy,
+				Action:      cmdResourceProxy,
 				Flags: []cli.Flag{
 					rackFlag,
 					cli.StringFlag{
@@ -143,7 +144,7 @@ func init() {
 	})
 }
 
-func cmdServices(c *cli.Context) error {
+func cmdResources(c *cli.Context) error {
 	if len(c.Args()) > 0 {
 		return stdcli.Error(fmt.Errorf("`convox resources` does not take arguments. Perhaps you meant `convox resources create`?"))
 	}
@@ -153,22 +154,22 @@ func cmdServices(c *cli.Context) error {
 		return nil
 	}
 
-	services, err := rackClient(c).GetServices()
+	resources, err := rackClient(c).GetResources()
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	t := stdcli.NewTable("NAME", "TYPE", "STATUS")
 
-	for _, service := range services {
-		t.AddRow(service.Name, service.Type, service.Status)
+	for _, resource := range resources {
+		t.AddRow(resource.Name, resource.Type, resource.Status)
 	}
 
 	t.Print()
 	return nil
 }
 
-func cmdServiceCreate(c *cli.Context) error {
+func cmdResourceCreate(c *cli.Context) error {
 	// ensure type included
 	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "create")
@@ -221,7 +222,7 @@ func cmdServiceCreate(c *cli.Context) error {
 	}
 	fmt.Printf(")... ")
 
-	_, err := rackClient(c).CreateService(t, options)
+	_, err := rackClient(c).CreateResource(t, options)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -230,7 +231,7 @@ func cmdServiceCreate(c *cli.Context) error {
 	return nil
 }
 
-func cmdServiceUpdate(c *cli.Context) error {
+func cmdResourceUpdate(c *cli.Context) error {
 	// ensure name included
 	if !(len(c.Args()) > 0) {
 		stdcli.Usage(c, "update")
@@ -264,7 +265,7 @@ func cmdServiceUpdate(c *cli.Context) error {
 
 	fmt.Printf("Updating %s (%s)...", name, strings.Join(optionsList, " "))
 
-	_, err := rackClient(c).UpdateService(name, options)
+	_, err := rackClient(c).UpdateResource(name, options)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -273,7 +274,7 @@ func cmdServiceUpdate(c *cli.Context) error {
 	return nil
 }
 
-func cmdServiceDelete(c *cli.Context) error {
+func cmdResourceDelete(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "delete")
 		return nil
@@ -283,7 +284,7 @@ func cmdServiceDelete(c *cli.Context) error {
 
 	fmt.Printf("Deleting %s... ", name)
 
-	_, err := rackClient(c).DeleteService(name)
+	_, err := rackClient(c).DeleteResource(name)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -292,7 +293,7 @@ func cmdServiceDelete(c *cli.Context) error {
 	return nil
 }
 
-func cmdServiceInfo(c *cli.Context) error {
+func cmdResourceInfo(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "info")
 		return nil
@@ -300,33 +301,33 @@ func cmdServiceInfo(c *cli.Context) error {
 
 	name := c.Args()[0]
 
-	service, err := rackClient(c).GetService(name)
+	resource, err := rackClient(c).GetResource(name)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Printf("Name    %s\n", service.Name)
-	fmt.Printf("Status  %s\n", service.Status)
+	fmt.Printf("Name    %s\n", resource.Name)
+	fmt.Printf("Status  %s\n", resource.Status)
 
-	if service.Status == "failed" {
-		fmt.Printf("Reason  %s\n", service.StatusReason)
+	if resource.Status == "failed" {
+		fmt.Printf("Reason  %s\n", resource.StatusReason)
 	}
 
-	if len(service.Exports) > 0 {
+	if len(resource.Exports) > 0 {
 		fmt.Printf("Exports\n")
 
-		for key, value := range service.Exports {
+		for key, value := range resource.Exports {
 			fmt.Printf("  %s: %s\n", key, value)
 		}
-	} else if service.URL != "" {
+	} else if resource.URL != "" {
 		// NOTE: this branch is deprecated
-		fmt.Printf("URL     %s\n", service.URL)
+		fmt.Printf("URL     %s\n", resource.URL)
 	}
 
 	return nil
 }
 
-func cmdServiceURL(c *cli.Context) error {
+func cmdResourceURL(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "url")
 		return nil
@@ -334,20 +335,20 @@ func cmdServiceURL(c *cli.Context) error {
 
 	name := c.Args()[0]
 
-	service, err := rackClient(c).GetService(name)
+	resource, err := rackClient(c).GetResource(name)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	if service.Status == "failed" {
-		return stdcli.Error(fmt.Errorf("Service failure for %s", service.StatusReason))
+	if resource.Status == "failed" {
+		return stdcli.Error(fmt.Errorf("Resource failure for %s", resource.StatusReason))
 	}
 
-	if service.URL == "" {
-		return stdcli.Error(fmt.Errorf("URL does not exist for %s", service.Name))
+	if resource.URL == "" {
+		return stdcli.Error(fmt.Errorf("URL does not exist for %s", resource.Name))
 	}
 
-	fmt.Printf("%s\n", service.URL)
+	fmt.Printf("%s\n", resource.URL)
 
 	return nil
 }
@@ -396,7 +397,7 @@ func cmdLinkDelete(c *cli.Context) error {
 	return nil
 }
 
-func cmdServiceProxy(c *cli.Context) error {
+func cmdResourceProxy(c *cli.Context) error {
 	if len(c.Args()) != 1 {
 		stdcli.Usage(c, "info")
 		return nil
@@ -404,12 +405,12 @@ func cmdServiceProxy(c *cli.Context) error {
 
 	name := c.Args()[0]
 
-	service, err := rackClient(c).GetService(name)
+	resource, err := rackClient(c).GetResource(name)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	export, ok := service.Exports["URL"]
+	export, ok := resource.Exports["URL"]
 	if !ok {
 		return stdcli.Error(fmt.Errorf("%s does not expose a URL", name))
 	}

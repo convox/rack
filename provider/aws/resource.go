@@ -15,13 +15,15 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
-func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error) {
-	_, err := p.ServiceGet(name)
+// ResourceCreate creates a new resource.
+// Note: see also createResource() below.
+func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string) (*structs.Resource, error) {
+	_, err := p.ResourceGet(name)
 	if awsError(err) != "ValidationError" {
-		return nil, fmt.Errorf("service named %s already exists", name)
+		return nil, fmt.Errorf("resource named %s already exists", name)
 	}
 
-	s := &structs.Service{
+	s := &structs.Resource{
 		Name:       name,
 		Parameters: cfParams(params),
 		Type:       kind,
@@ -33,27 +35,27 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 
 	switch s.Type {
 	case "memcached", "mysql", "postgres", "redis", "sqs":
-		req, err = p.createService(s)
+		req, err = p.createResource(s)
 	case "fluentd":
-		req, err = p.createServiceURL(s, "tcp")
+		req, err = p.createResourceURL(s, "tcp")
 	case "s3":
 		if s.Parameters["Topic"] != "" {
 			s.Parameters["Topic"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Topic"])
 		}
-		req, err = p.createService(s)
+		req, err = p.createResource(s)
 	case "sns":
 		if s.Parameters["Queue"] != "" {
 			s.Parameters["Queue"] = fmt.Sprintf("%s-%s", p.Rack, s.Parameters["Queue"])
 		}
-		req, err = p.createService(s)
+		req, err = p.createResource(s)
 	case "syslog":
 		s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
-		req, err = p.createServiceURL(s, "tcp", "tcp+tls", "udp")
+		req, err = p.createResourceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
 		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
-		req, err = p.createServiceURL(s, "http", "https")
+		req, err = p.createResourceURL(s, "http", "https")
 	default:
-		err = fmt.Errorf("Invalid service type: %s", s.Type)
+		err = fmt.Errorf("Invalid resource type: %s", s.Type)
 	}
 	if err != nil {
 		return s, err
@@ -68,7 +70,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	// sort keys for easier testing
 	sort.Strings(keys)
 
-	// pass through service parameters as Cloudformation Parameters
+	// pass through resource parameters as Cloudformation Parameters
 	for _, key := range keys {
 		req.Parameters = append(req.Parameters, &cloudformation.Parameter{
 			ParameterKey:   aws.String(key),
@@ -76,13 +78,13 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 		})
 	}
 
-	// tag the service
+	// tag the resource
 	tags := map[string]string{
-		"Name":    s.Name,
-		"Rack":    p.Rack,
-		"Service": s.Type,
-		"System":  "convox",
-		"Type":    "service",
+		"Name":     s.Name,
+		"Rack":     p.Rack,
+		"Resource": s.Type,
+		"System":   "convox",
+		"Type":     "resource",
 	}
 	tagKeys := []string{}
 
@@ -99,7 +101,7 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	_, err = p.cloudformation().CreateStack(req)
 
 	p.EventSend(&structs.Event{
-		Action: "service:create",
+		Action: "resource:create",
 		Data: map[string]string{
 			"name": s.Name,
 			"type": s.Type,
@@ -109,19 +111,20 @@ func (p *AWSProvider) ServiceCreate(name, kind string, params map[string]string)
 	return s, err
 }
 
-func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
-	s, err := p.ServiceGet(name)
+// ResourceDelete deletes a resource.
+func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
+	s, err := p.ResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
 
-	apps, err := p.serviceApps(*s)
+	apps, err := p.resourceApps(*s)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(apps) > 0 {
-		return nil, fmt.Errorf("service is linked to %s", apps[0].Name)
+		return nil, fmt.Errorf("resource is linked to %s", apps[0].Name)
 	}
 
 	_, err = p.cloudformation().DeleteStack(&cloudformation.DeleteStackInput{
@@ -129,7 +132,7 @@ func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
 	})
 
 	p.EventSend(&structs.Event{
-		Action: "service:delete",
+		Action: "resource:delete",
 		Data: map[string]string{
 			"name": s.Name,
 			"type": s.Type,
@@ -139,11 +142,12 @@ func (p *AWSProvider) ServiceDelete(name string) (*structs.Service, error) {
 	return s, err
 }
 
-func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
+// ResourceGet retrieves a resource.
+func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
 
-	// try 'convox-myservice', and if not found try 'myservice'
+	// try 'convox-myresource', and if not found try 'myresource'
 	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack + "-" + name),
 	})
@@ -156,10 +160,10 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 		return nil, err
 	}
 	if len(res.Stacks) != 1 {
-		return nil, fmt.Errorf("could not load stack for service: %s", name)
+		return nil, fmt.Errorf("could not load stack for resource: %s", name)
 	}
 
-	s := serviceFromStack(res.Stacks[0])
+	s := resourceFromStack(res.Stacks[0])
 
 	if s.Tags["Rack"] != "" && s.Tags["Rack"] != p.Rack {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
@@ -181,7 +185,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 		}
 	}
 
-	switch s.Tags["Service"] {
+	switch s.Tags["Resource"] {
 	case "memcached":
 		s.Exports["URL"] = fmt.Sprintf("%s:%s", s.Outputs["Port11211TcpAddr"], s.Outputs["Port11211TcpPort"])
 	case "mysql":
@@ -209,7 +213,7 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	}
 
 	// Populate linked apps
-	apps, err := p.serviceApps(s)
+	apps, err := p.resourceApps(s)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +223,8 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	return &s, nil
 }
 
-//serviceApps returns the apps that have been linked with a service (ignoring apps that have been delete out of band)
-func (p *AWSProvider) serviceApps(s structs.Service) (structs.Apps, error) {
+//resourceApps returns the apps that have been linked with a resource (ignoring apps that have been delete out of band)
+func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
 	apps := structs.Apps(make([]structs.App, 0))
 
 	for key, value := range s.Outputs {
@@ -244,44 +248,45 @@ func (p *AWSProvider) serviceApps(s structs.Service) (structs.Apps, error) {
 	return apps, nil
 }
 
-// ServiceList lists the Services
-func (p *AWSProvider) ServiceList() (structs.Services, error) {
+// ResourceList lists the resources.
+func (p *AWSProvider) ResourceList() (structs.Resources, error) {
 	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return nil, err
 	}
 
-	services := structs.Services{}
+	resources := structs.Resources{}
 
 	for _, stack := range res.Stacks {
 		tags := stackTags(stack)
 
-		// if it's a service and the Rack tag is either the current rack or blank
-		if tags["System"] == "convox" && tags["Type"] == "service" {
+		// if it's a resource and the Rack tag is either the current rack or blank
+		if tags["System"] == "convox" && (tags["Type"] == "resource" || tags["Type"] == "service") {
 			if tags["Rack"] == p.Rack || tags["Rack"] == "" {
-				services = append(services, serviceFromStack(stack))
+				resources = append(resources, resourceFromStack(stack))
 			}
 		}
 	}
 
-	for _, s := range services {
-		apps, err := p.serviceApps(s)
+	for _, s := range resources {
+		apps, err := p.resourceApps(s)
 		if err != nil {
 			return nil, err
 		}
 		s.Apps = apps
 	}
 
-	return services, nil
+	return resources, nil
 }
 
-func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, error) {
+// ResourceLink creates a link between the provided app and resource.
+func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := p.ServiceGet(name)
+	s, err := p.ResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
@@ -289,28 +294,29 @@ func (p *AWSProvider) ServiceLink(name, app, process string) (*structs.Service, 
 	// already linked
 	for _, linkedApp := range s.Apps {
 		if a.Name == linkedApp.Name {
-			return nil, fmt.Errorf("Service %s is already linked to app %s", s.Name, a.Name)
+			return nil, fmt.Errorf("Resource %s is already linked to app %s", s.Name, a.Name)
 		}
 	}
 
-	// Update Service and/or App stacks
+	// Update Resource and/or App stacks
 	switch s.Type {
 	case "fluentd", "syslog":
-		err = p.linkService(a, s) // Update service to know about App
+		err = p.linkResource(a, s) // Update resource to know about App
 	default:
-		err = fmt.Errorf("Service type %s does not have a link strategy", s.Type)
+		err = fmt.Errorf("Resource type %s does not have a link strategy", s.Type)
 	}
 
 	return s, err
 }
 
-func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service, error) {
+// ResourceUnlink removes a link between the provided app and resource.
+func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resource, error) {
 	a, err := p.AppGet(app)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := p.ServiceGet(name)
+	s, err := p.ResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
@@ -325,23 +331,23 @@ func (p *AWSProvider) ServiceUnlink(name, app, process string) (*structs.Service
 	}
 
 	if !linked {
-		return nil, fmt.Errorf("Service %s is not linked to app %s", s.Name, a.Name)
+		return nil, fmt.Errorf("Resource %s is not linked to app %s", s.Name, a.Name)
 	}
 
-	// Update Service and/or App stacks
+	// Update Resource and/or App stacks
 	switch s.Type {
 	case "fluentd", "syslog":
-		err = p.unlinkService(a, s) // Update service to forget about App
+		err = p.unlinkResource(a, s) // Update resource to forget about App
 	default:
-		err = fmt.Errorf("Service type %s does not have a unlink strategy", s.Type)
+		err = fmt.Errorf("Resource type %s does not have an unlink strategy", s.Type)
 	}
 
 	return s, err
 }
 
-// ServiceUpdate updates a Service with new params
-func (p *AWSProvider) ServiceUpdate(name string, params map[string]string) (*structs.Service, error) {
-	s, err := p.ServiceGet(name)
+// ResourceUpdate updates a resource with new params.
+func (p *AWSProvider) ResourceUpdate(name string, params map[string]string) (*structs.Resource, error) {
+	s, err := p.ResourceGet(name)
 	if err != nil {
 		return nil, err
 	}
@@ -350,13 +356,16 @@ func (p *AWSProvider) ServiceUpdate(name string, params map[string]string) (*str
 		s.Parameters[key] = value
 	}
 
-	err = p.updateService(s)
+	err = p.updateResource(s)
 
 	return s, err
 }
 
-func (p *AWSProvider) createService(s *structs.Service) (*cloudformation.CreateStackInput, error) {
-	formation, err := serviceFormation(s.Type, nil)
+// createResource creates a Resource.
+// Note: see also ResourceCreate() above.
+// This should probably be renamed to createResourceStack to be in conformity with createResourceURL below.
+func (p *AWSProvider) createResource(s *structs.Resource) (*cloudformation.CreateStackInput, error) {
+	formation, err := resourceFormation(s.Type, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +387,7 @@ func (p *AWSProvider) createService(s *structs.Service) (*cloudformation.CreateS
 	return req, nil
 }
 
-func (p *AWSProvider) createServiceURL(s *structs.Service, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
+func (p *AWSProvider) createResourceURL(s *structs.Resource, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
 	if s.Parameters["Url"] == "" {
 		return nil, fmt.Errorf("Must specify a URL")
 	}
@@ -401,11 +410,11 @@ func (p *AWSProvider) createServiceURL(s *structs.Service, allowedProtocols ...s
 		return nil, fmt.Errorf("Invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
 	}
 
-	return p.createService(s)
+	return p.createResource(s)
 }
 
-func (p *AWSProvider) updateService(s *structs.Service) error {
-	formation, err := serviceFormation(s.Type, s)
+func (p *AWSProvider) updateResource(s *structs.Resource) error {
+	formation, err := resourceFormation(s.Type, s)
 	if err != nil {
 		return err
 	}
@@ -437,14 +446,14 @@ func (p *AWSProvider) updateService(s *structs.Service) error {
 }
 
 // add to links
-func (p *AWSProvider) linkService(a *structs.App, s *structs.Service) error {
+func (p *AWSProvider) linkResource(a *structs.App, s *structs.Resource) error {
 	s.Apps = append(s.Apps, *a)
 
-	return p.updateService(s)
+	return p.updateResource(s)
 }
 
 // delete from links
-func (p *AWSProvider) unlinkService(a *structs.App, s *structs.Service) error {
+func (p *AWSProvider) unlinkResource(a *structs.App, s *structs.Resource) error {
 	apps := structs.Apps{}
 	for _, linkedApp := range s.Apps {
 		if a.Name != linkedApp.Name {
@@ -454,10 +463,10 @@ func (p *AWSProvider) unlinkService(a *structs.App, s *structs.Service) error {
 
 	s.Apps = apps
 
-	return p.updateService(s)
+	return p.updateResource(s)
 }
 
-func (p *AWSProvider) appendSystemParameters(s *structs.Service) error {
+func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
 	password, err := generatePassword()
 	if err != nil {
 		return err
@@ -482,7 +491,7 @@ func coalesceString(ss ...string) string {
 	return ""
 }
 
-func filterFormationParameters(s *structs.Service, formation string) error {
+func filterFormationParameters(s *structs.Resource, formation string) error {
 	var params struct {
 		Parameters map[string]interface{}
 	}
@@ -512,8 +521,8 @@ func generatePassword() (string, error) {
 	return hex.EncodeToString(hash[:])[0:30], nil
 }
 
-func serviceFormation(kind string, data interface{}) (string, error) {
-	d, err := buildTemplate(fmt.Sprintf("service/%s", kind), "service", data)
+func resourceFormation(kind string, data interface{}) (string, error) {
+	d, err := buildTemplate(fmt.Sprintf("resource/%s", kind), "resource", data)
 	if err != nil {
 		return "", err
 	}
@@ -521,7 +530,7 @@ func serviceFormation(kind string, data interface{}) (string, error) {
 	return d, nil
 }
 
-func serviceFromStack(stack *cloudformation.Stack) structs.Service {
+func resourceFromStack(stack *cloudformation.Stack) structs.Resource {
 	params := stackParameters(stack)
 	tags := stackTags(stack)
 	name := coalesceString(tags["Name"], *stack.StackName)
@@ -532,10 +541,10 @@ func serviceFromStack(stack *cloudformation.Stack) structs.Service {
 		exports["URL"] = url
 	}
 
-	return structs.Service{
+	return structs.Resource{
 		Name:       name,
 		Stack:      *stack.StackName,
-		Type:       tags["Service"],
+		Type:       tags["Resource"],
 		Status:     humanStatus(*stack.StackStatus),
 		Outputs:    stackOutputs(stack),
 		Parameters: params,
