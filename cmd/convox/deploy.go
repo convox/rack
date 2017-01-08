@@ -19,9 +19,9 @@ func init() {
 		Flags: append(
 			buildCreateFlags,
 			cli.BoolFlag{
-				Name:  "wait",
+				Name:   "wait",
 				EnvVar: "CONVOX_WAIT",
-				Usage: "wait for release to finish promoting before returning",
+				Usage:  "wait for release to finish promoting before returning",
 			},
 		),
 	})
