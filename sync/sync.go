@@ -7,7 +7,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +33,12 @@ type Sync struct {
 	outgoingBlocks map[string]int
 }
 
+type execState struct {
+	Running  bool
+	Error    error
+	ExitCode int
+}
+
 func NewSync(container, local, remote string) (*Sync, error) {
 	l, err := filepath.Abs(local)
 
@@ -48,8 +53,8 @@ func NewSync(container, local, remote string) (*Sync, error) {
 	}
 
 	sync.docker, _ = docker.NewClientFromEnv()
-	sync.incoming = make(chan changes.Change)
-	sync.outgoing = make(chan changes.Change)
+	sync.incoming = make(chan changes.Change, 1000)
+	sync.outgoing = make(chan changes.Change, 1000)
 	sync.incomingBlocks = make(map[string]int)
 	sync.outgoingBlocks = make(map[string]int)
 
@@ -131,119 +136,105 @@ func (s *Sync) syncIncomingAdds(adds []changes.Change, st Stream) {
 		return
 	}
 
-	cmd := []string{"tar", "czf", "-"}
+	tar := []string{"tar", "czf", "-"}
 
-	for _, a := range adds {
-		cmd = append(cmd, filepath.Join(s.Remote, a.Path))
-	}
+	// docker exec can fail if the argument list is too long
+	// limit to 2000 files per exec
+	for i := 0; i < len(adds); i += 2000 {
 
-	res, err := s.docker.CreateExec(docker.CreateExecOptions{
-		AttachStdout: true,
-		Container:    s.Container,
-		Cmd:          cmd,
-	})
+		max := i + 2000
+		if max > len(adds) {
+			max = len(adds)
+		}
 
-	if err != nil {
-		st <- fmt.Sprintf("error: %s", err)
-		return
-	}
+		cmd := tar
+		batch := adds[i:max]
+		for _, a := range batch {
+			cmd = append(cmd, filepath.Join(s.Remote, a.Path))
+		}
 
-	r, w := io.Pipe()
+		if err := s.execTar(cmd, st); err == nil {
+			st <- fmt.Sprintf("%d files downloaded", len(batch))
 
-	go func() {
-		gz, err := gzip.NewReader(r)
-
-		if err != nil {
+		} else {
 			st <- fmt.Sprintf("error: %s", err)
 			return
 		}
-
-		tr := tar.NewReader(gz)
-
-		for {
-			header, err := tr.Next()
-
-			if err == io.EOF {
-				break
-			}
-
-			if err != nil {
-				st <- fmt.Sprintf("error: %s", err)
-				return
-			}
-
-			switch header.Typeflag {
-			case tar.TypeReg:
-				rel, err := filepath.Rel(s.Remote, filepath.Join("/", header.Name))
-
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				local := filepath.Join(s.Local, rel)
-
-				s.lock.Lock()
-				s.outgoingBlocks[rel] += 1
-				s.lock.Unlock()
-
-				tmpfile, err := ioutil.TempFile("", filepath.Base(rel))
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				_, err = io.Copy(tmpfile, tr)
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				err = tmpfile.Close()
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				err = os.Chmod(tmpfile.Name(), os.FileMode(header.Mode))
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				err = os.MkdirAll(filepath.Dir(local), 0755)
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-
-				err = os.Rename(tmpfile.Name(), local)
-				if err != nil {
-					st <- fmt.Sprintf("error: %s", err)
-					return
-				}
-			}
-		}
-	}()
-
-	err = s.docker.StartExec(res.ID, docker.StartExecOptions{
-		OutputStream: w,
-	})
-
-	s.docker.WaitContainer(res.ID)
-
-	if err != nil {
-		st <- fmt.Sprintf("error: %s", err)
-		return
 	}
-
-	st <- fmt.Sprintf("%d files downloaded", len(adds))
 
 	if os.Getenv("CONVOX_DEBUG") != "" {
 		for _, a := range adds {
 			st <- fmt.Sprintf("<- %s", filepath.Join(a.Base, a.Path))
 		}
 	}
+}
+
+func (s *Sync) execTar(cmd []string, st Stream) error {
+	retries := 0
+	success := false
+
+	for {
+		exec, err := s.docker.CreateExec(docker.CreateExecOptions{
+			AttachStdout: true,
+			Container:    s.Container,
+			Cmd:          cmd,
+		})
+		if err != nil {
+			return err
+		}
+
+		r, w := io.Pipe()
+
+		cw, err := s.docker.StartExecNonBlocking(exec.ID, docker.StartExecOptions{
+			OutputStream: w,
+		})
+		if err != nil {
+			if cw != nil {
+				cw.Close()
+			}
+			return err
+		}
+
+		done := make(chan struct{})
+		state := make(chan execState)
+		wait := make(chan error)
+
+		go func() {
+			wait <- cw.Wait()
+		}()
+		go tgzReader(s, r, st)
+		go inspectExec(exec.ID, s, state, done)
+
+		select {
+		case err := <-wait:
+			if err != nil {
+				return err
+			}
+
+			close(done)
+			success = true
+
+		case es := <-state:
+			cw.Close()
+
+			if retries < 3 {
+				retries++
+				if es.Error == nil && es.ExitCode == 0 {
+					success = true
+				}
+			} else {
+				if es.Error != nil {
+					return es.Error
+				}
+				return fmt.Errorf("failed to sync after retries")
+			}
+		}
+
+		if success {
+			break
+		}
+	}
+	return nil
 }
 
 func (s *Sync) syncIncomingRemoves(removes []changes.Change, st Stream) {
@@ -263,7 +254,6 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 		local := filepath.Join(a.Base, a.Path)
 
 		info, err := os.Stat(local)
-
 		if err != nil {
 			continue
 		}
@@ -271,7 +261,7 @@ func (s *Sync) syncOutgoingAdds(adds []changes.Change, st Stream) {
 		remote := filepath.Join(s.Remote, a.Path)
 
 		s.lock.Lock()
-		s.incomingBlocks[a.Path] += 1
+		s.incomingBlocks[a.Path]++
 		s.lock.Unlock()
 
 		tgz.WriteHeader(&tar.Header{
@@ -405,7 +395,8 @@ func (s *Sync) watchIncoming(st Stream) {
 		scanner := bufio.NewScanner(r)
 
 		for scanner.Scan() {
-			parts := strings.SplitN(scanner.Text(), "|", 3)
+			text := scanner.Text()
+			parts := strings.SplitN(text, "|", 3)
 
 			if len(parts) != 3 {
 				continue
@@ -418,10 +409,11 @@ func (s *Sync) watchIncoming(st Stream) {
 			}
 
 			s.lock.Lock()
-
 			if s.incomingBlocks[parts[2]] > 0 {
-				s.incomingBlocks[parts[2]] -= 1
+				s.incomingBlocks[parts[2]]--
+				s.lock.Unlock()
 			} else {
+				s.lock.Unlock()
 				s.incoming <- changes.Change{
 					Operation: parts[0],
 					Base:      parts[1],
@@ -429,7 +421,10 @@ func (s *Sync) watchIncoming(st Stream) {
 				}
 			}
 
-			s.lock.Unlock()
+		}
+
+		if err := scanner.Err(); err != nil {
+			st <- fmt.Sprintf("error: ", err)
 		}
 	}()
 
@@ -449,13 +444,110 @@ func (s *Sync) watchOutgoing(st Stream) {
 
 	for c := range ch {
 		s.lock.Lock()
-
 		if s.outgoingBlocks[c.Path] > 0 {
-			s.outgoingBlocks[c.Path] -= 1
+			s.outgoingBlocks[c.Path]--
+			s.lock.Unlock()
 		} else {
+			s.lock.Unlock()
 			s.outgoing <- c
 		}
+	}
+}
 
-		s.lock.Unlock()
+func inspectExec(id string, s *Sync, state chan execState, done chan struct{}) {
+
+	es := execState{}
+
+	select {
+	case <-time.After(5 * time.Second):
+		i, err := s.docker.InspectExec(id)
+		if err != nil {
+			es.Error = err
+			state <- es
+			return
+		}
+
+		es.Error = nil
+		es.ExitCode = i.ExitCode
+		es.Running = i.Running
+
+		state <- es
+
+	case <-done:
+		return
+	}
+}
+
+func tgzReader(s *Sync, r io.Reader, st Stream) {
+
+	gz, err := gzip.NewReader(r)
+	if err != nil {
+		st <- fmt.Sprintf("error: %s", err)
+		return
+	}
+
+	tr := tar.NewReader(gz)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			st <- fmt.Sprintf("error: %s", err)
+			return
+		}
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			rel, err := filepath.Rel(s.Remote, filepath.Join("/", header.Name))
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+
+			local := filepath.Join(s.Local, rel)
+
+			s.lock.Lock()
+			s.outgoingBlocks[rel]++
+			s.lock.Unlock()
+
+			err = os.MkdirAll(filepath.Dir(local), 0755)
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+
+			lf, err := os.Create(local)
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+
+			_, err = io.Copy(lf, tr)
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+
+			err = lf.Sync()
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+
+			err = lf.Close()
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+
+			err = os.Chmod(local, os.FileMode(header.Mode))
+			if err != nil {
+				st <- fmt.Sprintf("error: %s", err)
+				return
+			}
+		}
 	}
 }

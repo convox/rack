@@ -10,9 +10,18 @@
     },
     "BlankInstanceBootCommand": { "Fn::Equals": [ { "Ref": "InstanceBootCommand" }, "" ] },
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
+    "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
+    "ExistingVpcAndBlankInternetGateway": {
+      "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
+    },
+    "ExistingVpcAndInternetGateway": {
+      "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "InternetGateway" } ]
+    },
+    "InternetGateway": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "InternetGateway" }, "" ] } ] },
+    "NotExistingVpcAndBlankInternetGateway": { "Fn::Not": [ { "Condition": "ExistingVpcAndBlankInternetGateway" } ] },
     "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
     "PrivateAndThirdAvailabilityZone": {
       "Fn::And": [ { "Condition": "Private" }, { "Condition": "ThirdAvailabilityZone" } ]
@@ -32,7 +41,13 @@
     "ThirdAvailabilityZone": { "Fn::Equals": [
       { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "ThirdAvailabilityZone" ] },
       "Yes"
-    ] }
+    ] },
+    "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway": {
+      "Fn::And": [
+        { "Condition": "ThirdAvailabilityZone"},
+        { "Condition": "NotExistingVpcAndBlankInternetGateway"}
+      ]
+    }
   },
   "Mappings": {
     "AvailabilityZoneConfig": {
@@ -47,15 +62,17 @@
       "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
     },
     "RegionConfig": {
-      "us-east-1": { "Ami": "ami-eca289fb" },
-      "us-east-2": { "Ami": "ami-446f3521" },
-      "us-west-1": { "Ami": "ami-9fadf8ff" },
-      "us-west-2": { "Ami": "ami-7abc111a" },
-      "eu-west-1": { "Ami": "ami-a1491ad2" },
-      "eu-central-1": { "Ami": "ami-54f5303b" },
-      "ap-northeast-1": { "Ami": "ami-9cd57ffd" },
-      "ap-southeast-1": { "Ami": "ami-a900a3ca" },
-      "ap-southeast-2": { "Ami": "ami-5781be34" }
+      "us-east-1": { "Ami": "ami-6df8fe7a" },
+      "us-east-2": { "Ami": "ami-c6b5efa3" },
+      "us-west-1": { "Ami": "ami-1eda8d7e" },
+      "us-west-2": { "Ami": "ami-a2ca61c2" },
+      "eu-west-1": { "Ami": "ami-ba346ec9" },
+      "eu-west-2": { "Ami": "ami-42c5cf26" },
+      "eu-central-1": { "Ami": "ami-e012d48f" },
+      "ap-northeast-1": { "Ami": "ami-08f7956f" },
+      "ap-southeast-1": { "Ami": "ami-f4832f97" },
+      "ap-southeast-2": { "Ami": "ami-774b7314" },
+      "ca-central-1": { "Ami": "ami-be45f7da" }
     }
   },
   "Outputs": {
@@ -179,6 +196,7 @@
       "Value": { "Ref": "Version" }
     },
     "RouteTablePublic": {
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Value": { "Ref": "Routes" }
     },
     "RouteTablesPrivate": {
@@ -279,6 +297,11 @@
       "Type": "Number",
       "Description": "Default container disk size in GB",
       "Default": "10"
+    },
+    "CustomTopicRuntime": {
+      "Type": "String",
+      "Default": "nodejs",
+      "Description": ""
     },
     "Development": {
       "Type": "String",
@@ -490,7 +513,7 @@
         "Handler": "index.handler",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "LogSubscriptionFilterRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": "30"
       }
     },
@@ -591,7 +614,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CustomTopicRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": { "Ref": "CustomTopicRuntime" },
         "Timeout": "300"
       }
     },
@@ -661,7 +684,7 @@
     },
     "ExistingGatewayAttachment": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Condition": "ExistingVpc",
+      "Condition": "ExistingVpcAndInternetGateway",
       "DeletionPolicy": "Retain",
       "Properties": {
         "InternetGatewayId": { "Ref": "InternetGateway" },
@@ -809,6 +832,7 @@
     },
     "Routes": {
       "Type": "AWS::EC2::RouteTable",
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
           { "Ref": "Vpc" },
@@ -819,11 +843,12 @@
     "RouteDefault": {
       "DependsOn": [ "Routes" ],
       "Type": "AWS::EC2::Route",
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": { "Fn::If": [ "BlankExistingVpc",
-          { "Ref": "Gateway" },
-          { "Ref": "InternetGateway" }
+        "GatewayId": { "Fn::If": [ "ExistingVpcAndInternetGateway",
+          { "Ref": "InternetGateway" },
+          { "Ref": "Gateway" }
         ] },
         "RouteTableId": { "Ref": "Routes" }
       }
@@ -892,6 +917,7 @@
       }
     },
     "Subnet0Routes": {
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "DependsOn": [ "Subnet0", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -900,6 +926,7 @@
       }
     },
     "Subnet1Routes": {
+      "Condition": "NotExistingVpcAndBlankInternetGateway",
       "DependsOn": [ "Subnet1", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -908,7 +935,7 @@
       }
     },
     "Subnet2Routes": {
-      "Condition": "ThirdAvailabilityZone",
+      "Condition": "ThirdAvailabilityZoneAndNotExistingVpcAndBlankInternetGateway",
       "DependsOn": [ "Subnet2", "Routes" ],
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
@@ -1244,7 +1271,7 @@
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "InstancesLifecycleHandlerRole", "Arn" ] },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": "300"
       }
     },

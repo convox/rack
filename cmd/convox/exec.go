@@ -56,5 +56,7 @@ func cmdExec(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	return stdcli.Errorf("", code)
+	os.Exit(code)
+
+	return nil
 }

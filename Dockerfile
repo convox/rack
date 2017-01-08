@@ -1,4 +1,4 @@
-FROM golang:1.7-alpine
+FROM golang:1.7.3-alpine
 
 RUN apk update && apk add build-base docker git haproxy openssh openssl python tar
 

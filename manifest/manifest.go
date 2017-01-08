@@ -134,11 +134,33 @@ func (m Manifest) Validate() []error {
 		mem := entry.Memory
 
 		if mem < mem_min && mem != 0 { //Memory(0) {
-			e := fmt.Errorf("%s has invalid mem_limit %#v: should be either 0, or at least %#vMB",
+			e := fmt.Errorf("%s service has invalid mem_limit %#v bytes (%#v MB): should be either 0, or at least %#vMB",
 				entry.Name,
+				mem,
 				mem/units.MB,
 				mem_min/units.MB)
 			errors = append(errors, e)
+		}
+
+		// check that health check port is valid
+		if port, ok := entry.Labels["convox.health.port"]; ok {
+			pi, err := strconv.Atoi(port)
+			if err != nil {
+				errors = append(errors, err)
+			} else {
+				found := false
+
+				for _, p := range entry.Ports {
+					if p.Container == pi {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					errors = append(errors, fmt.Errorf("%s service has convox.health.port set to a port it does not declare", entry.Name))
+				}
+			}
 		}
 	}
 
@@ -251,9 +273,10 @@ func (m *Manifest) runOrder(target string) (Services, error) {
 	return services, nil
 }
 
-// Shift all external ports in this Manifest by the given amount and their shift labels
+// Shift all external ports and labels in this Manifest by the given amount and their shift labels
 func (m *Manifest) Shift(shift int) error {
 	for _, service := range m.Services {
+		service.Labels.Shift(shift)
 		service.Ports.Shift(shift)
 
 		if ss, ok := service.Labels["convox.start.shift"]; ok {
@@ -262,6 +285,7 @@ func (m *Manifest) Shift(shift int) error {
 				return fmt.Errorf("invalid shift: %s", ss)
 			}
 
+			service.Labels.Shift(shift)
 			service.Ports.Shift(shift)
 		}
 	}
