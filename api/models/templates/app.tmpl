@@ -531,7 +531,6 @@
       "Type": "AWS::Lambda::Function",
       "DependsOn": [ "CronRole" ],
       "Properties": {
-        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-cron",
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "CronRole", "Arn" ] },
         "Runtime": "nodejs4.3",
