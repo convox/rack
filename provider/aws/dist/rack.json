@@ -666,6 +666,7 @@
                       "autoscaling:SuspendProcesses",
                       "autoscaling:TerminateInstanceInAutoScalingGroup",
                       "autoscaling:UpdateAutoScalingGroup",
+                      "cloudformation:DescribeStacks",
                       "ec2:AuthorizeSecurityGroupIngress",
                       "ec2:CreateKeyPair",
                       "ec2:CreateSecurityGroup",
@@ -674,9 +675,10 @@
                       "ec2:DescribeInstances",
                       "ec2:DescribeSecurityGroups",
                       "ec2:DescribeSubnets",
+                      "ec2:DescribeAccountAttributes",
                       "ec2:DescribeVpcs",
+                      "ecr:GetAuthorizationToken",
                       "ecs:CreateService",
-                      "ecs:DeleteService",
                       "ecs:DescribeContainerInstances",
                       "ecs:DescribeServices",
                       "ecs:DescribeTaskDefinition",
@@ -687,6 +689,7 @@
                       "ecs:ListTasks",
                       "ecs:RunTask",
                       "ecs:UpdateService",
+                      "ecs:DeleteService",
                       "elasticache:CreateCacheSubnetGroup",
                       "elasticache:CreateReplicationGroup",
                       "elasticache:DeleteCacheSubnetGroup",
@@ -701,6 +704,7 @@
                       "elasticloadbalancing:ModifyLoadBalancerAttributes",
                       "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
                       "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
+                      "events:DescribeRule",
                       "iam:DeleteServerCertificate",
                       "iam:GetServerCertificate",
                       "iam:ListServerCertificates",
@@ -709,34 +713,18 @@
                       "kms:Decrypt",
                       "kms:GenerateDataKey",
                       "kms:GenerateRandom",
-                      "lambda:AddPermission",
                       "lambda:CreateFunction",
-                      "lambda:DeleteFunction",
-                      "lambda:GetFunctionConfiguration",
-                      "lambda:InvokeFunction",
-                      "lambda:UpdateFunctionCode",
-                      "lambda:UpdateFunctionConfiguration",
                       "logs:CreateLogGroup",
                       "logs:DeleteLogGroup",
                       "logs:DescribeLogGroups",
                       "rds:CreateDBInstance",
                       "rds:CreateDBParameterGroup",
                       "rds:CreateDBSubnetGroup",
-                      "rds:DeleteDBInstance",
-                      "rds:DeleteDBParameterGroup",
-                      "rds:DeleteDBSubnetGroup",
                       "rds:DescribeDBInstances",
                       "rds:DescribeDBParameters",
                       "rds:DescribeDBSubnetGroups",
-                      "rds:ModifyDBInstance",
-                      "rds:ModifyDBParameterGroup",
                       "s3:CreateBucket",
-                      "s3:DeleteBucket",
                       "s3:GetObject",
-                      "s3:ListBucket",
-                      "s3:PutBucketNotification",
-                      "s3:PutObject",
-                      "s3:PutObjectAcl",
                       "sns:CreateTopic",
                       "sns:DeleteTopic",
                       "sns:GetTopicAttributes",
@@ -792,6 +780,21 @@
                       { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*/index/*" ] ] }
                   ]
                 }, {
+                  "Sid": "LimitedRDSAccess",
+                  "Action": "rds:*",
+                  "Effect": "Allow",
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:db:", { "Ref": "AWS::StackName" }, "-*"] ] },
+                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:subgrp:", { "Ref": "AWS::StackName" }, "-*"] ] }
+                  ]
+                }, {
+                  "Sid": "LimitedLambdaAccess",
+                  "Action": "lambda:*",
+                  "Effect": "Allow",
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:lambda:*:*:function:", { "Ref": "AWS::StackName" }, "-*"] ] }
+                  ]
+                }, {
                   "Sid": "LimitedCloudFlormationAccess",
                   "Action": "cloudformation:*",
                   "Effect": "Allow",
@@ -806,10 +809,26 @@
                       { "Fn::Join": [ "", [ "arn:aws:ecr:*:*:repository/", { "Ref": "AWS::StackName" }, "*"] ] }
                   ]
                 }, {
-                  "Sid": "LimitedECRAuthorizationAccess",
-                  "Action": "ecr:GetAuthorizationToken",
+                  "Sid": "LimitedCloudWatchEventAccess",
+                  "Action": "events:*",
                   "Effect": "Allow",
-                  "Resource": "*"
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:events:*:*:rule/", { "Ref": "AWS::StackName" }, "*"] ] }
+                  ]
+                }, {
+                  "Sid": "LimitedS3Access",
+                  "Action": [
+                    "s3:DeleteBucket",
+                    "s3:ListBucket",
+                    "s3:PutBucketNotification",
+                    "s3:PutObject",
+                    "s3:PutObjectAcl"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "AWS::StackName" }, "-*"] ] },
+                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "AWS::StackName" }, "-*/*"] ] }
+                  ]
                 }
             ]
         }
