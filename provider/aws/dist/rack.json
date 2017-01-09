@@ -666,14 +666,6 @@
                       "autoscaling:SuspendProcesses",
                       "autoscaling:TerminateInstanceInAutoScalingGroup",
                       "autoscaling:UpdateAutoScalingGroup",
-                      "cloudformation:CreateStack",
-                      "cloudformation:DeleteStack",
-                      "cloudformation:DescribeStackResources",
-                      "cloudformation:DescribeStacks",
-                      "cloudformation:UpdateStack",
-                      "dynamodb:GetItem",
-                      "dynamodb:PutItem",
-                      "dynamodb:Query",
                       "ec2:AuthorizeSecurityGroupIngress",
                       "ec2:CreateKeyPair",
                       "ec2:CreateSecurityGroup",
@@ -683,16 +675,6 @@
                       "ec2:DescribeSecurityGroups",
                       "ec2:DescribeSubnets",
                       "ec2:DescribeVpcs",
-                      "ecr:BatchCheckLayerAvailability",
-                      "ecr:BatchGetImage",
-                      "ecr:CompleteLayerUpload",
-                      "ecr:DeleteRepository",
-                      "ecr:DescribeContainerInstances",
-                      "ecr:GetAuthorizationToken",
-                      "ecr:GetDownloadUrlForLayer",
-                      "ecr:InitiateLayerUpload",
-                      "ecr:PutImage",
-                      "ecr:UploadLayerPart",
                       "ecs:CreateService",
                       "ecs:DeleteService",
                       "ecs:DescribeContainerInstances",
@@ -801,6 +783,33 @@
                       "arn:aws:iam::*:role/convox/*",
                       "arn:aws:iam::*:user/convox/*"
                     ]
+                }, {
+                  "Sid": "LimitedDynamoDBAccess",
+                  "Action": "dynamodb:*",
+                  "Effect": "Allow",
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*" ] ] },
+                      { "Fn::Join": [ "", [ "arn:aws:dynamodb:*:*:table/", { "Ref": "AWS::StackName" }, "-*/index/*" ] ] }
+                  ]
+                }, {
+                  "Sid": "LimitedCloudFlormationAccess",
+                  "Action": "cloudformation:*",
+                  "Effect": "Allow",
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:cloudformation:*:*:stack/", { "Ref": "AWS::StackName" }, "*"] ] }
+                  ]
+                }, {
+                  "Sid": "LimitedECRAccess",
+                  "Action": "ecr:*",
+                  "Effect": "Allow",
+                  "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:ecr:*:*:repository/", { "Ref": "AWS::StackName" }, "*"] ] }
+                  ]
+                }, {
+                  "Sid": "LimitedECRAuthorizationAccess",
+                  "Action": "ecr:GetAuthorizationToken",
+                  "Effect": "Allow",
+                  "Resource": "*"
                 }
             ]
         }
