@@ -11,7 +11,6 @@ import (
 func TestServiceWebhookURL(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleDescribeStacksNotFound("convox-mywebhook"),
-		cycleDescribeStacksNotFound("mywebhook"),
 		cycleServiceCreateWebhook,
 		cycleServiceCreateNotificationPublish,
 	)
@@ -31,8 +30,7 @@ func TestServiceWebhookURL(t *testing.T) {
 
 func TestServiceGet(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleDescribeStacksNotFound("convox-syslog"),
-		cycleServiceDescribeStacks1,
+		cycleServiceDescribeStacks,
 		cycleAppDescribeStacks,
 	)
 	defer provider.Close()
@@ -105,8 +103,8 @@ func TestServiceGet(t *testing.T) {
 	}
 }
 
-var cycleServiceDescribeStacks1 = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
+var cycleServiceDescribeStacks = awsutil.Cycle{
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-syslog&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -114,11 +112,11 @@ var cycleServiceDescribeStacks1 = awsutil.Cycle{
 				<Stacks>
 					<member>
 						<Outputs>
-                                                        <member>
+							<member>
 								<OutputKey>Url</OutputKey>
 								<OutputValue>tcp+tls://logs1.example.com:11235</OutputValue>
 							</member>
-                                                        <member>
+							<member>
 								<OutputKey>HttpdLink</OutputKey>
 								<OutputValue>convox-httpd-LogGroup-12345678</OutputValue>
 							</member>
@@ -133,59 +131,26 @@ var cycleServiceDescribeStacks1 = awsutil.Cycle{
 						<StackStatus>UPDATE_COMPLETE</StackStatus>
 						<DisableRollback>false</DisableRollback>
 						<Tags>
-                                                        <member>
-                                                                <Value>service</Value>
-                                                                <Key>Type</Key>
-                                                          </member>
-                                                        <member>
-                                                            <Value>syslog</Value>
-                                                            <Key>Name</Key>
-                                                          </member>
-                                                          <member>
-                                                            <Value>convox</Value>
-                                                            <Key>System</Key>
-                                                          </member>
-                                                          <member>
-                                                            <Value>convox</Value>
-                                                            <Key>Rack</Key>
-                                                          </member>
-                                                </Tags>
+							<member>
+								<Value>service</Value>
+								<Key>Type</Key>
+							</member>
+							<member>
+								<Value>syslog</Value>
+								<Key>Name</Key>
+							</member>
+							<member>
+								<Value>convox</Value>
+								<Key>System</Key>
+							</member>
+							<member>
+								<Value>convox</Value>
+								<Key>Rack</Key>
+							</member>
+						</Tags>
 						<LastUpdatedTime>2016-08-27T16:29:05.963Z</LastUpdatedTime>
 						<Parameters>
 						</Parameters>
-					</member>
-				</Stacks>
-			</DescribeStacksResult>
-			<ResponseMetadata>
-				<RequestId>9715cab7-6c75-11e6-837d-ebe72becd936</RequestId>
-			</ResponseMetadata>
-		</DescribeStacksResponse>`,
-	},
-}
-
-var cycleServiceDescribeStacks2 = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
-	awsutil.Response{
-		200,
-		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-			<DescribeStacksResult>
-				<Stacks>
-					<member>
-						<Outputs>
-                                                </Outputs>
-						<Capabilities>
-							<member>CAPABILITY_IAM</member>
-						</Capabilities>
-						<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
-						<NotificationARNs/>
-						<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
-						<StackName>convox</StackName>
-						<StackStatus>UPDATE_COMPLETE</StackStatus>
-						<DisableRollback>false</DisableRollback>
-						<Tags/>
-						<LastUpdatedTime>2016-08-27T16:29:05.963Z</LastUpdatedTime>
-						<Parameters>
-                                                </Parameters>
 					</member>
 				</Stacks>
 			</DescribeStacksResult>
