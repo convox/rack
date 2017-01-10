@@ -273,6 +273,10 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	for i, s := range v {
 		parts := portMappingRegex.FindStringSubmatch(s)
+		if len(parts) == 0 {
+			return fmt.Errorf("invalid portmapping %s", s)
+		}
+
 		p := Port{}
 		p.Name = parts[1]
 
@@ -282,19 +286,13 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 		p.Protocol = Protocol(protocol)
 
-		container, err := strconv.Atoi(parts[2])
-		if err != nil {
-			return fmt.Errorf("error parsing container port: %s", err)
-		}
+		container, _ := strconv.Atoi(parts[2])
 		p.Container = container
 		p.Balancer = container
 
 		// Only TCP ports can be "public" (in the ELB sense) or have an ELB at all
 		if parts[1] != "" && p.Protocol == TCP {
-			balancer, err := strconv.Atoi(parts[1])
-			if err != nil {
-				return fmt.Errorf("error parsing balancer port: %s", err)
-			}
+			balancer, _ := strconv.Atoi(parts[1])
 			p.Balancer = balancer
 			p.Public = true
 		}
