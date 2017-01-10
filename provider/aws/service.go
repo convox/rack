@@ -143,15 +143,9 @@ func (p *AWSProvider) ServiceGet(name string) (*structs.Service, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
 
-	// try 'convox-myservice', and if not found try 'myservice'
 	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack + "-" + name),
 	})
-	if awsError(err) == "ValidationError" {
-		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(name),
-		})
-	}
 	if err != nil {
 		return nil, err
 	}
