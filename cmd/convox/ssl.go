@@ -23,6 +23,10 @@ func init() {
 				Description: "update the certificate associated with an endpoint",
 				Usage:       "<process:port> <certificate-id>",
 				Action:      cmdSSLUpdate,
+				Flags: []cli.Flag{
+					appFlag,
+					rackFlag,
+				},
 			},
 		},
 	})
