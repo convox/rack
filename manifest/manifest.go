@@ -183,6 +183,7 @@ func (m *Manifest) ExternalPorts() []int {
 }
 
 // Find any port conflits that would prevent this manifest from running
+// TODO - Doesn't find UDP port conflicts
 func (m *Manifest) PortConflicts() ([]int, error) {
 	ext := m.ExternalPorts()
 
