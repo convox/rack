@@ -22,9 +22,9 @@ func (p Port) External() bool {
 
 func (p Port) String() string {
 	if p.External() {
-		return fmt.Sprintf("%d:%d", p.Balancer, p.Container)
+		return fmt.Sprintf("%d:%d/%s", p.Balancer, p.Container, string(p.Protocol))
 	} else {
-		return fmt.Sprintf("%d", p.Container)
+		return fmt.Sprintf("%d/%s", p.Container, string(p.Protocol))
 	}
 }
 
