@@ -32,8 +32,9 @@ func init() {
 				Flags: []cli.Flag{
 					rackFlag,
 					cli.BoolFlag{
-						Name:  "wait",
-						Usage: "wait for app to finish creating before returning",
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for app to finish creating before returning",
 					},
 				},
 			},
