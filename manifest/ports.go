@@ -16,6 +16,18 @@ type Port struct {
 	Public    bool
 }
 
+func (p Port) External() bool {
+	return p.Public
+}
+
+func (p Port) String() string {
+	if p.External() {
+		return fmt.Sprintf("%d:%d", p.Balancer, p.Container)
+	} else {
+		return fmt.Sprintf("%d", p.Container)
+	}
+}
+
 type Ports []Port
 
 func (pp Ports) External() bool {
@@ -46,17 +58,5 @@ func (pp Ports) Shift(shift int) {
 		if p.External() {
 			pp[i].Balancer += shift
 		}
-	}
-}
-
-func (p Port) External() bool {
-	return p.Public
-}
-
-func (p Port) String() string {
-	if p.External() {
-		return fmt.Sprintf("%d:%d", p.Balancer, p.Container)
-	} else {
-		return fmt.Sprintf("%d", p.Container)
 	}
 }
