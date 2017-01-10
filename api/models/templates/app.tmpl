@@ -266,7 +266,7 @@
                 {{ range .Ports }}
                   { "Fn::Join": [ ":", [
                     { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
-                    "{{ .Container }}"
+                    "{{ .Container }}/{{ .Protocol }}"
                   ] ] },
                 {{ end }}
                 { "Ref" : "AWS::NoValue" }
@@ -378,7 +378,7 @@
               {{ else }}
               "CidrIp": { "Ref": "VPCCIDR" },
               {{ end }}
-              "IpProtocol": "tcp",
+              "IpProtocol": "{{ .Protocol }}",
               "FromPort": "{{ .Balancer }}",
               "ToPort": "{{ .Balancer }}"
             },
