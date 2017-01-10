@@ -96,7 +96,13 @@ func (s *Service) Process(app string, m Manifest) Process {
 }
 
 func (s Service) HasBalancer() bool {
-	return len(s.Ports) > 0
+	for _, p := range s.Ports {
+		if p.Protocol == TCP {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *Service) Proxies(app string) []Proxy {

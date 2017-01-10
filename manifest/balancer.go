@@ -20,7 +20,7 @@ func (m Manifest) Balancers() []ManifestBalancer {
 	balancers := []ManifestBalancer{}
 
 	for _, entry := range m.Services {
-		if len(entry.Ports) > 0 {
+		if entry.HasBalancer() {
 			balancers = append(balancers, ManifestBalancer{
 				Entry:  entry,
 				Public: len(entry.InternalPorts()) == 0,
