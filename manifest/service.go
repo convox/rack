@@ -103,7 +103,7 @@ func (s *Service) Proxies(app string) []Proxy {
 	proxies := []Proxy{}
 
 	for i, p := range s.Ports {
-		if p.External() {
+		if p.Public {
 			name := fmt.Sprintf("%s-%s-proxy-%d", app, s.Name, p.Balancer)
 
 			proxy := Proxy{

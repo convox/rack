@@ -173,7 +173,7 @@ func (m *Manifest) ExternalPorts() []int {
 
 	for _, service := range m.Services {
 		for _, port := range service.Ports {
-			if port.External() {
+			if port.Public {
 				ext = append(ext, port.Balancer)
 			}
 		}
