@@ -26,7 +26,7 @@ func (p Port) String() string {
 
 type Ports []Port
 
-func (pp Ports) External() bool {
+func (pp Ports) HasPublic() bool {
 	for _, p := range pp {
 		if p.Public {
 			return true
