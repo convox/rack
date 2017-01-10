@@ -9,10 +9,10 @@ import (
 
 func TestPortsBadData(t *testing.T) {
 	tests := map[string]string{
-		"badport1": `error loading manifest: error parsing port: strconv.ParseInt: parsing "534a": invalid syntax`,
-		"badport2": `error loading manifest: error parsing port: strconv.ParseInt: parsing "534b": invalid syntax`,
-		"badport3": `error loading manifest: error parsing port: strconv.ParseInt: parsing "534c": invalid syntax`,
-		"badport4": `error loading manifest: invalid port: 5000:9000:1000`,
+		"badport1": `error loading manifest: invalid portmapping 534a`,
+		"badport2": `error loading manifest: invalid portmapping 534b:5000`,
+		"badport3": `error loading manifest: invalid portmapping 5000:534c`,
+		"badport4": `error loading manifest: invalid portmapping 5000:9000:1000`,
 	}
 
 	for fixture, message := range tests {
@@ -75,6 +75,6 @@ func TestPortsShiftWithSSL(t *testing.T) {
 }
 
 func TestPortsString(t *testing.T) {
-	assert.Equal(t, "5000:9000/tcp", manifest.Port{Balancer: 5000, Container: 9000, Public: true}.String())
-	assert.Equal(t, "9000/tcp", manifest.Port{Container: 9000}.String())
+	assert.Equal(t, "5000:9000/tcp", manifest.Port{Balancer: 5000, Container: 9000, Public: true, Protocol: manifest.TCP}.String())
+	assert.Equal(t, "9000/tcp", manifest.Port{Container: 9000, Protocol: manifest.TCP}.String())
 }
