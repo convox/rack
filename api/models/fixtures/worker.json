@@ -537,7 +537,7 @@
                     {
                       "Ref": "PostgresPort5432Host"
                     },
-                    "5432"
+                    "5432/tcp"
                   ]
                 ]
               },
