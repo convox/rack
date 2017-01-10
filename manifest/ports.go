@@ -2,10 +2,17 @@ package manifest
 
 import "fmt"
 
+type Protocol string
+const (
+	TCP Protocol = "tcp"
+	UDP Protocol = "udp"
+)
+
 type Port struct {
 	Name      string
 	Balancer  int
 	Container int
+	Protocol  Protocol
 	Public    bool
 }
 
