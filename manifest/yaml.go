@@ -2,11 +2,15 @@ package manifest
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/docker/go-units"
 )
+
+// Parses as [balancer?]:[container]/[protocol?], where [balancer] and [protocol] are optional
+var portMappingRegex = regexp.MustCompile(`(?i)^(?:(\d+):)?(\d+)(?:/(udp|tcp))?$`)
 
 // MarshalYAML implements the Marshaller interface for the Manifest type
 func (m Manifest) MarshalYAML() (interface{}, error) {
@@ -268,42 +272,30 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	*pp = make(Ports, len(v))
 
 	for i, s := range v {
-		parts := strings.Split(s, ":")
+		parts := portMappingRegex.FindStringSubmatch(s)
 		p := Port{}
+		p.Name = parts[1]
 
-		switch len(parts) {
-		case 1:
-			n, err := strconv.Atoi(parts[0])
-
+		if parts[1] != "" {
+			balancer, err := strconv.Atoi(parts[1])
 			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
+				return fmt.Errorf("error parsing balancer port: %s", err)
 			}
-
-			p.Name = parts[0]
-			p.Container = n
-			p.Balancer = n
-			p.Public = false
-		case 2:
-			n, err := strconv.Atoi(parts[0])
-
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Balancer = n
-
-			n, err = strconv.Atoi(parts[1])
-
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Name = parts[0]
-			p.Container = n
+			p.Balancer = balancer
 			p.Public = true
-		default:
-			return fmt.Errorf("invalid port: %s", s)
 		}
+
+		container, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return fmt.Errorf("error parsing container port: %s", err)
+		}
+		p.Container = container
+
+		protocol := strings.ToLower(parts[3])
+		if protocol != string(TCP) && protocol != string(UDP) {
+			protocol = string(TCP)
+		}
+		p.Protocol = Protocol(protocol)
 
 		(*pp)[i] = p
 	}
