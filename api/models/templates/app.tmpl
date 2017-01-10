@@ -293,7 +293,7 @@
             "MaximumPercent": "{{ $e.DeploymentMaximum }}"
           },
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-          {{ if $e.Ports }}
+          {{ if $e.HasBalancer }}
             "LoadBalancers": [
               {
                 "ContainerName": "{{ $e.Name }}",
@@ -373,7 +373,7 @@
         "SecurityGroupIngress": [
           {{ range .PortMappings }}
             {
-              {{ if .External }}
+              {{ if .Public }}
               "CidrIp": "0.0.0.0/0",
               {{ else }}
               "CidrIp": { "Ref": "VPCCIDR" },
