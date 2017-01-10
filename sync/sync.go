@@ -104,15 +104,15 @@ func (s *Sync) Start(st Stream) error {
 	incoming := []changes.Change{}
 	outgoing := []changes.Change{}
 
-	for {
-		timeout := time.After(1 * time.Second)
+	tick := time.Tick(1 * time.Second)
 
+	for {
 		select {
 		case c := <-s.incoming:
 			incoming = append(incoming, c)
 		case c := <-s.outgoing:
 			outgoing = append(outgoing, c)
-		case <-timeout:
+		case <-tick:
 			if len(incoming) > 0 {
 				a, r := changes.Partition(incoming)
 				s.syncIncomingAdds(a, st)
