@@ -16,12 +16,8 @@ type Port struct {
 	Public    bool
 }
 
-func (p Port) External() bool {
-	return p.Public
-}
-
 func (p Port) String() string {
-	if p.External() {
+	if p.Public {
 		return fmt.Sprintf("%d:%d/%s", p.Balancer, p.Container, string(p.Protocol))
 	} else {
 		return fmt.Sprintf("%d/%s", p.Container, string(p.Protocol))
@@ -32,7 +28,7 @@ type Ports []Port
 
 func (pp Ports) External() bool {
 	for _, p := range pp {
-		if p.External() {
+		if p.Public {
 			return true
 		}
 	}
@@ -55,7 +51,7 @@ func (pp Ports) External() bool {
 // If it's an internal-only port then make it external before incrementing
 func (pp Ports) Shift(shift int) {
 	for i, p := range pp {
-		if p.External() {
+		if p.Public {
 			pp[i].Balancer += shift
 		}
 	}
