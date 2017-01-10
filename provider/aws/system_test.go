@@ -903,13 +903,13 @@ var cycleSystemDescribeInstances = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "",
-		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-04-01`,
+		Body:       `Action=DescribeInstances&InstanceId.1=i-5bc45dc2&Version=2016-11-15`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
 		Body: `
 			<?xml version="1.0" encoding="UTF-8"?>
-			<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-04-01/">
+			<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
 				<reservationSet>
 					<item>
 						<reservationId>r-003ed1d7</reservationId>
