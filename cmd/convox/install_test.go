@@ -93,10 +93,30 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 
 // TestConvoxInstallFileCredentialsNonexistent ensures an error is raised when a file argument is provided but the file doesn't exist
 func TestConvoxInstallFileCredentialsNonexistent(t *testing.T) {
+	latest, _ := version.Latest()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox install ../../manifest/fixtures/nothinghere.csv",
+			Exit:    1,
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/nothinghere.csv\n",
+			Stderr:  "ERROR: open ../../manifest/fixtures/nothinghere.csv: no such file or directory\n",
+		},
+	)
 }
 
 // TestConvoxInstallFileCredentialsInvalidFormat ensures an error is raised when a file argument is provided but the file isn't in the expected format
 func TestConvoxInstallFileCredentialsInvalidFormat(t *testing.T) {
+	latest, _ := version.Latest()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox install ../../manifest/fixtures/invalid-credentials-format.csv",
+			Exit:    1,
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/invalid-credentials-format.csv\n",
+			Stderr:  "ERROR: Credentials file ../../manifest/fixtures/invalid-credentials-format.csv is not in a valid format; line 1 should contain headers: \nUser name Password Access key ID Secret access key Console login link\nInstead it contains: \nUser Name Access Key Id Secret Access Key\n",
+		},
+	)
 }
 
 // TestConvoxInstallFileCredentialsInsufficientPermissions ensures an error is raised when a file argument is provided but the user doesn't have sufficient permissions to install a Rack
