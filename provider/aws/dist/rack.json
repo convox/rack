@@ -1306,8 +1306,8 @@
             "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
             { "Fn::Join": [ "", [
               "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
-              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"},\"", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, "\":{\"username\":\"convox\",\"password\":\"", { "Ref": "Password" }, "\",\"email\":\"user@convox.io\"}}' >> /etc/ecs/ecs.config\n",
-              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --insecure-registry=", { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] }, " --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n"
+              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
             ] ] },
             "  - mkdir -p /etc/convox\n",
             "  - echo \"", { "Ref": "AWS::Region" }, "\" > /etc/convox/region\n",
@@ -1585,21 +1585,9 @@
         "Listeners": [
           {
             "Protocol": "TCP",
-            "LoadBalancerPort": "80",
-            "InstanceProtocol": "TCP",
-            "InstancePort": "4000"
-          },
-          {
-            "Protocol": "TCP",
             "LoadBalancerPort": "443",
             "InstanceProtocol": "TCP",
             "InstancePort": "4001"
-          },
-          {
-            "Protocol": "TCP",
-            "LoadBalancerPort": "5000",
-            "InstanceProtocol": "TCP",
-            "InstancePort": "4101"
           }
         ],
         "LoadBalancerName": { "Fn::If": [ "PrivateApi",
@@ -1669,18 +1657,6 @@
             "IpProtocol": "tcp",
             "FromPort": "443",
             "ToPort": "443"
-          },
-          {
-            "CidrIp": {
-              "Fn::If" : [
-                "PrivateApi",
-                { "Ref": "VPCCIDR" },
-                "0.0.0.0/0"
-              ]
-            },
-            "IpProtocol": "tcp",
-            "FromPort": "5000",
-            "ToPort": "5000"
           }
         ],
         "VpcId": { "Fn::If": [ "BlankExistingVpc",
@@ -1965,7 +1941,6 @@
               "PROCESS": "web",
               "PROVIDER": "aws",
               "RACK": { "Ref": "AWS::StackName" },
-              "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SECURITY_GROUP": { "Fn::GetAtt": [ "SecurityGroup", "GroupId" ] },
@@ -2004,29 +1979,6 @@
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"
             ]
-          },
-          {
-            "CPU": "128",
-            "Environment": {
-              "AWS_REGION": { "Ref": "AWS::Region" },
-              "AWS_ACCESS": { "Ref": "RegistryAccess" },
-              "AWS_SECRET": { "Fn::GetAtt": [ "RegistryAccess", "SecretAccessKey" ] },
-              "BUCKET": { "Ref": "RegistryBucket" },
-              "LOG_GROUP": { "Ref": "LogGroup" },
-              "PASSWORD": { "Ref": "Password" },
-              "PROCESS": "registry",
-              "RELEASE": { "Ref": "Version" },
-              "SETTINGS_FLAVOR": "s3"
-            },
-            "Image": { "Fn::Join": [ ":", [ "convox/registry", { "Ref": "Version" } ] ] },
-            "Links": [],
-            "Memory": "128",
-            "Name": "registry",
-            "PortMappings": [
-              "4100:3000",
-              "4101:443"
-            ],
-            "Volumes": []
           }
         ]
       },
@@ -2062,7 +2014,6 @@
               "PROCESS": "web",
               "PROVIDER": "aws",
               "RACK": { "Ref": "AWS::StackName" },
-              "REGISTRY_HOST": { "Fn::Join": [ ":", [ { "Fn::GetAtt": [ "Balancer", "DNSName" ] }, "5000" ] ] },
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
