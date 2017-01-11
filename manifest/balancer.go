@@ -41,34 +41,8 @@ func (m Manifest) GetBalancer(name string) *ManifestBalancer {
 	return nil
 }
 
-func (m Manifest) HasExternalPorts() bool {
-	if len(m.Services) == 0 {
-		return true // special case to pre-initialize ELB at app create
-	}
-
-	for _, me := range m.Services {
-		if len(me.ExternalPorts()) > 0 {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (m Manifest) HasProcesses() bool {
 	return len(m.Services) > 0
-}
-
-func (mb ManifestBalancer) ExternalPorts() []Port {
-	return mb.Entry.ExternalPorts()
-}
-
-func (mb ManifestBalancer) FirstPort() string {
-	if ports := mb.PortMappings(); len(ports) > 0 {
-		return strconv.Itoa(ports[0].Balancer)
-	}
-
-	return ""
 }
 
 func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template.HTML {
@@ -101,8 +75,34 @@ func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template
 	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "i" ] ] }`, mb.ProcessName()))
 }
 
+func (m Manifest) HasExternalPorts() bool {
+	if len(m.Services) == 0 {
+		return true // special case to pre-initialize ELB at app create
+	}
+
+	for _, me := range m.Services {
+		if len(me.ExternalPorts()) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (mb ManifestBalancer) InternalPorts() []Port {
 	return mb.Entry.InternalPorts()
+}
+
+func (mb ManifestBalancer) ExternalPorts() []Port {
+	return mb.Entry.ExternalPorts()
+}
+
+func (mb ManifestBalancer) FirstPort() string {
+	if ports := mb.PortMappings(); len(ports) > 0 {
+		return strconv.Itoa(ports[0].Balancer)
+	}
+
+	return ""
 }
 
 func (mb ManifestBalancer) Ports() []string {
