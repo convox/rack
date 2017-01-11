@@ -1498,7 +1498,7 @@
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "100",
+          "MinimumHealthyPercent": "50",
           "MaximumPercent": "200"
         },
         "DesiredCount": "2",
@@ -1519,8 +1519,8 @@
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "100",
-          "MaximumPercent": "200"
+          "MinimumHealthyPercent": "0",
+          "MaximumPercent": "100"
         },
         "DesiredCount": "1",
         "TaskDefinition": { "Ref": "RackMonitorTasks" }
