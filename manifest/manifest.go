@@ -172,14 +172,36 @@ func (m *Manifest) ExternalPorts() []int {
 	ext := []int{}
 
 	for _, service := range m.Services {
-		for _, port := range service.Ports {
-			if port.Public {
-				ext = append(ext, port.Balancer)
-			}
+		for _, port := range service.ExternalPorts() {
+			ext = append(ext, port.Balancer)
 		}
 	}
 
 	return ext
+}
+
+func (m *Manifest) InternalPorts() []int {
+	internal := []int{}
+
+	for _, service := range m.Services {
+		for _, port := range service.InternalPorts() {
+			internal = append(internal, port.Container)
+		}
+	}
+
+	return internal
+}
+
+func (m *Manifest) UdpPorts() []int {
+	udp := []int{}
+
+	for _, service := range m.Services {
+		for _, port := range service.UdpPorts() {
+			udp = append(udp, port.Container)
+		}
+	}
+
+	return udp
 }
 
 // Find any port conflits that would prevent this manifest from running
