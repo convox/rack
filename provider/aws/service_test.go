@@ -57,7 +57,25 @@ func TestServiceGet(t *testing.T) {
 					"WebPort80Balancer":     "80",
 				},
 				Parameters: map[string]string{
-					"Environment": "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env", "WebPort80ProxyProtocol": "No", "WebCpu": "256", "VPC": "vpc-f8006b9c", "SubnetsPrivate": "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f", "Subnets": "subnet-13de3139,subnet-b5578fc3,subnet-21c13379", "WebMemory": "256", "Cluster": "convox-Cluster-1E4XJ0PQWNAYS", "WebPort80Secure": "No", "Private": "Yes", "Repository": "", "WebPort80Balancer": "80", "WebPort80Host": "56694", "Release": "RVFETUHHKKD", "Version": "20160330143438-command-exec-form", "WebPort80Certificate": "", "Key": "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920", "WebDesiredCount": "1"},
+					"Environment":            "https://convox-httpd-settings-139bidzalmbtu.s3.amazonaws.com/releases/RVFETUHHKKD/env",
+					"WebPort80ProxyProtocol": "No",
+					"WebCpu":                 "256",
+					"VPC":                    "vpc-f8006b9c",
+					"SubnetsPrivate":         "subnet-d4e85cfe,subnet-103d5a66,subnet-57952a0f",
+					"Subnets":                "subnet-13de3139,subnet-b5578fc3,subnet-21c13379",
+					"WebMemory":              "256",
+					"Cluster":                "convox-Cluster-1E4XJ0PQWNAYS",
+					"WebPort80Secure":        "No",
+					"Private":                "Yes",
+					"Repository":             "",
+					"WebPort80Balancer":      "80",
+					"WebPort80Host":          "56694",
+					"Release":                "RVFETUHHKKD",
+					"Version":                "20160330143438-command-exec-form",
+					"WebPort80Certificate":   "",
+					"Key":             "arn:aws:kms:us-east-1:132866487567:key/d9f38426-9017-4931-84f8-604ad1524920",
+					"WebDesiredCount": "1",
+				},
 				Tags: map[string]string{
 					"System": "convox",
 					"Rack":   "convox",
@@ -146,7 +164,9 @@ var cycleServiceDescribeStacks = awsutil.Cycle{
 }
 
 var cycleServiceCreateWebhook = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=CreateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=CustomTopic&Parameters.member.1.ParameterValue=&Parameters.member.2.ParameterKey=NotificationTopic&Parameters.member.2.ParameterValue=&Parameters.member.3.ParameterKey=Url&Parameters.member.3.ParameterValue=http%3A%2F%2Fnotifications.example.org%2Fsns%3Fendpoint%3Dhttps%253A%252F%252Fwww.example.com&StackName=convox-mywebhook&Tags.member.1.Key=Name&Tags.member.1.Value=mywebhook&Tags.member.2.Key=Rack&Tags.member.2.Value=convox&Tags.member.3.Key=Resource&Tags.member.3.Value=webhook&Tags.member.4.Key=System&Tags.member.4.Value=convox&Tags.member.5.Key=Type&Tags.member.5.Value=resource&TemplateBody=%0A%7B%0A++%22AWSTemplateFormatVersion%22+%3A+%222010-09-09%22%2C%0A++%22Parameters%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22Webhook+URL%2C+e.g.+%27https%3A%2F%2Fgrid.convox.com%2Frack-hook%2F1234%27%22%0A++++%7D%2C%0A++++%22CustomTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%2C%0A++++%22NotificationTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%0A++%7D%2C%0A++%22Resources%22%3A+%7B%0A++++%22Notifications%22%3A+%7B%0A++++++%22Type%22+%3A+%22Custom%3A%3ASNSSubscription%22%2C%0A++++++%22Version%22%3A+%221.0%22%2C%0A++++++%22Properties%22%3A+%7B%0A++++++++%22ServiceToken%22%3A+%7B+%22Ref%22%3A+%22CustomTopic%22+%7D%2C%0A++++++++%22TopicArn%22+%3A+%7B+%22Ref%22%3A+%22NotificationTopic%22+%7D%2C%0A++++++++%22Protocol%22+%3A+%22http%22%2C%0A++++++++%22Endpoint%22+%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++++%7D%0A++++%7D%0A++%7D%2C%0A++%22Outputs%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Value%22%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++%7D%0A++%7D%0A%7D%0A&Version=2010-05-15`},
+	awsutil.Request{
+		"POST",
+		"/", "", `Action=CreateStack&Capabilities.member.1=CAPABILITY_IAM&Parameters.member.1.ParameterKey=CustomTopic&Parameters.member.1.ParameterValue=&Parameters.member.2.ParameterKey=NotificationTopic&Parameters.member.2.ParameterValue=&Parameters.member.3.ParameterKey=Url&Parameters.member.3.ParameterValue=http%3A%2F%2Fnotifications.example.org%2Fsns%3Fendpoint%3Dhttps%253A%252F%252Fwww.example.com&StackName=convox-mywebhook&Tags.member.1.Key=Name&Tags.member.1.Value=mywebhook&Tags.member.2.Key=Rack&Tags.member.2.Value=convox&Tags.member.3.Key=Resource&Tags.member.3.Value=webhook&Tags.member.4.Key=System&Tags.member.4.Value=convox&Tags.member.5.Key=Type&Tags.member.5.Value=resource&TemplateBody=%0A%7B%0A++%22AWSTemplateFormatVersion%22+%3A+%222010-09-09%22%2C%0A++%22Parameters%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22Webhook+URL%2C+e.g.+%27https%3A%2F%2Fgrid.convox.com%2Frack-hook%2F1234%27%22%0A++++%7D%2C%0A++++%22CustomTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%2C%0A++++%22NotificationTopic%22%3A+%7B%0A++++++%22Type%22+%3A+%22String%22%2C%0A++++++%22Description%22+%3A+%22%22%0A++++%7D%0A++%7D%2C%0A++%22Resources%22%3A+%7B%0A++++%22Notifications%22%3A+%7B%0A++++++%22Type%22+%3A+%22Custom%3A%3ASNSSubscription%22%2C%0A++++++%22Version%22%3A+%221.0%22%2C%0A++++++%22Properties%22%3A+%7B%0A++++++++%22ServiceToken%22%3A+%7B+%22Ref%22%3A+%22CustomTopic%22+%7D%2C%0A++++++++%22TopicArn%22+%3A+%7B+%22Ref%22%3A+%22NotificationTopic%22+%7D%2C%0A++++++++%22Protocol%22+%3A+%22http%22%2C%0A++++++++%22Endpoint%22+%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++++%7D%0A++++%7D%0A++%7D%2C%0A++%22Outputs%22%3A+%7B%0A++++%22Url%22%3A+%7B%0A++++++%22Value%22%3A+%7B+%22Ref%22%3A+%22Url%22+%7D%0A++++%7D%0A++%7D%0A%7D%0A&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<CreateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">

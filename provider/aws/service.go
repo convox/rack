@@ -66,86 +66,12 @@ func (p *AWSProvider) updateService(s *structs.Resource) error {
 // add to links
 func (p *AWSProvider) linkService(a *structs.App, s *structs.Resource) error {
 	return p.linkResource(a, s)
-	/*
-		s.Apps = append(s.Apps, *a)
-
-		return p.updateResource(s)
-	*/
 }
 
 // delete from links
 func (p *AWSProvider) unlinkService(a *structs.App, s *structs.Resource) error {
 	return p.unlinkResource(a, s)
-	/*
-		apps := structs.Apps{}
-		for _, linkedApp := range s.Apps {
-			if a.Name != linkedApp.Name {
-				apps = append(apps, linkedApp)
-			}
-		}
-
-		s.Apps = apps
-
-		return p.updateResource(s)
-	*/
 }
-
-/*
-func (p *AWSProvider) appendSystemParameters(s *structs.Resource) error {
-	password, err := generatePassword()
-	if err != nil {
-		return err
-	}
-
-	s.Parameters["Password"] = password
-	s.Parameters["SecurityGroups"] = p.SecurityGroup
-	s.Parameters["Subnets"] = p.Subnets
-	s.Parameters["SubnetsPrivate"] = coalesceString(p.SubnetsPrivate, p.Subnets)
-	s.Parameters["Vpc"] = p.Vpc
-	s.Parameters["VpcCidr"] = p.VpcCidr
-
-	return nil
-}
-
-func coalesceString(ss ...string) string {
-	for _, s := range ss {
-		if s != "" {
-			return s
-		}
-	}
-	return ""
-}
-
-func filterFormationParameters(s *structs.Resource, formation string) error {
-	var params struct {
-		Parameters map[string]interface{}
-	}
-
-	if err := json.Unmarshal([]byte(formation), &params); err != nil {
-		return err
-	}
-
-	for key := range s.Parameters {
-		if _, ok := params.Parameters[key]; !ok {
-			delete(s.Parameters, key)
-		}
-	}
-
-	return nil
-}
-
-func generatePassword() (string, error) {
-	data := make([]byte, 1024)
-
-	if _, err := rand.Read(data); err != nil {
-		return "", err
-	}
-
-	hash := sha256.Sum256(data)
-
-	return hex.EncodeToString(hash[:])[0:30], nil
-}
-*/
 
 func serviceFormation(kind string, data interface{}) (string, error) {
 	d, err := buildTemplate(fmt.Sprintf("resource/%s", kind), "resource", data)
