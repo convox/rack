@@ -371,39 +371,51 @@ func (s Service) LabelDefault(label, def string) string {
 }
 
 func (s Service) ExternalPorts() []Port {
-	ext := []Port{}
+	ports := []Port{}
 
 	for _, port := range s.Ports {
 		if port.Public && port.Protocol == TCP {
-			ext = append(ext, port)
+			ports = append(ports, port)
 		}
 	}
 
-	return ext
+	return ports
 }
 
 func (s Service) InternalPorts() []Port {
-	internal := []Port{}
+	ports := []Port{}
 
 	for _, port := range s.Ports {
 		if !port.Public && port.Protocol == TCP {
-			internal = append(internal, port)
+			ports = append(ports, port)
 		}
 	}
 
-	return internal
+	return ports
+}
+
+func (s Service) TcpPorts() []Port {
+	ports := []Port{}
+
+	for _, port := range s.Ports {
+		if port.Protocol == TCP {
+			ports = append(ports, port)
+		}
+	}
+
+	return ports
 }
 
 func (s Service) UdpPorts() []Port {
-	udp := []Port{}
+	ports := []Port{}
 
 	for _, port := range s.Ports {
 		if port.Protocol == UDP {
-			udp = append(udp, port)
+			ports = append(ports, port)
 		}
 	}
 
-	return udp
+	return ports
 }
 
 func (s Service) ContainerPorts() []string {
