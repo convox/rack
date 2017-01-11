@@ -12,20 +12,18 @@ for region in $(cat $base/REGIONS); do
     fi
   done
 
-  for bucket in $(aws s3api list-buckets --region us-east-1 | jq -r '.Buckets[].Name'); do
-    if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
-      if [[ "$region" =~ "$(aws s3api get-bucket-location --bucket $bucket --region $region | jq -r .LocationConstraint)" ]]; then
-        echo "deleting bucket: $bucket ($region)"
-        aws s3 rb s3://$bucket --force --region $region
-      fi
-    fi
-  done
-  
   for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
       echo "deleting eip: $eip ($region)"
       aws ec2 release-address --allocation-id $eip
   done
+done
 
+for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
+  if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
+    region=$(aws s3api get-bucket-location --bucket $bucket | jq -r .LocationConstraint)
+    echo "deleting bucket: $bucket ($region)"
+    aws s3 rb s3://$bucket --force #--region $region
+  fi
 done
 
 for cert in $(aws iam list-server-certificates | jq -r '.ServerCertificateMetadataList[].ServerCertificateName'); do
