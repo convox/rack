@@ -11,7 +11,6 @@ import (
 func TestResourceWebhookURL(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleDescribeStacksNotFound("convox-mywebhook"),
-		cycleDescribeStacksNotFound("mywebhook"),
 		cycleResourceCreateWebhook,
 		cycleResourceCreateNotificationPublish,
 	)
@@ -31,8 +30,7 @@ func TestResourceWebhookURL(t *testing.T) {
 
 func TestResourceGet(t *testing.T) {
 	provider := StubAwsProvider(
-		cycleDescribeStacksNotFound("convox-syslog"),
-		cycleResourceDescribeStacks1,
+		cycleResourceDescribeStacks,
 		cycleAppDescribeStacks,
 	)
 	defer provider.Close()
@@ -105,8 +103,8 @@ func TestResourceGet(t *testing.T) {
 	}
 }
 
-var cycleResourceDescribeStacks1 = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
+var cycleResourceDescribeStacks = awsutil.Cycle{
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=convox-syslog&Version=2010-05-15`},
 	awsutil.Response{
 		200,
 		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
@@ -114,11 +112,11 @@ var cycleResourceDescribeStacks1 = awsutil.Cycle{
 				<Stacks>
 					<member>
 						<Outputs>
-                                                        <member>
+							<member>
 								<OutputKey>Url</OutputKey>
 								<OutputValue>tcp+tls://logs1.example.com:11235</OutputValue>
 							</member>
-                                                        <member>
+							<member>
 								<OutputKey>HttpdLink</OutputKey>
 								<OutputValue>convox-httpd-LogGroup-12345678</OutputValue>
 							</member>
@@ -133,59 +131,26 @@ var cycleResourceDescribeStacks1 = awsutil.Cycle{
 						<StackStatus>UPDATE_COMPLETE</StackStatus>
 						<DisableRollback>false</DisableRollback>
 						<Tags>
-                                                        <member>
-                                                                <Value>resource</Value>
-                                                                <Key>Type</Key>
-                                                          </member>
-                                                        <member>
-                                                            <Value>syslog</Value>
-                                                            <Key>Name</Key>
-                                                          </member>
-                                                          <member>
-                                                            <Value>convox</Value>
-                                                            <Key>System</Key>
-                                                          </member>
-                                                          <member>
-                                                            <Value>convox</Value>
-                                                            <Key>Rack</Key>
-                                                          </member>
-                                                </Tags>
+							<member>
+								<Value>resource</Value>
+								<Key>Type</Key>
+							</member>
+							<member>
+								<Value>syslog</Value>
+								<Key>Name</Key>
+							</member>
+							<member>
+								<Value>convox</Value>
+								<Key>System</Key>
+							</member>
+							<member>
+								<Value>convox</Value>
+								<Key>Rack</Key>
+							</member>
+						</Tags>
 						<LastUpdatedTime>2016-08-27T16:29:05.963Z</LastUpdatedTime>
 						<Parameters>
 						</Parameters>
-					</member>
-				</Stacks>
-			</DescribeStacksResult>
-			<ResponseMetadata>
-				<RequestId>9715cab7-6c75-11e6-837d-ebe72becd936</RequestId>
-			</ResponseMetadata>
-		</DescribeStacksResponse>`,
-	},
-}
-
-var cycleResourceDescribeStacks2 = awsutil.Cycle{
-	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&StackName=syslog&Version=2010-05-15`},
-	awsutil.Response{
-		200,
-		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-			<DescribeStacksResult>
-				<Stacks>
-					<member>
-						<Outputs>
-                                                </Outputs>
-						<Capabilities>
-							<member>CAPABILITY_IAM</member>
-						</Capabilities>
-						<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
-						<NotificationARNs/>
-						<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
-						<StackName>convox</StackName>
-						<StackStatus>UPDATE_COMPLETE</StackStatus>
-						<DisableRollback>false</DisableRollback>
-						<Tags/>
-						<LastUpdatedTime>2016-08-27T16:29:05.963Z</LastUpdatedTime>
-						<Parameters>
-                                                </Parameters>
 					</member>
 				</Stacks>
 			</DescribeStacksResult>
@@ -214,7 +179,7 @@ var cycleResourceCreateWebhook = awsutil.Cycle{
 var cycleResourceCreateNotificationPublish = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
-		Body:       `Action=Publish&Message=%7B%22action%22%3A%22resource%3Acreate%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22name%22%3A%22mywebhook%22%2C%22type%22%3A%22webhook%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=resource%3Acreate&TargetArn=&Version=2010-03-31`,
+		Body:       `Action=Publish&Message=%7B%22action%22%3A%22service%3Acreate%22%2C%22status%22%3A%22success%22%2C%22data%22%3A%7B%22name%22%3A%22mywebhook%22%2C%22type%22%3A%22webhook%22%7D%2C%22timestamp%22%3A%220001-01-01T00%3A00%3A00Z%22%7D&Subject=service%3Acreate&TargetArn=&Version=2010-03-31`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
