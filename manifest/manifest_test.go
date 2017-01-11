@@ -320,6 +320,28 @@ func TestExternalPorts(t *testing.T) {
 	}
 }
 
+func TestTcpUdp(t *testing.T) {
+	m, err := manifestFixture("tcp-udp")
+
+	if assert.Nil(t, err) {
+		ports := m.InternalPorts()
+		if assert.Equal(t, len(ports), 1) {
+			assert.Equal(t, ports[0], 1000)
+		}
+
+		ports = m.ExternalPorts()
+		if assert.Equal(t, len(ports), 1) {
+			assert.Equal(t, ports[0], 6514)
+		}
+
+		ports = m.UdpPorts()
+		if assert.Equal(t, len(ports), 2) {
+			assert.Equal(t, ports[0], 2000)
+			assert.Equal(t, ports[1], 2001)
+		}
+	}
+}
+
 func TestPortConflictsWithoutConflict(t *testing.T) {
 	m, err := manifestFixture("port-conflicts")
 
