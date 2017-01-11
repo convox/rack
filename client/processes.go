@@ -148,8 +148,9 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		}
 
 		if !isTerminalRaw {
-			terminal.MakeRaw(int(os.Stdin.Fd()))
+			state, _ := terminal.MakeRaw(int(os.Stdin.Fd()))
 			isTerminalRaw = true
+			defer terminal.Restore(int(os.Stdin.Fd()), state)
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
