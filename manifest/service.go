@@ -374,7 +374,7 @@ func (s Service) ExternalPorts() []Port {
 	ext := []Port{}
 
 	for _, port := range s.Ports {
-		if port.Public {
+		if port.Public && port.Protocol == TCP {
 			ext = append(ext, port)
 		}
 	}
@@ -386,12 +386,24 @@ func (s Service) InternalPorts() []Port {
 	internal := []Port{}
 
 	for _, port := range s.Ports {
-		if !port.Public {
+		if !port.Public && port.Protocol == TCP {
 			internal = append(internal, port)
 		}
 	}
 
 	return internal
+}
+
+func (s Service) UdpPorts() []Port {
+	udp := []Port{}
+
+	for _, port := range s.Ports {
+		if port.Protocol == UDP {
+			udp = append(udp, port)
+		}
+	}
+
+	return udp
 }
 
 func (s Service) ContainerPorts() []string {
