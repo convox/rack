@@ -33,6 +33,7 @@ type RunOptions struct {
 	Cache   bool
 	Quiet   bool
 	Sync    bool
+	Wait    int
 }
 
 // NewRun Default constructor method for a Run object
@@ -180,7 +181,7 @@ func (r *Run) Start() error {
 
 		r.Processes[p.Name] = p
 
-		if err := waitForContainer(p.Name, s); err != nil {
+		if err := waitForContainer(p.Name, s, r.Opts.Wait); err != nil {
 			return err
 		}
 
@@ -238,23 +239,23 @@ func pruneSyncs(syncs []sync.Sync) []sync.Sync {
 	return pruned
 }
 
-func waitForContainer(container string, service Service) error {
-	i := 0
+func waitForContainer(container string, service Service, wait int) error {
+	now := time.Now()
+	waitTimeout := now.Add(wait * time.Second)
 
 	for {
 		host := containerHost(container, service.Networks)
-		i += 1
 
 		if host != "" {
 			return nil
 		}
 
-		// wait 10s max
-		if i > 100 {
-			return fmt.Errorf("%s failed to start within 10 seconds", container)
+		// wait for the container to start, default: 10 seconds
+		if time.After(waitTimeout) {
+			return fmt.Errorf("%s failed to start within %d seconds", container, wait)
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Second) // sleep 1 second
 	}
 }
 

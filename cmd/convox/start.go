@@ -46,6 +46,12 @@ func init() {
 				Name:  "no-sync",
 				Usage: "do not synchronize local file changes into the running containers",
 			},
+			cli.IntFlag{
+				Name:   "start-wait",
+				EnvVar: "CONVOX_START_WAIT",
+				Value:  10,
+				Usage:  "wait for containers to finish promoting before failing",
+			},
 		},
 	})
 }
@@ -125,6 +131,7 @@ func cmdStart(c *cli.Context) error {
 		Command: command,
 		Service: service,
 		Sync:    !c.Bool("no-sync"),
+		Wait:    c.Int("start-wait"),
 	})
 
 	err = r.Start()
