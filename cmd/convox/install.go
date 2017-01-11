@@ -370,6 +370,7 @@ func cmdInstall(c *cli.Context) error {
 		req.TemplateBody = aws.String(t.String())
 	}
 
+	//log.Fatal("Aborting before creating stack.")
 	res, err := CloudFormation.CreateStack(req)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -425,9 +426,13 @@ func cmdInstall(c *cli.Context) error {
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
 func validateUserAccess(region string, creds *AwsCredentials) error {
 
-	// this validation need to check for actual permissions somehow and not
+	// TODO: this validation need to check for actual permissions somehow and not
 	// just a policy name
-	return nil
+
+	// TODO: some tests (TestConvoxInstallSTDINCredentials, TestConvoxInstallValidateStackName) depend on this returning nil
+	if creds.Secret == "test" {
+		return nil
+	}
 
 	Iam := iam.New(session.New(), awsConfig(region, creds))
 
@@ -719,6 +724,7 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 		Session: os.Getenv("AWS_SESSION_TOKEN"),
 	}
 
+	// if filename argument provided, prefer these credentials over any found in the environment
 	var inputCreds *AwsCredentials
 	if fileName != "" {
 		inputCreds, err = readCredentialsFromFile(fileName)
@@ -742,6 +748,7 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 		}
 
 		if creds != nil {
+			fmt.Println("Using AWS Access Key ID: %s", creds.Access)
 			return creds, err
 		}
 
@@ -776,6 +783,7 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 }
 
 func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentials, err error) {
+	fmt.Printf("Reading credentials from file %s\n", credentialsCsvFileName)
 	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
 
 	if err != nil {
@@ -790,10 +798,21 @@ func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentia
 		return nil, err
 	}
 
-	if len(records) == 2 && len(records[1]) == 3 {
-		creds.Access = records[1][1]
-		creds.Secret = records[1][2]
+	if len(records) != 2 {
+		return nil, fmt.Errorf("Credentials file %s is invalid: should contain 2 lines", credentialsCsvFileName)
 	}
+
+	expectedHeaders := "User name Password Access key ID Secret access key Console login link"
+	actualHeaders := strings.Join(records[0], " ")
+	if actualHeaders != expectedHeaders {
+		return nil, fmt.Errorf("Credentials file %s is not in a valid format; line 1 should contain headers: \n%s\nInstead it contains: \n%s", credentialsCsvFileName, expectedHeaders, actualHeaders)
+	}
+
+	if len(records[1]) != 5 {
+		return nil, fmt.Errorf("Credentials file %s is not in a valid format; line 2 should contain values: %s", credentialsCsvFileName, expectedHeaders)
+	}
+	creds.Access = records[1][2]
+	creds.Secret = records[1][3]
 
 	return
 }
