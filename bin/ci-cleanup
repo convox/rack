@@ -22,7 +22,11 @@ for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
   if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
     region=$(aws s3api get-bucket-location --bucket $bucket | jq -r .LocationConstraint)
     echo "deleting bucket: $bucket ($region)"
-    aws s3 rb s3://$bucket --force #--region $region
+    if [[ "$region" == "null" ]]; then
+      aws s3 rb s3://$bucket --force
+    else
+      aws s3 rb s3://$bucket --force --region $region
+    fi
   fi
 done
 
