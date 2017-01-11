@@ -96,7 +96,7 @@ func (s *Service) Process(app string, m Manifest) Process {
 }
 
 func (s Service) HasBalancer() bool {
-	if s.Labels["convox.elb"] == "false" {
+	if s.Labels["convox.balancer"] == "false" {
 		return false
 	}
 
