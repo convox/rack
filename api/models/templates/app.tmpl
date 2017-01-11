@@ -264,10 +264,15 @@
               ],
               "PortMappings": [
                 {{ range .Ports }}
-                  { "Fn::Join": [ ":", [
-                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
-                    "{{ .Container }}/{{ .Protocol }}"
-                  ] ] },
+                  {{ if eq .Protocol "tcp" }}
+                    { "Fn::Join": [ ":", [
+                      { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                      "{{ .Container }}/{{ .Protocol }}"
+                    ] ] },
+                  {{ else if eq .Protocol "udp" }}
+                    {{/* .Balancer port should match .Container port for UDP */}}
+                    "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
+                  {{ end }}
                 {{ end }}
                 { "Ref" : "AWS::NoValue" }
               ],
