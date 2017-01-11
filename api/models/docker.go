@@ -147,23 +147,12 @@ func DockerLogout(ac docker.AuthConfiguration) error {
 }
 
 // Log into the appropriate registry for the given app
-// This could be the self-hosted v1 registry or an ECR registry
 func AppDockerLogin(app structs.App) (string, error) {
-	if registryId := app.Outputs["RegistryId"]; registryId != "" {
-		return DockerLogin(docker.AuthConfiguration{
-			Email:         "user@convox.com",
-			Password:      os.Getenv("AWS_SECRET"),
-			ServerAddress: fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", registryId, os.Getenv("AWS_REGION")),
-			Username:      os.Getenv("AWS_ACCESS"),
-		})
-	}
-
-	// fall back to v1 registry login
 	return DockerLogin(docker.AuthConfiguration{
 		Email:         "user@convox.com",
-		Password:      os.Getenv("PASSWORD"),
-		ServerAddress: os.Getenv("REGISTRY_HOST"),
-		Username:      "convox",
+		Password:      os.Getenv("AWS_SECRET"),
+		ServerAddress: fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", app.Outputs["RegistryId"], os.Getenv("AWS_REGION")),
+		Username:      os.Getenv("AWS_ACCESS"),
 	})
 }
 
