@@ -3,30 +3,31 @@
 base=$(dirname $(dirname $0))
 
 for region in $(cat $base/REGIONS); do
-  export AWS_DEFAULT_REGION=$region
-
   for stack in $(aws cloudformation describe-stacks | jq -r '.Stacks[].StackName'); do
     if [[ "$stack" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$stack" =~ ^convox-0 ]]; then
       echo "deleting stack: $stack ($region)"
-      aws cloudformation delete-stack --stack-name $stack
+      aws cloudformation delete-stack --stack-name $stack --region $region
     fi
   done
 
   for eip in $(aws ec2 describe-addresses --region $region | jq -r '.Addresses[] | select(has("PrivateIpAddress") | not) | .AllocationId'); do
-      echo "deleting eip: $eip ($region)"
-      aws ec2 release-address --allocation-id $eip
+    echo "deleting eip: $eip ($region)"
+    aws ec2 release-address --allocation-id $eip --region $region
   done
 done
 
 for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
   if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
-    region=$(aws s3api get-bucket-location --bucket $bucket | jq -r .LocationConstraint)
+    region=$(aws s3api get-bucket-location --bucket $bucket | jq -r .LocationConstraint 2>/dev/null)
     echo "deleting bucket: $bucket ($region)"
-    if [[ "$region" == "null" ]]; then
-      aws s3 rb s3://$bucket --force
-    else
-      aws s3 rb s3://$bucket --force --region $region
-    fi
+    case $region in
+    "")
+      ;;
+    null)
+      aws s3 rb s3://$bucket --force ;;
+    *)
+      aws s3 rb s3://$bucket --force --region $region ;;
+    esac
   fi
 done
 
