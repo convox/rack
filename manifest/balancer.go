@@ -106,7 +106,7 @@ func (mb ManifestBalancer) FirstPort() string {
 }
 
 func (mb ManifestBalancer) Ports() []string {
-	pp := mb.Entry.Ports
+	pp := mb.Entry.TcpPorts()
 	sp := make([]string, len(pp))
 
 	for _, p := range pp {
@@ -138,7 +138,7 @@ func (mb ManifestBalancer) ResourceName() string {
 }
 
 func (mb ManifestBalancer) PortMappings() []Port {
-	return mb.Entry.Ports
+	return mb.Entry.TcpPorts()
 }
 
 func (mb ManifestBalancer) Scheme() string {
@@ -233,12 +233,12 @@ func (mb ManifestBalancer) HealthPath() string {
 // HealthPort The balancer port that maps to the container port specified in
 // manifest
 func (mb ManifestBalancer) HealthPort() string {
-	if len(mb.Entry.Ports) == 0 {
+	if len(mb.Entry.TcpPorts()) == 0 {
 		return ""
 	}
 
 	if port := mb.Entry.Labels["convox.health.port"]; port != "" {
-		for _, p := range mb.Entry.Ports {
+		for _, p := range mb.Entry.TcpPorts() {
 			if strconv.Itoa(p.Container) == port {
 				return strconv.Itoa(p.Balancer)
 			}
@@ -248,7 +248,7 @@ func (mb ManifestBalancer) HealthPort() string {
 		return ""
 	}
 
-	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.Ports[0].Balancer))
+	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.TcpPorts()[0].Balancer))
 }
 
 // HealthProtocol returns the protocol to use for the health check
