@@ -264,12 +264,12 @@
               ],
               "PortMappings": [
                 {{ range .Ports }}
-                  {{ if eq .Protocol "tcp" }}
+                  {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
                     { "Fn::Join": [ ":", [
                       { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
                       "{{ .Container }}/{{ .Protocol }}"
                     ] ] },
-                  {{ else if eq .Protocol "udp" }}
+                  {{ else }}
                     {{/* .Balancer port should match .Container port for UDP */}}
                     "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
                   {{ end }}
