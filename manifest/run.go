@@ -249,8 +249,8 @@ func waitForContainer(container string, service Service) error {
 			return nil
 		}
 
-		// wait 10s max
-		if i > 100 {
+		// wait 60s max
+		if i > 600 {
 			return fmt.Errorf("%s failed to start within 10 seconds", container)
 		}
 
