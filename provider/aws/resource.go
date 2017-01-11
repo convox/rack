@@ -147,15 +147,10 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 	var res *cloudformation.DescribeStacksOutput
 	var err error
 
-	// try 'convox-myresource', and if not found try 'myresource'
 	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack + "-" + name),
 	})
-	if awsError(err) == "ValidationError" {
-		res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(name),
-		})
-	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +178,14 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 				break
 			}
 		}
+	}
+
+	if len(s.Tags["Service"]) > 0 && s.Tags["Resource"] != s.Tags["Service"] {
+		s.Tags["Resource"] = s.Tags["Service"]
+	}
+
+	if s.Tags["Type"] == "service" {
+		s.Tags["Type"] = "resource"
 	}
 
 	switch s.Tags["Resource"] {
