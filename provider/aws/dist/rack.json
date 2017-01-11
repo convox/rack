@@ -53,7 +53,7 @@
     "AvailabilityZoneConfig": {
       "us-east-1": { "ThirdAvailabilityZone": "Yes" },
       "us-east-2": { "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "us-west-1": { "ThirdAvailabilityZone": "No" },
       "us-west-2": { "ThirdAvailabilityZone": "Yes" },
       "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
       "eu-central-1": { "ThirdAvailabilityZone": "No" },
