@@ -370,7 +370,6 @@ func cmdInstall(c *cli.Context) error {
 		req.TemplateBody = aws.String(t.String())
 	}
 
-	//log.Fatal("Aborting before creating stack.")
 	res, err := CloudFormation.CreateStack(req)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -748,6 +747,7 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 		}
 
 		if creds != nil {
+			// be clear about which AWS account we're installing the Rack to
 			fmt.Println("Using AWS Access Key ID: %s", creds.Access)
 			return creds, err
 		}
