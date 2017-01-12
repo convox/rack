@@ -1,0 +1,16 @@
+version: "2"
+services:
+  web:
+    build: .
+    labels:
+      - convox.port.443.protocol=tls
+      - convox.port.443.proxy=true
+    links:
+      - database
+    ports:
+      - "80:5000"
+      - "443:8000"
+  database:
+    image: convox/postgres
+    ports:
+      - "5432"
