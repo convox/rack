@@ -39,7 +39,113 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 			Exit:    0,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"test","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\n" + stackId + "\n",
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: FOO\n" + stackId + "\n",
+		},
+	)
+}
+
+// TestConvoxInstallEnvCredentials ensures credentials are read from the environment when present
+func TestConvoxInstallEnvCredentials(t *testing.T) {
+	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	cycles := []awsutil.Cycle{
+		{
+			awsutil.Request{"GET", "/", "", "/./"},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+		},
+		{
+			awsutil.Request{"GET", "/", "", ""},
+			awsutil.Response{200, ""},
+		},
+	}
+
+	handler := awsutil.NewHandler(cycles)
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	os.Setenv("AWS_ENDPOINT", s.URL)
+	latest, _ := version.Latest()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox install",
+			Exit:    0,
+			Env: map[string]string{
+				"AWS_ENDPOINT_URL":      s.URL,
+				"AWS_REGION":            "test",
+				"AWS_ACCESS_KEY_ID":     "test",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			},
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: test\n" + stackId + "\n",
+		},
+	)
+}
+
+// TestConvoxInstallFileCredentials ensures credentials are read from a file when one is provided
+func TestConvoxInstallFileCredentials(t *testing.T) {
+	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	cycles := []awsutil.Cycle{
+		{
+			awsutil.Request{"GET", "/", "", "/./"},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+		},
+		{
+			awsutil.Request{"GET", "/", "", ""},
+			awsutil.Response{200, ""},
+		},
+	}
+
+	handler := awsutil.NewHandler(cycles)
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	os.Setenv("AWS_ENDPOINT", s.URL)
+	latest, _ := version.Latest()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox install ../../manifest/fixtures/dummy.csv",
+			Exit:    0,
+			Env: map[string]string{
+				"AWS_ENDPOINT_URL": s.URL,
+				"AWS_REGION":       "test",
+			},
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackId + "\n",
+		},
+	)
+}
+
+// TestConvoxInstallFileCredentialsWithEnvCredentials ensures credentials are read from a file when one is provided, even if environmental credentials are present
+func TestConvoxInstallFileCredentialsWithEnvCredentials(t *testing.T) {
+	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	cycles := []awsutil.Cycle{
+		{
+			awsutil.Request{"GET", "/", "", "/./"},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+		},
+		{
+			awsutil.Request{"GET", "/", "", ""},
+			awsutil.Response{200, ""},
+		},
+	}
+
+	handler := awsutil.NewHandler(cycles)
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	os.Setenv("AWS_ENDPOINT", s.URL)
+	latest, _ := version.Latest()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox install ../../manifest/fixtures/dummy.csv",
+			Exit:    0,
+			Env: map[string]string{
+				"AWS_ENDPOINT_URL":      s.URL,
+				"AWS_REGION":            "test",
+				"AWS_ACCESS_KEY_ID":     "test",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			},
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackId + "\n",
 		},
 	)
 }
@@ -70,7 +176,7 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 			Exit:    0,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"test","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\n" + stackId + "\n",
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: FOO\n" + stackId + "\n",
 		},
 
 		test.ExecRun{
@@ -121,35 +227,39 @@ func TestConvoxInstallFileCredentialsInvalidFormat(t *testing.T) {
 
 // TestConvoxInstallFileCredentialsInsufficientPermissions ensures an error is raised when a file argument is provided but the user doesn't have sufficient permissions to install a Rack
 func TestConvoxInstallFileCredentialsInsufficientPermissions(t *testing.T) {
-	cycles := []awsutil.Cycle{
-		{
-			awsutil.Request{"POST", "/", "", "Action=GetUser&Version=2010-05-08"},
-			awsutil.Response{403, `
-			<ErrorResponse xmlns="http://iam.amazonaws.com/doc/2010-05-15/">,
-				<Error>
-					<Code>AccessDenied</Code>
-				</Error>
-				<RequestId>bc91dc86-5803-11e5-a24f-85fde26a90fa</RequestId>
-			</ErrorResponse>`,
+	// TODO: disabled along with validateUserAccess func in cmd/convox/install.go
+	return
+	/*
+		cycles := []awsutil.Cycle{
+			{
+				awsutil.Request{"POST", "/", "", "Action=GetUser&Version=2010-05-08"},
+				awsutil.Response{403, `
+				<ErrorResponse xmlns="http://iam.amazonaws.com/doc/2010-05-15/">,
+					<Error>
+						<Code>AccessDenied</Code>
+					</Error>
+					<RequestId>bc91dc86-5803-11e5-a24f-85fde26a90fa</RequestId>
+				</ErrorResponse>`,
+				},
 			},
-		},
-	}
+		}
 
-	handler := awsutil.NewHandler(cycles)
-	s := httptest.NewServer(handler)
-	defer s.Close()
+		handler := awsutil.NewHandler(cycles)
+		s := httptest.NewServer(handler)
+		defer s.Close()
 
-	os.Setenv("AWS_ENDPOINT", s.URL)
-	latest, _ := version.Latest()
+		os.Setenv("AWS_ENDPOINT", s.URL)
+		latest, _ := version.Latest()
 
-	test.Runs(t,
-		test.ExecRun{
-			Command: "convox install ../../manifest/fixtures/dummy.csv",
-			Exit:    1,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\n",
-			Stderr:  "ERROR: AccessDenied. See https://docs.convox.com/creating-an-iam-user\n",
-		},
-	)
+		test.Runs(t,
+			test.ExecRun{
+				Command: "convox install ../../manifest/fixtures/dummy.csv",
+				Exit:    1,
+				Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\n",
+				Stderr:  "ERROR: AccessDenied. See https://docs.convox.com/creating-an-iam-user\n",
+			},
+		)
+	*/
 }
 
 func TestConvoxInstallFriendlyName(t *testing.T) {
