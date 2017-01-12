@@ -223,59 +223,77 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 	return tasks, nil
 }
 
+const describeTasksPageSize = 100
+
 func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 	log := Logger.At("serviceProcesses").Namespace("tasks=%q", tasks).Start()
 
-	ptasks := []*string{}
-
-	for _, t := range tasks {
-		ptasks = append(ptasks, aws.String(t))
-	}
-
-	if len(ptasks) == 0 {
-		return structs.Processes{}, nil
-	}
-
-	tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
-		Cluster: aws.String(p.Cluster),
-		Tasks:   ptasks,
-	})
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
 	pss := structs.Processes{}
-	psch := make(chan structs.Process, len(tres.Tasks))
-	errch := make(chan error)
-	timeout := time.After(30 * time.Second)
 
-	for _, task := range tres.Tasks {
-		if p.IsTest() {
-			p.fetchProcess(task, psch, errch)
+	for i := 0; i < len(tasks); i += describeTasksPageSize {
+		ptasks := []string{}
+
+		if len(tasks) < i+describeTasksPageSize {
+			ptasks = append(ptasks, tasks[i:]...)
 		} else {
-			go p.fetchProcess(task, psch, errch)
+			ptasks = append(ptasks, tasks[i:i+describeTasksPageSize]...)
 		}
-	}
 
-	for {
-		select {
-		case <-timeout:
-			return nil, fmt.Errorf("timeout")
-		case err := <-errch:
+		psst := structs.Processes{}
+		psch := make(chan structs.Process, len(ptasks))
+		errch := make(chan error)
+
+		if len(ptasks) == 0 {
+			return structs.Processes{}, nil
+		}
+
+		iptasks := make([]*string, len(ptasks))
+
+		for i := range ptasks {
+			iptasks[i] = &ptasks[i]
+		}
+
+		tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+			Cluster: aws.String(p.Cluster),
+			Tasks:   iptasks,
+		})
+		if err != nil {
+			log.Error(err)
 			return nil, err
-		case ps := <-psch:
-			pss = append(pss, ps)
 		}
 
-		if len(pss) == len(tres.Tasks) {
-			break
+		timeout := time.After(30 * time.Second)
+
+		for _, task := range tres.Tasks {
+			if p.IsTest() {
+				p.fetchProcess(task, psch, errch)
+			} else {
+				go p.fetchProcess(task, psch, errch)
+			}
 		}
+
+		for {
+			select {
+			case <-timeout:
+				return nil, fmt.Errorf("timeout")
+			case err := <-errch:
+				return nil, err
+			case ps := <-psch:
+				psst = append(psst, ps)
+			}
+
+			if len(psst) == len(tres.Tasks) {
+				break
+			}
+		}
+
+		pss = append(pss, psst...)
 	}
 
 	sort.Sort(pss)
 
 	log.Success()
+
 	return pss, nil
 }
 
