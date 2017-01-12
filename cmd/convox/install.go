@@ -304,7 +304,6 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	creds, err := readCredentials(credentialsFile)
-
 	if err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error: %s", err)})
 		return stdcli.Error(err)
@@ -427,45 +426,8 @@ func cmdInstall(c *cli.Context) error {
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
 func validateUserAccess(region string, creds *AwsCredentials) error {
 
-	// TODO: this validation need to check for actual permissions somehow and not
-	// just a policy name
+	// TODO: this validation needs to actually check permissions
 	return nil
-
-	/*
-		// TODO: some tests (TestConvoxInstallSTDINCredentials, TestConvoxInstallValidateStackName) depend on this returning nil
-		if creds.Secret == "test" {
-			return nil
-		}
-
-		Iam := iam.New(session.New(), awsConfig(region, creds))
-
-		userOutput, err := Iam.GetUser(&iam.GetUserInput{})
-		if err != nil {
-			if ae, ok := err.(awserr.Error); ok {
-				return fmt.Errorf("%s. See %s", ae.Code(), iamUserURL)
-			}
-			return fmt.Errorf("%s. See %s", err, iamUserURL)
-		}
-
-		policies, err := Iam.ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
-			UserName: userOutput.User.UserName,
-		})
-		if err != nil {
-			if ae, ok := err.(awserr.Error); ok {
-				return fmt.Errorf("%s. See %s", ae.Code(), iamUserURL)
-			}
-		}
-
-		for _, policy := range policies.AttachedPolicies {
-			if "AdministratorAccess" == *policy.PolicyName {
-				return nil
-			}
-		}
-
-		msg := fmt.Errorf("Administrator access needed. See %s", iamUserURL)
-		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: msg})
-		return stdcli.Error(msg)
-	*/
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {

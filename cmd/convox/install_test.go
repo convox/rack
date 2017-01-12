@@ -227,39 +227,8 @@ func TestConvoxInstallFileCredentialsInvalidFormat(t *testing.T) {
 
 // TestConvoxInstallFileCredentialsInsufficientPermissions ensures an error is raised when a file argument is provided but the user doesn't have sufficient permissions to install a Rack
 func TestConvoxInstallFileCredentialsInsufficientPermissions(t *testing.T) {
-	// TODO: disabled along with validateUserAccess func in cmd/convox/install.go
+	// TODO: disabled along with validateUserAccess() in cmd/convox/install.go
 	return
-	/*
-		cycles := []awsutil.Cycle{
-			{
-				awsutil.Request{"POST", "/", "", "Action=GetUser&Version=2010-05-08"},
-				awsutil.Response{403, `
-				<ErrorResponse xmlns="http://iam.amazonaws.com/doc/2010-05-15/">,
-					<Error>
-						<Code>AccessDenied</Code>
-					</Error>
-					<RequestId>bc91dc86-5803-11e5-a24f-85fde26a90fa</RequestId>
-				</ErrorResponse>`,
-				},
-			},
-		}
-
-		handler := awsutil.NewHandler(cycles)
-		s := httptest.NewServer(handler)
-		defer s.Close()
-
-		os.Setenv("AWS_ENDPOINT", s.URL)
-		latest, _ := version.Latest()
-
-		test.Runs(t,
-			test.ExecRun{
-				Command: "convox install ../../manifest/fixtures/dummy.csv",
-				Exit:    1,
-				Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\n",
-				Stderr:  "ERROR: AccessDenied. See https://docs.convox.com/creating-an-iam-user\n",
-			},
-		)
-	*/
 }
 
 func TestConvoxInstallFriendlyName(t *testing.T) {
