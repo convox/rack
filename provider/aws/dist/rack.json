@@ -691,12 +691,17 @@
                       "ecs:RegisterTaskDefinition",
                       "ecs:RunTask",
                       "ecs:UpdateService",
+                      "elasticache:CreateCacheCluster",
                       "elasticache:CreateCacheSubnetGroup",
                       "elasticache:CreateReplicationGroup",
+                      "elasticache:DeleteCacheCluster,"
                       "elasticache:DeleteCacheSubnetGroup",
                       "elasticache:DeleteReplicationGroup",
+                      "elasticache:DescribeCacheClusters",
                       "elasticache:DescribeCacheSubnetGroups",
                       "elasticache:DescribeReplicationGroups",
+                      "elasticache:ModifyCacheCluster",
+                      "elasticache:ModifyReplicationGroup",
                       "elasticloadbalancing:ConfigureHealthCheck",
                       "elasticloadbalancing:CreateLoadBalancer",
                       "elasticloadbalancing:CreateLoadBalancerPolicy",
@@ -786,6 +791,7 @@
                   "Effect": "Allow",
                   "Resource": [
                       { "Fn::Join": [ "", [ "arn:aws:rds:*:*:db:", { "Ref": "AWS::StackName" }, "-*"] ] },
+                      { "Fn::Join": [ "", [ "arn:aws:rds:*:*:pg:", { "Ref": "AWS::StackName" }, "-*"] ] }
                       { "Fn::Join": [ "", [ "arn:aws:rds:*:*:subgrp:", { "Ref": "AWS::StackName" }, "-*"] ] }
                   ]
                 }, {
