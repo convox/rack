@@ -30,8 +30,9 @@ func init() {
 				Usage: "CPU units available to specified process type.",
 			},
 			cli.BoolFlag{
-				Name:  "wait",
-				Usage: "wait for app to finish scaling before returning",
+				Name:   "wait",
+				EnvVar: "CONVOX_WAIT",
+				Usage:  "wait for app to finish scaling before returning",
 			},
 		},
 	})

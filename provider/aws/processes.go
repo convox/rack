@@ -701,11 +701,12 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 
 	for i, mv := range s.MountableVolumes() {
 		name := fmt.Sprintf("volume-%d", i)
+		host := fmt.Sprintf("/volumes/%s-%s/%s%s", p.Rack, app, process, mv.Host)
 
 		req.Volumes = append(req.Volumes, &ecs.Volume{
 			Name: aws.String(name),
 			Host: &ecs.HostVolumeProperties{
-				SourcePath: aws.String(mv.Host),
+				SourcePath: aws.String(host),
 			},
 		})
 

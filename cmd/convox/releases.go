@@ -33,8 +33,9 @@ func init() {
 					appFlag,
 					rackFlag,
 					cli.BoolFlag{
-						Name:  "wait",
-						Usage: "wait for release to finish promoting before returning",
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for release to finish promoting before returning",
 					},
 				},
 			},

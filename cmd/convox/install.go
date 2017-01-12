@@ -331,6 +331,7 @@ func cmdInstall(c *cli.Context) error {
 		Parameters: []*cloudformation.Parameter{
 			{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
 			{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctID)},
+			{ParameterKey: aws.String("CustomTopicRuntime"), ParameterValue: aws.String("nodejs4.3")},
 			{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
 			{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
 			{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
@@ -640,6 +641,8 @@ func FriendlyName(t string) string {
 		return "Access Key"
 	case "AWS::IAM::InstanceProfile":
 		return ""
+	case "AWS::IAM::ManagedPolicy":
+		return "IAM Managed Policy"
 	case "AWS::IAM::Role":
 		return ""
 	case "AWS::IAM::User":

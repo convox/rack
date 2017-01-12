@@ -218,6 +218,11 @@
       "Description": "",
       "Type": "String"
     },
+    "CustomTopicRuntime": {
+      "Default": "nodejs",
+      "Description": "",
+      "Type": "String"
+    },
     "DeploymentMaximum": {
       "Default": "200",
       "Description": "Maximum percentage of processes to keep running while deploying",
@@ -568,7 +573,6 @@
             ]
           }
         },
-        "FunctionName": "convox-test-httpd-cron",
         "Handler": "index.handler",
         "Role": {
           "Fn::GetAtt": [
@@ -576,7 +580,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs",
+        "Runtime": "nodejs4.3",
         "Timeout": 50
       },
       "Type": "AWS::Lambda::Function"
@@ -719,7 +723,9 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs",
+        "Runtime": {
+          "Ref": "CustomTopicRuntime"
+        },
         "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
