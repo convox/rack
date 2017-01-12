@@ -46,11 +46,11 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 
 // TestConvoxInstallEnvCredentials ensures credentials are read from the environment when present
 func TestConvoxInstallEnvCredentials(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		{
 			awsutil.Request{"GET", "/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		{
 			awsutil.Request{"GET", "/", "", ""},
@@ -75,18 +75,18 @@ func TestConvoxInstallEnvCredentials(t *testing.T) {
 				"AWS_ACCESS_KEY_ID":     "test",
 				"AWS_SECRET_ACCESS_KEY": "test",
 			},
-			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: test\n" + stackId + "\n",
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: test\n" + stackID + "\n",
 		},
 	)
 }
 
 // TestConvoxInstallFileCredentials ensures credentials are read from a file when one is provided
 func TestConvoxInstallFileCredentials(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		{
 			awsutil.Request{"GET", "/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		{
 			awsutil.Request{"GET", "/", "", ""},
@@ -109,18 +109,18 @@ func TestConvoxInstallFileCredentials(t *testing.T) {
 				"AWS_ENDPOINT_URL": s.URL,
 				"AWS_REGION":       "test",
 			},
-			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackId + "\n",
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackID + "\n",
 		},
 	)
 }
 
 // TestConvoxInstallFileCredentialsWithEnvCredentials ensures credentials are read from a file when one is provided, even if environmental credentials are present
 func TestConvoxInstallFileCredentialsWithEnvCredentials(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		{
 			awsutil.Request{"GET", "/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		{
 			awsutil.Request{"GET", "/", "", ""},
@@ -145,7 +145,7 @@ func TestConvoxInstallFileCredentialsWithEnvCredentials(t *testing.T) {
 				"AWS_ACCESS_KEY_ID":     "test",
 				"AWS_SECRET_ACCESS_KEY": "test",
 			},
-			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackId + "\n",
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackID + "\n",
 		},
 	)
 }
