@@ -37,6 +37,54 @@ func TestAppsCreate(t *testing.T) {
 			Command: "convox apps create foobar",
 			Exit:    0,
 			Stdout:  "Creating app foobar... CREATING\n",
+			Env:     map[string]string{"CONVOX_WAIT": "false"},
+		},
+	)
+}
+
+func TestAppsCreateWithConvoxWaitEnvVar(t *testing.T) {
+	ts := testServer(t,
+		test.Http{
+			Method:   "POST",
+			Path:     "/apps",
+			Body:     "name=waitforme",
+			Code:     200,
+			Response: client.App{},
+		},
+		// Needed for the polling we do because of CONVOX_WAIT
+		test.Http{
+			Method: "GET",
+			Path:   "/apps/waitforme",
+			Code:   403,
+			Response: client.Apps{
+				client.App{
+					Name:   "waitforme",
+					Status: "creating",
+				},
+			},
+		},
+		// Needed for the polling we do because of CONVOX_WAIT
+		test.Http{
+			Method: "GET",
+			Path:   "/apps/waitforme",
+			Code:   200,
+			Response: client.Apps{
+				client.App{
+					Name:   "waitforme",
+					Status: "running",
+				},
+			},
+		},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox apps create waitforme",
+			Exit:    0,
+			Stdout:  "Creating app waitforme... CREATING\nWaiting for waitforme... OK\n",
+			Env:     map[string]string{"CONVOX_WAIT": "true"},
 		},
 	)
 }
@@ -56,7 +104,8 @@ func TestAppsCreateWithDotsInDirName(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox apps create",
+			// unset CONVOX_WAIT in case it's present in the host env
+			Command: "CONVOX_WAIT= convox apps create",
 			Exit:    0,
 			Dir:     "../../manifest/fixtures/dir-name-with-dots/foo.bar",
 			Stdout:  "Creating app foo-bar... CREATING\n",
