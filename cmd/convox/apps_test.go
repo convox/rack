@@ -37,7 +37,6 @@ func TestAppsCreate(t *testing.T) {
 			Command: "convox apps create foobar",
 			Exit:    0,
 			Stdout:  "Creating app foobar... CREATING\n",
-			Env:     map[string]string{"CONVOX_WAIT": "false"},
 		},
 	)
 }
@@ -104,8 +103,7 @@ func TestAppsCreateWithDotsInDirName(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			// unset CONVOX_WAIT in case it's present in the host env
-			Command: "CONVOX_WAIT= convox apps create",
+			Command: "convox apps create",
 			Exit:    0,
 			Dir:     "../../manifest/fixtures/dir-name-with-dots/foo.bar",
 			Stdout:  "Creating app foo-bar... CREATING\n",
