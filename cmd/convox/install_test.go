@@ -119,3 +119,22 @@ func TestConvoxInstallFriendlyName(t *testing.T) {
 		assert.NotContains(t, FriendlyName(typ), "Unknown")
 	}
 }
+
+func TestReadCredentialsFromFile(t *testing.T) {
+
+	creds, err := readCredentialsFromFile("./data/fixtures/creds2.csv")
+	assert.Nil(t, err)
+	assert.Equal(t, "fakeaccessid", creds.Access)
+	assert.Equal(t, "fakesecretkey", creds.Secret)
+
+	creds, err = readCredentialsFromFile("./data/fixtures/creds5.csv")
+	assert.Nil(t, err)
+	assert.Equal(t, "fakeaccessid", creds.Access)
+	assert.Equal(t, "fakesecretkey", creds.Secret)
+
+	creds, err = readCredentialsFromFile("./data/fixtures/credswrong.csv")
+	assert.EqualError(t, err, "credentials secrets is of unknown length")
+
+	creds, err = readCredentialsFromFile("./data/fixtures/credswrong2.csv")
+	assert.EqualError(t, err, "credentials file is of unknown length")
+}

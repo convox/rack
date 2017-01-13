@@ -777,27 +777,41 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	return
 }
 
-func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentials, err error) {
+func readCredentialsFromFile(credentialsCsvFileName string) (*AwsCredentials, error) {
 	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
 	if err != nil {
 		return nil, err
 	}
 
-	creds = &AwsCredentials{}
-
 	r := csv.NewReader(bytes.NewReader(credsFile))
+
 	records, err := r.ReadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(records) == 2 && len(records[1]) == 3 {
-		creds.Access = records[1][1]
-		creds.Secret = records[1][2]
+	creds := &AwsCredentials{}
+	if len(records) == 2 {
+		switch len(records[0]) {
+
+		case 2:
+			// Access key ID,Secret access key
+			creds.Access = records[1][0]
+			creds.Secret = records[1][1]
+
+		case 5:
+			// User name,Password,Access key ID,Secret access key,Console login link
+			creds.Access = records[1][2]
+			creds.Secret = records[1][3]
+
+		default:
+			return creds, fmt.Errorf("credentials secrets is of unknown length")
+		}
+	} else {
+		return creds, fmt.Errorf("credentials file is of unknown length")
 	}
 
-	return
+	return creds, nil
 }
 
 func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
