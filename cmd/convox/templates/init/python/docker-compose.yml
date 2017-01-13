@@ -6,11 +6,11 @@ services:
       - convox.port.443.protocol=tls
       - convox.port.443.proxy=true
     links:
-      - database
+      - db
     ports:
       - "80:5000"
       - "443:8000"
-  database:
+  db:
     image: convox/postgres
     ports:
       - "5432"
