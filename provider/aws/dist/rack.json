@@ -723,6 +723,7 @@
                       "logs:CreateLogGroup",
                       "logs:DeleteLogGroup",
                       "logs:DescribeLogGroups",
+                      "logs:FilterLogEvents",
                       "rds:CreateDBInstance",
                       "rds:CreateDBParameterGroup",
                       "rds:CreateDBSubnetGroup",
