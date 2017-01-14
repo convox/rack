@@ -1528,37 +1528,6 @@
         ]
       }
     },
-    "RegistryBucket": {
-      "Type": "AWS::S3::Bucket",
-      "DeletionPolicy": "Retain",
-      "Properties": {
-        "AccessControl": "Private"
-      }
-    },
-    "RegistryUser": {
-      "Type": "AWS::IAM::User",
-      "Properties": {
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyName": "Administrator",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [ { "Effect": "Allow", "Action": "*", "Resource": "*" } ]
-            }
-          }
-        ]
-      }
-    },
-    "RegistryAccess": {
-      "DependsOn": "RegistryUser",
-      "Type": "AWS::IAM::AccessKey",
-      "Properties": {
-        "Serial": "1",
-        "Status": "Active",
-        "UserName": { "Ref": "RegistryUser" }
-      }
-    },
     "Balancer": {
       "DependsOn": [ "BalancerSecurityGroup" ],
       "Properties": {
@@ -1873,7 +1842,7 @@
       "Type": "AWS::S3::Bucket"
     },
     "RackBuildTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "build" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
@@ -1913,7 +1882,7 @@
       "Version": "1.0"
     },
     "RackWebTasks": {
-      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "RegistryAccess", "RegistryBucket", "Subnet0", "Subnet1" ],
+      "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
         "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
