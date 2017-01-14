@@ -79,7 +79,6 @@ func exitCode(err error) int {
 	}
 
 	if err != nil {
-		log.Print(err)
 		return -1
 	}
 
