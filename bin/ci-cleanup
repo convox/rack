@@ -84,10 +84,11 @@ for region in $(cat $base/REGIONS); do
     aws ecs delete-cluster --cluster $cluster --region $region >/dev/null
   done
 
-  for func in $(aws lambda list-functions --region $region | jq -r '.Functions[].FunctionName'); do
-    echo "deleting lambda: $func ($region)"
-    aws lambda delete-function --function-name $func --region $region
-  done
+  # probably need to avoid deleting lambda so we dont break custom resources
+  # for func in $(aws lambda list-functions --region $region | jq -r '.Functions[].FunctionName'); do
+  #   echo "deleting lambda: $func ($region)"
+  #   aws lambda delete-function --function-name $func --region $region
+  # done
 
   for repo in $(aws ecr describe-repositories --region $region | jq -r '.repositories[].repositoryName'); do
     echo "deleting repository: $repo ($region)"
