@@ -1,5 +1,7 @@
 #!/bin/sh
 
+trap exit SIGINT
+
 base=$(dirname $(dirname $0))
 
 for region in $(cat $base/REGIONS); do
