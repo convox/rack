@@ -93,6 +93,11 @@ for region in $(cat $base/REGIONS); do
     echo "deleting repository: $repo ($region)"
     aws ecr delete-repository --repository-name $repo --region $region --force >/dev/null
   done
+
+  for group in $(aws logs describe-log-groups --region $region | jq -r ".logGroups[].logGroupName"); do
+    echo "deleting log group: $group ($region)"
+    aws logs delete-log-group --log-group-name $group --region $region
+  done
 done
 
 exit 0
