@@ -3,7 +3,7 @@
 base=$(dirname $(dirname $0))
 
 for region in $(cat $base/REGIONS); do
-  for stack in $(aws cloudformation describe-stacks | jq -r '.Stacks[].StackName'); do
+  for stack in $(aws cloudformation describe-stacks --region $region | jq -r '.Stacks[].StackName'); do
     if [[ "$stack" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$stack" =~ ^convox-0 ]]; then
       echo "deleting stack: $stack ($region)"
       aws cloudformation delete-stack --stack-name $stack --region $region
