@@ -749,39 +749,42 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	return
 }
 
-func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentials, err error) {
+func readCredentialsFromFile(credentialsCsvFileName string) (*AwsCredentials, error) {
 	fmt.Printf("Reading credentials from file %s\n", credentialsCsvFileName)
 	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
 	if err != nil {
 		return nil, err
 	}
 
-	creds = &AwsCredentials{}
-
 	r := csv.NewReader(bytes.NewReader(credsFile))
+
 	records, err := r.ReadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(records) != 2 {
-		return nil, fmt.Errorf("Credentials file %s is invalid: should contain 2 lines", credentialsCsvFileName)
+	creds := &AwsCredentials{}
+	if len(records) == 2 {
+		switch len(records[0]) {
+
+		case 2:
+			// Access key ID,Secret access key
+			creds.Access = records[1][0]
+			creds.Secret = records[1][1]
+
+		case 5:
+			// User name,Password,Access key ID,Secret access key,Console login link
+			creds.Access = records[1][2]
+			creds.Secret = records[1][3]
+
+		default:
+			return creds, fmt.Errorf("credentials secrets is of unknown length")
+		}
+	} else {
+		return creds, fmt.Errorf("credentials file is of unknown length")
 	}
 
-	expectedHeaders := "User name Password Access key ID Secret access key Console login link"
-	actualHeaders := strings.Join(records[0], " ")
-	if actualHeaders != expectedHeaders {
-		return nil, fmt.Errorf("Credentials file %s is not in a valid format; line 1 should contain headers: \n%s\nInstead it contains: \n%s", credentialsCsvFileName, expectedHeaders, actualHeaders)
-	}
-
-	if len(records[1]) != 5 {
-		return nil, fmt.Errorf("Credentials file %s is not in a valid format; line 2 should contain values: %s", credentialsCsvFileName, expectedHeaders)
-	}
-	creds.Access = records[1][2]
-	creds.Secret = records[1][3]
-
-	return
+	return creds, nil
 }
 
 func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {

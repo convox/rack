@@ -220,7 +220,7 @@ func TestConvoxInstallFileCredentialsInvalidFormat(t *testing.T) {
 			Command: "convox install ../../manifest/fixtures/invalid-credentials-format.csv",
 			Exit:    1,
 			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/invalid-credentials-format.csv\n",
-			Stderr:  "ERROR: Credentials file ../../manifest/fixtures/invalid-credentials-format.csv is not in a valid format; line 1 should contain headers: \nUser name Password Access key ID Secret access key Console login link\nInstead it contains: \nUser Name Access Key Id Secret Access Key\n",
+			Stderr:  "ERROR: credentials secrets is of unknown length\n",
 		},
 	)
 }
@@ -254,4 +254,23 @@ func TestConvoxInstallFriendlyName(t *testing.T) {
 	for typ := range types {
 		assert.NotContains(t, FriendlyName(typ), "Unknown")
 	}
+}
+
+func TestReadCredentialsFromFile(t *testing.T) {
+
+	creds, err := readCredentialsFromFile("./data/fixtures/creds2.csv")
+	assert.Nil(t, err)
+	assert.Equal(t, "fakeaccessid", creds.Access)
+	assert.Equal(t, "fakesecretkey", creds.Secret)
+
+	creds, err = readCredentialsFromFile("./data/fixtures/creds5.csv")
+	assert.Nil(t, err)
+	assert.Equal(t, "fakeaccessid", creds.Access)
+	assert.Equal(t, "fakesecretkey", creds.Secret)
+
+	creds, err = readCredentialsFromFile("./data/fixtures/credswrong.csv")
+	assert.EqualError(t, err, "credentials secrets is of unknown length")
+
+	creds, err = readCredentialsFromFile("./data/fixtures/credswrong2.csv")
+	assert.EqualError(t, err, "credentials file is of unknown length")
 }
