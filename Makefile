@@ -22,7 +22,7 @@ templates:
 	make -C sync templates
 
 test:
-	env PROVIDER=test bin/test
+	env PROVIDER=test CONVOX_WAIT= bin/test
 
 vendor:
 	godep save ./...
