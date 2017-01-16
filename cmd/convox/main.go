@@ -80,6 +80,7 @@ func main() {
 				os.Exit(1)
 			}
 		}
+		stdcli.Error(err)
 		os.Exit(1)
 	}
 }

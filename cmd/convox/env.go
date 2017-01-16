@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -98,13 +97,6 @@ func cmdEnvList(c *cli.Context) error {
 }
 
 func cmdEnvGet(c *cli.Context) error {
-	// Don't let CLI swallow panics. (ref. urfave/cli/issues/451)
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: ", r, string(debug.Stack()))
-		}
-	}()
-
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -131,13 +123,6 @@ func cmdEnvGet(c *cli.Context) error {
 
 // Validate environment variable keypair format; trim spaces and surrounding single quotes.
 func cleanEnvPair(value string) (string, error) {
-	// Don't let CLI swallow panics. (ref. urfave/cli/issues/451)
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: ", r, string(debug.Stack()))
-		}
-	}()
-
 	parts := strings.SplitN(value, "=", 2)
 	if len(parts) != 2 {
 		return "", errors.New("Environment variables should be defined in key=value format. You specified: " + value)
@@ -159,13 +144,6 @@ func cleanEnvPair(value string) (string, error) {
 }
 
 func cmdEnvSet(c *cli.Context) error {
-	// Don't let CLI swallow panics. (ref. urfave/cli/issues/451)
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: ", r, string(debug.Stack()))
-		}
-	}()
-
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
