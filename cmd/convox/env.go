@@ -135,9 +135,8 @@ func cleanEnvPair(value string) (string, error) {
 		}
 
 		// heroku env -s adds leading and trailing single quotes to val. Strip.
-		if string(val[0]) == "'" && string(val[len(val)-1]) == "'" {
-			val = val[1 : len(val)-2]
-		}
+		val = strings.Trim(val, "'")
+
 		value = fmt.Sprintf("%s=%s", key, val)
 	}
 	return value, nil

@@ -182,6 +182,59 @@ func TestEnvSetStdin(t *testing.T) {
 	)
 }
 
+// TestEnvSetStdin ensures environment variables can be set by piping a file to `convox env set`.
+func TestEnvSetStdinHerokuStyle(t *testing.T) {
+	ts := testServer(t,
+		test.Http{
+			Method: "POST",
+			Path:   "/apps/myapp/environment",
+			Body:   "heroku=likes to put things in single quotes\nLANG=en_US.UTF-8\nRACK_ENV=development\nRAILS_ENV=development\nwhatif=wehave'aquoteinthemiddle\norif=we have ' spaces\n",
+			Code:   200,
+		},
+		test.Http{
+			Method:   "GET",
+			Path:     "/apps/myapp/environment",
+			Code:     200,
+			Response: client.Environment{},
+		},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "cat ../../manifest/fixtures/env-test-heroku-style.env | convox env set -a myapp",
+			Exit:    0,
+			Stdout:  "Updating environment... OK\n",
+		},
+	)
+
+	// make sure the env vars got stripped of quotes
+	ts = testServer(t,
+		test.Http{
+			Method: "GET",
+			Path:   "/apps/myapp/environment",
+			Code:   200,
+			Response: client.Environment{
+				"LANG":      "en_US.UTF-8",
+				"RACK_ENV":  "development",
+				"RAILS_ENV": "development",
+				"heroku":    "likes to put things in single quotes",
+				"whatif":    "wehave'aquoteinthemiddle",
+				"orif":      "we have ' spaces",
+			},
+		},
+	)
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox env -a myapp",
+			Exit:    0,
+			Stdout:  "LANG=en_US.UTF-8\nRACK_ENV=development\nRAILS_ENV=development\nheroku=likes to put things in single quotes\norif=we have ' spaces\nwhatif=wehave'aquoteinthemiddle\n",
+		},
+	)
+}
+
 // TestEnvSetNoValue ensures an error is raised when a user attempts to set a variable with no value.
 func TestEnvSetNoValue(t *testing.T) {
 	ts := testServer(t,
