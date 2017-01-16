@@ -1,35 +1,25 @@
-{{ define "service" }}
+{{ define "resource" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
     },
     "Parameters": {
-      "AutomaticFailoverEnabled": {
-        "Type": "String",
-        "Default": "false",
-        "Description": "Indicates whether Multi-AZ is enabled. Must be accompanied with InstanceType=cache.m3.medium or higher and NumCacheCluster=2 or higher."
-      },
-      "Database": {
-        "Type" : "String",
-        "Default" : "0",
-        "Description" : "Default database index"
-      },
       "InstanceType": {
         "Type": "String",
         "Default": "cache.t2.micro",
         "Description": "The type of instance to use"
+      },
+      "NumCacheNodes": {
+        "Type": "String",
+        "Default": "1",
+        "Description": "The number of cache clusters for this replication group"
       },
       "Private": {
         "Type": "String",
         "Description": "Create in private subnets",
         "Default": "false",
         "AllowedValues": [ "true", "false" ]
-      },
-      "NumCacheClusters": {
-        "Type": "String",
-        "Default": "1",
-        "Description": "The number of cache clusters for this replication group"
       },
       "Subnets": {
         "Type": "List<AWS::EC2::Subnet::Id>",
@@ -50,17 +40,16 @@
       }
     },
     "Outputs": {
-      "Port6379TcpAddr": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Address" ] } },
-      "Port6379TcpPort": { "Value": { "Fn::GetAtt": [ "ReplicationGroup", "PrimaryEndPoint.Port" ] } },
-      "EnvRedisDatabase": { "Value": { "Ref": "Database" } }
+      "Port11211TcpAddr": { "Value": { "Fn::GetAtt": [ "CacheCluster", "ConfigurationEndpoint.Address" ] } },
+      "Port11211TcpPort": { "Value": { "Fn::GetAtt": [ "CacheCluster", "ConfigurationEndpoint.Port" ] } }
     },
     "Resources": {
       "SecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
-          "GroupDescription": "redis service",
+          "GroupDescription": { "Ref": "AWS::StackName" },
           "SecurityGroupIngress": [
-            { "IpProtocol": "tcp", "FromPort": "6379", "ToPort": "6379", "CidrIp": { "Ref": "VpcCidr" } }
+            { "IpProtocol": "tcp", "FromPort": "11211", "ToPort": "11211", "CidrIp": { "Ref": "VpcCidr" } }
           ],
           "VpcId": { "Ref": "Vpc" }
         }
@@ -68,26 +57,24 @@
       "CacheSubnetGroup": {
         "Type": "AWS::ElastiCache::SubnetGroup",
         "Properties": {
-          "Description": "Redis subnet group",
+          "Description": { "Ref": "AWS::StackName" },
           "SubnetIds": { "Fn::If": [ "Private",
             { "Ref": "SubnetsPrivate" },
             { "Ref": "Subnets" }
           ] }
         }
       },
-      "ReplicationGroup": {
-        "Type": "AWS::ElastiCache::ReplicationGroup",
+      "CacheCluster": {
+        "Type": "AWS::ElastiCache::CacheCluster",
         "Properties": {
-          "AutomaticFailoverEnabled": { "Ref": "AutomaticFailoverEnabled" },
           "AutoMinorVersionUpgrade": true,
           "CacheNodeType": { "Ref": "InstanceType" },
           "CacheSubnetGroupName": { "Ref": "CacheSubnetGroup" },
-          "Engine": "redis",
-          "EngineVersion": "2.8.24",
-          "NumCacheClusters": { "Ref": "NumCacheClusters" },
-          "Port": "6379",
-          "ReplicationGroupDescription": { "Ref": "AWS::StackName" },
-          "SecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
+          "Engine": "memcached",
+          "EngineVersion": "1.4.24",
+          "NumCacheNodes": { "Ref": "NumCacheNodes" },
+          "Port": "11211",
+          "VpcSecurityGroupIds": [ { "Ref": "SecurityGroup" } ]
         }
       }
     }
