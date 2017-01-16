@@ -6,6 +6,11 @@ go get -t ./...
 
 rm -f coverage.txt
 
+if [ ! -z ${TEST} ]; then
+    go test -coverprofile=profile.out -covermode=atomic "$TEST"
+    exit
+fi
+
 for d in $(find . -not \( -name vendor -prune \) -name '*.go' -exec dirname {} \; | sort -u); do
   go test -coverprofile=profile.out -covermode=atomic $d
 
