@@ -57,18 +57,13 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
 
 var (
+	distinctID   = ""
 	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
-	distinctID   = "nobody"
 )
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var err error
-	distinctID, err = currentId()
-	if err != nil {
-		distinctID = ""
-	}
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "install",
@@ -160,6 +155,14 @@ func init() {
 
 func cmdInstall(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
+
+	var err error
+
+	distinctID, err = currentId()
+	if err != nil {
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions: %s", err)})
+		return stdcli.Error(err)
+	}
 
 	region := c.String("region")
 
@@ -285,6 +288,8 @@ func cmdInstall(c *cli.Context) error {
 	if email := c.String("email"); email != "" {
 		distinctID = email
 		updateId(distinctID)
+	} else if distinctID != "" {
+		// already has an id
 	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
@@ -830,7 +835,7 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 }
 
 func awsCLICredentials() (*AwsCredentials, error) {
-	data, err := awsCLI("iam", "get-user")
+	data, err := awsCLI("help")
 
 	if err != nil && strings.Contains(err.Error(), "executable file not found") {
 		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
@@ -839,6 +844,10 @@ func awsCLICredentials() (*AwsCredentials, error) {
 		return nil, nil
 	}
 
+	fmt.Println("Using AWS CLI for authentication...")
+
+	data, err = awsCLI("iam", "get-user")
+
 	if strings.Contains(string(data), "Unable to locate credentials") {
 		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
 		fmt.Println("You can configure credentials by running `aws configure`.")
@@ -846,24 +855,79 @@ func awsCLICredentials() (*AwsCredentials, error) {
 		return nil, nil
 	}
 
-	access, err := awsCLI("configure", "get", "aws_access_key_id")
+	creds := awsCLICredentialsStatic()
 
-	if err != nil {
-		return nil, err
-	}
-
-	secret, err := awsCLI("configure", "get", "aws_secret_access_key")
-
-	if err != nil {
-		return nil, err
-	}
-
-	creds := &AwsCredentials{
-		Access: strings.TrimSpace(string(access)),
-		Secret: strings.TrimSpace(string(secret)),
+	if creds == nil {
+		creds = awsCLICredentialsToken()
 	}
 
 	return creds, nil
+}
+
+func awsCLICredentialsStatic() *AwsCredentials {
+	accessb, err := awsCLI("configure", "get", "aws_access_key_id")
+	if err != nil {
+		return nil
+	}
+
+	secretb, err := awsCLI("configure", "get", "aws_secret_access_key")
+	if err != nil {
+		return nil
+	}
+
+	access := strings.TrimSpace(string(accessb))
+	secret := strings.TrimSpace(string(secretb))
+
+	fmt.Printf("access = %+v\n", access)
+	fmt.Printf("secret = %+v\n", secret)
+
+	if access != "" && secret != "" {
+		return &AwsCredentials{
+			Access: access,
+			Secret: secret,
+		}
+	}
+
+	return nil
+}
+
+type awsRoleCredentials struct {
+	Credentials struct {
+		AccessKeyId     string
+		SecretAccessKey string
+		SessionToken    string
+	}
+}
+
+func awsCLICredentialsToken() *AwsCredentials {
+	roleb, err := awsCLI("configure", "get", "role_arn")
+	if err != nil {
+		return nil
+	}
+
+	role := strings.TrimSpace(string(roleb))
+
+	if role != "" {
+		data, err := awsCLI("sts", "assume-role", "--role-arn", role, "--role-session-name", "convox-cli")
+		if err != nil {
+			return nil
+		}
+
+		var arc awsRoleCredentials
+
+		err = json.Unmarshal(data, &arc)
+		if err != nil {
+			return nil
+		}
+
+		return &AwsCredentials{
+			Access:  arc.Credentials.AccessKeyId,
+			Secret:  arc.Credentials.SecretAccessKey,
+			Session: arc.Credentials.SessionToken,
+		}
+	}
+
+	return nil
 }
 
 func awsCLI(args ...string) ([]byte, error) {
