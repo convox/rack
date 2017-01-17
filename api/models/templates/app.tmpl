@@ -270,7 +270,6 @@
                       "{{ .Container }}/{{ .Protocol }}"
                     ] ] },
                   {{ else }}
-                    {{/* .Balancer port should match .Container port for UDP */}}
                     "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
                   {{ end }}
                 {{ end }}
