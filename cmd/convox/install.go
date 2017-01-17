@@ -895,7 +895,7 @@ func awsCLICredentialsStatic() *AwsCredentials {
 
 type awsRoleCredentials struct {
 	Credentials struct {
-		AccessKeyId     string
+		AccessKeyID     string `json:"AccessKeyId"`
 		SecretAccessKey string
 		SessionToken    string
 	}
@@ -923,7 +923,7 @@ func awsCLICredentialsToken() *AwsCredentials {
 		}
 
 		return &AwsCredentials{
-			Access:  arc.Credentials.AccessKeyId,
+			Access:  arc.Credentials.AccessKeyID,
 			Secret:  arc.Credentials.SecretAccessKey,
 			Session: arc.Credentials.SessionToken,
 		}
