@@ -22,7 +22,7 @@ func TestAppCancel(t *testing.T) {
 
 	err := provider.AppCancel("httpd")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestAppGet(t *testing.T) {
@@ -33,7 +33,7 @@ func TestAppGet(t *testing.T) {
 
 	a, err := provider.AppGet("httpd")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.App{
 		Name:    "httpd",
 		Release: "RVFETUHHKKD",

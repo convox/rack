@@ -19,7 +19,7 @@ func TestReleaseGet(t *testing.T) {
 
 	r, err := provider.ReleaseGet("httpd", "RVFETUHHKKD")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.Release{
 		Id:       "RVFETUHHKKD",
 		App:      "httpd",
@@ -39,7 +39,7 @@ func TestReleaseList(t *testing.T) {
 
 	r, err := provider.ReleaseList("httpd", 20)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.EqualValues(t, structs.Releases{
 		structs.Release{
