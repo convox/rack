@@ -6,7 +6,6 @@
     "Conditions": {
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
-      {{ template "registry-conditions" .Manifest }}
       "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "BlankSecurityGroup" : {"Fn::Equals" : [{"Ref" : "SecurityGroup"}, ""]}
