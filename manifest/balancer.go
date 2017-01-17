@@ -75,6 +75,7 @@ func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template
 	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "i" ] ] }`, mb.ProcessName()))
 }
 
+// HasExternalPorts returns true if the Manifest's Services have external ports
 func (m Manifest) HasExternalPorts() bool {
 	if len(m.Services) == 0 {
 		return true // special case to pre-initialize ELB at app create
@@ -89,14 +90,17 @@ func (m Manifest) HasExternalPorts() bool {
 	return false
 }
 
+// InternalPorts returns a collection of Port structs of the Manifest's internal ports
 func (mb ManifestBalancer) InternalPorts() []Port {
 	return mb.Entry.InternalPorts()
 }
 
+// ExternalPorts returns a collection of Port structs of the Manifest's external ports
 func (mb ManifestBalancer) ExternalPorts() []Port {
 	return mb.Entry.ExternalPorts()
 }
 
+// FirstPort returns the first TCP Port defined on the first Service in the Manifest
 func (mb ManifestBalancer) FirstPort() string {
 	if ports := mb.PortMappings(); len(ports) > 0 {
 		return strconv.Itoa(ports[0].Balancer)

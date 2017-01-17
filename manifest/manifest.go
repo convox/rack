@@ -167,7 +167,7 @@ func (m Manifest) Validate() []error {
 	return errors
 }
 
-// Return a list of ports this manifest will expose when run
+// ExternalPorts returns a collection of Port structs of the Manifest's Services' external ports
 func (m *Manifest) ExternalPorts() []int {
 	ports := []int{}
 
@@ -180,6 +180,7 @@ func (m *Manifest) ExternalPorts() []int {
 	return ports
 }
 
+// InternalPorts returns a collection of Port structs of the Manifest's Services' internal ports
 func (m *Manifest) InternalPorts() []int {
 	ports := []int{}
 
@@ -192,6 +193,7 @@ func (m *Manifest) InternalPorts() []int {
 	return ports
 }
 
+// UdpPorts returns a collection of Port structs of the Manifest's Services' UDP ports
 func (m *Manifest) UdpPorts() []int {
 	ports := []int{}
 
