@@ -23,6 +23,7 @@ test:
         parallel: true
     - ci/tests/example-app rails:
         parallel: true
+        timeout: 1200
   post:
     - ci/report.sh:
         parallel: true
