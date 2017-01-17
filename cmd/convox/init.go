@@ -72,6 +72,8 @@ func detectApplication(dir string) string {
 		return "sinatra"
 	case exists(filepath.Join(dir, "Gemfile.lock")):
 		return "ruby"
+	case exists(filepath.Join(dir, "requirements.txt")):
+		return "python"
 	}
 
 	return "unknown"

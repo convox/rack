@@ -49,82 +49,6 @@
         },
         "Yes"
       ]
-    },
-    "RegionHasECR": {
-      "Fn::Or": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-east-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-east-2"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-west-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-west-2"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "eu-central-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "eu-west-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "ap-northeast-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "ap-southeast-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "ap-southeast-2"
-          ]
-        }
-      ]
     }
   },
   "Mappings": {
@@ -175,13 +99,11 @@
       "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
-      "Condition": "RegionHasECR",
       "Value": {
         "Ref": "AWS::AccountId"
       }
     },
     "RegistryRepository": {
-      "Condition": "RegionHasECR",
       "Value": {
         "Fn::GetAtt": [
           "RegistryRepository",
@@ -632,7 +554,6 @@
       "Version": "1.0"
     },
     "RegistryRepository": {
-      "Condition": "RegionHasECR",
       "Properties": {
         "RepositoryName": {
           "Ref": "AWS::StackName"

@@ -1,0 +1,6 @@
+.convox
+.env
+.git
+.gitignore
+*.pyc
+*.swp
