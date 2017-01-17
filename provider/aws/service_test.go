@@ -23,7 +23,7 @@ func TestServiceWebhookURL(t *testing.T) {
 	url := "http://notifications.example.org/sns?endpoint=https%3A%2F%2Fwww.example.com"
 	s, err := provider.ResourceCreate("mywebhook", "webhook", params)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, url, s.Parameters["Url"])
 	}
 }
@@ -100,7 +100,7 @@ func TestServiceGet(t *testing.T) {
 
 	s, err := provider.ResourceGet("syslog")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.EqualValues(t, expected, s)
 	}
 }

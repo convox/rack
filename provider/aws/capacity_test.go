@@ -22,7 +22,7 @@ func TestCapacityGet(t *testing.T) {
 
 	r, err := provider.CapacityGet()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.Capacity{
 		ClusterCPU:     3072,
 		ClusterMemory:  6012,

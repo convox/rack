@@ -19,7 +19,7 @@ func TestGetApps(t *testing.T) {
 	apps, err := testClient(t, ts.URL).GetApps()
 
 	assert.NotNil(t, apps, "apps should not be nil")
-	assert.Nil(t, err, "err should be nil")
+	assert.NoError(t, err)
 
 	assert.Equal(t, 1, len(apps), 2, "there should be one app")
 	assert.Equal(t, "sinatra", apps[0].Name, "app name should be sinatra")
@@ -56,7 +56,7 @@ func TestGetApp(t *testing.T) {
 	app, err := testClient(t, ts.URL).GetApp("sinatra")
 
 	assert.NotNil(t, app, "apps should not be nil")
-	assert.Nil(t, err, "err should be nil")
+	assert.NoError(t, err)
 
 	assert.Equal(t, "sinatra", app.Name, "app name should be sinatra")
 	assert.Equal(t, "running", app.Status, "app status should be running")

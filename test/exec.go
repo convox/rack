@@ -31,7 +31,7 @@ func (er ExecRun) Test(t *testing.T) {
 		t.Log("ExecRun", er.Command, stdout, stderr, code, err)
 	}
 
-	assert.Nil(t, err, "should be nil")
+	assert.NoError(t, err)
 	assert.Equal(t, er.Exit, code, "exit code should be equal")
 	if er.Stdout != "" {
 		assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
