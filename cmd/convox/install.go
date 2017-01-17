@@ -402,12 +402,14 @@ func cmdInstall(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("Waiting for load balancer...")
+	fmt.Printf("Waiting for load balancer...")
 
 	if err := waitForAvailability(fmt.Sprintf("https://%s/", host)); err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
 	}
+
+	fmt.Println("")
 
 	fmt.Println("Logging in...")
 
