@@ -6,27 +6,35 @@ case "$1" in
     echo AWS_REGION=us-east-1
     ;;
   1)
+    echo AWS_DEFAULT_REGION=us-east-2
+    echo AWS_REGION=us-east-2
+    ;;
+  2)
+    echo AWS_DEFAULT_REGION=us-west-1
+    echo AWS_REGION=us-west-1
+    ;;
+  3)
     echo AWS_DEFAULT_REGION=us-west-2
     echo AWS_REGION=us-west-2
     echo RACK_PRIVATE=yes
     ;;
-  2)
+  4)
     echo AWS_DEFAULT_REGION=eu-west-1
     echo AWS_REGION=eu-west-1
     ;;
-  3)
+  5)
     echo AWS_DEFAULT_REGION=ap-southeast-2
     echo AWS_REGION=ap-southeast-2
     ;;
-  4)
+  6)
     echo AWS_DEFAULT_REGION=eu-central-1
     echo AWS_REGION=eu-central-1
     ;;
-  5)
+  7)
     echo AWS_DEFAULT_REGION=ap-northeast-1
     echo AWS_REGION=ap-northeast-1
     ;;
-  6)
+  8)
     echo AWS_DEFAULT_REGION=ap-southeast-1
     echo AWS_REGION=ap-southeast-1
     echo RACK_PRIVATE=yes

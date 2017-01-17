@@ -3,6 +3,9 @@
 // templates/init/django/.dockerignore
 // templates/init/django/Dockerfile
 // templates/init/django/docker-compose.yml
+// templates/init/python/.dockerignore
+// templates/init/python/Dockerfile
+// templates/init/python/docker-compose.yml
 // templates/init/rails/.dockerignore
 // templates/init/rails/Dockerfile
 // templates/init/rails/docker-compose.yml
@@ -138,6 +141,66 @@ func initDjangoDockerComposeYml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "init/django/docker-compose.yml", size: 298, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _initPythonDockerignore = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd2\x4b\xce\xcf\x2b\xcb\xaf\xe0\xd2\x4b\xcd\x2b\xe3\xd2\x4b\xcf\x2c\x01\x13\x99\xe9\x79\xf9\x45\xa9\x5c\x5a\x7a\x05\x95\xc9\x5c\x5a\x7a\xc5\xe5\x05\x5c\x80\x00\x00\x00\xff\xff\x1d\x2d\x61\xab\x29\x00\x00\x00")
+
+func initPythonDockerignoreBytes() ([]byte, error) {
+	return bindataRead(
+		_initPythonDockerignore,
+		"init/python/.dockerignore",
+	)
+}
+
+func initPythonDockerignore() (*asset, error) {
+	bytes, err := initPythonDockerignoreBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "init/python/.dockerignore", size: 41, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _initPythonDockerfile = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x74\xce\x4f\x4b\x23\x41\x10\x05\xf0\x7b\x7f\x8a\xb7\x93\xeb\x66\x72\x08\xec\x61\xaf\x09\xcb\x8a\x24\x91\x01\x11\x11\x0f\x6d\x77\x8d\xd3\xd8\xd3\x55\x56\xd7\x30\xe6\xdb\x4b\x0c\x28\xf8\xe7\xf6\xea\x15\xfc\xaa\xfe\x75\x87\x1d\xe4\x68\x03\x97\xbf\xeb\xf6\x8f\x73\x0b\xa4\x52\xcd\xe7\x8c\x48\x42\x25\x52\x09\x89\x2a\xfa\xa4\xd5\xd0\xb3\xa2\xf7\xd5\x48\xa1\xf4\x30\xa5\x1c\xab\xdb\x1c\xae\x6e\xa1\xf4\x3c\x25\xa5\x91\x8a\xd5\xd6\x5e\x0c\x2b\x1b\x65\xf5\xb9\x75\xdd\xf5\x1e\x92\x64\xfd\x7e\x63\xb9\x9c\xe4\x51\x7d\xa4\x53\xfd\xcd\x5a\x7f\x80\xdc\x02\x81\xe5\x08\x1b\x08\x4a\xd5\xc0\xfd\x5b\xf6\x22\xe7\x87\x5a\xac\x4e\xf9\xe6\xd0\x5d\x6e\x2f\xba\xf3\xf0\x85\x6f\x4f\x4e\x47\x92\x7d\x20\xcc\xc9\x06\x1c\x79\x52\xf0\x5c\x10\x78\x1c\x7d\x89\x6e\xb3\xdb\xe2\xae\xa1\x30\x70\xf3\x1b\xcd\x7f\xca\x99\x31\xb3\xe6\xf8\x0b\x7b\x9e\x31\x49\xf4\x46\xb0\x21\x55\x6c\x39\x3c\x91\xf6\x29\x13\x8c\xa1\x53\xf9\xd0\xbc\x48\x4e\xc1\x5b\xe2\xd2\x36\xf7\xee\x35\x00\x00\xff\xff\x06\x52\xca\x78\x75\x01\x00\x00")
+
+func initPythonDockerfileBytes() ([]byte, error) {
+	return bindataRead(
+		_initPythonDockerfile,
+		"init/python/Dockerfile",
+	)
+}
+
+func initPythonDockerfile() (*asset, error) {
+	bytes, err := initPythonDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "init/python/Dockerfile", size: 373, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _initPythonDockerComposeYml = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x7c\x8e\xc1\x0a\x83\x30\x0c\x86\xef\x3e\x45\xe8\x7d\x5d\xd1\x0a\x52\xf0\x61\xac\x06\x29\xeb\x8c\x24\xd5\xb9\xb7\x1f\x6a\x61\x1e\xc6\x4e\x49\xbe\xfc\x7c\xc9\x8a\x2c\x81\x26\x07\xaa\x54\x85\x20\xaf\xa1\x47\x71\x05\xc0\x0b\xfd\x5e\x00\xfc\x12\xe2\xe0\x40\x1f\x43\xec\x3c\x46\x39\x17\x00\x37\xe8\x69\x5a\x69\xd3\x33\x71\xd2\xd6\x56\x7a\x66\x4a\xd4\x53\x6c\x53\x94\x7f\xa1\xed\xdd\x26\x5e\xf0\x74\x86\xe9\x71\x51\x0e\xfe\x68\xf7\xf4\x85\xaa\xc6\xb8\xda\x18\xa3\xbe\xc4\xda\xca\x35\x19\x0d\xf9\xd9\xf0\xec\x46\x74\xf9\xe2\x7d\x26\x49\x23\xa3\xfc\x14\xd6\xb6\x2a\x55\xf1\x09\x00\x00\xff\xff\x52\x3d\xec\x7f\x00\x01\x00\x00")
+
+func initPythonDockerComposeYmlBytes() ([]byte, error) {
+	return bindataRead(
+		_initPythonDockerComposeYml,
+		"init/python/docker-compose.yml",
+	)
+}
+
+func initPythonDockerComposeYml() (*asset, error) {
+	bytes, err := initPythonDockerComposeYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "init/python/docker-compose.yml", size: 256, mode: os.FileMode(420), modTime: time.Unix(1475420665, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -437,6 +500,9 @@ var _bindata = map[string]func() (*asset, error){
 	"init/django/.dockerignore": initDjangoDockerignore,
 	"init/django/Dockerfile": initDjangoDockerfile,
 	"init/django/docker-compose.yml": initDjangoDockerComposeYml,
+	"init/python/.dockerignore": initPythonDockerignore,
+	"init/python/Dockerfile": initPythonDockerfile,
+	"init/python/docker-compose.yml": initPythonDockerComposeYml,
 	"init/rails/.dockerignore": initRailsDockerignore,
 	"init/rails/Dockerfile": initRailsDockerfile,
 	"init/rails/docker-compose.yml": initRailsDockerComposeYml,
@@ -496,6 +562,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			".dockerignore": &bintree{initDjangoDockerignore, map[string]*bintree{}},
 			"Dockerfile": &bintree{initDjangoDockerfile, map[string]*bintree{}},
 			"docker-compose.yml": &bintree{initDjangoDockerComposeYml, map[string]*bintree{}},
+		}},
+		"python": &bintree{nil, map[string]*bintree{
+			".dockerignore": &bintree{initPythonDockerignore, map[string]*bintree{}},
+			"Dockerfile": &bintree{initPythonDockerfile, map[string]*bintree{}},
+			"docker-compose.yml": &bintree{initPythonDockerComposeYml, map[string]*bintree{}},
 		}},
 		"rails": &bintree{nil, map[string]*bintree{
 			".dockerignore": &bintree{initRailsDockerignore, map[string]*bintree{}},
