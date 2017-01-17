@@ -128,7 +128,10 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 			data = dec
 		}
 
-		env = models.LoadEnvironment(data)
+		env, err = models.LoadEnvironment(data)
+		if err != nil {
+			return "invalid", nil, err
+		}
 	}
 
 	r.ContainerDefinitions = make([]*ecs.ContainerDefinition, len(tasks))

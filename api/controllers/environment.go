@@ -39,7 +39,12 @@ func EnvironmentSet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	releaseID, err := models.PutEnvironment(app, models.LoadEnvironment(body))
+	loadedEnv, err := models.LoadEnvironment(body)
+	if err != nil {
+		return httperr.Server(err)
+	}
+
+	releaseID, err := models.PutEnvironment(app, loadedEnv)
 	if err != nil {
 		return httperr.Server(err)
 	}
