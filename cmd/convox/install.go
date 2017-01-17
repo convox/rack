@@ -860,7 +860,7 @@ func awsCLICredentials() (*AwsCredentials, error) {
 	creds := awsCLICredentialsStatic()
 
 	if creds == nil {
-		creds = awsCLICredentialsToken()
+		creds = awsCLICredentialsRole()
 	}
 
 	return creds, nil
@@ -901,7 +901,7 @@ type awsRoleCredentials struct {
 	}
 }
 
-func awsCLICredentialsToken() *AwsCredentials {
+func awsCLICredentialsRole() *AwsCredentials {
 	roleb, err := awsCLI("configure", "get", "role_arn")
 	if err != nil {
 		return nil
