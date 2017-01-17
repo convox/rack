@@ -121,27 +121,6 @@ func cmdEnvGet(c *cli.Context) error {
 	return nil
 }
 
-// Validate environment variable keypair format; trim spaces and surrounding single quotes.
-func cleanEnvPair(value string) (string, error) {
-	parts := strings.SplitN(value, "=", 2)
-	if len(parts) != 2 {
-		return "", errors.New("Environment variables should be defined in key=value format. You specified: " + value)
-	}
-
-	if key := strings.TrimSpace(parts[0]); key != "" {
-		val := parts[1]
-		if len(val) == 0 {
-			return "", errors.New("Can't set " + key + " to an empty value; try `convox env unset`.")
-		}
-
-		// heroku env -s adds leading and trailing single quotes to val. Strip.
-		val = strings.Trim(val, "'")
-
-		value = fmt.Sprintf("%s=%s", key, val)
-	}
-	return value, nil
-}
-
 func cmdEnvSet(c *cli.Context) error {
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
@@ -169,20 +148,12 @@ func cmdEnvSet(c *cli.Context) error {
 
 		scanner := bufio.NewScanner(bytes.NewReader(in))
 		for scanner.Scan() {
-			value, err := cleanEnvPair(scanner.Text())
-			if err != nil {
-				return stdcli.Error(err)
-			}
-			data += fmt.Sprintf("%s\n", value)
+			data += fmt.Sprintf("%s\n", scanner.Text())
 		}
 	}
 
 	// handle args
 	for _, value := range c.Args() {
-		value, err := cleanEnvPair(value)
-		if err != nil {
-			return stdcli.Error(err)
-		}
 		data += fmt.Sprintf("%s\n", value)
 	}
 

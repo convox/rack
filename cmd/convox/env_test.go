@@ -188,7 +188,7 @@ func TestEnvSetStdinHerokuStyle(t *testing.T) {
 		test.Http{
 			Method: "POST",
 			Path:   "/apps/myapp/environment",
-			Body:   "heroku=likes to put things in single quotes\nLANG=en_US.UTF-8\nRACK_ENV=development\nRAILS_ENV=development\nwhatif=wehave'aquoteinthemiddle\norif=we have ' spaces\n",
+			Body:   "heroku='likes to put things in single quotes'\nLANG='en_US.UTF-8'\nRACK_ENV=development\nRAILS_ENV=development\nwhatif=wehave'aquoteinthemiddle\norif=we have ' spaces\n",
 			Code:   200,
 		},
 		test.Http{
