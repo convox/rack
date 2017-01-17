@@ -95,6 +95,8 @@ func (s *Service) Process(app string, m Manifest) Process {
 	return NewProcess(app, *s, m)
 }
 
+// HasBalancer returns false if the Service contains no public ports,
+// or if the `convox.balancer` label is set to false
 func (s Service) HasBalancer() bool {
 	if s.Labels["convox.balancer"] == "false" {
 		return false
@@ -370,6 +372,7 @@ func (s Service) LabelDefault(label, def string) string {
 	return def
 }
 
+// ExternalPorts returns a collection of Port structs from the Service which are TCP and Public
 func (s Service) ExternalPorts() []Port {
 	ports := []Port{}
 
@@ -382,6 +385,7 @@ func (s Service) ExternalPorts() []Port {
 	return ports
 }
 
+// InternalPorts returns a collection of Port structs from the Service which are TCP and not Public
 func (s Service) InternalPorts() []Port {
 	ports := []Port{}
 
@@ -394,6 +398,7 @@ func (s Service) InternalPorts() []Port {
 	return ports
 }
 
+// TcpPorts returns a collection of Port structs from the Service which are TCP
 func (s Service) TcpPorts() []Port {
 	ports := []Port{}
 
@@ -406,6 +411,7 @@ func (s Service) TcpPorts() []Port {
 	return ports
 }
 
+// UdpPorts returns a collection of Port structs from the Service which are UDP
 func (s Service) UdpPorts() []Port {
 	ports := []Port{}
 
