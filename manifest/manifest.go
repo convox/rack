@@ -193,12 +193,12 @@ func (m *Manifest) InternalPorts() []int {
 	return ports
 }
 
-// UdpPorts returns a collection of Port structs of the Manifest's Services' UDP ports
-func (m *Manifest) UdpPorts() []int {
+// UDPPorts returns a collection of Port structs of the Manifest's Services' UDP ports
+func (m *Manifest) UDPPorts() []int {
 	ports := []int{}
 
 	for _, service := range m.Services {
-		for _, port := range service.UdpPorts() {
+		for _, port := range service.UDPPorts() {
 			ports = append(ports, port.Container)
 		}
 	}

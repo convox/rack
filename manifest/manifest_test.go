@@ -334,7 +334,7 @@ func TestTcpUdp(t *testing.T) {
 			assert.Equal(t, ports[0], 6514)
 		}
 
-		ports = m.UdpPorts()
+		ports = m.UDPPorts()
 		if assert.Equal(t, len(ports), 2) {
 			assert.Equal(t, ports[0], 2000)
 			assert.Equal(t, ports[1], 2001)

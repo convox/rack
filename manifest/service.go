@@ -398,8 +398,8 @@ func (s Service) InternalPorts() []Port {
 	return ports
 }
 
-// TcpPorts returns a collection of Port structs from the Service which are TCP
-func (s Service) TcpPorts() []Port {
+// TCPPorts returns a collection of Port structs from the Service which are TCP
+func (s Service) TCPPorts() []Port {
 	ports := []Port{}
 
 	for _, port := range s.Ports {
@@ -411,8 +411,8 @@ func (s Service) TcpPorts() []Port {
 	return ports
 }
 
-// UdpPorts returns a collection of Port structs from the Service which are UDP
-func (s Service) UdpPorts() []Port {
+// UDPPorts returns a collection of Port structs from the Service which are UDP
+func (s Service) UDPPorts() []Port {
 	ports := []Port{}
 
 	for _, port := range s.Ports {
