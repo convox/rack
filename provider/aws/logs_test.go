@@ -26,7 +26,7 @@ func TestLogStream(t *testing.T) {
 		Since:  time.Unix(1472946223, 0),
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "2014-03-28T19:36:18Z event2\n2014-03-28T19:36:18Z event3\n2014-03-28T19:36:18Z event4\n2014-03-28T19:36:18Z event1\n2014-03-28T19:36:18Z event5\n", buf.String())
 }
 

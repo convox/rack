@@ -30,7 +30,7 @@ func TestPortsShift(t *testing.T) {
 	m, err := manifestFixture("shift")
 	m.Shift(5000)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		web := m.Services["web"]
 
 		if assert.NotNil(t, web) {
@@ -50,7 +50,7 @@ func TestPortsShiftWithSSL(t *testing.T) {
 	// Shift the whole manifest by 2; this is evaluated in addition to any per-service convox.start.shift labels.
 	m.Shift(2)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		// Web has a convox.start.shift label, for a total shift of 4.
 		web := m.Services["web"]
 
