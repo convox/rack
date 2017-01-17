@@ -3,7 +3,10 @@ MANIFESTS := $(FIXTURES:%.yml=%.json)
 
 .PHONY: all fixture
 
-all: fixture $(MANIFESTS)
+all: clean fixture $(MANIFESTS)
+
+clean:
+	@rm -f $(MANIFESTS) ./fixture
 
 fixture:
 	go build -o ./fixture fixture.go

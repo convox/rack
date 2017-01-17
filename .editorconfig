@@ -11,9 +11,8 @@ insert_final_newline = true
 charset = utf-8
 
 ; Golang
-[*.go]
+[{*.go,Makefile}]
 indent_style = tab
-indent_size = 4
 
 ; JSON, YAML, and Go templates
 [*.{json,tmpl,yaml,yml}]
