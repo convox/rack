@@ -282,7 +282,7 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 		protocol := strings.ToLower(parts[3])
 		if protocol != string(TCP) && protocol != string(UDP) {
-			protocol = string(TCP)
+			protocol = string(TCP) // default
 		}
 		p.Protocol = Protocol(protocol)
 
@@ -290,10 +290,13 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		p.Container = container
 		p.Balancer = container
 
-		// Only TCP ports can be "public" (in the ELB sense) or have an ELB at all
-		if parts[1] != "" && p.Protocol == TCP {
+		if parts[1] != "" {
 			balancer, _ := strconv.Atoi(parts[1])
 			p.Balancer = balancer
+		}
+
+		// Only TCP ports can be "public" (in the ELB sense) or have an ELB at all
+		if parts[1] != "" && p.Protocol == TCP {
 			p.Public = true
 		}
 

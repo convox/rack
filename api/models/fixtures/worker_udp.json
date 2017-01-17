@@ -444,7 +444,7 @@
             "Name": "worker",
             "PortMappings": [
               "4000:4000/udp",
-              "4002:4002/udp",
+              "4001:4002/udp",
               {
                 "Ref": "AWS::NoValue"
               }
