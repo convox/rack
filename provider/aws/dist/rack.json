@@ -690,6 +690,7 @@
                       "ecs:ListTasks",
                       "ecs:RegisterTaskDefinition",
                       "ecs:RunTask",
+                      "ecs:StopTask",
                       "ecs:UpdateService",
                       "elasticache:CreateCacheCluster",
                       "elasticache:CreateCacheSubnetGroup",
