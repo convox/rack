@@ -364,15 +364,15 @@ func waitForServerCertificate(name string) error {
 		})
 		if err != nil {
 			confirmations = 0
-			break
+			continue
 		}
 		if res.ServerCertificate == nil || res.ServerCertificate.ServerCertificateMetadata == nil || res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName == nil {
 			confirmations = 0
-			break
+			continue
 		}
 		if *res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName != name {
 			confirmations = 0
-			break
+			continue
 		}
 
 		confirmations++
