@@ -23,7 +23,7 @@ func TestInstancesList(t *testing.T) {
 
 	is, err := provider.InstanceList()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Instances{
 		structs.Instance{
 			Agent:     true,

@@ -87,7 +87,7 @@ func TestSyncPaths(t *testing.T) {
 	for _, s := range m.Services {
 		sp, err := s.SyncPaths()
 
-		if assert.Nil(t, err) {
+		if assert.NoError(t, err) {
 			assert.EqualValues(t, expectedMap, sp)
 		}
 	}

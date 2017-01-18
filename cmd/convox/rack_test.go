@@ -2,10 +2,10 @@ package main
 
 // func TestRackUpdateStable(t *testing.T) {
 //   versions, err := version.All()
-//   require.Nil(t, err)
+//   require.NoError(t, err)
 
 //   stable, err := versions.Resolve("stable")
-//   require.Nil(t, err)
+//   require.NoError(t, err)
 
 //   ts := testServer(t,
 //     test.Http{Method: "PUT", Body: fmt.Sprintf("version=%s", stable.Version), Path: "/system", Code: 200, Response: client.System{

@@ -27,7 +27,7 @@ func TestAppList(t *testing.T) {
 	var resp []map[string]string
 	err := json.Unmarshal([]byte(body), &resp)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, "bar", resp[0]["name"])
 		assert.Equal(t, "running", resp[0]["status"])
 	}
@@ -44,7 +44,7 @@ func TestAppShow(t *testing.T) {
 	var resp map[string]string
 	err := json.Unmarshal([]byte(body), &resp)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, "bar", resp["name"])
 		assert.Equal(t, "running", resp["status"])
 	}
@@ -62,7 +62,7 @@ func TestAppShowUnbound(t *testing.T) {
 	var resp map[string]string
 	err := json.Unmarshal([]byte(body), &resp)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, "bar", resp["name"])
 		assert.Equal(t, "running", resp["status"])
 	}
@@ -99,7 +99,7 @@ func TestAppCreate(t *testing.T) {
 		var resp map[string]string
 		err := json.Unmarshal([]byte(body), &resp)
 
-		if assert.Nil(t, err) {
+		if assert.NoError(t, err) {
 			assert.Equal(t, "application", resp["name"])
 			assert.Equal(t, "running", resp["status"])
 		}
@@ -160,7 +160,7 @@ func TestAppDelete(t *testing.T) {
 	var resp map[string]bool
 	err := json.Unmarshal([]byte(body), &resp)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, true, resp["success"])
 	}
 }

@@ -24,7 +24,7 @@ func TestGetSystem(t *testing.T) {
 	system, err := testClient(t, ts.URL).GetSystem()
 
 	assert.NotNil(t, system, "system should not be nil")
-	assert.Nil(t, err, "err should be nil")
+	assert.NoError(t, err)
 
 	assert.Equal(t, 1, system.Count, ".Count should be 1")
 	assert.Equal(t, "system", system.Name, ".Name should be system")
