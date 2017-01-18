@@ -1,14 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankBalancerMainPort443Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "MainPort443Certificate"
-        },
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
@@ -76,27 +68,10 @@
     }
   },
   "Outputs": {
-    "BalancerMainHost": {
-      "Condition": "EnabledMain",
-      "Value": {
-        "Fn::GetAtt": [
-          "BalancerMain",
-          "DNSName"
-        ]
-      }
-    },
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
       }
-    },
-    "MainPort443Balancer": {
-      "Condition": "EnabledMain",
-      "Value": "443"
-    },
-    "MainPort443BalancerName": {
-      "Condition": "EnabledMain",
-      "Value": "httpd-main-KQSNMIK"
     },
     "RegistryId": {
       "Value": {
@@ -162,16 +137,6 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
-    "MainPort443Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "MainPort443Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -223,155 +188,6 @@
     }
   },
   "Resources": {
-    "BalancerMain": {
-      "Condition": "EnabledMain",
-      "DependsOn": [
-        "BalancerMainSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": 60
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "3600"
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": "5",
-          "Target": {
-            "Fn::Join": [
-              "",
-              [
-                "SSL:",
-                {
-                  "Ref": "MainPort443Host"
-                },
-                ""
-              ]
-            ]
-          },
-          "Timeout": "3",
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "InstancePort": {
-              "Ref": "MainPort443Host"
-            },
-            "InstanceProtocol": "SSL",
-            "LoadBalancerPort": "443",
-            "Protocol": "SSL",
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerMainPort443Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "MainPort443Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": "httpd-main-KQSNMIK",
-        "Policies": [
-          {
-            "Attributes": [
-              {
-                "Name": "ProxyProtocol",
-                "Value": "true"
-              }
-            ],
-            "InstancePorts": [
-              {
-                "Ref": "MainPort443Host"
-              }
-            ],
-            "PolicyName": "EnableProxyProtocol",
-            "PolicyType": "ProxyProtocolPolicyType"
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Scheme": {
-          "Fn::If": [
-            "Internal",
-            "internal",
-            {
-              "Ref": "AWS::NoValue"
-            }
-          ]
-        },
-        "SecurityGroups": [
-          {
-            "Fn::If": [
-              "BlankSecurityGroup",
-              {
-                "Ref": "BalancerMainSecurityGroup"
-              },
-              {
-                "Ref": "SecurityGroup"
-              }
-            ]
-          }
-        ],
-        "Subnets": {
-          "Fn::If": [
-            "Internal",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerMainSecurityGroup": {
-      "Condition": "EnabledMain",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "FromPort": "443",
-            "IpProtocol": "tcp",
-            "ToPort": "443"
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -521,17 +337,7 @@
             },
             "Name": "main",
             "PortMappings": [
-              {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "MainPort443Host"
-                    },
-                    "5000/tcp"
-                  ]
-                ]
-              },
+              "443:5000/tcp",
               {
                 "Ref": "AWS::NoValue"
               }
@@ -571,7 +377,6 @@
     "ServiceMain": {
       "Condition": "EnabledMain",
       "DependsOn": [
-        "BalancerMain",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -589,21 +394,6 @@
             {
               "Ref": "MainFormation"
             }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "ContainerName": "main",
-            "ContainerPort": "5000",
-            "LoadBalancerName": {
-              "Ref": "BalancerMain"
-            }
-          }
-        ],
-        "Role": {
-          "Fn::GetAtt": [
-            "ServiceRole",
-            "Arn"
           ]
         },
         "TaskDefinition": {

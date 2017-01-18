@@ -95,11 +95,11 @@ func TestLoadFullVersion1(t *testing.T) {
 			}
 
 			if assert.Equal(t, len(web.Ports), 2) {
-				assert.True(t, web.Ports.External())
-				assert.True(t, web.Ports[0].External())
+				assert.True(t, web.Ports.HasPublic())
+				assert.True(t, web.Ports[0].Public)
 				assert.Equal(t, web.Ports[0].Balancer, 80)
 				assert.Equal(t, web.Ports[0].Container, 5000)
-				assert.True(t, web.Ports[1].External())
+				assert.True(t, web.Ports[1].Public)
 				assert.Equal(t, web.Ports[1].Balancer, 443)
 				assert.Equal(t, web.Ports[1].Container, 5001)
 			}
@@ -124,8 +124,8 @@ func TestLoadFullVersion1(t *testing.T) {
 			assert.Equal(t, db.Labels["convox.ccc"], "ddd")
 
 			if assert.Equal(t, len(db.Ports), 1) {
-				assert.False(t, db.Ports.External())
-				assert.False(t, db.Ports[0].External())
+				assert.False(t, db.Ports.HasPublic())
+				assert.False(t, db.Ports[0].Public)
 				assert.Equal(t, db.Ports[0].Balancer, 5432)
 				assert.Equal(t, db.Ports[0].Container, 5432)
 			}
@@ -156,11 +156,11 @@ func TestLoadFullVersion2(t *testing.T) {
 			}
 
 			if assert.Equal(t, len(web.Ports), 2) {
-				assert.True(t, web.Ports.External())
-				assert.True(t, web.Ports[0].External())
+				assert.True(t, web.Ports.HasPublic())
+				assert.True(t, web.Ports[0].Public)
 				assert.Equal(t, web.Ports[0].Balancer, 80)
 				assert.Equal(t, web.Ports[0].Container, 5000)
-				assert.True(t, web.Ports[0].External())
+				assert.True(t, web.Ports[0].Public)
 				assert.Equal(t, web.Ports[1].Balancer, 443)
 				assert.Equal(t, web.Ports[1].Container, 5001)
 			}
@@ -185,8 +185,8 @@ func TestLoadFullVersion2(t *testing.T) {
 			assert.Equal(t, db.Labels["convox.ccc"], "ddd")
 
 			if assert.Equal(t, len(db.Ports), 1) {
-				assert.False(t, db.Ports.External())
-				assert.False(t, db.Ports[0].External())
+				assert.False(t, db.Ports.HasPublic())
+				assert.False(t, db.Ports[0].Public)
 				assert.Equal(t, db.Ports[0].Balancer, 5432)
 				assert.Equal(t, db.Ports[0].Container, 5432)
 			}
@@ -320,6 +320,28 @@ func TestExternalPorts(t *testing.T) {
 	}
 }
 
+func TestTcpUdp(t *testing.T) {
+	m, err := manifestFixture("tcp-udp")
+
+	if assert.Nil(t, err) {
+		ports := m.InternalPorts()
+		if assert.Equal(t, len(ports), 1) {
+			assert.Equal(t, ports[0], 1000)
+		}
+
+		ports = m.ExternalPorts()
+		if assert.Equal(t, len(ports), 1) {
+			assert.Equal(t, ports[0], 6514)
+		}
+
+		ports = m.UDPPorts()
+		if assert.Equal(t, len(ports), 2) {
+			assert.Equal(t, ports[0], 2000)
+			assert.Equal(t, ports[1], 2001)
+		}
+	}
+}
+
 func TestPortConflictsWithoutConflict(t *testing.T) {
 	m, err := manifestFixture("port-conflicts")
 
@@ -432,6 +454,7 @@ func TestManifestMarshalYaml(t *testing.T) {
 						Public:    true,
 						Balancer:  10,
 						Container: 10,
+						Protocol: manifest.TCP,
 					},
 				},
 			},
