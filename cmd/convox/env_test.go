@@ -239,16 +239,19 @@ func TestEnvSetStdinHerokuStyle(t *testing.T) {
 func TestEnvSetNoValue(t *testing.T) {
 	ts := testServer(t,
 		test.Http{
-			Method: "POST",
-			Path:   "/apps/myapp/environment",
-			Body:   "foo=\n",
-			Code:   200,
-		},
-		test.Http{
 			Method:   "GET",
 			Path:     "/apps/myapp/environment",
 			Code:     200,
 			Response: client.Environment{},
+		},
+		test.Http{
+			Method: "POST",
+			Path:   "/apps/myapp/environment",
+			Body:   "foo=\n",
+			Code:   500,
+			Response: client.Error{
+				Error: "Can't set foo to an empty value; try `convox env unset`.",
+			},
 		},
 	)
 
