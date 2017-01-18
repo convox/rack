@@ -18,8 +18,8 @@ import (
 	"github.com/convox/rack/api/models"
 )
 
-// Parses as [host]:[container]/[protocol], where nothing is optional
-var portMappingRegex = regexp.MustCompile(`(\d+):(\d+)/(udp|tcp)`)
+// Parses as [host]:[container]/[protocol?], where [protocol] is optional
+var portMappingRegex = regexp.MustCompile(`^(\d+):(\d+)(?:/(udp|tcp))?$`)
 
 func HandleECSService(req Request) (string, map[string]string, error) {
 	switch req.RequestType {
@@ -236,7 +236,10 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 				parts := portMappingRegex.FindStringSubmatch(port.(string))
 				host, _ := strconv.Atoi(parts[1])
 				container, _ := strconv.Atoi(parts[2])
-				protocol := parts[3]
+				protocol := strings.ToLower(parts[3])
+				if protocol != string(TCP) && protocol != string(UDP) {
+					protocol = string(TCP) // default
+				}
 
 				r.ContainerDefinitions[i].PortMappings[j] = &ecs.PortMapping{
 					ContainerPort: aws.Int64(int64(container)),
