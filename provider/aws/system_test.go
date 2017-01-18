@@ -23,7 +23,7 @@ func TestSystemGet(t *testing.T) {
 
 	s, err := provider.SystemGet()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.System{
 		Count:   3,
 		Name:    "convox",
@@ -44,7 +44,7 @@ func TestSystemGetConverging(t *testing.T) {
 
 	s, err := provider.SystemGet()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.System{
 		Count:   3,
 		Name:    "convox",
@@ -76,7 +76,7 @@ func TestSystemReleases(t *testing.T) {
 
 	r, err := provider.SystemReleases()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.EqualValues(t, structs.Releases{
 		structs.Release{
@@ -108,7 +108,7 @@ func TestSystemSave(t *testing.T) {
 		Version: "20160820033210",
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestSystemSaveNewParameter(t *testing.T) {
@@ -127,7 +127,7 @@ func TestSystemSaveNewParameter(t *testing.T) {
 		Version: "20160820033210",
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestSystemSaveWrongType(t *testing.T) {
@@ -169,7 +169,7 @@ func TestSystemProcessesList(t *testing.T) {
 		All: false,
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestSystemProcessesListAll(t *testing.T) {
@@ -196,7 +196,7 @@ func TestSystemProcessesListAll(t *testing.T) {
 		All: true,
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 var cycleSystemDescribeStacks = awsutil.Cycle{

@@ -66,7 +66,7 @@ func (f *HandlerFuncTest) AssertJSON(t *testing.T, body string) {
 	b1, err1 := stripJSON([]byte(body))
 	b2, err2 := stripJSON(f.Body())
 
-	if assert.Nil(t, err1) && assert.Nil(t, err2) {
+	if assert.NoError(t, err1) && assert.NoError(t, err2) {
 		assert.Equal(t, string(b1), string(b2))
 	}
 }

@@ -20,7 +20,7 @@ func TestFormationList(t *testing.T) {
 
 	r, err := provider.FormationList("httpd")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Formation{
 		structs.ProcessFormation{
 			Balancer: "httpd-web-7E5UPCM-1241527783.us-east-1.elb.amazonaws.com",
@@ -55,7 +55,7 @@ func TestFormationListEmptyRelease(t *testing.T) {
 	r, err := provider.FormationList("httpd")
 
 	assert.Equal(t, structs.Formation{}, r)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestFormationListBadRelease(t *testing.T) {
@@ -111,7 +111,7 @@ func TestFormationGet(t *testing.T) {
 
 	r, err := provider.FormationGet("httpd", "web")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.ProcessFormation{
 		Balancer: "httpd-web-7E5UPCM-1241527783.us-east-1.elb.amazonaws.com",
 		Name:     "web",
@@ -215,7 +215,7 @@ func TestFormationSave(t *testing.T) {
 
 	err := provider.FormationSave("httpd", pf)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestFormationSaveBadApp(t *testing.T) {

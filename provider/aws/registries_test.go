@@ -22,7 +22,7 @@ func TestRegistryDelete(t *testing.T) {
 
 	err := provider.RegistryDelete("r.example.org")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestRegistryList(t *testing.T) {
@@ -36,7 +36,7 @@ func TestRegistryList(t *testing.T) {
 
 	r, err := provider.RegistryList()
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Registries{
 		structs.Registry{
 			Server:   "quay.io",

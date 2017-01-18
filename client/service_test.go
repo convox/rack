@@ -23,7 +23,7 @@ func TestGetService(t *testing.T) {
 	service, err := testClient(t, ts.URL).GetResource("convox-events")
 
 	assert.NotNil(t, service, "service should not be nil")
-	assert.Nil(t, err, "err should be nil")
+	assert.NoError(t, err)
 
 	assert.Equal(t, "convox-events", service.Name, ".Name should be convox-events")
 	assert.Equal(t, "running", service.Status, ".Status should be running")
