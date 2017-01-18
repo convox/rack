@@ -33,7 +33,7 @@ func TestBuildGet(t *testing.T) {
 
 	b, err := provider.BuildGet("httpd", "B123")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.Build{
 		Id:       "BAFVEWUCAYT",
 		App:      "httpd",
@@ -80,7 +80,7 @@ func TestBuildCreate(t *testing.T) {
 		Cache: true,
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.Build{
 		Id:      "B123",
 		App:     "httpd",
@@ -104,7 +104,7 @@ func TestBuildDelete(t *testing.T) {
 
 	b, err := provider.BuildDelete("httpd", "B123")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, &structs.Build{
 		Id:       "BAFVEWUCAYT",
 		App:      "httpd",
@@ -137,30 +137,30 @@ func TestBuildExport(t *testing.T) {
 	buf := &bytes.Buffer{}
 
 	err := provider.BuildExport("httpd", "B123", buf)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	gz, err := gzip.NewReader(buf)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	tr := tar.NewReader(gz)
 
 	h, err := tr.Next()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "build.json", h.Name)
 	assert.Equal(t, int64(400), h.Size)
 
 	data, err := ioutil.ReadAll(tr)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	var build structs.Build
 	err = json.Unmarshal(data, &build)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "BAFVEWUCAYT", build.Id)
 	assert.Equal(t, "httpd", build.App)
 	assert.Equal(t, "RVWOJNKRAXU", build.Release)
 
 	h, err = tr.Next()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "web.BAFVEWUCAYT.tar", h.Name)
 	assert.Equal(t, int64(13), h.Size)
 
@@ -199,7 +199,7 @@ func TestBuildImport(t *testing.T) {
 	}
 
 	data, err := json.Marshal(build)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	buf := &bytes.Buffer{}
 
@@ -211,10 +211,10 @@ func TestBuildImport(t *testing.T) {
 		Name:     "build.json",
 		Size:     int64(len(data)),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	n, err := tw.Write(data)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 175, n)
 
 	lbuf := &bytes.Buffer{}
@@ -228,34 +228,34 @@ func TestBuildImport(t *testing.T) {
 		Name:     "manifest.json",
 		Size:     int64(len(data)),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	n, err = ltw.Write(data)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 27, n)
 
 	err = ltw.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
 		Name:     "web.B123.tar",
 		Size:     int64(lbuf.Len()),
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	n, err = tw.Write(lbuf.Bytes())
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2048, n)
 
 	err = tw.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	err = gz.Close()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	build, err = provider.BuildImport("httpd", buf)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "B12345", build.Id)
 	assert.Equal(t, "httpd", build.App)
 	assert.Equal(t, "R23456", build.Release)
@@ -270,7 +270,7 @@ func TestBuildList(t *testing.T) {
 
 	b, err := provider.BuildList("httpd", 20)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Builds{
 		structs.Build{
 			Id:       "BHINCLZYYVN",
@@ -316,7 +316,7 @@ func TestBuildLogsRunning(t *testing.T) {
 
 	err := provider.BuildLogs("httpd", "B123", buf)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "RUNNING: docker pull httpd", buf.String())
 }
 
@@ -331,7 +331,7 @@ func TestBuildLogsNotRunning(t *testing.T) {
 
 	err := provider.BuildLogs("httpd", "B123", buf)
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "RUNNING: docker pull httpd", buf.String())
 }
 
