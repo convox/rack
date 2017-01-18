@@ -103,11 +103,11 @@ func TestConvoxInstallFriendlyName(t *testing.T) {
 	}
 
 	data, err := ioutil.ReadFile("../../provider/aws/dist/rack.json")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, data)
 
 	err = json.Unmarshal(data, &formation)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	types := map[string]bool{}
 
