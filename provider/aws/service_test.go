@@ -35,8 +35,8 @@ func TestServiceList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	expected := structs.Services{
-		structs.Service{
+	expected := structs.Resources{
+		structs.Resource{
 			Name:         "syslog",
 			Stack:        "syslog",
 			Status:       "running",
@@ -59,7 +59,7 @@ func TestServiceList(t *testing.T) {
 		},
 	}
 
-	s, err := provider.ServiceList()
+	s, err := provider.ResourceList()
 
 	if assert.Nil(t, err) {
 		assert.EqualValues(t, expected, s)
