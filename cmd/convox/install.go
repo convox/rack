@@ -880,9 +880,6 @@ func awsCLICredentialsStatic() *AwsCredentials {
 	access := strings.TrimSpace(string(accessb))
 	secret := strings.TrimSpace(string(secretb))
 
-	fmt.Printf("access = %+v\n", access)
-	fmt.Printf("secret = %+v\n", secret)
-
 	if access != "" && secret != "" {
 		return &AwsCredentials{
 			Access: access,
