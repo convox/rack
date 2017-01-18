@@ -101,8 +101,6 @@ for region in $(cat $base/REGIONS); do
   done
 done
 
-exit 0
-
 for bucket in $(aws s3api list-buckets | jq -r '.Buckets[].Name'); do
   if [[ "$bucket" =~ ^convox-[0-9]+(-[a-z]+-[0-9]+)? ]] && [[ ! "$bucket" =~ ^convox-0 ]]; then
     region=$(aws s3api get-bucket-location --bucket $bucket 2>/dev/null | jq -r .LocationConstraint 2>/dev/null)
