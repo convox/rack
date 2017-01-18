@@ -12,7 +12,7 @@ func TestResources(t *testing.T) {
 	tr := testServer(t,
 		test.Http{
 			Method: "GET",
-			Path:   "/resources",
+			Path:   "/services",
 			Code:   200,
 			Response: client.Resources{
 				client.Resource{
@@ -40,7 +40,7 @@ func TestResourcesGet(t *testing.T) {
 	tr := testServer(t,
 		test.Http{
 			Method: "GET",
-			Path:   "/resources/syslog-1234",
+			Path:   "/services/syslog-1234",
 			Code:   200,
 			Response: client.Resource{
 				Name:   "syslog-1234",
@@ -66,7 +66,7 @@ func TestResourcesCreate(t *testing.T) {
 	tr := testServer(t,
 		test.Http{
 			Method:   "POST",
-			Path:     "/resources",
+			Path:     "/services",
 			Body:     "name=syslog-1234&type=syslog&url=tcp%2Btls%3A%2F%2Flogs1.example.com%3A12345",
 			Code:     200,
 			Response: client.Resource{},
@@ -89,7 +89,7 @@ func TestResourcesUpdate(t *testing.T) {
 	tr := testServer(t,
 		test.Http{
 			Method: "PUT",
-			Path:   "/resources/syslog-1234",
+			Path:   "/services/syslog-1234",
 			Body:   "url=tcp%2Btls%3A%2F%2Flogs1.example.net%3A12345",
 			Code:   200,
 			Response: client.Resource{
@@ -115,7 +115,7 @@ func TestResourcesDelete(t *testing.T) {
 	trd := testServer(t,
 		test.Http{
 			Method:   "DELETE",
-			Path:     "/resources/syslog-1234",
+			Path:     "/services/syslog-1234",
 			Code:     200,
 			Response: client.Resource{},
 		},
