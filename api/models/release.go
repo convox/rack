@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -292,29 +291,8 @@ func (r *Release) Promote() error {
 
 						app.Parameters[certParam] = *res.ServerCertificateMetadata.Arn
 
-						// We want to make sure the new cert has propagated throughout AWS before moving on
-						sleep := 5
-						for {
-							time.Sleep(time.Duration(sleep) * time.Second)
-
-							_, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
-								ServerCertificateName: &name,
-							})
-							if err != nil {
-								if ae, ok := err.(awserr.Error); ok {
-									if ae.Code() == "NoSuchEntity" {
-										if sleep >= 40 {
-											return fmt.Errorf("certificate `%s` was not found", name)
-										}
-
-										sleep *= 2
-										continue
-									}
-
-								}
-								return err
-							}
-							break
+						if err := waitForServerCertificate(name); err != nil {
+							return err
 						}
 					}
 				}
@@ -357,6 +335,50 @@ func (r *Release) Promote() error {
 	})
 
 	return err
+}
+
+var (
+	serverCertificateWaitConfirmations = 3
+	serverCertificateWaitTick          = 5 * time.Second
+	serverCertificateWaitTimeout       = 2 * time.Minute
+)
+
+// wait for a few successful certificate refreshes in a row
+func waitForServerCertificate(name string) error {
+	confirmations := 0
+	done := time.Now().Add(serverCertificateWaitTimeout)
+
+	for {
+		if time.Now().After(done) {
+			return fmt.Errorf("timeout")
+		}
+
+		if confirmations >= serverCertificateWaitConfirmations {
+			return nil
+		}
+
+		time.Sleep(serverCertificateWaitTick)
+
+		res, err := IAM().GetServerCertificate(&iam.GetServerCertificateInput{
+			ServerCertificateName: &name,
+		})
+		if err != nil {
+			confirmations = 0
+			continue
+		}
+		if res.ServerCertificate == nil || res.ServerCertificate.ServerCertificateMetadata == nil || res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName == nil {
+			confirmations = 0
+			continue
+		}
+		if *res.ServerCertificate.ServerCertificateMetadata.ServerCertificateName != name {
+			confirmations = 0
+			continue
+		}
+
+		confirmations++
+	}
+
+	return fmt.Errorf("can't get here")
 }
 
 func (r *Release) EnvironmentUrl() string {

@@ -697,6 +697,7 @@
                       "ec2:ReleaseAddress",
                       "ec2:RevokeSecurityGroupIngress",
                       "ecr:GetAuthorizationToken",
+                      "ecr:BatchGetImage",
                       "ecs:CreateService",
                       "ecs:DeleteService",
                       "ecs:DescribeContainerInstances",

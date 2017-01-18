@@ -23,7 +23,7 @@ func TestFixtures(t *testing.T) {
 	fixtures, err := availableFixtures()
 
 	require.NotNil(t, fixtures)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	for _, fixture := range fixtures {
 		assertFixture(t, fixture)
@@ -64,19 +64,19 @@ func assertFixture(t *testing.T, name string) {
 	}
 
 	data, err := ioutil.ReadFile(fmt.Sprintf("fixtures/%s.yml", name))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	manifest, err := manifest.Load(data)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	formation, err := app.Formation(*manifest)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pretty, err := models.PrettyJSON(formation)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	data, err = ioutil.ReadFile(fmt.Sprintf("fixtures/%s.json", name))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	diff1 := strings.Split(strings.TrimSpace(string(data)), "\n")
 	diff2 := strings.Split(strings.TrimSpace(pretty), "\n")

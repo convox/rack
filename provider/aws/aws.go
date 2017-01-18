@@ -117,7 +117,7 @@ func (p *AWSProvider) config() *aws.Config {
 		config.Endpoint = aws.String(p.Endpoint)
 	}
 
-	if os.Getenv("DEBUG") != "" {
+	if os.Getenv("DEBUG") == "true" {
 		config.WithLogLevel(aws.LogDebugWithHTTPBody)
 	}
 
