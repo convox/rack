@@ -75,13 +75,13 @@ type Provider interface {
 	ReleasePromote(app, id string) (*structs.Release, error)
 	ReleaseSave(*structs.Release) error
 
-	ServiceCreate(name, kind string, params map[string]string) (*structs.Service, error)
-	ServiceDelete(name string) (*structs.Service, error)
-	ServiceGet(name string) (*structs.Service, error)
-	ServiceLink(name, app, process string) (*structs.Service, error)
-	ServiceList() (structs.Services, error)
-	ServiceUnlink(name, app, process string) (*structs.Service, error)
-	ServiceUpdate(name string, params map[string]string) (*structs.Service, error)
+	ResourceCreate(name, kind string, params map[string]string) (*structs.Resource, error)
+	ResourceDelete(name string) (*structs.Resource, error)
+	ResourceGet(name string) (*structs.Resource, error)
+	ResourceLink(name, app, process string) (*structs.Resource, error)
+	ResourceList() (structs.Resources, error)
+	ResourceUnlink(name, app, process string) (*structs.Resource, error)
+	ResourceUpdate(name string, params map[string]string) (*structs.Resource, error)
 
 	SystemGet() (*structs.System, error)
 	SystemLogs(w io.Writer, opts structs.LogStreamOptions) error

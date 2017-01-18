@@ -1,4 +1,4 @@
-{{ define "service" }}
+{{ define "resource" }}
   {
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Conditions": {
@@ -69,7 +69,7 @@
       "SecurityGroup": {
         "Type": "AWS::EC2::SecurityGroup",
         "Properties": {
-          "GroupDescription": "mysql service",
+          "GroupDescription": "mysql resource",
           "SecurityGroupIngress": [
             { "IpProtocol": "tcp", "FromPort": "3306", "ToPort": "3306", "CidrIp": { "Ref": "VpcCidr" } }
           ],
@@ -79,7 +79,7 @@
       "SubnetGroup": {
         "Type": "AWS::RDS::DBSubnetGroup",
         "Properties": {
-          "DBSubnetGroupDescription": "mysql service",
+          "DBSubnetGroupDescription": "mysql resource",
           "SubnetIds": { "Fn::If": [ "Private",
             { "Ref": "SubnetsPrivate" },
             { "Ref": "Subnets" }

@@ -1,6 +1,9 @@
-{{ define "service" }}
+{{ define "resource" }}
 {
   "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "Private": { "Fn::Equals": [ { "Ref": "Private" }, "true" ] }
+  },
   "Outputs": {
     {{ range $k, $app := .Apps }}
       "{{ upper $app.Name }}Link": {
@@ -14,9 +17,22 @@
     }
   },
   "Parameters": {
+    "Private": {
+        "Description": "Flag stating if Rack is private",
+        "Default": "false",
+        "Type": "String"
+    },
     "Url": {
-      "Description": "FluentD URL, e.g. 'tcp://fluentd-collector.example.com:24224'",
+      "Description": "Syslog URL, e.g. 'tcp+tls://logs1.papertrailapp.com:11235'",
       "Type": "String"
+    },
+    "SecurityGroups": {
+      "Description": "VpcConfig security groups",
+      "Type": "CommaDelimitedList"
+    },
+    "SubnetsPrivate": {
+      "Description": "VpcConfig private subnets",
+      "Type": "CommaDelimitedList"
     }
   },
   "Resources": {
@@ -92,7 +108,7 @@
               ]
             ]
           },
-          "S3Key": "release/{{ env "RELEASE" }}/lambda/fluentd.zip"
+          "S3Key": "lambda/syslog.zip"
         },
         "Description": {
           "Ref": "Url"
@@ -108,7 +124,15 @@
           ]
         },
         "Runtime": "nodejs4.3",
-        "Timeout": "25"
+        "Timeout": "25",
+        "VpcConfig": {
+          "Fn::If": [ "Private",
+          {
+            "SecurityGroupIds" : { "Ref": "SecurityGroups" },
+            "SubnetIds" : { "Ref": "SubnetsPrivate" }
+          },
+          { "Ref": "AWS::NoValue" }
+        ]}
       },
       "Type": "AWS::Lambda::Function"
     },
@@ -138,7 +162,10 @@
                 {
                   "Action": [
                     "cloudwatch:PutMetricData",
-                    "lambda:InvokeFunction"
+                    "lambda:InvokeFunction",
+                    "ec2:CreateNetworkInterface",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DeleteNetworkInterface"
                   ],
                   "Effect": "Allow",
                   "Resource": "*"

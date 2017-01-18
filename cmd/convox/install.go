@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -399,7 +400,7 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Println("Waiting for load balancer...")
 
-	if err := waitForAvailability(fmt.Sprintf("http://%s/", host)); err != nil {
+	if err := waitForAvailability(fmt.Sprintf("https://%s/", host)); err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
 	}
@@ -658,6 +659,11 @@ func waitForAvailability(url string) error {
 
 			client := &http.Client{
 				Timeout: 2 * time.Second,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
 			}
 
 			_, err := client.Get(url)

@@ -15,6 +15,7 @@ test:
   pre:
     - ci/install.sh:
         parallel: true
+        timeout: 1200
   override:
     - ci/tests/example-app django:
         parallel: true
@@ -22,6 +23,7 @@ test:
         parallel: true
     - ci/tests/example-app rails:
         parallel: true
+        timeout: 1200
   post:
     - ci/report.sh:
         parallel: true
