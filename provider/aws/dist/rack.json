@@ -667,6 +667,8 @@
                       "autoscaling:TerminateInstanceInAutoScalingGroup",
                       "autoscaling:UpdateAutoScalingGroup",
                       "cloudformation:DescribeStacks",
+                      "cloudformation:DescribeStackResource",
+                      "cloudformation:DescribeStackResources",
                       "ec2:AllocateAddress",
                       "ec2:AssociateRouteTable",
                       "ec2:AuthorizeSecurityGroupIngress",
