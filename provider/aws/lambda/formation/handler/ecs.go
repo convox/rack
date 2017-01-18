@@ -237,8 +237,8 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 				host, _ := strconv.Atoi(parts[1])
 				container, _ := strconv.Atoi(parts[2])
 				protocol := strings.ToLower(parts[3])
-				if protocol != string(TCP) && protocol != string(UDP) {
-					protocol = string(TCP) // default
+				if protocol != "tcp" && protocol != "udp" {
+					protocol = "tcp" // default
 				}
 
 				r.ContainerDefinitions[i].PortMappings[j] = &ecs.PortMapping{
