@@ -15,7 +15,7 @@ import (
 
 type Environment map[string]string
 
-// Validate environment variable keypair format; trim spaces and surrounding single quotes.
+// cleanEnvPair validates environment variable keypair format, trims spaces and surrounding single quotes.
 func cleanEnvPair(value string) (string, error) {
 	parts := strings.SplitN(value, "=", 2)
 	if len(parts) != 2 {
@@ -39,6 +39,7 @@ func cleanEnvPair(value string) (string, error) {
 	return "", fmt.Errorf("Unknown validation error")
 }
 
+// LoadEnvironment loads input into an Environment struct.
 func LoadEnvironment(data []byte) (Environment, error) {
 	env := Environment{}
 
@@ -58,6 +59,7 @@ func LoadEnvironment(data []byte) (Environment, error) {
 	return env, nil
 }
 
+// GetEnvironment retrieves an app's current Environment.
 func GetEnvironment(app string) (Environment, error) {
 	a, err := GetApp(app)
 	if err != nil {
@@ -94,6 +96,7 @@ func GetEnvironment(app string) (Environment, error) {
 	return env, nil
 }
 
+// PutEnvironment creates a new release with a given Environment.
 func PutEnvironment(app string, env Environment) (string, error) {
 	a, err := GetApp(app)
 	if err != nil {
