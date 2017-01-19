@@ -763,6 +763,7 @@
                       "sns:DeleteTopic",
                       "sns:GetTopicAttributes",
                       "sns:ListTopics",
+                      "sns:ListSubscriptionsByTopic",
                       "sns:Publish",
                       "sns:SetTopicAttributes",
                       "sns:Subscribe",
