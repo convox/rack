@@ -728,6 +728,7 @@
                       "elasticfilesystem:DescribeMountTargets",
                       "elasticloadbalancing:ConfigureHealthCheck",
                       "elasticloadbalancing:CreateLoadBalancer",
+                      "elasticloadbalancing:CreateLoadBalancerListeners",
                       "elasticloadbalancing:CreateLoadBalancerPolicy",
                       "elasticloadbalancing:DeleteLoadBalancer",
                       "elasticloadbalancing:DeleteLoadBalancerListeners",
