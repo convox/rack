@@ -760,6 +760,7 @@
                       "rds:DescribeDBSubnetGroups",
                       "s3:CreateBucket",
                       "s3:GetObject",
+                      "sns:ConfirmSubscription",
                       "sns:CreateTopic",
                       "sns:DeleteTopic",
                       "sns:GetTopicAttributes",
