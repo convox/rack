@@ -270,7 +270,7 @@
     "Autoscale": {
       "Type": "String",
       "Description": "Autoscale rack instances",
-      "Default": "No",
+      "Default": "Yes",
       "AllowedValues": [ "Yes", "No" ]
     },
     "BuildCpu": {
