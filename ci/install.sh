@@ -9,4 +9,6 @@ export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
 convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
+convox rack params set Autoscale=No
+
 convox instances
