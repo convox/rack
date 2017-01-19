@@ -52,7 +52,7 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 		s.Parameters["Private"] = fmt.Sprintf("%t", p.SubnetsPrivate != "")
 		req, err = p.createResourceURL(s, "tcp", "tcp+tls", "udp")
 	case "webhook":
-		s.Parameters["Url"] = fmt.Sprintf("http://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
+		s.Parameters["Url"] = fmt.Sprintf("https://%s/sns?endpoint=%s", p.NotificationHost, url.QueryEscape(s.Parameters["Url"]))
 		req, err = p.createResourceURL(s, "http", "https")
 	default:
 		err = fmt.Errorf("Invalid resource type: %s", s.Type)
