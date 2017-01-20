@@ -769,6 +769,7 @@
                       "sns:Publish",
                       "sns:SetTopicAttributes",
                       "sns:Subscribe",
+                      "sns:Unsubscribe",
                       "sqs:CreateQueue",
                       "sqs:DeleteQueue",
                       "sqs:GetQueueAttributes",
