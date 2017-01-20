@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
@@ -36,10 +35,10 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 
 	app := vars["app"]
 	_, err := models.Provider().AppGet(app)
-	if strings.Contains(err.Error(), "not found") {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
 	if err != nil {
+		if provider.ErrorNotFound(err) {
+			return httperr.New(404, err)
+		}
 		return httperr.Server(err)
 	}
 
