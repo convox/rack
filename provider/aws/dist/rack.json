@@ -1592,6 +1592,12 @@
         "Listeners": [
           {
             "Protocol": "TCP",
+            "LoadBalancerPort": "80",
+            "InstanceProtocol": "TCP",
+            "InstancePort": "4000"
+          },
+          {
+            "Protocol": "TCP",
             "LoadBalancerPort": "443",
             "InstanceProtocol": "TCP",
             "InstancePort": "4001"
