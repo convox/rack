@@ -1580,7 +1580,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTPS:4001/check",
+          "Target": "HTTP:4000/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -1986,6 +1986,7 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
+              "4000:3000",
               "4001:4443"
             ],
             "Volumes": [
