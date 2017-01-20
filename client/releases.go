@@ -17,7 +17,6 @@ type Release struct {
 
 type Releases []Release
 
-// Request releases of an app, accepting the default limit.
 func (c *Client) GetReleases(app string) (Releases, error) {
 	var releases Releases
 
@@ -30,7 +29,7 @@ func (c *Client) GetReleases(app string) (Releases, error) {
 	return releases, nil
 }
 
-// Request releases of an app, overriding the default limit.
+// GetReleasesWithLimit requests releases of an app, overriding the default limit.
 func (c *Client) GetReleasesWithLimit(app string, limit int) (Releases, error) {
 	var releases Releases
 
