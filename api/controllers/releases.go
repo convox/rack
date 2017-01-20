@@ -17,7 +17,7 @@ func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
 	var err error
-	var limit int = 20
+	var limit = 20
 	if l := r.URL.Query().Get("limit"); l != "" {
 		limit, err = strconv.Atoi(l)
 		if err != nil {
