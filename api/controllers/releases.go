@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -15,7 +16,16 @@ import (
 func ReleaseList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
-	releases, err := models.Provider().ReleaseList(app, 20)
+	var err error
+	var limit = 20
+	if l := r.URL.Query().Get("limit"); l != "" {
+		limit, err = strconv.Atoi(l)
+		if err != nil {
+			return httperr.Errorf(400, "limit must be numeric")
+		}
+	}
+
+	releases, err := models.Provider().ReleaseList(app, int64(limit))
 	if awsError(err) == "ValidationError" {
 		return httperr.Errorf(404, "no such app: %s", app)
 	}
