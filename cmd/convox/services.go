@@ -38,11 +38,11 @@ func init() {
 		},
 		{
 			"s3",
-			"[--topic=sns-service-name] [--versioning]",
+			"[--topic=sns-topic-name] [--versioning]",
 		},
 		{
 			"sns",
-			"[--queue=sqs-service-name]",
+			"[--queue=sqs-queue-name]",
 		},
 		{
 			"sqs",
