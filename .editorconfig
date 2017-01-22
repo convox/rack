@@ -1,0 +1,19 @@
+root = true
+
+; Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace  = true
+insert_final_newline = true
+charset = utf-8
+
+; Golang
+[{*.go,Makefile}]
+indent_style = tab
+
+; JSON, YAML, and Go templates
+[*.{json,tmpl,yaml,yml}]
+indent_size = 2
