@@ -29,13 +29,9 @@ func cleanEnvPair(value string) (string, error) {
 		val = strings.Trim(val, "'")
 		val = strings.TrimSpace(val)
 
-		if len(val) == 0 {
-			return "", fmt.Errorf("Can't set " + key + " to an empty value; try `convox env unset`.")
-		}
-
-		value = fmt.Sprintf("%s=%s", key, val)
-		return value, nil
+		return fmt.Sprintf("%s=%s", key, val), nil
 	}
+
 	return "", fmt.Errorf("Unknown validation error")
 }
 
