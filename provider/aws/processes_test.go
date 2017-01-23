@@ -19,6 +19,19 @@ type streamTester struct {
 
 func TestProcessExec(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleProcessDescribeStackResources,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
 		cycleProcessListTasksAll,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
@@ -27,6 +40,12 @@ func TestProcessExec(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleProcessDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
@@ -154,6 +173,19 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskAttached,
 		cycleProcessDescribeTasks,
+		cycleProcessDescribeStackResources,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
 		cycleProcessListTasksAll,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
@@ -163,6 +195,12 @@ func TestProcessRunAttached(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleProcessDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
