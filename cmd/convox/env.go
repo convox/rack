@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"golang.org/x/crypto/ssh/terminal"
+	//"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -188,33 +188,22 @@ func cmdEnvSet(c *cli.Context) error {
 	}
 
 	output.Write([]byte("OK\n"))
-
 	if releaseID != "" {
 		if c.Bool("promote") {
-			output.Write([]byte(fmt.Sprintf("Promoting ")))
-			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
+			output.Write([]byte(fmt.Sprintf("Promoting %s... ", releaseID)))
 
 			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
 				return stdcli.Error(err)
 			}
 
-			// If we're redirecting stdout but not stderr, print the release ID to stderr
-			if c.Bool("id") && terminal.IsTerminal(int(os.Stderr.Fd())) && !terminal.IsTerminal(int(os.Stdout.Fd())) {
-				output.Write([]byte(fmt.Sprintf("%s", releaseID)))
-			}
-
-			output.Write([]byte("... OK\n"))
+			output.Write([]byte("OK\n"))
 		} else {
-			output.Write([]byte("To deploy these changes run `convox releases promote "))
+			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", releaseID)))
+		}
+
+		if c.Bool("id") {
 			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
-
-			// If we're redirecting stdout but not stderr, print the release ID to stderr
-			if c.Bool("id") && terminal.IsTerminal(int(os.Stderr.Fd())) && !terminal.IsTerminal(int(os.Stdout.Fd())) {
-				output.Write([]byte(fmt.Sprintf("%s", releaseID)))
-			}
-
-			output.Write([]byte("`\n"))
 		}
 	}
 
@@ -237,27 +226,36 @@ func cmdEnvUnset(c *cli.Context) error {
 
 	key := c.Args()[0]
 
-	fmt.Print("Updating environment... ")
+	output := os.Stdout
+	if c.Bool("id") {
+		output = os.Stderr
+	}
+
+	output.Write([]byte("Updating environment... "))
 
 	_, releaseID, err := rackClient(c).DeleteEnvironment(app, key)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("OK")
+	output.Write([]byte("OK\n"))
 
 	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s... ", releaseID)
+			output.Write([]byte(fmt.Sprintf("Promoting %s... ", releaseID)))
 
 			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
 				return stdcli.Error(err)
 			}
 
-			fmt.Println("OK")
+			output.Write([]byte("OK\n"))
 		} else {
-			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseID)
+			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", releaseID)))
+		}
+
+		if c.Bool("id") {
+			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
 		}
 	}
 
