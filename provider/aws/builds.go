@@ -721,13 +721,15 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 		config.Credentials = credentials.NewStaticCredentials(access, secret, "")
 	}
 
-	e := ecr.New(session.New(), config)
-
 	if !regexpECRHost.MatchString(host) {
 		return "", "", fmt.Errorf("invalid ECR hostname")
 	}
 
 	registry := regexpECRHost.FindStringSubmatch(host)
+
+	config.Region = &registry[2]
+
+	e := ecr.New(session.New(), config)
 
 	res, err := e.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{
 		RegistryIds: []*string{aws.String(registry[1])},

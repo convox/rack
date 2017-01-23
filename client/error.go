@@ -27,7 +27,7 @@ func responseError(res *http.Response) error {
 	err = json.Unmarshal(data, &e)
 
 	if err != nil {
-		return fmt.Errorf("response status: %d", res.StatusCode)
+		return fmt.Errorf("response status: %d %s", res.StatusCode, data)
 	}
 
 	return fmt.Errorf(e.Error)

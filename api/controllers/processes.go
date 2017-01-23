@@ -34,12 +34,20 @@ func ProcessExecAttached(ws *websocket.Conn) *httperr.Error {
 	header := ws.Request().Header
 
 	app := vars["app"]
+	_, err := models.Provider().AppGet(app)
+	if err != nil {
+		if provider.ErrorNotFound(err) {
+			return httperr.New(404, err)
+		}
+		return httperr.Server(err)
+	}
+
 	pid := vars["pid"]
 	command := header.Get("Command")
 	height, _ := strconv.Atoi(header.Get("Height"))
 	width, _ := strconv.Atoi(header.Get("Width"))
 
-	err := models.Provider().ProcessExec(app, pid, command, ws, structs.ProcessExecOptions{
+	err = models.Provider().ProcessExec(app, pid, command, ws, structs.ProcessExecOptions{
 		Height: height,
 		Width:  width,
 	})

@@ -785,6 +785,11 @@ func readCredentialsFromFile(credentialsCsvFileName string) (*AwsCredentials, er
 			creds.Access = records[1][0]
 			creds.Secret = records[1][1]
 
+		case 3:
+			// User name,Access key ID,Secret access key
+			creds.Access = records[1][1]
+			creds.Secret = records[1][2]
+
 		case 5:
 			// User name,Password,Access key ID,Secret access key,Console login link
 			creds.Access = records[1][2]

@@ -13,6 +13,10 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+const authenticationErrorMessage = `Unable to authenticate.
+Please confirm your Rack API Key is correct.
+See https://convox.com/docs/api-keys/ for more information.`
+
 var RequestTimeout time.Duration = 3600 * time.Second
 
 type ApiHandlerFunc func(http.ResponseWriter, *http.Request) *httperr.Error
@@ -23,10 +27,10 @@ func api(at string, handler ApiHandlerFunc) http.HandlerFunc {
 		log := logger.New("ns=api.controllers").At(at).Start()
 
 		if !passwordCheck(r) {
-			log.Errorf("invalid authorization")
+			log.Errorf("unable to authenticate")
 			rw.Header().Set("WWW-Authenticate", `Basic realm="Convox System"`)
 			rw.WriteHeader(401)
-			rw.Write([]byte("invalid authorization"))
+			rw.Write([]byte(authenticationErrorMessage))
 			return
 		}
 
@@ -78,7 +82,7 @@ func ws(at string, handler ApiWebsocketFunc) websocket.Handler {
 		log := logger.New("ns=api.controllers").At(at).Start()
 
 		if !passwordCheck(ws.Request()) {
-			ws.Write([]byte("ERROR: invalid authorization\n"))
+			ws.Write([]byte(authenticationErrorMessage))
 			return
 		}
 
