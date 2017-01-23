@@ -113,9 +113,6 @@
         "Description": {
           "Ref": "Url"
         },
-        "FunctionName": {
-          "Ref": "AWS::StackName"
-        },
         "Handler": "index.handler",
         "Role": {
           "Fn::GetAtt": [
@@ -200,6 +197,7 @@
                         {
                           "Ref": "AWS::StackName"
                         },
+                        "-Function-*",
                         "/*"
                       ]
                     ]

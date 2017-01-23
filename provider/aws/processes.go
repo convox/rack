@@ -28,6 +28,24 @@ const StatusCodePrefix = "F1E49A85-0AD7-4AEF-A618-C249C6E6568D:"
 func (p *AWSProvider) ProcessExec(app, pid, command string, stream io.ReadWriter, opts structs.ProcessExecOptions) error {
 	log := Logger.At("ProcessExec").Namespace("app=%q pid=%q command=%q", app, pid, command).Start()
 
+	pss, err := p.ProcessList(app)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	pidFound := false
+	for _, p := range pss {
+		if p.ID == pid {
+			pidFound = true
+			break
+		}
+	}
+
+	if !pidFound {
+		return errorNotFound(fmt.Sprintf("process ID not found for %s", app))
+	}
+
 	arn, err := p.taskArnFromPid(pid)
 	if err != nil {
 		log.Error(err)

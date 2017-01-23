@@ -29,6 +29,19 @@ func (c *Client) GetReleases(app string) (Releases, error) {
 	return releases, nil
 }
 
+// GetReleasesWithLimit requests releases of an app, overriding the default limit.
+func (c *Client) GetReleasesWithLimit(app string, limit int) (Releases, error) {
+	var releases Releases
+
+	err := c.Get(fmt.Sprintf("/apps/%s/releases?limit=%d", app, limit), &releases)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return releases, nil
+}
+
 func (c *Client) GetRelease(app, id string) (*Release, error) {
 	var release Release
 

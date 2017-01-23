@@ -760,6 +760,7 @@
                       "rds:DescribeDBSubnetGroups",
                       "s3:CreateBucket",
                       "s3:GetObject",
+                      "sns:ConfirmSubscription",
                       "sns:CreateTopic",
                       "sns:DeleteTopic",
                       "sns:GetTopicAttributes",
@@ -768,6 +769,7 @@
                       "sns:Publish",
                       "sns:SetTopicAttributes",
                       "sns:Subscribe",
+                      "sns:Unsubscribe",
                       "sqs:CreateQueue",
                       "sqs:DeleteQueue",
                       "sqs:GetQueueAttributes",
@@ -1579,7 +1581,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTPS:4001/check",
+          "Target": "HTTP:4000/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -1589,6 +1591,12 @@
           }
         ],
         "Listeners": [
+          {
+            "Protocol": "TCP",
+            "LoadBalancerPort": "80",
+            "InstanceProtocol": "TCP",
+            "InstancePort": "4000"
+          },
           {
             "Protocol": "TCP",
             "LoadBalancerPort": "443",
@@ -1979,6 +1987,7 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
+              "4000:3000",
               "4001:4443"
             ],
             "Volumes": [
