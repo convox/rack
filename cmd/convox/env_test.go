@@ -235,37 +235,6 @@ func TestEnvSetStdinHerokuStyle(t *testing.T) {
 	)
 }
 
-// TestEnvSetNoValue ensures an error is raised when a user attempts to set a variable with no value.
-func TestEnvSetNoValue(t *testing.T) {
-	ts := testServer(t,
-		test.Http{
-			Method:   "GET",
-			Path:     "/apps/myapp/environment",
-			Code:     200,
-			Response: client.Environment{},
-		},
-		test.Http{
-			Method: "POST",
-			Path:   "/apps/myapp/environment",
-			Body:   "foo=\n",
-			Code:   500,
-			Response: client.Error{
-				Error: "Can't set foo to an empty value; try `convox env unset`.",
-			},
-		},
-	)
-
-	defer ts.Close()
-
-	test.Runs(t,
-		test.ExecRun{
-			Command: "convox env set -a myapp foo=",
-			Exit:    1,
-			Stderr:  "ERROR: Can't set foo to an empty value; try `convox env unset`.",
-		},
-	)
-}
-
 // TestEnvApi ensures an app's environment can be read via `convox api get`.
 func TestEnvApi(t *testing.T) {
 	ts := testServer(t,
