@@ -103,13 +103,13 @@ func TestConvoxInstallFileCredentials(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox install ../../manifest/fixtures/dummy.csv",
+			Command: "convox install ./data/fixtures/dummy.csv",
 			Exit:    0,
 			Env: map[string]string{
 				"AWS_ENDPOINT_URL": s.URL,
 				"AWS_REGION":       "test",
 			},
-			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackID + "\n",
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ./data/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackID + "\n",
 		},
 	)
 }
@@ -137,7 +137,7 @@ func TestConvoxInstallFileCredentialsWithEnvCredentials(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox install ../../manifest/fixtures/dummy.csv",
+			Command: "convox install ./data/fixtures/dummy.csv",
 			Exit:    0,
 			Env: map[string]string{
 				"AWS_ENDPOINT_URL":      s.URL,
@@ -145,7 +145,7 @@ func TestConvoxInstallFileCredentialsWithEnvCredentials(t *testing.T) {
 				"AWS_ACCESS_KEY_ID":     "test",
 				"AWS_SECRET_ACCESS_KEY": "test",
 			},
-			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackID + "\n",
+			Stdout: Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ./data/fixtures/dummy.csv\nUsing AWS Access Key ID: AKIAIJAFAQL3V7HLQQAA\n" + stackID + "\n",
 		},
 	)
 }
@@ -203,10 +203,10 @@ func TestConvoxInstallFileCredentialsNonexistent(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox install ../../manifest/fixtures/nothinghere.csv",
+			Command: "convox install ./data/fixtures/nothinghere.csv",
 			Exit:    1,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/nothinghere.csv\n",
-			Stderr:  "ERROR: open ../../manifest/fixtures/nothinghere.csv: no such file or directory\n",
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ./data/fixtures/nothinghere.csv\n",
+			Stderr:  "ERROR: open ./data/fixtures/nothinghere.csv: no such file or directory\n",
 		},
 	)
 }
@@ -217,9 +217,9 @@ func TestConvoxInstallFileCredentialsInvalidFormat(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox install ../../manifest/fixtures/invalid-credentials-format.csv",
+			Command: "convox install ./data/fixtures/credswrong.csv",
 			Exit:    1,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ../../manifest/fixtures/invalid-credentials-format.csv\n",
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nReading credentials from file ./data/fixtures/credswrong.csv\n",
 			Stderr:  "ERROR: credentials secrets is of unknown length\n",
 		},
 	)
@@ -262,6 +262,11 @@ func TestReadCredentialsFromFile(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "fakeaccessid", creds.Access)
 	assert.Equal(t, "fakesecretkey", creds.Secret)
+
+	creds, err = readCredentialsFromFile("./data/fixtures/creds3.csv")
+	assert.Nil(t, err)
+	assert.Equal(t, "fakeaccessid3", creds.Access)
+	assert.Equal(t, "fakesecretkey3", creds.Secret)
 
 	creds, err = readCredentialsFromFile("./data/fixtures/creds5.csv")
 	assert.Nil(t, err)
