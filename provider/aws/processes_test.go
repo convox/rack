@@ -19,6 +19,19 @@ type streamTester struct {
 
 func TestProcessExec(t *testing.T) {
 	provider := StubAwsProvider(
+		cycleProcessDescribeStackResources,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
 		cycleProcessListTasksAll,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
@@ -27,6 +40,12 @@ func TestProcessExec(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleProcessDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
@@ -43,7 +62,7 @@ func TestProcessExec(t *testing.T) {
 		Width:  20,
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), out.Bytes())
 }
 
@@ -106,7 +125,7 @@ func TestProcessList(t *testing.T) {
 		},
 	}
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, ps, s)
 }
 
@@ -137,7 +156,7 @@ func TestProcessListEmpty(t *testing.T) {
 
 	s, err := provider.ProcessList("myapp")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Processes{}, s)
 }
 
@@ -154,6 +173,19 @@ func TestProcessRunAttached(t *testing.T) {
 		cycleProcessReleaseUpdateItem,
 		cycleProcessRunTaskAttached,
 		cycleProcessDescribeTasks,
+		cycleProcessDescribeStackResources,
+		cycleProcessListTasksByService1,
+		cycleProcessListTasksByService2,
+		cycleProcessListTasksByStarted,
+		cycleProcessDescribeTasksAll,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeTaskDefinition1,
+		cycleProcessDescribeContainerInstances,
+		cycleProcessDescribeInstances,
+		cycleProcessDescribeInstances,
 		cycleProcessListTasksAll,
 		cycleProcessDescribeTasks,
 		cycleProcessDescribeContainerInstances,
@@ -163,6 +195,12 @@ func TestProcessRunAttached(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleProcessDockerListContainers2,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
+		cycleProcessDockerListContainers1,
+		cycleProcessDockerInspect,
+		cycleProcessDockerStats,
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerCreateExec,
 		cycleProcessDockerStartExec,
@@ -182,7 +220,7 @@ func TestProcessRunAttached(t *testing.T) {
 		Width:   20,
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "5850760f0845", pid)
 	assert.Equal(t, []byte(fmt.Sprintf("foo%s%d\n", aws.StatusCodePrefix, 0)), out.Bytes())
 }
@@ -209,7 +247,7 @@ func TestProcessRunDetached(t *testing.T) {
 		Width:   0,
 	})
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "0f51f03ff369", pid)
 }
 
@@ -222,7 +260,7 @@ func TestProcessStop(t *testing.T) {
 
 	err := provider.ProcessStop("myapp", "5850760f0845")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 var cycleProcessDescribeContainerInstances = awsutil.Cycle{

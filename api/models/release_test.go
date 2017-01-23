@@ -51,13 +51,13 @@ func TestLinks(t *testing.T) {
 	os.Setenv("CLUSTER", "convox-test")
 
 	resp, err := ioutil.ReadFile("fixtures/get-app-template-response.xml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	fixData, err := ioutil.ReadFile("fixtures/web_redis.json")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	yamlData, err := ioutil.ReadFile("fixtures/web_redis.yml")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	getAppTemplateCycle := test.GetAppTemplateCycle("web")
 	getAppTemplateCycle.Response.Body = string(resp)
@@ -77,7 +77,7 @@ func TestLinks(t *testing.T) {
 
 	ManifestRandomPorts = false
 	formation, err := release.Formation()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	ManifestRandomPorts = true
 
 	Diff(t, "web_redis", string(fixData), formation)

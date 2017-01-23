@@ -9,7 +9,7 @@ import (
 func TestBalancer(t *testing.T) {
 	m, err := manifestFixture("balancer")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if assert.Equal(t, len(m.Balancers()), 1) {
 			balancer := m.Balancers()[0]
 
@@ -24,7 +24,7 @@ func TestBalancer(t *testing.T) {
 func TestBalancerLabels(t *testing.T) {
 	m, err := manifestFixture("balancer-labels")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if assert.Equal(t, len(m.Balancers()), 1) {
 			balancer := m.Balancers()[0]
 
@@ -39,7 +39,7 @@ func TestBalancerLabels(t *testing.T) {
 func TestBalancerSecure(t *testing.T) {
 	m, err := manifestFixture("balancer-secure")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if assert.Equal(t, len(m.Balancers()), 1) {
 			balancer := m.Balancers()[0]
 

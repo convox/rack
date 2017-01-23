@@ -23,8 +23,46 @@ func TestResourceWebhookURL(t *testing.T) {
 	url := "http://notifications.example.org/sns?endpoint=https%3A%2F%2Fwww.example.com"
 	s, err := provider.ResourceCreate("mywebhook", "webhook", params)
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, url, s.Parameters["Url"])
+	}
+}
+
+func TestResourceList(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleServiceDescribeStacksList,
+		cycleAppDescribeStacks,
+	)
+	defer provider.Close()
+
+	expected := structs.Resources{
+		structs.Resource{
+			Name:         "syslog",
+			Stack:        "syslog",
+			Status:       "running",
+			StatusReason: "",
+			Type:         "",
+			Apps:         structs.Apps(nil),
+			Exports:      map[string]string{},
+			Outputs: map[string]string{
+				"Httpd2Link": "",
+				"Url":        "tcp+tls://logs1.example.com:11235",
+				"HttpdLink":  "convox-httpd-LogGroup-12345678",
+			},
+			Parameters: map[string]string{},
+			Tags: map[string]string{
+				"Rack":   "convox",
+				"Type":   "service",
+				"Name":   "syslog",
+				"System": "convox",
+			},
+		},
+	}
+
+	s, err := provider.ResourceList()
+
+	if assert.Nil(t, err) {
+		assert.EqualValues(t, expected, s)
 	}
 }
 
@@ -98,7 +136,7 @@ func TestResourceGet(t *testing.T) {
 
 	s, err := provider.ResourceGet("syslog")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.EqualValues(t, expected, s)
 	}
 }
@@ -133,6 +171,68 @@ var cycleResourceDescribeStacks = awsutil.Cycle{
 						<Tags>
 							<member>
 								<Value>resource</Value>
+								<Key>Type</Key>
+							</member>
+							<member>
+								<Value>syslog</Value>
+								<Key>Name</Key>
+							</member>
+							<member>
+								<Value>convox</Value>
+								<Key>System</Key>
+							</member>
+							<member>
+								<Value>convox</Value>
+								<Key>Rack</Key>
+							</member>
+						</Tags>
+						<LastUpdatedTime>2016-08-27T16:29:05.963Z</LastUpdatedTime>
+						<Parameters>
+						</Parameters>
+					</member>
+				</Stacks>
+			</DescribeStacksResult>
+			<ResponseMetadata>
+				<RequestId>9715cab7-6c75-11e6-837d-ebe72becd936</RequestId>
+			</ResponseMetadata>
+		</DescribeStacksResponse>`,
+	},
+}
+
+var cycleServiceDescribeStacksList = awsutil.Cycle{
+	awsutil.Request{"POST", "/", "", `Action=DescribeStacks&Version=2010-05-15`},
+	awsutil.Response{
+		200,
+		`<DescribeStacksResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+			<DescribeStacksResult>
+				<Stacks>
+					<member>
+						<Outputs>
+							<member>
+								<OutputKey>Url</OutputKey>
+								<OutputValue>tcp+tls://logs1.example.com:11235</OutputValue>
+							</member>
+							<member>
+								<OutputKey>HttpdLink</OutputKey>
+								<OutputValue>convox-httpd-LogGroup-12345678</OutputValue>
+							</member>
+							<member>
+								<OutputKey>Httpd2Link</OutputKey>
+								<OutputValue></OutputValue>
+							</member>
+						</Outputs>
+						<Capabilities>
+							<member>CAPABILITY_IAM</member>
+						</Capabilities>
+						<CreationTime>2015-10-28T16:14:09.590Z</CreationTime>
+						<NotificationARNs/>
+						<StackId>arn:aws:cloudformation:us-east-1:778743527532:stack/convox/eb743e00-7d8e-11e5-8280-50ba0727c06e</StackId>
+						<StackName>syslog</StackName>
+						<StackStatus>UPDATE_COMPLETE</StackStatus>
+						<DisableRollback>false</DisableRollback>
+						<Tags>
+							<member>
+								<Value>service</Value>
 								<Key>Type</Key>
 							</member>
 							<member>

@@ -23,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -57,18 +56,13 @@ To generate a new set of AWS credentials go to:
 https://docs.convox.com/creating-an-iam-user`
 
 var (
+	distinctID   = ""
 	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
 	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
-	distinctID   = "nobody"
 )
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var err error
-	distinctID, err = currentId()
-	if err != nil {
-		distinctID = ""
-	}
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "install",
@@ -160,6 +154,14 @@ func init() {
 
 func cmdInstall(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
+
+	var err error
+
+	distinctID, err = currentId()
+	if err != nil {
+		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error getting versions: %s", err)})
+		return stdcli.Error(err)
+	}
 
 	region := c.String("region")
 
@@ -285,6 +287,8 @@ func cmdInstall(c *cli.Context) error {
 	if email := c.String("email"); email != "" {
 		distinctID = email
 		updateId(distinctID)
+	} else if distinctID != "" {
+		// already has an id
 	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
 		fmt.Print("Email Address (optional, to receive project updates): ")
 
@@ -314,6 +318,8 @@ func cmdInstall(c *cli.Context) error {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: fmt.Errorf("error reading credentials")})
 		return stdcli.Error(err)
 	}
+
+	fmt.Println("Using AWS Access Key ID:", creds.Access)
 
 	err = validateUserAccess(region, creds)
 	if err != nil {
@@ -397,12 +403,14 @@ func cmdInstall(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("Waiting for load balancer...")
+	fmt.Printf("Waiting for load balancer...")
 
 	if err := waitForAvailability(fmt.Sprintf("https://%s/", host)); err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
 	}
+
+	fmt.Println("")
 
 	fmt.Println("Logging in...")
 
@@ -426,38 +434,8 @@ func cmdInstall(c *cli.Context) error {
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
 func validateUserAccess(region string, creds *AwsCredentials) error {
 
-	// this validation need to check for actual permissions somehow and not
-	// just a policy name
+	// TODO: this validation needs to actually check permissions
 	return nil
-
-	Iam := iam.New(session.New(), awsConfig(region, creds))
-
-	userOutput, err := Iam.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		if ae, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("%s. See %s", ae.Code(), iamUserURL)
-		}
-		return fmt.Errorf("%s. See %s", err, iamUserURL)
-	}
-
-	policies, err := Iam.ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
-		UserName: userOutput.User.UserName,
-	})
-	if err != nil {
-		if ae, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("%s. See %s", ae.Code(), iamUserURL)
-		}
-	}
-
-	for _, policy := range policies.AttachedPolicies {
-		if "AdministratorAccess" == *policy.PolicyName {
-			return nil
-		}
-	}
-
-	msg := fmt.Errorf("Administrator access needed. See %s", iamUserURL)
-	stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: msg})
-	return stdcli.Error(msg)
 }
 
 func awsConfig(region string, creds *AwsCredentials) *aws.Config {
@@ -727,6 +705,7 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 		Session: os.Getenv("AWS_SESSION_TOKEN"),
 	}
 
+	// if filename argument provided, prefer these credentials over any found in the environment
 	var inputCreds *AwsCredentials
 	if fileName != "" {
 		inputCreds, err = readCredentialsFromFile(fileName)
@@ -783,27 +762,47 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 	return
 }
 
-func readCredentialsFromFile(credentialsCsvFileName string) (creds *AwsCredentials, err error) {
+func readCredentialsFromFile(credentialsCsvFileName string) (*AwsCredentials, error) {
+	fmt.Printf("Reading credentials from file %s\n", credentialsCsvFileName)
 	credsFile, err := ioutil.ReadFile(credentialsCsvFileName)
-
 	if err != nil {
 		return nil, err
 	}
 
-	creds = &AwsCredentials{}
-
 	r := csv.NewReader(bytes.NewReader(credsFile))
+
 	records, err := r.ReadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(records) == 2 && len(records[1]) == 3 {
-		creds.Access = records[1][1]
-		creds.Secret = records[1][2]
+	creds := &AwsCredentials{}
+	if len(records) == 2 {
+		switch len(records[0]) {
+
+		case 2:
+			// Access key ID,Secret access key
+			creds.Access = records[1][0]
+			creds.Secret = records[1][1]
+
+		case 3:
+			// User name,Access key ID,Secret access key
+			creds.Access = records[1][1]
+			creds.Secret = records[1][2]
+
+		case 5:
+			// User name,Password,Access key ID,Secret access key,Console login link
+			creds.Access = records[1][2]
+			creds.Secret = records[1][3]
+
+		default:
+			return creds, fmt.Errorf("credentials secrets is of unknown length")
+		}
+	} else {
+		return creds, fmt.Errorf("credentials file is of unknown length")
 	}
 
-	return
+	return creds, nil
 }
 
 func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
@@ -830,7 +829,7 @@ func readCredentialsFromSTDIN() (creds *AwsCredentials, err error) {
 }
 
 func awsCLICredentials() (*AwsCredentials, error) {
-	data, err := awsCLI("iam", "get-user")
+	data, err := awsCLI("help")
 
 	if err != nil && strings.Contains(err.Error(), "executable file not found") {
 		fmt.Println("Installing the AWS CLI will allow you to install a Rack without specifying credentials.")
@@ -839,6 +838,10 @@ func awsCLICredentials() (*AwsCredentials, error) {
 		return nil, nil
 	}
 
+	fmt.Println("Using AWS CLI for authentication...")
+
+	data, err = awsCLI("iam", "get-user")
+
 	if strings.Contains(string(data), "Unable to locate credentials") {
 		fmt.Println("You appear to have the AWS CLI installed but have not configured credentials.")
 		fmt.Println("You can configure credentials by running `aws configure`.")
@@ -846,24 +849,76 @@ func awsCLICredentials() (*AwsCredentials, error) {
 		return nil, nil
 	}
 
-	access, err := awsCLI("configure", "get", "aws_access_key_id")
+	creds := awsCLICredentialsStatic()
 
-	if err != nil {
-		return nil, err
-	}
-
-	secret, err := awsCLI("configure", "get", "aws_secret_access_key")
-
-	if err != nil {
-		return nil, err
-	}
-
-	creds := &AwsCredentials{
-		Access: strings.TrimSpace(string(access)),
-		Secret: strings.TrimSpace(string(secret)),
+	if creds == nil {
+		creds = awsCLICredentialsRole()
 	}
 
 	return creds, nil
+}
+
+func awsCLICredentialsStatic() *AwsCredentials {
+	accessb, err := awsCLI("configure", "get", "aws_access_key_id")
+	if err != nil {
+		return nil
+	}
+
+	secretb, err := awsCLI("configure", "get", "aws_secret_access_key")
+	if err != nil {
+		return nil
+	}
+
+	access := strings.TrimSpace(string(accessb))
+	secret := strings.TrimSpace(string(secretb))
+
+	if access != "" && secret != "" {
+		return &AwsCredentials{
+			Access: access,
+			Secret: secret,
+		}
+	}
+
+	return nil
+}
+
+type awsRoleCredentials struct {
+	Credentials struct {
+		AccessKeyID     string `json:"AccessKeyId"`
+		SecretAccessKey string
+		SessionToken    string
+	}
+}
+
+func awsCLICredentialsRole() *AwsCredentials {
+	roleb, err := awsCLI("configure", "get", "role_arn")
+	if err != nil {
+		return nil
+	}
+
+	role := strings.TrimSpace(string(roleb))
+
+	if role != "" {
+		data, err := awsCLI("sts", "assume-role", "--role-arn", role, "--role-session-name", "convox-cli")
+		if err != nil {
+			return nil
+		}
+
+		var arc awsRoleCredentials
+
+		err = json.Unmarshal(data, &arc)
+		if err != nil {
+			return nil
+		}
+
+		return &AwsCredentials{
+			Access:  arc.Credentials.AccessKeyID,
+			Secret:  arc.Credentials.SecretAccessKey,
+			Session: arc.Credentials.SessionToken,
+		}
+	}
+
+	return nil
 }
 
 func awsCLI(args ...string) ([]byte, error) {

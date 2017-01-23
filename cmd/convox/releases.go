@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 
+	"github.com/convox/rack/client"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -15,7 +16,15 @@ func init() {
 		Description: "list an app's releases",
 		Usage:       "",
 		Action:      cmdReleases,
-		Flags:       []cli.Flag{appFlag, rackFlag},
+		Flags: []cli.Flag{
+			appFlag,
+			rackFlag,
+			cli.IntFlag{
+				Name:  "limit",
+				Usage: "Number of releases to list.",
+				Value: 20,
+			},
+		},
 		Subcommands: []cli.Command{
 			{
 				Name:        "info",
@@ -63,7 +72,12 @@ func cmdReleases(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	releases, err := rackClient(c).GetReleases(app)
+	var releases client.Releases
+	if c.IsSet("limit") {
+		releases, err = rackClient(c).GetReleasesWithLimit(app, c.Int("limit"))
+	} else {
+		releases, err = rackClient(c).GetReleases(app)
+	}
 	if err != nil {
 		return stdcli.Error(err)
 	}

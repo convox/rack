@@ -18,7 +18,7 @@ import (
 func TestLoadVersion1(t *testing.T) {
 	m, err := manifestFixture("v1")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, m.Version, "1")
 		assert.Equal(t, len(m.Services), 1)
 
@@ -31,7 +31,7 @@ func TestLoadVersion1(t *testing.T) {
 func TestLoadVersion2(t *testing.T) {
 	m, err := manifestFixture("v2-number")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, m.Version, "2")
 		assert.Equal(t, len(m.Services), 1)
 
@@ -42,7 +42,7 @@ func TestLoadVersion2(t *testing.T) {
 
 	m, err = manifestFixture("v2-string")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, m.Version, "2")
 		assert.Equal(t, len(m.Services), 1)
 
@@ -55,7 +55,7 @@ func TestLoadVersion2(t *testing.T) {
 func TestLoadCommandString(t *testing.T) {
 	m, err := manifestFixture("command-string")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Command.String, manifest.Command{String: "ls -la"}.String)
 		}
@@ -65,7 +65,7 @@ func TestLoadCommandString(t *testing.T) {
 func TestLoadCommandArray(t *testing.T) {
 	m, err := manifestFixture("command-array")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Command.Array, manifest.Command{Array: []string{"ls", "-la"}}.Array)
 		}
@@ -75,7 +75,7 @@ func TestLoadCommandArray(t *testing.T) {
 func TestLoadFullVersion1(t *testing.T) {
 	m, err := manifestFixture("full-v1")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
 			assert.Equal(t, web.Build.Dockerfile, "Dockerfile.dev")
@@ -136,7 +136,7 @@ func TestLoadFullVersion1(t *testing.T) {
 func TestLoadFullVersion2(t *testing.T) {
 	m, err := manifestFixture("full-v2")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if web := m.Services["web"]; assert.NotNil(t, web) {
 			assert.Equal(t, web.Build.Context, ".")
 			assert.Equal(t, web.Build.Dockerfile, "Dockerfile.dev")
@@ -227,7 +227,7 @@ func TestLoadEnvVar(t *testing.T) {
 
 	m, err := manifestFixture("interpolate-env-var")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		assert.Equal(t, m.Services["web"].Image, rando1)
 		assert.Equal(t, m.Services["web"].Entrypoint, fmt.Sprintf("%s/%s/%s", rando2, rando2, rando3))
 		assert.Equal(t, m.Services["web"].Build.Dockerfile, "$REMAIN")
@@ -239,10 +239,10 @@ func TestLoadEnvVar(t *testing.T) {
 func TestLoadIdleTimeoutUnset(t *testing.T) {
 	m, err := manifestFixture("idle-timeout-unset")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if assert.Equal(t, 1, len(m.Balancers())) {
 			b := m.Balancers()[0]
-			if val, err := b.IdleTimeout(); assert.Nil(t, err) {
+			if val, err := b.IdleTimeout(); assert.NoError(t, err) {
 				assert.Equal(t, val, "3600")
 			}
 		}
@@ -252,10 +252,10 @@ func TestLoadIdleTimeoutUnset(t *testing.T) {
 func TestLoadIdleTimeoutSet(t *testing.T) {
 	m, err := manifestFixture("idle-timeout-set")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		if assert.Equal(t, 1, len(m.Balancers())) {
 			b := m.Balancers()[0]
-			if val, err := b.IdleTimeout(); assert.Nil(t, err) {
+			if val, err := b.IdleTimeout(); assert.NoError(t, err) {
 				assert.Equal(t, val, "99")
 			}
 		}
@@ -310,7 +310,7 @@ func TestLoadUnknownVersion(t *testing.T) {
 func TestExternalPorts(t *testing.T) {
 	m, err := manifestFixture("full-v1")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		ports := m.ExternalPorts()
 
 		if assert.Equal(t, len(ports), 2) {
@@ -323,10 +323,10 @@ func TestExternalPorts(t *testing.T) {
 func TestPortConflictsWithoutConflict(t *testing.T) {
 	m, err := manifestFixture("port-conflicts")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		pc, err := m.PortConflicts()
 
-		if assert.Nil(t, err) {
+		if assert.NoError(t, err) {
 			assert.Equal(t, len(pc), 0)
 		}
 	}
@@ -335,7 +335,7 @@ func TestPortConflictsWithoutConflict(t *testing.T) {
 func TestPortConflictsWithConflict(t *testing.T) {
 	m, err := manifestFixture("port-conflicts")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		l, err := net.Listen("tcp", "127.0.0.1:30544")
 
 		defer l.Close()
@@ -349,10 +349,10 @@ func TestPortConflictsWithConflict(t *testing.T) {
 			}
 		}()
 
-		if assert.Nil(t, err) {
+		if assert.NoError(t, err) {
 			pc, err := m.PortConflicts()
 
-			if assert.Nil(t, err) && assert.Equal(t, len(pc), 1) {
+			if assert.NoError(t, err) && assert.Equal(t, len(pc), 1) {
 				assert.Equal(t, pc[0], 30544)
 			}
 		}
@@ -367,7 +367,7 @@ func TestPortConflictsWithConflict(t *testing.T) {
 
 func TestManifestNetworks(t *testing.T) {
 	m, err := manifestFixture("networks")
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		for _, s := range m.Services {
 			assert.Equal(t, s.Networks, manifest.Networks{
 				"foo": manifest.InternalNetwork{
@@ -385,7 +385,7 @@ func TestManifestNetworks(t *testing.T) {
 func TestShift(t *testing.T) {
 	m, err := manifestFixture("shift")
 
-	if assert.Nil(t, err) {
+	if assert.NoError(t, err) {
 		m.Shift(5000)
 
 		web := m.Services["web"]
