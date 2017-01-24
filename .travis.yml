@@ -14,7 +14,7 @@ go:
 
 before_script:
   - sudo apt-get update
-  - sudo apt-get install -y docker=1.13
+  - sudo apt-get install -y docker-engine=1.13
 script:
   - ./ci/set-client-id.sh
   - go get ./cmd/convox
