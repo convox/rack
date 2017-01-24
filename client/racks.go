@@ -22,6 +22,16 @@ func (c *Client) Racks() (racks []Rack, err error) {
 	return racks, err
 }
 
+func (c *Client) CreateRack(name, host, password string) (rack *Rack, err error) {
+	params := map[string]string{
+		"name":     name,
+		"host":     host,
+		"password": password,
+	}
+	err = c.Post("/racks", params, &rack)
+	return rack, err
+}
+
 // StreamRackLogs streams the logs for a Rack
 func (c *Client) StreamRackLogs(filter string, follow bool, since time.Duration, output io.WriteCloser) error {
 	return c.Stream("/system/logs", map[string]string{
