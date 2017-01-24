@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
-	//"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/urfave/cli.v1"
 )
 
