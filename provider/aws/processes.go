@@ -205,17 +205,25 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 
 	tasks := []string{}
 
+	pageNum := 0
+
 	for _, s := range services {
-		tres, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+		err := p.ecs().ListTasksPages(&ecs.ListTasksInput{
 			Cluster:     aws.String(p.Cluster),
 			ServiceName: aws.String(s),
-		})
+		},
+			func(page *ecs.ListTasksOutput, lastPage bool) bool {
+				pageNum++
+				for _, arn := range page.TaskArns {
+					tasks = append(tasks, *arn)
+				}
+				fmt.Println(page)
+				return pageNum <= 3
+			},
+		)
 		if err != nil {
 			log.Error(err)
 			return nil, err
-		}
-		for _, arn := range tres.TaskArns {
-			tasks = append(tasks, *arn)
 		}
 	}
 
