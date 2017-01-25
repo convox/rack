@@ -41,6 +41,10 @@ func init() {
 						Name:  "promote",
 						Usage: "promote the release after env change",
 					},
+					cli.BoolFlag{
+						Name:  "id",
+						Usage: "env set logs on stderr, release id on stdout",
+					},
 				},
 			},
 			{
@@ -54,6 +58,10 @@ func init() {
 					cli.BoolFlag{
 						Name:  "promote",
 						Usage: "promote the release after env change",
+					},
+					cli.BoolFlag{
+						Name:  "id",
+						Usage: "env set logs on stderr, release id on stdout",
 					},
 				},
 			},
@@ -127,6 +135,7 @@ func cmdEnvSet(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	// get current app environment
 	env, err := rackClient(c).GetEnvironment(app)
 	if err != nil {
 		return stdcli.Error(err)
@@ -138,6 +147,7 @@ func cmdEnvSet(c *cli.Context) error {
 		data += fmt.Sprintf("%s=%s\n", key, value)
 	}
 
+	// handle data from stdin
 	if !stdcli.IsTerminal(os.Stdin) {
 		in, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
@@ -146,47 +156,44 @@ func cmdEnvSet(c *cli.Context) error {
 
 		scanner := bufio.NewScanner(bytes.NewReader(in))
 		for scanner.Scan() {
-			parts := strings.SplitN(scanner.Text(), "=", 2)
-
-			if len(parts) == 2 {
-				if key := strings.TrimSpace(parts[0]); key != "" {
-					val := parts[1]
-
-					// heroku env -s adds leading and trailing single quotes to val. Strip.
-					if string(val[0]) == "'" && string(val[len(val)-1]) == "'" {
-						val = val[1 : len(val)-2]
-					}
-					data += fmt.Sprintf("%s=%s\n", key, val)
-				}
-			}
+			data += fmt.Sprintf("%s\n", scanner.Text())
 		}
 	}
 
+	// handle args
 	for _, value := range c.Args() {
 		data += fmt.Sprintf("%s\n", value)
 	}
 
-	fmt.Print("Updating environment... ")
+	output := os.Stdout
+	if c.Bool("id") {
+		output = os.Stderr
+	}
+
+	output.Write([]byte("Updating environment... "))
 
 	_, releaseID, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("OK")
-
+	output.Write([]byte("OK\n"))
 	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s... ", releaseID)
+			output.Write([]byte(fmt.Sprintf("Promoting %s... ", releaseID)))
 
 			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
 				return stdcli.Error(err)
 			}
 
-			fmt.Println("OK")
+			output.Write([]byte("OK\n"))
 		} else {
-			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseID)
+			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", releaseID)))
+		}
+
+		if c.Bool("id") {
+			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
 		}
 	}
 
@@ -209,27 +216,36 @@ func cmdEnvUnset(c *cli.Context) error {
 
 	key := c.Args()[0]
 
-	fmt.Print("Updating environment... ")
+	output := os.Stdout
+	if c.Bool("id") {
+		output = os.Stderr
+	}
+
+	output.Write([]byte("Updating environment... "))
 
 	_, releaseID, err := rackClient(c).DeleteEnvironment(app, key)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("OK")
+	output.Write([]byte("OK\n"))
 
 	if releaseID != "" {
 		if c.Bool("promote") {
-			fmt.Printf("Promoting %s... ", releaseID)
+			output.Write([]byte(fmt.Sprintf("Promoting %s... ", releaseID)))
 
 			_, err = rackClient(c).PromoteRelease(app, releaseID)
 			if err != nil {
 				return stdcli.Error(err)
 			}
 
-			fmt.Println("OK")
+			output.Write([]byte("OK\n"))
 		} else {
-			fmt.Printf("To deploy these changes run `convox releases promote %s`\n", releaseID)
+			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", releaseID)))
+		}
+
+		if c.Bool("id") {
+			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
 		}
 	}
 

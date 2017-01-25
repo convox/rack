@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/exp/inotify"
@@ -13,6 +14,7 @@ var (
 	dirCreateFlags = inotify.IN_CREATE | inotify.IN_ISDIR
 	dirDeleteFlags = inotify.IN_DELETE | inotify.IN_ISDIR
 	watcher        *inotify.Watcher
+	lock           sync.Mutex
 )
 
 func init() {
@@ -22,7 +24,9 @@ func init() {
 func startScanner(dir string) {
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
+			lock.Lock()
 			watcher.AddWatch(path, inotify.IN_CREATE|inotify.IN_DELETE|inotify.IN_MODIFY|inotify.IN_ATTRIB)
+			lock.Unlock()
 		}
 		return nil
 	})

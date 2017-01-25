@@ -15,24 +15,47 @@ import (
 
 type Environment map[string]string
 
-func LoadEnvironment(data []byte) Environment {
+// cleanEnvPair validates environment variable keypair format, trims spaces and surrounding single quotes.
+func cleanEnvPair(value string) (string, error) {
+	parts := strings.SplitN(value, "=", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("Environment variables should be defined in key=value format. You specified: " + value)
+	}
+
+	if key := strings.TrimSpace(parts[0]); key != "" {
+		val := parts[1]
+
+		// heroku env -s adds leading and trailing single quotes to val. Strip.
+		val = strings.Trim(val, "'")
+		val = strings.TrimSpace(val)
+
+		return fmt.Sprintf("%s=%s", key, val), nil
+	}
+
+	return "", fmt.Errorf("Unknown validation error")
+}
+
+// LoadEnvironment loads input into an Environment struct.
+func LoadEnvironment(data []byte) (Environment, error) {
 	env := Environment{}
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 
 	for scanner.Scan() {
-		parts := strings.SplitN(scanner.Text(), "=", 2)
 
-		if len(parts) == 2 {
-			if key := strings.TrimSpace(parts[0]); key != "" {
-				env[key] = parts[1]
-			}
+		value, err := cleanEnvPair(scanner.Text())
+		if err != nil {
+			return nil, err
 		}
+
+		parts := strings.SplitN(value, "=", 2)
+		env[parts[0]] = parts[1]
 	}
 
-	return env
+	return env, nil
 }
 
+// GetEnvironment retrieves an app's current Environment.
 func GetEnvironment(app string) (Environment, error) {
 	a, err := GetApp(app)
 	if err != nil {
@@ -62,9 +85,14 @@ func GetEnvironment(app string) (Environment, error) {
 		}
 	}
 
-	return LoadEnvironment(data), nil
+	env, err := LoadEnvironment(data)
+	if err != nil {
+		return nil, err
+	}
+	return env, nil
 }
 
+// PutEnvironment creates a new release with a given Environment.
 func PutEnvironment(app string, env Environment) (string, error) {
 	a, err := GetApp(app)
 	if err != nil {
