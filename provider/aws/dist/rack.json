@@ -1581,7 +1581,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": 5,
-          "Target": "HTTP:4000/check",
+          "Target": "HTTP:3000/check",
           "Timeout": 3,
           "UnhealthyThreshold": "2"
         },
@@ -1595,13 +1595,13 @@
             "Protocol": "TCP",
             "LoadBalancerPort": "80",
             "InstanceProtocol": "TCP",
-            "InstancePort": "4000"
+            "InstancePort": "3000"
           },
           {
             "Protocol": "TCP",
             "LoadBalancerPort": "443",
             "InstanceProtocol": "TCP",
-            "InstancePort": "4001"
+            "InstancePort": "3001"
           }
         ],
         "LoadBalancerName": { "Fn::If": [ "PrivateApi",
@@ -1987,8 +1987,8 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
-              "4000:3000",
-              "4001:4443"
+              "3000:3000",
+              "3001:4443"
             ],
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"
