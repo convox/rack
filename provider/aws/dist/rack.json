@@ -1686,10 +1686,10 @@
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
         "DeploymentConfiguration": {
-          "MinimumHealthyPercent": "100",
+          "MinimumHealthyPercent": "33",
           "MaximumPercent": "200"
         },
-        "DesiredCount": "2",
+        "DesiredCount": "3",
         "LoadBalancers": [
           {
             "ContainerName": "web",
