@@ -1680,8 +1680,8 @@
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
-    "RackWeb": {
-      "DependsOn": [ "RackWebTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
+    "WebService": {
+      "DependsOn": [ "WebTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
       "Type": "AWS::ECS::Service",
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
@@ -1698,11 +1698,11 @@
           }
         ],
         "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-        "TaskDefinition": { "Ref": "RackWebTasks" }
+        "TaskDefinition": { "Ref": "WebTasks" }
       }
     },
-    "RackMonitor": {
-      "DependsOn": [ "RackMonitorTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
+    "MonitorService": {
+      "DependsOn": [ "MonitorTasks", "Balancer", "Cluster", "CustomTopic", "Instances", "ServiceRole" ],
       "Type": "AWS::ECS::Service",
       "Properties": {
         "Cluster": { "Ref": "Cluster" },
@@ -1711,7 +1711,7 @@
           "MaximumPercent": "200"
         },
         "DesiredCount": "1",
-        "TaskDefinition": { "Ref": "RackMonitorTasks" }
+        "TaskDefinition": { "Ref": "MonitorTasks" }
       }
     },
     "ServiceRole": {
@@ -1926,7 +1926,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "RackWebTasks": {
+    "WebTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "web" ] ] },
@@ -1999,7 +1999,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "RackMonitorTasks": {
+    "MonitorTasks": {
       "DependsOn": [ "Balancer", "Cluster", "CustomTopic", "DynamoBuilds", "DynamoReleases", "KernelAccess", "LogGroup", "Subnet0", "Subnet1" ],
       "Properties": {
         "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "monitor" ] ] },
