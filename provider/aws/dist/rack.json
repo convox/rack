@@ -696,8 +696,6 @@
                       "ec2:DisassociateRouteTable",
                       "ec2:ReleaseAddress",
                       "ec2:RevokeSecurityGroupIngress",
-                      "ecr:GetAuthorizationToken",
-                      "ecr:BatchGetImage",
                       "ecs:CreateService",
                       "ecs:DeleteService",
                       "ecs:DescribeContainerInstances",
@@ -815,6 +813,20 @@
                   "Resource": [
                       { "Fn::Join": [ "", [ "arn:aws:ecr:*:*:repository/", { "Ref": "AWS::StackName" }, "*"] ] }
                   ]
+                }, {
+                  "Sid": "ReadOnlyECRAccess",
+                  "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:GetRepositoryPolicy",
+                    "ecr:DescribeRepositories",
+                    "ecr:ListImages",
+                    "ecr:DescribeImages",
+                    "ecr:BatchGetImage"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
                 }, {
                   "Sid": "LimitedCloudWatchEventAccess",
                   "Action": "events:*",
