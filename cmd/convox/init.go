@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 	"github.com/convox/rack/cmd/convox/templates"
 	"github.com/convox/rack/manifest"
 	"gopkg.in/urfave/cli.v1"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func init() {
@@ -42,28 +43,30 @@ func cmdInit(c *cli.Context) error {
 
 	dir, _, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("docker-compose.yml") {
-		return stdcli.Error(fmt.Errorf("Cannot initialize a project that already contains a docker-compose.yml"))
+		return stdcli.Error(fmt.Errorf("Cannot initialize a project that already contains docker-compose.yml"))
+
 	}
 
 	err = initApplication(dir)
 	if err != nil {
-		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		return stdcli.Error(err)
 	}
 
-	return stdcli.QOSEventSend("cli-init", distinctId, ep)
+	stdcli.QOSEventSend("cli-init", distinctId, ep)
+	return nil
 }
 
 func detectApplication(dir string) string {
 	switch {
-	// case exists(filepath.Join(dir, ".meteor")):
-	//   return "meteor"
-	// case exists(filepath.Join(dir, "package.json")):
-	//   return "node"
+	case exists(filepath.Join(dir, "Procfile")):
+		return "heroku"
 	case exists(filepath.Join(dir, "manage.py")):
 		return "django"
 	case exists(filepath.Join(dir, "config/application.rb")):
@@ -79,6 +82,17 @@ func detectApplication(dir string) string {
 	return "unknown"
 }
 
+func detectBuildpack(dir string) string {
+	switch {
+	case exists(filepath.Join(dir, "requirements.txt")) || exists(filepath.Join(dir, "setup.py")):
+		return "python"
+	case exists(filepath.Join(dir, "package.json")):
+		return "nodejs"
+	}
+
+	return "unknown"
+}
+
 func initApplication(dir string) error {
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if exists("Dockerfile") || exists("docker-compose.yml") {
@@ -89,7 +103,28 @@ func initApplication(dir string) error {
 
 	fmt.Printf("Initializing %s\n", kind)
 
-	if err := writeAsset("Dockerfile", fmt.Sprintf("init/%s/Dockerfile", kind)); err != nil {
+	var input map[string]interface{}
+
+	if kind == "heroku" {
+		bp := detectBuildpack(dir)
+		if bp == "unknown" {
+			// TODO: track this event
+			return fmt.Errorf("unable to detect Buildpack")
+		}
+
+		if err := writeAsset("entrypoint.sh", "init/buildpack/entrypoint.sh", nil); err != nil {
+			return err
+		}
+
+		kind = "buildpack"
+
+		input = map[string]interface{}{
+			"framework": bp,
+		}
+
+	}
+
+	if err := writeAsset("Dockerfile", fmt.Sprintf("init/%s/Dockerfile", kind), input); err != nil {
 		return err
 	}
 
@@ -97,7 +132,7 @@ func initApplication(dir string) error {
 		return err
 	}
 
-	if err := writeAsset(".dockerignore", fmt.Sprintf("init/%s/.dockerignore", kind)); err != nil {
+	if err := writeAsset(".dockerignore", fmt.Sprintf("init/%s/.dockerignore", kind), input); err != nil {
 		return err
 	}
 
@@ -123,18 +158,18 @@ func generateManifest(dir string, def string) error {
 				Command: manifest.Command{
 					String: e.Command,
 				},
-				Labels: make(manifest.Labels),
-				Ports:  make(manifest.Ports, 0),
+				Environment: make(manifest.Environment),
+				Labels:      make(manifest.Labels),
+				Ports:       make(manifest.Ports, 0),
 			}
 
 			switch e.Name {
 			case "web":
 				me.Labels["convox.port.443.protocol"] = "tls"
-				me.Labels["convox.port.443.proxy"] = "true"
 
 				me.Ports = append(me.Ports, manifest.Port{
 					Balancer:  80,
-					Container: 4000,
+					Container: 4001,
 					Public:    true,
 				})
 				me.Ports = append(me.Ports, manifest.Port{
@@ -142,13 +177,14 @@ func generateManifest(dir string, def string) error {
 					Container: 4001,
 					Public:    true,
 				})
+
+				me.Environment["PORT"] = "4001"
 			}
 
 			m.Services[e.Name] = me
 		}
 
 		data, err := yaml.Marshal(m)
-
 		if err != nil {
 			return err
 		}
@@ -158,7 +194,7 @@ func generateManifest(dir string, def string) error {
 	}
 
 	// write the default if we get here
-	return writeAsset("docker-compose.yml", def)
+	return writeAsset("docker-compose.yml", def, nil)
 }
 
 type ProcfileEntry struct {
@@ -172,7 +208,6 @@ var reProcfile = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 
 func readProcfile(path string) (Procfile, error) {
 	data, err := ioutil.ReadFile(path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -217,17 +252,31 @@ func writeFile(path string, data []byte, mode os.FileMode) error {
 	return nil
 }
 
-func writeAsset(path, template string) error {
-	data, err := templates.Asset(template)
-
+func writeAsset(path, templateName string, input interface{}) error {
+	data, err := templates.Asset(templateName)
 	if err != nil {
 		return err
 	}
 
-	info, err := templates.AssetInfo(template)
-
+	info, err := templates.AssetInfo(templateName)
 	if err != nil {
 		return err
+	}
+
+	if input != nil {
+		tmpl, err := template.New(templateName).Parse(string(data))
+		if err != nil {
+			return err
+		}
+
+		var formation bytes.Buffer
+
+		err = tmpl.Execute(&formation, input)
+		if err != nil {
+			return err
+		}
+
+		data = formation.Bytes()
 	}
 
 	return writeFile(path, data, info.Mode())
