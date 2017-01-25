@@ -217,7 +217,6 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 				for _, arn := range page.TaskArns {
 					tasks = append(tasks, *arn)
 				}
-				fmt.Println(page)
 				return pageNum <= 3
 			},
 		)
