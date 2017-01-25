@@ -9,6 +9,17 @@ export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
 convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
-convox rack params set Autoscale=No
-
 convox instances
+
+rstatus=$(convox rack | grep Status)
+c=0
+
+while [[ $rstatus != *"running"* ]]; do
+  let c=c+1
+  [ $c -gt 60 ] && exit 1
+
+  sleep 5
+  rstatus=$(convox rack | grep Status)
+done
+
+convox rack params set Autoscale=No
