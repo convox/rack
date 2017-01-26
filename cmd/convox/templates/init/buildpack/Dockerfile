@@ -1,7 +1,9 @@
 FROM heroku/cedar
 
 RUN cd /tmp && git clone https://github.com/heroku/heroku-buildpack-{{ .framework }}
-
+{{ if .environment }}
+ENV {{ range $key, $value := .environment }}{{ $key }}={{ $value }} {{ end }}
+{{ end }}
 ENV HOME=/app
 WORKDIR /app
 
