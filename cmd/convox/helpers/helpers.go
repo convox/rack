@@ -1,4 +1,4 @@
-package main
+package helpers
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-func exists(filename string) bool {
+func Exists(filename string) bool {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return false
 	}
@@ -15,7 +15,7 @@ func exists(filename string) bool {
 	return true
 }
 
-func humanizeTime(t time.Time) string {
+func HumanizeTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	} else {

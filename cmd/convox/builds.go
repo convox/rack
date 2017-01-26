@@ -18,6 +18,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/docker/docker/builder/dockerignore"
 	"github.com/docker/docker/pkg/archive"
@@ -155,7 +156,7 @@ func cmdBuilds(c *cli.Context) error {
 	t := stdcli.NewTable("ID", "STATUS", "RELEASE", "STARTED", "ELAPSED", "DESC")
 
 	for _, build := range builds {
-		started := humanizeTime(build.Started)
+		started := helpers.HumanizeTime(build.Started)
 		elapsed := stdcli.Duration(build.Started, build.Ended)
 
 		if build.Ended.IsZero() {
@@ -262,7 +263,7 @@ func cmdBuildsInfo(c *cli.Context) error {
 	fmt.Printf("Status       %s\n", b.Status)
 	fmt.Printf("Release      %s\n", b.Release)
 	fmt.Printf("Description  %s\n", b.Description)
-	fmt.Printf("Started      %s\n", humanizeTime(b.Started))
+	fmt.Printf("Started      %s\n", helpers.HumanizeTime(b.Started))
 	fmt.Printf("Elapsed      %s\n", stdcli.Duration(b.Started, b.Ended))
 
 	return nil

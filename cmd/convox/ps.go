@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -99,9 +100,9 @@ func displayProcesses(ps []client.Process, showApp bool) {
 
 	for _, p := range ps {
 		if showApp {
-			t.AddRow(prettyId(p), p.App, p.Name, p.Release, humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.App, p.Name, p.Release, helpers.HumanizeTime(p.Started), p.Command)
 		} else {
-			t.AddRow(prettyId(p), p.Name, p.Release, humanizeTime(p.Started), p.Command)
+			t.AddRow(prettyId(p), p.Name, p.Release, helpers.HumanizeTime(p.Started), p.Command)
 		}
 	}
 
@@ -122,9 +123,9 @@ func displayProcessesStats(ps []client.Process, fm client.Formation, showApp boo
 				continue
 			}
 			if showApp {
-				t.AddRow(prettyId(p), p.Name, p.App, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+				t.AddRow(prettyId(p), p.Name, p.App, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), helpers.HumanizeTime(p.Started), p.Command)
 			} else {
-				t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), humanizeTime(p.Started), p.Command)
+				t.AddRow(prettyId(p), p.Name, p.Release, fmt.Sprintf("%0.2f%%", p.Cpu), fmt.Sprintf("%0.1fMB/%dMB", p.Memory*float64(f.Memory), f.Memory), fmt.Sprintf("%0.2f%%", p.Memory*100), helpers.HumanizeTime(p.Started), p.Command)
 			}
 		}
 	}
@@ -155,7 +156,7 @@ func cmdPsInfo(c *cli.Context) error {
 	fmt.Printf("Release  %s\n", p.Release)
 	fmt.Printf("CPU      %0.2f%%\n", p.Cpu)
 	fmt.Printf("Memory   %0.2f%%\n", p.Memory*100)
-	fmt.Printf("Started  %s\n", humanizeTime(p.Started))
+	fmt.Printf("Started  %s\n", helpers.HumanizeTime(p.Started))
 	fmt.Printf("Command  %s\n", p.Command)
 
 	return nil

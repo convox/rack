@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -64,7 +65,7 @@ func cmdCertsList(c *cli.Context) error {
 	t := stdcli.NewTable("ID", "DOMAIN", "EXPIRES")
 
 	for _, cert := range certs {
-		t.AddRow(cert.Id, cert.Domain, humanizeTime(cert.Expiration))
+		t.AddRow(cert.Id, cert.Domain, helpers.HumanizeTime(cert.Expiration))
 	}
 
 	t.Print()
