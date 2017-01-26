@@ -12,6 +12,39 @@ import (
 func init() {
 }
 
+func TestRegistryAddBlankPassword(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleRegistryAddRegistry,
+	)
+	defer provider.Close()
+
+	_, err := provider.RegistryAdd("server", "username", "")
+
+	assert.EqualError(t, err, "password must not be blank", "an error is expected")
+}
+
+func TestRegistryAddBlankServer(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleRegistryAddRegistry,
+	)
+	defer provider.Close()
+
+	_, err := provider.RegistryAdd("", "username", "password")
+
+	assert.EqualError(t, err, "server must not be blank", "an error is expected")
+}
+
+func TestRegistryAddBlankUser(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleRegistryAddRegistry,
+	)
+	defer provider.Close()
+
+	_, err := provider.RegistryAdd("server", "", "password")
+
+	assert.EqualError(t, err, "username must not be blank", "an error is expected")
+}
+
 func TestRegistryDelete(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleRegistryHeadRegistry,
@@ -44,6 +77,17 @@ func TestRegistryList(t *testing.T) {
 			Password: "B0IT2U7BZ4VDZUYFM6LFMTJPF8YGKWYBR39AWWPAUKZX6YKZX3SQNBCCQKMX08UF",
 		},
 	}, r)
+}
+
+var cycleRegistryAddRegistry = awsutil.Cycle{
+	awsutil.Request{
+		Method:     "POST",
+		RequestURI: "/registries",
+	},
+	awsutil.Response{
+		StatusCode: 200,
+		Body:       "{}",
+	},
 }
 
 var cycleRegistryGetRackEnv = awsutil.Cycle{
