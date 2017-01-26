@@ -7,6 +7,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -91,7 +92,7 @@ func cmdReleases(c *cli.Context) error {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, humanizeTime(r.Created), r.Build, status)
+		t.AddRow(r.Id, helpers.HumanizeTime(r.Created), r.Build, status)
 	}
 
 	t.Print()
