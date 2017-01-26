@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -86,18 +88,20 @@ func cmdLogin(c *cli.Context) error {
 		password = c.String("password")
 	}
 
+	var userId string
+
 	if password != "" {
 		// password flag
-		err = testLogin(host, password, c.App.Version)
+		_, userId, err = testLogin(host, password, c.App.Version)
 	} else {
 		// first try current login
 		password, err = getLogin(host)
-		err = testLogin(host, password, c.App.Version)
+		_, userId, err = testLogin(host, password, c.App.Version)
 
 		// then prompt for password
 		if err != nil {
 			password = promptForPassword()
-			err = testLogin(host, password, c.App.Version)
+			_, userId, err = testLogin(host, password, c.App.Version)
 		}
 	}
 
@@ -112,6 +116,10 @@ func cmdLogin(c *cli.Context) error {
 	err = addLogin(host, password)
 	if err != nil {
 		return stdcli.Error(err)
+	}
+
+	if userId != "" {
+		updateId(userId)
 	}
 
 	err = switchHost(host)
@@ -343,24 +351,48 @@ func updateId(id string) error {
 	return ioutil.WriteFile(config, []byte(id), 0600)
 }
 
-func testLogin(host, password, version string) (err error) {
-	cl := client.New(host, password, version)
-
-	if cl == nil {
-		return
+func testLogin(host, password, version string) (bool, string, error) {
+	//Attempt a console login
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
-	_, err = cl.GetApps()
+	u := url.URL{}
+	u.Host = host
+	u.Scheme = "https"
+	u.Path = "/auth"
 
+	req, err := http.NewRequest("GET", u.String(), nil)
+	req.SetBasicAuth("", password)
+
+	httpClient := &http.Client{Transport: tr}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return false, "", err
+	}
+
+	data := map[string]string{}
+
+	_ = json.NewDecoder(resp.Body).Decode(&data)
+
+	if data["id"] != "" {
+		return true, data["id"], nil
+	}
+
+	//Attempt a rack login
+	cl := client.New(host, password, version)
+
+	_, err = cl.GetApps()
 	if err != nil {
 		err = cl.Auth()
 
 		if err != nil {
-			return
+			return false, "", err
 		}
 	}
 
-	return nil
+	return false, "", nil
 }
 
 func promptForPassword() string {
