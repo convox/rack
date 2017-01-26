@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/convox/rack/api/structs"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/version"
 	"gopkg.in/urfave/cli.v1"
@@ -372,7 +373,7 @@ func cmdRackReleases(c *cli.Context) error {
 			status = "active"
 		}
 
-		t.AddRow(r.Id, humanizeTime(r.Created), status)
+		t.AddRow(r.Id, helpers.HumanizeTime(r.Created), status)
 	}
 
 	t.Print()

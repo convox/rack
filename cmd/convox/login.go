@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	homedir "github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh/terminal"
@@ -266,7 +267,7 @@ func currentHost() (string, error) {
 
 	config := filepath.Join(ConfigRoot, "host")
 
-	if !exists(config) {
+	if !helpers.Exists(config) {
 		return "", fmt.Errorf("no host config")
 	}
 
@@ -286,7 +287,7 @@ func currentPassword() (string, error) {
 
 	config := filepath.Join(ConfigRoot, "auth")
 
-	if !exists(config) {
+	if !helpers.Exists(config) {
 		return "", fmt.Errorf("no auth config")
 	}
 
@@ -312,7 +313,7 @@ func currentPassword() (string, error) {
 func currentId() (string, error) {
 	config := filepath.Join(ConfigRoot, "id")
 
-	if !exists(config) {
+	if !helpers.Exists(config) {
 		err := os.MkdirAll(ConfigRoot, 0700)
 		if err != nil {
 			return "", err

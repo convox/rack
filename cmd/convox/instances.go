@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -70,7 +71,7 @@ func cmdInstancesList(c *cli.Context) error {
 		}
 
 		t.AddRow(i.Id, agent, i.Status,
-			humanizeTime(i.Started),
+			helpers.HumanizeTime(i.Started),
 			strconv.Itoa(i.Processes),
 			fmt.Sprintf("%0.2f%%", i.Cpu*100),
 			fmt.Sprintf("%0.2f%%", i.Memory*100))
