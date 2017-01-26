@@ -7,8 +7,6 @@ export CONVOX_EMAIL=ci@convox.com
 export STACK_NAME=convox-${CIRCLE_BUILD_NUM}
 export $($(dirname $0)/region.sh ${CIRCLE_NODE_INDEX})
 
-convox install | tee $CIRCLE_ARTIFACTS/convox-installer.log
-
-convox rack params set Autoscale=No
+convox install --no-autoscale | tee $CIRCLE_ARTIFACTS/convox-installer.log
 
 convox instances

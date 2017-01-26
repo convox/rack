@@ -16,6 +16,18 @@ import (
 func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.Registry, error) {
 	log := Logger.At("RegistryAdd").Namespace("server=%q username=%q", server, username).Start()
 
+	if server == "" {
+		return nil, fmt.Errorf("server must not be blank")
+	}
+
+	if username == "" {
+		return nil, fmt.Errorf("username must not be blank")
+	}
+
+	if password == "" {
+		return nil, fmt.Errorf("password must not be blank")
+	}
+
 	dc, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		return nil, err
