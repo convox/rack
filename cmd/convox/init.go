@@ -88,9 +88,24 @@ func detectBuildpack(dir string) string {
 		return "python"
 	case exists(filepath.Join(dir, "package.json")):
 		return "nodejs"
+	case exists(filepath.Join(dir, "Gemfile")):
+		return "ruby"
 	}
 
 	return "unknown"
+}
+
+// buildpackEnvironment creates environment variables that are buildpack specific
+func buildpackEnvironment(kind string) map[string]string {
+	switch kind {
+	case "ruby":
+		return map[string]string{
+			"CURL_CONNECT_TIMEOUT": "0", // default timeout is too aggressive causing failure
+			"STACK":                "cedar-14",
+		}
+	default:
+		return map[string]string{}
+	}
 }
 
 func initApplication(dir string) error {
@@ -119,9 +134,9 @@ func initApplication(dir string) error {
 		kind = "buildpack"
 
 		input = map[string]interface{}{
-			"framework": bp,
+			"framework":   bp,
+			"environment": buildpackEnvironment(bp),
 		}
-
 	}
 
 	if err := writeAsset("Dockerfile", fmt.Sprintf("init/%s/Dockerfile", kind), input); err != nil {
