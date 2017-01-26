@@ -424,6 +424,12 @@ func cmdInstall(c *cli.Context) error {
 
 	fmt.Println("")
 
+	// Try to add to console. Any error falls back to old behavior
+	err = addToConsole(c, stackName, host, password)
+	if err == nil {
+		return stdcli.QOSEventSend("cli-install", distinctID, ep)
+	}
+
 	fmt.Println("Logging in...")
 
 	err = addLogin(host, password)
@@ -441,6 +447,35 @@ func cmdInstall(c *cli.Context) error {
 	fmt.Println("Success, try `convox apps`")
 
 	return stdcli.QOSEventSend("cli-install", distinctID, ep)
+}
+
+func addToConsole(c *cli.Context, name, host, password string) error {
+	consoleHost, err := currentHost()
+	if err != nil {
+		return err
+	}
+
+	rc := rackClient(c)
+	if rc == nil {
+		return fmt.Errorf("no Rack client")
+	}
+
+	// try console-only /racks API
+	_, err = rc.Racks()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Adding Rack to Console (%s)...\n", consoleHost)
+
+	_, err = rc.CreateRack(name, host, password)
+	if err != nil {
+		fmt.Println("Failed: %s", err.Error())
+		return err
+	}
+
+	fmt.Println("Success, try `convox racks`")
+	return nil
 }
 
 /// validateUserAccess checks for the "AdministratorAccess" policy needed to create a rack.
