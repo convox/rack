@@ -111,6 +111,10 @@ func init() {
 				Usage: "internet gateway id to use in existing vpc",
 			},
 			cli.BoolFlag{
+				Name:  "no-autoscale",
+				Usage: "use to disable autoscale during install (which is enabled by default)",
+			},
+			cli.BoolFlag{
 				Name:   "private",
 				Usage:  "use private subnets and NAT gateways to shield instances",
 				EnvVar: "RACK_PRIVATE",
@@ -358,6 +362,14 @@ func cmdInstall(c *cli.Context) error {
 		},
 		StackName:   aws.String(stackName),
 		TemplateURL: aws.String(furl),
+	}
+
+	if c.Bool("no-autoscale") {
+		p := &cloudformation.Parameter{
+			ParameterKey:   aws.String("Autoscale"),
+			ParameterValue: aws.String("No"),
+		}
+		req.Parameters = append(req.Parameters, p)
 	}
 
 	if tf := os.Getenv("TEMPLATE_FILE"); tf != "" {
