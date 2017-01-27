@@ -1431,6 +1431,21 @@
             "Key": "GatewayAttachment",
             "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
             "PropagateAtLaunch": false
+          },
+          {
+            "Key": "SubnetPrivate0Routes",
+            "Value": { "Fn::If": ["Private", { "Ref": "SubnetPrivate0Routes" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "SubnetPrivate1Routes",
+            "Value": { "Fn::If": ["Private", { "Ref": "SubnetPrivate1Routes" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "SubnetPrivate2Routes",
+            "Value": { "Fn::If": ["PrivateAndThirdAvailabilityZone", { "Ref": "SubnetPrivate2Routes" }, "" ] },
+            "PropagateAtLaunch": false
           }
         ]
       },
