@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
@@ -80,7 +81,7 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	appType := detectApplication(dir)
+	appType := helpers.DetectApplication(dir)
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
 		return stdcli.Error(err)
