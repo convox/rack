@@ -566,8 +566,8 @@
 		},
 		{
 			"ImportPath": "gopkg.in/urfave/cli.v1",
-			"Comment": "v1.17.0",
-			"Rev": "01857ac33766ce0c93856370626f9799281c14f4"
+			"Comment": "v1.19.1",
+			"Rev": "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
