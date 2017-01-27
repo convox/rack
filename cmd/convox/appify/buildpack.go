@@ -3,10 +3,12 @@ package appify
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -21,6 +23,17 @@ type Buildpack struct {
 	tmplInput map[string]interface{}
 }
 
+// EnvEntry is an environment entry from an app.json file
+type EnvEntry struct {
+	Value string
+}
+
+// Appfile represent specific fields of an app.json file
+type Appfile struct {
+	Addons []string
+	Env    map[string]EnvEntry
+}
+
 // ProcfileEntry is an entry in a Procfile
 type ProcfileEntry struct {
 	Name    string
@@ -32,7 +45,7 @@ type Procfile []ProcfileEntry
 
 var reProcfile = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 
-// Appfiy generates the files needed for an app
+// Appify generates the files needed for an app
 // Must be called after Setup()
 func (bp *Buildpack) Appify() error {
 	if !bp.setup {
@@ -72,12 +85,22 @@ func (bp *Buildpack) Setup(location string) error {
 		"environment": buildpackEnvironment(kind),
 	}
 
-	proc, err := readProcfile("Procfile")
+	pf, err := readProcfile("Procfile")
 	if err != nil {
 		return fmt.Errorf("reading Procfile : %s", err)
 	}
 
-	bp.manifest = generateManifest(proc)
+	af, err := readAppfile("app.json")
+	if err != nil {
+		return fmt.Errorf("reading app.json : %s", err)
+	}
+
+	bp.manifest = generateManifest(pf, af)
+
+	if len(af.Addons) > 0 {
+		bp.manifest = parseAddons(af, bp.manifest)
+	}
+
 	bp.setup = true
 
 	return nil
@@ -133,19 +156,34 @@ func readProcfile(path string) (Procfile, error) {
 	return pf, nil
 }
 
+func readAppfile(path string) (Appfile, error) {
+	af := Appfile{}
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return af, err
+	}
+
+	if err := json.Unmarshal(data, &af); err != nil {
+		return af, err
+	}
+
+	return af, nil
+}
+
 // generateManifest generates a Manifest from a Procfile
-func generateManifest(proc Procfile) manifest.Manifest {
+func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 
 	m := manifest.Manifest{
 		Services: make(map[string]manifest.Service),
 	}
 
-	for _, e := range proc {
+	for _, e := range pf {
 		me := manifest.Service{
-			Build: manifest.Build{
+			Build: &manifest.Build{
 				Context: ".",
 			},
-			Command: manifest.Command{
+			Command: &manifest.Command{
 				String: e.Command,
 			},
 			Environment: make(manifest.Environment),
@@ -169,18 +207,47 @@ func generateManifest(proc Procfile) manifest.Manifest {
 			})
 
 			me.Environment["PORT"] = "4001"
+
+			for k, v := range af.Env {
+				me.Environment[k] = v.Value
+			}
 		}
 
 		m.Services[e.Name] = me
 	}
 
 	return m
+}
 
-	//data, err := yaml.Marshal(m)
-	//if err != nil {
-	//return err
-	//}
+func parseAddons(af Appfile, m manifest.Manifest) manifest.Manifest {
 
-	// write the generated docker-compose.yml and return
-	//return writeFile("docker-compose.yml", data, 0644)
+	for _, addon := range af.Addons {
+		switch {
+		case strings.Contains(addon, "postgres"):
+			m = postgresAddon(af, m)
+		}
+	}
+
+	return m
+}
+
+func postgresAddon(af Appfile, m manifest.Manifest) manifest.Manifest {
+	s := manifest.Service{
+		Image: "convox/postgres",
+		Name:  "database",
+		Ports: manifest.Ports{
+			{Container: 5432, Public: false},
+		},
+		Volumes: []string{
+			"/var/lib/postgresql/data",
+		},
+	}
+
+	web := m.Services["web"]
+	web.Links = append(web.Links, "database")
+	m.Services["web"] = web
+
+	m.Services["database"] = s
+
+	return m
 }
