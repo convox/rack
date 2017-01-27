@@ -634,7 +634,11 @@
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
-        "ManagedPolicyArns": [ { "Ref": "KernelUserPolicy" }, { "Ref": "KernelUserIAMPolicy" } ]
+        "ManagedPolicyArns": [
+          { "Ref": "KernelUserPolicy" },
+          { "Ref": "KernelUserIAMPolicy" },
+          { "Ref": "KernelUserGeneralPolicy" }
+        ]
       }
     },
     "KernelUserGeneralPolicy": {
