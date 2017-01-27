@@ -8,6 +8,7 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
+// Exists checks if a file exists
 func Exists(filename string) bool {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return false
@@ -16,14 +17,15 @@ func Exists(filename string) bool {
 	return true
 }
 
+// HumanizeTime converts a Time into a human-friendly format
 func HumanizeTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
-	} else {
-		return humanize.Time(t)
 	}
+	return humanize.Time(t)
 }
 
+// DetectApplication detects an apps type by looking for special files
 func DetectApplication(dir string) string {
 	switch {
 	case Exists(filepath.Join(dir, "Procfile")):

@@ -8,7 +8,7 @@ type GenericApp struct {
 	AppKind string
 }
 
-// Appfiy generates the files needed for an app
+// Appify generates the files needed for an app
 // Must be called after Setup()
 func (g *GenericApp) Appify() error {
 	if err := writeAsset("Dockerfile", fmt.Sprintf("appify/templates/%s/Dockerfile", g.AppKind), nil); err != nil {
