@@ -651,7 +651,9 @@
                       "acm:ListCertificates",
                       "acm:RequestCertificate",
                       "autoscaling:CreateLaunchConfiguration",
+                      "autoscaling:CreateOrUpdateTags",
                       "autoscaling:DeleteLaunchConfiguration",
+                      "autoscaling:DeleteTags",
                       "autoscaling:DescribeAutoScalingGroups",
                       "autoscaling:DescribeAutoScalingInstances",
                       "autoscaling:DescribeLaunchConfigurations",
@@ -1445,6 +1447,21 @@
           {
             "Key": "SubnetPrivate2Routes",
             "Value": { "Fn::If": ["PrivateAndThirdAvailabilityZone", { "Ref": "SubnetPrivate2Routes" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "Nat0",
+            "Value": { "Fn::If": ["Private", { "Ref": "Nat0" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "Nat1",
+            "Value": { "Fn::If": ["Private", { "Ref": "Nat1" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "Nat2",
+            "Value": { "Fn::If": ["PrivateAndThirdAvailabilityZone", { "Ref": "Nat2" }, "" ] },
             "PropagateAtLaunch": false
           }
         ]
