@@ -145,12 +145,10 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 
 	if opts.Command != "" {
 		args = append(args, "sh", "-c", opts.Command)
-	} else if p.service.Command != nil {
-		if p.service.Command.String != "" {
-			args = append(args, "sh", "-c", p.service.Command.String)
-		} else if len(p.service.Command.Array) > 0 {
-			args = append(args, p.service.Command.Array...)
-		}
+	} else if p.service.Command.String != "" {
+		args = append(args, "sh", "-c", p.service.Command.String)
+	} else if len(p.service.Command.Array) > 0 {
+		args = append(args, p.service.Command.Array...)
 	}
 
 	return args

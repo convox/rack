@@ -180,10 +180,10 @@ func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 
 	for _, e := range pf {
 		me := manifest.Service{
-			Build: &manifest.Build{
+			Build: manifest.Build{
 				Context: ".",
 			},
-			Command: &manifest.Command{
+			Command: manifest.Command{
 				String: e.Command,
 			},
 			Environment: make(manifest.Environment),

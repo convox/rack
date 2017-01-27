@@ -51,9 +51,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 
 		context := filepath.Join(dir, coalesce(service.Build.Context, "."))
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
-		if service.Build != nil {
-			dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
-		}
+		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 
 		args = append(args, "-f", filepath.Join(context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
