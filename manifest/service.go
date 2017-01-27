@@ -21,8 +21,8 @@ var ManifestRandomPorts = true
 type Service struct {
 	Name string `yaml:"-"`
 
-	Build       Build       `yaml:"build,omitempty"`
-	Command     Command     `yaml:"command,omitempty"`
+	Build       *Build      `yaml:"build,omitempty"`
+	Command     *Command    `yaml:"command,omitempty"`
 	Dockerfile  string      `yaml:"dockerfile,omitempty"`
 	Entrypoint  string      `yaml:"entrypoint,omitempty"`
 	Environment Environment `yaml:"environment,omitempty"`
@@ -131,7 +131,7 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 	sp := map[string]string{}
 	ev := map[string]string{}
 
-	if s.Build.Context == "" {
+	if s.Build == nil || s.Build.Context == "" {
 		return sp, nil
 	}
 
