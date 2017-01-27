@@ -21,10 +21,6 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 	}
 
 	for _, service := range services {
-		dockerFile := service.Build.Dockerfile
-		if dockerFile == "" {
-			dockerFile = service.Dockerfile
-		}
 		if image := service.Image; image != "" {
 			// make the implicit :latest explicit for caching/pulling
 			sp := strings.Split(image, "/")
@@ -55,7 +51,9 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 
 		context := filepath.Join(dir, coalesce(service.Build.Context, "."))
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
-		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
+		if service.Build != nil {
+			dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
+		}
 
 		args = append(args, "-f", filepath.Join(context, dockerFile))
 		args = append(args, "-t", service.Tag(appName))
