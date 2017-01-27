@@ -12,6 +12,7 @@ import (
 	"github.com/convox/rack/cmd/convox/helpers"
 )
 
+// Framework interface for different languages and frameworks
 type Framework interface {
 	Appify() error
 	Setup(string) error
