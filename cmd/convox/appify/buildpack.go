@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -18,7 +19,8 @@ import (
 
 // Buildpack type representing a Heroku Buildpack
 type Buildpack struct {
-	manifest  manifest.Manifest
+	directory string
+	Manifest  manifest.Manifest
 	setup     bool
 	tmplInput map[string]interface{}
 }
@@ -64,7 +66,7 @@ func (bp *Buildpack) Appify() error {
 		return err
 	}
 
-	data, err := yaml.Marshal(bp.manifest)
+	data, err := yaml.Marshal(bp.Manifest)
 	if err != nil {
 		return err
 	}
@@ -74,7 +76,8 @@ func (bp *Buildpack) Appify() error {
 
 // Setup reads the location for Buildpack specifc files and settings
 func (bp *Buildpack) Setup(location string) error {
-	kind := detectBuildpack(location)
+	bp.directory = location
+	kind := detectBuildpack(bp.directory)
 	if kind == "unknown" {
 		// TODO: track this event
 		return fmt.Errorf("unknown Buildpack type")
@@ -85,20 +88,20 @@ func (bp *Buildpack) Setup(location string) error {
 		"environment": buildpackEnvironment(kind),
 	}
 
-	pf, err := readProcfile("Procfile")
+	pf, err := readProcfile(path.Join(bp.directory, "Procfile"))
 	if err != nil {
-		return fmt.Errorf("reading Procfile : %s", err)
+		return err
 	}
 
-	af, err := readAppfile("app.json")
+	af, err := readAppfile(path.Join(bp.directory, "app.json"))
 	if err != nil {
-		return fmt.Errorf("reading app.json : %s", err)
+		return err
 	}
 
-	bp.manifest = generateManifest(pf, af)
+	bp.Manifest = generateManifest(pf, af)
 
 	if len(af.Addons) > 0 {
-		bp.manifest = parseAddons(af, bp.manifest)
+		bp.Manifest = parseAddons(af, bp.Manifest)
 	}
 
 	bp.setup = true
@@ -176,6 +179,7 @@ func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 
 	m := manifest.Manifest{
 		Services: make(map[string]manifest.Service),
+		Version:  "2",
 	}
 
 	for _, e := range pf {
@@ -193,14 +197,17 @@ func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 
 		switch e.Name {
 		case "web":
+			me.Name = "web"
 			me.Labels["convox.port.443.protocol"] = "tls"
 
 			me.Ports = append(me.Ports, manifest.Port{
+				Name:      "80",
 				Balancer:  80,
 				Container: 4001,
 				Public:    true,
 			})
 			me.Ports = append(me.Ports, manifest.Port{
+				Name:      "443",
 				Balancer:  443,
 				Container: 4001,
 				Public:    true,
@@ -236,7 +243,7 @@ func postgresAddon(af Appfile, m manifest.Manifest) manifest.Manifest {
 		Image: "convox/postgres",
 		Name:  "database",
 		Ports: manifest.Ports{
-			{Container: 5432, Public: false},
+			{Balancer: 5432, Container: 5432, Name: "5432", Public: false},
 		},
 		Volumes: []string{
 			"/var/lib/postgresql/data",
