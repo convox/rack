@@ -84,7 +84,21 @@ func cmdStart(c *cli.Context) error {
 	appType := helpers.DetectApplication(dir)
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
-		return stdcli.Error(err)
+		if strings.Contains(err.Error(), "docker-compose.yml: no such file or directory") {
+			fmt.Println("Unable to find docker-compose.yml. Running convox init now")
+			err := cmdInit(c)
+			if err != nil {
+				return stdcli.Error(err)
+			}
+
+			m, err = manifest.LoadFile(c.String("file"))
+			if err != nil {
+				return stdcli.Error(err)
+			}
+
+		} else {
+			return stdcli.Error(err)
+		}
 	}
 
 	errs := m.Validate()
