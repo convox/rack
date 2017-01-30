@@ -29,7 +29,15 @@ func HumanizeTime(t time.Time) string {
 func DetectApplication(dir string) string {
 	switch {
 	case Exists(filepath.Join(dir, "Procfile")):
-		return "heroku"
+		switch {
+		case Exists(filepath.Join(dir, "requirements.txt")) || Exists(filepath.Join(dir, "setup.py")):
+			return "heroku/python"
+		case Exists(filepath.Join(dir, "package.json")):
+			return "heroku/nodejs"
+		case Exists(filepath.Join(dir, "Gemfile")):
+			return "heroku/ruby"
+		}
+
 	case Exists(filepath.Join(dir, "manage.py")):
 		return "django"
 	case Exists(filepath.Join(dir, "config/application.rb")):

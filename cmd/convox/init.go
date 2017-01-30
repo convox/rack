@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/convox/rack/cmd/convox/appify"
@@ -67,13 +68,16 @@ func initApplication(dir, distinctId string) (string, error) {
 
 	kind := helpers.DetectApplication(dir)
 
-	switch kind {
-	case "heroku":
-		fw = &appify.Buildpack{}
+	switch {
+	case strings.Contains(kind, "heroku"):
+		fw = &appify.Buildpack{
+			Kind: strings.Split(kind, "/")[1],
+		}
 
 	default:
-		ga := &appify.GenericApp{}
-		ga.AppKind = kind
+		ga := &appify.GenericApp{
+			Kind: kind,
+		}
 		fw = ga
 	}
 
