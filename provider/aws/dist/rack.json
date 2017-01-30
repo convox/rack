@@ -630,7 +630,7 @@
       }
     },
     "KernelUser": {
-      "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy" ],
+      "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy", "KernelUserGeneralPolicy" ],
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
