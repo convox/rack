@@ -1999,8 +1999,8 @@
             "Memory": { "Ref": "ApiMemory" },
             "Name": "web",
             "PortMappings": [
-              "3000:3000",
-              "3001:4443"
+              "3000:3000/tcp",
+              "3001:4443/tcp"
             ],
             "Volumes": [
               "/var/run/docker.sock:/var/run/docker.sock"

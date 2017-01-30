@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,9 @@ import (
 	"github.com/convox/rack/api/crypt"
 	"github.com/convox/rack/api/models"
 )
+
+// Parses as [host]:[container]/[protocol?], where [protocol] is optional
+var portMappingRegex = regexp.MustCompile(`^(\d+):(\d+)(?:/(udp|tcp))?$`)
 
 func HandleECSService(req Request) (string, map[string]string, error) {
 	switch req.RequestType {
@@ -226,17 +230,21 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 
 		// set portmappings
 		if ports, ok := task["PortMappings"].([]interface{}); ok {
-
 			r.ContainerDefinitions[i].PortMappings = make([]*ecs.PortMapping, len(ports))
 
 			for j, port := range ports {
-				parts := strings.Split(port.(string), ":")
-				host, _ := strconv.Atoi(parts[0])
-				container, _ := strconv.Atoi(parts[1])
+				parts := portMappingRegex.FindStringSubmatch(port.(string))
+				host, _ := strconv.Atoi(parts[1])
+				container, _ := strconv.Atoi(parts[2])
+				protocol := strings.ToLower(parts[3])
+				if protocol != "tcp" && protocol != "udp" {
+					protocol = "tcp" // default
+				}
 
 				r.ContainerDefinitions[i].PortMappings[j] = &ecs.PortMapping{
 					ContainerPort: aws.Int64(int64(container)),
 					HostPort:      aws.Int64(int64(host)),
+					Protocol:      aws.String(protocol),
 				}
 			}
 		}

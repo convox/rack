@@ -95,15 +95,27 @@ func (s *Service) Process(app string, m Manifest) Process {
 	return NewProcess(app, *s, m)
 }
 
+// HasBalancer returns false if the Service contains no public ports,
+// or if the `convox.balancer` label is set to false
 func (s Service) HasBalancer() bool {
-	return len(s.Ports) > 0
+	if s.Labels["convox.balancer"] == "false" {
+		return false
+	}
+
+	for _, p := range s.Ports {
+		if p.Protocol == TCP {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *Service) Proxies(app string) []Proxy {
 	proxies := []Proxy{}
 
 	for i, p := range s.Ports {
-		if p.External() {
+		if p.Public {
 			name := fmt.Sprintf("%s-%s-proxy-%d", app, s.Name, p.Balancer)
 
 			proxy := Proxy{
@@ -360,28 +372,56 @@ func (s Service) LabelDefault(label, def string) string {
 	return def
 }
 
+// ExternalPorts returns a collection of Port structs from the Service which are TCP and Public
 func (s Service) ExternalPorts() []Port {
-	ext := []Port{}
+	ports := []Port{}
 
 	for _, port := range s.Ports {
-		if port.Public {
-			ext = append(ext, port)
+		if port.Public && port.Protocol == TCP {
+			ports = append(ports, port)
 		}
 	}
 
-	return ext
+	return ports
 }
 
+// InternalPorts returns a collection of Port structs from the Service which are TCP and not Public
 func (s Service) InternalPorts() []Port {
-	internal := []Port{}
+	ports := []Port{}
 
 	for _, port := range s.Ports {
-		if !port.Public {
-			internal = append(internal, port)
+		if !port.Public && port.Protocol == TCP {
+			ports = append(ports, port)
 		}
 	}
 
-	return internal
+	return ports
+}
+
+// TCPPorts returns a collection of Port structs from the Service which are TCP
+func (s Service) TCPPorts() []Port {
+	ports := []Port{}
+
+	for _, port := range s.Ports {
+		if port.Protocol == TCP {
+			ports = append(ports, port)
+		}
+	}
+
+	return ports
+}
+
+// UDPPorts returns a collection of Port structs from the Service which are UDP
+func (s Service) UDPPorts() []Port {
+	ports := []Port{}
+
+	for _, port := range s.Ports {
+		if port.Protocol == UDP {
+			ports = append(ports, port)
+		}
+	}
+
+	return ports
 }
 
 func (s Service) ContainerPorts() []string {
