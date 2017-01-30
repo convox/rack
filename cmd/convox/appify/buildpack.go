@@ -122,7 +122,7 @@ func detectBuildpack(location string) string {
 	return "unknown"
 }
 
-// buildpackEnvironment creates environment variables that are buildpack specific
+// buildpackEnvironment creates environment variables that are required to run a buildpack
 func buildpackEnvironment(kind string) map[string]string {
 	switch kind {
 	case "ruby":
