@@ -45,21 +45,21 @@ var Banner = `
 
 `
 
-const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
-your AWS account. These credentials will only be used to communicate between this
-installer running on your computer and the AWS API.
+var (
+	distinctID   = ""
+	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	iamUserURL   = "https://convox.com/docs/creating-an-iam-user"
+)
+
+var CredentialsMessage = fmt.Sprintf(`This installer needs AWS credentials to
+install/uninstall the Convox platform into your AWS account. These credentials
+will only be used to communicate between this installer running on your computer
+and the AWS API.
 
 We recommend that you create a new set of credentials exclusively for this
 install/uninstall process and then delete them once the installer has completed.
 
-To generate a new set of AWS credentials go to:
-https://docs.convox.com/creating-an-iam-user`
-
-var (
-	distinctID   = ""
-	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
-)
+To generate a new set of AWS credentials go to:`, iamUserURL)
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())

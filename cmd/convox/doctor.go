@@ -360,7 +360,7 @@ func checkDockerfile() error {
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/build/images",
+			DocsLink:    "https://convox.com/guide/images",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -835,7 +835,7 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "http://convox.com/guide/services/",
+			DocsLink:    "https://convox.com/guide/services/",
 			Description: fmt.Sprintf("<fail>Service <service>%s</service> doesn't have a valid command</fail>", s.Name),
 		})
 	}
@@ -858,7 +858,7 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/balancers/",
+		DocsLink:    "https://convox.com/guide/balancers/",
 		Description: "<warning>This app does not expose any ports</warning>",
 	})
 	return nil
@@ -879,7 +879,7 @@ func checkAppDefinesDatabase(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/databases/",
+		DocsLink:    "https://convox.com/guide/databases/",
 		Description: "<warning>This app does not define any Databases</warning>",
 	})
 	return nil
@@ -956,7 +956,7 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/links/",
+		DocsLink:    "https://convox.com/guide/links/",
 		Description: "<warning>This app does not define any Links</warning>",
 	})
 	return nil
@@ -975,7 +975,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "error",
-					DocsLink:    "http://convox.com/guide/links/",
+					DocsLink:    "https://convox.com/guide/links/",
 					Description: fmt.Sprintf("<warning>Database <database>%s</database> does not expose an internal port</warning>", r.Name),
 				})
 			} else {
