@@ -199,6 +199,8 @@ func cmdStart(c *cli.Context) error {
 		c.Start()
 	}
 
+	stdcli.QOSEventSend("Dev App Created", id, stdcli.QOSEventProperties{AppType: appType})
+
 	go handleInterrupt(r)
 
 	return r.Wait()
