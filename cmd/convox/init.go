@@ -45,20 +45,22 @@ func cmdInit(c *cli.Context) error {
 
 	}
 
-	err = initApplication(dir)
+	appType, err := initApplication(dir, distinctId)
 	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("Dev Code Update Failed", distinctId, stdcli.QOSEventProperties{Error: err, AppType: appType})
+		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err, AppType: appType})
 		return stdcli.Error(err)
 	}
 
+	stdcli.QOSEventSend("Dev Code Updated", distinctId, stdcli.QOSEventProperties{AppType: appType})
 	stdcli.QOSEventSend("cli-init", distinctId, ep)
 	return nil
 }
 
-func initApplication(dir string) error {
+func initApplication(dir, distinctId string) (string, error) {
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if helpers.Exists("Dockerfile") || helpers.Exists("docker-compose.yml") {
-		return nil
+		return "docker", nil
 	}
 
 	var fw appify.Framework
@@ -77,8 +79,9 @@ func initApplication(dir string) error {
 
 	fmt.Printf("Initializing a %s app\n", kind)
 	if err := fw.Setup(dir); err != nil {
-		return err
+		return kind, err
 	}
 
-	return fw.Appify()
+	err := fw.Appify()
+	return kind, err
 }
