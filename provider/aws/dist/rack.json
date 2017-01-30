@@ -630,22 +630,28 @@
       }
     },
     "KernelUser": {
-      "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy" ],
+      "DependsOn": [ "KernelUserPolicy", "KernelUserIAMPolicy", "KernelUserGeneralPolicy" ],
       "Type": "AWS::IAM::User",
       "Properties": {
         "Path": "/convox/",
-        "ManagedPolicyArns": [ { "Ref": "KernelUserPolicy" }, { "Ref": "KernelUserIAMPolicy" } ]
+        "ManagedPolicyArns": [
+          { "Ref": "KernelUserPolicy" },
+          { "Ref": "KernelUserIAMPolicy" },
+          { "Ref": "KernelUserGeneralPolicy" }
+        ]
       }
     },
-    "KernelUserPolicy": {
+    "KernelUserGeneralPolicy": {
       "Type" : "AWS::IAM::ManagedPolicy",
       "Properties" : {
         "Path": "/convox/",
-        "Description" : "Policy used by the KernelUser",
+        "Description" : "Limited general policy used by the KernelUser",
         "PolicyDocument" : {
             "Version": "2012-10-17",
             "Statement": [
                 {
+                    "Sid": "LimitedGeneralPermissions",
+                    "Effect": "Allow",
                     "Action": [
                       "acm:DescribeCertificate",
                       "acm:ListCertificates",
@@ -773,9 +779,21 @@
                       "sqs:GetQueueAttributes",
                       "sqs:SetQueueAttributes"
                     ],
-                    "Effect": "Allow",
                     "Resource": "*"
-                }, {
+                }
+            ]
+        }
+      }
+    },
+    "KernelUserPolicy": {
+      "Type" : "AWS::IAM::ManagedPolicy",
+      "Properties" : {
+        "Path": "/convox/",
+        "Description" : "Policy used by the KernelUser",
+        "PolicyDocument" : {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
                   "Sid": "LimitedDynamoDBAccess",
                   "Action": "dynamodb:*",
                   "Effect": "Allow",
