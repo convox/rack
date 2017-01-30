@@ -303,8 +303,6 @@ func TestUrls(t *testing.T) {
 		"https://github.com/convox/release",
 		"https://guides.github.com/introduction/flow/",
 		"http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html",
-		//"http://cloudformation.amazonaws.com/doc/2010-05-15/",
-		//"http://sns.amazonaws.com/doc/2010-03-31/",
 	}
 
 	for _, url := range urls {
