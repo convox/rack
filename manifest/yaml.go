@@ -2,11 +2,15 @@ package manifest
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/docker/go-units"
 )
+
+// Parses as [balancer?]:[container]/[protocol?], where [balancer] and [protocol] are optional
+var portMappingRegex = regexp.MustCompile(`(?i)^(?:(\d+):)?(\d+)(?:/(udp|tcp))?$`)
 
 // MarshalYAML implements the Marshaller interface for the Manifest type
 func (m Manifest) MarshalYAML() (interface{}, error) {
@@ -16,10 +20,7 @@ func (m Manifest) MarshalYAML() (interface{}, error) {
 
 // MarshalYAML implements the Marshaller interface for the Port type
 func (p Port) MarshalYAML() (interface{}, error) {
-	if p.Public {
-		return fmt.Sprintf("%d:%d", p.Balancer, p.Container), nil
-	}
-	return fmt.Sprintf("%d", p.Container), nil
+	return p.String(), nil
 }
 
 // MarshalYAML implements the Marshaller interface for the Command type
@@ -271,41 +272,32 @@ func (pp *Ports) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	*pp = make(Ports, len(v))
 
 	for i, s := range v {
-		parts := strings.Split(s, ":")
+		parts := portMappingRegex.FindStringSubmatch(s)
+		if len(parts) == 0 {
+			return fmt.Errorf("invalid portmapping %s", s)
+		}
+
 		p := Port{}
+		p.Name = parts[1]
 
-		switch len(parts) {
-		case 1:
-			n, err := strconv.Atoi(parts[0])
+		protocol := strings.ToLower(parts[3])
+		if protocol != string(TCP) && protocol != string(UDP) {
+			protocol = string(TCP) // default
+		}
+		p.Protocol = Protocol(protocol)
 
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
+		container, _ := strconv.Atoi(parts[2])
+		p.Container = container
+		p.Balancer = container
 
-			p.Name = parts[0]
-			p.Container = n
-			p.Balancer = n
-			p.Public = false
-		case 2:
-			n, err := strconv.Atoi(parts[0])
+		if parts[1] != "" {
+			balancer, _ := strconv.Atoi(parts[1])
+			p.Balancer = balancer
+		}
 
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Balancer = n
-
-			n, err = strconv.Atoi(parts[1])
-
-			if err != nil {
-				return fmt.Errorf("error parsing port: %s", err)
-			}
-
-			p.Name = parts[0]
-			p.Container = n
+		// Only TCP ports can be "public" (in the ELB sense) or have an ELB at all
+		if parts[1] != "" && p.Protocol == TCP {
 			p.Public = true
-		default:
-			return fmt.Errorf("invalid port: %s", s)
 		}
 
 		(*pp)[i] = p

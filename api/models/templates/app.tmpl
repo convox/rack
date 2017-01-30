@@ -264,10 +264,14 @@
               ],
               "PortMappings": [
                 {{ range .Ports }}
-                  { "Fn::Join": [ ":", [
-                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
-                    "{{ .Container }}"
-                  ] ] },
+                  {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
+                    { "Fn::Join": [ ":", [
+                      { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                      "{{ .Container }}/{{ .Protocol }}"
+                    ] ] },
+                  {{ else }}
+                    "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
+                  {{ end }}
                 {{ end }}
                 { "Ref" : "AWS::NoValue" }
               ],
@@ -293,7 +297,7 @@
             "MaximumPercent": "{{ $e.DeploymentMaximum }}"
           },
           "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-          {{ if $e.Ports }}
+          {{ if $e.HasBalancer }}
             "LoadBalancers": [
               {
                 "ContainerName": "{{ $e.Name }}",
@@ -373,12 +377,12 @@
         "SecurityGroupIngress": [
           {{ range .PortMappings }}
             {
-              {{ if .External }}
+              {{ if .Public }}
               "CidrIp": "0.0.0.0/0",
               {{ else }}
               "CidrIp": { "Ref": "VPCCIDR" },
               {{ end }}
-              "IpProtocol": "tcp",
+              "IpProtocol": "{{ .Protocol }}",
               "FromPort": "{{ .Balancer }}",
               "ToPort": "{{ .Balancer }}"
             },

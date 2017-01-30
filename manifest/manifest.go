@@ -167,22 +167,47 @@ func (m Manifest) Validate() []error {
 	return errors
 }
 
-// Return a list of ports this manifest will expose when run
+// ExternalPorts returns a collection of ints of the Manifest's Services' external ports
 func (m *Manifest) ExternalPorts() []int {
-	ext := []int{}
+	ports := []int{}
 
 	for _, service := range m.Services {
-		for _, port := range service.Ports {
-			if port.External() {
-				ext = append(ext, port.Balancer)
-			}
+		for _, port := range service.ExternalPorts() {
+			ports = append(ports, port.Balancer)
 		}
 	}
 
-	return ext
+	return ports
+}
+
+// InternalPorts returns a collection of ints of the Manifest's Services' internal ports
+func (m *Manifest) InternalPorts() []int {
+	ports := []int{}
+
+	for _, service := range m.Services {
+		for _, port := range service.InternalPorts() {
+			ports = append(ports, port.Container)
+		}
+	}
+
+	return ports
+}
+
+// UDPPorts returns a collection of ints of the Manifest's Services' UDP ports
+func (m *Manifest) UDPPorts() []int {
+	ports := []int{}
+
+	for _, service := range m.Services {
+		for _, port := range service.UDPPorts() {
+			ports = append(ports, port.Container)
+		}
+	}
+
+	return ports
 }
 
 // Find any port conflits that would prevent this manifest from running
+// TODO - Doesn't find UDP port conflicts
 func (m *Manifest) PortConflicts() ([]int, error) {
 	ext := m.ExternalPorts()
 
