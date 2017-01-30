@@ -19,8 +19,10 @@ import (
 
 // Buildpack type representing a Heroku Buildpack
 type Buildpack struct {
+	Manifest manifest.Manifest
+	Kind     string
+
 	directory string
-	Manifest  manifest.Manifest
 	setup     bool
 	tmplInput map[string]interface{}
 }
@@ -77,15 +79,17 @@ func (bp *Buildpack) Appify() error {
 // Setup reads the location for Buildpack specifc files and settings
 func (bp *Buildpack) Setup(location string) error {
 	bp.directory = location
-	kind := detectBuildpack(bp.directory)
-	if kind == "unknown" {
+	if bp.Kind == "" {
+		bp.Kind = detectBuildpack(bp.directory)
+	}
+	if bp.Kind == "unknown" {
 		// TODO: track this event
 		return fmt.Errorf("unknown Buildpack type")
 	}
 
 	bp.tmplInput = map[string]interface{}{
-		"framework":   kind,
-		"environment": buildpackEnvironment(kind),
+		"framework":   bp.Kind,
+		"environment": buildpackEnvironment(bp.Kind),
 	}
 
 	pf, err := readProcfile(path.Join(bp.directory, "Procfile"))
