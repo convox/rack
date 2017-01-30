@@ -142,10 +142,12 @@ func cmdStart(c *cli.Context) error {
 		Sync:    !c.Bool("no-sync"),
 	})
 
+	stdcli.QOSEventSend("Dev App Create Started", id, stdcli.QOSEventProperties{AppType: appType})
 	err = r.Start()
 	if err != nil {
 		r.Stop()
 
+		stdcli.QOSEventSend("Dev App Create Failed", id, stdcli.QOSEventProperties{AppType: appType, Error: err})
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
@@ -153,6 +155,7 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	stdcli.QOSEventSend("Dev App Created", id, stdcli.QOSEventProperties{AppType: appType})
 	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 		AppType: appType,
 	})
@@ -198,8 +201,6 @@ func cmdStart(c *cli.Context) error {
 
 		c.Start()
 	}
-
-	stdcli.QOSEventSend("Dev App Created", id, stdcli.QOSEventProperties{AppType: appType})
 
 	go handleInterrupt(r)
 
