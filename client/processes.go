@@ -134,6 +134,7 @@ func (c *Client) StopProcess(app, id string) (*Process, error) {
 func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 	buf := make([]byte, 1024)
 	isTerminalRaw := false
+	state, _ := terminal.MakeRaw(int(os.Stdin.Fd()))
 
 	for {
 		n, err := r.Read(buf)
@@ -148,13 +149,14 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		}
 
 		if !isTerminalRaw {
-			state, _ := terminal.MakeRaw(int(os.Stdin.Fd()))
+			terminal.MakeRaw(int(os.Stdin.Fd()))
 			isTerminalRaw = true
 			defer terminal.Restore(int(os.Stdin.Fd()), state)
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
 			code, _ := strconv.Atoi(strings.TrimSpace(s[37:]))
+			terminal.Restore(int(os.Stdin.Fd()), state)
 			ch <- code
 			return
 		}
