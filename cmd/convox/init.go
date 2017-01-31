@@ -45,9 +45,17 @@ func cmdInit(c *cli.Context) error {
 		return stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
 	}
 
-	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("docker-compose.yml") {
-		return stdcli.Error(fmt.Errorf("Cannot initialize a project that already contains a docker-compose.yml"))
+	files := []string{
+		"Dockerfile",
+		"docker-compose.yml",
+	}
+	for _, file := range files {
+		// TODO When only a Dockerfile exists, parse it and build a docker-compose.yml
+		if exists(file) {
+			e := fmt.Errorf("Cannot initialize a project that already contains a %s", file)
+			stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{ValidationError: err})
+			return stdcli.Error(e)
+		}
 	}
 
 	err = initApplication(dir)
@@ -80,11 +88,6 @@ func detectApplication(dir string) string {
 }
 
 func initApplication(dir string) error {
-	// TODO parse the Dockerfile and build a docker-compose.yml
-	if exists("Dockerfile") || exists("docker-compose.yml") {
-		return nil
-	}
-
 	kind := detectApplication(dir)
 
 	fmt.Printf("Initializing %s\n", kind)
