@@ -209,12 +209,14 @@ func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 				Balancer:  80,
 				Container: 4001,
 				Public:    true,
+				Protocol:  manifest.TCP,
 			})
 			me.Ports = append(me.Ports, manifest.Port{
 				Name:      "443",
 				Balancer:  443,
 				Container: 4001,
 				Public:    true,
+				Protocol:  manifest.TCP,
 			})
 
 			me.Environment["PORT"] = "4001"
@@ -247,7 +249,12 @@ func postgresAddon(af Appfile, m manifest.Manifest) manifest.Manifest {
 		Image: "convox/postgres",
 		Name:  "database",
 		Ports: manifest.Ports{
-			{Balancer: 5432, Container: 5432, Name: "5432", Public: false},
+			{
+				Balancer:  5432,
+				Container: 5432,
+				Public:    false,
+				Protocol:  manifest.TCP,
+			},
 		},
 		Volumes: []string{
 			"/var/lib/postgresql/data",

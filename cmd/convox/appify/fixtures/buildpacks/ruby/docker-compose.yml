@@ -5,7 +5,7 @@ services:
     command: null
     image: convox/postgres
     ports:
-    - "5432"
+    - "5432/tcp"
     volumes:
     - /var/lib/postgresql/data
   web:
@@ -19,5 +19,5 @@ services:
     links:
     - database
     ports:
-    - 80:4001
-    - 443:4001
+    - 80:4001/tcp
+    - 443:4001/tcp
