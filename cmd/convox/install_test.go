@@ -288,7 +288,7 @@ Sources (mostly): cmd/convox/doctor.go, cmd/convox/install.go
 See also: bin/check-links
 */
 func TestUrls(t *testing.T) {
-	urls := [...]string{
+	urls := []string{
 		iamUserURL,
 		"https://convox.com/docs/about-resources/",
 		"https://convox.com/docs/api-keys/",
