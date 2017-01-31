@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
@@ -36,7 +37,9 @@ func init() {
 
 func cmdApi(c *cli.Context) error {
 	if len(c.Args()) > 0 {
-		return stdcli.Errorf("ERROR: `convox api` does not take arguments. Perhaps you meant `convox api get`?", 1)
+		return stdcli.Error(
+			errors.New("ERROR: `convox api` does not take arguments. Perhaps you meant `convox api get`?"),
+		)
 	}
 
 	stdcli.Usage(c, "")

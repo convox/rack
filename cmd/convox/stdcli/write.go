@@ -9,40 +9,33 @@ import (
 
 var (
 	DefaultWriter *Writer
+	Tags          map[string]Renderer
+	Color         bool
 )
 
 type Renderer func(string) string
 
 type Writer struct {
-	Color  bool
 	Stdout io.Writer
 	Stderr io.Writer
-	Tags   map[string]Renderer
 }
 
 func init() {
 	DefaultWriter = &Writer{
-		Color:  IsTerminal(os.Stdout),
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
-		Tags: map[string]Renderer{
-			"error":  renderError,
-			"fail":   RenderAttributes(203),
-			"header": RenderAttributes(242),
-			"ok":     RenderAttributes(46),
-			"start":  RenderAttributes(247),
-			"wait":   RenderAttributes(228),
-			"warn":   RenderAttributes(208),
-		},
 	}
-}
 
-func Error(err error) error {
-	return DefaultWriter.Error(err)
-}
+	Color = IsTerminal(os.Stdout)
 
-func Errorf(format string, args ...interface{}) error {
-	return DefaultWriter.Errorf(format, args...)
+	Tags = map[string]Renderer{
+		"error":  renderError,
+		"fail":   RenderAttributes(203),
+		"header": RenderAttributes(242),
+		"ok":     RenderAttributes(46),
+		"start":  RenderAttributes(247),
+		"wait":   RenderAttributes(228),
+	}
 }
 
 func OK() (int, error) {
@@ -74,23 +67,12 @@ func Writef(format string, args ...interface{}) (int, error) {
 	return DefaultWriter.Writef(format, args...)
 }
 
-func (w *Writer) Error(err error) error {
-	if err.Error() != "Token expired" {
-		w.Stderr.Write([]byte(fmt.Sprintf(w.renderTags("<error>%s</error>\n"), err)))
-	}
-	return err
-}
-
-func (w *Writer) Errorf(format string, args ...interface{}) error {
-	return w.Error(fmt.Errorf(format, args...))
-}
-
 func (w *Writer) OK() (int, error) {
 	return w.Writef("<ok>OK</ok>\n")
 }
 
 func (w *Writer) Sprintf(format string, args ...interface{}) string {
-	return fmt.Sprintf(w.renderTags(format), args...)
+	return fmt.Sprintf(renderTags(format), args...)
 }
 
 func (w *Writer) Startf(format string, args ...interface{}) (int, error) {
@@ -111,15 +93,15 @@ func (w *Writer) Write(data []byte) (int, error) {
 }
 
 func (w *Writer) Writef(format string, args ...interface{}) (int, error) {
-	return w.Write([]byte(fmt.Sprintf(w.renderTags(format), args...)))
+	return w.Write([]byte(fmt.Sprintf(renderTags(format), args...)))
 }
 
-func (w *Writer) renderTags(s string) string {
-	for tag, render := range w.Tags {
+func renderTags(s string) string {
+	for tag, render := range Tags {
 		s = regexp.MustCompile(fmt.Sprintf("<%s>(.*?)</%s>", tag, tag)).ReplaceAllStringFunc(s, render)
 	}
 
-	if !w.Color {
+	if !Color {
 		s = stripColor(s)
 	}
 
