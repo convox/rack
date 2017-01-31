@@ -282,7 +282,11 @@ func TestReadCredentialsFromFile(t *testing.T) {
 	assert.EqualError(t, err, "credentials file is of unknown length")
 }
 
-// TestUrls checks that each URL returns 200.
+/* TestUrls checks that each URL returns HTTP status code 200.
+These URLs are printed in user-facing messages and have been gathered manually.
+Sources (mostly): cmd/convox/doctor.go, cmd/convox/install.go
+See also: bin/check-links
+*/
 func TestUrls(t *testing.T) {
 	urls := [...]string{
 		iamUserURL,
@@ -298,7 +302,7 @@ func TestUrls(t *testing.T) {
 		"https://convox.com/guide/one-off-commands/",
 		"https://convox.com/guide/services/",
 		"https://docs.docker.com/engine/installation/",
-		"https://docs.docker.com/engine/reference/builder/#/dockerignore-file",
+		"https://docs.docker.com/engine/reference/builder/",
 		"https://git-scm.com/docs/gitignore",
 		"https://github.com/convox/release",
 		"https://guides.github.com/introduction/flow/",
@@ -307,7 +311,7 @@ func TestUrls(t *testing.T) {
 
 	for _, url := range urls {
 		resp, err := http.Get(url)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		rc := resp.StatusCode
 		if rc != 200 {
 			assert.Fail(t, fmt.Sprintf("Got response code %d for URL %s", rc, url))
