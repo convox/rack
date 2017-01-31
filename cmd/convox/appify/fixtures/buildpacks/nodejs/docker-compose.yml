@@ -9,5 +9,5 @@ services:
     labels:
       convox.port.443.protocol: tls
     ports:
-    - 80:4001
-    - 443:4001
+    - 80:4001/tcp
+    - 443:4001/tcp
