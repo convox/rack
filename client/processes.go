@@ -69,8 +69,6 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 
 	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), headers, in, w)
 
-	w.Close()
-
 	if err != nil {
 		return 0, err
 	}
@@ -133,8 +131,8 @@ func (c *Client) StopProcess(app, id string) (*Process, error) {
 
 func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 	buf := make([]byte, 1024)
-	isTerminalRaw := false
 	state, _ := terminal.MakeRaw(int(os.Stdin.Fd()))
+	defer terminal.Restore(int(os.Stdin.Fd()), state)
 
 	for {
 		n, err := r.Read(buf)
@@ -146,12 +144,6 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 
 		if err != nil {
 			break
-		}
-
-		if !isTerminalRaw {
-			terminal.MakeRaw(int(os.Stdin.Fd()))
-			isTerminalRaw = true
-			defer terminal.Restore(int(os.Stdin.Fd()), state)
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
