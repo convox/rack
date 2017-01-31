@@ -290,7 +290,7 @@ func cmdInstall(c *cli.Context) error {
 
 	if email := c.String("email"); email != "" {
 		distinctID = email
-		updateId(distinctID)
+		updateID(distinctID)
 	} else if distinctID != "" {
 		// already has an id
 	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
@@ -304,7 +304,7 @@ func cmdInstall(c *cli.Context) error {
 
 		if strings.TrimSpace(email) != "" {
 			distinctID = email
-			updateId(email)
+			updateID(email)
 		}
 	}
 
