@@ -578,14 +578,14 @@ func (r *Release) resolveLinks(app App, m *manifest.Manifest) (*manifest.Manifes
 				userInfo = fmt.Sprintf("%s:%s@", other.Exports["LINK_USERNAME"], other.Exports["LINK_PASSWORD"])
 			}
 
-			html := fmt.Sprintf(`{ "Fn::Join": [ "", [ "%s", "://", "%s", %s, ":", "%s", "%s" ] ] }`,
-				scheme, userInfo, host, port, path)
+			html := fmt.Sprintf(`{ "Fn::Join": [ "", [ "%s", "://", "%s", %s, ":", "%d", "%s" ] ] }`,
+				scheme, userInfo, host, port.Balancer, path)
 
 			prefix := strings.ToUpper(link) + "_"
 			prefix = strings.Replace(prefix, "-", "_", -1)
 			entry.LinkVars[prefix+"HOST"] = template.HTML(host)
 			entry.LinkVars[prefix+"SCHEME"] = template.HTML(fmt.Sprintf("%q", scheme))
-			entry.LinkVars[prefix+"PORT"] = template.HTML(fmt.Sprintf("%q", port))
+			entry.LinkVars[prefix+"PORT"] = template.HTML(fmt.Sprintf("%d", port.Balancer))
 			entry.LinkVars[prefix+"PASSWORD"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_PASSWORD"]))
 			entry.LinkVars[prefix+"USERNAME"] = template.HTML(fmt.Sprintf("%q", other.Exports["LINK_USERNAME"]))
 			entry.LinkVars[prefix+"PATH"] = template.HTML(fmt.Sprintf("%q", path))
