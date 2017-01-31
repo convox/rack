@@ -20,7 +20,7 @@ func (m Manifest) Balancers() []ManifestBalancer {
 	balancers := []ManifestBalancer{}
 
 	for _, entry := range m.Services {
-		if len(entry.Ports) > 0 {
+		if entry.HasBalancer() {
 			balancers = append(balancers, ManifestBalancer{
 				Entry:  entry,
 				Public: len(entry.InternalPorts()) == 0,
@@ -41,34 +41,8 @@ func (m Manifest) GetBalancer(name string) *ManifestBalancer {
 	return nil
 }
 
-func (m Manifest) HasExternalPorts() bool {
-	if len(m.Services) == 0 {
-		return true // special case to pre-initialize ELB at app create
-	}
-
-	for _, me := range m.Services {
-		if len(me.ExternalPorts()) > 0 {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (m Manifest) HasProcesses() bool {
 	return len(m.Services) > 0
-}
-
-func (mb ManifestBalancer) ExternalPorts() []Port {
-	return mb.Entry.ExternalPorts()
-}
-
-func (mb ManifestBalancer) FirstPort() string {
-	if ports := mb.PortMappings(); len(ports) > 0 {
-		return strconv.Itoa(ports[0].Balancer)
-	}
-
-	return ""
 }
 
 func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template.HTML {
@@ -101,12 +75,42 @@ func (mb ManifestBalancer) LoadBalancerName(bound bool, appName string) template
 	return template.HTML(fmt.Sprintf(`{ "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "%s", "i" ] ] }`, mb.ProcessName()))
 }
 
+// HasExternalPorts returns true if the Manifest's Services have external ports
+func (m Manifest) HasExternalPorts() bool {
+	if len(m.Services) == 0 {
+		return true // special case to pre-initialize ELB at app create
+	}
+
+	for _, me := range m.Services {
+		if len(me.ExternalPorts()) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// InternalPorts returns a collection of Port structs of the Manifest's internal ports
 func (mb ManifestBalancer) InternalPorts() []Port {
 	return mb.Entry.InternalPorts()
 }
 
+// ExternalPorts returns a collection of Port structs of the Manifest's external ports
+func (mb ManifestBalancer) ExternalPorts() []Port {
+	return mb.Entry.ExternalPorts()
+}
+
+// FirstPort returns the first TCP Port defined on the first Service in the Manifest
+func (mb ManifestBalancer) FirstPort() string {
+	if ports := mb.PortMappings(); len(ports) > 0 {
+		return strconv.Itoa(ports[0].Balancer)
+	}
+
+	return ""
+}
+
 func (mb ManifestBalancer) Ports() []string {
-	pp := mb.Entry.Ports
+	pp := mb.Entry.TCPPorts()
 	sp := make([]string, len(pp))
 
 	for _, p := range pp {
@@ -138,7 +142,7 @@ func (mb ManifestBalancer) ResourceName() string {
 }
 
 func (mb ManifestBalancer) PortMappings() []Port {
-	return mb.Entry.Ports
+	return mb.Entry.TCPPorts()
 }
 
 func (mb ManifestBalancer) Scheme() string {
@@ -233,12 +237,12 @@ func (mb ManifestBalancer) HealthPath() string {
 // HealthPort The balancer port that maps to the container port specified in
 // manifest
 func (mb ManifestBalancer) HealthPort() string {
-	if len(mb.Entry.Ports) == 0 {
+	if len(mb.Entry.TCPPorts()) == 0 {
 		return ""
 	}
 
 	if port := mb.Entry.Labels["convox.health.port"]; port != "" {
-		for _, p := range mb.Entry.Ports {
+		for _, p := range mb.Entry.TCPPorts() {
 			if strconv.Itoa(p.Container) == port {
 				return strconv.Itoa(p.Balancer)
 			}
@@ -248,7 +252,7 @@ func (mb ManifestBalancer) HealthPort() string {
 		return ""
 	}
 
-	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.Ports[0].Balancer))
+	return coalesce(mb.Entry.Labels["convox.health.port"], strconv.Itoa(mb.Entry.TCPPorts()[0].Balancer))
 }
 
 // HealthProtocol returns the protocol to use for the health check

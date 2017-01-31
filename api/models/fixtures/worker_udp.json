@@ -1,37 +1,12 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankBalancerPostgresPort5432Certificate": {
-      "Fn::Equals": [
-        {
-          "Ref": "PostgresPort5432Certificate"
-        },
-        ""
-      ]
-    },
     "BlankSecurityGroup": {
       "Fn::Equals": [
         {
           "Ref": "SecurityGroup"
         },
         ""
-      ]
-    },
-    "EnabledPostgres": {
-      "Fn::Not": [
-        {
-          "Fn::Equals": [
-            {
-              "Fn::Select": [
-                0,
-                {
-                  "Ref": "PostgresFormation"
-                }
-              ]
-            },
-            "-1"
-          ]
-        }
       ]
     },
     "EnabledWorker": {
@@ -93,27 +68,10 @@
     }
   },
   "Outputs": {
-    "BalancerPostgresHost": {
-      "Condition": "EnabledPostgres",
-      "Value": {
-        "Fn::GetAtt": [
-          "BalancerPostgresInternal",
-          "DNSName"
-        ]
-      }
-    },
     "LogGroup": {
       "Value": {
         "Ref": "LogGroup"
       }
-    },
-    "PostgresPort5432Balancer": {
-      "Condition": "EnabledPostgres",
-      "Value": "5432"
-    },
-    "PostgresPort5432BalancerName": {
-      "Condition": "EnabledPostgres",
-      "Value": "httpd-postgres-OTLTE5J-i"
     },
     "RegistryId": {
       "Value": {
@@ -174,21 +132,6 @@
       "Description": "",
       "Type": "String"
     },
-    "PostgresFormation": {
-      "Default": "1,0,256",
-      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
-      "Type": "CommaDelimitedList"
-    },
-    "PostgresPort5432Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "PostgresPort5432Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Private": {
       "AllowedValues": [
         "Yes",
@@ -245,140 +188,6 @@
     }
   },
   "Resources": {
-    "BalancerPostgresInternal": {
-      "Condition": "EnabledPostgres",
-      "DependsOn": [
-        "BalancerPostgresInternalSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": 60
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "3600"
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": "5",
-          "Target": {
-            "Fn::Join": [
-              "",
-              [
-                "TCP:",
-                {
-                  "Ref": "PostgresPort5432Host"
-                },
-                ""
-              ]
-            ]
-          },
-          "Timeout": "3",
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "InstancePort": {
-              "Ref": "PostgresPort5432Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "5432",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerPostgresPort5432Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerPostgresPort5432Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "PostgresPort5432Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": "httpd-postgres-OTLTE5J-i",
-        "Policies": [
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Scheme": "internal",
-        "SecurityGroups": [
-          {
-            "Fn::If": [
-              "BlankSecurityGroup",
-              {
-                "Ref": "BalancerPostgresInternalSecurityGroup"
-              },
-              {
-                "Ref": "SecurityGroup"
-              }
-            ]
-          }
-        ],
-        "Subnets": {
-          "Fn::If": [
-            "Private",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerPostgresInternalSecurityGroup": {
-      "Condition": "EnabledPostgres",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": {
-              "Ref": "VPCCIDR"
-            },
-            "FromPort": "5432",
-            "IpProtocol": "tcp",
-            "ToPort": "5432"
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -461,107 +270,6 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "PostgresECSTaskDefinition": {
-      "DependsOn": [
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Environment": {
-          "Ref": "Environment"
-        },
-        "Key": {
-          "Ref": "Key"
-        },
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "postgres"
-            ]
-          ]
-        },
-        "Release": {
-          "Ref": "Release"
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "CustomTopic",
-            "Arn"
-          ]
-        },
-        "Tasks": [
-          {
-            "Cpu": {
-              "Fn::Select": [
-                1,
-                {
-                  "Ref": "PostgresFormation"
-                }
-              ]
-            },
-            "Environment": {
-              "APP": "httpd",
-              "AWS_REGION": "test",
-              "LOG_GROUP": {
-                "Ref": "LogGroup"
-              },
-              "POSTGRES_PASSWORD": "password",
-              "POSTGRES_USERNAME": "postgres",
-              "PROCESS": "postgres",
-              "RACK": "convox-test"
-            },
-            "ExtraHosts": [
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ],
-            "Image": "mdillon/postgis",
-            "Memory": {
-              "Fn::Select": [
-                2,
-                {
-                  "Ref": "PostgresFormation"
-                }
-              ]
-            },
-            "Name": "postgres",
-            "PortMappings": [
-              {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "PostgresPort5432Host"
-                    },
-                    "5432/tcp"
-                  ]
-                ]
-              },
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ],
-            "Privileged": "false",
-            "Services": [
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ],
-            "Volumes": [
-              {
-                "Ref": "AWS::NoValue"
-              }
-            ]
-          }
-        ]
-      },
-      "Type": "Custom::ECSTaskDefinition",
-      "Version": "1.0"
-    },
     "RegistryRepository": {
       "Properties": {
         "RepositoryName": {
@@ -576,50 +284,6 @@
       },
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
-    },
-    "ServicePostgres": {
-      "Condition": "EnabledPostgres",
-      "DependsOn": [
-        "BalancerPostgresInternal",
-        "CustomTopic",
-        "ServiceRole"
-      ],
-      "Properties": {
-        "Cluster": {
-          "Ref": "Cluster"
-        },
-        "DeploymentConfiguration": {
-          "MaximumPercent": "200",
-          "MinimumHealthyPercent": "100"
-        },
-        "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PostgresFormation"
-            }
-          ]
-        },
-        "LoadBalancers": [
-          {
-            "ContainerName": "postgres",
-            "ContainerPort": "5432",
-            "LoadBalancerName": {
-              "Ref": "BalancerPostgresInternal"
-            }
-          }
-        ],
-        "Role": {
-          "Fn::GetAtt": [
-            "ServiceRole",
-            "Arn"
-          ]
-        },
-        "TaskDefinition": {
-          "Ref": "PostgresECSTaskDefinition"
-        }
-      },
-      "Type": "AWS::ECS::Service"
     },
     "ServiceRole": {
       "Properties": {
@@ -746,7 +410,6 @@
         },
         "Tasks": [
           {
-            "Command": "bin/work",
             "Cpu": {
               "Fn::Select": [
                 1,
@@ -780,11 +443,13 @@
             },
             "Name": "worker",
             "PortMappings": [
+              "4000:4000/udp",
+              "4001:4002/udp",
               {
                 "Ref": "AWS::NoValue"
               }
             ],
-            "Privileged": "true",
+            "Privileged": "false",
             "Services": [
               {
                 "Ref": "AWS::NoValue"
