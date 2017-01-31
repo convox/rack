@@ -23,9 +23,9 @@ func init() {
 func cmdInit(c *cli.Context) error {
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
-	distinctId, err := currentId()
+	distinctID, err := currentId()
 	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err})
 	}
 
 	wd := "."
@@ -36,7 +36,7 @@ func cmdInit(c *cli.Context) error {
 
 	dir, _, err := stdcli.DirApp(c, wd)
 	if err != nil {
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err})
+		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
 	}
 
@@ -46,19 +46,19 @@ func cmdInit(c *cli.Context) error {
 
 	}
 
-	appType, err := initApplication(dir, distinctId)
+	appType, err := initApplication(dir)
 	if err != nil {
-		stdcli.QOSEventSend("Dev Code Update Failed", distinctId, stdcli.QOSEventProperties{Error: err, AppType: appType})
-		stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{Error: err, AppType: appType})
+		stdcli.QOSEventSend("Dev Code Update Failed", distinctID, stdcli.QOSEventProperties{Error: err, AppType: appType})
+		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err, AppType: appType})
 		return stdcli.Error(err)
 	}
 
-	stdcli.QOSEventSend("Dev Code Updated", distinctId, stdcli.QOSEventProperties{AppType: appType})
-	stdcli.QOSEventSend("cli-init", distinctId, ep)
+	stdcli.QOSEventSend("Dev Code Updated", distinctID, stdcli.QOSEventProperties{AppType: appType})
+	stdcli.QOSEventSend("cli-init", distinctID, ep)
 	return nil
 }
 
-func initApplication(dir, distinctId string) (string, error) {
+func initApplication(dir string) (string, error) {
 	// TODO parse the Dockerfile and build a docker-compose.yml
 	if helpers.Exists("Dockerfile") || helpers.Exists("docker-compose.yml") {
 		return "docker", nil
