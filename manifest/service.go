@@ -362,6 +362,10 @@ func linkArgs(s Service, container string) []string {
 	return args
 }
 
+func (ee Environment) Len() int           { return len(ee) }
+func (ee Environment) Less(i, j int) bool { return ee[i].Name < ee[j].Name }
+func (ee Environment) Swap(i, j int)      { ee[i], ee[j] = ee[j], ee[i] }
+
 // LabelsByPrefix retuns a map of string values with the labels filtered by prefix
 func (s Service) LabelsByPrefix(prefix string) map[string]string {
 	returnLabels := make(map[string]string)

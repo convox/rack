@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -185,6 +186,8 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	default:
 		return fmt.Errorf("cannot parse environment: %v", t)
 	}
+
+	sort.Sort(*e)
 
 	return nil
 }
