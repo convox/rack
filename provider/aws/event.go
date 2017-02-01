@@ -2,6 +2,8 @@ package aws
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,8 +24,16 @@ import (
 // Because these are important system events, they are also published to Segment
 // for operational metrics.
 func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
-	e.Status = "success"
 	e.Timestamp = time.Now().UTC()
+
+	if e.Status == "" {
+		e.Status = "success"
+	}
+
+	if e.Data == nil {
+		e.Data = map[string]interface{}{}
+	}
+	e.Data["rack"] = p.Rack
 
 	if p.IsTest() {
 		e.Timestamp = time.Time{}
@@ -49,17 +59,33 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 		return err
 	}
 
-	// report event to Segment
-	params := map[string]interface{}{
-		"action": e.Action,
-		"status": e.Status,
-	}
-
-	for k, v := range e.Data {
-		params[k] = v
-	}
-
-	helpers.TrackEvent("event", params)
+	sendSegmentEvent(e)
 
 	return nil
+}
+
+// sendSegmentEvent reports an event to Segment
+func sendSegmentEvent(e *structs.Event) {
+	action := strings.Split(e.Action, ":")
+
+	obj := strings.Title(action[0])
+	act := strings.Title(action[1])
+	se := "unkown segment event"
+
+	pst := map[string]string{
+		"Create":  "Created",
+		"Promote": "Promoted",
+		"Delete":  "Deleted",
+	}
+
+	switch e.Status {
+	case "start":
+		se = fmt.Sprintf("%s %s %s", obj, act, "Started")
+	case "error":
+		se = fmt.Sprintf("%s %s %s", obj, act, "Failed")
+	case "success":
+		se = fmt.Sprintf("%s %s", obj, pst[act])
+	}
+
+	helpers.TrackEvent(se, e.Data)
 }
