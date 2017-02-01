@@ -26,15 +26,15 @@ func init() {
 		},
 		{
 			"mysql",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--multi-az] [--private]",
+			"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--multi-az] [--password=example] [--private] [--username=example]",
 		},
 		{
 			"postgres",
-			"[--allocated-storage=10] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--private] [--version=9.5.2]",
+			"[--allocated-storage=10] [--database=db-name] [--instance-type=db.t2.micro] [--max-connections={DBInstanceClassMemory/15000000}] [--multi-az] [--password=example] [--private] [--username=example] [--version=9.5.2]",
 		},
 		{
 			"redis",
-			"[--automatic-failover-enabled] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
+			"[--automatic-failover-enabled] [--database=db-name] [--instance-type=cache.t2.micro] [--num-cache-clusters=1] [--private]",
 		},
 		{
 			"s3",
@@ -50,7 +50,7 @@ func init() {
 		},
 		{
 			"syslog",
-			"--url=tcp+tls://logs1.papertrailapp.com:11235",
+			"--url=tcp+tls://logs1.papertrailapp.com:11235 [--private]",
 		},
 		{
 			"fluentd",
