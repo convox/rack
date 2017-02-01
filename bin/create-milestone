@@ -46,7 +46,7 @@ echo "milestone: $milestone"
 
 mid=$(posthub /repos/convox/rack/milestones "{\"title\":\"$milestone\"}" ".number")
 
-gethub '/repos/convox/rack/issues' ".[]|select(.pull_request)|.number" "labels=status/4-merge" | while read pr; do
+gethub '/repos/convox/rack/issues' ".[]|select(.pull_request)|.number" "labels=status/6-merge" | while read pr; do
   echo "adding to milestone: $pr"
   patchhub "/repos/convox/rack/issues/$pr" "{\"milestone\":$mid}" >/dev/null
 done
