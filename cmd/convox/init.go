@@ -47,8 +47,8 @@ func cmdInit(c *cli.Context) error {
 	for _, file := range files {
 		// TODO When only a Dockerfile exists, parse it and build a docker-compose.yml
 		if helpers.Exists(file) {
-			e := fmt.Errorf("Cannot initialize a project that already contains a %s", file)
-			stdcli.QOSEventSend("cli-init", distinctId, stdcli.QOSEventProperties{ValidationError: e})
+			e := fmt.Errorf("Cannot initialize an app that already contains a %s", file)
+			stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{ValidationError: e})
 			return stdcli.Error(e)
 		}
 	}
