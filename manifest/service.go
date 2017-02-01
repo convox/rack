@@ -62,7 +62,14 @@ type Command struct {
 	String string   `yaml:"-"`
 	Array  []string `yaml:"-"`
 }
-type Environment map[string]string
+
+type EnvironmentItem struct {
+	Name   string
+	Value  string
+	Needed bool
+}
+type Environment []EnvironmentItem
+
 type Labels map[string]string
 type Memory int64
 type Networks map[string]InternalNetwork
