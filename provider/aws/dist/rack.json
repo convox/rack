@@ -961,7 +961,7 @@
     },
     "Nat0": {
       "Condition": "Private",
-      "DependsOn": "KernelUser",
+      "DependsOn": "KernelAccess",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
@@ -970,7 +970,7 @@
     },
     "Nat1": {
       "Condition": "Private",
-      "DependsOn": "KernelUser",
+      "DependsOn": "KernelAccess",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
@@ -979,7 +979,7 @@
     },
     "Nat2": {
       "Condition": "PrivateAndThirdAvailabilityZone",
-      "DependsOn": "KernelUser",
+      "DependsOn": "KernelAccess",
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress2", "AllocationId" ] },
