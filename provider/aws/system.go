@@ -249,7 +249,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 
 	// build a list of changes for the notification
 	sp := stackParameters(stack)
-	changes := map[string]string{}
+	changes := map[string]interface{}{}
 	if sp["InstanceCount"] != strconv.Itoa(system.Count) {
 		changes["count"] = strconv.Itoa(system.Count)
 	}
@@ -264,7 +264,7 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 	if v, ok := changes["version"]; ok {
 		_, err := p.dynamodb().PutItem(&dynamodb.PutItemInput{
 			Item: map[string]*dynamodb.AttributeValue{
-				"id":      {S: aws.String(v)},
+				"id":      {S: aws.String(v.(string))},
 				"app":     {S: aws.String(p.Rack)},
 				"created": {S: aws.String(p.createdTime())},
 			},

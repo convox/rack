@@ -63,14 +63,6 @@ func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOpt
 		return nil, err
 	}
 
-	p.EventSend(&structs.Event{
-		Action: "build:create",
-		Data: map[string]string{
-			"app": b.App,
-			"id":  b.Id,
-		},
-	}, nil)
-
 	// AWS currently has a limit of 1000 images in ECR
 	// This is a "hopefully temporary" and brute force means
 	// to prevent hitting limits during deployment
@@ -577,7 +569,7 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	if err == nil {
 		p.EventSend(&structs.Event{
 			Action: "release:create",
-			Data: map[string]string{
+			Data: map[string]interface{}{
 				"app": r.App,
 				"id":  r.Id,
 			},
