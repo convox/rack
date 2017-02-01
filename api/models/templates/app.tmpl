@@ -81,6 +81,11 @@
         "Default" : "",
         "Description" : "VPC private subnets for this app"
       },
+      "TaskRole": {
+        "Type" : "String",
+        "Default" : "",
+        "Description" : "IAM Role to apply to ECS Tasks of this app"
+      },
       "Version": {
         "Description": "(REQUIRED) Lambda CustomTopic Handler Release Version",
         "MinLength" : "1",
@@ -204,6 +209,7 @@
         "Type": "Custom::ECSTaskDefinition",
         "Version": "1.0",
         "Properties": {
+          "TaskRole": { "Ref": "TaskRole" },
           "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
           "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
           "Release": { "Ref": "Release" },
