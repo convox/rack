@@ -63,11 +63,14 @@ type Command struct {
 	Array  []string `yaml:"-"`
 }
 
+// EnvironmentItem is a single item in an environment
 type EnvironmentItem struct {
 	Name   string
 	Value  string
-	Needed bool
+	Needed bool // if true this value should be provided by the user in .env or convox env
 }
+
+// Environment is a service's default environment
 type Environment []EnvironmentItem
 
 type Labels map[string]string
