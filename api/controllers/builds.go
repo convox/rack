@@ -34,9 +34,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		Action: "build:create",
 		Status: "start",
 		Data: map[string]interface{}{
-			"app":  app,
-			"id":   "n/a",
-			"opts": opts,
+			"app": app,
+			"id":  "n/a",
 		},
 	}
 	models.Provider().EventSend(event, nil)

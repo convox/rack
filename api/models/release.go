@@ -329,11 +329,6 @@ func (r *Release) Promote() error {
 
 	_, err = UpdateStack(req)
 
-	NotifySuccess("release:promote", map[string]string{
-		"app": r.App,
-		"id":  r.Id,
-	})
-
 	return err
 }
 
