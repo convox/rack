@@ -45,6 +45,7 @@ var Banner = `
 
 `
 
+// CredentialsMessage is displayed to the user when no AWS credentials have been found.
 const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
 your AWS account. These credentials will only be used to communicate between this
 installer running on your computer and the AWS API.
