@@ -730,6 +730,7 @@
                       "elasticfilesystem:CreateMountTarget",
                       "elasticfilesystem:DeleteMountTarget",
                       "elasticfilesystem:DescribeMountTargets",
+                      "elasticloadbalancing:AttachLoadBalancerToSubnets",
                       "elasticloadbalancing:ConfigureHealthCheck",
                       "elasticloadbalancing:CreateLoadBalancer",
                       "elasticloadbalancing:CreateLoadBalancerListeners",
