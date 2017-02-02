@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -98,14 +99,15 @@ func (r *Run) Start() error {
 		}
 
 		missingEnv := []string{}
-		for key, val := range s.Environment {
-			eok := val != ""
-			_, exok := existing[key]
-			_, lok := links[key]
-			if !eok && !exok && !lok {
-				missingEnv = append(missingEnv, key)
+		for _, e := range s.Environment {
+			if e.Needed && e.Value == "" {
+				if _, ok := existing[e.Name]; !ok {
+					missingEnv = append(missingEnv, e.Name)
+				}
 			}
 		}
+
+		sort.Strings(missingEnv)
 
 		if len(missingEnv) > 0 {
 			return fmt.Errorf("env expected: %s", strings.Join(missingEnv, ", "))

@@ -194,7 +194,7 @@ func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 			Command: manifest.Command{
 				String: e.Command,
 			},
-			Environment: make(manifest.Environment),
+			Environment: manifest.Environment{},
 			Labels:      make(manifest.Labels),
 			Ports:       make(manifest.Ports, 0),
 		}
@@ -219,10 +219,16 @@ func generateManifest(pf Procfile, af Appfile) manifest.Manifest {
 				Protocol:  manifest.TCP,
 			})
 
-			me.Environment["PORT"] = "4001"
+			me.Environment = append(me.Environment, manifest.EnvironmentItem{
+				Name:  "PORT",
+				Value: "4001",
+			})
 
 			for k, v := range af.Env {
-				me.Environment[k] = v.Value
+				me.Environment = append(me.Environment, manifest.EnvironmentItem{
+					Name:  k,
+					Value: v.Value,
+				})
 			}
 		}
 
