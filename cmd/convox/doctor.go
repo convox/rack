@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -227,7 +226,6 @@ func checkDockerRunning() error {
 	dockerTest := exec.Command(d, "images")
 	err := dockerTest.Run()
 	if err != nil {
-		log.Panic(err)
 		diagnose(Diagnosis{
 			Title:       "Docker running",
 			Description: "<fail>Could not connect to the Docker daemon, is it installed and running?</fail>",
