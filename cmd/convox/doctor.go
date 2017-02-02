@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/docker/docker/pkg/fileutils"
@@ -334,7 +335,7 @@ func checkCLIVersion() error {
 }
 
 func checkDockerfile() error {
-	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
+	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); helpers.Exists(df) {
 		m, err := manifest.LoadFile("docker-compose.yml")
 		if err != nil {
 			//This will get picked up later in the test suite
@@ -347,7 +348,7 @@ func checkDockerfile() error {
 	title := "Dockerfile found"
 	startCheck(title)
 
-	//Skip if docker-compose file exists
+	//Skip if docker-compose file helpers.Exists
 	_, err := os.Stat("docker-compose.yml")
 	if err == nil {
 		return nil
@@ -472,7 +473,7 @@ func checkLargeFiles() error {
 func checkBuildDocker() error {
 	title := "Image builds successfully"
 
-	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
+	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); helpers.Exists(df) {
 		m, err := manifest.LoadFile(df)
 		if err != nil {
 			//This will be handled later in the suite
@@ -621,14 +622,14 @@ func checkEnvFound(m *manifest.Manifest) error {
 
 func checkEnvValid(m *manifest.Manifest) error {
 	//TODO
-	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 	}
 	return nil
 }
 
 func checkEnvIgnored(m *manifest.Manifest) error {
 	//TODO
-	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		title := "<file>.env</file> in <file>.gitignore</file> and <file>.dockerignore</file>"
 		startCheck(title)
 		_, err := os.Stat(".dockerignore")
@@ -695,7 +696,7 @@ func checkEnvIgnored(m *manifest.Manifest) error {
 }
 
 func checkMissingEnv(m *manifest.Manifest) error {
-	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
 			return err

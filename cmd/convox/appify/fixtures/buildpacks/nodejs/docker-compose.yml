@@ -1,0 +1,13 @@
+version: "2"
+services:
+  web:
+    build:
+      context: .
+    command: node index.js
+    environment:
+    - PORT=4001
+    labels:
+      convox.port.443.protocol: tls
+    ports:
+    - 80:4001/tcp
+    - 443:4001/tcp

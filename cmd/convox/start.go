@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
@@ -80,10 +81,24 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	appType := detectApplication(dir)
+	appType := helpers.DetectApplication(dir)
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
-		return stdcli.Error(err)
+		if strings.Contains(err.Error(), "docker-compose.yml: no such file or directory") {
+			fmt.Println("Unable to find docker-compose.yml. Running convox init now")
+			err := cmdInit(c)
+			if err != nil {
+				return stdcli.Error(err)
+			}
+
+			m, err = manifest.LoadFile(c.String("file"))
+			if err != nil {
+				return stdcli.Error(err)
+			}
+
+		} else {
+			return stdcli.Error(err)
+		}
 	}
 
 	errs := m.Validate()
@@ -127,10 +142,12 @@ func cmdStart(c *cli.Context) error {
 		Sync:    !c.Bool("no-sync"),
 	})
 
+	stdcli.QOSEventSend("Dev App Create Started", id, stdcli.QOSEventProperties{AppType: appType})
 	err = r.Start()
 	if err != nil {
 		r.Stop()
 
+		stdcli.QOSEventSend("Dev App Create Failed", id, stdcli.QOSEventProperties{AppType: appType, Error: err})
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 			ValidationError: err,
 			AppType:         appType,
@@ -138,6 +155,7 @@ func cmdStart(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
+	stdcli.QOSEventSend("Dev App Created", id, stdcli.QOSEventProperties{AppType: appType})
 	stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{
 		AppType: appType,
 	})
