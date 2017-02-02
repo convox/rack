@@ -280,15 +280,18 @@ func TestBuildRepeatComplex(t *testing.T) {
 
 	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: false,
+		Environment: map[string]string{
+			"foo": "baz",
+		},
 	})
 	assert.NoError(t, err)
 
 	te.AssertCommands(t, TestCommands{
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/first", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
-		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"bar\"", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"bar\"", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"baz\"", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"other\"", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/otherd", "fixtures"},
 		[]string{"docker", "tag", "web/first", "web/othere"},
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.otherf", "-t", "web/otherf", "fixtures"},
