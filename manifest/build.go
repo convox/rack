@@ -1,14 +1,18 @@
 package manifest
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 )
 
 type BuildOptions struct {
-	Cache   bool
-	Service string
+	Cache       bool
+	Environment map[string]string
+	Service     string
 }
 
 func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error {
@@ -21,6 +25,10 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 	}
 
 	for _, service := range services {
+		dockerFile := service.Build.Dockerfile
+		if dockerFile == "" {
+			dockerFile = service.Dockerfile
+		}
 		if image := service.Image; image != "" {
 			// make the implicit :latest explicit for caching/pulling
 			sp := strings.Split(image, "/")
@@ -50,10 +58,24 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		}
 
 		context := filepath.Join(dir, coalesce(service.Build.Context, "."))
+		fmt.Printf("context = %+v\n", context)
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
+		dockerFile = filepath.Join(context, dockerFile)
 
-		args = append(args, "-f", filepath.Join(context, dockerFile))
+		fmt.Printf("dockerFile = %+v\n", dockerFile)
+		bargs, err := buildArgs(dockerFile)
+		if err != nil {
+			return err
+		}
+
+		for _, ba := range bargs {
+			if v, ok := opts.Environment[ba]; ok {
+				args = append(args, "--build-arg", fmt.Sprintf("%s=%q", ba, v))
+			}
+		}
+
+		args = append(args, "-f", dockerFile)
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
 
@@ -87,4 +109,30 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 	}
 
 	return nil
+}
+
+func buildArgs(dockerfile string) ([]string, error) {
+	args := []string{}
+
+	data, err := ioutil.ReadFile(dockerfile)
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+
+		if len(parts) < 1 {
+			continue
+		}
+
+		switch parts[0] {
+		case "ARG":
+			args = append(args, strings.SplitN(parts[1], "=", 2)[0])
+		}
+	}
+
+	return args, nil
 }

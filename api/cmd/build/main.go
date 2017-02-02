@@ -22,6 +22,7 @@ var (
 	flagApp    string
 	flagAuth   string
 	flagCache  string
+	flagEnv    string
 	flagId     string
 	flagConfig string
 	flagMethod string
@@ -47,9 +48,10 @@ func init() {
 func main() {
 	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	fs.StringVar(&flagApp, "app", "example", "app name")
-	fs.StringVar(&flagAuth, "auth", "", "docker auth data (base64 encoded)")
+	fs.StringVar(&flagAuth, "auth", "", "docker auth data (json)")
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
 	fs.StringVar(&flagConfig, "config", "docker-compose.yml", "path to app config")
+	fs.StringVar(&flagEnv, "env", "", "build env (json)")
 	fs.StringVar(&flagId, "id", "latest", "build id")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
@@ -69,6 +71,10 @@ func main() {
 
 	if v := os.Getenv("BUILD_CONFIG"); v != "" {
 		flagConfig = v
+	}
+
+	if v := os.Getenv("BUILD_ENV"); v != "" {
+		flagEnv = v
 	}
 
 	if v := os.Getenv("BUILD_ID"); v != "" {
@@ -195,6 +201,12 @@ func build(dir string) error {
 		return errs[0]
 	}
 
+	env := map[string]string{}
+
+	if err := json.Unmarshal([]byte(flagEnv), &env); err != nil {
+		return err
+	}
+
 	s := make(chan string)
 
 	go func() {
@@ -206,7 +218,8 @@ func build(dir string) error {
 	defer close(s)
 
 	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
-		Cache: flagCache == "true",
+		Environment: env,
+		Cache:       flagCache == "true",
 	})
 	if err != nil {
 		return err
