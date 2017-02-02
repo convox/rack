@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/docker/docker/pkg/fileutils"
@@ -334,7 +335,7 @@ func checkCLIVersion() error {
 }
 
 func checkDockerfile() error {
-	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
+	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); helpers.Exists(df) {
 		m, err := manifest.LoadFile("docker-compose.yml")
 		if err != nil {
 			//This will get picked up later in the test suite
@@ -347,7 +348,7 @@ func checkDockerfile() error {
 	title := "Dockerfile found"
 	startCheck(title)
 
-	//Skip if docker-compose file exists
+	//Skip if docker-compose file helpers.Exists
 	_, err := os.Stat("docker-compose.yml")
 	if err == nil {
 		return nil
@@ -359,7 +360,7 @@ func checkDockerfile() error {
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/build/images",
+			DocsLink:    "https://convox.com/guide/images",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -472,7 +473,7 @@ func checkLargeFiles() error {
 func checkBuildDocker() error {
 	title := "Image builds successfully"
 
-	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); exists(df) {
+	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); helpers.Exists(df) {
 		m, err := manifest.LoadFile(df)
 		if err != nil {
 			//This will be handled later in the suite
@@ -621,14 +622,14 @@ func checkEnvFound(m *manifest.Manifest) error {
 
 func checkEnvValid(m *manifest.Manifest) error {
 	//TODO
-	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 	}
 	return nil
 }
 
 func checkEnvIgnored(m *manifest.Manifest) error {
 	//TODO
-	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		title := "<file>.env</file> in <file>.gitignore</file> and <file>.dockerignore</file>"
 		startCheck(title)
 		_, err := os.Stat(".dockerignore")
@@ -695,7 +696,7 @@ func checkEnvIgnored(m *manifest.Manifest) error {
 }
 
 func checkMissingEnv(m *manifest.Manifest) error {
-	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); exists(denv) {
+	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		data, err := ioutil.ReadFile(denv)
 		if err != nil {
 			return err
@@ -834,7 +835,7 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "http://convox.com/guide/services/",
+			DocsLink:    "https://convox.com/guide/services/",
 			Description: fmt.Sprintf("<fail>Service <service>%s</service> doesn't have a valid command</fail>", s.Name),
 		})
 	}
@@ -857,7 +858,7 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/balancers/",
+		DocsLink:    "https://convox.com/guide/balancers/",
 		Description: "<warning>This app does not expose any ports</warning>",
 	})
 	return nil
@@ -878,7 +879,7 @@ func checkAppDefinesDatabase(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/databases/",
+		DocsLink:    "https://convox.com/guide/databases/",
 		Description: "<warning>This app does not define any Databases</warning>",
 	})
 	return nil
@@ -955,7 +956,7 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "http://convox.com/guide/links/",
+		DocsLink:    "https://convox.com/guide/links/",
 		Description: "<warning>This app does not define any Links</warning>",
 	})
 	return nil
@@ -974,7 +975,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "error",
-					DocsLink:    "http://convox.com/guide/links/",
+					DocsLink:    "https://convox.com/guide/links/",
 					Description: fmt.Sprintf("<warning>Database <database>%s</database> does not expose an internal port</warning>", r.Name),
 				})
 			} else {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -55,7 +56,7 @@ func cmdSSLList(c *cli.Context) error {
 	t := stdcli.NewTable("TARGET", "CERTIFICATE", "DOMAIN", "EXPIRES")
 
 	for _, ssl := range *ssls {
-		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), ssl.Certificate, ssl.Domain, humanizeTime(ssl.Expiration))
+		t.AddRow(fmt.Sprintf("%s:%d", ssl.Process, ssl.Port), ssl.Certificate, ssl.Domain, helpers.HumanizeTime(ssl.Expiration))
 	}
 
 	t.Print()

@@ -1,0 +1,23 @@
+version: "2"
+services:
+  database:
+    build: {}
+    command: null
+    image: convox/postgres
+    ports:
+    - "5432/tcp"
+    volumes:
+    - /var/lib/postgresql/data
+  web:
+    build:
+      context: .
+    command: gunicorn gettingstarted.wsgi --log-file -
+    environment:
+    - PORT=4001
+    labels:
+      convox.port.443.protocol: tls
+    links:
+    - database
+    ports:
+    - 80:4001/tcp
+    - 443:4001/tcp

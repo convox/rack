@@ -21,10 +21,6 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 	}
 
 	for _, service := range services {
-		dockerFile := service.Build.Dockerfile
-		if dockerFile == "" {
-			dockerFile = service.Dockerfile
-		}
 		if image := service.Image; image != "" {
 			// make the implicit :latest explicit for caching/pulling
 			sp := strings.Split(image, "/")

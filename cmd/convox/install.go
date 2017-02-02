@@ -45,6 +45,7 @@ var Banner = `
 
 `
 
+// CredentialsMessage is displayed to the user when no AWS credentials have been found.
 const CredentialsMessage = `This installer needs AWS credentials to install/uninstall the Convox platform into
 your AWS account. These credentials will only be used to communicate between this
 installer running on your computer and the AWS API.
@@ -290,7 +291,7 @@ func cmdInstall(c *cli.Context) error {
 
 	if email := c.String("email"); email != "" {
 		distinctID = email
-		updateId(distinctID)
+		updateID(distinctID)
 	} else if distinctID != "" {
 		// already has an id
 	} else if terminal.IsTerminal(int(os.Stdin.Fd())) {
@@ -304,7 +305,7 @@ func cmdInstall(c *cli.Context) error {
 
 		if strings.TrimSpace(email) != "" {
 			distinctID = email
-			updateId(email)
+			updateID(email)
 		}
 	}
 

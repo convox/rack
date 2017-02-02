@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -278,4 +280,41 @@ func TestReadCredentialsFromFile(t *testing.T) {
 
 	creds, err = readCredentialsFromFile("./data/fixtures/credswrong2.csv")
 	assert.EqualError(t, err, "credentials file is of unknown length")
+}
+
+/* TestUrls checks that each URL returns HTTP status code 200.
+These URLs are printed in user-facing messages and have been gathered manually.
+Sources (mostly): cmd/convox/doctor.go, cmd/convox/install.go
+See also: bin/check-links
+*/
+func TestUrls(t *testing.T) {
+	urls := []string{
+		iamUserURL,
+		"https://convox.com/docs/about-resources/",
+		"https://convox.com/docs/api-keys/",
+		"https://convox.com/docs/docker-compose-file/",
+		"https://convox.com/docs/troubleshooting/",
+		"https://convox.com/guide/balancers/",
+		"https://convox.com/guide/databases/",
+		"https://convox.com/guide/environment/",
+		"https://convox.com/guide/images",
+		"https://convox.com/guide/links/",
+		"https://convox.com/guide/one-off-commands/",
+		"https://convox.com/guide/services/",
+		"https://docs.docker.com/engine/installation/",
+		"https://docs.docker.com/engine/reference/builder/",
+		"https://git-scm.com/docs/gitignore",
+		"https://github.com/convox/release",
+		"https://guides.github.com/introduction/flow/",
+		"http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html",
+	}
+
+	for _, url := range urls {
+		resp, err := http.Get(url)
+		assert.NoError(t, err)
+		rc := resp.StatusCode
+		if rc != 200 {
+			assert.Fail(t, fmt.Sprintf("Got response code %d for URL %s", rc, url))
+		}
+	}
 }
