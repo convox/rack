@@ -90,15 +90,13 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 
-	err = rr.Promote()
+	if err := rr.Promote(); err != nil {
+		if awsError(err) == "ValidationError" {
+			e := httperr.Errorf(403, err.(awserr.Error).Message())
+			models.Provider().EventSend(event, e)
+			return e
+		}
 
-	if awsError(err) == "ValidationError" {
-		e := httperr.Errorf(403, err.(awserr.Error).Message())
-		models.Provider().EventSend(event, e)
-		return e
-	}
-
-	if err != nil {
 		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
