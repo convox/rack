@@ -53,6 +53,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
+		event.Status = "success"
+		models.Provider().EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
