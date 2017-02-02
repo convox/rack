@@ -58,12 +58,10 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		}
 
 		context := filepath.Join(dir, coalesce(service.Build.Context, "."))
-		fmt.Printf("context = %+v\n", context)
 		dockerFile := coalesce(service.Dockerfile, "Dockerfile")
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 		dockerFile = filepath.Join(context, dockerFile)
 
-		fmt.Printf("dockerFile = %+v\n", dockerFile)
 		bargs, err := buildArgs(dockerFile)
 		if err != nil {
 			return err
