@@ -399,7 +399,7 @@ func cmdLinkDelete(c *cli.Context) error {
 
 func cmdResourceProxy(c *cli.Context) error {
 	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "info")
+		stdcli.Usage(c, "proxy")
 		return nil
 	}
 
