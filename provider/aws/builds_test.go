@@ -60,6 +60,8 @@ func TestBuildCreate(t *testing.T) {
 		cycleRegistryDecrypt,
 		cycleBuildDescribeStacks,
 		cycleBuildGetAuthorizationTokenPrivate1,
+		cycleBuildDescribeStacks,
+		cycleEnvironmentGet,
 		cycleBuildRunTask,
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
@@ -1069,6 +1071,10 @@ var cycleBuildRunTask = awsutil.Cycle{
 							{
 								"name": "BUILD_CONFIG",
 								"value": ""
+							},
+							{
+								"name": "BUILD_ENV",
+								"value": "{\"BAZ\":\"qux\",\"FOO\":\"bar\"}"
 							},
 							{
 								"name": "BUILD_ID",
