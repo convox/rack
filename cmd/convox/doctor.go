@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -221,10 +222,12 @@ func cmdDoctor(c *cli.Context) error {
 
 func checkDockerRunning() error {
 	startCheck("Docker running")
+	d := stdcli.Docker()
 
-	dockerTest := exec.Command("docker", "images")
+	dockerTest := exec.Command(d, "images")
 	err := dockerTest.Run()
 	if err != nil {
+		log.Panic(err)
 		diagnose(Diagnosis{
 			Title:       "Docker running",
 			Description: "<fail>Could not connect to the Docker daemon, is it installed and running?</fail>",
@@ -233,8 +236,10 @@ func checkDockerRunning() error {
 		})
 		return nil
 	} else {
+		dv, _ := exec.Command(d, "-v").Output()
+		v := strings.Split(string(dv), "\n")[0]
 		diagnose(Diagnosis{
-			Title: "Docker running",
+			Title: fmt.Sprintf("Docker running (%s)", v),
 			Kind:  "success",
 		})
 	}
@@ -262,14 +267,14 @@ func checkDockerVersion() error {
 
 	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
 		diagnose(Diagnosis{
-			Title:       "Docker up to date",
+			Title:       "Docker up to date ",
 			Description: "<fail>Docker engine is out of date (min: 1.9)</fail>",
 			DocsLink:    "https://docs.docker.com/engine/installation/",
 			Kind:        "fail",
 		})
 	} else {
 		diagnose(Diagnosis{
-			Title: "Docker up to date",
+			Title: fmt.Sprintf("Docker up to date (%s)", currentVersion),
 			Kind:  "success",
 		})
 	}
