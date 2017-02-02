@@ -82,9 +82,7 @@ func TestLoadFullVersion1(t *testing.T) {
 			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
 			assert.Equal(t, web.Dockerfile, "")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
-			assert.Equal(t, len(web.Environment), 2)
-			assert.Equal(t, web.Environment["FOO"], "bar")
-			assert.Equal(t, web.Environment["BAZ"], "")
+			assert.Equal(t, web.Environment, manifest.Environment{manifest.EnvironmentItem{Name: "BAZ", Value: "", Needed: true}, manifest.EnvironmentItem{Name: "FOO", Value: "bar", Needed: false}})
 			assert.Equal(t, len(web.Labels), 2)
 			assert.Equal(t, web.Labels["convox.foo"], "bar")
 			assert.Equal(t, web.Labels["convox.baz"], "4")
@@ -115,9 +113,7 @@ func TestLoadFullVersion1(t *testing.T) {
 		}
 
 		if db := m.Services["database"]; assert.NotNil(t, db) {
-			assert.Equal(t, len(db.Environment), 2)
-			assert.Equal(t, db.Environment["FOO"], "bar")
-			assert.Equal(t, db.Environment["BAZ"], "qux")
+			assert.Equal(t, db.Environment, manifest.Environment{manifest.EnvironmentItem{Name: "BAZ", Value: "qux", Needed: false}, manifest.EnvironmentItem{Name: "FOO", Value: "bar", Needed: false}})
 			assert.Equal(t, db.Image, "convox/postgres")
 			assert.Equal(t, len(db.Labels), 2)
 			assert.Equal(t, db.Labels["convox.aaa"], "4")
@@ -143,9 +139,7 @@ func TestLoadFullVersion2(t *testing.T) {
 			assert.Equal(t, web.Command.String, manifest.Command{String: "bin/web"}.String)
 			assert.Equal(t, web.Dockerfile, "")
 			assert.Equal(t, web.Entrypoint, "/sbin/init")
-			assert.Equal(t, len(web.Environment), 2)
-			assert.Equal(t, web.Environment["FOO"], "bar")
-			assert.Equal(t, web.Environment["BAZ"], "")
+			assert.Equal(t, web.Environment, manifest.Environment{manifest.EnvironmentItem{Name: "BAZ", Value: "", Needed: true}, manifest.EnvironmentItem{Name: "FOO", Value: "bar", Needed: false}})
 			assert.Equal(t, len(web.Labels), 2)
 			assert.Equal(t, web.Labels["convox.foo"], "bar")
 			assert.Equal(t, web.Labels["convox.baz"], "4")
@@ -176,9 +170,7 @@ func TestLoadFullVersion2(t *testing.T) {
 		}
 
 		if db := m.Services["database"]; assert.NotNil(t, db) {
-			assert.Equal(t, len(db.Environment), 2)
-			assert.Equal(t, db.Environment["FOO"], "bar")
-			assert.Equal(t, db.Environment["BAZ"], "qux")
+			assert.Equal(t, db.Environment, manifest.Environment{manifest.EnvironmentItem{Name: "BAZ", Value: "qux", Needed: false}, manifest.EnvironmentItem{Name: "FOO", Value: "bar", Needed: false}})
 			assert.Equal(t, db.Image, "convox/postgres")
 			assert.Equal(t, len(db.Labels), 2)
 			assert.Equal(t, db.Labels["convox.aaa"], "4")
@@ -454,7 +446,7 @@ func TestManifestMarshalYaml(t *testing.T) {
 						Public:    true,
 						Balancer:  10,
 						Container: 10,
-						Protocol: manifest.TCP,
+						Protocol:  manifest.TCP,
 					},
 				},
 			},
