@@ -26,23 +26,19 @@ func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, apps)
 }
 
-func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+func AppGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
 	if app == os.Getenv("RACK") {
 		return httperr.Errorf(404, "rack %s is not an app", app)
 	}
 
-	a, err := models.GetApp(app)
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	if err != nil && strings.HasPrefix(err.Error(), "no such app") {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
+	a, err := models.Provider().AppGet(app)
 	if err != nil {
+		if provider.ErrorNotFound(err) {
+			return httperr.Errorf(404, "no such app: %s", app)
+		}
+
 		return httperr.Server(err)
 	}
 
