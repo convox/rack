@@ -553,7 +553,18 @@ func TestManifestValidate(t *testing.T) {
 }
 
 func manifestFixture(name string) (*manifest.Manifest, error) {
-	return manifest.LoadFile(fmt.Sprintf("fixtures/%s.yml", name))
+	m, err := manifest.LoadFile(fmt.Sprintf("fixtures/%s.yml", name))
+	if err != nil {
+		return nil, err
+	}
+
+	// for name, service := range m.Services {
+	// service.Build.Context = filepath.Join("fixtures", service.Build.Context)
+	// fmt.Printf("service = %+v\n", service)
+	// m.Services[name] = service
+	// }
+
+	return m, nil
 }
 
 var randomAlphabet = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
