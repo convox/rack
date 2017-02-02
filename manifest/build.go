@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -62,15 +63,33 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 		dockerFile = filepath.Join(context, dockerFile)
 
-		bargs, err := buildArgs(dockerFile)
+		bargs := map[string]string{}
+
+		for k, v := range service.Build.Args {
+			bargs[k] = v
+		}
+
+		dba, err := buildArgs(dockerFile)
 		if err != nil {
 			return err
 		}
 
-		for _, ba := range bargs {
+		for _, ba := range dba {
 			if v, ok := opts.Environment[ba]; ok {
-				args = append(args, "--build-arg", fmt.Sprintf("%s=%q", ba, v))
+				bargs[ba] = v
 			}
+		}
+
+		bargNames := []string{}
+
+		for k := range bargs {
+			bargNames = append(bargNames, k)
+		}
+
+		sort.Strings(bargNames)
+
+		for _, name := range bargNames {
+			args = append(args, "--build-arg", fmt.Sprintf("%s=%q", name, bargs[name]))
 		}
 
 		args = append(args, "-f", dockerFile)
