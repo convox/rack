@@ -657,7 +657,9 @@
                       "acm:ListCertificates",
                       "acm:RequestCertificate",
                       "autoscaling:CreateLaunchConfiguration",
+                      "autoscaling:CreateOrUpdateTags",
                       "autoscaling:DeleteLaunchConfiguration",
+                      "autoscaling:DeleteTags",
                       "autoscaling:DescribeAutoScalingGroups",
                       "autoscaling:DescribeAutoScalingInstances",
                       "autoscaling:DescribeLaunchConfigurations",
@@ -1452,6 +1454,36 @@
           {
             "Key": "GatewayAttachment",
             "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "SubnetPrivate0Routes",
+            "Value": { "Fn::If": ["Private", { "Ref": "SubnetPrivate0Routes" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "SubnetPrivate1Routes",
+            "Value": { "Fn::If": ["Private", { "Ref": "SubnetPrivate1Routes" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "SubnetPrivate2Routes",
+            "Value": { "Fn::If": ["PrivateAndThirdAvailabilityZone", { "Ref": "SubnetPrivate2Routes" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "Nat0",
+            "Value": { "Fn::If": ["Private", { "Ref": "Nat0" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "Nat1",
+            "Value": { "Fn::If": ["Private", { "Ref": "Nat1" }, "" ] },
+            "PropagateAtLaunch": false
+          },
+          {
+            "Key": "Nat2",
+            "Value": { "Fn::If": ["PrivateAndThirdAvailabilityZone", { "Ref": "Nat2" }, "" ] },
             "PropagateAtLaunch": false
           }
         ]
