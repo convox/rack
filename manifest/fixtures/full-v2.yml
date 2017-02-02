@@ -1,7 +1,11 @@
 version: "2"
 services:
   web:
-    build: .
+    build:
+      args:
+        - TEST1=one
+        - TEST2
+      context: .
     command: bin/web
     dockerfile: Dockerfile.dev
     entrypoint: /sbin/init
