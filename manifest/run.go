@@ -124,9 +124,20 @@ func (r *Run) Start() error {
 	r.done = make(chan error)
 
 	if r.Opts.Build {
+		env := map[string]string{}
+
+		for _, e := range os.Environ() {
+			pp := strings.SplitN(e, "=", 2)
+
+			if len(pp) == 2 {
+				env[pp[0]] = pp[1]
+			}
+		}
+
 		err = r.manifest.Build(r.Dir, r.App, r.Output.Stream("build"), BuildOptions{
-			Cache:   r.Opts.Cache,
-			Service: r.Opts.Service,
+			Environment: env,
+			Cache:       r.Opts.Cache,
+			Service:     r.Opts.Service,
 		})
 		if err != nil {
 			return err

@@ -71,13 +71,55 @@ func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				b.Dockerfile = mapValue.(string)
 			case "args":
 				args := map[string]string{}
-				for key, value := range mapValue.(map[interface{}]interface{}) {
-					if ks, ok := key.(string); ok {
-						if vs, ok := value.(string); ok {
-							args[ks] = vs
+
+				switch t := mapValue.(type) {
+				case map[interface{}]interface{}:
+					for k, v := range t {
+						var ks, vs string
+
+						switch t := k.(type) {
+						case string:
+							ks = t
+						case int:
+							ks = strconv.Itoa(t)
+						default:
+							return fmt.Errorf("unknown type in environment map: %v", k)
+						}
+
+						switch t := v.(type) {
+						case string:
+							vs = t
+						case int:
+							vs = strconv.Itoa(t)
+						default:
+							return fmt.Errorf("unknown type in environment map: %v", k)
+						}
+
+						args[ks] = vs
+					}
+				case []interface{}:
+					for _, tt := range t {
+						s, ok := tt.(string)
+
+						if !ok {
+							return fmt.Errorf("unknown type in environment list: %v", t)
+						}
+
+						parts := strings.SplitN(s, "=", 2)
+
+						switch len(parts) {
+						case 1:
+							args[parts[0]] = ""
+						case 2:
+							args[parts[0]] = parts[1]
+						default:
+							return fmt.Errorf("cannot parse environment: %v", t)
 						}
 					}
+				default:
+					return fmt.Errorf("unknown type for args: %T", t)
 				}
+
 				b.Args = args
 			default:
 				// Ignore
@@ -139,7 +181,7 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			case int:
 				ks = strconv.Itoa(t)
 			default:
-				return fmt.Errorf("unknown type in label map: %v", k)
+				return fmt.Errorf("unknown type in environment map: %v", k)
 			}
 
 			switch t := v.(type) {
@@ -148,7 +190,7 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			case int:
 				vs = strconv.Itoa(t)
 			default:
-				return fmt.Errorf("unknown type in label map: %v", k)
+				return fmt.Errorf("unknown type in environment map: %v", k)
 			}
 
 			(*e)[ks] = vs
@@ -158,7 +200,7 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			s, ok := tt.(string)
 
 			if !ok {
-				return fmt.Errorf("unknown type in command array: %v", t)
+				return fmt.Errorf("unknown type in environment list: %v", t)
 			}
 
 			parts := strings.SplitN(s, "=", 2)

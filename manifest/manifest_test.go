@@ -454,7 +454,7 @@ func TestManifestMarshalYaml(t *testing.T) {
 						Public:    true,
 						Balancer:  10,
 						Container: 10,
-						Protocol: manifest.TCP,
+						Protocol:  manifest.TCP,
 					},
 				},
 			},

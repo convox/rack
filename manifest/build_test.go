@@ -86,20 +86,23 @@ func TestBuildWithCache(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("full-v1")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: true,
+		Environment: map[string]string{
+			"FOO": "bar",
+		},
 	})
+	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "-f", "Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "--build-arg", "FOO=\"bar\"", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
-	assert.Equal(t, len(te.Commands), 2)
-	assert.Equal(t, te.Commands[0].Args, cmd1)
-	assert.Equal(t, te.Commands[1].Args, cmd2)
+	if assert.Equal(t, len(te.Commands), 2) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+	}
 }
 
 func TestBuildCacheNoImage(t *testing.T) {
@@ -118,22 +121,22 @@ func TestBuildCacheNoImage(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("full-v1")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: true,
 	})
+	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "-f", "Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
 	cmd3 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
-	assert.Equal(t, len(te.Commands), 3)
-	assert.Equal(t, te.Commands[0].Args, cmd1)
-	assert.Equal(t, te.Commands[1].Args, cmd2)
-	assert.Equal(t, te.Commands[2].Args, cmd3)
+	if assert.Equal(t, len(te.Commands), 3) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+		assert.Equal(t, te.Commands[2].Args, cmd3)
+	}
 }
 
 func TestBuildWithSpecificService(t *testing.T) {
@@ -152,21 +155,21 @@ func TestBuildWithSpecificService(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("specific-service")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Service: "web",
 		Cache:   true,
 	})
+	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "-f", "Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
-	assert.Equal(t, len(te.Commands), 2)
-	assert.Equal(t, te.Commands[0].Args, cmd1)
-	assert.Equal(t, te.Commands[1].Args, cmd2)
+	if assert.Equal(t, len(te.Commands), 2) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+	}
 }
 
 func TestBuildNoCache(t *testing.T) {
@@ -185,23 +188,23 @@ func TestBuildNoCache(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("full-v1")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Service: "web",
 		Cache:   false,
 	})
+	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "Dockerfile.dev", "-t", "web/web", "."}
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "pull", "convox/postgres:latest"}
 	cmd3 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
-	assert.Equal(t, len(te.Commands), 3)
-	assert.Equal(t, te.Commands[0].Args, cmd1)
-	assert.Equal(t, te.Commands[1].Args, cmd2)
-	assert.Equal(t, te.Commands[2].Args, cmd3)
+	if assert.Equal(t, len(te.Commands), 3) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+		assert.Equal(t, te.Commands[2].Args, cmd3)
+	}
 }
 
 func TestBuildRepeatSimple(t *testing.T) {
@@ -213,22 +216,22 @@ func TestBuildRepeatSimple(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("repeat-simple")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: false,
 	})
+	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/monitor", "."}
-	cmd2 := []string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/other", "other"}
+	cmd1 := []string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"}
+	cmd2 := []string{"docker", "build", "--no-cache", "-f", "fixtures/other/Dockerfile", "-t", "web/other", "fixtures/other"}
 	cmd3 := []string{"docker", "tag", "web/monitor", "web/web"}
 
-	assert.Equal(t, len(te.Commands), 3)
-	assert.Equal(t, te.Commands[0].Args, cmd1)
-	assert.Equal(t, te.Commands[1].Args, cmd2)
-	assert.Equal(t, te.Commands[2].Args, cmd3)
+	if assert.Equal(t, len(te.Commands), 3) {
+		assert.Equal(t, te.Commands[0].Args, cmd1)
+		assert.Equal(t, te.Commands[1].Args, cmd2)
+		assert.Equal(t, te.Commands[2].Args, cmd3)
+	}
 }
 
 func TestBuildRepeatImage(t *testing.T) {
@@ -246,13 +249,12 @@ func TestBuildRepeatImage(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("repeat-image")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: false,
 	})
+	assert.NoError(t, err)
 
 	cmd1 := []string{"docker", "pull", "convox/rails:latest"}
 	cmd2 := []string{"docker", "tag", "convox/rails:latest", "web/web1"}
@@ -274,23 +276,25 @@ func TestBuildRepeatComplex(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("repeat-complex")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
-	err = m.Build(".", "web", str, manifest.BuildOptions{
+	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: false,
+		Environment: map[string]string{
+			"foo": "baz",
+		},
 	})
+	assert.NoError(t, err)
 
 	te.AssertCommands(t, TestCommands{
-		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/first", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/monitor", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "other/Dockerfile", "-t", "web/othera", "other"},
-		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile.other", "-t", "web/otherb", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/otherc", "."},
-		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile", "-t", "web/otherd", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/first", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"bar\"", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"bar\"", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"baz\"", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"other\"", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/otherd", "fixtures"},
 		[]string{"docker", "tag", "web/first", "web/othere"},
-		[]string{"docker", "build", "--no-cache", "-f", "Dockerfile.otherf", "-t", "web/otherf", "."},
+		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.otherf", "-t", "web/otherf", "fixtures"},
 		[]string{"docker", "tag", "web/otherf", "web/otherg"},
 		[]string{"docker", "tag", "web/monitor", "web/web"},
 	})
@@ -312,9 +316,7 @@ func TestPush(t *testing.T) {
 	defer func() { manifest.DefaultRunner = dr }()
 
 	m, err := manifestFixture("full-v1")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	cmd1 := []string{"docker", "tag", "app/database", "registry/test:database.tag"}
 	cmd2 := []string{"docker", "push", "registry/test:database.tag"}
