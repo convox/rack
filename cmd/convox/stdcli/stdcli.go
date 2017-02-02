@@ -25,6 +25,7 @@ var (
 	Querier    func(bin string, args ...string) ([]byte, error)
 	Spinner    *spinner.Spinner
 	Tagger     func() string
+	Docker     func() string
 )
 
 func init() {
@@ -35,6 +36,7 @@ func init() {
 	Runner = runExecCommand
 	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
+	Docker = getDockerBin
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
@@ -262,6 +264,19 @@ func runExecCommand(bin string, args ...string) error {
 
 func queryExecCommand(bin string, args ...string) ([]byte, error) {
 	return exec.Command(bin, args...).CombinedOutput()
+}
+
+func getDockerBin() string {
+	osd := os.Getenv("DOCKER_BIN")
+	if osd != "" {
+		return osd
+	}
+	wd, err := exec.Command("which", "docker").Output()
+	whichDocker := strings.Split(string(wd), "\n")[0]
+	if err != nil {
+		return err.Error()
+	}
+	return whichDocker
 }
 
 func tagTimeUnix() string {
