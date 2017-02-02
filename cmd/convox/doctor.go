@@ -149,23 +149,24 @@ func cmdDoctor(c *cli.Context) error {
 	}
 
 	stdcli.Writef("\n\n### Build: Service\n")
-	startCheck("<file>docker-compose.yml</file> found")
-	_, err := os.Stat("docker-compose.yml")
+	dcm := helpers.DetectComposeFile()
+	startCheck(fmt.Sprintf("<file>%s</file> found", dcm))
+	_, err := os.Stat(dcm)
 	if err != nil {
 		diagnose(Diagnosis{
-			Title:       "<file>docker-compose.yml</file> found",
-			Description: "<fail>A docker-compose.yml file is required to define Services</fail>",
+			Title:       fmt.Sprintf("<file>%s</file> found", dcm),
+			Description: fmt.Sprintf("<fail>A %s file is required to define Services</fail>", dcm),
 			Kind:        "fail",
 			DocsLink:    "https://convox.com/guide/services/",
 		})
 	} else {
 		diagnose(Diagnosis{
-			Title: "<file>docker-compose.yml</file> found",
+			Title: fmt.Sprintf("<file>%s</file> found", dcm),
 			Kind:  "success",
 		})
 	}
 
-	m, err := manifest.LoadFile("docker-compose.yml")
+	m, err := manifest.LoadFile(dcm)
 	checkManifestValid(m, err)
 	for _, check := range buildServiceChecks {
 		if err := check(m); err != nil {
@@ -335,8 +336,9 @@ func checkCLIVersion() error {
 }
 
 func checkDockerfile() error {
-	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); helpers.Exists(df) {
-		m, err := manifest.LoadFile("docker-compose.yml")
+	dcm := helpers.DetectComposeFile()
+	if df := filepath.Join(filepath.Dir(os.Args[0]), dcm); helpers.Exists(df) {
+		m, err := manifest.LoadFile(dcm)
 		if err != nil {
 			//This will get picked up later in the test suite
 			return nil
@@ -349,7 +351,7 @@ func checkDockerfile() error {
 	startCheck(title)
 
 	//Skip if docker-compose file helpers.Exists
-	_, err := os.Stat("docker-compose.yml")
+	_, err := os.Stat(dcm)
 	if err == nil {
 		return nil
 	}
@@ -472,8 +474,9 @@ func checkLargeFiles() error {
 
 func checkBuildDocker() error {
 	title := "Image builds successfully"
+	dcm := helpers.DetectComposeFile()
 
-	if df := filepath.Join(filepath.Dir(os.Args[0]), "docker-compose.yml"); helpers.Exists(df) {
+	if df := filepath.Join(filepath.Dir(os.Args[0]), dcm); helpers.Exists(df) {
 		m, err := manifest.LoadFile(df)
 		if err != nil {
 			//This will be handled later in the suite
@@ -545,7 +548,8 @@ func checkBuildDocker() error {
 }
 
 func checkManifestValid(m *manifest.Manifest, parseError error) error {
-	title := "<file>docker-compose.yml</file> valid"
+	dcm := helpers.DetectComposeFile()
+	title := fmt.Sprintf("<file>%s</file> valid", dcm)
 	startCheck(title)
 
 	if parseError != nil {
@@ -553,7 +557,7 @@ func checkManifestValid(m *manifest.Manifest, parseError error) error {
 			Title:       title,
 			Kind:        "fail",
 			DocsLink:    "https://convox.com/docs/docker-compose-file/",
-			Description: "<description>docker-compose.yml is not valid YAML</description>",
+			Description: fmt.Sprintf("<description>%s is not valid YAML</description>", dcm),
 		})
 		return nil
 	}
@@ -581,7 +585,8 @@ func checkManifestValid(m *manifest.Manifest, parseError error) error {
 }
 
 func checkVersion2(m *manifest.Manifest) error {
-	title := "<file>docker-compose.yml</file> version 2"
+	dcm := helpers.DetectComposeFile()
+	title := fmt.Sprintf("<file>%s</file> version 2", dcm)
 	startCheck(title)
 	if m.Version == "2" {
 		diagnose(Diagnosis{
@@ -594,7 +599,7 @@ func checkVersion2(m *manifest.Manifest) error {
 		Title:       title,
 		Kind:        "warning",
 		DocsLink:    "https://convox.com/docs/docker-compose-file/",
-		Description: "<warning>You are using the legacy v1 docker-compose.yml</warning>",
+		Description: fmt.Sprintf("<warning>%s is using the legacy v1 docker-compose.yml format</warning>", dcm),
 	})
 	return nil
 }

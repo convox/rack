@@ -8,6 +8,15 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
+// DetectComposeFile checks for COMPOSE_FILE envvar; falls back to docker-compose.yml
+func DetectComposeFile() string {
+	dcm := "docker-compose.yml"
+	if os.Getenv("COMPOSE_FILE") != "" {
+		dcm = os.Getenv("COMPOSE_FILE")
+	}
+	return dcm
+}
+
 // Exists checks if a file exists
 func Exists(filename string) bool {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
