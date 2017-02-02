@@ -90,10 +90,13 @@ func TestBuildWithCache(t *testing.T) {
 
 	err = m.Build("fixtures", "web", str, manifest.BuildOptions{
 		Cache: true,
+		Environment: map[string]string{
+			"FOO": "bar",
+		},
 	})
 	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
+	cmd1 := []string{"docker", "build", "--build-arg", "FOO=\"bar\"", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	if assert.Equal(t, len(te.Commands), 2) {
