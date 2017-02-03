@@ -65,6 +65,7 @@ func (d Diagnosis) String() string {
 var (
 	diagnoses  = []Diagnosis{}
 	docContext = &cli.Context{}
+	dcm        = helpers.DetectComposeFile()
 
 	setupChecks = []func() error{
 		checkCLIVersion,
@@ -151,8 +152,7 @@ func cmdDoctor(c *cli.Context) error {
 	stdcli.Writef("\n\n### Build: Service\n")
 	dcm := helpers.DetectComposeFile()
 	startCheck(fmt.Sprintf("<file>%s</file> found", dcm))
-	_, err := os.Stat(dcm)
-	if err != nil {
+	if !helpers.Exists(dcm) {
 		diagnose(Diagnosis{
 			Title:       fmt.Sprintf("<file>%s</file> found", dcm),
 			Description: fmt.Sprintf("<fail>A %s file is required to define Services</fail>", dcm),
@@ -351,13 +351,11 @@ func checkDockerfile() error {
 	startCheck(title)
 
 	//Skip if docker-compose file helpers.Exists
-	_, err := os.Stat(dcm)
-	if err == nil {
+	if helpers.Exists(dcm) {
 		return nil
 	}
 
-	_, err = os.Stat("Dockerfile")
-	if err != nil {
+	if !helpers.Exists("Dockerfile") {
 		diagnose(Diagnosis{
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
@@ -382,8 +380,7 @@ func checkDockerignoreGit() error {
 	title := "<file>.git</file> in <file>.dockerignore</file>"
 	startCheck(title)
 
-	_, err := os.Stat(".dockerignore")
-	if err != nil {
+	if !helpers.Exists(".dockerignore") {
 		diagnose(Diagnosis{
 			Title:       title,
 			Description: "<warning>It looks like you don't have a .dockerignore file</warning>",
@@ -474,7 +471,6 @@ func checkLargeFiles() error {
 
 func checkBuildDocker() error {
 	title := "Image builds successfully"
-	dcm := helpers.DetectComposeFile()
 
 	if df := filepath.Join(filepath.Dir(os.Args[0]), dcm); helpers.Exists(df) {
 		m, err := manifest.LoadFile(df)
@@ -548,7 +544,6 @@ func checkBuildDocker() error {
 }
 
 func checkManifestValid(m *manifest.Manifest, parseError error) error {
-	dcm := helpers.DetectComposeFile()
 	title := fmt.Sprintf("<file>%s</file> valid", dcm)
 	startCheck(title)
 
@@ -585,7 +580,6 @@ func checkManifestValid(m *manifest.Manifest, parseError error) error {
 }
 
 func checkVersion2(m *manifest.Manifest) error {
-	dcm := helpers.DetectComposeFile()
 	title := fmt.Sprintf("<file>%s</file> version 2", dcm)
 	startCheck(title)
 	if m.Version == "2" {
@@ -608,8 +602,7 @@ func checkEnvFound(m *manifest.Manifest) error {
 	title := "<file>.env</file> found"
 	startCheck(title)
 
-	_, err := os.Stat(".env")
-	if err != nil {
+	if !helpers.Exists(".env") {
 		diagnose(Diagnosis{
 			Title:       title,
 			Description: "<warning>A .env file is recommended to manage development configuration</warning>",
@@ -637,8 +630,7 @@ func checkEnvIgnored(m *manifest.Manifest) error {
 	if denv := filepath.Join(filepath.Dir(os.Args[0]), ".env"); helpers.Exists(denv) {
 		title := "<file>.env</file> in <file>.gitignore</file> and <file>.dockerignore</file>"
 		startCheck(title)
-		_, err := os.Stat(".dockerignore")
-		if err != nil {
+		if !helpers.Exists(".dockerignore") {
 			diagnose(Diagnosis{
 				Title:       title,
 				Description: "<warning>It looks like you don't have a .dockerignore file</warning>",
@@ -648,8 +640,7 @@ func checkEnvIgnored(m *manifest.Manifest) error {
 			return nil
 		}
 
-		_, err = os.Stat(".gitignore")
-		if err != nil {
+		if !helpers.Exists(".gitignore") {
 			diagnose(Diagnosis{
 				Title:       title,
 				Description: "<warning>It looks like you don't have a .gitignore file</warning>",
@@ -786,8 +777,7 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 		if s.Image == "" {
 			dockerFile := coalesce(s.Dockerfile, "Dockerfile")
 			dockerFile = coalesce(s.Build.Dockerfile, dockerFile)
-			_, err := os.Stat(fmt.Sprintf("%s/%s", s.Build.Context, dockerFile))
-			if err != nil {
+			if !helpers.Exists(fmt.Sprintf("%s/%s", s.Build.Context, dockerFile)) {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "fail",
