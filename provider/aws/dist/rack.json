@@ -738,6 +738,7 @@
                       "elasticloadbalancing:CreateLoadBalancerPolicy",
                       "elasticloadbalancing:DeleteLoadBalancer",
                       "elasticloadbalancing:DeleteLoadBalancerListeners",
+                      "elasticloadbalancing:DeleteLoadBalancerPolicy",
                       "elasticloadbalancing:DescribeLoadBalancers",
                       "elasticloadbalancing:ModifyLoadBalancerAttributes",
                       "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
