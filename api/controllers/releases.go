@@ -64,28 +64,31 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		Status: "start",
 		Data: map[string]interface{}{
 			"app": app,
-			"id":  "n/a",
+			"id":  release,
 		},
 	}
 	models.Provider().EventSend(event, nil)
 
 	_, err := models.GetApp(app)
+	if err != nil {
+		if awsError(err) == "ValidationError" {
+			e := httperr.Errorf(404, "no such app: %s", app)
+			models.Provider().EventSend(event, e)
+			return e
+		}
 
-	if awsError(err) == "ValidationError" {
-		e := httperr.Errorf(404, "no such app: %s", app)
-		models.Provider().EventSend(event, e)
-		return e
+		models.Provider().EventSend(event, err)
+		return httperr.Server(err)
 	}
 
 	rr, err := models.GetRelease(app, release)
-
-	if err != nil && strings.HasPrefix(err.Error(), "no such release") {
-		e := httperr.Errorf(404, "no such release: %s", release)
-		models.Provider().EventSend(event, e)
-		return e
-	}
-
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "no such release") {
+			e := httperr.Errorf(404, "no such release: %s", release)
+			models.Provider().EventSend(event, e)
+			return e
+		}
+
 		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
