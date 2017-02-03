@@ -150,7 +150,6 @@ func cmdDoctor(c *cli.Context) error {
 	}
 
 	stdcli.Writef("\n\n### Build: Service\n")
-	dcm := helpers.DetectComposeFile()
 	startCheck(fmt.Sprintf("<file>%s</file> found", dcm))
 	if !helpers.Exists(dcm) {
 		diagnose(Diagnosis{
@@ -336,7 +335,6 @@ func checkCLIVersion() error {
 }
 
 func checkDockerfile() error {
-	dcm := helpers.DetectComposeFile()
 	if df := filepath.Join(filepath.Dir(os.Args[0]), dcm); helpers.Exists(df) {
 		m, err := manifest.LoadFile(dcm)
 		if err != nil {
@@ -350,7 +348,7 @@ func checkDockerfile() error {
 	title := "Dockerfile found"
 	startCheck(title)
 
-	//Skip if docker-compose file helpers.Exists
+	//Skip if docker-compose file exists
 	if helpers.Exists(dcm) {
 		return nil
 	}
