@@ -62,7 +62,17 @@ type Command struct {
 	String string   `yaml:"-"`
 	Array  []string `yaml:"-"`
 }
-type Environment map[string]string
+
+// EnvironmentItem is a single item in an environment
+type EnvironmentItem struct {
+	Name   string
+	Value  string
+	Needed bool // if true this value should be provided by the user in .env or convox env
+}
+
+// Environment is a service's default environment
+type Environment []EnvironmentItem
+
 type Labels map[string]string
 type Memory int64
 type Networks map[string]InternalNetwork
@@ -351,6 +361,10 @@ func linkArgs(s Service, container string) []string {
 
 	return args
 }
+
+func (ee Environment) Len() int           { return len(ee) }
+func (ee Environment) Less(i, j int) bool { return ee[i].Name < ee[j].Name }
+func (ee Environment) Swap(i, j int)      { ee[i], ee[j] = ee[j], ee[i] }
 
 // LabelsByPrefix retuns a map of string values with the labels filtered by prefix
 func (s Service) LabelsByPrefix(prefix string) map[string]string {

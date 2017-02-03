@@ -691,8 +691,8 @@ func (p *AWSProvider) generateTaskDefinition(app, process, release string) (*ecs
 		env[k] = v
 	}
 
-	for k, v := range s.Environment {
-		env[k] = v
+	for _, e := range s.Environment {
+		env[e.Name] = e.Value
 	}
 
 	for _, e := range strings.Split(r.Env, "\n") {

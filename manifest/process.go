@@ -74,14 +74,14 @@ func (p *Process) GenerateArgs(opts *ArgOptions) []string {
 		}
 	}
 
-	for k, v := range p.service.Environment {
-		if v == "" {
-			args = append(args, "-e", fmt.Sprintf("%s", k))
+	for _, e := range p.service.Environment {
+		if e.Needed && e.Value == "" {
+			args = append(args, "-e", fmt.Sprintf("%s", e.Name))
 		} else {
-			if ev, ok := userEnv[k]; ok {
-				args = append(args, "-e", fmt.Sprintf("%s=%s", k, ev))
+			if ev, ok := userEnv[e.Name]; ok {
+				args = append(args, "-e", fmt.Sprintf("%s=%s", e.Name, ev))
 			} else {
-				args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
+				args = append(args, "-e", fmt.Sprintf("%s=%s", e.Name, e.Value))
 			}
 		}
 	}
