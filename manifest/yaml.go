@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -37,14 +38,14 @@ func (c Command) MarshalYAML() (interface{}, error) {
 }
 
 // MarshalYAML implements the Marshaller interface for the Environment type
-func (e Environment) MarshalYAML() (interface{}, error) {
+func (ee Environment) MarshalYAML() (interface{}, error) {
 	res := []string{}
 
-	for k, v := range e {
-		if v == "" {
-			res = append(res, k)
+	for _, e := range ee {
+		if e.Needed && e.Value == "" {
+			res = append(res, e.Name)
 		} else {
-			res = append(res, fmt.Sprintf("%s=%s", k, v))
+			res = append(res, fmt.Sprintf("%s=%s", e.Name, e.Value))
 		}
 	}
 
@@ -71,13 +72,55 @@ func (b *Build) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				b.Dockerfile = mapValue.(string)
 			case "args":
 				args := map[string]string{}
-				for key, value := range mapValue.(map[interface{}]interface{}) {
-					if ks, ok := key.(string); ok {
-						if vs, ok := value.(string); ok {
-							args[ks] = vs
+
+				switch t := mapValue.(type) {
+				case map[interface{}]interface{}:
+					for k, v := range t {
+						var ks, vs string
+
+						switch t := k.(type) {
+						case string:
+							ks = t
+						case int:
+							ks = strconv.Itoa(t)
+						default:
+							return fmt.Errorf("unknown type in environment map: %v", k)
+						}
+
+						switch t := v.(type) {
+						case string:
+							vs = t
+						case int:
+							vs = strconv.Itoa(t)
+						default:
+							return fmt.Errorf("unknown type in environment map: %v", k)
+						}
+
+						args[ks] = vs
+					}
+				case []interface{}:
+					for _, tt := range t {
+						s, ok := tt.(string)
+
+						if !ok {
+							return fmt.Errorf("unknown type in environment list: %v", t)
+						}
+
+						parts := strings.SplitN(s, "=", 2)
+
+						switch len(parts) {
+						case 1:
+							args[parts[0]] = ""
+						case 2:
+							args[parts[0]] = parts[1]
+						default:
+							return fmt.Errorf("cannot parse environment: %v", t)
 						}
 					}
+				default:
+					return fmt.Errorf("unknown type for args: %T", t)
 				}
+
 				b.Args = args
 			default:
 				// Ignore
@@ -126,7 +169,7 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	*e = make(Environment)
+	*e = make(Environment, 0)
 
 	switch t := v.(type) {
 	case map[interface{}]interface{}:
@@ -139,7 +182,7 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			case int:
 				ks = strconv.Itoa(t)
 			default:
-				return fmt.Errorf("unknown type in label map: %v", k)
+				return fmt.Errorf("unknown type in environment map: %v", k)
 			}
 
 			switch t := v.(type) {
@@ -148,26 +191,36 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			case int:
 				vs = strconv.Itoa(t)
 			default:
-				return fmt.Errorf("unknown type in label map: %v", k)
+				return fmt.Errorf("unknown type in environment map: %v", k)
 			}
 
-			(*e)[ks] = vs
+			*e = append(*e, EnvironmentItem{
+				Name:   ks,
+				Value:  vs,
+				Needed: false,
+			})
 		}
 	case []interface{}:
 		for _, tt := range t {
 			s, ok := tt.(string)
 
 			if !ok {
-				return fmt.Errorf("unknown type in command array: %v", t)
+				return fmt.Errorf("unknown type in environment list: %v", t)
 			}
 
 			parts := strings.SplitN(s, "=", 2)
 
 			switch len(parts) {
 			case 1:
-				(*e)[parts[0]] = ""
+				*e = append(*e, EnvironmentItem{
+					Name:   parts[0],
+					Needed: true,
+				})
 			case 2:
-				(*e)[parts[0]] = parts[1]
+				*e = append(*e, EnvironmentItem{
+					Name:  parts[0],
+					Value: parts[1],
+				})
 			default:
 				return fmt.Errorf("cannot parse environment: %v", t)
 			}
@@ -175,6 +228,8 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	default:
 		return fmt.Errorf("cannot parse environment: %v", t)
 	}
+
+	sort.Sort(*e)
 
 	return nil
 }
