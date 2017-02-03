@@ -328,7 +328,9 @@ func (r *Release) Promote() error {
 	}
 
 	_, err = UpdateStack(req)
-
+	if err == nil {
+		go waitForPromotion(r)
+	}
 	return err
 }
 
@@ -665,4 +667,94 @@ func waitForTemplate(bucket string, id string) error {
 
 	fmt.Printf("ns=kernel at=waitForTemplate.tick error=unknown bucket=%q release=%q\n", bucket, id)
 	return fmt.Errorf("unknown error")
+}
+
+// monitorReleasePromotion observes a release's rollout by verifying the app's CF stack status
+// Sends a notifcation on success or failure. This function blocks.
+// TODO: this should be in provider.ReleasePromote()
+func waitForPromotion(r *Release) {
+	event := &structs.Event{
+		Action: "release:promote",
+		Data: map[string]interface{}{
+			"app": r.App,
+			"id":  r.Id,
+		},
+	}
+	stackName := fmt.Sprintf("%s-%s", os.Getenv("RACK"), r.App)
+
+	waitch := make(chan error)
+	go func() {
+		waitch <- CloudFormation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+			StackName: aws.String(stackName),
+		})
+	}()
+
+	ping := time.Tick(15 * time.Minute)
+
+	for {
+		select {
+		case err := <-waitch:
+			if err != nil {
+				Provider().EventSend(event, fmt.Errorf("unable to wait for promotion: %s", err))
+				fmt.Println(fmt.Errorf("unable to wait for promotion: %s", err))
+				return
+			}
+
+			resp, err := CloudFormation().DescribeStacks(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				Provider().EventSend(event, fmt.Errorf("unable to check stack status: %s", err))
+				fmt.Println(fmt.Errorf("unable to check stack status: %s", err))
+				return
+			}
+
+			if len(resp.Stacks) < 1 {
+				Provider().EventSend(event, fmt.Errorf("app stack was not found: %s", stackName))
+				fmt.Println(fmt.Errorf("app stack was not found: %s", stackName))
+				return
+			}
+
+			stack := resp.Stacks[0]
+			switch *stack.StackStatus {
+
+			case "UPDATE_COMPLETE":
+				event.Status = "success"
+				Provider().EventSend(event, nil)
+
+			case "UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_FAILED":
+				se, err := CloudFormation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+					StackName: aws.String(stackName),
+				})
+				if err != nil {
+					Provider().EventSend(event, fmt.Errorf("unable to check stack events: %s", err))
+					fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
+					return
+				}
+
+				var lastEvent *cloudformation.StackEvent
+
+				for _, e := range se.StackEvents {
+					switch *e.ResourceStatus {
+					case "UPDATE_FAILED", "DELETE_FAILED", "CREATE_FAILED":
+						lastEvent = e
+						break
+					}
+				}
+
+				ee := fmt.Errorf("unable to determine release error")
+				if lastEvent != nil {
+					ee = fmt.Errorf("%s: %s", *lastEvent.ResourceStatus, *lastEvent.ResourceStatusReason)
+				}
+
+				Provider().EventSend(event, fmt.Errorf("release failed: %s", r.Id, ee))
+			}
+
+			return
+
+		case <-ping:
+			event.Status = "pending"
+			Provider().EventSend(event, nil)
+		}
+	}
 }
