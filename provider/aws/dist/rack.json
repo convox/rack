@@ -658,6 +658,7 @@
                       "acm:RequestCertificate",
                       "autoscaling:CreateLaunchConfiguration",
                       "autoscaling:DeleteLaunchConfiguration",
+                      "autoscaling:DeleteLifecycleHook",
                       "autoscaling:DescribeAutoScalingGroups",
                       "autoscaling:DescribeAutoScalingInstances",
                       "autoscaling:DescribeLaunchConfigurations",
