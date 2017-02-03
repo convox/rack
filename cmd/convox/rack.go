@@ -283,7 +283,7 @@ func cmdRackUpdate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	// stop at a required release if necessary, unless user has requested a specific version
+	// stop at a required release if necessary
 	if next.Version < target.Version && next.Required {
 		stdcli.Writef("WARNING: Required update found.\nPlease run `convox rack update` again once this update completes.\n")
 		target = next
