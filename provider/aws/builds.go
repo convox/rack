@@ -776,6 +776,16 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 		return err
 	}
 
+	env, err := p.EnvironmentGet(build.App)
+	if err != nil {
+		return err
+	}
+
+	envb, err := json.Marshal(env)
+	if err != nil {
+		return err
+	}
+
 	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"])
 
 	req := &ecs.RunTaskInput{
@@ -804,6 +814,10 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 						{
 							Name:  aws.String("BUILD_CONFIG"),
 							Value: aws.String(opts.Config),
+						},
+						{
+							Name:  aws.String("BUILD_ENV"),
+							Value: aws.String(string(envb)),
 						},
 						{
 							Name:  aws.String("BUILD_ID"),
