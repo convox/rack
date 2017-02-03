@@ -1,16 +1,17 @@
-FROM golang:1.8rc3-alpine
+FROM golang:1.7.5-alpine3.5
 
-RUN echo "http://dl-5.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-    && apk update \
-    && apk add \
-        build-base \
-        docker=1.13.0-r0 \
-        git \
-        haproxy \
-        openssh \
-        openssl \
-        python \
-        tar
+RUN apk update && apk add \
+    build-base \
+    curl \
+    git \
+    haproxy \
+    openssh \
+    openssl \
+    python \
+    tar
+
+RUN curl -fsSLO https://get.docker.com/builds/Linux/x86_64/docker-1.13.0.tgz \
+    && tar --strip-components=1 -xvzf docker-1.13.0.tgz -C /usr/local/bin
 
 # need a real pid 1 for signal handling, zombie reaping, etc
 ADD http://convox-binaries.s3.amazonaws.com/tini-static /tini
