@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -37,14 +38,14 @@ func (c Command) MarshalYAML() (interface{}, error) {
 }
 
 // MarshalYAML implements the Marshaller interface for the Environment type
-func (e Environment) MarshalYAML() (interface{}, error) {
+func (ee Environment) MarshalYAML() (interface{}, error) {
 	res := []string{}
 
-	for k, v := range e {
-		if v == "" {
-			res = append(res, k)
+	for _, e := range ee {
+		if e.Needed && e.Value == "" {
+			res = append(res, e.Name)
 		} else {
-			res = append(res, fmt.Sprintf("%s=%s", k, v))
+			res = append(res, fmt.Sprintf("%s=%s", e.Name, e.Value))
 		}
 	}
 
@@ -126,7 +127,7 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	*e = make(Environment)
+	*e = make(Environment, 0)
 
 	switch t := v.(type) {
 	case map[interface{}]interface{}:
@@ -151,7 +152,11 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 				return fmt.Errorf("unknown type in label map: %v", k)
 			}
 
-			(*e)[ks] = vs
+			*e = append(*e, EnvironmentItem{
+				Name:   ks,
+				Value:  vs,
+				Needed: false,
+			})
 		}
 	case []interface{}:
 		for _, tt := range t {
@@ -165,9 +170,15 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 			switch len(parts) {
 			case 1:
-				(*e)[parts[0]] = ""
+				*e = append(*e, EnvironmentItem{
+					Name:   parts[0],
+					Needed: true,
+				})
 			case 2:
-				(*e)[parts[0]] = parts[1]
+				*e = append(*e, EnvironmentItem{
+					Name:  parts[0],
+					Value: parts[1],
+				})
 			default:
 				return fmt.Errorf("cannot parse environment: %v", t)
 			}
@@ -175,6 +186,8 @@ func (e *Environment) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	default:
 		return fmt.Errorf("cannot parse environment: %v", t)
 	}
+
+	sort.Sort(*e)
 
 	return nil
 }
