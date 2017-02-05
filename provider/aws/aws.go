@@ -41,6 +41,7 @@ type AWSProvider struct {
 	Secret   string
 	Token    string
 
+	BuildCluster      string
 	Cluster           string
 	Development       bool
 	DockerImageAPI    string
@@ -70,6 +71,7 @@ func FromEnv() *AWSProvider {
 		Access:            os.Getenv("AWS_ACCESS"),
 		Secret:            os.Getenv("AWS_SECRET"),
 		Token:             os.Getenv("AWS_TOKEN"),
+		BuildCluster:      os.Getenv("BUILD_CLUSTER"),
 		Cluster:           os.Getenv("CLUSTER"),
 		Development:       os.Getenv("DEVELOPMENT") == "true",
 		DockerImageAPI:    os.Getenv("DOCKER_IMAGE_API"),
