@@ -59,7 +59,6 @@ https://docs.convox.com/creating-an-iam-user`
 var (
 	distinctID   = ""
 	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
 )
 
 func init() {

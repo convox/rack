@@ -289,7 +289,6 @@ See also: bin/check-links
 */
 func TestUrls(t *testing.T) {
 	urls := []string{
-		iamUserURL,
 		"https://convox.com/docs/about-resources/",
 		"https://convox.com/docs/api-keys/",
 		"https://convox.com/docs/docker-compose-file/",
