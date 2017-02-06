@@ -35,7 +35,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "id",
-			Usage: "build logs on stderr, build id on stdout (useful for scripting)",
+			Usage: "build logs on stderr, release id on stdout (useful for scripting)",
 		},
 		cli.BoolFlag{
 			Name:  "incremental",
@@ -205,16 +205,20 @@ func cmdBuildsCreate(c *cli.Context) error {
 		output = os.Stderr
 	}
 
-	build, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
+	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
+	output.Write([]byte(fmt.Sprintf("Release: ")))
 
 	if c.Bool("id") {
-		os.Stdout.Write([]byte(fmt.Sprintf("%s\n", release)))
+		os.Stdout.Write([]byte(release))
+	} else {
+		output.Write([]byte(release))
 	}
+
+	output.Write([]byte("\n"))
 
 	return nil
 }
@@ -771,7 +775,7 @@ func warnUnignoredEnv(dir string) error {
 		}
 	}
 	if warn {
-		fmt.Println("WARNING: You have a .env file that is not in your .dockerignore, you may be leaking secrets")
+		fmt.Fprintf(os.Stderr, "WARNING: You have a .env file that is not in your .dockerignore, you may be leaking secrets\n")
 	}
 	return nil
 }
