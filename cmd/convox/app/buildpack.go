@@ -1,4 +1,4 @@
-package appify
+package app
 
 import (
 	"bufio"
@@ -56,15 +56,15 @@ func (bp *Buildpack) Appify() error {
 		return fmt.Errorf("must call Setup() first")
 	}
 
-	if err := writeAsset("entrypoint.sh", "appify/templates/buildpack/entrypoint.sh", nil); err != nil {
+	if err := writeAsset("entrypoint.sh", "app/templates/buildpack/entrypoint.sh", nil); err != nil {
 		return err
 	}
 
-	if err := writeAsset("Dockerfile", "appify/templates/buildpack/Dockerfile", bp.tmplInput); err != nil {
+	if err := writeAsset("Dockerfile", "app/templates/buildpack/Dockerfile", bp.tmplInput); err != nil {
 		return err
 	}
 
-	if err := writeAsset(".dockerignore", "appify/templates/buildpack/.dockerignore", nil); err != nil {
+	if err := writeAsset(".dockerignore", "app/templates/buildpack/.dockerignore", nil); err != nil {
 		return err
 	}
 

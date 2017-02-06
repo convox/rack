@@ -1,4 +1,4 @@
-package appify
+package app
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/convox/rack/cmd/convox/appify/templates"
+	"github.com/convox/rack/cmd/convox/app/templates"
 	"github.com/convox/rack/cmd/convox/helpers"
 )
 

@@ -1,4 +1,4 @@
-package appify_test
+package app_test
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/convox/rack/cmd/convox/appify"
+	"github.com/convox/rack/cmd/convox/app"
 	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
 )
@@ -40,7 +40,7 @@ func TestBuildpackManifest(t *testing.T) {
 
 	for _, d := range dirs {
 
-		bp := appify.Buildpack{}
+		bp := app.Buildpack{}
 		err := bp.Setup(d.Dir)
 		assert.NoError(t, err)
 
