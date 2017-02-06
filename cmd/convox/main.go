@@ -98,18 +98,15 @@ func coalesce(ss ...string) string {
 // if --rack is missing from c.String(), recover it here by checking os.Args
 func getRackFlag(c *cli.Context) string {
 	rackFlag := c.String("rack")
-	if rackFlag == "" {
-		osArgs := os.Args
-
-		// set rackFlag to everything after --rack
-		pArgs := stdcli.ParseOpts(osArgs)
-		rackFlag = pArgs["rack"]
-
-		// stdcli.ParseOpts() includes everything after --rack, so discard everything after the first space
-		rackFlagSplit := strings.Split(rackFlag, " ")
-		rackFlag = rackFlagSplit[0]
+	if rackFlag != "" {
+		return rackFlag
 	}
-	return rackFlag
+
+	// set rackFlag to everything after --rack
+	rackFlag = stdcli.ParseOpts(os.Args)["rack"]
+
+	// stdcli.ParseOpts() includes everything after --rack, so discard everything after the first space
+	return strings.Split(rackFlag, " ")[0]
 }
 
 func currentRack(c *cli.Context) string {
