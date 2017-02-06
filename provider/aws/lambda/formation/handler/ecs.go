@@ -108,6 +108,10 @@ func ECSTaskDefinitionCreate(req Request) (string, map[string]string, error) {
 	// S3 body may be encrypted with KMS key
 	var env models.Environment
 
+	if taskRole, ok := req.ResourceProperties["TaskRole"].(string); ok && taskRole != "" {
+		r.TaskRoleArn = &taskRole
+	}
+
 	if envUrl, ok := req.ResourceProperties["Environment"].(string); ok && envUrl != "" {
 		res, err := http.Get(envUrl)
 
