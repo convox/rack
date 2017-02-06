@@ -96,7 +96,7 @@ func TestBuildWithCache(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	cmd1 := []string{"docker", "build", "--build-arg", "FOO=\"bar\"", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
+	cmd1 := []string{"docker", "build", "--build-arg", "FOO=bar", "-f", "fixtures/Dockerfile.dev", "-t", "web/web", "fixtures"}
 	cmd2 := []string{"docker", "tag", "convox/postgres:latest", "web/database"}
 
 	if assert.Equal(t, len(te.Commands), 2) {
@@ -288,10 +288,10 @@ func TestBuildRepeatComplex(t *testing.T) {
 
 	te.AssertCommands(t, TestCommands{
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/first", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"bar\"", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"bar\"", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"baz\"", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
-		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=\"other\"", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=bar", "-f", "fixtures/Dockerfile", "-t", "web/monitor", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=bar", "-f", "fixtures/other/Dockerfile", "-t", "web/othera", "fixtures/other"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=baz", "-f", "fixtures/Dockerfile.other", "-t", "web/otherb", "fixtures"},
+		[]string{"docker", "build", "--no-cache", "--build-arg", "foo=other", "-f", "fixtures/Dockerfile", "-t", "web/otherc", "fixtures"},
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile", "-t", "web/otherd", "fixtures"},
 		[]string{"docker", "tag", "web/first", "web/othere"},
 		[]string{"docker", "build", "--no-cache", "-f", "fixtures/Dockerfile.otherf", "-t", "web/otherf", "fixtures"},
