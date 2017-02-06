@@ -35,7 +35,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "id",
-			Usage: "build logs on stderr, build id on stdout (useful for scripting)",
+			Usage: "build logs on stderr, release id on stdout (useful for scripting)",
 		},
 		cli.BoolFlag{
 			Name:  "incremental",
@@ -206,7 +206,7 @@ func cmdBuildsCreate(c *cli.Context) error {
 		output = os.Stderr
 	}
 
-	build, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
+	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -214,7 +214,8 @@ func cmdBuildsCreate(c *cli.Context) error {
 	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
 
 	if c.Bool("id") {
-		os.Stdout.Write([]byte(fmt.Sprintf("%s\n", build)))
+		os.Stdout.Write([]byte(release))
+		output.Write([]byte("\n"))
 	}
 
 	return nil
@@ -329,21 +330,22 @@ func cmdBuildsImport(c *cli.Context) error {
 		in = fd
 	}
 
-	out := os.Stdout
+	output := os.Stdout
 
 	if c.Bool("id") {
-		out = os.Stderr
+		output = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", output)})
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Fprintf(out, "\nRelease: %s\n", build.Release)
+	output.Write([]byte(fmt.Sprintf("Release: %s\n", build.Release)))
 
 	if c.Bool("id") {
-		fmt.Println(build.Release)
+		os.Stdout.Write([]byte(build.Release))
+		output.Write([]byte("\n"))
 	}
 
 	return nil
@@ -772,7 +774,7 @@ func warnUnignoredEnv(dir string) error {
 		}
 	}
 	if warn {
-		fmt.Println("WARNING: You have a .env file that is not in your .dockerignore, you may be leaking secrets")
+		fmt.Fprintf(os.Stderr, "WARNING: You have a .env file that is not in your .dockerignore, you may be leaking secrets\n")
 	}
 	return nil
 }
