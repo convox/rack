@@ -27,9 +27,10 @@ func init() {
 		Action:      cmdStart,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "file, f",
-				Value: "docker-compose.yml",
-				Usage: "path to an alternate docker compose manifest file",
+				Name:   "file, f",
+				EnvVar: "COMPOSE_FILE",
+				Value:  "docker-compose.yml",
+				Usage:  "path to an alternate docker compose manifest file",
 			},
 			cli.BoolFlag{
 				Name:  "no-build",
