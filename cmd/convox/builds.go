@@ -210,18 +210,12 @@ func cmdBuildsCreate(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	output.Write([]byte(fmt.Sprintf("Release: ")))
+	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
 
 	if c.Bool("id") {
 		os.Stdout.Write([]byte(release))
-		if output != os.Stdout {
-			output.Write([]byte(release))
-		}
-	} else {
-		output.Write([]byte(release))
+		output.Write([]byte("\n"))
 	}
-
-	output.Write([]byte("\n"))
 
 	return nil
 }
