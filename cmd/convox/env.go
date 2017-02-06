@@ -45,6 +45,11 @@ func init() {
 						Name:  "id",
 						Usage: "env set logs on stderr, release id on stdout",
 					},
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for release to finish promoting before returning",
+					},
 				},
 			},
 			{
@@ -62,6 +67,11 @@ func init() {
 					cli.BoolFlag{
 						Name:  "id",
 						Usage: "env set logs on stderr, release id on stdout",
+					},
+					cli.BoolFlag{
+						Name:   "wait",
+						EnvVar: "CONVOX_WAIT",
+						Usage:  "wait for release to finish promoting before returning",
 					},
 				},
 			},
@@ -181,8 +191,7 @@ func cmdEnvSet(c *cli.Context) error {
 
 	if release != "" {
 		if c.Bool("id") {
-			os.Stdout.Write([]byte(release))
-			output.Write([]byte("\n"))
+			os.Stdout.Write([]byte(fmt.Sprintf("%s\n", release)))
 		}
 
 		if c.Bool("promote") {
@@ -194,6 +203,16 @@ func cmdEnvSet(c *cli.Context) error {
 			}
 
 			output.Write([]byte("OK\n"))
+
+			if c.Bool("wait") {
+				output.Write([]byte(fmt.Sprintf("Waiting for stabilization... ")))
+
+				if err := waitForReleasePromotion(c, app, release); err != nil {
+					return stdcli.Error(err)
+				}
+
+				output.Write([]byte("OK\n"))
+			}
 		} else {
 			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
 		}
@@ -225,29 +244,39 @@ func cmdEnvUnset(c *cli.Context) error {
 
 	output.Write([]byte("Updating environment... "))
 
-	_, releaseID, err := rackClient(c).DeleteEnvironment(app, key)
+	_, release, err := rackClient(c).DeleteEnvironment(app, key)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	output.Write([]byte("OK\n"))
 
-	if releaseID != "" {
-		if c.Bool("promote") {
-			output.Write([]byte(fmt.Sprintf("Promoting %s... ", releaseID)))
+	if release != "" {
+		if c.Bool("id") {
+			os.Stdout.Write([]byte(fmt.Sprintf("%s\n", release)))
+		}
 
-			_, err = rackClient(c).PromoteRelease(app, releaseID)
+		if c.Bool("promote") {
+			output.Write([]byte(fmt.Sprintf("Promoting %s... ", release)))
+
+			_, err = rackClient(c).PromoteRelease(app, release)
 			if err != nil {
 				return stdcli.Error(err)
 			}
 
 			output.Write([]byte("OK\n"))
-		} else {
-			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", releaseID)))
-		}
 
-		if c.Bool("id") {
-			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
+			if c.Bool("wait") {
+				output.Write([]byte(fmt.Sprintf("Waiting for stabilization... ")))
+
+				if err := waitForReleasePromotion(c, app, release); err != nil {
+					return stdcli.Error(err)
+				}
+
+				output.Write([]byte("OK\n"))
+			}
+		} else {
+			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
 		}
 	}
 
