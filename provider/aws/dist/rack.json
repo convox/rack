@@ -1342,7 +1342,7 @@
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
-            "DeviceName": "/dev/sdb",
+            "DeviceName": "/dev/xvdb",
             "Ebs": {
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
@@ -1459,7 +1459,7 @@
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
-            "DeviceName": "/dev/sdb",
+            "DeviceName": "/dev/xvdb",
             "Ebs": {
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
