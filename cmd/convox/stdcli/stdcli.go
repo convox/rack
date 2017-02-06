@@ -271,12 +271,7 @@ func getDockerBin() string {
 	if osd != "" {
 		return osd
 	}
-	wd, err := exec.Command("which", "docker").Output()
-	whichDocker := strings.Split(string(wd), "\n")[0]
-	if err != nil {
-		return err.Error()
-	}
-	return whichDocker
+	return "docker"
 }
 
 func tagTimeUnix() string {
