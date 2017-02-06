@@ -136,7 +136,9 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 	state, _ := terminal.MakeRaw(int(os.Stdin.Fd()))
 
 	defer func() {
-		terminal.Restore(int(os.Stdin.Fd()), state)
+		if state != nil {
+			terminal.Restore(int(os.Stdin.Fd()), state)
+		}
 		ch <- code
 	}()
 
