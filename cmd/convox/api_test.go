@@ -23,7 +23,13 @@ func TestApiGet(t *testing.T) {
 
 func TestRackFlag(t *testing.T) {
 	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/foo", Code: 200, Response: "bar", Headers: map[string]string{"Rack": "myorg/staging"}},
+		test.Http{
+			Method:   "GET",
+			Path:     "/foo",
+			Code:     200,
+			Response: "bar",
+			Headers:  map[string]string{"Rack": "myorg/staging"},
+		},
 	)
 	defer ts.Close()
 
