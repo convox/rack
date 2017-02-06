@@ -181,10 +181,6 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 		cycleProcessDescribeContainerInstances,
 		cycleProcessDescribeInstances,
 		cycleProcessDescribeInstances,
-		cycleProcessDescribeTaskDefinition2,
-		cycleProcessDescribeContainerInstances,
-		cycleProcessDescribeInstances,
-		cycleProcessDescribeInstances,
 	)
 	defer provider.Close()
 
@@ -195,10 +191,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 		cycleProcessDockerListContainers1,
 		cycleProcessDockerInspect,
 		cycleProcessDockerStats,
-		cycleProcessDockerListContainers2,
-		cycleProcessDockerInspect,
-		cycleProcessDockerStats,
-		cycleProcessDockerListContainers1,
+		cycleProcessDockerListContainers3,
 		cycleProcessDockerInspect,
 		cycleProcessDockerStats,
 	)
@@ -223,19 +216,6 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Memory:   0.0974,
 		},
 		structs.Process{
-			ID:       "5850760f0845",
-			App:      "myapp",
-			Name:     "web",
-			Release:  "R1234",
-			Command:  "ls -la",
-			Host:     "10.0.1.244",
-			Image:    "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
-			Instance: "i-5bc45dc2",
-			Ports:    []string{},
-			CPU:      0,
-			Memory:   0.0974,
-		},
-		structs.Process{
 			ID:       "5850760f0846",
 			App:      "myapp",
 			Name:     "web",
@@ -249,7 +229,7 @@ func TestProcessListWithBuildCluster(t *testing.T) {
 			Memory:   0.0974,
 		},
 		structs.Process{
-			ID:       "5850760f0846",
+			ID:       "5850760f0848",
 			App:      "myapp",
 			Name:     "web",
 			Release:  "R1234",
@@ -754,21 +734,7 @@ var cycleProcessDescribeTasksAllOnBuildCluster = awsutil.Cycle{
 			"failures": [],
 			"tasks": [
 				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0846",
-					"overrides": {
-						"containerOverrides": []
-					},
-					"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
-					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
-					"containers": [
-						{
-							"name": "web",
-							"containerArn": "arn:aws:ecs:us-east-1:778743527532:container/3ab3b8c5-aa5c-4b54-89f8-5f1193aff5f9"
-						}
-					]
-				},
-				{
-					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0848",
 					"overrides": {
 						"containerOverrides": [
 							{
