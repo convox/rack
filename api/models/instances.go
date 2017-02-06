@@ -50,22 +50,25 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		},
 		MaxResults: aws.Int64(1000),
 	})
-
 	if err != nil {
 		return err
+	}
+
+	if len(ec2Res.Reservations) == 0 {
+		return errorWithStatusCode(fmt.Errorf("instance not found"), 1)
 	}
 
 	instance := ec2Res.Reservations[0].Instances[0]
 
 	env, err := GetRackSettings()
 	if err != nil {
-		return err
+		return errorWithStatusCode(err, 1)
 	}
 
 	// configure SSH client
 	signer, err := ssh.ParsePrivateKey([]byte(env["InstancePEM"]))
 	if err != nil {
-		return err
+		return errorWithStatusCode(err, 1)
 	}
 	config := &ssh.ClientConfig{
 		User: "ec2-user",
@@ -79,12 +82,12 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 
 	conn, err := ssh.Dial("tcp", ipAddress+":22", config)
 	if err != nil {
-		return err
+		return errorWithStatusCode(err, 1)
 	}
 	defer conn.Close()
 	session, err := conn.NewSession()
 	if err != nil {
-		return err
+		return errorWithStatusCode(err, 1)
 	}
 	defer session.Close()
 
@@ -110,11 +113,11 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 	// Start remote shell
 	if command != "" {
 		if err := session.Start(command); err != nil {
-			return err
+			return errorWithStatusCode(err, 1)
 		}
 	} else {
 		if err := session.Shell(); err != nil {
-			return err
+			return errorWithStatusCode(err, 1)
 		}
 	}
 
@@ -138,4 +141,8 @@ func exitCode(err error) int {
 	}
 
 	return 0
+}
+
+func errorWithStatusCode(err error, code int) error {
+	return fmt.Errorf("%s%s%d\n", err, StatusCodePrefix, code)
 }
