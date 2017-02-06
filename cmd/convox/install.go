@@ -51,15 +51,11 @@ your AWS account. These credentials will only be used to communicate between thi
 installer running on your computer and the AWS API.
 
 We recommend that you create a new set of credentials exclusively for this
-install/uninstall process and then delete them once the installer has completed.
-
-To generate a new set of AWS credentials go to:
-https://docs.convox.com/creating-an-iam-user`
+install/uninstall process and then delete them once the installer has completed.`
 
 var (
 	distinctID   = ""
 	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
-	iamUserURL   = "https://docs.convox.com/creating-an-iam-user"
 )
 
 func init() {
