@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"gopkg.in/urfave/cli.v1"
@@ -39,7 +38,13 @@ func cmdDeploy(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	fmt.Printf("Deploying %s\n", app)
+	output := os.Stdout
+
+	if c.Bool("id") {
+		output = os.Stderr
+	}
+
+	output.Write([]byte(fmt.Sprintf("Deploying %s\n", app)))
 
 	a, err := rackClient(c).GetApp(app)
 	if err != nil {
@@ -54,12 +59,8 @@ func cmdDeploy(c *cli.Context) error {
 		return stdcli.Error(fmt.Errorf("unable to build app: %s", app))
 	}
 
-	// set up a pipe so that we dont close stdout
-	r, w := io.Pipe()
-	go io.Copy(os.Stdout, r)
-
 	// build
-	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), w)
+	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)
 	if err != nil {
 		return stdcli.Error(err)
 	}
@@ -68,23 +69,33 @@ func cmdDeploy(c *cli.Context) error {
 		return nil
 	}
 
-	fmt.Printf("Promoting %s... ", release)
+	output.Write([]byte(fmt.Sprintf("Release: ")))
+
+	if c.Bool("id") {
+		os.Stdout.Write([]byte(release))
+	} else {
+		output.Write([]byte(release))
+	}
+
+	output.Write([]byte("\n"))
+
+	output.Write([]byte(fmt.Sprintf("Promoting %s... ", release)))
 
 	_, err = rackClient(c).PromoteRelease(app, release)
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Println("UPDATING")
+	output.Write([]byte("UPDATING\n"))
 
 	if c.Bool("wait") {
-		fmt.Printf("Waiting for %s... ", release)
+		output.Write([]byte(fmt.Sprintf("Waiting for %s... ", release)))
 
 		if err := waitForReleasePromotion(c, app, release); err != nil {
 			return stdcli.Error(err)
 		}
 
-		fmt.Println("OK")
+		output.Write([]byte("OK\n"))
 	}
 
 	return nil

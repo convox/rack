@@ -172,28 +172,35 @@ func cmdEnvSet(c *cli.Context) error {
 
 	output.Write([]byte("Updating environment... "))
 
-	_, releaseID, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
+	_, release, err := rackClient(c).SetEnvironment(app, strings.NewReader(data))
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	output.Write([]byte("OK\n"))
-	if releaseID != "" {
-		if c.Bool("promote") {
-			output.Write([]byte(fmt.Sprintf("Promoting %s... ", releaseID)))
 
-			_, err = rackClient(c).PromoteRelease(app, releaseID)
+	if release != "" {
+		output.Write([]byte(fmt.Sprintf("Release: ")))
+
+		if c.Bool("id") {
+			os.Stdout.Write([]byte(release))
+		} else {
+			output.Write([]byte(release))
+		}
+
+		output.Write([]byte("\n"))
+
+		if c.Bool("promote") {
+			output.Write([]byte(fmt.Sprintf("Promoting %s... ", release)))
+
+			_, err = rackClient(c).PromoteRelease(app, release)
 			if err != nil {
 				return stdcli.Error(err)
 			}
 
 			output.Write([]byte("OK\n"))
 		} else {
-			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", releaseID)))
-		}
-
-		if c.Bool("id") {
-			os.Stdout.Write([]byte(fmt.Sprintf("%s", releaseID)))
+			output.Write([]byte(fmt.Sprintf("To deploy these changes run `convox releases promote %s`\n", release)))
 		}
 	}
 
