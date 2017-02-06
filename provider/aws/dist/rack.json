@@ -1396,6 +1396,7 @@
     },
     "BuildInstances": {
       "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
+      "Condition": "DedicatedBuilder",
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties" : {
         "LaunchConfigurationName" : { "Ref": "BuildLaunchConfiguration" },
