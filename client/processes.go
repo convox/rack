@@ -154,7 +154,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
-			code, _ = strconv.Atoi(strings.TrimSpace(s[37:]))
+			code, _ = strconv.Atoi(strings.TrimSpace(s[len(StatusCodePrefix):]))
 			return
 		}
 
