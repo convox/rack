@@ -245,16 +245,19 @@ func cmdRackPs(c *cli.Context) error {
 }
 
 func cmdRackUpdate(c *cli.Context) error {
+	// Retrieve list of all versions
 	vs, err := version.All()
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
+	// Start by assuming user wants the latest version
 	target, err := vs.Latest()
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
+	// if user has provided a version number as an argument, use that instead
 	if len(c.Args()) > 0 {
 		t, err := vs.Find(c.Args()[0])
 		if err != nil {
@@ -281,7 +284,7 @@ func cmdRackUpdate(c *cli.Context) error {
 	}
 
 	// stop at a required release if necessary
-	if next.Version < target.Version {
+	if next.Version < target.Version && next.Required {
 		stdcli.Writef("WARNING: Required update found.\nPlease run `convox rack update` again once this update completes.\n")
 		target = next
 	}
