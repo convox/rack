@@ -37,9 +37,9 @@ func TestRackFlag(t *testing.T) {
 
 	test.Runs(t,
 		test.ExecRun{
-			Command: "convox api --rack myorg/staging get /foo",
-			Exit:    0,
-			Stdout:  "bar",
+			Command:  "convox api --rack myorg/staging get /foo",
+			Exit:     0,
+			OutMatch: "bar",
 		},
 	)
 
