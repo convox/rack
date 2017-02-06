@@ -110,7 +110,7 @@ func (r *Run) Start() error {
 		sort.Strings(missingEnv)
 
 		if len(missingEnv) > 0 {
-			return fmt.Errorf("env expected: %s", strings.Join(missingEnv, ", "))
+			return fmt.Errorf("%s missing from .env file", strings.Join(missingEnv, ", "))
 		}
 	}
 
