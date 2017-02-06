@@ -21,6 +21,7 @@ type Http struct {
 
 var HandlerFunc http.HandlerFunc
 
+// AssertStatus fails a test if the response status doesn't match the expected status
 func AssertStatus(t *testing.T, status int, method, url string, values url.Values, headers map[string]string) string {
 	w := httptest.NewRecorder()
 	req, err := buildRequest(method, url, values, headers)
@@ -35,6 +36,7 @@ func AssertStatus(t *testing.T, status int, method, url string, values url.Value
 	return w.Body.String()
 }
 
+// HTTPBody reads the HTTP response body as a string
 func HTTPBody(method, url string, values url.Values, headers map[string]string) string {
 	w := httptest.NewRecorder()
 	req, err := buildRequest(method, url, values, headers)
