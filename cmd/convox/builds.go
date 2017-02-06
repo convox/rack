@@ -213,7 +213,7 @@ func cmdBuildsCreate(c *cli.Context) error {
 	output.Write([]byte(fmt.Sprintf("Release: %s\n", release)))
 
 	if c.Bool("id") {
-		os.Stdout.Write([]byte(fmt.Sprintf("%s\n", build)))
+		os.Stdout.Write([]byte(fmt.Sprintf("%s\n", release)))
 	}
 
 	return nil
