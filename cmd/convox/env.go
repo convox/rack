@@ -180,18 +180,10 @@ func cmdEnvSet(c *cli.Context) error {
 	output.Write([]byte("OK\n"))
 
 	if release != "" {
-		output.Write([]byte(fmt.Sprintf("Release: ")))
-
 		if c.Bool("id") {
 			os.Stdout.Write([]byte(release))
-			if output != os.Stdout {
-				output.Write([]byte(release))
-			}
-		} else {
-			output.Write([]byte(release))
+			output.Write([]byte("\n"))
 		}
-
-		output.Write([]byte("\n"))
 
 		if c.Bool("promote") {
 			output.Write([]byte(fmt.Sprintf("Promoting %s... ", release)))
