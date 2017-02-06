@@ -330,21 +330,22 @@ func cmdBuildsImport(c *cli.Context) error {
 		in = fd
 	}
 
-	out := os.Stdout
+	output := os.Stdout
 
 	if c.Bool("id") {
-		out = os.Stderr
+		output = os.Stderr
 	}
 
-	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", out)})
+	build, err := rackClient(c).ImportBuild(app, in, client.ImportBuildOptions{Progress: progress("Uploading: ", "Importing build... ", output)})
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
-	fmt.Fprintf(out, "\nRelease: %s\n", build.Release)
+	output.Write([]byte(fmt.Sprintf("Release: %s\n", build.Release)))
 
 	if c.Bool("id") {
-		fmt.Println(build.Release)
+		os.Stdout.Write([]byte(build.Release))
+		output.Write([]byte("\n"))
 	}
 
 	return nil
