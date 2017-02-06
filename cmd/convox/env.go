@@ -184,6 +184,7 @@ func cmdEnvSet(c *cli.Context) error {
 
 		if c.Bool("id") {
 			os.Stdout.Write([]byte(release))
+			output.Write([]byte(release))
 		} else {
 			output.Write([]byte(release))
 		}
