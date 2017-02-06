@@ -147,9 +147,14 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		if err != nil {
 			break
 		}
+		if s := string(buf[0:n]); strings.Contains(s, StatusCodePrefix) {
+			rr := strings.Split(s, StatusCodePrefix)
 
-		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
-			code, _ = strconv.Atoi(strings.TrimSpace(s[37:]))
+			if rr[0] != "" {
+				w.Write([]byte(strings.TrimSpace(rr[0]) + "\n"))
+			}
+
+			code, _ = strconv.Atoi(strings.TrimSpace(rr[1]))
 			return
 		}
 
