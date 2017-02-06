@@ -51,7 +51,6 @@ func (c *Client) SSHInstance(id, cmd string, height, width int, isTerm bool, in 
 	r, w := io.Pipe()
 
 	defer r.Close()
-	defer w.Close()
 
 	ch := make(chan int)
 
@@ -67,6 +66,8 @@ func (c *Client) SSHInstance(id, cmd string, height, width int, isTerm bool, in 
 		headers["Terminal"] = "xterm"
 	}
 	err := c.Stream(fmt.Sprintf("/instances/%s/ssh", id), headers, in, w)
+
+	w.Close()
 
 	if err != nil {
 		return -1, err
