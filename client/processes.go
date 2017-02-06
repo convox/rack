@@ -68,6 +68,9 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 	}
 
 	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), headers, in, w)
+
+	w.Close()
+
 	if err != nil {
 		return 0, err
 	}
