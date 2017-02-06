@@ -1,4 +1,4 @@
-package appify
+package app
 
 import "fmt"
 
@@ -11,15 +11,15 @@ type GenericApp struct {
 // Appify generates the files needed for an app
 // Must be called after Setup()
 func (g *GenericApp) Appify() error {
-	if err := writeAsset("Dockerfile", fmt.Sprintf("appify/templates/%s/Dockerfile", g.Kind), nil); err != nil {
+	if err := writeAsset("Dockerfile", fmt.Sprintf("app/templates/%s/Dockerfile", g.Kind), nil); err != nil {
 		return err
 	}
 
-	if err := writeAsset("docker-compose.yml", fmt.Sprintf("appify/templates/%s/docker-compose.yml", g.Kind), nil); err != nil {
+	if err := writeAsset("docker-compose.yml", fmt.Sprintf("app/templates/%s/docker-compose.yml", g.Kind), nil); err != nil {
 		return err
 	}
 
-	if err := writeAsset(".dockerignore", fmt.Sprintf("appify/templates/%s/.dockerignore", g.Kind), nil); err != nil {
+	if err := writeAsset(".dockerignore", fmt.Sprintf("app/templates/%s/.dockerignore", g.Kind), nil); err != nil {
 		return err
 	}
 
