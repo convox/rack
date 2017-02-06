@@ -35,6 +35,7 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		Access:           "test-access",
 		Secret:           "test-secret",
 		Token:            "test-token",
+		BuildCluster:     "cluster-test",
 		Cluster:          "cluster-test",
 		Development:      true,
 		DockerImageAPI:   "rack/web",
