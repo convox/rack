@@ -30,9 +30,9 @@ func (d *Daemon) LongName() string {
 	hash := sha256.Sum256([]byte(prefix))
 	suffix := "-" + base32.StdEncoding.EncodeToString(hash[:])[:7]
 
-	// $prefix-$suffix-schedule" needs to be <= 64 characters
-	if len(prefix) > 55-len(suffix) {
-		prefix = prefix[:55-len(suffix)]
+	// $prefix-$suffix-change" needs to be <= 64 characters
+	if len(prefix) > 57-len(suffix) {
+		prefix = prefix[:57-len(suffix)]
 	}
 	return prefix + suffix
 }
