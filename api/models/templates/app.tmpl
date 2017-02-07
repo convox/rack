@@ -696,7 +696,6 @@
       "Type": "AWS::Lambda::Function",
       "DependsOn": [ "DaemonRole" ],
       "Properties": {
-        "FunctionName": "{{ env "RACK" }}-{{ .App.Name }}-daemon",
         "Handler": "index.handler",
         "Role": { "Fn::GetAtt": [ "DaemonRole", "Arn" ] },
         "Runtime": "nodejs4.3",
