@@ -89,6 +89,7 @@ func (p *AWSProvider) ReleaseList(app string, limit int64) (structs.Releases, er
 	return releases, nil
 }
 
+// ReleasePromote promotes a release
 func (p *AWSProvider) ReleasePromote(r *structs.Release) error {
 	app, err := p.AppGet(r.App)
 	if err != nil {
