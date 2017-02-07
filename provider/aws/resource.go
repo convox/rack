@@ -102,7 +102,7 @@ func (p *AWSProvider) ResourceCreate(name, kind string, params map[string]string
 
 	p.EventSend(&structs.Event{
 		Action: "resource:create",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"name": s.Name,
 			"type": s.Type,
 		},
@@ -133,7 +133,7 @@ func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 
 	p.EventSend(&structs.Event{
 		Action: "resource:delete",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"name": s.Name,
 			"type": s.Type,
 		},

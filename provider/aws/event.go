@@ -31,7 +31,7 @@ func (p *AWSProvider) EventSend(e *structs.Event, err error) error {
 	}
 
 	if e.Data == nil {
-		e.Data = map[string]interface{}{}
+		e.Data = map[string]string{}
 	}
 	e.Data["rack"] = p.Rack
 
@@ -87,5 +87,11 @@ func sendSegmentEvent(e *structs.Event) {
 		se = fmt.Sprintf("%s %s", obj, pst[act])
 	}
 
-	helpers.TrackEvent(se, e.Data)
+	params := map[string]interface{}{}
+
+	for k, v := range e.Data {
+		params[k] = v
+	}
+
+	helpers.TrackEvent(se, params)
 }

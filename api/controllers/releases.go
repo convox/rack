@@ -62,7 +62,7 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	event := &structs.Event{
 		Action: "release:promote",
 		Status: "start",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"app": app,
 			"id":  release,
 		},

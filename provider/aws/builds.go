@@ -569,7 +569,7 @@ func (p *AWSProvider) BuildRelease(b *structs.Build) (*structs.Release, error) {
 	if err == nil {
 		p.EventSend(&structs.Event{
 			Action: "release:create",
-			Data: map[string]interface{}{
+			Data: map[string]string{
 				"app": r.App,
 				"id":  r.Id,
 			},
