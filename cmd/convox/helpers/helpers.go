@@ -62,6 +62,7 @@ func DetectApplication(dir string) string {
 	return "unknown"
 }
 
+// DetectDocker checks for a fully-qualified path to a Docker binary in $DOCKER_BIN. If not present, returns the one in the host path.
 func DetectDocker() string {
 	osd := os.Getenv("DOCKER_BIN")
 	if osd != "" {
