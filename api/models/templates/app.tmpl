@@ -152,7 +152,7 @@
       },
       {{ template "balancer-resources" . }}
       {{ template "cronjob-resources" . }}
-      {{ template "daemon-resources" . }}
+      {{ template "agent-resources" . }}
       {{ template "process-resources" .Manifest }}
       {{ template "process-services" . }}
       {{ template "registry-resources" .Manifest }}
@@ -630,9 +630,9 @@
   {{ end }}
 {{ end }}
 
-{{ define "daemon-resources" }}
-  {{ if .App.Daemons .Manifest }}
-    "DaemonRole": {
+{{ define "agent-resources" }}
+  {{ if .App.Agents .Manifest }}
+    "AgentRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -648,7 +648,7 @@
         "Path": "/convox/",
         "Policies": [
           {
-            "PolicyName": "DaemonJob",
+            "PolicyName": "AgentJob",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -692,12 +692,12 @@
         ]
       }
     },
-    "DaemonFunction": {
+    "AgentFunction": {
       "Type": "AWS::Lambda::Function",
-      "DependsOn": [ "DaemonRole" ],
+      "DependsOn": [ "AgentRole" ],
       "Properties": {
         "Handler": "index.handler",
-        "Role": { "Fn::GetAtt": [ "DaemonRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "AgentRole", "Arn" ] },
         "Runtime": "nodejs4.3",
         "Timeout": 50,
         "Code": {
@@ -706,7 +706,7 @@
             "var aws = require('aws-sdk');",
             "var ecs = new aws.ECS({maxRetries:10});",
             "var taskDefinitions = {",
-            {{ range .App.Daemons .Manifest }}
+            {{ range .App.Agents .Manifest }}
               { "Fn::Join": [ "", [ "    '{{ .Service.Name }}': '", { "Ref": "{{ upper .Service.Name }}ECSTaskDefinition" }, "'," ] ] },
             {{ end }}
             "    '':''",
@@ -716,7 +716,7 @@
             "    cluster: event.detail.clusterArn,",
             "    containerInstances: [event.detail.containerInstanceArn],",
             "    taskDefinition: td,",
-            "    startedBy: 'convox daemon'",
+            "    startedBy: 'convox agent'",
             "  }, function(err, data) {",
             "    console.log('startTask Data: ', data, 'Error: ', err);",
             "    if (err !== null) return callback(err);",
@@ -727,12 +727,12 @@
             "function tdName(td) { return td.split(':').slice(0,-1).join(':'); }",
             "function tdRev(td) { return parseInt(td.split(':').slice(-1)[0]); }",
             "function stopOldTask(event, desiredTD, runningTask) {",
-            "    if (runningTask.startedBy != 'convox daemon') return false;",
+            "    if (runningTask.startedBy != 'convox agent') return false;",
             "    if (tdName(desiredTD) != tdName(runningTask.taskDefinitionArn)) return false;",
             "    if (tdRev(desiredTD) != tdRev(runningTask.taskDefinitionArn)) {",
             "        ecs.stopTask({",
             "            cluster: event.detail.clusterArn,",
-            "            reason: 'convox daemon convergence',",
+            "            reason: 'convox agent convergence',",
             "            task: runningTask.taskArn",
             "        }, function(err, data) {",
             "            console.log('stopTask Data: ', data, 'Error: ', err);",
@@ -774,7 +774,7 @@
       }
     },
   {{ end }}
-  {{ range .App.Daemons .Manifest }}
+  {{ range .App.Agents .Manifest }}
     "{{ .ShortName }}Rule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
@@ -800,7 +800,7 @@
           }
         },
         "Targets": [{
-          "Arn": { "Fn::GetAtt": [ "DaemonFunction", "Arn" ] },
+          "Arn": { "Fn::GetAtt": [ "AgentFunction", "Arn" ] },
           "Id": "{{ .LongName }}Target"
         }]
       }
@@ -809,7 +809,7 @@
       "Type" : "AWS::Lambda::Permission",
       "Properties" : {
         "Action" : "lambda:InvokeFunction",
-        "FunctionName" : { "Fn::GetAtt": [ "DaemonFunction", "Arn" ] },
+        "FunctionName" : { "Fn::GetAtt": [ "AgentFunction", "Arn" ] },
         "Principal" : "events.amazonaws.com",
         "SourceArn" : { "Fn::GetAtt": [ "{{ .ShortName }}Rule", "Arn" ] }
       }
