@@ -41,82 +41,6 @@
         },
         "Yes"
       ]
-    },
-    "RegionHasECR": {
-      "Fn::Or": [
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-east-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-east-2"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-west-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "us-west-2"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "eu-central-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "eu-west-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "ap-northeast-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "ap-southeast-1"
-          ]
-        },
-        {
-          "Fn::Equals": [
-            {
-              "Ref": "AWS::Region"
-            },
-            "ap-southeast-2"
-          ]
-        }
-      ]
     }
   },
   "Mappings": {
@@ -150,13 +74,11 @@
       }
     },
     "RegistryId": {
-      "Condition": "RegionHasECR",
       "Value": {
         "Ref": "AWS::AccountId"
       }
     },
     "RegistryRepository": {
-      "Condition": "RegionHasECR",
       "Value": {
         "Fn::GetAtt": [
           "RegistryRepository",
@@ -178,6 +100,11 @@
     },
     "Cluster": {
       "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "CustomTopicRuntime": {
+      "Default": "nodejs",
       "Description": "",
       "Type": "String"
     },
@@ -244,6 +171,11 @@
       "Description": "VPC private subnets for this app",
       "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
     },
+    "TaskRole": {
+      "Default": "",
+      "Description": "IAM Role to apply to ECS Tasks of this app",
+      "Type": "String"
+    },
     "VPC": {
       "Default": "",
       "Description": "VPC for this app",
@@ -292,6 +224,9 @@
             "CustomTopic",
             "Arn"
           ]
+        },
+        "TaskRole": {
+          "Ref": "TaskRole"
         },
         "Tasks": [
           {
@@ -454,7 +389,9 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs",
+        "Runtime": {
+          "Ref": "CustomTopicRuntime"
+        },
         "Timeout": "300"
       },
       "Type": "AWS::Lambda::Function"
@@ -706,7 +643,6 @@
       "Type": "AWS::Logs::LogGroup"
     },
     "RegistryRepository": {
-      "Condition": "RegionHasECR",
       "Properties": {
         "RepositoryName": {
           "Ref": "AWS::StackName"
