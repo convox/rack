@@ -91,14 +91,19 @@ func handle(r Record) error {
 
 	fmt.Printf("ci = %+v\n", ci)
 
-	if _, err := ECS.UpdateContainerInstancesState(&ecs.UpdateContainerInstancesStateInput{
+	cis, err := ECS.UpdateContainerInstancesState(&ecs.UpdateContainerInstancesStateInput{
 		ContainerInstances: []*string{
 			aws.String(ci),
 		},
 		Status:  aws.String("DRAINING"),
 		Cluster: aws.String(md.Cluster),
-	}); err != nil {
+	})
+	if err != nil {
 		return err
+	}
+
+	if len(cis.Failures) > 0 {
+		return fmt.Errorf("unable to drain instance: %s - %s", ci, *cis.Failures[0].Reason)
 	}
 
 	if err := waitForInstanceDrain(md.Cluster, ci); err != nil {
@@ -137,22 +142,29 @@ func waitForInstanceDrain(cluster, ci string) error {
 		DesiredStatus:     aws.String("RUNNING"),
 	}
 
-	for {
-		time.Sleep(10 * time.Second)
+	tasks := []*string{}
 
+	for {
 		resp, err := ECS.ListTasks(params)
 		if err != nil {
 			return err
 		}
 
-		if len(resp.TaskArns) > 0 {
-			continue
+		tasks = append(tasks, resp.TaskArns...)
+
+		if resp.NextToken == nil {
+			break
 		}
 
-		break
+		params.NextToken = resp.NextToken
+		time.Sleep(2 * time.Second)
 	}
 
-	return nil
+	input := &ecs.DescribeTasksInput{
+		Cluster: aws.String(cluster),
+		Tasks:   tasks,
+	}
+	return ECS.WaitUntilTasksStopped(input)
 }
 
 func metadata() (*Metadata, error) {
