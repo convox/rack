@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -164,7 +165,40 @@ func waitForInstanceDrain(cluster, ci string) error {
 		Cluster: aws.String(cluster),
 		Tasks:   tasks,
 	}
+
+	if err := stopServicelessTasks(input); err != nil {
+		return err
+	}
+
+	fmt.Println("stopped service-less tasks")
+
 	return ECS.WaitUntilTasksStopped(input)
+}
+
+// stopServicelessTasks stops one-off tasks that do not belog to a ECS service.
+// For example, a scheduled task or running a process
+func stopServicelessTasks(input *ecs.DescribeTasksInput) error {
+
+	tasks, err := ECS.DescribeTasks(input)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range tasks.Tasks {
+		// if the task isn't part of a service and wasn't started by ECS, stop it
+		if !strings.HasPrefix(*t.Group, "service:") && !strings.HasPrefix(*t.StartedBy, "ecs-svc") {
+			_, err := ECS.StopTask(&ecs.StopTaskInput{
+				Cluster: input.Cluster,
+				Reason:  aws.String("draining instance for termination"),
+				Task:    t.TaskArn,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func metadata() (*Metadata, error) {
