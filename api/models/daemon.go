@@ -10,11 +10,13 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
+// Daemon represents a Service which runs exactly once on every ECS agent
 type Daemon struct {
 	Service *manifest.Service
 	App     *App
 }
 
+// ShortName returns the name of the Daemon Service, sans any invalid characters
 func (d *Daemon) ShortName() string {
 	shortName := strings.Title(d.Service.Name)
 
@@ -26,6 +28,7 @@ func (d *Daemon) ShortName() string {
 	return reg.ReplaceAllString(shortName, "")
 }
 
+// LongName returns the name of the Daemon Service in [stack name]-[service name]-[hash] format
 func (d *Daemon) LongName() string {
 	prefix := fmt.Sprintf("%s-%s", d.App.StackName(), d.Service.Name)
 	hash := sha256.Sum256([]byte(prefix))
@@ -38,6 +41,7 @@ func (d *Daemon) LongName() string {
 	return prefix + suffix
 }
 
+// Daemons returns any Daemon Services defined in the given Manifest
 func (a App) Daemons(m manifest.Manifest) []Daemon {
 	daemons := []Daemon{}
 
