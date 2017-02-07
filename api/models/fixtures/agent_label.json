@@ -287,155 +287,9 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "AgentLambdaPermission": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "DaemonFunction",
-            "Arn"
-          ]
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": {
-          "Fn::GetAtt": [
-            "AgentRule",
-            "Arn"
-          ]
-        }
-      },
-      "Type": "AWS::Lambda::Permission"
-    },
-    "AgentRule": {
-      "Properties": {
-        "EventPattern": {
-          "detail": {
-            "clusterArn": [
-              {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:aws:ecs:",
-                    {
-                      "Ref": "AWS::Region"
-                    },
-                    ":",
-                    {
-                      "Ref": "AWS::AccountId"
-                    },
-                    ":cluster/",
-                    {
-                      "Ref": "Cluster"
-                    }
-                  ]
-                ]
-              }
-            ]
-          },
-          "detail-type": [
-            "ECS Container Instance State Change"
-          ],
-          "source": [
-            "aws.ecs"
-          ]
-        },
-        "Name": "convox-test-httpd-agent-JP4SLVM-change",
-        "Targets": [
-          {
-            "Arn": {
-              "Fn::GetAtt": [
-                "DaemonFunction",
-                "Arn"
-              ]
-            },
-            "Id": "convox-test-httpd-agent-JP4SLVMTarget"
-          }
-        ]
-      },
-      "Type": "AWS::Events::Rule"
-    },
-    "CustomTopic": {
-      "Properties": {
-        "Code": {
-          "S3Bucket": {
-            "Fn::Join": [
-              "-",
-              [
-                "convox",
-                {
-                  "Ref": "AWS::Region"
-                }
-              ]
-            ]
-          },
-          "S3Key": {
-            "Fn::Join": [
-              "",
-              [
-                "release/",
-                {
-                  "Ref": "Version"
-                },
-                "/lambda/formation.zip"
-              ]
-            ]
-          }
-        },
-        "Handler": "index.external",
-        "MemorySize": "128",
-        "Role": {
-          "Fn::GetAtt": [
-            "CustomTopicRole",
-            "Arn"
-          ]
-        },
-        "Runtime": {
-          "Ref": "CustomTopicRuntime"
-        },
-        "Timeout": "300"
-      },
-      "Type": "AWS::Lambda::Function"
-    },
-    "CustomTopicRole": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "sts:AssumeRole"
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "lambda.amazonaws.com"
-                ]
-              }
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "Path": "/convox/",
-        "Policies": [
-          {
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Action": "*",
-                  "Effect": "Allow",
-                  "Resource": "*"
-                }
-              ],
-              "Version": "2012-10-17"
-            },
-            "PolicyName": "Administrator"
-          }
-        ]
-      },
-      "Type": "AWS::IAM::Role"
-    },
-    "DaemonFunction": {
+    "AgentFunction": {
       "DependsOn": [
-        "DaemonRole"
+        "AgentRole"
       ],
       "Properties": {
         "Code": {
@@ -466,7 +320,7 @@
                 "    cluster: event.detail.clusterArn,",
                 "    containerInstances: [event.detail.containerInstanceArn],",
                 "    taskDefinition: td,",
-                "    startedBy: 'convox daemon'",
+                "    startedBy: 'convox agent'",
                 "  }, function(err, data) {",
                 "    console.log('startTask Data: ', data, 'Error: ', err);",
                 "    if (err !== null) return callback(err);",
@@ -477,12 +331,12 @@
                 "function tdName(td) { return td.split(':').slice(0,-1).join(':'); }",
                 "function tdRev(td) { return parseInt(td.split(':').slice(-1)[0]); }",
                 "function stopOldTask(event, desiredTD, runningTask) {",
-                "    if (runningTask.startedBy != 'convox daemon') return false;",
+                "    if (runningTask.startedBy != 'convox agent') return false;",
                 "    if (tdName(desiredTD) != tdName(runningTask.taskDefinitionArn)) return false;",
                 "    if (tdRev(desiredTD) != tdRev(runningTask.taskDefinitionArn)) {",
                 "        ecs.stopTask({",
                 "            cluster: event.detail.clusterArn,",
-                "            reason: 'convox daemon convergence',",
+                "            reason: 'convox agent convergence',",
                 "            task: runningTask.taskArn",
                 "        }, function(err, data) {",
                 "            console.log('stopTask Data: ', data, 'Error: ', err);",
@@ -526,7 +380,7 @@
         "Handler": "index.handler",
         "Role": {
           "Fn::GetAtt": [
-            "DaemonRole",
+            "AgentRole",
             "Arn"
           ]
         },
@@ -535,7 +389,26 @@
       },
       "Type": "AWS::Lambda::Function"
     },
-    "DaemonRole": {
+    "AgentLambdaPermission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AgentFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "AgentRule",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Permission"
+    },
+    "AgentRole": {
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -632,7 +505,134 @@
               ],
               "Version": "2012-10-17"
             },
-            "PolicyName": "DaemonJob"
+            "PolicyName": "AgentJob"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "AgentRule": {
+      "Properties": {
+        "EventPattern": {
+          "detail": {
+            "clusterArn": [
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ecs:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":cluster/",
+                    {
+                      "Ref": "Cluster"
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "detail-type": [
+            "ECS Container Instance State Change"
+          ],
+          "source": [
+            "aws.ecs"
+          ]
+        },
+        "Name": "convox-test-httpd-agent-JP4SLVM-change",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "AgentFunction",
+                "Arn"
+              ]
+            },
+            "Id": "convox-test-httpd-agent-JP4SLVMTarget"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
+    },
+    "CustomTopic": {
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": [
+              "-",
+              [
+                "convox",
+                {
+                  "Ref": "AWS::Region"
+                }
+              ]
+            ]
+          },
+          "S3Key": {
+            "Fn::Join": [
+              "",
+              [
+                "release/",
+                {
+                  "Ref": "Version"
+                },
+                "/lambda/formation.zip"
+              ]
+            ]
+          }
+        },
+        "Handler": "index.external",
+        "MemorySize": "128",
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomTopicRole",
+            "Arn"
+          ]
+        },
+        "Runtime": {
+          "Ref": "CustomTopicRuntime"
+        },
+        "Timeout": "300"
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "CustomTopicRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "*",
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ],
+              "Version": "2012-10-17"
+            },
+            "PolicyName": "Administrator"
           }
         ]
       },
