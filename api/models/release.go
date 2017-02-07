@@ -675,7 +675,7 @@ func waitForTemplate(bucket string, id string) error {
 func waitForPromotion(r *Release) {
 	event := &structs.Event{
 		Action: "release:promote",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"app": r.App,
 			"id":  r.Id,
 		},

@@ -93,7 +93,7 @@ func main() {
 
 	event = &structs.Event{
 		Action: "build:create",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"app": flagApp,
 			"id":  flagID,
 		},

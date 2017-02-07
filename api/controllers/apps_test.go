@@ -2,12 +2,14 @@ package controllers_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"testing"
 
 	"github.com/convox/rack/api/controllers"
 	"github.com/convox/rack/api/models"
+	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,49 +35,36 @@ func TestAppList(t *testing.T) {
 	}
 }
 
-func TestAppShow(t *testing.T) {
-	aws := test.StubAws(
-		test.DescribeAppStackCycle("convox-test-bar"),
-	)
-	defer aws.Close()
+func TestAppGet(t *testing.T) {
+	models.Test(t, func() {
+		app := &structs.App{
+			Name:    "myapp",
+			Release: "R1234",
+			Status:  "running",
+		}
 
-	body := test.HTTPBody("GET", "http://convox/apps/bar", nil)
+		models.TestProvider.On("AppGet", "myapp").Return(app, nil)
 
-	var resp map[string]string
-	err := json.Unmarshal([]byte(body), &resp)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	if assert.NoError(t, err) {
-		assert.Equal(t, "bar", resp["name"])
-		assert.Equal(t, "running", resp["status"])
-	}
+		if assert.Nil(t, hf.Request("GET", "/apps/myapp", nil)) {
+			hf.AssertCode(t, 200)
+			hf.AssertJSON(t, "{\"name\":\"myapp\",\"release\":\"R1234\",\"status\":\"running\"}")
+		}
+	})
 }
 
-func TestAppShowUnbound(t *testing.T) {
-	aws := test.StubAws(
-		test.DescribeStackNotFound("convox-test-bar"),
-		test.DescribeAppStackCycle("bar"),
-	)
-	defer aws.Close()
+func TestAppGetWithAppNotFound(t *testing.T) {
+	models.Test(t, func() {
+		models.TestProvider.On("AppGet", "myapp").Return(nil, errorNotFound(fmt.Sprintf("no such app: myapp")))
 
-	body := test.HTTPBody("GET", "http://convox/apps/bar", nil)
+		hf := test.NewHandlerFunc(controllers.HandlerFunc)
 
-	var resp map[string]string
-	err := json.Unmarshal([]byte(body), &resp)
-
-	if assert.NoError(t, err) {
-		assert.Equal(t, "bar", resp["name"])
-		assert.Equal(t, "running", resp["status"])
-	}
-}
-
-func TestAppShowWithAppNotFound(t *testing.T) {
-	aws := test.StubAws(
-		test.DescribeStackNotFound("convox-test-bar"),
-		test.DescribeStackNotFound("bar"),
-	)
-	defer aws.Close()
-
-	test.AssertStatus(t, 404, "GET", "http://convox/apps/bar", nil)
+		if assert.Nil(t, hf.Request("GET", "/apps/myapp", nil)) {
+			hf.AssertCode(t, 404)
+			hf.AssertJSON(t, "{\"error\":\"no such app: myapp\"}")
+		}
+	})
 }
 
 // Test the primary path: creating an app on a `convox` rack

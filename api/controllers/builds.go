@@ -33,7 +33,7 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	event := &structs.Event{
 		Action: "build:create",
 		Status: "start",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"app": app,
 			"id":  "n/a",
 		},

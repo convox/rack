@@ -118,7 +118,7 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 
 	p.EventSend(&structs.Event{
 		Action: "release:scale",
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"app": a.Name,
 			"id":  a.Release,
 		},
