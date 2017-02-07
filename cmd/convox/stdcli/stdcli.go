@@ -12,7 +12,6 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/briandowns/spinner"
-	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
 )
@@ -26,7 +25,6 @@ var (
 	Querier    func(bin string, args ...string) ([]byte, error)
 	Spinner    *spinner.Spinner
 	Tagger     func() string
-	Docker     func() string
 )
 
 func init() {
@@ -37,7 +35,6 @@ func init() {
 	Runner = runExecCommand
 	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
-	Docker = helpers.DetectDocker
 
 	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
 
