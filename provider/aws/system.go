@@ -16,7 +16,7 @@ import (
 )
 
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
-	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
@@ -25,11 +25,11 @@ func (p *AWSProvider) SystemGet() (*structs.System, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Stacks) != 1 {
+	if len(stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for app: %s", p.Rack)
 	}
 
-	stack := res.Stacks[0]
+	stack := stacks[0]
 	status := humanStatus(*stack.StackStatus)
 	params := stackParameters(stack)
 

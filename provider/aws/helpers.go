@@ -339,30 +339,38 @@ func (p *AWSProvider) describeServices(input *ecs.DescribeServicesInput) (*ecs.D
 	return res, nil
 }
 
-func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
-	res, ok := cache.Get("describeStacks", input.StackName).(*cloudformation.DescribeStacksOutput)
+func (p *AWSProvider) describeStacks(input *cloudformation.DescribeStacksInput) ([]*cloudformation.Stack, error) {
+	var stacks []*cloudformation.Stack
+	stacks, ok := cache.Get("describeStacks", input.StackName).([]*cloudformation.Stack)
 
 	if ok {
-		return res, nil
+		return stacks, nil
 	}
 
-	res, err := p.cloudformation().DescribeStacks(input)
+	err := p.cloudformation().DescribeStacksPages(input,
+		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+			for _, stack := range page.Stacks {
+				stacks = append(stacks, stack)
+			}
+			return true
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if !p.SkipCache {
-		if err := cache.Set("describeStacks", input.StackName, res, 5*time.Second); err != nil {
+		if err := cache.Set("describeStacks", input.StackName, stacks, 5*time.Second); err != nil {
 			return nil, err
 		}
 	}
 
-	return res, nil
+	return stacks, nil
 }
 
 func (p *AWSProvider) describeStack(name string) (*cloudformation.Stack, error) {
-	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
@@ -371,11 +379,11 @@ func (p *AWSProvider) describeStack(name string) (*cloudformation.Stack, error) 
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Stacks) != 1 {
+	if len(stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack: %s", name)
 	}
 
-	return res.Stacks[0], nil
+	return stacks[0], nil
 }
 
 func (p *AWSProvider) describeStackEvents(input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
