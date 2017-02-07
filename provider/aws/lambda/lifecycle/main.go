@@ -10,14 +10,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/lambda"
 )
 
 var (
 	AutoScaling = autoscaling.New(session.New(), nil)
 	ECS         = ecs.New(session.New(), nil)
-	ELB         = elb.New(session.New(), nil)
 	Lambda      = lambda.New(session.New(), nil)
 )
 
@@ -109,6 +107,8 @@ func handle(r Record) error {
 	if err := waitForInstanceDrain(md.Cluster, ci); err != nil {
 		return err
 	}
+
+	fmt.Println("instance has been drained")
 
 	if _, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
 		Cluster:           aws.String(md.Cluster),
