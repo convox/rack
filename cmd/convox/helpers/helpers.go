@@ -61,3 +61,11 @@ func DetectApplication(dir string) string {
 
 	return "unknown"
 }
+
+func DetectDocker() string {
+	osd := os.Getenv("DOCKER_BIN")
+	if osd != "" {
+		return osd
+	}
+	return "docker"
+}
