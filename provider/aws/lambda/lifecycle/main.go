@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -90,6 +91,20 @@ func handle(r Record) error {
 
 	fmt.Printf("ci = %+v\n", ci)
 
+	if _, err := ECS.UpdateContainerInstancesState(&ecs.UpdateContainerInstancesStateInput{
+		ContainerInstances: []*string{
+			aws.String(ci),
+		},
+		Status:  aws.String("DRAINING"),
+		Cluster: aws.String(md.Cluster),
+	}); err != nil {
+		return err
+	}
+
+	if err := waitForInstanceDrain(md.Cluster, ci); err != nil {
+		return err
+	}
+
 	if _, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
 		Cluster:           aws.String(md.Cluster),
 		ContainerInstance: aws.String(ci),
@@ -110,6 +125,32 @@ func handle(r Record) error {
 	}
 
 	fmt.Println("success")
+
+	return nil
+}
+
+func waitForInstanceDrain(cluster, ci string) error {
+
+	params := &ecs.ListTasksInput{
+		Cluster:           aws.String(cluster),
+		ContainerInstance: aws.String(ci),
+		DesiredStatus:     aws.String("RUNNING"),
+	}
+
+	for {
+		time.Sleep(10 * time.Second)
+
+		resp, err := ECS.ListTasks(params)
+		if err != nil {
+			return err
+		}
+
+		if len(resp.TaskArns) > 0 {
+			continue
+		}
+
+		break
+	}
 
 	return nil
 }
