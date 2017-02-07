@@ -89,7 +89,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		sort.Strings(bargNames)
 
 		for _, name := range bargNames {
-			args = append(args, "--build-arg", fmt.Sprintf("%s=%q", name, bargs[name]))
+			args = append(args, "--build-arg", fmt.Sprintf("%s=%s", name, bargs[name]))
 		}
 
 		args = append(args, "-f", dockerFile)

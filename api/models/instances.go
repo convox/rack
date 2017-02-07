@@ -50,9 +50,12 @@ func InstanceSSH(id, command, term string, height, width int, rw io.ReadWriter) 
 		},
 		MaxResults: aws.Int64(1000),
 	})
-
 	if err != nil {
 		return err
+	}
+
+	if len(ec2Res.Reservations) == 0 {
+		return fmt.Errorf("instance not found")
 	}
 
 	instance := ec2Res.Reservations[0].Instances[0]

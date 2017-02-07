@@ -68,6 +68,9 @@ func (c *Client) ExecProcessAttached(app, pid, command string, in io.Reader, out
 	}
 
 	err := c.Stream(fmt.Sprintf("/apps/%s/processes/%s/exec", app, pid), headers, in, w)
+
+	w.Close()
+
 	if err != nil {
 		return 0, err
 	}
@@ -133,7 +136,9 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 	state, _ := terminal.MakeRaw(int(os.Stdin.Fd()))
 
 	defer func() {
-		terminal.Restore(int(os.Stdin.Fd()), state)
+		if state != nil {
+			terminal.Restore(int(os.Stdin.Fd()), state)
+		}
 		ch <- code
 	}()
 
@@ -149,7 +154,7 @@ func copyWithExit(w io.Writer, r io.Reader, ch chan int) {
 		}
 
 		if s := string(buf[0:n]); strings.HasPrefix(s, StatusCodePrefix) {
-			code, _ = strconv.Atoi(strings.TrimSpace(s[37:]))
+			code, _ = strconv.Atoi(strings.TrimSpace(s[len(StatusCodePrefix):]))
 			return
 		}
 

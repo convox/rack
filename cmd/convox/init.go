@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/convox/rack/cmd/convox/appify"
+	"github.com/convox/rack/cmd/convox/app"
 	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
@@ -40,17 +40,10 @@ func cmdInit(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	files := []string{
-		"Dockerfile",
-		"docker-compose.yml",
-	}
-	for _, file := range files {
-		// TODO When only a Dockerfile exists, parse it and build a docker-compose.yml
-		if helpers.Exists(file) {
-			e := fmt.Errorf("Cannot initialize an app that already contains a %s", file)
-			stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{ValidationError: e})
-			return stdcli.Error(e)
-		}
+	if helpers.Exists("docker-compose.yml") {
+		fmt.Println("docker-compose.yml already exists; try running convox start or")
+		fmt.Println(nextStepsText["unknown"])
+		return nil
 	}
 
 	appType, err := initApplication(dir)
@@ -66,18 +59,18 @@ func cmdInit(c *cli.Context) error {
 }
 
 func initApplication(dir string) (string, error) {
-	var fw appify.Framework
+	var fw app.Framework
 
 	kind := helpers.DetectApplication(dir)
 
 	switch {
 	case strings.Contains(kind, "heroku"):
-		fw = &appify.Buildpack{
+		fw = &app.Buildpack{
 			Kind: strings.Split(kind, "/")[1],
 		}
 
 	default:
-		ga := &appify.GenericApp{
+		ga := &app.GenericApp{
 			Kind: kind,
 		}
 		fw = ga
@@ -89,5 +82,22 @@ func initApplication(dir string) (string, error) {
 	}
 
 	err := fw.Appify()
+
+	if strings.Contains(kind, "heroku") {
+		fmt.Println(nextStepsText["heroku"])
+	}
+
+	if val, ok := nextStepsText[kind]; ok {
+		fmt.Println(val)
+	}
+
 	return kind, err
+}
+
+var nextStepsText = map[string]string{
+	"django":  "Try `convox start`. See https://convox.com/docs/django/ for more information.",
+	"heroku":  "Try `convox start`. See https://convox.com/guide/heroku/ for more information.",
+	"rails":   "Try `convox start`. See https://convox.com/docs/rails/ for more information.",
+	"sinatra": "Try `convox start`. See https://convox.com/docs/sinatra/ for more information.",
+	"unknown": "See https://convox.com/docs/preparing-an-application/ for more information on preparing an app.",
 }

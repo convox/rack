@@ -248,6 +248,11 @@
       "Description": "VPC private subnets for this app",
       "Type": "List\u003cAWS::EC2::Subnet::Id\u003e"
     },
+    "TaskRole": {
+      "Default": "",
+      "Description": "IAM Role to apply to ECS Tasks of this app",
+      "Type": "String"
+    },
     "VPC": {
       "Default": "",
       "Description": "VPC for this app",
@@ -668,6 +673,9 @@
             "Arn"
           ]
         },
+        "TaskRole": {
+          "Ref": "TaskRole"
+        },
         "Tasks": [
           {
             "Cpu": {
@@ -937,6 +945,9 @@
             "CustomTopic",
             "Arn"
           ]
+        },
+        "TaskRole": {
+          "Ref": "TaskRole"
         },
         "Tasks": [
           {
