@@ -91,14 +91,14 @@ func TestAppCronJobs(t *testing.T) {
 	assert.Equal(t, cj[2].Name, "task3")
 }
 
-func TestAppDaemons(t *testing.T) {
+func TestAppAgents(t *testing.T) {
 	m := manifest.Manifest{
 		Version: "1",
 		Services: map[string]manifest.Service{
 			"one": {
 				Name: "one",
 				Labels: manifest.Labels{
-					"convox.daemon": "true",
+					"convox.agent": "true",
 				},
 			},
 		},
@@ -114,7 +114,7 @@ func TestAppDaemons(t *testing.T) {
 		},
 	}
 
-	daemons := a.Daemons(m)
-	assert.Equal(t, len(daemons), 1)
-	assert.Equal(t, daemons[0].Service.Name, "one")
+	agents := a.Agents(m)
+	assert.Equal(t, len(agents), 1)
+	assert.Equal(t, agents[0].Service.Name, "one")
 }
