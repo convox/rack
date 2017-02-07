@@ -1,6 +1,6 @@
 version: '2'
 services:
-  agent:
+  agent1:
     image: datadog/docker-dd-agent:latest
     environment:
      - API_KEY
@@ -11,3 +11,18 @@ services:
     privileged: true
     labels:
       - convox.agent=true
+
+  agent2:
+    image: datadog/docker-dd-agent:latest
+    environment:
+     - API_KEY
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/:/host/proc
+      - /cgroup/:/host/sys/fs/cgroup
+    privileged: true
+    labels:
+      - convox.agent=true
+
+  notagent:
+    build: .
