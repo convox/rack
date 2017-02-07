@@ -10,4 +10,4 @@ services:
       - /cgroup/:/host/sys/fs/cgroup
     privileged: true
     labels:
-      - convox.daemon=true
+      - convox.agent=true
