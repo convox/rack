@@ -13,7 +13,7 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "exec",
-		Description: "exec a command in a process in your Convox rack",
+		Description: "Execute a command in a process in your Convox rack",
 		Usage:       "[pid] [command]",
 		Action:      cmdExec,
 		Flags:       []cli.Flag{appFlag, rackFlag},

@@ -25,7 +25,7 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "doctor",
 		Action:      cmdDoctor,
-		Description: "Check your app for common Convox compatibility issues.",
+		Description: "check your app for common issues",
 	})
 }
 

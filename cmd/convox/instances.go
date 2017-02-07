@@ -16,7 +16,7 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "instances",
-		Description: "list your Convox rack's instances",
+		Description: "List a Rack's EC2 instances",
 		Usage:       "",
 		Action:      cmdInstancesList,
 		Flags:       []cli.Flag{rackFlag},
