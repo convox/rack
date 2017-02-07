@@ -42,14 +42,13 @@ func (a App) Agents(m manifest.Manifest) []Agent {
 	agents := []Agent{}
 
 	for _, entry := range m.Services {
-		labels := entry.LabelsByPrefix("convox.agent")
-
-		if len(labels) == 1 {
-			d := Agent{
-				Service: &entry,
+		if _, ok := entry.Labels["convox.agent"]; ok {
+			e := entry
+			agent := Agent{
+				Service: &e,
 				App:     &a,
 			}
-			agents = append(agents, d)
+			agents = append(agents, agent)
 		}
 	}
 	return agents
