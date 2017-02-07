@@ -221,9 +221,8 @@ func cmdDoctor(c *cli.Context) error {
 
 func checkDockerRunning() error {
 	startCheck("Docker running")
-	d := stdcli.Docker()
 
-	dockerTest := exec.Command(d, "images")
+	dockerTest := exec.Command(dockerBin, "images")
 	err := dockerTest.Run()
 	if err != nil {
 		diagnose(Diagnosis{
@@ -234,7 +233,7 @@ func checkDockerRunning() error {
 		})
 		return nil
 	} else {
-		dv, _ := exec.Command(d, "-v").Output()
+		dv, _ := exec.Command(dockerBin, "-v").Output()
 		v := strings.Split(string(dv), "\n")[0]
 		diagnose(Diagnosis{
 			Title: fmt.Sprintf("Docker running (%s)", v),

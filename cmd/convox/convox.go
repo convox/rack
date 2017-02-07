@@ -1,6 +1,11 @@
 package main
 
-import "github.com/convox/rack/cmd/convox/stdcli"
+import (
+	"github.com/convox/rack/cmd/convox/helpers"
+	"github.com/convox/rack/cmd/convox/stdcli"
+)
+
+var dockerBin = helpers.DetectDocker()
 
 func init() {
 	stdcli.DefaultWriter.Tags["app"] = stdcli.RenderAttributes(39)
