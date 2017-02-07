@@ -16,16 +16,12 @@ type Daemon struct {
 	App     *App
 }
 
+var shortNameRegex = regexp.MustCompile("[^A-Za-z0-9]+")
+
 // ShortName returns the name of the Daemon Service, sans any invalid characters
 func (d *Daemon) ShortName() string {
 	shortName := strings.Title(d.Service.Name)
-
-	reg, err := regexp.Compile("[^A-Za-z0-9]+")
-	if err != nil {
-		panic(err)
-	}
-
-	return reg.ReplaceAllString(shortName, "")
+	return shortNameRegex.ReplaceAllString(shortName, "")
 }
 
 // LongName returns the name of the Daemon Service in [stack name]-[service name]-[hash] format
