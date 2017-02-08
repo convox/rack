@@ -291,13 +291,6 @@ func build(dir string) error {
 	return nil
 }
 
-type ChanWriter chan string
-
-func (cw ChanWriter) Write(data []byte) (int, error) {
-	cw <- string(data)
-	return len(data), nil
-}
-
 func success() error {
 	_, err := currentProvider.BuildRelease(currentBuild)
 	if err != nil {
