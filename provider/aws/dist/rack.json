@@ -964,7 +964,7 @@
     },
     "Nat0": {
       "Condition": "Private",
-      "DependsOn": "KernelAccess",
+      "DependsOn": ["KernelAccess", "KernelUser"],
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress0", "AllocationId" ] },
@@ -973,7 +973,7 @@
     },
     "Nat1": {
       "Condition": "Private",
-      "DependsOn": "KernelAccess",
+      "DependsOn": ["KernelAccess", "KernelUser"],
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress1", "AllocationId" ] },
@@ -982,7 +982,7 @@
     },
     "Nat2": {
       "Condition": "PrivateAndThirdAvailabilityZone",
-      "DependsOn": "KernelAccess",
+      "DependsOn": ["KernelAccess", "KernelUser"],
       "Type": "AWS::EC2::NatGateway",
       "Properties": {
         "AllocationId": { "Fn::GetAtt": [ "NatAddress2", "AllocationId" ] },
@@ -1585,12 +1585,12 @@
                     "ecs:DeregisterContainerInstance",
                     "ecs:DescribeContainerInstances",
                     "ecs:DescribeServices",
+                    "ecs:DescribeTasks",
                     "ecs:ListContainerInstances",
                     "ecs:ListServices",
-                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                    "elasticloadbalancing:DescribeInstanceHealth",
-                    "elasticloadbalancing:DescribeLoadBalancers",
-                    "elasticloadbalancing:DescribeTags",
+                    "ecs:ListTasks",
+                    "ecs:StopTask",
+                    "ecs:UpdateContainerInstancesState",
                     "lambda:GetFunction",
                     "logs:CreateLogGroup",
                     "logs:CreateLogStream",

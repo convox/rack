@@ -27,10 +27,7 @@ func (p *AWSProvider) AppCancel(name string) error {
 
 // AppGet gets an app
 func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
-	var res *cloudformation.DescribeStacksOutput
-	var err error
-
-	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack + "-" + name),
 	})
 	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
@@ -39,14 +36,14 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Stacks) != 1 {
+	if len(stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for app: %s", name)
 	}
 
-	app := appFromStack(res.Stacks[0])
+	app := appFromStack(stacks[0])
 
 	if app.Tags["Rack"] != "" && app.Tags["Rack"] != p.Rack {
-		return nil, fmt.Errorf("no such app: %s", name)
+		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
 	}
 
 	return &app, nil

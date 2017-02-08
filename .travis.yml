@@ -1,5 +1,9 @@
 sudo: required
 
+env:
+  global:
+    - DOCKER_VERSION=1.13.0-0~ubuntu-trusty
+
 services:
   - docker
 
@@ -11,6 +15,11 @@ language: go
 
 go:
   - 1.7
+
+before_install:
+  # upgrade docker-engine to specific version
+  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
+  - docker version
 
 script:
   - ./ci/set-client-id.sh
