@@ -3,6 +3,7 @@ package manifest
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -96,9 +97,11 @@ func (b *Build) Hash() string {
 	for i, key := range argKeys {
 		hashParts[i] = fmt.Sprintf("%s=%s", key, b.Args[key])
 	}
-	argsHash := strings.Join(hashParts, "@@@@@")
+	argsHash := strings.Join(hashParts, "-----")
 
-	return fmt.Sprintf("%+v|||||%+v|||||%+v", b.Context, b.Dockerfile, argsHash)
+	hash := fmt.Sprintf("%+v_____%+v_____%+v", b.Context, b.Dockerfile, argsHash)
+
+	return fmt.Sprintf("%x", sha1.Sum([]byte(hash)))
 }
 
 func (s *Service) Process(app string, m Manifest) Process {

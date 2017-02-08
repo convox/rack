@@ -28,12 +28,13 @@ type Run struct {
 }
 
 type RunOptions struct {
-	Service string
-	Command []string
-	Build   bool
-	Cache   bool
-	Quiet   bool
-	Sync    bool
+	Service  string
+	Command  []string
+	Build    bool
+	Cache    bool
+	CacheDir string
+	Quiet    bool
+	Sync     bool
 }
 
 // NewRun Default constructor method for a Run object
@@ -139,6 +140,7 @@ func (r *Run) Start() error {
 		err = r.manifest.Build(r.Dir, r.App, r.Output.Stream("build"), BuildOptions{
 			Environment: env,
 			Cache:       r.Opts.Cache,
+			CacheDir:    r.Opts.CacheDir,
 			Service:     r.Opts.Service,
 		})
 		if err != nil {

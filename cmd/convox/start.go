@@ -3,11 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/convox/rack/api/models"
@@ -15,6 +17,7 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 	"github.com/fsouza/go-dockerclient"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/robfig/cron"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -126,12 +129,36 @@ func cmdStart(c *cli.Context) error {
 		}
 	}
 
+	cacheDir := ""
+
+	switch runtime.GOOS {
+	case "windows":
+		cacheDir = fmt.Sprintf("/home/convox/.convox/cache/build/%s", app)
+	default:
+		d, err := homedir.Dir() // prefix with host path to use OS File Sharing
+		if err != nil {
+			log.Fatal(err)
+		}
+		home, err := filepath.Abs(d)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cacheDir = filepath.Join(home, ".convox", "cache", "build", app)
+	}
+
+	if cacheDir != "" {
+		os.MkdirAll(cacheDir, 0755)
+	}
+
+	fmt.Printf("cacheDir = %+v\n", cacheDir)
+
 	r := m.Run(dir, app, manifest.RunOptions{
-		Build:   !c.Bool("no-build"),
-		Cache:   !c.Bool("no-cache"),
-		Command: command,
-		Service: service,
-		Sync:    !c.Bool("no-sync"),
+		Build:    !c.Bool("no-build"),
+		Cache:    !c.Bool("no-cache"),
+		CacheDir: cacheDir,
+		Command:  command,
+		Service:  service,
+		Sync:     !c.Bool("no-sync"),
 	})
 
 	stdcli.QOSEventSend("Dev App Create Started", id, stdcli.QOSEventProperties{AppType: appType})

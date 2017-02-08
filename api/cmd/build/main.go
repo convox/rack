@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -222,15 +223,49 @@ func build(dir string) error {
 
 	defer close(s)
 
-	env, err := currentProvider.EnvironmentGet(flagApp)
+	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return err
+	}
+
+	cacheKey := fmt.Sprintf("apps/%s/cache.tgz", flagApp)
+	cacheDir := filepath.Join(tmp, "cache")
+	cacheArchive := filepath.Join(tmp, "cache.tgz")
+
+	if err := os.Mkdir(cacheDir, 0755); err != nil {
+		return err
+	}
+
+	if currentProvider.ObjectExists(cacheKey) {
+		r, err := currentProvider.ObjectFetch(cacheKey)
+		if err != nil {
+			return err
+		}
+
+		fd, err := os.Create(cacheArchive)
+		if err != nil {
+			return err
+		}
+
+		defer fd.Close()
+
+		if _, err := io.Copy(fd, r); err != nil {
+			return err
+		}
+
+		if err := fd.Close(); err != nil {
+			return err
+		}
+
+		if err := exec.Command("tar", "xzf", cacheArchive, "-C", cacheDir).Run(); err != nil {
+			return err
+		}
 	}
 
 	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
 		Environment: env,
 		Cache:       flagCache == "true",
-		Verbose:     false,
+		CacheDir:    cacheDir,
 	})
 	if err != nil {
 		return err
@@ -240,7 +275,27 @@ func build(dir string) error {
 		return err
 	}
 
+	if err := exec.Command("tar", "czf", cacheArchive, "-C", cacheDir, ".").Run(); err != nil {
+		return err
+	}
+
+	fd, err := os.Open(cacheArchive)
+	if err != nil {
+		return err
+	}
+
+	if _, err := currentProvider.ObjectStore(cacheKey, fd, structs.ObjectOptions{}); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+type ChanWriter chan string
+
+func (cw ChanWriter) Write(data []byte) (int, error) {
+	cw <- string(data)
+	return len(data), nil
 }
 
 func success() error {

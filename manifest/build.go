@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -12,6 +14,7 @@ import (
 
 type BuildOptions struct {
 	Cache       bool
+	CacheDir    string
 	Environment map[string]string
 	Service     string
 	Verbose     bool
@@ -64,6 +67,23 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		dockerFile = coalesce(service.Build.Dockerfile, dockerFile)
 		dockerFile = filepath.Join(context, dockerFile)
 
+		if opts.CacheDir != "" {
+			hash := service.Build.Hash()
+
+			lcd := filepath.Join(dir, ".cache", "build")
+
+			if err := os.MkdirAll(lcd, 0755); err != nil {
+				s <- fmt.Sprintf("cache error: %s", err)
+			}
+
+			fmt.Printf("lcd = %+v\n", lcd)
+			fmt.Printf("hash = %+v\n", hash)
+
+			exec.Command("rm", "-rf", lcd).Run()
+			exec.Command("cp", "-a", filepath.Join(opts.CacheDir, hash), lcd).Run()
+			exec.Command("mkdir", "-p", lcd).Run()
+		}
+
 		bargs := map[string]string{}
 
 		for k, v := range service.Build.Args {
@@ -99,6 +119,24 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 
 		if err := DefaultRunner.Run(s, Docker(args...), RunnerOptions{Verbose: opts.Verbose}); err != nil {
 			return fmt.Errorf("build error: %s", err)
+		}
+
+		if opts.CacheDir != "" {
+			hash := service.Build.Hash()
+
+			if err := DefaultRunner.Run(s, Docker("create", "--name", hash, service.Tag(appName))); err != nil {
+				s <- fmt.Sprintf("cache error: %s", err)
+			}
+
+			exec.Command("rm", "-rf", filepath.Join(opts.CacheDir, hash)).Run()
+
+			if err := DefaultRunner.Run(s, Docker("cp", fmt.Sprintf("%s:/var/cache/build", hash), filepath.Join(opts.CacheDir, hash))); err != nil {
+				s <- fmt.Sprintf("cache error: %s", err)
+			}
+
+			if err := DefaultRunner.Run(s, Docker("rm", hash)); err != nil {
+				s <- fmt.Sprintf("cache error: %s", err)
+			}
 		}
 
 		buildCache[service.Build.Hash()] = service.Tag(appName)
