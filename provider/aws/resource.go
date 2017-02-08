@@ -144,21 +144,18 @@ func (p *AWSProvider) ResourceDelete(name string) (*structs.Resource, error) {
 
 // ResourceGet retrieves a resource.
 func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
-	var res *cloudformation.DescribeStacksOutput
-	var err error
-
-	res, err = p.describeStacks(&cloudformation.DescribeStacksInput{
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(p.Rack + "-" + name),
 	})
 
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Stacks) != 1 {
+	if len(stacks) != 1 {
 		return nil, fmt.Errorf("could not load stack for resource: %s", name)
 	}
 
-	s := resourceFromStack(res.Stacks[0])
+	s := resourceFromStack(stacks[0])
 
 	if s.Tags["Rack"] != "" && s.Tags["Rack"] != p.Rack {
 		return nil, fmt.Errorf("no such stack on this rack: %s", name)
@@ -166,7 +163,7 @@ func (p *AWSProvider) ResourceGet(name string) (*structs.Resource, error) {
 
 	if s.Status == "failed" {
 		eres, err := p.describeStackEvents(&cloudformation.DescribeStackEventsInput{
-			StackName: aws.String(*res.Stacks[0].StackName),
+			StackName: aws.String(*stacks[0].StackName),
 		})
 		if err != nil {
 			return &s, err
@@ -257,14 +254,14 @@ func (p *AWSProvider) resourceApps(s structs.Resource) (structs.Apps, error) {
 
 // ResourceList lists the resources.
 func (p *AWSProvider) ResourceList() (structs.Resources, error) {
-	res, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
+	stacks, err := p.describeStacks(&cloudformation.DescribeStacksInput{})
 	if err != nil {
 		return nil, err
 	}
 
 	resources := structs.Resources{}
 
-	for _, stack := range res.Stacks {
+	for _, stack := range stacks {
 		tags := stackTags(stack)
 
 		// if it's a resource and the Rack tag is either the current rack or blank
