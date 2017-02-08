@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/urfave/cli.v1"
 
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
+	"github.com/convox/rack/manifest"
 )
 
 func init() {
@@ -31,6 +34,15 @@ func cmdDeploy(c *cli.Context) error {
 
 	if len(c.Args()) > 0 {
 		wd = c.Args()[0]
+	}
+
+	if !helpers.Exists(c.String("file")) {
+		return stdcli.Error(fmt.Errorf("No docker-compose.yml found. Try `convox init` to generate one."))
+	}
+
+	// validate docker-compose
+	if _, err := manifest.LoadFile(c.String("file")); err != nil {
+		return stdcli.Error(fmt.Errorf("Invalid %s: %s", c.String("file"), strings.TrimSpace(err.Error())))
 	}
 
 	dir, app, err := stdcli.DirApp(c, wd)
