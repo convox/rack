@@ -222,7 +222,7 @@ func cmdDoctor(c *cli.Context) error {
 func checkDockerRunning() error {
 	startCheck("Docker running")
 
-	dockerTest := exec.Command("docker", "images")
+	dockerTest := exec.Command(dockerBin, "images")
 	err := dockerTest.Run()
 	if err != nil {
 		diagnose(Diagnosis{
@@ -233,8 +233,10 @@ func checkDockerRunning() error {
 		})
 		return nil
 	} else {
+		dv, _ := exec.Command(dockerBin, "-v").Output()
+		v := strings.Split(string(dv), "\n")[0]
 		diagnose(Diagnosis{
-			Title: "Docker running",
+			Title: fmt.Sprintf("Docker running (%s)", v),
 			Kind:  "success",
 		})
 	}
@@ -262,14 +264,14 @@ func checkDockerVersion() error {
 
 	if !(currentVersion.GreaterThanOrEqualTo(minDockerVersion)) {
 		diagnose(Diagnosis{
-			Title:       "Docker up to date",
+			Title:       "Docker up to date ",
 			Description: "<fail>Docker engine is out of date (min: 1.9)</fail>",
 			DocsLink:    "https://docs.docker.com/engine/installation/",
 			Kind:        "fail",
 		})
 	} else {
 		diagnose(Diagnosis{
-			Title: "Docker up to date",
+			Title: fmt.Sprintf("Docker up to date (%s)", currentVersion),
 			Kind:  "success",
 		})
 	}
