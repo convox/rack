@@ -43,14 +43,20 @@ func (a App) Agents(m manifest.Manifest) []Agent {
 	agents := []Agent{}
 
 	for _, entry := range m.Services {
-		if _, ok := entry.Labels["convox.agent"]; ok {
-			e := entry
-			agent := Agent{
-				Service: &e,
-				App:     &a,
-			}
-			agents = append(agents, agent)
+		// BackCompat: Some people might already be trying to use `convox.daemon` based on
+		// https://github.com/convox-examples/dd-agent/blob/master/docker-compose.yml#L13
+		_, okAgent := entry.Labels["convox.agent"]
+		_, okDaemon := entry.Labels["convox.daemon"]
+		if !okAgent && !okDaemon {
+			continue;
 		}
+
+		e := entry
+		agent := Agent{
+			Service: &e,
+			App:     &a,
+		}
+		agents = append(agents, agent)
 	}
 	return agents
 }
