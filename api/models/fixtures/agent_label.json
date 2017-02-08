@@ -9,7 +9,7 @@
         ""
       ]
     },
-    "EnabledAgent": {
+    "EnabledAgent1": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -17,7 +17,41 @@
               "Fn::Select": [
                 0,
                 {
-                  "Ref": "AgentFormation"
+                  "Ref": "Agent1Formation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledAgent2": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "Agent2Formation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledNotagent": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "NotagentFormation"
                 }
               ]
             },
@@ -93,7 +127,12 @@
     }
   },
   "Parameters": {
-    "AgentFormation": {
+    "Agent1Formation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "Agent2Formation": {
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
@@ -136,6 +175,11 @@
       "Default": "",
       "Description": "",
       "Type": "String"
+    },
+    "NotagentFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
     "Private": {
       "AllowedValues": [
@@ -193,7 +237,7 @@
     }
   },
   "Resources": {
-    "AgentECSTaskDefinition": {
+    "Agent1ECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -212,7 +256,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "agent"
+              "agent1"
             ]
           ]
         },
@@ -234,7 +278,7 @@
               "Fn::Select": [
                 1,
                 {
-                  "Ref": "AgentFormation"
+                  "Ref": "Agent1Formation"
                 }
               ]
             },
@@ -244,7 +288,7 @@
               "LOG_GROUP": {
                 "Ref": "LogGroup"
               },
-              "PROCESS": "agent",
+              "PROCESS": "agent1",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -257,11 +301,11 @@
               "Fn::Select": [
                 2,
                 {
-                  "Ref": "AgentFormation"
+                  "Ref": "Agent1Formation"
                 }
               ]
             },
-            "Name": "agent",
+            "Name": "agent1",
             "PortMappings": [
               {
                 "Ref": "AWS::NoValue"
@@ -287,6 +331,234 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
+    "Agent1LambdaPermission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AgentFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "Agent1Rule",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Permission"
+    },
+    "Agent1Rule": {
+      "Properties": {
+        "EventPattern": {
+          "detail": {
+            "clusterArn": [
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ecs:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":cluster/",
+                    {
+                      "Ref": "Cluster"
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "detail-type": [
+            "ECS Container Instance State Change"
+          ],
+          "source": [
+            "aws.ecs"
+          ]
+        },
+        "Name": "convox-test-httpd-agent1-KUHDH2U-change",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "AgentFunction",
+                "Arn"
+              ]
+            },
+            "Id": "convox-test-httpd-agent1-KUHDH2UTarget"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
+    },
+    "Agent2ECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "agent2"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskRole": {
+          "Ref": "TaskRole"
+        },
+        "Tasks": [
+          {
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "Agent2Formation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "agent2",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "datadog/docker-dd-agent:latest",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "Agent2Formation"
+                }
+              ]
+            },
+            "Name": "agent2",
+            "PortMappings": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "true",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              "/var/run/docker.sock:/var/run/docker.sock",
+              "/proc/:/host/proc",
+              "/cgroup/:/host/sys/fs/cgroup",
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "Agent2LambdaPermission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AgentFunction",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "Agent2Rule",
+            "Arn"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Permission"
+    },
+    "Agent2Rule": {
+      "Properties": {
+        "EventPattern": {
+          "detail": {
+            "clusterArn": [
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ecs:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":cluster/",
+                    {
+                      "Ref": "Cluster"
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "detail-type": [
+            "ECS Container Instance State Change"
+          ],
+          "source": [
+            "aws.ecs"
+          ]
+        },
+        "Name": "convox-test-httpd-agent2-O434WXJ-change",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "AgentFunction",
+                "Arn"
+              ]
+            },
+            "Id": "convox-test-httpd-agent2-O434WXJTarget"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
+    },
     "AgentFunction": {
       "DependsOn": [
         "AgentRole"
@@ -298,80 +570,113 @@
               "\n",
               [
                 "'use strict';",
-                "var aws = require('aws-sdk');",
-                "var ecs = new aws.ECS({maxRetries:10});",
-                "var taskDefinitions = {",
+                "const aws = require('aws-sdk');",
+                "const ecs = new aws.ECS({ maxRetries: 10 });",
+                "const taskDefinitions = {",
                 {
                   "Fn::Join": [
                     "",
                     [
-                      "    'agent': '",
+                      "  'agent1': '",
                       {
-                        "Ref": "AgentECSTaskDefinition"
+                        "Ref": "Agent1ECSTaskDefinition"
                       },
                       "',"
                     ]
                   ]
                 },
-                "    '':''",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "  'agent2': '",
+                      {
+                        "Ref": "Agent2ECSTaskDefinition"
+                      },
+                      "',"
+                    ]
+                  ]
+                },
                 "};",
-                "function startTask(event, td, callback) {",
-                "  ecs.startTask({",
-                "    cluster: event.detail.clusterArn,",
-                "    containerInstances: [event.detail.containerInstanceArn],",
-                "    taskDefinition: td,",
-                "    startedBy: 'convox agent'",
-                "  }, function(err, data) {",
-                "    console.log('startTask Data: ', data, 'Error: ', err);",
-                "    if (err !== null) return callback(err);",
-                "    if (data.tasks.length === 0) return callback('task not started');",
-                "    callback(null, data.tasks[0].taskArn);",
-                "  });",
+                "function tdName(td) {",
+                "    return td.split(':').slice(0, -1).join(':');",
                 "}",
-                "function tdName(td) { return td.split(':').slice(0,-1).join(':'); }",
-                "function tdRev(td) { return parseInt(td.split(':').slice(-1)[0]); }",
-                "function stopOldTask(event, desiredTD, runningTask) {",
-                "    if (runningTask.startedBy != 'convox agent') return false;",
-                "    if (tdName(desiredTD) != tdName(runningTask.taskDefinitionArn)) return false;",
-                "    if (tdRev(desiredTD) != tdRev(runningTask.taskDefinitionArn)) {",
-                "        ecs.stopTask({",
-                "            cluster: event.detail.clusterArn,",
-                "            reason: 'convox agent convergence',",
-                "            task: runningTask.taskArn",
-                "        }, function(err, data) {",
-                "            console.log('stopTask Data: ', data, 'Error: ', err);",
-                "        });",
+                "function tdRev(td) {",
+                "    return parseInt(td.split(':').slice(-1)[0]);",
+                "}",
+                "function startTask(event, desiredTD) {",
+                "    let options = {",
+                "        containerInstances: [event.detail.containerInstanceArn],",
+                "        taskDefinition: desiredTD,",
+                "        cluster: event.detail.clusterArn,",
+                "        startedBy: 'convox agent'",
+                "    };",
+                "    return ecs.startTask(options).promise()",
+                "    .then(data =\u003e {",
+                "        if (data.tasks.length === 0) {",
+                "            throw new Error('Task not started');",
+                "        }",
+                "        console.log('startTask Data: ', data);",
+                "        return data.tasks[0].taskArn;",
+                "    });",
+                "}",
+                "function stopTask(event, runningTask) {",
+                "    if (runningTask.startedBy !== 'convox agent') {",
+                "        return;",
                 "    }",
+                "    let options = {",
+                "        task: runningTask.taskArn cluster: event.detail.clusterArn,",
+                "        reason: 'convox agent convergence'",
+                "    };",
+                "    return ecs.stopTask(options).promise()",
+                "    .then(data =\u003e {",
+                "        console.log('stopTask Data: ', data);",
+                "        return data.tasks[0].taskArn;",
+                "    });",
                 "}",
                 "exports.handler = (event, context, callback) =\u003e {",
-                "  console.log('Event: ', event);",
-                "  ecs.listTasks({",
-                "    cluster: event.detail.clusterArn,",
-                "    containerInstance: event.detail.containerInstanceArn,",
-                "  }, function(err, data) {",
-                "    console.log('listTasks Data: ', data, 'Error: ', err);",
-                "    if (err !== null) return callback(err);",
-                "    if (data.taskArns.length === 0) return startTask(event, callback);",
-                "    ecs.describeTasks({",
-                "      cluster: event.detail.clusterArn,",
-                "      tasks: data.taskArns",
-                "    }, function(err, data) {",
-                "      console.log('describeTasks Data: ', data, 'Error: ', err);",
-                "      if (err !== null) return callback(err);",
-                "      for (var k in taskDefinitions) {",
-                "        if (k === '') continue;",
-                "          var desiredTD = taskDefinitions[k];",
-                "          var hasTask = false;",
-                "          data.tasks.forEach(function(t) {",
-                "            if (desiredTD == t.taskDefinitionArn)",
-                "              hasTask = true;",
-                "            stopOldTask(event, desiredTD, t);",
-                "          });",
-                "          if (!hasTask) return startTask(event, desiredTD, callback);",
-                "          return callback(null, 'task already running');",
+                "    console.log('Event: ', event);",
+                "    let options = {",
+                "        cluster: event.detail.clusterArn,",
+                "        containerInstance: event.detail.containerInstanceArn",
+                "    };",
+                "    ecs.listTasks(options).promise()",
+                "    .then(data =\u003e {",
+                "        console.log('listTasks Data: ', data);",
+                "        let options = {",
+                "            cluster: event.detail.clusterArn,",
+                "            tasks: data.taskArns",
+                "        };",
+                "        return ecs.describeTasks(options).promise();",
+                "    })",
+                "    .then(data =\u003e {",
+                "        console.log('describeTasks Data: ', data);",
+                "        let promises = [];",
+                "        for (let desiredTD of taskDefinitions) {",
+                "            let alreadyRunning = false;",
+                "            for (let task of data.tasks) {",
+                "                if (desiredTD === task.taskDefinitionArn) {",
+                "                    alreadyRunning = true;",
+                "                    continue;",
+                "                }",
+                "                if (tdName(desiredTD) === tdName(task.taskDefinitionArn) \u0026\u0026",
+                "                    tdRev(desiredTD) !== tdRev(task.taskDefinitionArn))",
+                "                    promises.push(stopTask(event, task));",
+                "            }",
+                "            if (!alreadyRunning) {",
+                "                promises.push(startTask(event, desiredTD));",
+                "            }",
                 "        }",
+                "        return Promise.all(promises);",
+                "    })",
+                "    .then(() =\u003e {",
+                "        console.log('Success');",
+                "        return callback(null, 'Success');",
+                "    })",
+                "    .catch(err =\u003e {",
+                "        console.log('Error: ', err);",
+                "        return callback(err);",
                 "    });",
-                "  });",
                 "};"
               ]
             ]
@@ -388,25 +693,6 @@
         "Timeout": 50
       },
       "Type": "AWS::Lambda::Function"
-    },
-    "AgentLambdaPermission": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "AgentFunction",
-            "Arn"
-          ]
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": {
-          "Fn::GetAtt": [
-            "AgentRule",
-            "Arn"
-          ]
-        }
-      },
-      "Type": "AWS::Lambda::Permission"
     },
     "AgentRole": {
       "Properties": {
@@ -511,54 +797,6 @@
       },
       "Type": "AWS::IAM::Role"
     },
-    "AgentRule": {
-      "Properties": {
-        "EventPattern": {
-          "detail": {
-            "clusterArn": [
-              {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:aws:ecs:",
-                    {
-                      "Ref": "AWS::Region"
-                    },
-                    ":",
-                    {
-                      "Ref": "AWS::AccountId"
-                    },
-                    ":cluster/",
-                    {
-                      "Ref": "Cluster"
-                    }
-                  ]
-                ]
-              }
-            ]
-          },
-          "detail-type": [
-            "ECS Container Instance State Change"
-          ],
-          "source": [
-            "aws.ecs"
-          ]
-        },
-        "Name": "convox-test-httpd-agent-JP4SLVM-change",
-        "Targets": [
-          {
-            "Arn": {
-              "Fn::GetAtt": [
-                "AgentFunction",
-                "Arn"
-              ]
-            },
-            "Id": "convox-test-httpd-agent-JP4SLVMTarget"
-          }
-        ]
-      },
-      "Type": "AWS::Events::Rule"
-    },
     "CustomTopic": {
       "Properties": {
         "Code": {
@@ -641,6 +879,97 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
+    "NotagentECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "notagent"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskRole": {
+          "Ref": "TaskRole"
+        },
+        "Tasks": [
+          {
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "NotagentFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "notagent",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "NotagentFormation"
+                }
+              ]
+            },
+            "Name": "notagent",
+            "PortMappings": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
     "RegistryRepository": {
       "Properties": {
         "RepositoryName": {
@@ -656,8 +985,8 @@
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
     },
-    "ServiceAgent": {
-      "Condition": "EnabledAgent",
+    "ServiceAgent1": {
+      "Condition": "EnabledAgent1",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -674,12 +1003,68 @@
           "Fn::Select": [
             0,
             {
-              "Ref": "AgentFormation"
+              "Ref": "Agent1Formation"
             }
           ]
         },
         "TaskDefinition": {
-          "Ref": "AgentECSTaskDefinition"
+          "Ref": "Agent1ECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "ServiceAgent2": {
+      "Condition": "EnabledAgent2",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "Agent2Formation"
+            }
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "Agent2ECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "ServiceNotagent": {
+      "Condition": "EnabledNotagent",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "NotagentFormation"
+            }
+          ]
+        },
+        "TaskDefinition": {
+          "Ref": "NotagentECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
