@@ -97,9 +97,14 @@ func (bp *Buildpack) Setup(location string) error {
 		return err
 	}
 
-	af, err := readAppfile(path.Join(bp.directory, "app.json"))
-	if err != nil {
-		return err
+	appfile := path.Join(bp.directory, "app.json")
+	var af Appfile
+	if helpers.Exists(appfile) {
+		var err error
+		af, err = readAppfile(appfile)
+		if err != nil {
+			return err
+		}
 	}
 
 	bp.Manifest = generateManifest(pf, af)
