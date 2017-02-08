@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -41,8 +42,7 @@ func cmdInit(c *cli.Context) error {
 	}
 
 	if helpers.Exists("docker-compose.yml") {
-		fmt.Println("docker-compose.yml already exists; try running convox start or")
-		fmt.Println(nextStepsText["unknown"])
+		fmt.Println("docker-compose.yml already exists; try running convox start instead")
 		return nil
 	}
 
@@ -61,19 +61,14 @@ func cmdInit(c *cli.Context) error {
 func initApplication(dir string) (string, error) {
 	var fw app.Framework
 
-	kind := helpers.DetectApplication(dir)
+	out, err := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init", "detect").CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	kind := strings.TrimSpace(string(out))
 
-	switch {
-	case strings.Contains(kind, "heroku"):
-		fw = &app.Buildpack{
-			Kind: strings.Split(kind, "/")[1],
-		}
-
-	default:
-		ga := &app.GenericApp{
-			Kind: kind,
-		}
-		fw = ga
+	fw = &app.Buildpack{
+		Kind: kind,
 	}
 
 	fmt.Printf("Initializing a %s app\n", kind)
@@ -81,23 +76,18 @@ func initApplication(dir string) (string, error) {
 		return kind, err
 	}
 
-	err := fw.Appify()
-
-	if strings.Contains(kind, "heroku") {
-		fmt.Println(nextStepsText["heroku"])
-	}
-
-	if val, ok := nextStepsText[kind]; ok {
-		fmt.Println(val)
-	}
+	err = fw.Appify()
+	fmt.Println("For more information on preparing an app check out https://convox.com/docs/preparing-an-application/")
 
 	return kind, err
 }
 
-var nextStepsText = map[string]string{
-	"django":  "Try `convox start`. See https://convox.com/docs/django/ for more information.",
-	"heroku":  "Try `convox start`. See https://convox.com/guide/heroku/ for more information.",
-	"rails":   "Try `convox start`. See https://convox.com/docs/rails/ for more information.",
-	"sinatra": "Try `convox start`. See https://convox.com/docs/sinatra/ for more information.",
-	"unknown": "See https://convox.com/docs/preparing-an-application/ for more information on preparing an app.",
+func detectKind(kind string) string {
+
+	switch kind {
+	case "Node.js":
+		return "nodejs"
+	}
+
+	return kind // this shoudn't be reached
 }
