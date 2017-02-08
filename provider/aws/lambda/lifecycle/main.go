@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/lambda"
 )
 
 var (
 	AutoScaling = autoscaling.New(session.New(), nil)
 	ECS         = ecs.New(session.New(), nil)
-	ELB         = elb.New(session.New(), nil)
 	Lambda      = lambda.New(session.New(), nil)
 )
 
@@ -90,6 +90,27 @@ func handle(r Record) error {
 
 	fmt.Printf("ci = %+v\n", ci)
 
+	cis, err := ECS.UpdateContainerInstancesState(&ecs.UpdateContainerInstancesStateInput{
+		ContainerInstances: []*string{
+			aws.String(ci),
+		},
+		Status:  aws.String("DRAINING"),
+		Cluster: aws.String(md.Cluster),
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(cis.Failures) > 0 {
+		return fmt.Errorf("unable to drain instance: %s - %s", ci, *cis.Failures[0].Reason)
+	}
+
+	if err := waitForInstanceDrain(md.Cluster, ci); err != nil {
+		return err
+	}
+
+	fmt.Println("instance has been drained")
+
 	if _, err := ECS.DeregisterContainerInstance(&ecs.DeregisterContainerInstanceInput{
 		Cluster:           aws.String(md.Cluster),
 		ContainerInstance: aws.String(ci),
@@ -110,6 +131,72 @@ func handle(r Record) error {
 	}
 
 	fmt.Println("success")
+
+	return nil
+}
+
+func waitForInstanceDrain(cluster, ci string) error {
+
+	params := &ecs.ListTasksInput{
+		Cluster:           aws.String(cluster),
+		ContainerInstance: aws.String(ci),
+		DesiredStatus:     aws.String("RUNNING"),
+	}
+
+	tasks := []*string{}
+
+	for {
+		resp, err := ECS.ListTasks(params)
+		if err != nil {
+			return err
+		}
+
+		tasks = append(tasks, resp.TaskArns...)
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		params.NextToken = resp.NextToken
+		time.Sleep(2 * time.Second)
+	}
+
+	input := &ecs.DescribeTasksInput{
+		Cluster: aws.String(cluster),
+		Tasks:   tasks,
+	}
+
+	if err := stopServicelessTasks(input); err != nil {
+		return err
+	}
+
+	fmt.Println("stopped service-less tasks")
+
+	return ECS.WaitUntilTasksStopped(input)
+}
+
+// stopServicelessTasks stops one-off tasks that do not belog to a ECS service.
+// For example, a scheduled task or running a process
+func stopServicelessTasks(input *ecs.DescribeTasksInput) error {
+
+	tasks, err := ECS.DescribeTasks(input)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range tasks.Tasks {
+		// if the task isn't part of a service and wasn't started by ECS, stop it
+		if !strings.HasPrefix(*t.Group, "service:") && !strings.HasPrefix(*t.StartedBy, "ecs-svc") {
+			_, err := ECS.StopTask(&ecs.StopTaskInput{
+				Cluster: input.Cluster,
+				Reason:  aws.String("draining instance for termination"),
+				Task:    t.TaskArn,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
