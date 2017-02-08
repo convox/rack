@@ -15,6 +15,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// AppList lists installed apps
 func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	apps, err := models.ListApps()
 	if err != nil {
@@ -26,29 +27,27 @@ func AppList(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, apps)
 }
 
-func AppShow(rw http.ResponseWriter, r *http.Request) *httperr.Error {
+// AppGet gets app information
+func AppGet(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
 	if app == os.Getenv("RACK") {
 		return httperr.Errorf(404, "rack %s is not an app", app)
 	}
 
-	a, err := models.GetApp(app)
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	if err != nil && strings.HasPrefix(err.Error(), "no such app") {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
+	a, err := models.Provider().AppGet(app)
 	if err != nil {
+		if provider.ErrorNotFound(err) {
+			return httperr.Errorf(404, "no such app: %s", app)
+		}
+
 		return httperr.Server(err)
 	}
 
 	return RenderJson(rw, a)
 }
 
+// AppCancel cancels an app update
 func AppCancel(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	app := mux.Vars(r)["app"]
 
@@ -63,6 +62,7 @@ func AppCancel(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderSuccess(rw)
 }
 
+// AppCreate creates an application
 func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := r.FormValue("name")
 	if name == os.Getenv("RACK") {
@@ -99,6 +99,7 @@ func AppCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderJson(rw, app)
 }
 
+// AppDelete deletes an application
 func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	name := mux.Vars(r)["app"]
 
@@ -122,6 +123,7 @@ func AppDelete(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	return RenderSuccess(rw)
 }
 
+// AppLogs show an app's logs
 func AppLogs(ws *websocket.Conn) *httperr.Error {
 	app := mux.Vars(ws.Request())["app"]
 	header := ws.Request().Header

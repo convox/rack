@@ -59,31 +59,48 @@ func ReleasePromote(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	vars := mux.Vars(r)
 	app := vars["app"]
 	release := vars["release"]
+	event := &structs.Event{
+		Action: "release:promote",
+		Status: "start",
+		Data: map[string]string{
+			"app": app,
+			"id":  release,
+		},
+	}
+	models.Provider().EventSend(event, nil)
 
 	_, err := models.GetApp(app)
-
-	if awsError(err) == "ValidationError" {
-		return httperr.Errorf(404, "no such app: %s", app)
-	}
-
-	rr, err := models.GetRelease(app, release)
-
-	if err != nil && strings.HasPrefix(err.Error(), "no such release") {
-		return httperr.Errorf(404, "no such release: %s", release)
-	}
-
 	if err != nil {
+		if awsError(err) == "ValidationError" {
+			e := httperr.Errorf(404, "no such app: %s", app)
+			models.Provider().EventSend(event, e)
+			return e
+		}
+
+		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
 
-	err = rr.Promote()
+	rr, err := models.GetRelease(app, release)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "no such release") {
+			e := httperr.Errorf(404, "no such release: %s", release)
+			models.Provider().EventSend(event, e)
+			return e
+		}
 
-	if awsError(err) == "ValidationError" {
-		message := err.(awserr.Error).Message()
-		return httperr.Errorf(403, message)
+		models.Provider().EventSend(event, err)
+		return httperr.Server(err)
 	}
 
-	if err != nil {
+	if err := rr.Promote(); err != nil {
+		if awsError(err) == "ValidationError" {
+			e := httperr.Errorf(403, err.(awserr.Error).Message())
+			models.Provider().EventSend(event, e)
+			return e
+		}
+
+		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
 

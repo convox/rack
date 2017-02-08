@@ -892,27 +892,18 @@ func (_m *MockProvider) ReleaseList(app string, limit int64) (structs.Releases, 
 	return r0, r1
 }
 
-// ReleasePromote provides a mock function with given fields: app, id
-func (_m *MockProvider) ReleasePromote(app string, id string) (*structs.Release, error) {
-	ret := _m.Called(app, id)
+// ReleasePromote provides a mock function with given fields: _a0
+func (_m *MockProvider) ReleasePromote(_a0 *structs.Release) error {
+	ret := _m.Called(_a0)
 
-	var r0 *structs.Release
-	if rf, ok := ret.Get(0).(func(string, string) *structs.Release); ok {
-		r0 = rf(app, id)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*structs.Release) error); ok {
+		r0 = rf(_a0)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*structs.Release)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(app, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // ReleaseSave provides a mock function with given fields: _a0

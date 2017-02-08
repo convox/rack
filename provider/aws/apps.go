@@ -46,7 +46,7 @@ func (p *AWSProvider) AppGet(name string) (*structs.App, error) {
 	app := appFromStack(res.Stacks[0])
 
 	if app.Tags["Rack"] != "" && app.Tags["Rack"] != p.Rack {
-		return nil, fmt.Errorf("no such app: %s", name)
+		return nil, errorNotFound(fmt.Sprintf("%s not found", name))
 	}
 
 	return &app, nil

@@ -30,31 +30,48 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Errorf(403, "endpoint deprecated, please update your client")
 	}
 
+	event := &structs.Event{
+		Action: "build:create",
+		Status: "start",
+		Data: map[string]string{
+			"app": app,
+			"id":  "n/a",
+		},
+	}
+	models.Provider().EventSend(event, nil)
+
 	image, _, err := r.FormFile("image")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
+		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
 	if image != nil {
 		build, err := models.Provider().BuildImport(app, image)
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
+		event.Status = "success"
+		models.Provider().EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	source, _, err := r.FormFile("source")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
+		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
 	if source != nil {
 		url, err := models.Provider().ObjectStore("", source, structs.ObjectOptions{})
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		build, err := models.Provider().BuildCreate(app, "tgz", url, opts)
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
@@ -64,11 +81,13 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 	if index := r.FormValue("index"); index != "" {
 		url, err := models.Provider().ObjectStore("", bytes.NewReader([]byte(index)), structs.ObjectOptions{})
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		build, err := models.Provider().BuildCreate(app, "index", url, opts)
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
@@ -77,12 +96,15 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 
 	// TODO deprecate
 	if repo := r.FormValue("repo"); repo != "" {
-		return httperr.Server(fmt.Errorf("repo param has been deprecated"))
+		err := fmt.Errorf("repo param has been deprecated")
+		models.Provider().EventSend(event, err)
+		return httperr.Server(err)
 	}
 
 	if surl := r.FormValue("url"); surl != "" {
 		u, err := url.Parse(surl)
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
@@ -97,20 +119,27 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		case ".zip":
 			method = "zip"
 		case "":
-			return httperr.Errorf(403, "building from url requires an extension such as .git")
+			err := httperr.Errorf(403, "building from url requires an extension such as .git")
+			models.Provider().EventSend(event, err)
+			return err
 		default:
-			return httperr.Errorf(403, "unknown extension: %s", ext)
+			err := httperr.Errorf(403, "unknown extension: %s", ext)
+			models.Provider().EventSend(event, err)
+			return err
 		}
 
 		build, err := models.Provider().BuildCreate(app, method, surl, opts)
 		if err != nil {
+			models.Provider().EventSend(event, err)
 			return httperr.Server(err)
 		}
 
 		return RenderJson(rw, build)
 	}
 
-	return httperr.Errorf(403, "no build source found")
+	err = httperr.Errorf(403, "no build source found")
+	models.Provider().EventSend(event, err)
+	return httperr.Server(err)
 }
 
 // BuildDelete deletes a build. Makes sure not to delete a build that is contained in the active release

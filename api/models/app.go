@@ -53,6 +53,7 @@ func ListApps() (Apps, error) {
 	return apps, nil
 }
 
+// Deprecated: Provider.AppGet() should be used instead
 func GetApp(name string) (*App, error) {
 	stackName := shortNameToStackName(name)
 	app, err := getAppByStackName(stackName)

@@ -23,7 +23,7 @@ var (
 	flagAuth   string
 	flagCache  string
 	flagEnv    string
-	flagId     string
+	flagID     string
 	flagConfig string
 	flagMethod string
 	flagPush   string
@@ -33,6 +33,8 @@ var (
 	currentLogs     string
 	currentManifest string
 	currentProvider provider.Provider
+
+	event *structs.Event
 )
 
 func init() {
@@ -52,7 +54,7 @@ func main() {
 	fs.StringVar(&flagCache, "cache", "true", "use docker cache")
 	fs.StringVar(&flagConfig, "config", "docker-compose.yml", "path to app config")
 	fs.StringVar(&flagEnv, "env", "", "build env (json)")
-	fs.StringVar(&flagId, "id", "latest", "build id")
+	fs.StringVar(&flagID, "id", "latest", "build id")
 	fs.StringVar(&flagMethod, "method", "", "source method")
 	fs.StringVar(&flagPush, "push", "", "push to registry")
 	fs.StringVar(&flagUrl, "url", "", "source url")
@@ -78,7 +80,7 @@ func main() {
 	}
 
 	if v := os.Getenv("BUILD_ID"); v != "" {
-		flagId = v
+		flagID = v
 	}
 
 	if v := os.Getenv("BUILD_PUSH"); v != "" {
@@ -89,6 +91,14 @@ func main() {
 		flagUrl = v
 	}
 
+	event = &structs.Event{
+		Action: "build:create",
+		Data: map[string]string{
+			"app": flagApp,
+			"id":  flagID,
+		},
+	}
+
 	if err := execute(); err != nil {
 		fail(err)
 	}
@@ -96,10 +106,16 @@ func main() {
 	if err := success(); err != nil {
 		fail(err)
 	}
+
+	event.Status = "success"
+	event.Data["release_id"] = currentBuild.Release
+	if err := currentProvider.EventSend(event, nil); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+	}
 }
 
 func execute() error {
-	b, err := currentProvider.BuildGet(flagApp, flagId)
+	b, err := currentProvider.BuildGet(flagApp, flagID)
 	if err != nil {
 		return err
 	}
@@ -225,7 +241,7 @@ func build(dir string) error {
 		return err
 	}
 
-	if err := m.Push(flagPush, flagApp, flagId, s); err != nil {
+	if err := m.Push(flagPush, flagApp, flagID, s); err != nil {
 		return err
 	}
 
@@ -256,6 +272,9 @@ func success() error {
 
 func fail(err error) {
 	log(fmt.Sprintf("ERROR: %s", err))
+	if e := currentProvider.EventSend(event, err); e != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", e)
+	}
 
 	url, _ := currentProvider.ObjectStore(fmt.Sprintf("build/%s/logs", currentBuild.Id), bytes.NewReader([]byte(currentLogs)), structs.ObjectOptions{})
 
