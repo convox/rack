@@ -17,7 +17,15 @@ func Server(t *testing.T, stubs ...Http) *httptest.Server {
 		found := false
 
 		for _, stub := range stubs {
-			if stub.Method == r.Method && stub.Path == r.URL.Path {
+			headersMatch := true
+			for k, v := range stub.Headers {
+				if r.Header.Get(k) != v {
+					headersMatch = false
+					break
+				}
+			}
+
+			if stub.Method == r.Method && stub.Path == r.URL.Path && headersMatch {
 				data, err := json.Marshal(stub.Response)
 
 				if err != nil {

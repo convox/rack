@@ -15,14 +15,16 @@ type Http struct {
 	Path     string
 	Code     int
 	Body     string
+	Headers  map[string]string
 	Response interface{}
 }
 
 var HandlerFunc http.HandlerFunc
 
-func AssertStatus(t *testing.T, status int, method, url string, values url.Values) string {
+// AssertStatus fails a test if the response status doesn't match the expected status
+func AssertStatus(t *testing.T, status int, method, url string, values url.Values, headers map[string]string) string {
 	w := httptest.NewRecorder()
-	req, err := buildRequest(method, url, values)
+	req, err := buildRequest(method, url, values, headers)
 
 	if err != nil {
 		t.Error(err)
@@ -34,9 +36,10 @@ func AssertStatus(t *testing.T, status int, method, url string, values url.Value
 	return w.Body.String()
 }
 
-func HTTPBody(method, url string, values url.Values) string {
+// HTTPBody reads the HTTP response body as a string
+func HTTPBody(method, url string, values url.Values, headers map[string]string) string {
 	w := httptest.NewRecorder()
-	req, err := buildRequest(method, url, values)
+	req, err := buildRequest(method, url, values, headers)
 
 	if err != nil {
 		return ""
@@ -46,7 +49,7 @@ func HTTPBody(method, url string, values url.Values) string {
 	return w.Body.String()
 }
 
-func buildRequest(method, url string, values url.Values) (req *http.Request, err error) {
+func buildRequest(method, url string, values url.Values, headers map[string]string) (req *http.Request, err error) {
 
 	if method == "POST" {
 		postBody := strings.NewReader(values.Encode())
@@ -57,6 +60,10 @@ func buildRequest(method, url string, values url.Values) (req *http.Request, err
 	}
 
 	req.Header.Set("Version", "dev")
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	return
 }
