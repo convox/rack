@@ -1935,6 +1935,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "CLIENT_ID": { "Ref": "ClientId" },
               "CLUSTER": { "Ref": "Cluster" },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
@@ -1948,7 +1949,8 @@
               "RELEASE": { "Ref": "Version" },
               "ROLLBAR_TOKEN": "f67f25b8a9024d5690f997bd86bf14b0",
               "SEGMENT_WRITE_KEY": "KLvwCXo6qcTmQHLpF69DEwGf9zh7lt9i",
-              "SETTINGS_BUCKET": { "Ref": "Settings" }
+              "SETTINGS_BUCKET": { "Ref": "Settings" },
+              "STACK_ID": { "Ref": "AWS::StackId" }
             },
             "Image": { "Fn::If": [ "BlankBuildImage", { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] }, { "Ref": "BuildImage" } ] },
             "Links": [],

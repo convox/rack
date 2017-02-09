@@ -19,10 +19,7 @@ func init() {
 	rollbar.Environment = os.Getenv("CLIENT_ID")
 
 	segment = analytics.New(os.Getenv("SEGMENT_WRITE_KEY"))
-
-	if os.Getenv("DEVELOPMENT") == "true" {
-		segment.Size = 1
-	}
+	segment.Size = 1
 
 	clientId := os.Getenv("CLIENT_ID")
 

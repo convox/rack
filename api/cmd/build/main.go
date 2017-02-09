@@ -112,6 +112,7 @@ func main() {
 	if err := currentProvider.EventSend(event, nil); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 	}
+	time.Sleep(1 * time.Second)
 }
 
 func execute() error {
