@@ -689,8 +689,6 @@ func waitForPromotion(r *Release) {
 		})
 	}()
 
-	ping := time.Tick(15 * time.Minute)
-
 	for {
 		select {
 		case err := <-waitch:
@@ -749,12 +747,7 @@ func waitForPromotion(r *Release) {
 
 				Provider().EventSend(event, fmt.Errorf("release failed: %s", r.Id, ee))
 			}
-
 			return
-
-		case <-ping:
-			event.Status = "pending"
-			Provider().EventSend(event, nil)
 		}
 	}
 }
