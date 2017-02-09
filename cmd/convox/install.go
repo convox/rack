@@ -180,7 +180,7 @@ func cmdInstall(c *cli.Context) error {
 		match := len(matchedStr) == len(stackName)
 
 		if !match {
-			msg := fmt.Errorf("Stack name '%s' is invalid, must match [a-z0-9-]*", stackName)
+			msg := fmt.Errorf("stack name '%s' is invalid, must match [a-z0-9-]*", stackName)
 			stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{ValidationError: msg})
 			return stdcli.Error(msg)
 		}
