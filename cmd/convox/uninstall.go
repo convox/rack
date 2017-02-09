@@ -91,7 +91,7 @@ func cmdUninstall(c *cli.Context) error {
 
 	// verify that rack was detected
 	if len(stacks.Rack) == 0 || stacks.Rack[0].StackName != rackName {
-		return stdcli.Error(fmt.Errorf("Can not find rack named %s.", rackName))
+		return stdcli.Error(fmt.Errorf("can not find rack named %s", rackName))
 	}
 
 	fmt.Println("Resources to delete:\n")

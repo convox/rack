@@ -77,7 +77,7 @@ func init() {
 		Subcommands: []cli.Command{
 			{
 				Name:            "create",
-				Description:     "create a new resource.",
+				Description:     "create a new resource",
 				Usage:           "<type> [--name=value] [--option-name=value]\n\n" + usage,
 				Action:          cmdResourceCreate,
 				Flags:           []cli.Flag{rackFlag},
@@ -92,7 +92,7 @@ func init() {
 			},
 			{
 				Name:            "update",
-				Description:     "update a resource.\n\nWARNING: updates may cause resource downtime.",
+				Description:     "update a resource\n\nWARNING: updates may cause resource downtime.",
 				Usage:           "<name> --option-name=value [--option-name=value]\n\n" + usage,
 				Action:          cmdResourceUpdate,
 				Flags:           []cli.Flag{rackFlag},
@@ -100,21 +100,21 @@ func init() {
 			},
 			{
 				Name:        "info",
-				Description: "info about a resource.",
+				Description: "info about a resource",
 				Usage:       "<name>",
 				Action:      cmdResourceInfo,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "link",
-				Description: "create a link between a resource and an app.",
+				Description: "create a link between a resource and an app",
 				Usage:       "<name>",
 				Action:      cmdLinkCreate,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "unlink",
-				Description: "delete a link between a resource and an app.",
+				Description: "delete a link between a resource and an app",
 				Usage:       "<name>",
 				Action:      cmdLinkDelete,
 				Flags:       []cli.Flag{appFlag, rackFlag},
