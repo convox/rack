@@ -36,18 +36,30 @@ func cmdDeploy(c *cli.Context) error {
 		wd = c.Args()[0]
 	}
 
+	dir, app, err := stdcli.DirApp(c, wd)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	a, err := rackClient(c).GetApp(app)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	switch a.Status {
+	case "creating":
+		return stdcli.Error(fmt.Errorf("app %s is still being created", app))
+	case "updating":
+		return stdcli.Error(fmt.Errorf("app %s is being updated", app))
+	}
+
 	if !helpers.Exists(c.String("file")) {
-		return stdcli.Error(fmt.Errorf("No docker-compose.yml found. Try `convox init` to generate one."))
+		return stdcli.Error(fmt.Errorf("no docker-compose.yml found, try `convox init` to generate one"))
 	}
 
 	// validate docker-compose
 	if _, err := manifest.LoadFile(c.String("file")); err != nil {
-		return stdcli.Error(fmt.Errorf("Invalid %s: %s", c.String("file"), strings.TrimSpace(err.Error())))
-	}
-
-	dir, app, err := stdcli.DirApp(c, wd)
-	if err != nil {
-		return stdcli.Error(err)
+		return stdcli.Error(fmt.Errorf("invalid %s: %s", c.String("file"), strings.TrimSpace(err.Error())))
 	}
 
 	output := os.Stdout
@@ -57,19 +69,6 @@ func cmdDeploy(c *cli.Context) error {
 	}
 
 	output.Write([]byte(fmt.Sprintf("Deploying %s\n", app)))
-
-	a, err := rackClient(c).GetApp(app)
-	if err != nil {
-		return stdcli.Error(err)
-	}
-
-	switch a.Status {
-	case "creating":
-		return stdcli.Error(fmt.Errorf("app is still creating: %s", app))
-	case "running", "updating":
-	default:
-		return stdcli.Error(fmt.Errorf("unable to build app: %s", app))
-	}
 
 	// build
 	_, release, err := executeBuild(c, dir, app, c.String("file"), c.String("description"), output)

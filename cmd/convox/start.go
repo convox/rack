@@ -71,7 +71,7 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	if !helpers.Exists(c.String("file")) {
-		return stdcli.Error(fmt.Errorf("No docker-compose.yml found. Try `convox init` to generate one."))
+		return stdcli.Error(fmt.Errorf("no docker-compose.yml found, try `convox init` to generate one"))
 	}
 
 	err = dockerTest()
