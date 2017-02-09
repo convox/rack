@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -41,7 +42,9 @@ func run(s Stream, cmd *exec.Cmd) error {
 }
 
 func RunAsync(s Stream, cmd *exec.Cmd, done chan error) {
-	s <- fmt.Sprintf("running: %s", strings.Join(cmd.Args, " "))
+	if os.Getenv("DEBUG") == "true" {
+		s <- fmt.Sprintf("running: %s", strings.Join(cmd.Args, " "))
+	}
 
 	r, w := io.Pipe()
 
