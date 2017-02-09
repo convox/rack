@@ -150,8 +150,6 @@ func cmdStart(c *cli.Context) error {
 		os.MkdirAll(cacheDir, 0755)
 	}
 
-	fmt.Printf("cacheDir = %+v\n", cacheDir)
-
 	r := m.Run(dir, app, manifest.RunOptions{
 		Build:    !c.Bool("no-build"),
 		Cache:    !c.Bool("no-cache"),

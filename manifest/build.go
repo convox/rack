@@ -76,9 +76,6 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 				s <- fmt.Sprintf("cache error: %s", err)
 			}
 
-			fmt.Printf("lcd = %+v\n", lcd)
-			fmt.Printf("hash = %+v\n", hash)
-
 			exec.Command("rm", "-rf", lcd).Run()
 			exec.Command("cp", "-a", filepath.Join(opts.CacheDir, hash), lcd).Run()
 			exec.Command("mkdir", "-p", lcd).Run()
