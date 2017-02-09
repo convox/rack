@@ -19,14 +19,14 @@ func init() {
 		Subcommands: []cli.Command{
 			{
 				Name:        "cancel",
-				Description: "cancel an update",
+				Description: "Cancel an update",
 				Usage:       "",
 				Action:      cmdAppCancel,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "create",
-				Description: "create a new application",
+				Description: "Create a new app",
 				Usage:       "<name>",
 				Action:      cmdAppCreate,
 				Flags: []cli.Flag{
@@ -34,34 +34,34 @@ func init() {
 					cli.BoolFlag{
 						Name:   "wait",
 						EnvVar: "CONVOX_WAIT",
-						Usage:  "wait for app to finish creating before returning",
+						Usage:  "Wait for app to finish creating before returning",
 					},
 				},
 			},
 			{
 				Name:        "delete",
-				Description: "delete an application",
+				Description: "Delete an app",
 				Usage:       "<name>",
 				Action:      cmdAppDelete,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "info",
-				Description: "see info about an app",
+				Description: "See info about an app",
 				Usage:       "[name]",
 				Action:      cmdAppInfo,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "params",
-				Description: "list advanced parameters for an app",
+				Description: "List advanced parameters for an app",
 				Usage:       "[name]",
 				Action:      cmdAppParams,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 				Subcommands: []cli.Command{
 					{
 						Name:        "set",
-						Description: "update advanced parameters for an app",
+						Description: "Update advanced parameters for an app",
 						Usage:       "NAME=VALUE [NAME=VALUE]",
 						Action:      cmdAppParamsSet,
 						Flags:       []cli.Flag{appFlag, rackFlag},

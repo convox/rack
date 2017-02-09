@@ -11,21 +11,21 @@ import (
 func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "api",
-		Description: "api endpoint",
+		Description: "API endpoint",
 		Usage:       "",
 		Action:      cmdApi,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "get",
-				Description: "get an api endpoint",
+				Description: "Get an API endpoint",
 				Usage:       "<endpoint>",
 				Action:      cmdApiGet,
 				Flags:       []cli.Flag{rackFlag},
 			},
 			{
 				Name:        "delete",
-				Description: "delete an api endpoint",
+				Description: "Delete an API endpoint",
 				Usage:       "<endpoint>",
 				Action:      cmdApiDelete,
 				Flags:       []cli.Flag{rackFlag},

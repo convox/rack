@@ -63,91 +63,91 @@ func init() {
 
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "install",
-		Description: "install convox into an aws account",
+		Description: "Install Convox into an AWS account",
 		Usage:       "[credentials.csv]",
 		Action:      cmdInstall,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:   "email",
-				EnvVar: "CONVOX_EMAIL",
-				Usage:  "email address to receive project updates",
-			},
-			cli.StringFlag{
-				Name:   "password",
-				EnvVar: "PASSWORD",
-				Value:  "",
-				Usage:  "custom rack password",
-			},
-			cli.StringFlag{
 				Name:  "ami",
 				Value: "",
-				Usage: "custom AMI for rack instances",
+				Usage: "Custom AMI for Rack instances",
 			},
 			cli.BoolFlag{
 				Name:  "dedicated",
-				Usage: "create EC2 instances on dedicated hardware",
+				Usage: "Create EC2 instances on dedicated hardware",
+			},
+			cli.StringFlag{
+				Name:   "email",
+				EnvVar: "CONVOX_EMAIL",
+				Usage:  "Email address to receive project updates",
 			},
 			cli.StringFlag{
 				Name:  "existing-vpc",
 				Value: "",
-				Usage: "existing vpc id into which to install rack",
+				Usage: "Existing VPC ID into which to install Rack",
 			},
 			cli.IntFlag{
 				Name:  "instance-count",
 				Value: 3,
-				Usage: "number of instances in the rack",
+				Usage: "Number of instances in the Rack",
 			},
 			cli.StringFlag{
 				Name:  "instance-type",
 				Value: "t2.small",
-				Usage: "type of instances in the rack",
+				Usage: "Type of instances in the Rack",
 			},
 			cli.StringFlag{
 				Name:  "internet-gateway",
 				Value: "",
-				Usage: "internet gateway id to use in existing vpc",
+				Usage: "Internet gateway ID to use in existing VPC",
 			},
 			cli.BoolFlag{
 				Name:  "no-autoscale",
-				Usage: "use to disable autoscale during install (which is enabled by default)",
+				Usage: "Disable autoscale during install (autoscale is enabled by default)",
+			},
+			cli.StringFlag{
+				Name:   "password",
+				EnvVar: "RACK_PASSWORD,PASSWORD",
+				Value:  "",
+				Usage:  "Custom Rack password",
 			},
 			cli.BoolFlag{
 				Name:   "private",
-				Usage:  "use private subnets and NAT gateways to shield instances",
+				Usage:  "Use private subnets and NAT gateways to shield instances",
 				EnvVar: "RACK_PRIVATE",
 			},
 			cli.StringFlag{
 				Name:  "private-cidrs",
 				Value: "10.0.4.0/24,10.0.5.0/24,10.0.6.0/24",
-				Usage: "private subnet CIDRs",
+				Usage: "Private subnet CIDRs",
 			},
 			cli.StringFlag{
 				Name:   "region",
 				Value:  "us-east-1",
-				Usage:  "aws region",
+				Usage:  "AWS region",
 				EnvVar: "AWS_REGION,AWS_DEFAULT_REGION",
 			},
 			cli.StringFlag{
 				Name:   "stack-name",
 				EnvVar: "STACK_NAME",
 				Value:  "convox",
-				Usage:  "custom rack name",
+				Usage:  "Custom Rack name",
+			},
+			cli.StringFlag{
+				Name:  "subnet-cidrs",
+				Value: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24",
+				Usage: "Subnet CIDRs",
 			},
 			cli.StringFlag{
 				Name:   "version",
 				EnvVar: "VERSION",
 				Value:  "latest",
-				Usage:  "install a specific version",
+				Usage:  "Install a specific version of Convox",
 			},
 			cli.StringFlag{
 				Name:  "vpc-cidr",
 				Value: "10.0.0.0/16",
-				Usage: "custom VPC CIDR",
-			},
-			cli.StringFlag{
-				Name:  "subnet-cidrs",
-				Value: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24",
-				Usage: "subnet CIDRs",
+				Usage: "Custom VPC CIDR",
 			},
 		},
 	})
