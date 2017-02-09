@@ -60,8 +60,6 @@ func TestBuildCreate(t *testing.T) {
 		cycleRegistryDecrypt,
 		cycleBuildDescribeStacks,
 		cycleBuildGetAuthorizationTokenPrivate1,
-		cycleBuildDescribeStacks,
-		cycleEnvironmentGet,
 		cycleBuildRunTask,
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
@@ -69,7 +67,8 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDescribeTasks,
 		cycleBuildDescribeContainerInstances,
 		cycleBuildDescribeInstances,
-		cycleBuildNotificationPublish,
+		cycleBuildDescribeStacks,
+		cycleBuildQuery,
 	)
 	defer provider.Close()
 
@@ -130,6 +129,9 @@ func TestBuildExport(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleBuildDockerLogin,
+		cycleBuildDockerPull,
+		cycleBuildDockerSave,
 		cycleBuildDockerPing,
 		cycleBuildDockerInfo,
 		cycleBuildDockerLogin,
@@ -191,14 +193,9 @@ func TestBuildImport(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
-		cycleBuildDockerPing,
-		cycleBuildDockerInfo,
 		cycleBuildDockerLogin,
-		cycleBuildDockerPing,
 		cycleBuildDockerLoad,
-		cycleBuildDockerPing,
 		cycleBuildDockerTag,
-		cycleBuildDockerPing,
 		cycleBuildDockerPush,
 	)
 	defer d.Close()
@@ -279,7 +276,7 @@ func TestBuildList(t *testing.T) {
 	)
 	defer provider.Close()
 
-	b, err := provider.BuildList("httpd", 20)
+	b, err := provider.BuildList("httpd", 150)
 
 	assert.NoError(t, err)
 	assert.EqualValues(t, structs.Builds{
@@ -1010,7 +1007,7 @@ var cycleBuildQuery = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "DynamoDB_20120810.Query",
-		Body:       `{"IndexName":"app.created","KeyConditions":{"app":{"AttributeValueList":[{"S":"httpd"}],"ComparisonOperator":"EQ"}},"Limit":20,"ScanIndexForward":false,"TableName":"convox-builds"}`,
+		Body:       `{"IndexName":"app.created","KeyConditions":{"app":{"AttributeValueList":[{"S":"httpd"}],"ComparisonOperator":"EQ"}},"Limit":150,"ScanIndexForward":false,"TableName":"convox-builds"}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -1103,10 +1100,6 @@ var cycleBuildRunTask = awsutil.Cycle{
 							{
 								"name": "BUILD_CONFIG",
 								"value": ""
-							},
-							{
-								"name": "BUILD_ENV",
-								"value": "{\"BAZ\":\"qux\",\"FOO\":\"bar\"}"
 							},
 							{
 								"name": "BUILD_ID",
