@@ -182,6 +182,7 @@ func cmdStart(c *cli.Context) error {
 					r.Output.Stream(cronProccesName),
 					manifest.Docker(append([]string{"run"}, cronArgs...)...),
 					done,
+					manifest.RunnerOptions{Verbose: true},
 				)
 
 				err := <-done

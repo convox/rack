@@ -14,6 +14,7 @@ type BuildOptions struct {
 	Cache       bool
 	Environment map[string]string
 	Service     string
+	Verbose     bool
 }
 
 func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error {
@@ -46,7 +47,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 
 	for _, service := range builds {
 		if bc, ok := buildCache[service.Build.Hash()]; ok {
-			if err := DefaultRunner.Run(s, Docker("tag", bc, service.Tag(appName))); err != nil {
+			if err := DefaultRunner.Run(s, Docker("tag", bc, service.Tag(appName)), RunnerOptions{Verbose: opts.Verbose}); err != nil {
 				return fmt.Errorf("build error: %s", err)
 			}
 			continue
@@ -96,7 +97,7 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
 
-		if err := DefaultRunner.Run(s, Docker(args...)); err != nil {
+		if err := DefaultRunner.Run(s, Docker(args...), RunnerOptions{Verbose: opts.Verbose}); err != nil {
 			return fmt.Errorf("build error: %s", err)
 		}
 
@@ -114,12 +115,12 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		args = append(args, image)
 
 		if !opts.Cache || len(output) == 0 {
-			if err := DefaultRunner.Run(s, Docker("pull", image)); err != nil {
+			if err := DefaultRunner.Run(s, Docker("pull", image), RunnerOptions{Verbose: opts.Verbose}); err != nil {
 				return fmt.Errorf("build error: %s", err)
 			}
 		}
 		for _, tag := range tags {
-			if err := DefaultRunner.Run(s, Docker("tag", image, tag)); err != nil {
+			if err := DefaultRunner.Run(s, Docker("tag", image, tag), RunnerOptions{Verbose: opts.Verbose}); err != nil {
 				return fmt.Errorf("build error: %s", err)
 			}
 		}
