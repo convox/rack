@@ -237,6 +237,7 @@ func build(dir string) error {
 	err = m.Build(dir, flagApp, s, manifest.BuildOptions{
 		Environment: env,
 		Cache:       flagCache == "true",
+		Verbose:     false,
 	})
 	if err != nil {
 		return err

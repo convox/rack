@@ -51,22 +51,25 @@ func (te *TestExecer) AssertCommands(t *testing.T, commands TestCommands) {
 	}
 }
 
-func (p *TestExecer) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
-	if p.Index > len(p.CannedResponses)-1 {
+// CombinedOutput test method
+func (te *TestExecer) CombinedOutput(cmd *exec.Cmd) ([]byte, error) {
+	if te.Index > len(te.CannedResponses)-1 {
 		return nil, fmt.Errorf("CannedResponse index out of range")
 	}
-	resp := p.CannedResponses[p.Index]
-	p.Index++
+	resp := te.CannedResponses[te.Index]
+	te.Index++
 	return resp.Output, resp.Error
 }
 
-func (p *TestExecer) Run(s manifest.Stream, cmd *exec.Cmd) error {
-	p.Commands = append(p.Commands, cmd)
+// Run test method
+func (te *TestExecer) Run(s manifest.Stream, cmd *exec.Cmd, opts manifest.RunnerOptions) error {
+	te.Commands = append(te.Commands, cmd)
 	return nil
 }
 
-func (p *TestExecer) RunAsync(s manifest.Stream, cmd *exec.Cmd, done chan error) {
-	p.Run(s, cmd)
+// RunAsync test method
+func (te *TestExecer) RunAsync(s manifest.Stream, cmd *exec.Cmd, done chan error, opts manifest.RunnerOptions) {
+	te.Run(s, cmd, opts)
 	done <- nil
 }
 
