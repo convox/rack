@@ -108,7 +108,7 @@ var appKind = map[string]string{
 
 func initApplication(dir string) (string, error) {
 	prepURL := "https://convox.com/docs/preparing-an-application/"
-	args := []string{"run", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+	args := []string{"run", "--rm", "--name", "convox-init", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
 
 	k, err := exec.Command(dockerBin, append(args, "detect")...).Output()
 	if err != nil {
@@ -140,7 +140,7 @@ func initApplication(dir string) (string, error) {
 	}
 
 	// docker-compose.yml
-	data, err := generateManifestData(dir)
+	data, err := generateManifestData(dir, kind)
 	if err != nil {
 		return kind, err
 	}
@@ -149,7 +149,8 @@ func initApplication(dir string) (string, error) {
 		return kind, err
 	}
 
-	fmt.Printf("for more information on preparing an app check out %s\n", prepURL)
+	fmt.Println()
+	fmt.Println("try running `convox start`")
 	return kind, err
 }
 
@@ -225,7 +226,8 @@ func buildpackEnvironment(kind string) map[string]string {
 	switch kind {
 	case "ruby":
 		return map[string]string{
-			"CURL_CONNECT_TIMEOUT": "0", // default timeout is too aggressive causing failure
+			"CURL_CONNECT_TIMEOUT": "0", // default timeouts for curl are too aggressive causing failure
+			"CURL_TIMEOUT":         "0",
 			"STACK":                "cedar-14",
 		}
 	default:
@@ -307,7 +309,7 @@ func GenerateManifest(pf Procfile, am AppManifest, r Release) manifest.Manifest 
 }
 
 // generateManifestData creates a Manifest from files in the directory
-func generateManifestData(dir string) ([]byte, error) {
+func generateManifestData(dir, kind string) ([]byte, error) {
 	pf, err := readProcfile(path.Join(dir, "Procfile"))
 	if err != nil {
 		return nil, err
@@ -320,10 +322,20 @@ func generateManifestData(dir string) ([]byte, error) {
 
 	var release Release
 	if len(pf) == 0 || !appFound {
-		// NOTE: The ruby-buildpack generates a yaml file during compile, which doesn't help here
-		// as release is called earlier and in a different image. The release output is of no use in this scenario
-		args := []string{"run", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
-		r, err := exec.Command(dockerBin, append(args, "release")...).Output()
+		var r []byte
+		args := []string{"run", "--rm", "--name", "convox-init", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+
+		// NOTE: The ruby-buildpack generates a yaml file during compile so we have to perform both steps
+		if kind == "ruby" {
+			// this can be time consuming, let's give feedback
+			stdcli.Spinner.Prefix = "generating ruby data: "
+			stdcli.Spinner.Start()
+			r, err = exec.Command(dockerBin, append(args, "compile-release")...).Output()
+			fmt.Printf("\x08\x08OK\n")
+			stdcli.Spinner.Stop()
+		} else {
+			r, err = exec.Command(dockerBin, append(args, "release")...).Output()
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -337,7 +349,6 @@ func generateManifestData(dir string) ([]byte, error) {
 
 	adds := []string{}
 	if appFound {
-		fmt.Println("am", am)
 		adds = append(adds, am.Addons...)
 	} else {
 		adds = append(adds, release.Addons...)
@@ -401,10 +412,12 @@ func writeAsset(path, templateName string, input map[string]interface{}) error {
 	return writeFile(path, data, info.Mode())
 }
 
-type AddonHanlder func(m *manifest.Manifest)
+// AddonHandler is a func type to handle addons
+type AddonHandler func(m *manifest.Manifest)
 
+// ParseAddons iterates through an apps addons and edits the manifest accordingly
 func ParseAddons(addons []string, m *manifest.Manifest) {
-	handlers := map[string]AddonHanlder{
+	handlers := map[string]AddonHandler{
 		"heroku-postgresql": postgresAddon,
 	}
 
