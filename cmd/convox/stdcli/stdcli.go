@@ -84,6 +84,17 @@ func New() *cli.App {
 	app.Name = Binary
 	app.Commands = Commands
 
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "app, a",
+			Usage: "app name inferred from current directory if not specified",
+		},
+		cli.StringFlag{
+			Name:  "rack",
+			Usage: "rack name",
+		},
+	}
+
 	app.CommandNotFound = func(c *cli.Context, cmd string) {
 		fmt.Fprintf(os.Stderr, "No such command \"%s\". Try `%s help`\n", cmd, Binary)
 		os.Exit(1)

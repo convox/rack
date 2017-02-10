@@ -43,7 +43,7 @@ func New(host, password, version string) *Client {
 }
 
 func (c *Client) Get(path string, out interface{}) error {
-	req, err := c.request("GET", path, nil)
+	req, err := c.Request("GET", path, nil)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (c *Client) PostBody(path string, body io.Reader, out interface{}) error {
 }
 
 func (c *Client) PostBodyResponse(path string, body io.Reader, out interface{}) (*http.Response, error) {
-	req, err := c.request("POST", path, body)
+	req, err := c.Request("POST", path, body)
 
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func (c *Client) PostMultipart(path string, opts PostMultipartOptions, out inter
 		e = nil
 	}()
 
-	req, err := c.request("POST", path, pr)
+	req, err := c.Request("POST", path, pr)
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (c *Client) Put(path string, params Params, out interface{}) error {
 }
 
 func (c *Client) PutBody(path string, body io.Reader, out interface{}) error {
-	req, err := c.request("PUT", path, body)
+	req, err := c.Request("PUT", path, body)
 
 	if err != nil {
 		return err
@@ -286,7 +286,7 @@ func (c *Client) Delete(path string, out interface{}) error {
 }
 
 func (c *Client) DeleteResponse(path string, out interface{}) (*http.Response, error) {
-	req, err := c.request("DELETE", path, nil)
+	req, err := c.Request("DELETE", path, nil)
 
 	if err != nil {
 		return nil, nil
@@ -422,7 +422,8 @@ func copyAsync(dst io.Writer, src io.Reader, wg *sync.WaitGroup) {
 	io.Copy(dst, src)
 }
 
-func (c *Client) request(method, path string, body io.Reader) (*http.Request, error) {
+// Request wraps http.Request and sets some Convox-specific headers
+func (c *Client) Request(method, path string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, fmt.Sprintf("https://%s%s", c.Host, path), body)
 
 	if err != nil {
