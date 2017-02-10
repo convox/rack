@@ -298,7 +298,7 @@ func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource
 	// already linked
 	for _, linkedApp := range s.Apps {
 		if a.Name == linkedApp.Name {
-			return nil, fmt.Errorf("Resource %s is already linked to app %s", s.Name, a.Name)
+			return nil, fmt.Errorf("resource %s is already linked to app %s", s.Name, a.Name)
 		}
 	}
 
@@ -307,7 +307,7 @@ func (p *AWSProvider) ResourceLink(name, app, process string) (*structs.Resource
 	case "fluentd", "syslog":
 		err = p.linkResource(a, s) // Update resource to know about App
 	default:
-		err = fmt.Errorf("Resource type %s does not have a link strategy", s.Type)
+		err = fmt.Errorf("resource type %s does not have a link strategy", s.Type)
 	}
 
 	return s, err
@@ -335,7 +335,7 @@ func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resour
 	}
 
 	if !linked {
-		return nil, fmt.Errorf("Resource %s is not linked to app %s", s.Name, a.Name)
+		return nil, fmt.Errorf("resource %s is not linked to app %s", s.Name, a.Name)
 	}
 
 	// Update Resource and/or App stacks
@@ -343,7 +343,7 @@ func (p *AWSProvider) ResourceUnlink(name, app, process string) (*structs.Resour
 	case "fluentd", "syslog":
 		err = p.unlinkResource(a, s) // Update resource to forget about App
 	default:
-		err = fmt.Errorf("Resource type %s does not have an unlink strategy", s.Type)
+		err = fmt.Errorf("resource type %s does not have an unlink strategy", s.Type)
 	}
 
 	return s, err
@@ -393,7 +393,7 @@ func (p *AWSProvider) createResource(s *structs.Resource) (*cloudformation.Creat
 
 func (p *AWSProvider) createResourceURL(s *structs.Resource, allowedProtocols ...string) (*cloudformation.CreateStackInput, error) {
 	if s.Parameters["Url"] == "" {
-		return nil, fmt.Errorf("Must specify a URL")
+		return nil, fmt.Errorf("must specify a URL")
 	}
 
 	u, err := url.Parse(s.Parameters["Url"])
@@ -411,7 +411,7 @@ func (p *AWSProvider) createResourceURL(s *structs.Resource, allowedProtocols ..
 	}
 
 	if !valid {
-		return nil, fmt.Errorf("Invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
+		return nil, fmt.Errorf("invalid URL scheme: %s. Allowed schemes are: %s", u.Scheme, strings.Join(allowedProtocols, ", "))
 	}
 
 	return p.createResource(s)

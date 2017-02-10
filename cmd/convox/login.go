@@ -257,13 +257,13 @@ func currentLogin() (string, string, error) {
 	host, err := currentHost()
 
 	if err != nil {
-		return "", "", fmt.Errorf("must login first")
+		return "", "", fmt.Errorf("must log in first")
 	}
 
 	password, err := currentPassword()
 
 	if err != nil {
-		return "", "", fmt.Errorf("must login first")
+		return "", "", fmt.Errorf("must log in first")
 	}
 
 	return host, password, nil
