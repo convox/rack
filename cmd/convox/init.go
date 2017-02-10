@@ -155,7 +155,10 @@ func initApplication(dir string) (string, error) {
 
 // ReadAppManifest reads data that follows the app.json manifest format
 func ReadAppManifest(data []byte) (AppManifest, error) {
-	am := AppManifest{}
+	am := AppManifest{
+		[]string{},
+		nil,
+	}
 
 	if err := json.Unmarshal(data, &am); err != nil {
 		return am, err
@@ -404,8 +407,6 @@ func ParseAddons(addons []string, m *manifest.Manifest) {
 	handlers := map[string]AddonHanlder{
 		"heroku-postgresql": postgresAddon,
 	}
-
-	fmt.Println("ADDONS:", addons)
 
 	for _, name := range addons {
 		if f, ok := handlers[name]; ok {
