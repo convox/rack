@@ -129,9 +129,6 @@ func TestBuildExport(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
-		cycleBuildDockerLogin,
-		cycleBuildDockerPull,
-		cycleBuildDockerSave,
 		cycleBuildDockerPing,
 		cycleBuildDockerInfo,
 		cycleBuildDockerLogin,
@@ -193,9 +190,14 @@ func TestBuildImport(t *testing.T) {
 	defer provider.Close()
 
 	d := stubDocker(
+		cycleBuildDockerPing,
+		cycleBuildDockerInfo,
 		cycleBuildDockerLogin,
+		cycleBuildDockerPing,
 		cycleBuildDockerLoad,
+		cycleBuildDockerPing,
 		cycleBuildDockerTag,
+		cycleBuildDockerPing,
 		cycleBuildDockerPush,
 	)
 	defer d.Close()
