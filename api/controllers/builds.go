@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/convox/rack/api/httperr"
 	"github.com/convox/rack/api/models"
@@ -34,11 +35,11 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		Action: "build:create",
 		Status: "start",
 		Data: map[string]string{
-			"app": app,
-			"id":  "n/a",
+			"app":       app,
+			"id":        "n/a",
+			"timestamp": time.Now().Format(time.RFC3339),
 		},
 	}
-	models.Provider().EventSend(event, nil)
 
 	image, _, err := r.FormFile("image")
 	if err != nil && err != http.ErrMissingFile && err != http.ErrNotMultipart {
@@ -52,7 +53,12 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
+		event.Data["id"] = build.Id
+		event.Data["from"] = "image"
+		models.Provider().EventSend(event, nil)
+
 		event.Status = "success"
+		event.Data["timestamp"] = time.Now().Format(time.RFC3339)
 		models.Provider().EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
@@ -63,6 +69,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 		return httperr.Server(err)
 	}
 	if source != nil {
+		event.Data["from"] = "source"
+
 		url, err := models.Provider().ObjectStore("", source, structs.ObjectOptions{})
 		if err != nil {
 			models.Provider().EventSend(event, err)
@@ -75,10 +83,14 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
+		event.Data["id"] = build.Id
+		models.Provider().EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	if index := r.FormValue("index"); index != "" {
+		event.Data["from"] = "index"
+
 		url, err := models.Provider().ObjectStore("", bytes.NewReader([]byte(index)), structs.ObjectOptions{})
 		if err != nil {
 			models.Provider().EventSend(event, err)
@@ -91,17 +103,20 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
+		event.Data["id"] = build.Id
+		models.Provider().EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
 	// TODO deprecate
 	if repo := r.FormValue("repo"); repo != "" {
 		err := fmt.Errorf("repo param has been deprecated")
-		models.Provider().EventSend(event, err)
 		return httperr.Server(err)
 	}
 
 	if surl := r.FormValue("url"); surl != "" {
+		event.Data["from"] = "url"
+
 		u, err := url.Parse(surl)
 		if err != nil {
 			models.Provider().EventSend(event, err)
@@ -134,6 +149,8 @@ func BuildCreate(rw http.ResponseWriter, r *http.Request) *httperr.Error {
 			return httperr.Server(err)
 		}
 
+		event.Data["id"] = build.Id
+		models.Provider().EventSend(event, nil)
 		return RenderJson(rw, build)
 	}
 
