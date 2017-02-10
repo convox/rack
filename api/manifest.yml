@@ -2,11 +2,11 @@ swagger: "2.0"
 info:
   version: 1.0.0
   title: Convox Rack API
-  description: Convox Rack API
+  description: Enter your Convox API key from your <a href="https://console.convox.com/grid/user/profile">account settings</a> in the field above and click Authorize. <br><b>Caution:</b> Commands on this page will really be applied to your resources. <br>For help, see the <a href="https://convox.com/docs/api-keys/">documentation</a>.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
-host: cx.ngrok.io
+host: console.convox.com
 schemes:
   - https
 consumes:
@@ -14,19 +14,43 @@ consumes:
 produces:
   - application/json
 paths:
+
+############
+### apps ###
+############
+
   /apps:
     get:
       description: List apps
+      parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       responses:
         200:
-          description: app list
+          description: List the apps created with `convox apps create`.
           schema:
             type: array
             items:
               $ref: '#/definitions/app'
+        400:
+          description: Rack not found
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error locating rack
+          schema:
+            $ref: '#/definitions/error'
     post:
       description: Create an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: name
         description: app name
         type: string
@@ -37,14 +61,28 @@ paths:
           description: app
           schema:
             $ref: '#/definitions/app'
-        403:
-          description: invalid name
+        400:
+          description: Rack not found
           schema:
             $ref: '#/definitions/error'
+        403:
+          description: invalid name, or app already exists
+          schema:
+            $ref: '#/definitions/error'
+        502:
+          description: rack not running
+          schema:
+            $ref: '#/definitions/error'
+
   /apps/{app}:
     get:
       description: Get an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -55,13 +93,26 @@ paths:
           description: app
           schema:
             $ref: '#/definitions/app'
+        400:
+          description: rack not found
+          schema:
+            $ref: '#/definitions/error'
         404:
-          description: not found
+          description: app not found
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: no rack specified
           schema:
             $ref: '#/definitions/error'
     delete:
       description: Delete an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -69,17 +120,27 @@ paths:
         required: true
       responses:
         200:
-          description: app
+          description: success
           schema:
-            $ref: '#/definitions/app'
-        404:
-          description: not found
+            $ref: '#/definitions/success'
+        400:
+          description: rack not found
           schema:
             $ref: '#/definitions/error'
+        404:
+          description: app not found
+          schema:
+            $ref: '#/definitions/error'
+
   /apps/{app}/builds:
     get:
       description: Builds for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -92,8 +153,13 @@ paths:
             type: array
             items:
               $ref: '#/definitions/build'
-        404:
-          description: not found
+        400:
+          description: rack not found
+          schema:
+            $ref: '#/definitions/error'
+        # FIXME: this should be a 404
+        500:
+          description: app not found
           schema:
             $ref: '#/definitions/error'
     post:
@@ -101,6 +167,11 @@ paths:
       consumes:
         - multipart/form-data
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -123,7 +194,7 @@ paths:
         required: false
       - name: manifest
         default: "docker-compose.yml"
-        description: path to a docker compose v1 yaml file that declares what images to build and processes to run
+        description: path to a docker compose yaml file that declares what images to build and processes to run
         type: string
         in: formData
         required: false
@@ -146,10 +217,16 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+
   /apps/{app}/builds/{build}:
     get:
       description: List builds for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -172,6 +249,11 @@ paths:
     delete:
       description: Delete a build and its artifacts
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -184,9 +266,9 @@ paths:
         required: true
       responses:
         200:
-          description: build
+          description: success
           schema:
-            $ref: '#/definitions/build'
+            $ref: '#/definitions/success'
         404:
           description: not found
           schema:
@@ -194,6 +276,11 @@ paths:
     put:
       description: Update build status
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -233,10 +320,16 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+
   /apps/{app}/environment:
     get:
       description: List environment for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -256,6 +349,11 @@ paths:
       consumes:
         - text/plain
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -276,10 +374,16 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+
   /apps/{app}/environment/{key}:
     delete:
-      description: List environment for an app
+      description: Delete an environment variable for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -292,17 +396,23 @@ paths:
         required: true
       responses:
         200:
-          description: environment
+          description: success
           schema:
-            $ref: '#/definitions/environment'
+            $ref: '#/definitions/success'
         404:
           description: not found
           schema:
             $ref: '#/definitions/error'
+
   /apps/{app}/formation:
     get:
       description: List formation for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -323,6 +433,11 @@ paths:
     post:
       description: Set formation for a process
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -356,6 +471,11 @@ paths:
     get:
       description: List advanced parameters for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -373,6 +493,11 @@ paths:
     post:
       description: Set advanced parameters for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: body
         description: parameters (as formdata)
         in: body
@@ -392,6 +517,11 @@ paths:
     get:
       description: List processes for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -417,6 +547,11 @@ paths:
     get:
       description: Get a process for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -439,6 +574,11 @@ paths:
     delete:
       description: Stop a process
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -451,9 +591,9 @@ paths:
         required: true
       responses:
         200:
-          description: process
+          description: success
           schema:
-            $ref: '#/definitions/process'
+            $ref: '#/definitions/success'
         404:
           description: not found
           schema:
@@ -462,6 +602,11 @@ paths:
     post:
       description: Run a detached process
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -490,6 +635,11 @@ paths:
     get:
       description: List releases for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -510,6 +660,11 @@ paths:
     get:
       description: Get a release for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -533,6 +688,11 @@ paths:
     post:
       description: Promote a release for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -556,6 +716,11 @@ paths:
     get:
       description: List SSL listeners for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -576,6 +741,11 @@ paths:
     put:
       description: List SSL listeners for an app
       parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       - name: app
         description: app name
         type: string
@@ -600,18 +770,11 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
-  /auth:
-    get:
-      description: authenticate password
-      responses:
-        200:
-          description: valid password
-          schema:
-            type: string
-        401:
-          description: invalid password
-          schema:
-            type: string
+
+####################
+### certificates ###
+####################
+
   /certificates:
     get:
       description: List certificates
@@ -686,9 +849,20 @@ paths:
           description: not found
           schema:
             $ref: '#/definitions/error'
+
+#################
+### instances ###
+#################
+
   /instances:
     get:
       description: List instances.
+      parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       responses:
         200:
           description: instance list
@@ -701,13 +875,85 @@ paths:
       description: Regenerate and store EC2 KeyPair.
       responses:
         200:
-         description: Success
+          description: success
+          schema:
+            $ref: '#/definitions/success'
   /instances/{id}:
     delete:
       description: Terminate an instance.
       responses:
         200:
-         description: Success
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+
+##################
+### registries ###
+##################
+
+  /registries:
+    get:
+      description: List registries
+      responses:
+        200:
+          description: List the registries added with `convox registry add`.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/registry'
+    post:
+      description: Add a registry (`convox registry add`)
+      parameters:
+      - name: server
+        description: registry server
+        type: string
+        in: formData
+        required: false
+      - name: username
+        description: registry username
+        type: string
+        in: formData
+        required: false
+      - name: password
+        description: registry password
+        type: string
+        in: formData
+        require: false
+      responses:
+        200:
+          description: success
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/registry'
+        403:
+          description: Error
+          schema:
+            $ref: '#/definitions/error'
+    delete:
+      description: Remove a registry (`convox registry remove`)
+      parameters:
+      - name: server
+        description: registry server
+        type: string
+        in: path
+        required: false
+      - name: rack
+        description: Rack name
+        type: string
+        in: header
+        required: false
+      responses:
+        200:
+          description: success
+          schema:
+            $ref: '#/definitions/success'
+
+################################################
+### services                                 ###
+### (will be renamed to 'resources' shortly) ###
+################################################
+
   /services:
     get:
       description: List services
@@ -740,6 +986,7 @@ paths:
           description: invalid name
           schema:
             $ref: '#/definitions/error'
+
   /services/{service}:
     get:
       description: Get a service
@@ -759,7 +1006,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
     delete:
-      description: Delete an app
+      description: Delete a service (AKA resource)
       parameters:
       - name: service
         description: service name
@@ -768,9 +1015,9 @@ paths:
         required: true
       responses:
         200:
-          description: service
+          description: success
           schema:
-            $ref: '#/definitions/service'
+            $ref: '#/definitions/success'
         404:
           description: not found
           schema:
@@ -814,16 +1061,28 @@ paths:
         required: true
       responses:
         200:
-          description: service
+          description: success
           schema:
-            $ref: '#/definitions/service'
+            $ref: '#/definitions/success'
         404:
           description: not found
           schema:
             $ref: '#/definitions/error'
+
+
+##############
+### system ###
+##############
+
   /system:
     get:
       description: Get system information
+      parameters:
+      - name: rack
+        description: rack name
+        type: string
+        in: header
+        required: false
       responses:
         200:
           description: system
@@ -860,7 +1119,39 @@ paths:
           description: system
           schema:
             $ref: '#/definitions/capacity'
+
+
+###################
+### definitions ###
+###################
+
 definitions:
+  rack:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      host:
+        type: string
+      organization-id:
+        type: string
+      status:
+        type: string
+      version:
+        type: string
+      organization:
+        $ref: '#/definitions/organization'
+  organization:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      DeveloperIds:
+        type: array
+        items:
+          type: string
   app:
     properties:
       name:
@@ -914,6 +1205,9 @@ definitions:
   environment:
     additionalProperties:
       type: string
+    example:
+      foo: bar
+      hello: world
   formation:
     properties:
       balancer:
@@ -970,6 +1264,14 @@ definitions:
         items:
           type: string
       release:
+        type: string
+  registry:
+    properties:
+      password:
+        type: string
+      server:
+        type: string
+      username:
         type: string
   release:
     properties:
