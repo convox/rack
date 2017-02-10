@@ -70,6 +70,10 @@ func cmdStart(c *cli.Context) error {
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{Error: err})
 	}
 
+	if !helpers.Exists(c.String("file")) {
+		return stdcli.Error(fmt.Errorf("no docker-compose.yml found, try `convox init` to generate one"))
+	}
+
 	err = dockerTest()
 	if err != nil {
 		stdcli.QOSEventSend("cli-start", id, stdcli.QOSEventProperties{ValidationError: err})
@@ -83,23 +87,10 @@ func cmdStart(c *cli.Context) error {
 	}
 
 	appType := helpers.DetectApplication(dir)
+
 	m, err := manifest.LoadFile(c.String("file"))
 	if err != nil {
-		if strings.Contains(err.Error(), "docker-compose.yml: no such file or directory") {
-			fmt.Println("Unable to find docker-compose.yml. Running convox init now")
-			err := cmdInit(c)
-			if err != nil {
-				return stdcli.Error(err)
-			}
-
-			m, err = manifest.LoadFile(c.String("file"))
-			if err != nil {
-				return stdcli.Error(err)
-			}
-
-		} else {
-			return stdcli.Error(err)
-		}
+		return stdcli.Error(err)
 	}
 
 	errs := m.Validate()
