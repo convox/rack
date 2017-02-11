@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/convox/rack/manifest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,27 +25,131 @@ func TestInitReadProcfile(t *testing.T) {
 
 }
 
-func TestInitReadAppManifest(t *testing.T) {
+func TestInitReadAppfile(t *testing.T) {
 
-	appManifestTests := []struct {
+	appfileTests := []struct {
 		data []byte
-		am   AppManifest
+		af   Appfile
 	}{
-		{[]byte(appWithNoAddonsNoEnv), AppManifest{[]string{}, nil}},
-		{[]byte(appWithPostgres), AppManifest{[]string{"heroku-postgresql"}, nil}},
-		{[]byte(appWithEnvAndPostgres), AppManifest{[]string{"heroku-postgresql"}, map[string]EnvEntry{"DEBUG": {"1"}, "SECRET_TOKEN": {"secret"}}}},
+		{[]byte(appWithNoAddonsNoEnv), Appfile{[]string{}, nil}},
+		{[]byte(appWithPostgres), Appfile{[]string{"heroku-postgresql"}, nil}},
+		{[]byte(appWithEnvAndPostgres), Appfile{[]string{"heroku-postgresql"}, map[string]EnvEntry{"DEBUG": {"1"}, "SECRET_TOKEN": {"secret"}}}},
 	}
 
-	for _, at := range appManifestTests {
-		am, err := ReadAppManifest(at.data)
+	for _, at := range appfileTests {
+		af, err := ReadAppfile(at.data)
 		assert.NoError(t, err)
-		assert.Equal(t, at.am, am)
+		assert.Equal(t, at.af, af)
 	}
 
 }
 
-func TestInitInvalidAppManifestJson(t *testing.T) {
-	_, err := ReadAppManifest([]byte("foobar" + appWithNoAddonsNoEnv))
+func TestGenerateManifest(t *testing.T) {
+	manifestTests := []struct {
+		pf Procfile
+		af Appfile
+		r  Release
+		m  manifest.Manifest
+	}{
+		{ //
+			Procfile{},
+			Appfile{Env: map[string]EnvEntry{"SECRET": {"top secret"}}},
+			Release{Addons: []string{"heroku-postgres"}, ProcessTypes: map[string]string{"web": "gunicorn gettingstarted.wsgi --log-file -"}},
+			manifest.Manifest{
+				Version: "2",
+				Services: map[string]manifest.Service{
+					"web": {
+						Build: manifest.Build{
+							Context: ".",
+						},
+						Command: manifest.Command{
+							String: "gunicorn gettingstarted.wsgi --log-file -",
+						},
+						Environment: manifest.Environment{
+							{
+								Name:  "SECRET",
+								Value: "top secret",
+							},
+						},
+					},
+				},
+			},
+		}, /////////
+
+		{ //
+			Procfile{{Name: "web", Command: "python server.py"}, {Name: "worker", Command: "python worker.py"}},
+			Appfile{Env: map[string]EnvEntry{"SECRET": {"top secret"}}},
+			Release{Addons: []string{"heroku-postgres"}, ProcessTypes: map[string]string{"web": "gunicorn gettingstarted.wsgi --log-file -"}},
+			manifest.Manifest{
+				Version: "2",
+				Services: map[string]manifest.Service{
+					"web": {
+						Name: "web",
+						Build: manifest.Build{
+							Context: ".",
+						},
+						Command: manifest.Command{
+							String: "python server.py",
+						},
+						Environment: manifest.Environment{
+							{
+								Name:  "PORT",
+								Value: "4001",
+							},
+							{
+								Name:  "SECRET",
+								Value: "top secret",
+							},
+						},
+						Labels: manifest.Labels{
+							"convox.port.443.protocol": "tls",
+						},
+						Ports: manifest.Ports{
+							{
+								Name:      "80",
+								Balancer:  80,
+								Container: 4001,
+								Public:    true,
+								Protocol:  manifest.TCP,
+							},
+							{
+								Name:      "443",
+								Balancer:  443,
+								Container: 4001,
+								Public:    true,
+								Protocol:  manifest.TCP,
+							},
+						},
+					},
+					"worker": {
+						Build: manifest.Build{
+							Context: ".",
+						},
+						Command: manifest.Command{
+							String: "python worker.py",
+						},
+						Environment: manifest.Environment{
+							{
+								Name:  "SECRET",
+								Value: "top secret",
+							},
+						},
+						Labels: manifest.Labels{},
+						Ports:  manifest.Ports{},
+					},
+				},
+			},
+		}, /////////
+	}
+
+	for _, mt := range manifestTests {
+		m := GenerateManifest(mt.pf, mt.af, mt.r)
+		assert.Equal(t, mt.m, m)
+	}
+}
+
+func TestInitInvalidAppfileJson(t *testing.T) {
+	_, err := ReadAppfile([]byte("foobar" + appWithNoAddonsNoEnv))
 	assert.Error(t, err)
 }
 

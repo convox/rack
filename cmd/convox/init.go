@@ -37,8 +37,8 @@ type EnvEntry struct {
 	Value string
 }
 
-// AppManifest represent specific fields of an app.json file
-type AppManifest struct {
+// Appfile represent specific fields of an app.json file
+type Appfile struct {
 	Addons []string
 	Env    map[string]EnvEntry
 }
@@ -154,38 +154,38 @@ func initApplication(dir string) (string, error) {
 	return kind, err
 }
 
-// ReadAppManifest reads data that follows the app.json manifest format
-func ReadAppManifest(data []byte) (AppManifest, error) {
-	am := AppManifest{
+// ReadAppfile reads data that follows the app.json manifest format
+func ReadAppfile(data []byte) (Appfile, error) {
+	af := Appfile{
 		[]string{},
 		nil,
 	}
 
-	if err := json.Unmarshal(data, &am); err != nil {
-		return am, err
+	if err := json.Unmarshal(data, &af); err != nil {
+		return af, err
 	}
 
-	return am, nil
+	return af, nil
 }
 
-// readAppfile reads a file and returns an AppManifest
-func readAppfile(path string) (AppManifest, error) {
-	var am AppManifest
+// readAppfile reads a file and returns an Appfile
+func readAppfile(path string) (Appfile, error) {
+	var af Appfile
 
 	if helpers.Exists(path) {
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
-			return am, err
+			return af, err
 		}
 
-		am, err = ReadAppManifest(data)
+		af, err = ReadAppfile(data)
 		if err != nil {
-			return am, err
+			return af, err
 		}
 		appFound = true
 	}
 
-	return am, nil
+	return af, nil
 }
 
 // ReadProcfile reads data that follows the Procfile format
@@ -235,8 +235,8 @@ func buildpackEnvironment(kind string) map[string]string {
 	}
 }
 
-// GenerateManifest generates a Manifest from the union of a Procfile, AppManifest and Release data
-func GenerateManifest(pf Procfile, am AppManifest, r Release) manifest.Manifest {
+// GenerateManifest generates a Manifest from the union of a Procfile, Appfile and Release data
+func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 
 	m := manifest.Manifest{
 		Services: make(map[string]manifest.Service),
@@ -295,15 +295,18 @@ func GenerateManifest(pf Procfile, am AppManifest, r Release) manifest.Manifest 
 				Name:  "PORT",
 				Value: "4001",
 			})
-
-			for k, v := range am.Env {
-				me.Environment = append(me.Environment, manifest.EnvironmentItem{
-					Name:  k,
-					Value: v.Value,
-				})
-			}
 		}
 		m.Services[e.Name] = me
+	}
+
+	for k, v := range af.Env {
+		for name, s := range m.Services {
+			s.Environment = append(s.Environment, manifest.EnvironmentItem{
+				Name:  k,
+				Value: v.Value,
+			})
+			m.Services[name] = s
+		}
 	}
 	return m
 }
