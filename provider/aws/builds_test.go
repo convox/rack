@@ -106,8 +106,6 @@ func TestBuildCreateWithCluster(t *testing.T) {
 		cycleRegistryDecrypt,
 		cycleBuildDescribeStacks,
 		cycleBuildGetAuthorizationTokenPrivate1,
-		cycleBuildDescribeStacks,
-		cycleEnvironmentGet,
 		cycleBuildRunTaskCluster,
 		cycleBuildGetItem,
 		cycleBuildDescribeStacks,
@@ -1266,10 +1264,6 @@ var cycleBuildRunTaskCluster = awsutil.Cycle{
 							{
 								"name": "BUILD_CONFIG",
 								"value": ""
-							},
-							{
-								"name": "BUILD_ENV",
-								"value": "{\"BAZ\":\"qux\",\"FOO\":\"bar\"}"
 							},
 							{
 								"name": "BUILD_ID",
