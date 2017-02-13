@@ -133,6 +133,13 @@ exports.handler = (event, context, callback) => {
     .then(data => {
         console.log('listTasks Data: ', data);
 
+        // Can't call ecs.describeTasks if data.taskArns is empty
+        if (!data.taskArns || !data.taskArns.length) {
+            return {
+                tasks: []
+            };
+        }
+
         let options = {
             cluster: event.detail.clusterArn,
             tasks: data.taskArns
