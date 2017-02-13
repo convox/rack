@@ -187,6 +187,11 @@ type QOSEventProperties struct {
 // If the event is an error it also sends the error to rollbar, then displays the
 // error to the user and exits non-zero.
 func QOSEventSend(system, id string, ep QOSEventProperties) error {
+	// don't send events under `make test`
+	if os.Getenv("PROVIDER") == "test" {
+		return nil
+	}
+
 	rollbar.Token = "8481f1ec73f549ce8b81711ca4fdf98a"
 	rollbar.Environment = id
 
