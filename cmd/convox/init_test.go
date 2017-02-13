@@ -67,8 +67,28 @@ func TestGenerateManifest(t *testing.T) {
 						},
 						Environment: manifest.Environment{
 							{
+								Name:  "PORT",
+								Value: "4001",
+							},
+							{
 								Name:  "SECRET",
 								Value: "top secret",
+							},
+						},
+						Ports: manifest.Ports{
+							{
+								Name:      "80",
+								Balancer:  80,
+								Container: 4001,
+								Public:    true,
+								Protocol:  manifest.TCP,
+							},
+							{
+								Name:      "443",
+								Balancer:  443,
+								Container: 4001,
+								Public:    true,
+								Protocol:  manifest.TCP,
 							},
 						},
 					},

@@ -59,6 +59,7 @@ var reProcfile = regexp.MustCompile("^([A-Za-z0-9_]+):\\s*(.+)$")
 // Release is type representing output buildback release script
 type Release struct {
 	Addons       []string
+	ConfigVars   map[string]string `yaml:"config_vars"`
 	ProcessTypes map[string]string `yaml:"default_process_types"`
 }
 
@@ -115,7 +116,17 @@ var appKind = map[string]string{
 
 func initApplication(dir string) (string, error) {
 	prepURL := "https://convox.com/docs/preparing-an-application/"
-	args := []string{"run", "--rm", "--name", "convox-init", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+	args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+
+	stdcli.Spinner.Prefix = "Updating convox/init... "
+	stdcli.Spinner.Start()
+
+	if err := updateInit(); err != nil {
+		fmt.Printf("\x08\x08FAILED\n")
+	} else {
+		fmt.Printf("\x08\x08OK\n")
+	}
+	stdcli.Spinner.Stop()
 
 	k, err := exec.Command(dockerBin, append(args, "detect")...).Output()
 	if err != nil {
@@ -128,7 +139,7 @@ func initApplication(dir string) (string, error) {
 		return kind, fmt.Errorf("unknown app type: %s \ncheck out %s for more information", kd, prepURL)
 	}
 
-	fmt.Printf("initializing a %s app\n", kind)
+	fmt.Printf("Initializing a %s app\n", kind)
 
 	if err := writeAsset("entrypoint.sh", "buildpack/entrypoint.sh", nil); err != nil {
 		return kind, err
@@ -157,8 +168,13 @@ func initApplication(dir string) (string, error) {
 	}
 
 	fmt.Println()
-	fmt.Println("try running `convox start`")
+	fmt.Println("Try running `convox start`")
 	return kind, err
+}
+
+func updateInit() error {
+	cmd := exec.Command("docker", "pull", "convox/init")
+	return cmd.Run()
 }
 
 // ReadAppfile reads data that follows the app.json manifest format
@@ -250,6 +266,7 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 		Version:  "2",
 	}
 
+	// No Procfile, rely on default release data
 	if len(pf) == 0 {
 		for name, cmd := range r.ProcessTypes {
 			me := manifest.Service{
@@ -262,6 +279,30 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 			}
 
 			m.Services[name] = me
+		}
+
+		if me, ok := m.Services["web"]; ok {
+			me.Ports = append(me.Ports, manifest.Port{
+				Name:      "80",
+				Balancer:  80,
+				Container: 4001,
+				Public:    true,
+				Protocol:  manifest.TCP,
+			})
+			me.Ports = append(me.Ports, manifest.Port{
+				Name:      "443",
+				Balancer:  443,
+				Container: 4001,
+				Public:    true,
+				Protocol:  manifest.TCP,
+			})
+
+			me.Environment = append(me.Environment, manifest.EnvironmentItem{
+				Name:  "PORT",
+				Value: "4001",
+			})
+
+			m.Services["web"] = me
 		}
 	}
 
@@ -306,6 +347,16 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 		m.Services[e.Name] = me
 	}
 
+	for k, v := range r.ConfigVars {
+		for name, s := range m.Services {
+			s.Environment = append(s.Environment, manifest.EnvironmentItem{
+				Name:  k,
+				Value: v,
+			})
+			m.Services[name] = s
+		}
+	}
+
 	for k, v := range af.Env {
 		for name, s := range m.Services {
 			s.Environment = append(s.Environment, manifest.EnvironmentItem{
@@ -333,12 +384,12 @@ func generateManifestData(dir, kind string) ([]byte, error) {
 	var release Release
 	if len(pf) == 0 || !appFound {
 		var r []byte
-		args := []string{"run", "--rm", "--name", "convox-init", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+		args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
 
 		// NOTE: The ruby-buildpack generates a yaml file during compile so we have to perform both steps
 		if kind == "ruby" {
 			// this can be time consuming, let's give feedback
-			stdcli.Spinner.Prefix = "generating ruby data: "
+			stdcli.Spinner.Prefix = "Building ruby app metadata. This could take a while... "
 			stdcli.Spinner.Start()
 			r, err = exec.Command(dockerBin, append(args, "compile-release")...).Output()
 			fmt.Printf("\x08\x08OK\n")
@@ -370,7 +421,7 @@ func generateManifestData(dir, kind string) ([]byte, error) {
 
 // writeFile is a helper function that writes a file
 func writeFile(path string, data []byte, mode os.FileMode) error {
-	fmt.Printf("writing %s... ", path)
+	fmt.Printf("Writing %s... ", path)
 
 	if helpers.Exists(path) {
 		fmt.Println("EXISTS")
