@@ -407,6 +407,9 @@ func generateManifestData(dir, kind string) ([]byte, error) {
 	}
 
 	m := GenerateManifest(pf, am, release)
+	if len(m.Services) == 0 {
+		return nil, fmt.Errorf("unable to generate manifest")
+	}
 
 	adds := []string{}
 	if appFound {
