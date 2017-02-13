@@ -705,7 +705,7 @@
             {{ $code := .App.AgentFunctionCode }}
             {{ index $code "head" }}
             {{ range .App.Agents .Manifest }}
-              { "Fn::Join": [ "", ["  '{{ .Service.Name }}': '", { "Ref": "{{ upper .Service.Name }}ECSTaskDefinition" }, "'," ] ] },
+              { "Fn::Join": ["", [{ "Ref": "{{ upper .Service.Name }}ECSTaskDefinition" }, "'," ] ] },
             {{ end }}
             {{ index $code "body" }}
           ] ] }
