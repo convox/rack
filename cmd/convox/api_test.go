@@ -82,3 +82,41 @@ func TestApiGetRequest(t *testing.T) {
 	assert.Equal(t, req.Header.Get("Content-Type"), "application/json")
 	assert.Equal(t, req.Header.Get("Version"), "testVersion")
 }
+func TestApiGetApps(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{
+			client.App{Name: "sinatra", Status: "running"},
+		}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox api get /apps",
+			Exit:    0,
+			Stdout:  "[\n  {\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"status\": \"running\"\n  }\n]\n",
+		},
+	)
+}
+
+// TestApiGet404 should ensure an error is returned when a user runs 'convox api get' with an invalid API endpoint.
+func TestApiGet404(t *testing.T) {
+	ts := testServer(t,
+		test.Http{
+			Method:   "GET",
+			Path:     "/nonexistent",
+			Code:     404,
+			Response: client.Error{Error: "A wild 404 appears!"},
+		},
+	)
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox api get /nonexistent",
+			Exit:    1,
+			Stderr:  "ERROR: A wild 404 appears!",
+		},
+	)
+}
