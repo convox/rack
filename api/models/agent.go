@@ -70,9 +70,9 @@ const aws = require('aws-sdk');
 const ecs = new aws.ECS({ maxRetries: 10 });
 
 // arn:aws:ecs:<region>:<aws_account_id>:task-definition/<task name>:<task def revision>
-const taskDefinitions = {
+const taskDefinitions = [
     /* TASK DEFINITIONS */
-};
+];
 
 // Task Definition ARN, minus revision
 function tdName(td) {
@@ -183,7 +183,6 @@ exports.handler = (event, context, callback) => {
         return callback(err);
     });
 };
-
 `
 
 	// Format JS code for embedding in app.tmpl
