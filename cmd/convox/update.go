@@ -46,16 +46,6 @@ func cmdUpdate(c *cli.Context) error {
 	}
 	stdcli.Spinner.Stop()
 
-	stdcli.Spinner.Prefix = "Updating convox/init: "
-	stdcli.Spinner.Start()
-
-	if err := updateInit(); err != nil {
-		fmt.Printf("\x08\x08FAILED\n")
-	} else {
-		fmt.Printf("\x08\x08OK\n")
-	}
-	stdcli.Spinner.Stop()
-
 	stdcli.Spinner.Prefix = "Updating convox: "
 	stdcli.Spinner.Start()
 
@@ -110,10 +100,5 @@ func updateClient() (*http.Client, error) {
 
 func updateProxy() error {
 	cmd := exec.Command("docker", "pull", "convox/proxy")
-	return cmd.Run()
-}
-
-func updateInit() error {
-	cmd := exec.Command("docker", "pull", "convox/init")
 	return cmd.Run()
 }
