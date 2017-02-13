@@ -101,9 +101,16 @@ func cmdInit(c *cli.Context) error {
 
 // appKind maps to the various buildpacks and their detect output
 var appKind = map[string]string{
-	"Node.js": "nodejs",
-	"Python":  "python",
-	"Ruby":    "ruby",
+	"Clojure (Leiningen 2)": "clojure",
+	"Clojure":               "clojure",
+	"Go":                    "go",
+	"Gradle":                "gradle",
+	"Java":                  "java",
+	"Node.js":               "nodejs",
+	"PHP":                   "php",
+	"Python":                "python",
+	"Ruby":                  "ruby",
+	"Scala":                 "scala",
 }
 
 func initApplication(dir string) (string, error) {
