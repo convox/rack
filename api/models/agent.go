@@ -109,7 +109,8 @@ function stopTask(event, runningTask) {
     }
 
     let options = {
-        task: runningTask.taskArn cluster: event.detail.clusterArn,
+        task: runningTask.taskArn,
+        cluster: event.detail.clusterArn,
         reason: 'convox agent convergence'
     };
 
