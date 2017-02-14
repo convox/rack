@@ -577,6 +577,7 @@
                   "Fn::Join": [
                     "",
                     [
+                      "  '",
                       {
                         "Ref": "Agent1ECSTaskDefinition"
                       },
@@ -588,6 +589,7 @@
                   "Fn::Join": [
                     "",
                     [
+                      "  '",
                       {
                         "Ref": "Agent2ECSTaskDefinition"
                       },
