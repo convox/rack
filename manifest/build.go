@@ -114,24 +114,28 @@ func (m *Manifest) Build(dir, appName string, s Stream, opts BuildOptions) error
 		args = append(args, "-t", service.Tag(appName))
 		args = append(args, context)
 
-		if err := DefaultRunner.Run(s, Docker(args...), RunnerOptions{Verbose: opts.Verbose}); err != nil {
+		ropts := RunnerOptions{
+			Verbose: opts.Verbose,
+		}
+
+		if err := DefaultRunner.Run(s, Docker(args...), ropts); err != nil {
 			return fmt.Errorf("build error: %s", err)
 		}
 
 		if opts.CacheDir != "" {
 			hash := service.Build.Hash()
 
-			if err := DefaultRunner.Run(s, Docker("create", "--name", hash, service.Tag(appName))); err != nil {
+			if err := DefaultRunner.Run(s, Docker("create", "--name", hash, service.Tag(appName)), ropts); err != nil {
 				s <- fmt.Sprintf("cache error: %s", err)
 			}
 
 			exec.Command("rm", "-rf", filepath.Join(opts.CacheDir, hash)).Run()
 
-			if err := DefaultRunner.Run(s, Docker("cp", fmt.Sprintf("%s:/var/cache/build", hash), filepath.Join(opts.CacheDir, hash))); err != nil {
+			if err := DefaultRunner.Run(s, Docker("cp", fmt.Sprintf("%s:/var/cache/build", hash), filepath.Join(opts.CacheDir, hash)), ropts); err != nil {
 				s <- fmt.Sprintf("cache error: %s", err)
 			}
 
-			if err := DefaultRunner.Run(s, Docker("rm", hash)); err != nil {
+			if err := DefaultRunner.Run(s, Docker("rm", hash), ropts); err != nil {
 				s <- fmt.Sprintf("cache error: %s", err)
 			}
 		}
