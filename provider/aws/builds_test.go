@@ -67,8 +67,9 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDescribeTasks,
 		cycleBuildDescribeContainerInstances,
 		cycleBuildDescribeInstances,
+		cycleBuildNotificationPublish,
 		cycleBuildDescribeStacks,
-		cycleBuildQuery,
+		cycleBuildQuery150,
 	)
 	defer provider.Close()
 
@@ -76,6 +77,54 @@ func TestBuildCreate(t *testing.T) {
 		cycleBuildDockerListContainers,
 	)
 	defer d.Close()
+
+	b, err := provider.BuildCreate("httpd", "git", "http://example.org/build.tgz", structs.BuildOptions{
+		Cache: true,
+	})
+
+	assert.NoError(t, err)
+	assert.EqualValues(t, &structs.Build{
+		Id:      "B123",
+		App:     "httpd",
+		Status:  "created",
+		Started: time.Unix(1473028693, 0).UTC(),
+		Ended:   time.Unix(1473028892, 0).UTC(),
+		Tags:    map[string]string{},
+	}, b)
+}
+
+func TestBuildCreateWithCluster(t *testing.T) {
+	provider := StubAwsProvider(
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
+		cycleBuildPutItemCreate,
+		cycleBuildDescribeStackResources,
+		cycleBuildDescribeStacks,
+		cycleEnvironmentGetRack,
+		cycleRegistryListRegistries,
+		cycleRegistryGetRegistry,
+		cycleRegistryDecrypt,
+		cycleBuildDescribeStacks,
+		cycleBuildGetAuthorizationTokenPrivate1,
+		cycleBuildRunTaskCluster,
+		cycleBuildGetItem,
+		cycleBuildDescribeStacks,
+		cycleBuildPutItemCreate2,
+		cycleBuildDescribeTasks,
+		cycleBuildDescribeContainerInstances,
+		cycleBuildDescribeInstances,
+		cycleBuildNotificationPublish,
+		cycleBuildDescribeStacks,
+		cycleBuildQuery150,
+	)
+	defer provider.Close()
+
+	d := stubDocker(
+		cycleBuildDockerListContainers,
+	)
+	defer d.Close()
+
+	provider.BuildCluster = "cluster-build"
 
 	b, err := provider.BuildCreate("httpd", "git", "http://example.org/build.tgz", structs.BuildOptions{
 		Cache: true,
@@ -1042,6 +1091,43 @@ var cycleBuildQuery = awsutil.Cycle{
 	},
 }
 
+var cycleBuildQuery150 = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "DynamoDB_20120810.Query",
+		Body:       `{"IndexName":"app.created","KeyConditions":{"app":{"AttributeValueList":[{"S":"httpd"}],"ComparisonOperator":"EQ"}},"Limit":150,"ScanIndexForward":false,"TableName":"convox-builds"}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Count": 2,
+			"Items": [
+				{
+					"id": {"S":"BHINCLZYYVN"},
+					"app": {"S":"httpd"},
+					"created": {"S":"20160404.143416.178278576"},
+					"ended": {"S":"20160404.143542.440881687"},
+					"env": {"S":"foo=bar"},
+					"manifest": {"S":"web:\n  image: httpd\n  ports:\n  - 80:80\n"},
+					"release": {"S":"RVFETUHHKKD"},
+					"status": {"S":"complete"}
+				},
+				{
+					"id": {"S":"BNOARQMVHUO"},
+					"app": {"S":"httpd"},
+					"created": {"S":"20160404.143416.178278576"},
+					"ended": {"S":"20160404.143542.440881687"},
+					"env": {"S":"foo=bar"},
+					"manifest": {"S":"web:\n  image: httpd\n  ports:\n  - 80:80\n"},
+					"release": {"S":"RFVZFLKVTYO"},
+					"status": {"S":"complete"}
+				}
+			],
+			"ScannedCount":2
+		}`,
+	},
+}
+
 var cycleBuildReleasePutItem = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
@@ -1079,6 +1165,82 @@ var cycleBuildRunTask = awsutil.Cycle{
 		Operation:  "AmazonEC2ContainerServiceV20141113.RunTask",
 		Body: `{
 			"cluster": "cluster-test",
+			"count": 1,
+			"overrides": {
+				"containerOverrides": [
+					{
+						"command": [
+							"build",
+							"-method",
+							"git",
+							"-cache",
+							"true"
+						],
+						"environment": [
+							{
+								"name": "BUILD_APP",
+								"value": "httpd"
+							},
+							{
+								"name": "BUILD_AUTH",
+								"value": "{\"132866487567.dkr.ecr.us-test-1.amazonaws.com\":{\"Username\":\"user\",\"Password\":\"12345\\n\"},\"quay.io\":{\"Username\":\"ddollar+test\",\"Password\":\"B0IT2U7BZ4VDZUYFM6LFMTJPF8YGKWYBR39AWWPAUKZX6YKZX3SQNBCCQKMX08UF\"}}"
+							},
+							{
+								"name": "BUILD_CONFIG",
+								"value": ""
+							},
+							{
+								"name": "BUILD_ID",
+								"value": "B123"
+							},
+							{
+								"name": "BUILD_PUSH",
+								"value": "132866487567.dkr.ecr.us-test-1.amazonaws.com/convox-httpd-hqvvfosgxt:{service}.{build}"
+							},
+							{
+								"name": "BUILD_URL",
+								"value": "http://example.org/build.tgz"
+							},
+							{
+								"name": "RELEASE",
+								"value": "B123"
+							}
+						],
+						"name": "build"
+      }
+    ]
+  },
+  "startedBy": "convox.httpd",
+  "taskDefinition": "build-task-arn"
+		}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"tasks": [
+				{
+					"containers": [
+						{
+							"containerArn": "arn:aws:ecs:us-east-1:012345678910:container/e1ed7aac-d9b2-4315-8726-d2432bf11868",
+							"lastStatus": "PENDING",
+							"name": "wordpress",
+							"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+						}
+					],
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
+					"taskArn": "arn:aws:ecs:us-east-1:778743527532:task/50b8de99-f94f-4ecd-a98f-5850760f0845"
+				}
+			]
+		}`,
+	},
+}
+
+var cycleBuildRunTaskCluster = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.RunTask",
+		Body: `{
+			"cluster": "cluster-build",
 			"count": 1,
 			"overrides": {
 				"containerOverrides": [

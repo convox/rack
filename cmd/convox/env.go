@@ -43,7 +43,7 @@ func init() {
 					},
 					cli.BoolFlag{
 						Name:  "id",
-						Usage: "env set logs on stderr, release id on stdout",
+						Usage: "send 'env set' logs to stderr, send release id to stdout (useful for scripting)",
 					},
 					cli.BoolFlag{
 						Name:   "wait",
@@ -66,7 +66,7 @@ func init() {
 					},
 					cli.BoolFlag{
 						Name:  "id",
-						Usage: "env set logs on stderr, release id on stdout",
+						Usage: "send 'env unset' logs to stderr, send release id to stdout (useful for scripting)",
 					},
 					cli.BoolFlag{
 						Name:   "wait",

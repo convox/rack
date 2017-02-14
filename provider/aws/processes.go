@@ -171,6 +171,22 @@ func (p *AWSProvider) ProcessList(app string) (structs.Processes, error) {
 		tasks = append(tasks, *task)
 	}
 
+	// list build processes
+	if p.Cluster != p.BuildCluster {
+		ores, err := p.ecs().ListTasks(&ecs.ListTasksInput{
+			Cluster:   aws.String(p.BuildCluster),
+			StartedBy: aws.String(fmt.Sprintf("convox.%s", app)),
+		})
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+
+		for _, task := range ores.TaskArns {
+			tasks = append(tasks, *task)
+		}
+	}
+
 	ps, err := p.taskProcesses(tasks)
 	if err != nil {
 		return nil, err
@@ -257,6 +273,8 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			iptasks[i] = &ptasks[i]
 		}
 
+		tasks := []*ecs.Task{}
+
 		tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
 			Cluster: aws.String(p.Cluster),
 			Tasks:   iptasks,
@@ -266,9 +284,29 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 			return nil, err
 		}
 
+		for _, task := range tres.Tasks {
+			tasks = append(tasks, task)
+		}
+
+		// list tasks on build cluster too
+		if p.Cluster != p.BuildCluster {
+			tres, err := p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+				Cluster: aws.String(p.BuildCluster),
+				Tasks:   iptasks,
+			})
+			if err != nil {
+				log.Error(err)
+				return nil, err
+			}
+
+			for _, task := range tres.Tasks {
+				tasks = append(tasks, task)
+			}
+		}
+
 		timeout := time.After(30 * time.Second)
 
-		for _, task := range tres.Tasks {
+		for _, task := range tasks {
 			if p.IsTest() {
 				p.fetchProcess(task, psch, errch)
 			} else {
@@ -286,7 +324,7 @@ func (p *AWSProvider) taskProcesses(tasks []string) (structs.Processes, error) {
 				psst = append(psst, ps)
 			}
 
-			if len(psst) == len(tres.Tasks) {
+			if len(psst) == len(tasks) {
 				break
 			}
 		}
@@ -424,6 +462,16 @@ func (p *AWSProvider) containerInstance(id string) (*ecs.ContainerInstance, erro
 		Cluster:            aws.String(p.Cluster),
 		ContainerInstances: []*string{aws.String(id)},
 	})
+	// check the build cluster too
+	for _, f := range res.Failures {
+		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
+			res, err = p.ecs().DescribeContainerInstances(&ecs.DescribeContainerInstancesInput{
+				Cluster:            aws.String(p.BuildCluster),
+				ContainerInstances: []*string{aws.String(id)},
+			})
+			break
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -453,6 +501,16 @@ func (p *AWSProvider) describeTask(arn string) (*ecs.Task, error) {
 		Cluster: aws.String(p.Cluster),
 		Tasks:   []*string{aws.String(arn)},
 	})
+	// check the build cluster too
+	for _, f := range res.Failures {
+		if f.Reason != nil && *f.Reason == "MISSING" && p.BuildCluster != p.Cluster {
+			res, err = p.ecs().DescribeTasks(&ecs.DescribeTasksInput{
+				Cluster: aws.String(p.BuildCluster),
+				Tasks:   []*string{aws.String(arn)},
+			})
+			break
+		}
+	}
 	if err != nil {
 		return nil, err
 	}

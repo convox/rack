@@ -75,9 +75,19 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 		}
 
 		for _, cd := range res.TaskDefinition.ContainerDefinitions {
+			if service.DesiredCount == nil {
+				return nil, fmt.Errorf("invalid DesiredCount")
+			}
+
 			capacity.ProcessCount += *service.DesiredCount
-			capacity.ProcessMemory += (*service.DesiredCount * *cd.Memory)
-			capacity.ProcessCPU += (*service.DesiredCount * *cd.Cpu)
+
+			if cd.Memory != nil {
+				capacity.ProcessMemory += (*service.DesiredCount * *cd.Memory)
+			}
+
+			if cd.Cpu != nil {
+				capacity.ProcessCPU += (*service.DesiredCount * *cd.Cpu)
+			}
 		}
 	}
 

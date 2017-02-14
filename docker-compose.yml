@@ -11,6 +11,7 @@ services:
       - AWS_REGION
       - AWS_ACCESS
       - AWS_SECRET
+      - BUILD_CLUSTER
       - CLIENT_ID=dev@convox.com
       - CLUSTER
       - CUSTOM_TOPIC
@@ -54,6 +55,7 @@ services:
       - AWS_REGION
       - AWS_ACCESS
       - AWS_SECRET
+      - BUILD_CLUSTER
       - CLIENT_ID=dev@convox.com
       - CLUSTER
       - CUSTOM_TOPIC
