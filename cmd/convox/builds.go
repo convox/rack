@@ -35,7 +35,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "id",
-			Usage: "build logs on stderr, release id on stdout (useful for scripting)",
+			Usage: "send build logs to stderr, send release id to stdout (useful for scripting)",
 		},
 		cli.BoolFlag{
 			Name:  "incremental",
@@ -119,7 +119,7 @@ func init() {
 					},
 					cli.BoolFlag{
 						Name:  "id",
-						Usage: "build logs on stderr, release id on stdout",
+						Usage: "send import logs to stderr, send release id to stdout (useful for scripting)",
 					},
 				},
 			},
