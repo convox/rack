@@ -167,6 +167,8 @@ func initApplication(dir string) (string, error) {
 		return kind, err
 	}
 
+	cleanComposeFile()
+
 	fmt.Println()
 	fmt.Println("Try running `convox start`")
 	return kind, err
@@ -175,6 +177,34 @@ func initApplication(dir string) (string, error) {
 func updateInit() error {
 	cmd := exec.Command("docker", "pull", "convox/init")
 	return cmd.Run()
+}
+
+// cleanComposeFile removes known invalid fields from a docker-compose.yml file
+// due to limitations in the yaml pkg not applying `omitempty` to zero valued structs.
+func cleanComposeFile() error {
+	file, err := os.Open("docker-compose.yml")
+	if err != nil {
+		return err
+	}
+
+	var buffer bytes.Buffer
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		switch strings.TrimSpace(scanner.Text()) {
+		case "build: {}", "command: null":
+			continue
+		default:
+			buffer.WriteString(scanner.Text() + "\n")
+		}
+	}
+
+	file.Close()
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile("docker-compose.yml", buffer.Bytes(), 0644)
 }
 
 // ReadAppfile reads data that follows the app.json manifest format
