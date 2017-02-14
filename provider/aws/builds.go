@@ -30,8 +30,12 @@ import (
 	"github.com/convox/rack/manifest"
 )
 
+// ECR host is formatted like 123456789012.dkr.ecr.us-east-1.amazonaws.com
 var regexpECRHost = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com`)
 var regexpECRImage = regexp.MustCompile(`(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):([^ ]+)`)
+
+// StackID is formatted like arn:aws:cloudformation:us-east-1:332653055745:stack/dev/d164aa20-ba89-11e6-b65c-50d5ca632656
+var regexpStackID = regexp.MustCompile(`arn:aws:cloudformation:([^.]+):(\d+):stack/([^.]+)/([^.]+)`)
 
 func (p *AWSProvider) BuildCreate(app, method, url string, opts structs.BuildOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q method=%q url=%q", app, method, url).Start()
@@ -714,7 +718,7 @@ func (p *AWSProvider) authECR(host, access, secret string) (string, string, erro
 	}
 
 	if !regexpECRHost.MatchString(host) {
-		return "", "", fmt.Errorf("invalid ECR hostname")
+		return "", "", fmt.Errorf("invalid ECR hostname: %s", host)
 	}
 
 	registry := regexpECRHost.FindStringSubmatch(host)
