@@ -44,7 +44,6 @@ func cmdUpdate(c *cli.Context) error {
 	} else {
 		fmt.Printf("\x08\x08OK\n")
 	}
-
 	stdcli.Spinner.Stop()
 
 	stdcli.Spinner.Prefix = "Updating convox: "
