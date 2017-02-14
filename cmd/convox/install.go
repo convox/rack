@@ -83,6 +83,12 @@ func init() {
 				Value: "",
 				Usage: "custom AMI for rack instances",
 			},
+			cli.StringFlag{
+				Name:   "build-instance",
+				Value:  "",
+				Usage:  "instance type for a dedicated build cluster",
+				EnvVar: "RACK_BUILD_INSTANCE",
+			},
 			cli.BoolFlag{
 				Name:  "dedicated",
 				Usage: "create EC2 instances on dedicated hardware",
@@ -365,6 +371,14 @@ func cmdInstall(c *cli.Context) error {
 		p := &cloudformation.Parameter{
 			ParameterKey:   aws.String("Autoscale"),
 			ParameterValue: aws.String("No"),
+		}
+		req.Parameters = append(req.Parameters, p)
+	}
+
+	if c.String("build-instance") != "" {
+		p := &cloudformation.Parameter{
+			ParameterKey:   aws.String("BuildInstance"),
+			ParameterValue: aws.String(c.String("build-instance")),
 		}
 		req.Parameters = append(req.Parameters, p)
 	}
