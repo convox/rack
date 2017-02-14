@@ -223,6 +223,11 @@ func build(dir string) error {
 
 	defer close(s)
 
+	env, err := currentProvider.EnvironmentGet(flagApp)
+	if err != nil {
+		return err
+	}
+
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
 		return err
