@@ -50,7 +50,6 @@ func TestAppStackName(t *testing.T) {
 }
 
 func TestAppCronJobs(t *testing.T) {
-
 	m := manifest.Manifest{
 		Version: "1",
 		Services: map[string]manifest.Service{
@@ -90,4 +89,32 @@ func TestAppCronJobs(t *testing.T) {
 	assert.Equal(t, cj[1].Name, "task2")
 	assert.Equal(t, cj[2].Service.Name, "two")
 	assert.Equal(t, cj[2].Name, "task3")
+}
+
+func TestAppAgents(t *testing.T) {
+	m := manifest.Manifest{
+		Version: "1",
+		Services: map[string]manifest.Service{
+			"one": {
+				Name: "one",
+				Labels: manifest.Labels{
+					"convox.agent": "true",
+				},
+			},
+		},
+	}
+
+	a := models.App{
+		Name: "httpd",
+		Tags: map[string]string{
+			"Name":   "httpd",
+			"Type":   "app",
+			"System": "convox",
+			"Rack":   "convox-test",
+		},
+	}
+
+	agents := a.Agents(m)
+	assert.Equal(t, len(agents), 1)
+	assert.Equal(t, agents[0].Service.Name, "one")
 }
