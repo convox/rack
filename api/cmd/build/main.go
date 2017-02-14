@@ -271,6 +271,7 @@ func build(dir string) error {
 		Environment: env,
 		Cache:       flagCache == "true",
 		CacheDir:    cacheDir,
+		Verbose:     false,
 	})
 	if err != nil {
 		return err
