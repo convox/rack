@@ -32,6 +32,7 @@ func init() {
 			"ok":     RenderAttributes(46),
 			"start":  RenderAttributes(247),
 			"wait":   RenderAttributes(228),
+			"warn":   RenderAttributes(208),
 		},
 	}
 }
@@ -46,6 +47,11 @@ func Errorf(format string, args ...interface{}) error {
 
 func OK() (int, error) {
 	return DefaultWriter.OK()
+}
+
+// Warn prints a string in dark orange.
+func Warn(msg string) (int, error) {
+	return DefaultWriter.Warn(fmt.Sprintf("WARNING: %s", msg))
 }
 
 func Sprintf(format string, args ...interface{}) string {
@@ -93,6 +99,11 @@ func (w *Writer) Startf(format string, args ...interface{}) (int, error) {
 
 func (w *Writer) Wait(status string) (int, error) {
 	return w.Writef("<wait>%s</wait>\n", status)
+}
+
+// Warn wraps a string in <warn> tags
+func (w *Writer) Warn(status string) (int, error) {
+	return w.Writef("<warn>%s</warn>\n", status)
 }
 
 func (w *Writer) Write(data []byte) (int, error) {
