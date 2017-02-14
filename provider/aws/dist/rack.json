@@ -12,6 +12,7 @@
     "BlankInstanceRunCommand": { "Fn::Equals": [ { "Ref": "InstanceRunCommand" }, "" ] },
     "BlankInternetGateway": { "Fn::Equals": [ { "Ref": "InternetGateway"}, "" ] },
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
+    "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
@@ -98,6 +99,9 @@
     },
     "BalancerSecurityGroup": {
       "Value": { "Ref": "BalancerSecurityGroup" }
+    },
+    "BuildCluster": {
+      "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
     },
     "Cluster": {
       "Value": { "Ref": "Cluster" }
@@ -280,7 +284,12 @@
     },
     "BuildImage": {
       "Type": "String",
-      "Description": "Override the default build image",
+      "Description": "Override the default builder image",
+      "Default": ""
+    },
+    "BuildInstance": {
+      "Type": "String",
+      "Description": "Instance type for a dedicated build cluster",
       "Default": ""
     },
     "BuildMemory": {
@@ -656,7 +665,9 @@
                       "acm:DescribeCertificate",
                       "acm:ListCertificates",
                       "acm:RequestCertificate",
+                      "autoscaling:CreateAutoScalingGroup",
                       "autoscaling:CreateLaunchConfiguration",
+                      "autoscaling:DeleteAutoScalingGroup",
                       "autoscaling:DeleteLaunchConfiguration",
                       "autoscaling:DeleteLifecycleHook",
                       "autoscaling:DescribeAutoScalingGroups",
@@ -703,6 +714,7 @@
                       "ec2:DisassociateRouteTable",
                       "ec2:ReleaseAddress",
                       "ec2:RevokeSecurityGroupIngress",
+                      "ecs:CreateCluster",
                       "ecs:CreateService",
                       "ecs:DeleteService",
                       "ecs:DescribeContainerInstances",
@@ -731,6 +743,7 @@
                       "elasticfilesystem:CreateMountTarget",
                       "elasticfilesystem:DeleteMountTarget",
                       "elasticfilesystem:DescribeMountTargets",
+                      "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
                       "elasticloadbalancing:AttachLoadBalancerToSubnets",
                       "elasticloadbalancing:ConfigureHealthCheck",
                       "elasticloadbalancing:CreateLoadBalancer",
@@ -797,6 +810,14 @@
         "PolicyDocument" : {
             "Version": "2012-10-17",
             "Statement": [
+                {
+                  "Action": "ecs:DeleteCluster",
+                  "Resource": [
+                    { "Fn::Join": [ "", [ "arn:aws:ecs:*:*:cluster/", { "Ref": "AWS::StackName" }, "*" ] ] }
+                  ],
+                  "Effect": "Allow",
+                  "Sid": "LimitedECSAccess"
+                },
                 {
                   "Sid": "LimitedDynamoDBAccess",
                   "Action": "dynamodb:*",
@@ -1249,7 +1270,6 @@
       "Properties": {
         "GroupDescription": "Instances",
         "SecurityGroupIngress": [
-          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": { "Ref": "VPCCIDR" } },
           { "IpProtocol": "tcp", "FromPort": "0", "ToPort": "65535", "CidrIp": { "Ref": "VPCCIDR" } },
           { "IpProtocol": "udp", "FromPort": "0", "ToPort": "65535", "CidrIp": { "Ref": "VPCCIDR" } }
         ],
@@ -1322,6 +1342,129 @@
         "Roles": [ { "Ref": "IamRole" } ]
       }
     },
+    "BuildCluster": {
+      "Condition": "DedicatedBuilder",
+      "Type": "AWS::ECS::Cluster"
+    },
+    "BuildLaunchConfiguration": {
+      "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
+      "Condition": "DedicatedBuilder",
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "VolumeSize": { "Ref": "SwapSize" },
+              "VolumeType":"gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/xvdcz",
+            "Ebs": {
+              "VolumeSize": { "Ref": "VolumeSize" },
+              "VolumeType":"gp2"
+            }
+          }
+        ],
+        "IamInstanceProfile": { "Ref": "InstanceProfile" },
+        "ImageId": { "Fn::If": [ "BlankAmi", { "Fn::FindInMap": [ "RegionConfig", { "Ref": "AWS::Region" }, "Ami" ] }, { "Ref": "Ami" } ] },
+        "InstanceMonitoring": true,
+        "InstanceType": { "Ref": "BuildInstance" },
+        "KeyName": { "Fn::If": [ "BlankKey", { "Ref": "AWS::NoValue" }, { "Ref": "Key" } ] },
+        "PlacementTenancy" : { "Ref": "Tenancy" },
+        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "UserData": { "Fn::Base64":
+          { "Fn::Join": [ "", [
+            "#cloud-config\n",
+            "repo_upgrade_exclude:\n",
+            "  - kernel*\n",
+            "packages:\n",
+            "  - aws-cfn-bootstrap\n",
+            "mounts:\n",
+            "  - ['/dev/xvdb', 'none', 'swap', 'sw', '0', '0']\n",
+            "bootcmd:\n",
+            "  - mkswap /dev/xvdb\n",
+            "  - swapon /dev/xvdb\n",
+            "  - [ cloud-init-per, instance, docker_storage_setup, /usr/bin/docker-storage-setup ]\n",
+            "  - echo ECS_CLUSTER=", { "Ref": "BuildCluster" }, " >> /etc/ecs/ecs.config\n",
+            "  - echo ECS_ENGINE_AUTH_TYPE=docker >> /etc/ecs/ecs.config\n",
+            "  - head -n -1 /etc/sysconfig/docker >> /etc/sysconfig/docker-tmp\n",
+            "  - mv /etc/sysconfig/docker-tmp /etc/sysconfig/docker\n",
+            "  - echo 'OPTIONS=\"--default-ulimit nofile=1024000:1024000\"' >> /etc/sysconfig/docker\n",
+            { "Fn::Join": [ "", [
+              "  - echo 'OPTIONS=\"${OPTIONS} --storage-opt dm.basesize=", { "Ref": "ContainerDisk" }, "G\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'OPTIONS=\"${OPTIONS} --log-opt max-file=2 --log-opt max-size=50m --host=unix:///var/run/docker.sock --host=0.0.0.0:2376\"' >> /etc/sysconfig/docker\n",
+              "  - echo 'ECS_ENGINE_AUTH_DATA={\"index.docker.io\":{\"username\":\"\",\"password\":\"\",\"email\":\"\"}' >> /etc/ecs/ecs.config\n"
+            ] ] },
+            "  - mkdir -p /etc/convox\n",
+            "  - echo -e '/var/log/docker {\\n  rotate 7\\n  daily\\n  nocompress\\n  copytruncate\\n}' >> /etc/logrotate.d/docker\n",
+            "runcmd:\n",
+            "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref":"AWS::Region" }, " --resource BuildInstances\n"
+          ] ] }
+        }
+      }
+    },
+    "BuildInstances": {
+      "DependsOn": [ "AvailabilityZones", "Subnet0", "Subnet1" ],
+      "Condition": "DedicatedBuilder",
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref": "BuildLaunchConfiguration" },
+        "AvailabilityZones": [
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone0" ] },
+          { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone1" ] },
+          { "Fn::If": [ "ThirdAvailabilityZone", { "Fn::GetAtt": [ "AvailabilityZones", "AvailabilityZone2" ] }, { "Ref": "AWS::NoValue" } ] }
+        ],
+        "VPCZoneIdentifier": {
+          "Fn::If": [ "Private", [
+            { "Ref": "SubnetPrivate0" },
+            { "Ref": "SubnetPrivate1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "SubnetPrivate2" }, { "Ref": "AWS::NoValue" } ] }
+          ], [
+            { "Ref": "Subnet0" },
+            { "Ref": "Subnet1" },
+            { "Fn::If": [ "ThirdAvailabilityZone", { "Ref": "Subnet2" }, { "Ref": "AWS::NoValue" } ] }
+          ] ]
+        },
+        "Cooldown": 5,
+        "DesiredCapacity": "1",
+        "HealthCheckType": "EC2",
+        "HealthCheckGracePeriod": "120",
+        "MinSize" : "1",
+        "MaxSize" : "2",
+        "MetricsCollection": [ { "Granularity": "1Minute" } ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Rack",
+            "Value": { "Ref": "AWS::StackName" },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "GatewayAttachment",
+            "Value": { "Fn::If": [ "ExistingVpc", "existing", { "Ref": "GatewayAttachment" } ] },
+            "PropagateAtLaunch": false
+          }
+        ]
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MaxBatchSize": { "Ref": "InstanceUpdateBatchSize" },
+          "MinInstancesInService": "1",
+          "PauseTime" : "PT15M",
+          "SuspendProcesses": [
+            "ScheduledActions"
+          ],
+          "WaitOnResourceSignals": "true"
+        }
+      }
+    },
     "LaunchConfiguration": {
       "DependsOn": [ "Balancer", "Cluster", "InstanceProfile", "SecurityGroup", "LogGroup" ],
       "Type": "AWS::AutoScaling::LaunchConfiguration",
@@ -1329,7 +1472,7 @@
         "AssociatePublicIpAddress": { "Fn::If": [ "Private", false, true ] },
         "BlockDeviceMappings": [
           {
-            "DeviceName": "/dev/sdb",
+            "DeviceName": "/dev/xvdb",
             "Ebs": {
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
@@ -1407,8 +1550,8 @@
             "  - export INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
             "  - export ASG_NAME=$(/usr/bin/aws autoscaling describe-auto-scaling-instances --instance-ids=$INSTANCE_ID --region ", {"Ref":"AWS::Region"}, " --output text --query 'AutoScalingInstances[0].AutoScalingGroupName')\n",
             "  - export LIFECYCLE_HOOK=$(/usr/bin/aws autoscaling describe-lifecycle-hooks --auto-scaling-group-name $ASG_NAME --region ", {"Ref":"AWS::Region"}, " --output text --query \"LifecycleHooks[?contains(LifecycleHookName, '", { "Ref": "AWS::StackName" }, "-InstancesLifecycleLaunching') == \\`true\\`].LifecycleHookName | [0]\")\n",
-            "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", {"Ref":"AWS::Region"}, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
-            "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", {"Ref":"AWS::Region"}, " --resource Instances\n"
+            "  - /usr/bin/aws autoscaling complete-lifecycle-action --region ", { "Ref": "AWS::Region" }, " --instance-id $INSTANCE_ID --lifecycle-hook-name $LIFECYCLE_HOOK --auto-scaling-group-name $ASG_NAME --lifecycle-action-result CONTINUE\n",
+            "  - /opt/aws/bin/cfn-signal --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Instances\n"
           ] ] }
         }
       }
@@ -1935,6 +2078,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
               "CLUSTER": { "Ref": "Cluster" },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
@@ -1978,6 +2122,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
@@ -2052,6 +2197,7 @@
               "AWS_REGION": { "Ref": "AWS::Region" },
               "AWS_ACCESS": { "Ref": "KernelAccess" },
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
+              "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },

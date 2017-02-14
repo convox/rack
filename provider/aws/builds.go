@@ -771,7 +771,7 @@ func (p *AWSProvider) runBuild(build *structs.Build, method, url string, opts st
 	push := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:{service}.{build}", a.Outputs["RegistryId"], p.Region, a.Outputs["RegistryRepository"])
 
 	req := &ecs.RunTaskInput{
-		Cluster:        aws.String(p.Cluster),
+		Cluster:        aws.String(p.BuildCluster),
 		Count:          aws.Int64(1),
 		StartedBy:      aws.String(fmt.Sprintf("convox.%s", build.App)),
 		TaskDefinition: aws.String(td),
