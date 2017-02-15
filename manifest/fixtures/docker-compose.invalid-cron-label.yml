@@ -1,0 +1,9 @@
+version: "2"
+services:
+  counter:
+    build: .
+    ports:
+      - "80:5000"
+    command: ["bin/counter"]
+    labels:
+      - convox.cron.my_job=* * * * ? bin/myjob

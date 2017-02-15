@@ -61,8 +61,17 @@ func cmdDeploy(c *cli.Context) error {
 	}
 
 	// validate docker-compose
-	if _, err := manifest.LoadFile(c.String("file")); err != nil {
+	m, err := manifest.LoadFile(c.String("file"))
+	if err != nil {
 		return stdcli.Error(fmt.Errorf("invalid %s: %s", c.String("file"), strings.TrimSpace(err.Error())))
+	}
+
+	errs := m.Validate()
+	if len(errs) > 0 {
+		for _, e := range errs[1:] {
+			stdcli.Error(e)
+		}
+		return stdcli.Error(errs[0])
 	}
 
 	output := os.Stdout
