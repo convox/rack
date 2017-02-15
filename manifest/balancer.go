@@ -308,3 +308,18 @@ func (mb ManifestBalancer) IdleTimeout() (string, error) {
 	}
 	return "3600", nil
 }
+
+// DrainingTimeout The amount of time to allow a draining balancer to keep active connections open.
+func (mb ManifestBalancer) DrainingTimeout() (string, error) {
+	if timeout := mb.Entry.Labels["convox.draining.timeout"]; timeout != "" {
+		timeoutInt, err := strconv.Atoi(timeout)
+		if err != nil {
+			return "", err
+		}
+		if timeoutInt < 1 || timeoutInt > 3600 {
+			return "", fmt.Errorf("convox.draining.timeout must be between 1 and 3600")
+		}
+		return timeout, nil
+	}
+	return "60", nil
+}

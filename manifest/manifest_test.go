@@ -254,6 +254,32 @@ func TestLoadIdleTimeoutSet(t *testing.T) {
 	}
 }
 
+func TestLoadDrainingTimeoutUnset(t *testing.T) {
+	m, err := manifestFixture("draining-timeout-unset")
+
+	if assert.NoError(t, err) {
+		if assert.Equal(t, 1, len(m.Balancers())) {
+			b := m.Balancers()[0]
+			if val, err := b.DrainingTimeout(); assert.NoError(t, err) {
+				assert.Equal(t, val, "60")
+			}
+		}
+	}
+}
+
+func TestLoadDrainingTimeoutSet(t *testing.T) {
+	m, err := manifestFixture("draining-timeout-set")
+
+	if assert.NoError(t, err) {
+		if assert.Equal(t, 1, len(m.Balancers())) {
+			b := m.Balancers()[0]
+			if val, err := b.DrainingTimeout(); assert.NoError(t, err) {
+				assert.Equal(t, val, "99")
+			}
+		}
+	}
+}
+
 func TestLoadBadVersion1(t *testing.T) {
 	m, err := manifestFixture("bad-v1")
 

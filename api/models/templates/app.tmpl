@@ -413,7 +413,7 @@
           "Scheme": { "Fn::If": [ "Internal", "internal", { "Ref": "AWS::NoValue" } ] },
           "Subnets": { "Fn::If": [ "Internal", { "Ref": "SubnetsPrivate" }, { "Ref": "Subnets" } ] },
         {{ end }}
-        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": 60 },
+        "ConnectionDrainingPolicy": { "Enabled": true, "Timeout": "{{ .DrainingTimeout }}" },
         "ConnectionSettings": { "IdleTimeout": "{{ .IdleTimeout }}" },
         "CrossZone": true,
         "HealthCheck": {
