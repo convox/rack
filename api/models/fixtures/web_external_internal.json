@@ -262,7 +262,7 @@
       "Properties": {
         "ConnectionDrainingPolicy": {
           "Enabled": true,
-          "Timeout": 60
+          "Timeout": "60"
         },
         "ConnectionSettings": {
           "IdleTimeout": "3600"
