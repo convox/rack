@@ -39,3 +39,20 @@ func TestDeployNoManifestFound(t *testing.T) {
 		},
 	)
 }
+
+func TestDeployInvalidCronInManifest(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps/foo", Code: 200, Response: client.App{Name: "foo", Status: "running"}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox deploy --file docker-compose.invalid-cron-label.yml --app foo",
+			Dir:     "../../manifest/fixtures",
+			Exit:    1,
+			Stderr:  "ERROR: Cron task my_job is not valid (cron names can contain only alphanumeric characters, dashes and must be between 4 and 30 characters)\n",
+		},
+	)
+}
