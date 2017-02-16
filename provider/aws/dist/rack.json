@@ -912,6 +912,7 @@
                       "iam:CreateUser",
                       "iam:DeleteAccessKey",
                       "iam:DeleteInstanceProfile",
+                      "iam:DeletePolicy",
                       "iam:DeletePolicyVersion",
                       "iam:DeleteRole",
                       "iam:DeleteRolePolicy",

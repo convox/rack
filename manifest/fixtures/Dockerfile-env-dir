@@ -17,5 +17,8 @@ COPY public     $DIR/public/$FAKE
 COPY app/assets /app$DIR/assets
 RUN rake assets:precompile
 
+ADD http://example.org/example /tmp/example
+ADD https://example.org/example /tmp/example
+
 # copy the rest of the app
 COPY . $DIR
