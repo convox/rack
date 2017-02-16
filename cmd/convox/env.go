@@ -24,7 +24,7 @@ func init() {
 		Subcommands: []cli.Command{
 			{
 				Name:        "get",
-				Description: "get all environment variables",
+				Description: "get an environment variable",
 				Usage:       "VARIABLE",
 				Action:      cmdEnvGet,
 				Flags:       []cli.Flag{appFlag, rackFlag},
