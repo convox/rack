@@ -183,13 +183,23 @@ func (s *Service) SyncPaths() (map[string]string, error) {
 			}
 		case "ADD", "COPY":
 			if len(parts) >= 3 {
-				path := parts[2]
-				for k, v := range ev {
-					if strings.Contains(path, fmt.Sprintf("$%s", k)) {
-						path = strings.Replace(path, fmt.Sprintf("$%s", k), v, -1)
-					}
+				u, err := url.Parse(parts[1])
+				if err != nil {
+					return nil, err
 				}
-				sp[filepath.Join(s.Build.Context, parts[1])] = path
+
+				switch u.Scheme {
+				case "http", "https":
+					// do nothing
+				default:
+					path := parts[2]
+					for k, v := range ev {
+						if strings.Contains(path, fmt.Sprintf("$%s", k)) {
+							path = strings.Replace(path, fmt.Sprintf("$%s", k), v, -1)
+						}
+					}
+					sp[filepath.Join(s.Build.Context, parts[1])] = path
+				}
 			}
 		}
 	}
