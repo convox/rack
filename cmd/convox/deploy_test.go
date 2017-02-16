@@ -19,7 +19,7 @@ func TestDeployPreventAgainstCreating(t *testing.T) {
 			Command: "convox deploy --app foo",
 			Exit:    1,
 			Stdout:  "",
-			Stderr:  "ERROR: app foo is still being created\n",
+			Stderr:  "ERROR: deployment blocked, foo is still being created, check `convox apps info`\n",
 		},
 	)
 }
