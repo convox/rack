@@ -421,7 +421,17 @@ func generateManifestData(dir, kind string) ([]byte, error) {
 			// this can be time consuming, let's give feedback
 			stdcli.Spinner.Prefix = "Building ruby app metadata. This could take a while... "
 			stdcli.Spinner.Start()
-			r, err = exec.Command(dockerBin, append(args, "compile-release")...).Output()
+
+			var e error
+			r, e = exec.Command(dockerBin, append(args, "compile-release")...).CombinedOutput()
+			if e != nil {
+				fmt.Printf("\x08\x08FAILED\n")
+				stdcli.Spinner.Stop()
+
+				fmt.Println(string(r)) // output could be huge and not user friendly as a wall of red text if an error type
+				return nil, fmt.Errorf("unable to complie ruby app")
+			}
+
 			fmt.Printf("\x08\x08OK\n")
 			stdcli.Spinner.Stop()
 		} else {
