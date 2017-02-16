@@ -23,3 +23,19 @@ func TestStartInvalidManifest(t *testing.T) {
 		},
 	)
 }
+func TestStartDuplicateCronInManifest(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps/foo", Code: 200, Response: client.App{Name: "foo", Status: "running"}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox start --file docker-compose.duplicate-cron-label.yml",
+			Dir:     "../../manifest/fixtures",
+			Exit:    1,
+			Stderr:  "ERROR: error loading manifest: duplicate cron label convox.cron.myjob\n",
+		},
+	)
+}
