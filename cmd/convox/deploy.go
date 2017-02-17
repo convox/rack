@@ -44,7 +44,7 @@ func cmdDeploy(c *cli.Context) error {
 	a, err := rackClient(c).GetApp(app)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such app") {
-			return stdcli.Errorf("%s, try running `convox apps create`", err.Error())
+			return stdcli.Error(fmt.Errorf("%s, try running `convox apps create`", err.Error()))
 		}
 		return stdcli.Error(err)
 	}
