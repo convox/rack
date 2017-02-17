@@ -136,6 +136,9 @@ func initApplication(dir string) (string, error) {
 	kd := strings.TrimSpace(string(k))
 	kind, ok := appKind[kd]
 	if !ok {
+		if kd == "" {
+			kd = "?"
+		}
 		return kind, fmt.Errorf("unknown app type: %s \ncheck out %s for more information", kd, prepURL)
 	}
 
