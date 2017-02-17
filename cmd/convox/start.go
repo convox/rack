@@ -95,11 +95,10 @@ func cmdStart(c *cli.Context) error {
 
 	errs := m.Validate()
 	if len(errs) > 0 {
-		stdclierrs := make([]error, len(errs))
-		for i, e := range errs {
-			stdclierrs[i] = stdcli.Error(e)
+		for _, e := range errs[1:] {
+			stdcli.Error(e)
 		}
-		return cli.NewMultiError(stdclierrs...)
+		return stdcli.Error(errs[0])
 	}
 
 	if service != "" {
