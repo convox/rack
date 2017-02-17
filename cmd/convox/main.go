@@ -81,7 +81,6 @@ func main() {
 			}
 		}
 
-		fmt.Fprint(os.Stderr, fmt.Sprintf("%s\n", err.Error()))
 		os.Exit(1)
 	}
 }
