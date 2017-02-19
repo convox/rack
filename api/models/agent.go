@@ -43,12 +43,8 @@ func (a App) Agents(m manifest.Manifest) []Agent {
 	agents := []Agent{}
 
 	for _, entry := range m.Services {
-		// BackCompat: Some people might already be trying to use `convox.daemon` based on
-		// https://github.com/convox-examples/dd-agent/blob/master/docker-compose.yml#L13
-		_, okAgent := entry.Labels["convox.agent"]
-		_, okDaemon := entry.Labels["convox.daemon"]
-		if !okAgent && !okDaemon {
-			continue;
+		if !entry.IsAgent() {
+			continue
 		}
 
 		e := entry
