@@ -128,12 +128,12 @@
   },
   "Parameters": {
     "Agent1Formation": {
-      "Default": "1,0,256",
+      "Default": "0,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
     "Agent2Formation": {
-      "Default": "1,0,256",
+      "Default": "0,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
