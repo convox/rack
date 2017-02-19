@@ -51,17 +51,12 @@ func (p *AWSProvider) FormationList(app string) (structs.Formation, error) {
 	return formation, nil
 }
 
-// FormationGet gets a Formation
-func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
-	a, err := p.AppGet(app)
-	if err != nil {
-		return nil, err
-	}
-	if a.Release == "" {
-		return nil, fmt.Errorf("no release for app: %s", app)
+func (p *AWSProvider) getAppManifest(app *structs.App) (*manifest.Manifest, error) {
+	if app.Release == "" {
+		return nil, fmt.Errorf("no release for app: %s", app.Name)
 	}
 
-	release, err := p.ReleaseGet(a.Name, a.Release)
+	release, err := p.ReleaseGet(app.Name, app.Release)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +64,21 @@ func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormati
 	manifest, err := manifest.Load([]byte(release.Manifest))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse manifest for release: %s", release.Id)
+	}
+
+	return manifest, nil
+}
+
+// FormationGet gets a Formation
+func (p *AWSProvider) FormationGet(app, process string) (*structs.ProcessFormation, error) {
+	a, err := p.AppGet(app)
+	if err != nil {
+		return nil, err
+	}
+
+	manifest, err := p.getAppManifest(a)
+	if err != nil {
+		return nil, err
 	}
 
 	if _, ok := manifest.Services[process]; !ok {
@@ -94,6 +104,12 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 
 	if pf.Count < -1 {
 		return fmt.Errorf("requested count %d must be -1 or greater", pf.Count)
+	}
+
+	// Don't let users scale agents manually
+	manifest, _ := p.getAppManifest(a)
+	if manifest != nil && manifest.Services[pf.Name].IsAgent() && pf.Count > 0 {
+		pf.Count = 0
 	}
 
 	if int64(pf.CPU) > capacity.InstanceCPU {
