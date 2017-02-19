@@ -179,10 +179,10 @@
 {{ end }}
 
 {{ define "process-params" }}
-  {{ range $e := .EntryNames }}
-    "{{ upper $e }}Formation": {
+  {{ range $e := .Services }}
+    "{{ upper $e.Name }}Formation": {
       "Type": "CommaDelimitedList",
-      "Default": "1,0,256",
+      "Default": "{{ $e.DefaultParams }}",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve"
     },
   {{ end }}

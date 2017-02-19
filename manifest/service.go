@@ -130,6 +130,19 @@ func (s Service) IsAgent() bool {
 	return okAgent || okDaemon
 }
 
+// DefaultParams returns a string of comma-delimited Count, CPU, and Memory params
+func (s Service) DefaultParams() string {
+	count := 1
+	cpu := 0
+	memory := 256
+
+	if s.IsAgent() {
+		count = 0
+	}
+
+	return fmt.Sprintf("%d,%d,%d", count, cpu, memory)
+}
+
 func (s *Service) Proxies(app string) []Proxy {
 	proxies := []Proxy{}
 
