@@ -203,6 +203,34 @@ Convox relies on checklists to safely and reliabily take code from a Pull Reques
 
 We aim to automate and simplify the checklist over the life of the project to make releasing software easy, fast, and safe.
 
+## Adding support for a new region
+
+### `REGIONS`
+
+* Add the new region (in alphabetical order).
+
+### `ci/regions.sh`
+
+* Add the new region under a new number. (FIXME--where is this used?)
+
+### `rack.json`
+
+In `provider/aws/dist/rack.json`:
+
+* If the region [supports EFS](http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticfilesystem-region), add it to the `RegionHasEFS` section
+* Specify whether the region has a third availability zone in `AvailabilityZoneConfig`:
+
+```
+aws ec2 describe-availability-zones \
+    --region $region \
+    --filters Name=state,Values=available
+```
+
+## Elsewhere
+
+* Build and publish zip files for the Rack CloudFormation Lambda Handler and publish into public S3 files for the new region
+* Add the new region to Console and the site documentation.
+
 ## Release Changes for `convox rack update`
 
 The ultimate goal is to package changes so that a user can apply them with `convox rack update`. This involves:
