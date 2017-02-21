@@ -205,30 +205,47 @@ We aim to automate and simplify the checklist over the life of the project to ma
 
 ## Adding support for a new region
 
+### Create a new s3 bucket
+
+To create the s3 bucket:
+
+    region=eu-west-2
+    aws s3api create-bucket \
+        --create-bucket-configuration LocationConstraint=${region} \
+        --region $region \
+        --bucket convox-${region}
+
 ### `REGIONS`
 
 Add the new region to the `REGIONS` file, in alphabetical order.
 This will automatically build and publish zip files for the Rack CloudFormation Lambda Handler and publish into public S3 files for the new region.
 
-
 ### `ci/regions.sh`
 
-* Add the new region under a new number. (FIXME--where is this used?)
+* Add the new region under a new number `N`.
+
+CircleCI runs `N` iterations of this script and changes some `_INDEX` env var to run a different region in each iteration.
+A few of the regions are used to test alternate install options as well.
+
+Appending to this list may require increasing the concurrency of the CI job and/or upgrading our container plan.
 
 ### `rack.json`
 
 In `provider/aws/dist/rack.json`:
 
 * If the region [supports EFS](http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticfilesystem-region), add it to the `RegionHasEFS` section
-* Specify whether the region has a third availability zone in `AvailabilityZoneConfig`:
+* Specify whether the region has a third availability zone in `AvailabilityZoneConfig`.
+
+To view availability zones for a region:
 
 ```
+region=eu-west-2
 aws ec2 describe-availability-zones \
     --region $region \
     --filters Name=state,Values=available
 ```
 
-## Elsewhere
+### Elsewhere
 
 * Add the new region to Console and the site documentation.
 

@@ -44,7 +44,6 @@ case "$1" in
     echo RACK_PRIVATE=yes
     ;;
   9)
-    # FIXME: what is this used by?
     echo AWS_DEFAULT_REGION=eu-west-2
     echo AWS_REGION=eu-west-2
     ;;
