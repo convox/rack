@@ -34,13 +34,12 @@ func TestRegistriesList(t *testing.T) {
 	)
 }
 
-/*
 func TestRegistriesAddStdin(t *testing.T) {
 	tr := testServer(t,
 		test.Http{
 			Method: "POST",
 			Path:   "/registries",
-			Body:   "email=&password=testRegistryPassword&server=https%3A%2F%2Findex.docker.io%2Fv1%2F&username=testRegistryUser",
+			Body:   "email=&password=&server=https%3A%2F%2Findex.docker.io%2Fv1%2F&username=testRegistryUser",
 			Code:   200,
 		},
 	)
@@ -56,7 +55,6 @@ func TestRegistriesAddStdin(t *testing.T) {
 		},
 	)
 }
-*/
 
 func TestRegistriesAdd(t *testing.T) {
 	tr := testServer(t,
