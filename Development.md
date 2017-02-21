@@ -207,7 +207,9 @@ We aim to automate and simplify the checklist over the life of the project to ma
 
 ### `REGIONS`
 
-* Add the new region (in alphabetical order).
+Add the new region to the `REGIONS` file, in alphabetical order.
+This will automatically build and publish zip files for the Rack CloudFormation Lambda Handler and publish into public S3 files for the new region.
+
 
 ### `ci/regions.sh`
 
@@ -228,7 +230,6 @@ aws ec2 describe-availability-zones \
 
 ## Elsewhere
 
-* Build and publish zip files for the Rack CloudFormation Lambda Handler and publish into public S3 files for the new region
 * Add the new region to Console and the site documentation.
 
 ## Release Changes for `convox rack update`
