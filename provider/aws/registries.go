@@ -40,8 +40,12 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 		if err != nil {
 			return nil, err
 		}
-		sid := regexpStackID.FindStringSubmatch(*system.StackId)[2]
-		host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", sid, p.Region)
+		stackID := regexpStackID.FindStringSubmatch(*system.StackId)
+		if len(stackID) < 3 {
+			return nil, fmt.Errorf("invalid stack id %s", *system.StackId)
+		}
+		accountID := stackID[2]
+		host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", accountID, p.Region)
 
 		if host == server {
 			return nil, fmt.Errorf("can't add the rack's internal registry: %s", server)
