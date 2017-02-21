@@ -51,9 +51,9 @@ func cmdDeploy(c *cli.Context) error {
 
 	switch a.Status {
 	case "creating":
-		return stdcli.Error(fmt.Errorf("deployment blocked, %s is still being created, check `convox apps info`", app))
+		return stdcli.Error(fmt.Errorf("app %s is still being created, check `convox apps info`", app))
 	case "updating":
-		return stdcli.Error(fmt.Errorf("deployment blocked, %s is already updating, check `convox apps info`", app))
+		return stdcli.Error(fmt.Errorf("app %s is still being updated, check `convox apps info`", app))
 	}
 
 	if !helpers.Exists(c.String("file")) {

@@ -145,7 +145,7 @@ func cmdReleasePromote(c *cli.Context) error {
 	}
 
 	if a.Status != "running" {
-		return stdcli.Error(fmt.Errorf("promotion blocked, %s is already updating, check `convox apps info`", app))
+		return stdcli.Error(fmt.Errorf("app %s is still being updated, check `convox apps info`", app))
 	}
 
 	fmt.Printf("Promoting %s... ", release)

@@ -19,7 +19,7 @@ func TestPromotePreventAgainstCreating(t *testing.T) {
 			Command: "convox releases promote xxxxxxxx --app foo",
 			Exit:    1,
 			Stdout:  "",
-			Stderr:  "ERROR: promotion blocked, foo is already updating, check `convox apps info`\n",
+			Stderr:  "ERROR: app foo is still being updated, check `convox apps info`\n",
 		},
 	)
 }
