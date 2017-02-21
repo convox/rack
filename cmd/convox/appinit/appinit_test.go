@@ -1,4 +1,4 @@
-package main
+package appinit
 
 import (
 	"testing"
@@ -19,7 +19,7 @@ func TestInitReadProcfile(t *testing.T) {
 	}
 
 	for _, pt := range procfileTests {
-		pf := ReadProcfile(pt.data)
+		pf := ReadProcfileData(pt.data)
 		assert.Equal(t, pt.procfile, pf)
 	}
 
@@ -37,7 +37,7 @@ func TestInitReadAppfile(t *testing.T) {
 	}
 
 	for _, at := range appfileTests {
-		af, err := ReadAppfile(at.data)
+		af, err := ReadAppfileData(at.data)
 		assert.NoError(t, err)
 		assert.Equal(t, at.af, af)
 	}
@@ -169,7 +169,7 @@ func TestGenerateManifest(t *testing.T) {
 }
 
 func TestInitInvalidAppfileJson(t *testing.T) {
-	_, err := ReadAppfile([]byte("foobar" + appWithNoAddonsNoEnv))
+	_, err := ReadAppfileData([]byte("foobar" + appWithNoAddonsNoEnv))
 	assert.Error(t, err)
 }
 
