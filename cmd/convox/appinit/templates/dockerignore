@@ -1,0 +1,8 @@
+.convox
+.env
+.git
+.gitignore
+
+{{ if .ignoreFiles }}
+{{ range $file := .ignoreFiles }}{{ $file }} {{ end }}
+{{ end }}
