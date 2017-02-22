@@ -148,7 +148,21 @@
     },
     "WebPort80BalancerName": {
       "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-web-XHW5F4P",
+                "n"
+              ]
+            ]
+          },
+          "httpd-web-XHW5F4P"
+        ]
+      }
     },
     "WorkerPort80Balancer": {
       "Condition": "EnabledWorker",
@@ -156,7 +170,21 @@
     },
     "WorkerPort80BalancerName": {
       "Condition": "EnabledWorker",
-      "Value": "httpd-worker-3XM5YXK"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-worker-3XM5YXK",
+                "n"
+              ]
+            ]
+          },
+          "httpd-worker-3XM5YXK"
+        ]
+      }
     }
   },
   "Parameters": {
@@ -352,7 +380,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-XHW5F4P",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-web-XHW5F4P",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-web-XHW5F4P"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"
@@ -492,7 +534,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-worker-3XM5YXK",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-worker-3XM5YXK",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-worker-3XM5YXK"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"

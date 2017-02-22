@@ -138,7 +138,21 @@
     },
     "PostgresPort5432BalancerName": {
       "Condition": "EnabledPostgres",
-      "Value": "httpd-postgres-OTLTE5J-i"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-postgres-OTLTE5J-i",
+                "n"
+              ]
+            ]
+          },
+          "httpd-postgres-OTLTE5J-i"
+        ]
+      }
     },
     "RegistryId": {
       "Value": {
@@ -164,7 +178,21 @@
     },
     "WebPort443BalancerName": {
       "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-web-XHW5F4P",
+                "n"
+              ]
+            ]
+          },
+          "httpd-web-XHW5F4P"
+        ]
+      }
     },
     "WebPort80Balancer": {
       "Condition": "EnabledWeb",
@@ -172,7 +200,21 @@
     },
     "WebPort80BalancerName": {
       "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-web-XHW5F4P",
+                "n"
+              ]
+            ]
+          },
+          "httpd-web-XHW5F4P"
+        ]
+      }
     }
   },
   "Parameters": {
@@ -378,7 +420,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-postgres-OTLTE5J-i",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-postgres-OTLTE5J-i",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-postgres-OTLTE5J-i"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"
@@ -537,7 +593,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-XHW5F4P",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-web-XHW5F4P",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-web-XHW5F4P"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"

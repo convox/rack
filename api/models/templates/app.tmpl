@@ -365,7 +365,10 @@
       },
       "{{ upper $balancer.ProcessName }}Port{{ .Balancer }}BalancerName": {
         "Condition": "Enabled{{ upper $balancer.ProcessName }}",
-        "Value": {{ $balancer.LoadBalancerName true $app.Name }}
+        "Value": { "Fn::If": [ "Internal",
+          { "Fn::Join": [ "-", [ {{ $balancer.LoadBalancerName true $app.Name }}, "n" ] ] },
+          {{ $balancer.LoadBalancerName true $app.Name }}
+        ] }
       },
     {{ end }}
   {{ end }}
@@ -463,11 +466,14 @@
           { "Ref": "AWS::NoValue" }
         ],
         "LBCookieStickinessPolicy": [{ "PolicyName": "affinity" }],
-        "LoadBalancerName": {{ .LoadBalancerName true $app.Name }},
+        "LoadBalancerName": { "Fn::If": [ "Internal",
+          { "Fn::Join": [ "-", [ {{ .LoadBalancerName true $app.Name }}, "n" ] ] },
+          {{ .LoadBalancerName true $app.Name }}
+        ] },
         "SecurityGroups" : [{ "Fn::If" : [
-      "BlankSecurityGroup",
-      {"Ref" : "{{ .ResourceName }}SecurityGroup"},
-      {"Ref" : "SecurityGroup"}
+          "BlankSecurityGroup",
+          {"Ref" : "{{ .ResourceName }}SecurityGroup"},
+          {"Ref" : "SecurityGroup"}
         ]}]
       }
     },

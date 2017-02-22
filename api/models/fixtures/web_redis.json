@@ -130,7 +130,21 @@
     },
     "RedisPort6379BalancerName": {
       "Condition": "EnabledRedis",
-      "Value": "httpd-redis-NVCY43S-i"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-redis-NVCY43S-i",
+                "n"
+              ]
+            ]
+          },
+          "httpd-redis-NVCY43S-i"
+        ]
+      }
     },
     "RegistryId": {
       "Value": {
@@ -156,7 +170,21 @@
     },
     "WebPort80BalancerName": {
       "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-web-XHW5F4P",
+                "n"
+              ]
+            ]
+          },
+          "httpd-web-XHW5F4P"
+        ]
+      }
     }
   },
   "Parameters": {
@@ -352,7 +380,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-redis-NVCY43S-i",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-redis-NVCY43S-i",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-redis-NVCY43S-i"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"
@@ -486,7 +528,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-XHW5F4P",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-web-XHW5F4P",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-web-XHW5F4P"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"
