@@ -118,6 +118,14 @@ func (m Manifest) Validate() []error {
 			}
 		}
 
+		labels = entry.LabelsByPrefix("convox.draining.timeout")
+		for _, v := range labels {
+			i, err := strconv.Atoi(v)
+			if err != nil || i < 1 || i > 3600 {
+				errors = append(errors, fmt.Errorf("convox.draining.timeout for %s must be between 1 and 3600", entry.Name))
+			}
+		}
+
 		for _, l := range entry.Links {
 			ls, ok := m.Services[l]
 			if !ok {
