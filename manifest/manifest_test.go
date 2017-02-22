@@ -280,6 +280,15 @@ func TestLoadDrainingTimeoutSet(t *testing.T) {
 	}
 }
 
+func TestLoadDrainingTimeoutError(t *testing.T) {
+	m, err := manifestFixture("draining-timeout-error")
+	assert.NoError(t, err)
+
+	errs := m.Validate()
+	assert.NotNil(t, errs)
+	assert.EqualError(t, errs[0], "convox.draining.timeout for main must be between 1 and 3600")
+}
+
 func TestLoadBadVersion1(t *testing.T) {
 	m, err := manifestFixture("bad-v1")
 

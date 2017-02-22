@@ -280,6 +280,9 @@ func (l *Labels) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 			switch len(parts) {
 			case 2:
+				if _, ok := (*l)[parts[0]]; ok {
+					return fmt.Errorf("duplicate cron label %v", parts[0])
+				}
 				(*l)[parts[0]] = parts[1]
 			default:
 				return fmt.Errorf("cannot parse label: %v", t)

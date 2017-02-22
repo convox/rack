@@ -36,6 +36,21 @@ func (p *AWSProvider) RegistryAdd(server, username, password string) (*structs.R
 	// validate login
 	switch {
 	case regexpECRHost.MatchString(server):
+		system, err := p.describeStack(p.Rack)
+		if err != nil {
+			return nil, err
+		}
+		stackID := regexpStackID.FindStringSubmatch(*system.StackId)
+		if len(stackID) < 3 {
+			return nil, fmt.Errorf("invalid stack id %s", *system.StackId)
+		}
+		accountID := stackID[2]
+		host := fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", accountID, p.Region)
+
+		if host == server {
+			return nil, fmt.Errorf("can't add the rack's internal registry: %s", server)
+		}
+
 		if _, _, err := p.authECR(server, username, password); err != nil {
 			return nil, fmt.Errorf("unable to authenticate")
 		}
