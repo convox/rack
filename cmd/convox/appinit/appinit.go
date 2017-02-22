@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -233,6 +234,24 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 			m.Services[name] = s
 		}
 	}
+
+	// Some buildpacks are known to use environment variables in the command string so we escape them
+	for name, s := range m.Services {
+		for _, env := range s.Environment {
+			if s.Command.String != "" {
+				if strings.Contains(s.Command.String, fmt.Sprintf("$%s", env.Name)) {
+					s.Command.String = strings.Replace(
+						s.Command.String,
+						fmt.Sprintf("$%s", env.Name),
+						fmt.Sprintf("$$%s", env.Name),
+						-1,
+					)
+					m.Services[name] = s
+				}
+			}
+		}
+	}
+
 	return m
 }
 
