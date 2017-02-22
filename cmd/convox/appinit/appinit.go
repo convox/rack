@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os/exec"
 	"path"
 	"regexp"
 	"strings"
+	"text/template"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -25,7 +25,8 @@ type AppFramework interface {
 	GenerateEntrypoint() ([]byte, error)
 	GenerateDockerfile() ([]byte, error)
 	GenerateDockerIgnore() ([]byte, error)
-	GenerateManifest(string) ([]byte, error)
+	GenerateManifest() ([]byte, error)
+	Setup(string) error
 }
 
 // EnvEntry is an environment entry from an app.json file
@@ -269,7 +270,7 @@ func generateManifestData(dir string) ([]byte, error) {
 
 	var release Release
 	if len(pf) == 0 || !appFound {
-		args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+		args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/app", dir), "convox/init"}
 
 		r, err := exec.Command(dockerBin, append(args, "release")...).Output()
 		if err != nil {

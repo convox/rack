@@ -2,6 +2,7 @@ package appinit
 
 type SimpleApp struct {
 	Kind string
+	dir  string
 }
 
 func (sa *SimpleApp) GenerateEntrypoint() ([]byte, error) {
@@ -16,6 +17,11 @@ func (sa *SimpleApp) GenerateDockerfile() ([]byte, error) {
 func (sa *SimpleApp) GenerateDockerIgnore() ([]byte, error) {
 	return writeAsset("appinit/templates/dockerignore", nil)
 }
-func (sa *SimpleApp) GenerateManifest(dir string) ([]byte, error) {
-	return generateManifestData(dir)
+func (sa *SimpleApp) GenerateManifest() ([]byte, error) {
+	return generateManifestData(sa.dir)
+}
+
+func (sa *SimpleApp) Setup(dir string) error {
+	sa.dir = dir
+	return nil
 }

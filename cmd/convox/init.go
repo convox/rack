@@ -103,7 +103,7 @@ func initApplication(dir string) (string, error) {
 		if kd == "" {
 			kd = "?"
 		}
-		return kind, fmt.Errorf("unknown app type: %s \ncheck out %s for more information", kd, prepURL)
+		return kind, fmt.Errorf("unknown app type: %s \nCheck out %s for more information", kd, prepURL)
 	}
 
 	fmt.Printf("Initializing a %s app\n", kind)
@@ -119,7 +119,11 @@ func initApplication(dir string) (string, error) {
 		}
 	}
 
-	m, err := af.GenerateManifest(dir)
+	if err := af.Setup(dir); err != nil {
+		return kind, err
+	}
+
+	m, err := af.GenerateManifest()
 	if err != nil {
 		return kind, err
 	}
