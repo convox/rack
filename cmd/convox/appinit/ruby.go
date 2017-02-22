@@ -48,7 +48,7 @@ func (ra *RubyApp) GenerateManifest(dir string) ([]byte, error) {
 	var release Release
 	if len(pf) == 0 || !appFound {
 		var r []byte
-		args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+		args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/app", dir), "convox/init"}
 
 		// NOTE: The ruby-buildpack generates a yaml file during compile so we have to perform both steps
 		// this can be time consuming, let's give feedback
