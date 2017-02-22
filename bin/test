@@ -7,6 +7,12 @@ go get -t ./...
 rm -f coverage.txt
 
 if [ ! -z ${TEST} ]; then
+    if [ ! -z ${TESTRUN} ]; then
+        echo "Running single test $TESTRUN"
+        go test -coverprofile=profile.out -covermode=atomic "$TEST" -test.run "$TESTRUN"
+        exit
+    fi
+
     go test -coverprofile=profile.out -covermode=atomic "$TEST"
     exit
 fi
