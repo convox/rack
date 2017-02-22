@@ -54,8 +54,10 @@ We recommend that you create a new set of credentials exclusively for this
 install/uninstall process and then delete them once the installer has completed.`
 
 var (
-	distinctID   = ""
-	formationURL = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	distinctID         = ""
+	formationURL       = "https://convox.s3.amazonaws.com/release/%s/formation.json"
+	defaultSubnetCIDRs = "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24"
+	defaultVPCCIDR     = "10.0.0.0/16"
 )
 
 func init() {
@@ -147,12 +149,12 @@ func init() {
 			},
 			cli.StringFlag{
 				Name:  "vpc-cidr",
-				Value: "10.0.0.0/16",
+				Value: defaultVPCCIDR,
 				Usage: "custom VPC CIDR",
 			},
 			cli.StringFlag{
 				Name:  "subnet-cidrs",
-				Value: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24",
+				Value: defaultSubnetCIDRs,
 				Usage: "subnet CIDRs",
 			},
 		},
@@ -238,16 +240,26 @@ func cmdInstall(c *cli.Context) error {
 		subnetPrivate2CIDR = parts[2]
 	}
 
+	internetGateway := c.String("internet-gateway")
+
+	vpcCIDR := c.String("vpc-cidr")
+
 	var existingVPC string
 
 	if vpc := c.String("existing-vpc"); vpc != "" {
 		existingVPC = vpc
-	}
+		// check required flags when installing into existing VPC
+		if c.String("subnet-cidrs") == defaultSubnetCIDRs {
+			stdcli.Warn(fmt.Sprintf("[existing vpc] using default subnet cidrs (%s); if this is incorrect, pass a custom value to --subnet-cidrs", defaultSubnetCIDRs))
+		}
 
-	internetGateway := c.String("internet-gateway")
+		if vpcCIDR == defaultVPCCIDR {
+			stdcli.Warn(fmt.Sprintf("[existing vpc] using default vpc cidr (%s); if this is incorrect, pass a custom value to --vpc-cidr", defaultVPCCIDR))
+		}
 
-	if (existingVPC != "") && (internetGateway == "") {
-		return stdcli.Error(fmt.Errorf("must specify valid Internet Gateway for existing VPC"))
+		if internetGateway == "" {
+			return stdcli.Error(fmt.Errorf("must specify --internet-gateway for existing VPC"))
+		}
 	}
 
 	private := "No"
@@ -258,8 +270,6 @@ func cmdInstall(c *cli.Context) error {
 	ami := c.String("ami")
 
 	key := c.String("key")
-
-	vpcCIDR := c.String("vpc-cidr")
 
 	versions, err := version.All()
 	if err != nil {
