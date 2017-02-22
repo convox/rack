@@ -32,17 +32,17 @@ func (er ExecRun) Test(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	assert.Equal(t, er.Exit, code, "exit code should be equal")
+	assert.Equal(t, er.Exit, code, fmt.Sprintf("exit code should be equal 🢂  %s", er.Command))
 	if er.Stdout != "" {
-		assert.Equal(t, er.Stdout, stdout, "stdout should be equal")
+		assert.Equal(t, er.Stdout, stdout, fmt.Sprintf("stdout should be equal 🢂  %s", er.Command))
 	}
 	if er.OutMatch != "" {
 		assert.Contains(t, stdout, er.OutMatch,
-			fmt.Sprintf("stdout %q should contain %q", stdout, er.OutMatch))
+			fmt.Sprintf("stdout %q should contain %q\n 🢂  %s", stdout, er.OutMatch, er.Command))
 	}
 	if er.Stderr != "" {
 		assert.Contains(t, stderr, er.Stderr,
-			fmt.Sprintf("stderr %q should contain %q", stderr, er.Stderr))
+			fmt.Sprintf("stderr %q should contain %q\n 🢂  %s", stderr, er.Stderr, er.Command))
 	}
 }
 
