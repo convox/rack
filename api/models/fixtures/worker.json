@@ -113,7 +113,21 @@
     },
     "PostgresPort5432BalancerName": {
       "Condition": "EnabledPostgres",
-      "Value": "httpd-postgres-OTLTE5J-i"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-postgres-OTLTE5J-i",
+                "n"
+              ]
+            ]
+          },
+          "httpd-postgres-OTLTE5J-i"
+        ]
+      }
     },
     "RegistryId": {
       "Value": {
@@ -317,7 +331,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-postgres-OTLTE5J-i",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-postgres-OTLTE5J-i",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-postgres-OTLTE5J-i"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"
