@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
@@ -308,8 +309,14 @@ func TestUrls(t *testing.T) {
 		"http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html",
 	}
 
+	tr := &http.Transport{
+		TLSHandshakeTimeout: 30 * time.Second,
+	}
+
+	client := &http.Client{Transport: tr}
+
 	for _, url := range urls {
-		resp, err := http.Get(url)
+		resp, err := client.Get(url)
 		assert.NoError(t, err)
 		rc := resp.StatusCode
 		if rc != 200 {
