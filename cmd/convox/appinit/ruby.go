@@ -31,6 +31,11 @@ func (ra *RubyApp) GenerateDockerfile() ([]byte, error) {
 	input := map[string]interface{}{
 		"kind":        "ruby",
 		"environment": ra.environment,
+		"precompile": []string{
+			`# This is to install sqlite for any ruby apps that need it`,
+			`# This line can be removed if your app doesn't use sqlite3`,
+			`RUN apt-get update && apt-get install sqlite3 libsqlite3-dev && apt-get clean`,
+		},
 	}
 	return writeAsset("appinit/templates/Dockerfile", input)
 }

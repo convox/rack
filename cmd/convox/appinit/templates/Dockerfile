@@ -7,6 +7,9 @@ WORKDIR /app
 {{ if .environment }}
 ENV {{ range $key, $value := .environment }}{{ $key }}={{ $value }} {{ end }}
 {{ end }}
+{{ range $line := .precompile }}
+{{ $line }}
+{{ end }}
 
 COPY . /app
 RUN chmod +x /app/entrypoint.sh
