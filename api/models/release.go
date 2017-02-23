@@ -751,10 +751,16 @@ func waitForPromotion(r *Release) {
 
 			ee := fmt.Errorf("unable to determine release error")
 			if lastEvent != nil {
-				ee = fmt.Errorf("%s: %s", *lastEvent.ResourceStatus, *lastEvent.ResourceStatusReason)
+				ee = fmt.Errorf(
+					"[%s:%s] [%s]: %s",
+					*lastEvent.ResourceType,
+					*lastEvent.LogicalResourceId,
+					*lastEvent.ResourceStatus,
+					*lastEvent.ResourceStatusReason,
+				)
 			}
 
-			Provider().EventSend(event, fmt.Errorf("release failed: %s", r.Id, ee))
+			Provider().EventSend(event, fmt.Errorf("release %s failed - %s", r.Id, ee.Error()))
 		}
 	}
 }
