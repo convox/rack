@@ -698,6 +698,7 @@
                       "ec2:CreateSecurityGroup",
                       "ec2:CreateSubnet",
                       "ec2:CreateTags",
+                      "ec2:CreateVpc",
                       "ec2:DeleteNatGateway",
                       "ec2:DeleteNetworkInterface",
                       "ec2:DeleteRoute",
