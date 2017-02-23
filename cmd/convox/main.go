@@ -81,6 +81,9 @@ func main() {
 			}
 		}
 
+		if _, ok := err.(stdcli.ErrorStdCli); !ok {
+			stdcli.Error(err)
+		}
 		os.Exit(1)
 	}
 }
