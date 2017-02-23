@@ -684,17 +684,34 @@ func waitForPromotion(r *Release) {
 
 	waitch := make(chan error)
 	go func() {
-		waitch <- CloudFormation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(stackName),
-		})
+		var err error
+		//we have observed stack stabalization failures take up to 3 hours
+		for i := 0; i < 3; i++ {
+			err = CloudFormation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				if err.Error() == "exceeded 120 wait attempts" {
+					continue
+				}
+			}
+			break
+		}
+		waitch <- err
 	}()
 
 	for {
 		select {
 		case err := <-waitch:
-			if err != nil {
-				Provider().EventSend(event, fmt.Errorf("unable to wait for promotion: %s", err))
-				fmt.Println(fmt.Errorf("unable to wait for promotion: %s", err))
+			if err == nil {
+				event.Status = "success"
+				Provider().EventSend(event, nil)
+				return
+			}
+
+			if err != nil && err.Error() == "exceeded 120 wait attempts" {
+				Provider().EventSend(event, fmt.Errorf("couldn't determine promotion status, timed out"))
+				fmt.Println(fmt.Errorf("couldn't determine promotion status, timed out"))
 				return
 			}
 
@@ -713,41 +730,37 @@ func waitForPromotion(r *Release) {
 				return
 			}
 
-			stack := resp.Stacks[0]
-			switch *stack.StackStatus {
-
-			case "UPDATE_COMPLETE":
-				event.Status = "success"
-				Provider().EventSend(event, nil)
-
-			case "UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE", "UPDATE_FAILED":
-				se, err := CloudFormation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
-					StackName: aws.String(stackName),
-				})
-				if err != nil {
-					Provider().EventSend(event, fmt.Errorf("unable to check stack events: %s", err))
-					fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
-					return
-				}
-
-				var lastEvent *cloudformation.StackEvent
-
-				for _, e := range se.StackEvents {
-					switch *e.ResourceStatus {
-					case "UPDATE_FAILED", "DELETE_FAILED", "CREATE_FAILED":
-						lastEvent = e
-						break
-					}
-				}
-
-				ee := fmt.Errorf("unable to determine release error")
-				if lastEvent != nil {
-					ee = fmt.Errorf("%s: %s", *lastEvent.ResourceStatus, *lastEvent.ResourceStatusReason)
-				}
-
-				Provider().EventSend(event, fmt.Errorf("release failed: %s", r.Id, ee))
+			se, err := CloudFormation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				Provider().EventSend(event, fmt.Errorf("unable to check stack events: %s", err))
+				fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
+				return
 			}
-			return
+
+			var lastEvent *cloudformation.StackEvent
+
+			for _, e := range se.StackEvents {
+				switch *e.ResourceStatus {
+				case "UPDATE_FAILED", "DELETE_FAILED", "CREATE_FAILED":
+					lastEvent = e
+					break
+				}
+			}
+
+			ee := fmt.Errorf("unable to determine release error")
+			if lastEvent != nil {
+				ee = fmt.Errorf(
+					"[%s:%s] [%s]: %s",
+					*lastEvent.ResourceType,
+					*lastEvent.LogicalResourceId,
+					*lastEvent.ResourceStatus,
+					*lastEvent.ResourceStatusReason,
+				)
+			}
+
+			Provider().EventSend(event, fmt.Errorf("release %s failed - %s", r.Id, ee.Error()))
 		}
 	}
 }
