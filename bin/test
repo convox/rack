@@ -6,8 +6,14 @@ go get -t ./...
 
 rm -f coverage.txt
 
-if [ ! -z ${TEST} ]; then
-    go test -coverprofile=profile.out -covermode=atomic "$TEST"
+if [ ! -z ${PKG} ]; then
+    if [ ! -z ${TEST} ]; then
+        echo "Running single test $TEST"
+        go test -coverprofile=profile.out -covermode=atomic "$PKG" -test.run "$TEST"
+        exit
+    fi
+
+    go test -coverprofile=profile.out -covermode=atomic "$PKG"
     exit
 fi
 
