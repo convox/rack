@@ -205,6 +205,27 @@ func cmdRackParamsSet(c *cli.Context) error {
 		params[parts[0]] = parts[1]
 	}
 
+	existing, err := rackClient(c).ListParameters(system.Name)
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	hasChange := false
+	for k, v := range params {
+		res, ok := existing[k]
+		if !ok {
+			hasChange = true
+			break
+		} else if res != v {
+			hasChange = true
+			break
+		}
+	}
+
+	if !hasChange {
+		return stdcli.Error(fmt.Errorf("No updates are to be performed"))
+	}
+
 	fmt.Print("Updating parameters... ")
 
 	err = rackClient(c).SetParameters(system.Name, params)
