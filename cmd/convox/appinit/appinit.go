@@ -283,10 +283,6 @@ func generateManifestData(dir string) ([]byte, error) {
 		}
 	}
 
-	fmt.Printf("pf = %+v\n", pf)
-	fmt.Printf("am = %+v\n", am)
-	fmt.Printf("release = %+v\n", release)
-
 	m := GenerateManifest(pf, am, release)
 	if len(m.Services) == 0 {
 		return nil, fmt.Errorf("unable to generate manifest")

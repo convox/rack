@@ -80,7 +80,7 @@ var appKind = map[string]string{
 
 func initApplication(dir string) (string, error) {
 	prepURL := "https://convox.com/docs/preparing-an-application/"
-	args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
+	args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/app", dir), "convox/init"}
 
 	stdcli.Spinner.Prefix = "Updating convox/init... "
 	stdcli.Spinner.Start()
