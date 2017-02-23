@@ -280,8 +280,8 @@ This generally uses a specific version number (e.g. 20160323164322) that has bee
 ## Testing
 
 * To run the test suite locally, run `make test`
-* To run a subset of tests, provide `TEST`, e.g. `make test TEST=github.com/convox/rack/cmd/convox`
-* To run a single test, provide `TEST` and `TESTRUN`, e.g. `make test TEST=github.com/convox/rack/cmd/convox TESTRUN=TestRequiredFlagsWhenInstallingIntoExistingVPC`
+* To run a subset of tests, provide `PKG`, e.g. `make test PKG=github.com/convox/rack/cmd/convox`
+* To run a single test, provide `PKG` and `TEST`, e.g. `make test PKG=github.com/convox/rack/cmd/convox TEST=TestRequiredFlagsWhenInstallingIntoExistingVPC`
 
 ## Gotchas
 
