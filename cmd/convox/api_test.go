@@ -37,12 +37,12 @@ Usage:
 Subcommands: (convox api help <subcommand>)
   get		get an api endpoint
   delete	delete an api endpoint
-  help, h
-
+  help, h	
+  
 Options:
   --rack value	rack name
   --help, -h	show help
-
+  
 `
 
 var apiGetHelp = `convox api get: get an api endpoint
@@ -52,7 +52,7 @@ Usage:
 
 Options:
    --rack value	rack name
-
+   
 `
 
 var commandStrings = []string{

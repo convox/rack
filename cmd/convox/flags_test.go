@@ -45,14 +45,14 @@ Subcommands: (convox help <subcommand>)
   switch		switch to another Convox rack
   uninstall		uninstall a convox rack
   update		update the cli
-  help, h
-
+  help, h		
+  
 Options:
   --app value, -a value	app name inferred from current directory if not specified
   --rack value		rack name
   --help, -h		show help
   --version, -v		print the version
-
+  
 `
 
 func TestHelpFlag(t *testing.T) {
