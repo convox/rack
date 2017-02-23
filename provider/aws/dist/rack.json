@@ -57,6 +57,7 @@
       "us-west-1": { "ThirdAvailabilityZone": "No" },
       "us-west-2": { "ThirdAvailabilityZone": "Yes" },
       "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
+      "eu-west-2": { "ThirdAvailabilityZone": "No" },
       "eu-central-1": { "ThirdAvailabilityZone": "No" },
       "ap-northeast-1": { "ThirdAvailabilityZone": "No" },
       "ap-southeast-1": { "ThirdAvailabilityZone": "No" },
