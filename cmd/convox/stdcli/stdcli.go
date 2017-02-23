@@ -16,6 +16,9 @@ import (
 	"github.com/stvp/rollbar"
 )
 
+// HelpFlags is a slice of all the strings that should be treated as help flags by the CLI
+var HelpFlags = []string{"--help", "-h", "h", "help"}
+
 var (
 	Binary     string
 	Commands   []cli.Command
