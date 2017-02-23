@@ -6,16 +6,21 @@ go get -t ./...
 
 rm -f coverage.txt
 
-if [ ! -z ${TEST} ]; then
-    go test -coverprofile=profile.out -covermode=atomic "$TEST"
-    exit
+if [ ! -z ${PKG} ]; then
+    if [ ! -z ${TEST} ]; then
+        echo "Running tests matching '$TEST' from package $PKG"
+        go test -coverprofile=profile.out -covermode=atomic "$PKG" -run "$TEST"
+    else
+        echo "Running tests on package $PKG"
+        go test -coverprofile=profile.out -covermode=atomic "$PKG"
+    fi
+else
+    for d in $(find . -not \( -name vendor -prune \) -name '*.go' -exec dirname {} \; | sort -u); do
+        go test -coverprofile=profile.out -covermode=atomic $d
+
+        if [ -f profile.out ]; then
+            cat profile.out >> coverage.txt
+            rm profile.out
+        fi
+    done
 fi
-
-for d in $(find . -not \( -name vendor -prune \) -name '*.go' -exec dirname {} \; | sort -u); do
-  go test -coverprofile=profile.out -covermode=atomic $d
-
-  if [ -f profile.out ]; then
-    cat profile.out >> coverage.txt
-    rm profile.out
-  fi
-done
