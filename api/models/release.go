@@ -730,8 +730,6 @@ func waitForPromotion(r *Release) {
 				return
 			}
 
-			stack := resp.Stacks[0]
-
 			se, err := CloudFormation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
 				StackName: aws.String(stackName),
 			})
