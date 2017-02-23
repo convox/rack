@@ -8,7 +8,7 @@ import (
 	"github.com/convox/rack/api/structs"
 )
 
-// returns individual server memory, total rack memory
+// CapacityGet returns individual server and total rack resources
 func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	log := Logger.At("CapacityGet").Start()
 
@@ -21,6 +21,10 @@ func (p *AWSProvider) CapacityGet() (*structs.Capacity, error) {
 	}
 
 	for _, instance := range ires.ContainerInstances {
+		if *instance.Status == "DRAINING" {
+			continue
+		}
+
 		for _, resource := range instance.RegisteredResources {
 			if *resource.Name == "MEMORY" {
 				capacity.InstanceMemory = *resource.IntegerValue
