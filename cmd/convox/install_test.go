@@ -310,7 +310,7 @@ func TestUrls(t *testing.T) {
 	}
 
 	tr := &http.Transport{
-		TLSHandshakeTimeout: 30 * time.Second,
+		TLSHandshakeTimeout: 5 * time.Second,
 	}
 
 	client := &http.Client{Transport: tr}
