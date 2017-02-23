@@ -132,15 +132,6 @@ func initApplication(dir string) (string, error) {
 		return kind, err
 	}
 
-	ep, err := af.GenerateEntrypoint()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile("entrypoint.sh", ep, 0644); err != nil {
-		return kind, err
-	}
-
 	df, err := af.GenerateDockerfile()
 	if err != nil {
 		return kind, err
@@ -178,6 +169,7 @@ func cleanComposeFile() error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	var buffer bytes.Buffer
 	scanner := bufio.NewScanner(file)
@@ -189,8 +181,6 @@ func cleanComposeFile() error {
 			buffer.WriteString(scanner.Text() + "\n")
 		}
 	}
-
-	file.Close()
 
 	if err := scanner.Err(); err != nil {
 		return err
@@ -218,6 +208,5 @@ func writeFile(path string, data []byte, mode os.FileMode) error {
 	}
 
 	fmt.Println("OK")
-
 	return nil
 }

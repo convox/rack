@@ -1,27 +1,63 @@
 package appinit
 
+import (
+	"fmt"
+
+	yaml "gopkg.in/yaml.v2"
+)
+
 type SimpleApp struct {
 	Kind string
-	dir  string
+
+	af          Appfile
+	environment map[string]string
+	pf          Procfile
+	release     Release
 }
 
-func (sa *SimpleApp) GenerateEntrypoint() ([]byte, error) {
-	return writeAsset("appinit/templates/entrypoint.sh", nil)
-}
 func (sa *SimpleApp) GenerateDockerfile() ([]byte, error) {
 	input := map[string]interface{}{
-		"kind": sa.Kind,
+		"kind":        sa.Kind,
+		"environment": sa.environment,
 	}
 	return writeAsset("appinit/templates/Dockerfile", input)
 }
+
 func (sa *SimpleApp) GenerateDockerIgnore() ([]byte, error) {
-	return writeAsset("appinit/templates/dockerignore", nil)
+	input := map[string]interface{}{
+		"ignoreFiles": []string{"./.heroku"},
+	}
+	return writeAsset("appinit/templates/dockerignore", input)
 }
+
 func (sa *SimpleApp) GenerateManifest() ([]byte, error) {
-	return generateManifestData(sa.dir)
+	m := GenerateManifest(sa.pf, sa.af, sa.release)
+	if len(m.Services) == 0 {
+		return nil, fmt.Errorf("unable to generate manifest")
+	}
+
+	adds := []string{}
+	if appFound {
+		adds = append(adds, sa.af.Addons...)
+	} else {
+		adds = append(adds, sa.release.Addons...)
+	}
+	ParseAddons(adds, &m)
+
+	return yaml.Marshal(m)
 }
 
 func (sa *SimpleApp) Setup(dir string) error {
-	sa.dir = dir
+	so, err := setup(dir)
+	sa.af = so.af
+	sa.pf = so.pf
+	sa.release = so.release
+
+	fmt.Printf("so.profile = %s\n", string(so.profile))
+
+	sa.environment, err = parseProfiled(so.profile)
+	if err != nil {
+		fmt.Errorf("parse profiled: %s", err)
+	}
 	return nil
 }
