@@ -282,6 +282,17 @@ func TestReadCredentialsFromFile(t *testing.T) {
 	assert.EqualError(t, err, "credentials file is of unknown length")
 }
 
+func TestRequiredFlagsWhenInstallingIntoExistingVPC(t *testing.T) {
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox install --existing-vpc foo",
+			Exit:    1,
+			Stdout:  "WARNING: [existing vpc] using default subnet cidrs (10.0.1.0/24,10.0.2.0/24,10.0.3.0/24); if this is incorrect, pass a custom value to --subnet-cidrs\nWARNING: [existing vpc] using default vpc cidr (10.0.0.0/16); if this is incorrect, pass a custom value to --vpc-cidr\n",
+			Stderr:  "ERROR: must specify --internet-gateway for existing VPC\n",
+		},
+	)
+}
+
 /* TestUrls checks that each URL returns HTTP status code 200.
 These URLs are printed in user-facing messages and have been gathered manually.
 Sources (mostly): cmd/convox/doctor.go, cmd/convox/install.go
