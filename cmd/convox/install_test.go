@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/convox/rack/api/awsutil"
 	"github.com/convox/rack/test"
@@ -303,14 +304,10 @@ func TestUrls(t *testing.T) {
 		"https://convox.com/docs/about-resources/",
 		"https://convox.com/docs/api-keys/",
 		"https://convox.com/docs/docker-compose-file/",
+		"https://convox.com/docs/dockerfile/",
+		"https://convox.com/docs/environment",
+		"https://convox.com/docs/one-off-commands/",
 		"https://convox.com/docs/troubleshooting/",
-		"https://convox.com/guide/balancers/",
-		"https://convox.com/guide/databases/",
-		"https://convox.com/guide/environment/",
-		"https://convox.com/guide/images",
-		"https://convox.com/guide/links/",
-		"https://convox.com/guide/one-off-commands/",
-		"https://convox.com/guide/services/",
 		"https://docs.docker.com/engine/installation/",
 		"https://docs.docker.com/engine/reference/builder/",
 		"https://git-scm.com/docs/gitignore",
@@ -319,8 +316,14 @@ func TestUrls(t *testing.T) {
 		"http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html",
 	}
 
+	tr := &http.Transport{
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+
+	client := &http.Client{Transport: tr}
+
 	for _, url := range urls {
-		resp, err := http.Get(url)
+		resp, err := client.Get(url)
 		assert.NoError(t, err)
 		rc := resp.StatusCode
 		if rc != 200 {
