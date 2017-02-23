@@ -684,9 +684,21 @@ func waitForPromotion(r *Release) {
 
 	waitch := make(chan error)
 	go func() {
-		waitch <- CloudFormation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
-			StackName: aws.String(stackName),
-		})
+		var err error
+		//we have observed stack stabalization failures take up to 3 hours
+		for i := 0; i < 3; i++ {
+			err = CloudFormation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err == nil {
+				//signal stack update has completed
+				waitch <- err
+				return
+			}
+			fmt.Println(fmt.Errorf("unable to wait for promotion: %s", err))
+			//stack has not updated after an hour try again
+		}
+		waitch <- err
 	}()
 
 	for {
