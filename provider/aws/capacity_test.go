@@ -44,7 +44,8 @@ var cycleCapacityDescribeContainerInstances = awsutil.Cycle{
 			"containerInstances": [
 				"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e",
 				"arn:aws:ecs:us-east-1:901416387788:container-instance/38a59629-6f5d-4d02-8733-fdb49500ae45",
-				"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c"
+				"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c",
+				"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f4k31n5tance"
 			]
 		}`},
 	awsutil.Response{
@@ -112,6 +113,27 @@ var cycleCapacityDescribeContainerInstances = awsutil.Cycle{
 					],
 					"runningTasksCount":0,
 					"status":"ACTIVE",
+					"versionInfo":{"agentHash":"4ab1051","agentVersion":"1.4.0","dockerVersion":"DockerVersion: 1.7.1"}
+				},
+                                {
+					"agentConnected": true,
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f4k31n5tance",
+					"ec2InstanceId": "i-4a5513f4",
+					"pendingTasksCount": 0,
+					"registeredResources": [
+						{ "doubleValue":0.0, "integerValue":1024, "longValue":0, "name":"CPU", "type":"INTEGER" },
+						{ "doubleValue":0.0, "integerValue":2004, "longValue":0, "name":"MEMORY", "type":"INTEGER" },
+						{ "doubleValue":0.0, "integerValue":0, "longValue":0, "name":"PORTS", "stringSetValue":["22","2376","2375","51678"], "type":"STRINGSET"},
+						{ "doubleValue":0.0, "integerValue":0, "longValue":0, "name":"PORTS_UDP", "stringSetValue":[], "type":"STRINGSET"}
+					],
+					"remainingResources": [
+						{"doubleValue":0.0, "integerValue":1024, "longValue":0, "name":"CPU", "type":"INTEGER" },
+						{"doubleValue":0.0, "integerValue":2004, "longValue":0, "name":"MEMORY", "type":"INTEGER"},
+						{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS","stringSetValue":["22","2376","2375","51678"],"type":"STRINGSET"},
+						{"doubleValue":0.0,"integerValue":0,"longValue":0,"name":"PORTS_UDP","stringSetValue":[],"type":"STRINGSET"}
+					],
+					"runningTasksCount":0,
+					"status":"DRAINING",
 					"versionInfo":{"agentHash":"4ab1051","agentVersion":"1.4.0","dockerVersion":"DockerVersion: 1.7.1"}
 				}
 			]
@@ -254,7 +276,8 @@ var cycleCapacityListContainerInstances = awsutil.Cycle{
 			"containerInstanceArns":[
 				"arn:aws:ecs:us-east-1:901416387788:container-instance/0ac4bb1c-be98-4202-a9c1-03153e91c05e",
 				"arn:aws:ecs:us-east-1:901416387788:container-instance/38a59629-6f5d-4d02-8733-fdb49500ae45",
-				"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c"
+				"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f9b724860d4c",
+				"arn:aws:ecs:us-east-1:901416387788:container-instance/e7c311ae-968f-4125-8886-f4k31n5tance"
 			]
 		}`,
 	},

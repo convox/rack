@@ -156,7 +156,7 @@ func cmdDoctor(c *cli.Context) error {
 			Title:       fmt.Sprintf("<file>%s</file> found", dcm),
 			Description: fmt.Sprintf("<fail>A %s file is required to define Services</fail>", dcm),
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/services/",
+			DocsLink:    "https://convox.com/docs/docker-compose-file/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -360,7 +360,7 @@ func checkDockerfile() error {
 			Title:       title,
 			Description: "<fail>A Dockerfile is required to build an Image</fail>",
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/images",
+			DocsLink:    "https://convox.com/docs/dockerfile/",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -607,7 +607,7 @@ func checkEnvFound(m *manifest.Manifest) error {
 			Title:       title,
 			Description: "<warning>A .env file is recommended to manage development configuration</warning>",
 			Kind:        "warning",
-			DocsLink:    "https://convox.com/guide/environment/",
+			DocsLink:    "https://convox.com/docs/environment#env",
 		})
 	} else {
 		diagnose(Diagnosis{
@@ -755,7 +755,7 @@ func checkMissingEnv(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "fail",
-				DocsLink:    "https://convox.com/guide/environment/",
+				DocsLink:    "https://convox.com/docs/environment",
 				Description: fmt.Sprintf("<fail>development environment var not set: %s</fail>", strings.Join(missingEnv, ", ")),
 			})
 		}
@@ -781,7 +781,7 @@ func checkMissingDockerFiles(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "fail",
-					DocsLink:    "https://convox.com/guide/images/",
+					DocsLink:    "https://convox.com/docs/docker-compose-file/#build",
 					Description: fmt.Sprintf("<fail>Service <service>%s</service> is missing a Dockerfile</fail>", s.Name),
 				})
 			}
@@ -831,7 +831,7 @@ func checkValidServices(m *manifest.Manifest) error {
 		diagnose(Diagnosis{
 			Title:       title,
 			Kind:        "fail",
-			DocsLink:    "https://convox.com/guide/services/",
+			DocsLink:    "https://convox.com/docs/docker-compose-file/#command",
 			Description: fmt.Sprintf("<fail>Service <service>%s</service> doesn't have a valid command</fail>", s.Name),
 		})
 	}
@@ -854,7 +854,7 @@ func checkAppExposesPorts(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "https://convox.com/guide/balancers/",
+		DocsLink:    "https://convox.com/docs/docker-compose-file/#ports",
 		Description: "<warning>This app does not expose any ports</warning>",
 	})
 	return nil
@@ -875,7 +875,7 @@ func checkAppDefinesDatabase(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "https://convox.com/guide/databases/",
+		DocsLink:    "https://convox.com/docs/docker-compose-file/",
 		Description: "<warning>This app does not define any Databases</warning>",
 	})
 	return nil
@@ -952,7 +952,7 @@ func checkAppDefinesLink(m *manifest.Manifest) error {
 	diagnose(Diagnosis{
 		Title:       title,
 		Kind:        "warning",
-		DocsLink:    "https://convox.com/guide/links/",
+		DocsLink:    "https://convox.com/docs/docker-compose-file/#links",
 		Description: "<warning>This app does not define any Links</warning>",
 	})
 	return nil
@@ -971,7 +971,7 @@ func checkValidLinks(m *manifest.Manifest) error {
 				diagnose(Diagnosis{
 					Title:       title,
 					Kind:        "error",
-					DocsLink:    "https://convox.com/guide/links/",
+					DocsLink:    "https://convox.com/docs/docker-compose-file/#ports",
 					Description: fmt.Sprintf("<warning>Database <database>%s</database> does not expose an internal port</warning>", r.Name),
 				})
 			} else {
@@ -1036,7 +1036,7 @@ func checkRunSh(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "error",
-				DocsLink:    "https://convox.com/guide/one-off-commands/",
+				DocsLink:    "https://convox.com/docs/one-off-commands/",
 				Description: fmt.Sprintf("Service <service>%s</service> does not run `sh` because of %q", s.Name, err),
 			})
 			continue
@@ -1047,7 +1047,7 @@ func checkRunSh(m *manifest.Manifest) error {
 			diagnose(Diagnosis{
 				Title:       title,
 				Kind:        "error",
-				DocsLink:    "https://convox.com/guide/one-off-commands/",
+				DocsLink:    "https://convox.com/docs/one-off-commands/",
 				Description: fmt.Sprintf("Service <service>%s</service> does not exit from `sh` because of %q", s.Name, err),
 			})
 			continue
