@@ -6,6 +6,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// RubyApp contains data representing a ruby app
 type RubyApp struct {
 	af          Appfile
 	environment map[string]string
@@ -13,6 +14,7 @@ type RubyApp struct {
 	release     Release
 }
 
+// GenerateDockerfile generates a Dockerfile specifically for ruby
 func (ra *RubyApp) GenerateDockerfile() ([]byte, error) {
 	ra.environment["CURL_CONNECT_TIMEOUT"] = "0" // default timeouts for curl are too aggressive causing failure
 	ra.environment["CURL_TIMEOUT"] = "0"
@@ -30,6 +32,7 @@ RUN apt-get update && apt-get install sqlite3 libsqlite3-dev && apt-get clean`
 	return writeAsset("appinit/templates/Dockerfile", input)
 }
 
+// GenerateDockerIgnore generates a .dockerignore file
 func (ra *RubyApp) GenerateDockerIgnore() ([]byte, error) {
 	input := map[string]interface{}{
 		"ignoreFiles": []string{
@@ -39,6 +42,7 @@ func (ra *RubyApp) GenerateDockerIgnore() ([]byte, error) {
 	return writeAsset("appinit/templates/dockerignore", input)
 }
 
+// GenerateManifest generates a docker-compose.yml file
 func (ra *RubyApp) GenerateManifest() ([]byte, error) {
 
 	m := GenerateManifest(ra.pf, ra.af, ra.release)
@@ -57,6 +61,8 @@ func (ra *RubyApp) GenerateManifest() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
+// Setup runs the buildpacks and collects metadata
+// Must be called before other Generate* methods
 func (ra *RubyApp) Setup(dir string) error {
 
 	so, err := setup(dir)

@@ -119,9 +119,15 @@ func initApplication(dir string) (string, error) {
 		}
 	}
 
+	stdcli.Spinner.Prefix = "Building app metadata. This could take a while... "
+	stdcli.Spinner.Start()
 	if err := af.Setup(dir); err != nil {
+		fmt.Printf("\x08\x08FAILED\n")
+		stdcli.Spinner.Stop()
 		return kind, err
 	}
+	fmt.Printf("\x08\x08OK\n")
+	stdcli.Spinner.Stop()
 
 	m, err := af.GenerateManifest()
 	if err != nil {

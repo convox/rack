@@ -6,6 +6,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// SimpleApp contains data representing a generic app
 type SimpleApp struct {
 	Kind string
 
@@ -15,6 +16,7 @@ type SimpleApp struct {
 	release     Release
 }
 
+// GenerateDockerfile generates a Dockerfile
 func (sa *SimpleApp) GenerateDockerfile() ([]byte, error) {
 	input := map[string]interface{}{
 		"kind":        sa.Kind,
@@ -23,6 +25,7 @@ func (sa *SimpleApp) GenerateDockerfile() ([]byte, error) {
 	return writeAsset("appinit/templates/Dockerfile", input)
 }
 
+// GenerateDockerIgnore generates a .dockerignore file
 func (sa *SimpleApp) GenerateDockerIgnore() ([]byte, error) {
 	input := map[string]interface{}{
 		"ignoreFiles": []string{"./.heroku"},
@@ -30,6 +33,7 @@ func (sa *SimpleApp) GenerateDockerIgnore() ([]byte, error) {
 	return writeAsset("appinit/templates/dockerignore", input)
 }
 
+// GenerateManifest generates a docker-compose.yml file
 func (sa *SimpleApp) GenerateManifest() ([]byte, error) {
 	m := GenerateManifest(sa.pf, sa.af, sa.release)
 	if len(m.Services) == 0 {
@@ -47,6 +51,8 @@ func (sa *SimpleApp) GenerateManifest() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
+// Setup runs the buildpacks and collects metadata
+// Must be called before other Generate* methods
 func (sa *SimpleApp) Setup(dir string) error {
 	so, err := setup(dir)
 	sa.af = so.af

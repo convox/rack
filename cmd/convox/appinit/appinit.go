@@ -16,7 +16,6 @@ import (
 
 	"github.com/convox/rack/cmd/convox/appinit/templates"
 	"github.com/convox/rack/cmd/convox/helpers"
-	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/manifest"
 )
 
@@ -299,6 +298,7 @@ func ParseAddons(addons []string, m *manifest.Manifest) {
 	}
 }
 
+// postgresAddon configures a Manifest to have a postgres service
 func postgresAddon(m *manifest.Manifest) {
 	s := manifest.Service{
 		Image: "convox/postgres",
@@ -323,6 +323,7 @@ func postgresAddon(m *manifest.Manifest) {
 	m.Services["database"] = s
 }
 
+// setupOutput is a container type that holds all the data collected by setup()
 type setupOutput struct {
 	af      Appfile
 	pf      Procfile
@@ -330,6 +331,7 @@ type setupOutput struct {
 	profile []byte
 }
 
+// setup is a common helper function to gather buildpack metadata
 func setup(dir string) (setupOutput, error) {
 	var err error
 
@@ -359,22 +361,14 @@ func setup(dir string) (setupOutput, error) {
 	containerID := strings.TrimSpace(string(output))
 	defer exec.Command(dockerBin, "rm", "--force", containerID).Run()
 
-	stdcli.Spinner.Prefix = "Building app metadata. This could take a while... "
-	stdcli.Spinner.Start()
-
 	args = []string{"exec", containerID, "compile-release"}
 	r, err := exec.Command(dockerBin, args...).CombinedOutput()
 	if err != nil {
-		fmt.Printf("\x08\x08FAILED\n")
-		stdcli.Spinner.Stop()
 
 		// output could be huge and not user friendly as a wall of red text if an error type
 		fmt.Println(string(r))
 		return so, fmt.Errorf("buildpack compile: %s", err)
 	}
-
-	fmt.Printf("\x08\x08OK\n")
-	stdcli.Spinner.Stop()
 
 	if err := yaml.Unmarshal(r, &so.release); err != nil {
 		return so, fmt.Errorf("buildpack release: %s", err)
@@ -389,12 +383,15 @@ func setup(dir string) (setupOutput, error) {
 	return so, nil
 }
 
+// parseProfiled is a common helper function to gather env vars
+// from files contained in an apps profile.d directory.
 func parseProfiled(data []byte) (map[string]string, error) {
 	env := make(map[string]string)
 
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		line := scanner.Text()
+		// we only care about lines that start with export
 		if !strings.HasPrefix(line, "export") {
 			continue
 		}
