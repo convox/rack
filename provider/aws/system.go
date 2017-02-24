@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/api/structs"
+	"github.com/xtgo/uuid"
 )
 
 func (p *AWSProvider) SystemGet() (*structs.System, error) {
@@ -275,10 +276,13 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
+	changes["id"] = uuid.NewRandom().String()
+
 	// notify about the update
 	p.EventSend(&structs.Event{
 		Action: "rack:update",
 		Data:   changes,
+		Status: "start",
 	}, nil)
 
 	// update the stack
@@ -292,5 +296,99 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
+	go p.waitForSystemUpdate(p.Rack, changes)
+
 	return err
+}
+
+// waitForSystemUpdate observes a rack stack update by verifying the rack's CF stack status
+// Sends a notifcation on success or failure. This function blocks.
+// TODO: this should be in provider.ReleasePromote()
+func (p *AWSProvider) waitForSystemUpdate(stackName string, changes map[string]string) {
+	event := &structs.Event{
+		Action: "rack:update",
+		Data:   changes,
+	}
+
+	waitch := make(chan error)
+	go func() {
+		var err error
+		//we have observed stack stabalization failures take up to 3 hours
+		for i := 0; i < 3; i++ {
+			err = p.cloudformation().WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				if err.Error() == "exceeded 120 wait attempts" {
+					continue
+				}
+			}
+			break
+		}
+		waitch <- err
+	}()
+
+	for {
+		select {
+		case err := <-waitch:
+			if err == nil {
+				event.Status = "success"
+				p.EventSend(event, nil)
+				return
+			}
+
+			if err != nil && err.Error() == "exceeded 120 wait attempts" {
+				p.EventSend(event, fmt.Errorf("couldn't determine rack update status, timed out"))
+				fmt.Println(fmt.Errorf("couldn't determine rack update status, timed out"))
+				return
+			}
+
+			resp, err := p.cloudformation().DescribeStacks(&cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				p.EventSend(event, fmt.Errorf("unable to check stack status: %s", err))
+				fmt.Println(fmt.Errorf("unable to check stack status: %s", err))
+				return
+			}
+
+			if len(resp.Stacks) < 1 {
+				p.EventSend(event, fmt.Errorf("rack stack was not found: %s", stackName))
+				fmt.Println(fmt.Errorf("rack stack was not found: %s", stackName))
+				return
+			}
+
+			se, err := p.cloudformation().DescribeStackEvents(&cloudformation.DescribeStackEventsInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				p.EventSend(event, fmt.Errorf("unable to check stack events: %s", err))
+				fmt.Println(fmt.Errorf("unable to check stack events: %s", err))
+				return
+			}
+
+			var lastEvent *cloudformation.StackEvent
+
+			for _, e := range se.StackEvents {
+				switch *e.ResourceStatus {
+				case "UPDATE_FAILED", "DELETE_FAILED", "CREATE_FAILED":
+					lastEvent = e
+					break
+				}
+			}
+
+			ee := fmt.Errorf("unable to determine rack update error")
+			if lastEvent != nil {
+				ee = fmt.Errorf(
+					"[%s:%s] [%s]: %s",
+					*lastEvent.ResourceType,
+					*lastEvent.LogicalResourceId,
+					*lastEvent.ResourceStatus,
+					*lastEvent.ResourceStatusReason,
+				)
+			}
+
+			p.EventSend(event, fmt.Errorf("Rack Update failed - %s", ee.Error()))
+		}
+	}
 }

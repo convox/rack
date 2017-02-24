@@ -669,7 +669,7 @@ func waitForTemplate(bucket string, id string) error {
 	return fmt.Errorf("unknown error")
 }
 
-// monitorReleasePromotion observes a release's rollout by verifying the app's CF stack status
+// waitForPromotion observes a release's rollout by verifying the app's CF stack status
 // Sends a notifcation on success or failure. This function blocks.
 // TODO: this should be in provider.ReleasePromote()
 func waitForPromotion(r *Release) {
