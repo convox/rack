@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os/exec"
 	"path"
 	"regexp"
 	"strings"
+	"text/template"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -22,10 +22,10 @@ import (
 var dockerBin = helpers.DetectDocker()
 
 type AppFramework interface {
-	GenerateEntrypoint() ([]byte, error)
 	GenerateDockerfile() ([]byte, error)
 	GenerateDockerIgnore() ([]byte, error)
-	GenerateManifest(string) ([]byte, error)
+	GenerateManifest() ([]byte, error)
+	Setup(string) error
 }
 
 // EnvEntry is an environment entry from an app.json file
@@ -255,50 +255,6 @@ func GenerateManifest(pf Procfile, af Appfile, r Release) manifest.Manifest {
 	return m
 }
 
-// generateManifestData creates a Manifest from files in the directory
-func generateManifestData(dir string) ([]byte, error) {
-	pf, err := ReadProcfile(path.Join(dir, "Procfile"))
-	if err != nil {
-		return nil, err
-	}
-
-	am, err := ReadAppfile(path.Join(dir, "app.json"))
-	if err != nil {
-		return nil, err
-	}
-
-	var release Release
-	if len(pf) == 0 || !appFound {
-		args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp/app", dir), "convox/init"}
-
-		r, err := exec.Command(dockerBin, append(args, "release")...).Output()
-		if err != nil {
-			return nil, err
-		}
-
-		fmt.Printf("r = %s\n", string(r))
-
-		if err := yaml.Unmarshal(r, &release); err != nil {
-			return nil, err
-		}
-	}
-
-	m := GenerateManifest(pf, am, release)
-	if len(m.Services) == 0 {
-		return nil, fmt.Errorf("unable to generate manifest")
-	}
-
-	adds := []string{}
-	if appFound {
-		adds = append(adds, am.Addons...)
-	} else {
-		adds = append(adds, release.Addons...)
-	}
-	ParseAddons(adds, &m)
-
-	return yaml.Marshal(m)
-}
-
 // writeAsset is a helper function that generates an asset
 func writeAsset(templateName string, input map[string]interface{}) ([]byte, error) {
 	data, err := templates.Asset(templateName)
@@ -342,6 +298,7 @@ func ParseAddons(addons []string, m *manifest.Manifest) {
 	}
 }
 
+// postgresAddon configures a Manifest to have a postgres service
 func postgresAddon(m *manifest.Manifest) {
 	s := manifest.Service{
 		Image: "convox/postgres",
@@ -364,4 +321,94 @@ func postgresAddon(m *manifest.Manifest) {
 	m.Services["web"] = web
 
 	m.Services["database"] = s
+}
+
+// setupOutput is a container type that holds all the data collected by setup()
+type setupOutput struct {
+	af      Appfile
+	pf      Procfile
+	release Release
+	profile []byte
+}
+
+// setup is a common helper function to gather buildpack metadata
+func setup(dir string) (setupOutput, error) {
+	var err error
+
+	so := setupOutput{}
+
+	so.pf, err = ReadProcfile(path.Join(dir, "Procfile"))
+	if err != nil {
+		return so, err
+	}
+
+	so.af, err = ReadAppfile(path.Join(dir, "app.json"))
+	if err != nil {
+		return so, err
+	}
+
+	// We start a container with tailing nothing to keep it running and work inside it
+	args := []string{"run", "--rm", "-d",
+		"-v", fmt.Sprintf("%s:/app", dir),
+		"convox/init", "tail", "-f", "/dev/null",
+	}
+
+	output, err := exec.Command(dockerBin, args...).CombinedOutput()
+	if err != nil {
+		return so, fmt.Errorf("buildpack contaier: %s - %s", string(output), err)
+	}
+
+	containerID := strings.TrimSpace(string(output))
+	defer exec.Command(dockerBin, "rm", "--force", containerID).Run()
+
+	args = []string{"exec", containerID, "compile-release"}
+	r, err := exec.Command(dockerBin, args...).CombinedOutput()
+	if err != nil {
+
+		// output could be huge and not user friendly as a wall of red text if an error type
+		fmt.Println(string(r))
+		return so, fmt.Errorf("buildpack compile: %s", err)
+	}
+
+	if err := yaml.Unmarshal(r, &so.release); err != nil {
+		return so, fmt.Errorf("buildpack release: %s", err)
+	}
+
+	args = []string{"exec", containerID, "profiled"}
+	so.profile, err = exec.Command(dockerBin, args...).CombinedOutput()
+	if err != nil {
+		return so, fmt.Errorf("buildpack profile: %s - %s", string(so.profile), err)
+	}
+
+	return so, nil
+}
+
+// parseProfiled is a common helper function to gather env vars
+// from files contained in an apps profile.d directory.
+func parseProfiled(data []byte) (map[string]string, error) {
+	env := make(map[string]string)
+
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		// we only care about lines that start with export
+		if !strings.HasPrefix(line, "export") {
+			continue
+		}
+
+		l := strings.SplitN(line, "=", 2)
+		if len(l) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(strings.Replace(l[0], "export", "", -1))
+
+		env[key] = l[1]
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return env, nil
 }

@@ -24,6 +24,12 @@ func init() {
 		Description: "initialize an app for local development",
 		Usage:       "[directory]",
 		Action:      cmdInit,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "boilerplate",
+				Usage: "generate a simple boilerplate app",
+			},
+		},
 	})
 }
 
@@ -52,7 +58,7 @@ func cmdInit(c *cli.Context) error {
 		return nil
 	}
 
-	appType, err := initApplication(dir)
+	appType, err := initApplication(dir, c)
 	if err != nil {
 		stdcli.QOSEventSend("Dev Code Update Failed", distinctID, stdcli.QOSEventProperties{Error: err, AppType: appType})
 		stdcli.QOSEventSend("cli-init", distinctID, stdcli.QOSEventProperties{Error: err, AppType: appType})
@@ -78,7 +84,7 @@ var appKind = map[string]string{
 	"Scala":                 "scala",
 }
 
-func initApplication(dir string) (string, error) {
+func initApplication(dir string, c *cli.Context) (string, error) {
 	prepURL := "https://convox.com/docs/preparing-an-application/"
 	args := []string{"run", "--rm", "-v", fmt.Sprintf("%s:/app", dir), "convox/init"}
 
@@ -92,18 +98,24 @@ func initApplication(dir string) (string, error) {
 	}
 	stdcli.Spinner.Stop()
 
-	k, err := exec.Command(dockerBin, append(args, "detect")...).Output()
-	if err != nil {
-		return "", fmt.Errorf("unable to detect app type: convox/init - %s", err)
-	}
-
-	kd := strings.TrimSpace(string(k))
-	kind, ok := appKind[kd]
-	if !ok {
-		if kd == "" {
-			kd = "?"
+	var kind = ""
+	if c.Bool("boilerplate") || emptyDir(dir) {
+		kind = "boilerplate"
+	} else {
+		k, err := exec.Command(dockerBin, append(args, "detect")...).Output()
+		if err != nil {
+			return "", fmt.Errorf("unable to detect app type: convox/init - %s", err)
 		}
-		return kind, fmt.Errorf("unknown app type: %s \ncheck out %s for more information", kd, prepURL)
+
+		kd := strings.TrimSpace(string(k))
+		var ok bool
+		kind, ok = appKind[kd]
+		if !ok {
+			if kd == "" {
+				kd = "?"
+			}
+			return kind, fmt.Errorf("unknown app type: %s \nCheck out %s for more information", kd, prepURL)
+		}
 	}
 
 	fmt.Printf("Initializing a %s app\n", kind)
@@ -113,27 +125,30 @@ func initApplication(dir string) (string, error) {
 	switch kind {
 	case "ruby":
 		af = &appinit.RubyApp{}
+	case "boilerplate":
+		af = &appinit.Boilerplate{}
 	default:
 		af = &appinit.SimpleApp{
 			Kind: kind,
 		}
 	}
 
-	m, err := af.GenerateManifest(dir)
+	stdcli.Spinner.Prefix = "Building app metadata. This could take a while... "
+	stdcli.Spinner.Start()
+	if err := af.Setup(dir); err != nil {
+		fmt.Printf("\x08\x08FAILED\n")
+		stdcli.Spinner.Stop()
+		return kind, err
+	}
+	fmt.Printf("\x08\x08OK\n")
+	stdcli.Spinner.Stop()
+
+	m, err := af.GenerateManifest()
 	if err != nil {
 		return kind, err
 	}
 
 	if err := writeFile("docker-compose.yml", m, 0644); err != nil {
-		return kind, err
-	}
-
-	ep, err := af.GenerateEntrypoint()
-	if err != nil {
-		return kind, err
-	}
-
-	if err := writeFile("entrypoint.sh", ep, 0644); err != nil {
 		return kind, err
 	}
 
@@ -174,6 +189,7 @@ func cleanComposeFile() error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	var buffer bytes.Buffer
 	scanner := bufio.NewScanner(file)
@@ -186,13 +202,25 @@ func cleanComposeFile() error {
 		}
 	}
 
-	file.Close()
-
 	if err := scanner.Err(); err != nil {
 		return err
 	}
 
 	return ioutil.WriteFile("docker-compose.yml", buffer.Bytes(), 0644)
+}
+
+// emptyDir checks if the directory is empty
+func emptyDir(dir string) bool {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+
+	if len(files) == 0 {
+		return true
+	}
+
+	return false
 }
 
 // writeFile is a helper function that writes a file
@@ -214,6 +242,5 @@ func writeFile(path string, data []byte, mode os.FileMode) error {
 	}
 
 	fmt.Println("OK")
-
 	return nil
 }
