@@ -59,8 +59,6 @@ func (sa *SimpleApp) Setup(dir string) error {
 	sa.pf = so.pf
 	sa.release = so.release
 
-	fmt.Printf("so.profile = %s\n", string(so.profile))
-
 	sa.environment, err = parseProfiled(so.profile)
 	if err != nil {
 		fmt.Errorf("parse profiled: %s", err)
