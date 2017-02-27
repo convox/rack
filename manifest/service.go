@@ -121,6 +121,28 @@ func (s Service) HasBalancer() bool {
 	return false
 }
 
+// IsAgent returns true if Service is a per-host agent, otherwise it returns false
+func (s Service) IsAgent() bool {
+	// BackCompat: Some people might already be trying to use `convox.daemon` based on
+	// https://github.com/convox-examples/dd-agent/blob/master/docker-compose.yml#L13
+	_, okAgent := s.Labels["convox.agent"]
+	_, okDaemon := s.Labels["convox.daemon"]
+	return okAgent || okDaemon
+}
+
+// DefaultParams returns a string of comma-delimited Count, CPU, and Memory params
+func (s Service) DefaultParams() string {
+	count := 1
+	cpu := 0
+	memory := 256
+
+	if s.IsAgent() {
+		count = 0
+	}
+
+	return fmt.Sprintf("%d,%d,%d", count, cpu, memory)
+}
+
 func (s *Service) Proxies(app string) []Proxy {
 	proxies := []Proxy{}
 
