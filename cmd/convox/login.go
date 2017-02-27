@@ -81,7 +81,6 @@ func cmdLogin(c *cli.Context) error {
 	}
 
 	password := os.Getenv("CONVOX_PASSWORD")
-
 	if password == "" {
 		password = c.String("password")
 	}
@@ -95,7 +94,6 @@ func cmdLogin(c *cli.Context) error {
 		// first try current login
 		password, err = getLogin(host)
 		userID, err = testLogin(host, password, c.App.Version)
-
 		// then prompt for password
 		if err != nil {
 			password = promptForPassword()
@@ -351,15 +349,7 @@ func updateID(id string) error {
 }
 
 func testLogin(host, password, version string) (string, error) {
-	cl := client.New(host, password, version)
-	id, err := cl.Auth()
-	if err != nil {
-		pw := promptForPassword()
-		cl := client.New(host, pw, version)
-		return cl.Auth()
-	}
-
-	return id, nil
+	return client.New(host, password, version).Auth()
 }
 
 func promptForPassword() string {
