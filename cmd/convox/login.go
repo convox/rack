@@ -354,8 +354,21 @@ func updateID(id string) error {
 
 func testLogin(host, password, version string) (bool, string, error) {
 	//Attempt a console login
+	var config *tls.Config
+
+	if host == "console.convox.com" {
+		config = &tls.Config{
+			ServerName: host,
+		}
+	} else {
+		config = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: config,
 	}
 
 	u := url.URL{}
