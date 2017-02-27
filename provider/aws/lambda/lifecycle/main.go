@@ -158,7 +158,12 @@ func waitForInstanceDrain(cluster, ci string) error {
 		}
 
 		params.NextToken = resp.NextToken
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
+	}
+
+	if len(tasks) == 0 {
+		fmt.Println("no tasks to wait for")
+		return nil
 	}
 
 	input := &ecs.DescribeTasksInput{
