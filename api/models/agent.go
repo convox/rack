@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
-	"regexp"
-	"strings"
 	"html/template"
+	"regexp"
+	"sort"
+	"strings"
 
 	"github.com/convox/rack/manifest"
 )
@@ -16,6 +17,13 @@ type Agent struct {
 	Service *manifest.Service
 	App     *App
 }
+
+//Agents is a wrapper for sorting
+type Agents []Agent
+
+func (a Agents) Len() int           { return len(a) }
+func (a Agents) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Agents) Less(i, j int) bool { return a[i].Service.Name < a[j].Service.Name }
 
 var shortNameRegex = regexp.MustCompile("[^A-Za-z0-9]+")
 
@@ -40,7 +48,7 @@ func (d *Agent) LongName() string {
 
 // Agents returns any Agent Services defined in the given Manifest
 func (a App) Agents(m manifest.Manifest) []Agent {
-	agents := []Agent{}
+	agents := Agents{}
 
 	for _, entry := range m.Services {
 		if !entry.IsAgent() {
@@ -54,6 +62,7 @@ func (a App) Agents(m manifest.Manifest) []Agent {
 		}
 		agents = append(agents, agent)
 	}
+	sort.Sort(agents)
 	return agents
 }
 
