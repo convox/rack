@@ -1,11 +1,9 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -92,16 +90,16 @@ func cmdLogin(c *cli.Context) error {
 
 	if password != "" {
 		// password flag
-		_, userID, err = testLogin(host, password, c.App.Version)
+		userID, err = testLogin(host, password, c.App.Version)
 	} else {
 		// first try current login
 		password, err = getLogin(host)
-		_, userID, err = testLogin(host, password, c.App.Version)
+		userID, err = testLogin(host, password, c.App.Version)
 
 		// then prompt for password
 		if err != nil {
 			password = promptForPassword()
-			_, userID, err = testLogin(host, password, c.App.Version)
+			userID, err = testLogin(host, password, c.App.Version)
 		}
 	}
 
@@ -352,61 +350,16 @@ func updateID(id string) error {
 	return ioutil.WriteFile(config, []byte(id), 0600)
 }
 
-func testLogin(host, password, version string) (bool, string, error) {
-	//Attempt a console login
-	var config *tls.Config
-
-	if host == "console.convox.com" {
-		config = &tls.Config{
-			ServerName: host,
-		}
-	} else {
-		config = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
-	tr := &http.Transport{
-		Proxy:           http.ProxyFromEnvironment,
-		TLSClientConfig: config,
-	}
-
-	u := url.URL{}
-	u.Host = host
-	u.Scheme = "https"
-	u.Path = "/auth"
-
-	req, err := http.NewRequest("GET", u.String(), nil)
-	req.SetBasicAuth("", password)
-
-	httpClient := &http.Client{Transport: tr}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return false, "", err
-	}
-
-	data := map[string]string{}
-
-	_ = json.NewDecoder(resp.Body).Decode(&data)
-
-	if data["id"] != "" {
-		return true, data["id"], nil
-	}
-
-	//Attempt a rack login
+func testLogin(host, password, version string) (string, error) {
 	cl := client.New(host, password, version)
-
-	_, err = cl.GetApps()
+	id, err := cl.Auth()
 	if err != nil {
-		err = cl.Auth()
-
-		if err != nil {
-			return false, "", err
-		}
+		pw := promptForPassword()
+		cl := client.New(host, pw, version)
+		return cl.Auth()
 	}
 
-	return false, "", nil
+	return id, nil
 }
 
 func promptForPassword() string {
