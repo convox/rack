@@ -1769,9 +1769,9 @@
       "Properties": {
         "Code": {
           "S3Bucket": "migs",
-          "S3Key": { "Fn::Join": [ "", [ "lambda/", "cloudformationevents.zip" ] ] }
+          "S3Key":  "lambda/cloudformationevents.zip" 
         },
-        "Description": "Handler of Cloudformation events.",
+        "Description": "Handler for Cloudformation events.",
         "Handler": "index.external",
         "MemorySize": "128",
         "Role": { "Fn::GetAtt": [ "CloudformationEventsHandlerRole", "Arn" ] },
