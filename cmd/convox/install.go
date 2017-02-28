@@ -349,32 +349,33 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	CloudFormation := cloudformation.New(session.New(), awsConfig(region, creds))
+	params := []*cloudformation.Parameter{
+		{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
+		{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctID)},
+		{ParameterKey: aws.String("CustomTopicRuntime"), ParameterValue: aws.String("nodejs4.3")},
+		{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
+		{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
+		{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
+		{ParameterKey: aws.String("InternetGateway"), ParameterValue: aws.String(internetGateway)},
+		{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
+		{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
+		{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
+		{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
+		{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
+		{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
+		{ParameterKey: aws.String("Subnet1CIDR"), ParameterValue: aws.String(subnet1CIDR)},
+		{ParameterKey: aws.String("Subnet2CIDR"), ParameterValue: aws.String(subnet2CIDR)},
+		{ParameterKey: aws.String("SubnetPrivate0CIDR"), ParameterValue: aws.String(subnetPrivate0CIDR)},
+		{ParameterKey: aws.String("SubnetPrivate1CIDR"), ParameterValue: aws.String(subnetPrivate1CIDR)},
+		{ParameterKey: aws.String("SubnetPrivate2CIDR"), ParameterValue: aws.String(subnetPrivate2CIDR)},
+		{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
+	}
 
 	req := &cloudformation.CreateStackInput{
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		Parameters: []*cloudformation.Parameter{
-			{ParameterKey: aws.String("Ami"), ParameterValue: aws.String(ami)},
-			{ParameterKey: aws.String("ClientId"), ParameterValue: aws.String(distinctID)},
-			{ParameterKey: aws.String("CustomTopicRuntime"), ParameterValue: aws.String("nodejs4.3")},
-			{ParameterKey: aws.String("ExistingVpc"), ParameterValue: aws.String(existingVPC)},
-			{ParameterKey: aws.String("InstanceCount"), ParameterValue: aws.String(instanceCount)},
-			{ParameterKey: aws.String("InstanceType"), ParameterValue: aws.String(instanceType)},
-			{ParameterKey: aws.String("InternetGateway"), ParameterValue: aws.String(internetGateway)},
-			{ParameterKey: aws.String("Key"), ParameterValue: aws.String(key)},
-			{ParameterKey: aws.String("Password"), ParameterValue: aws.String(password)},
-			{ParameterKey: aws.String("Private"), ParameterValue: aws.String(private)},
-			{ParameterKey: aws.String("Tenancy"), ParameterValue: aws.String(tenancy)},
-			{ParameterKey: aws.String("Version"), ParameterValue: aws.String(versionName)},
-			{ParameterKey: aws.String("Subnet0CIDR"), ParameterValue: aws.String(subnet0CIDR)},
-			{ParameterKey: aws.String("Subnet1CIDR"), ParameterValue: aws.String(subnet1CIDR)},
-			{ParameterKey: aws.String("Subnet2CIDR"), ParameterValue: aws.String(subnet2CIDR)},
-			{ParameterKey: aws.String("SubnetPrivate0CIDR"), ParameterValue: aws.String(subnetPrivate0CIDR)},
-			{ParameterKey: aws.String("SubnetPrivate1CIDR"), ParameterValue: aws.String(subnetPrivate1CIDR)},
-			{ParameterKey: aws.String("SubnetPrivate2CIDR"), ParameterValue: aws.String(subnetPrivate2CIDR)},
-			{ParameterKey: aws.String("VPCCIDR"), ParameterValue: aws.String(vpcCIDR)},
-		},
-		StackName:   aws.String(stackName),
-		TemplateURL: aws.String(furl),
+		Parameters:   params,
+		StackName:    aws.String(stackName),
+		TemplateURL:  aws.String(furl),
 	}
 
 	if c.Bool("no-autoscale") {
@@ -440,11 +441,11 @@ func cmdInstall(c *cli.Context) error {
 		StackName: res.StackId,
 	})
 	if err != nil {
-		return err
+		return stdcli.Error(err)
 	}
 
 	if len(stack.Stacks) == 0 {
-		return fmt.Errorf("stack %s not found", *res.StackId)
+		return stdcli.Error(fmt.Errorf("stack %s not found", *res.StackId))
 	}
 
 	for _, output := range stack.Stacks[0].Outputs {
@@ -452,10 +453,12 @@ func cmdInstall(c *cli.Context) error {
 			_, err = CloudFormation.UpdateStack(&cloudformation.UpdateStackInput{
 				Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
 				StackName:        aws.String(stackName),
+				Parameters:       params,
 				NotificationARNs: []*string{output.OutputValue},
+				TemplateURL:      aws.String(furl),
 			})
 			if err != nil {
-				return err
+				return stdcli.Error(err)
 			}
 		}
 	}
