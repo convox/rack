@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -e
+
+rack=$1
+instance=$2
+
+if [ "$rack" == "" ] || [ "$instance" == "" ]; then
+  echo "usage: test <rack> <instance>"
+  exit 1
+fi
+
+func=$(\
+  aws cloudformation describe-stack-resources --stack-name ${rack} |\
+  jq -r '.StackResources[]|select(.LogicalResourceId=="InstancesLifecycleHandler").PhysicalResourceId' \
+)
+
+payload=$(cat <<EOF
+{
+  "Records": [
+    {
+      "Sns": {
+        "Message": "{\"EC2InstanceId\": \"${instance}\",\"LifecycleTransition\":\"autoscaling:EC2_INSTANCE_TERMINATING\"}",
+        "Type": "Notification"
+      }
+    }
+  ]
+}
+EOF
+)
+
+out=$(aws lambda invoke --function-name $func --invocation-type RequestResponse --log-type Tail --payload "$payload" - | jq -r '.LogResult')
+
+echo $out | base64 -D
