@@ -15,26 +15,24 @@ import (
 )
 
 var (
-	CF  = cloudformation.New(session.New(), nil)
-	CWL = cloudwatchlogs.New(session.New(), nil)
+	cf  = cloudformation.New(session.New(), nil)
+	cwl = cloudwatchlogs.New(session.New(), nil)
 )
 
+// Event represents a lambda event message
 type Event struct {
 	Records []Record
 }
 
-type Message map[string]string
-
+// Record is an entry in a lambda event
 type Record struct {
 	Sns struct {
 		Message string
 	}
 }
 
-type Metadata struct {
-	Cluster string
-	Rack    string
-}
+// Message is a map of data sent in a Cloudformation event
+type Message map[string]string
 
 func main() {
 	if len(os.Args) < 2 {
@@ -63,7 +61,7 @@ func handle(r Record) error {
 	}
 	fmt.Printf("m = %+v\n", m)
 
-	resp, err := CF.DescribeStacks(&cloudformation.DescribeStacksInput{
+	resp, err := cf.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(m["StackName"]),
 	})
 	if err != nil {
@@ -91,7 +89,7 @@ func handle(r Record) error {
 	}
 	fmt.Printf("logGroup = %+v\n", logGroup)
 
-	_, err = CWL.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
+	_, err = cwl.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroup),
 		LogStreamName: aws.String(logStream),
 	})
@@ -126,7 +124,7 @@ func handle(r Record) error {
 		LogGroupName:  aws.String(logGroup),
 		LogStreamName: aws.String(logStream),
 	}
-	le, err := CWL.PutLogEvents(params)
+	le, err := cwl.PutLogEvents(params)
 	if err != nil {
 		return err
 	}

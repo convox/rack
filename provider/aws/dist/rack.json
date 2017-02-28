@@ -1813,7 +1813,7 @@
                   "Action": [
                     "cloudformation:DescribeStacks",
                     "logs:CreateLogStream",
-                    "logs:PutLogEvents",
+                    "logs:PutLogEvents"
                   ],
                   "Resource": "*"
                 }
