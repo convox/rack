@@ -26,9 +26,10 @@ import (
 )
 
 var (
-	customTopic       = os.Getenv("CUSTOM_TOPIC")
-	notificationTopic = os.Getenv("NOTIFICATION_TOPIC")
-	sortableTime      = "20060102.150405.000000000"
+	cloudformationEventsTopic = os.Getenv("CLOUDFORMATION_EVENTS_TOPIC")
+	customTopic               = os.Getenv("CUSTOM_TOPIC")
+	notificationTopic         = os.Getenv("NOTIFICATION_TOPIC")
+	sortableTime              = "20060102.150405.000000000"
 )
 
 // Logger is a package-wide logger

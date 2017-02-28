@@ -424,7 +424,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	// NOTE: we start making lots of network requests here
-	//			 so we're just going to return for testability
+	// so we're just going to return for testability
 	if os.Getenv("AWS_REGION") == "test" {
 		fmt.Println(*res.StackId)
 		return nil
@@ -434,6 +434,30 @@ func cmdInstall(c *cli.Context) error {
 	if err != nil {
 		stdcli.QOSEventSend("cli-install", distinctID, stdcli.QOSEventProperties{Error: err})
 		return stdcli.Error(err)
+	}
+
+	stack, err := CloudFormation.DescribeStacks(&cloudformation.DescribeStacksInput{
+		StackName: res.StackId,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(stack.Stacks) == 0 {
+		return fmt.Errorf("stack %s not found", *res.StackId)
+	}
+
+	for _, output := range stack.Stacks[0].Outputs {
+		if *output.OutputKey == "CloudformationEventsTopic" {
+			_, err = CloudFormation.UpdateStack(&cloudformation.UpdateStackInput{
+				Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+				StackName:        aws.String(stackName),
+				NotificationARNs: []*string{output.OutputValue},
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	fmt.Printf("Waiting for load balancer...")
