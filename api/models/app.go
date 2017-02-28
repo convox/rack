@@ -16,9 +16,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
-var CustomTopic = os.Getenv("CUSTOM_TOPIC")
+var (
+	CustomTopic               = os.Getenv("CUSTOM_TOPIC")
+	CloudformationEventsTopic = os.Getenv("CLOUDFORMATION_EVENTS_TOPIC")
 
-var StatusCodePrefix = client.StatusCodePrefix
+	StatusCodePrefix = client.StatusCodePrefix
+)
 
 type App struct {
 	Name    string `json:"name"`
@@ -175,6 +178,9 @@ func (a *App) Create() error {
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
 		StackName:    aws.String(a.StackName()),
 		TemplateBody: aws.String(formation),
+		NotificationARNs: []*string{
+			aws.String(CloudformationEventsTopic),
+		},
 	}
 
 	for key, value := range params {

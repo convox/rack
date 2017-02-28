@@ -63,12 +63,6 @@ func handle(r Record) error {
 	}
 	fmt.Printf("m = %+v\n", m)
 
-	// Only interested in failed cloudformation envents
-	//if !strings.Contains(m["ResourceStatus"], "ROLLBACK") && !strings.Contains(m["ResourceStatus"], "FAILED") {
-	//	fmt.Printf("ignoring: %s - %s\n", m["LogicalResourceId"], m["ResourceStatus"])
-	//	return nil
-	//}
-
 	resp, err := CF.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(m["StackName"]),
 	})
