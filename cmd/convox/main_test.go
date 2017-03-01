@@ -8,6 +8,7 @@ import (
 
 	"github.com/convox/rack/client"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/assert"
 )
 
 var configlessEnv = map[string]string{
@@ -17,6 +18,8 @@ var configlessEnv = map[string]string{
 	"AWS_ACCESS_KEY_ID":     "",
 	"CONVOX_HOST":           "",
 }
+var DebuglessEnv = map[string]string{"CONVOX_DEBUG": ""}
+var DebugfulEnv = map[string]string{"CONVOX_DEBUG": "true"}
 
 func testServer(t *testing.T, stubs ...test.Http) *httptest.Server {
 	stubs = append(stubs, test.Http{Method: "GET", Path: "/system", Code: 200, Response: client.System{
@@ -42,4 +45,6 @@ func TestVersion(t *testing.T) {
 		Stdout:  "client: dev\n",
 		Stderr:  "ERROR: no host config found, try `convox login`\n",
 	})
+	v := Version
+	assert.Equal(t, v, "dev")
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -25,14 +24,16 @@ func init() {
 			{
 				Name:        "get",
 				Description: "get an environment variable",
-				Usage:       "VARIABLE",
+				Usage:       "VARIABLE [options]",
+				ArgsUsage:   "VARIABLE",
 				Action:      cmdEnvGet,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "set",
 				Description: "set an environment variable",
-				Usage:       "VARIABLE=VALUE",
+				Usage:       "VARIABLE=VALUE [VARIABLE=VALUE ...] [options]",
+				ArgsUsage:   "VARIABLE=VALUE",
 				Action:      cmdEnvSet,
 				Flags: []cli.Flag{
 					appFlag,
@@ -55,7 +56,8 @@ func init() {
 			{
 				Name:        "unset",
 				Description: "delete an environment varible",
-				Usage:       "VARIABLE",
+				Usage:       "VARIABLE [options]",
+				ArgsUsage:   "VARIABLE",
 				Action:      cmdEnvUnset,
 				Flags: []cli.Flag{
 					appFlag,
@@ -80,18 +82,12 @@ func init() {
 }
 
 func cmdEnvList(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox env` does not take arguments. Perhaps you meant `convox env set`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
 	}
 
 	env, err := rackClient(c).GetEnvironment(app)
@@ -115,17 +111,12 @@ func cmdEnvList(c *cli.Context) error {
 }
 
 func cmdEnvGet(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) == 0 {
-		return stdcli.Error(errors.New("No variable specified"))
-	}
-
-	if len(c.Args()) > 1 {
-		return stdcli.Error(errors.New("Only 1 variable can be retrieved at a time"))
 	}
 
 	variable := c.Args()[0]
@@ -140,6 +131,8 @@ func cmdEnvGet(c *cli.Context) error {
 }
 
 func cmdEnvSet(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -222,17 +215,12 @@ func cmdEnvSet(c *cli.Context) error {
 }
 
 func cmdEnvUnset(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) == 0 {
-		return stdcli.Error(errors.New("No variable specified"))
-	}
-
-	if len(c.Args()) > 1 {
-		return stdcli.Error(errors.New("Only 1 variable can be unset at a time"))
 	}
 
 	key := c.Args()[0]

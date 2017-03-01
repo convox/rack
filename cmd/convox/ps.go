@@ -14,8 +14,9 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "ps",
 		Description: "list an app's processes",
-		Usage:       "",
 		Action:      cmdPs,
+		Usage:       "[subcommand] [args] [options]",
+		ArgsUsage:   "[subcommand]",
 		Flags: []cli.Flag{
 			appFlag,
 			rackFlag,
@@ -28,14 +29,18 @@ func init() {
 			{
 				Name:        "info",
 				Description: "show info for a process",
-				Usage:       "<id>",
+				Usage:       "<process id> [options]",
+				UsageText:   "process id (from `convox ps`)",
+				ArgsUsage:   "<process id>",
 				Action:      cmdPsInfo,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "stop",
-				Description: "stop a process",
-				Usage:       "<id>",
+				Description: "stop a process by its id",
+				Usage:       "<process id> [options]",
+				UsageText:   "process id (from `convox ps`)",
+				ArgsUsage:   "<process id>",
 				Action:      cmdPsStop,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
@@ -44,6 +49,9 @@ func init() {
 }
 
 func cmdPs(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -134,14 +142,12 @@ func displayProcessesStats(ps []client.Process, fm client.Formation, showApp boo
 }
 
 func cmdPsInfo(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "info")
-		return nil
 	}
 
 	id := c.Args()[0]
@@ -163,14 +169,12 @@ func cmdPsInfo(c *cli.Context) error {
 }
 
 func cmdPsStop(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) != 1 {
-		stdcli.Usage(c, "stop")
-		return nil
 	}
 
 	id := c.Args()[0]

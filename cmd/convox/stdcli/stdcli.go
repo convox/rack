@@ -12,12 +12,12 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/briandowns/spinner"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/segmentio/analytics-go"
 	"github.com/stvp/rollbar"
 )
 
 // HelpFlags is a slice of all the strings that should be treated as help flags by the CLI
-var HelpFlags = []string{"--help", "-h", "h", "help"}
 
 var (
 	Binary     string
@@ -28,6 +28,7 @@ var (
 	Querier    func(bin string, args ...string) ([]byte, error)
 	Spinner    *spinner.Spinner
 	Tagger     func() string
+	HelpFlags  []string
 )
 
 func init() {
@@ -38,69 +39,75 @@ func init() {
 	Runner = runExecCommand
 	Spinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	Tagger = tagTimeUnix
+	HelpFlags = []string{"--help", "-h", "h", "help"}
 
-	cli.AppHelpTemplate = `{{.Name}}: {{.Usage}}
+	appHelpTemplate := `{{.Name}}: {{.Description}}
 
 Usage:
-  {{.Name}} <command> [args...]
-
-Subcommands: ({{.Name}} help <subcommand>)
+  {{.Name}} {{ .Usage }}
+{{ if .UsageText }}
+{{.UsageText -}}
+{{else}}
+{{- end }}
+Commands: ({{.Name}} <command> --help)
   {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
-  {{end}}{{if .VisibleFlags}}
-Options:
-  {{range .VisibleFlags}}{{.}}
-  {{end}}{{end}}
-`
+  {{end -}}`
 
-	cli.CommandHelpTemplate = fmt.Sprintf(`%s {{.FullName}}: {{.Description}}
+	cmdHelpTemplate := fmt.Sprintf(`%s {{.FullName}}: {{.Description}}
 
 Usage:
   %s {{.FullName}} {{.Usage}}
 {{if .Subcommands}}
-Subcommands: (%s {{.FullName}} help <subcommand>)
-  {{range .Subcommands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
-  {{end}}{{end}}{{if .VisibleFlags}}
-Options:
-   {{range .VisibleFlags}}{{.}}
-   {{end}}{{ end }}
-`, Binary, Binary, Binary)
+Subcommands: (%s {{.FullName}} <subcommand> --help)
+  {{range .Subcommands}}{{join .Names ", "}}{{ "\t" }}{{.Description }}
+  {{end}}{{end -}}`, Binary, Binary, Binary)
 
-	cli.SubcommandHelpTemplate = `{{.Name}}: {{.Usage}}
+	subCmdHelpTemplate := `{{.Name}}: {{.Description}}
 
 Usage:
-  {{.Name}} <command> [args...]
+  {{.Name}} {{ .Usage }}
+{{ if .UsageText }}
+{{.UsageText -}}
+{{else}}
+{{- end }}
+Subcommands: ({{.Name}} <subcommand> --help)
+  {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description }}
+  {{end -}}`
 
-Subcommands: ({{.Name}} help <subcommand>)
-  {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Description}}
-  {{end}}{{if .VisibleFlags}}
+	opts := `{{if .VisibleFlags}}
 Options:
   {{range .VisibleFlags}}{{.}}
-  {{end}}{{end}}
-`
+  {{end}}{{- end -}}
+  `
+	appHelpTemplate += opts
+	cmdHelpTemplate += opts
+	subCmdHelpTemplate += opts
+
+	cli.AppHelpTemplate = strings.TrimSpace(appHelpTemplate)
+	cli.CommandHelpTemplate = strings.TrimSpace(cmdHelpTemplate)
+	cli.SubcommandHelpTemplate = strings.TrimSpace(subCmdHelpTemplate)
 }
 
 func New() *cli.App {
 	app := cli.NewApp()
+
+	app.Usage = "<command> [subcommand] [options...] [args...]"
+	app.Description = "command-line application management"
+	app.ArgsUsage = "<command>"
 
 	app.EnableBashCompletion = true
 
 	app.Name = Binary
 	app.Commands = Commands
 
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "app, a",
-			Usage: "app name inferred from current directory if not specified",
-		},
-		cli.StringFlag{
-			Name:  "rack",
-			Usage: "rack name",
-		},
+	app.CommandNotFound = func(c *cli.Context, cmd string) {
+		fmt.Fprintf(os.Stderr, "No such command \"%s\". Try `%s --help`\n", cmd, Binary)
+		os.Exit(1)
 	}
 
-	app.CommandNotFound = func(c *cli.Context, cmd string) {
-		fmt.Fprintf(os.Stderr, "No such command \"%s\". Try `%s help`\n", cmd, Binary)
-		os.Exit(1)
+	cli.HelpFlag = cli.BoolFlag{
+		Name:  "help, h",
+		Usage: "show help",
 	}
 
 	app.Writer = DefaultWriter
@@ -122,7 +129,7 @@ func ValidatePreconditions(preconditions ...cli.BeforeFunc) cli.BeforeFunc {
 }
 
 func Debug() bool {
-	if debug := os.Getenv("CONVOX_DEBUG"); debug != "" {
+	if os.Getenv("CONVOX_DEBUG") != "" {
 		return true
 	}
 	return false
@@ -154,16 +161,7 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	app := RecoverFlag(c, "a", "app")
-
-	if app == "" {
-		app = ReadSetting("app")
-	}
-
-	if app == "" {
-		app = filepath.Base(abs)
-	}
-
+	app := helpers.Coalesce(c.String("app"), c.GlobalString("app"), RecoverFlag(c, "a", "app"), ReadSetting("app"), filepath.Base(abs))
 	app = strings.ToLower(app)
 
 	// If there are dots in the directory name, replace them with hyphens instead
@@ -290,8 +288,9 @@ func IsTerminal(f *os.File) bool {
 	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
-func Usage(c *cli.Context, name string) {
-	cli.ShowCommandHelp(c, name)
+// Usage prints help for the current command and exits
+func Usage(c *cli.Context) {
+	cli.ShowCommandHelp(c, c.Command.Name)
 	Exiter(129)
 }
 
@@ -367,4 +366,124 @@ func CheckEnv() error {
 		}
 	}
 	return nil
+}
+
+// NeedHelp checks for help flags (-h, --help) and args (h, help).
+func NeedHelp(c *cli.Context) {
+	name := c.Command.Name
+	// in some cases, for mysterious reasons, c.Command.Name is empty--but not c.App.Name
+	if name == "" {
+		name = c.App.Name
+	}
+
+	// in the case of commands like 'convox resources create', name will be 'convox resources' which is not a valid command. we can return here and check on the next pass (because the subcommand will call us as well)
+	split := strings.Split(name, " ")
+	if len(split) > 1 {
+		return
+	}
+
+	if c.IsSet("h") || c.GlobalIsSet("h") || c.IsSet("help") || c.GlobalIsSet("help") || c.Bool("h") || c.Bool("help") {
+		if Debug() {
+			Warn("help requested")
+		}
+		cli.ShowSubcommandHelp(c)
+		Exiter(0)
+	}
+
+	// handle things manually when SkipFlagParsing is true
+	args := c.Args()
+
+	needHelp := false
+	for _, a := range args {
+		if helpers.In(a, HelpFlags) {
+			needHelp = true
+		}
+	}
+
+	if needHelp {
+		if Debug() {
+			Warn("help requested")
+		}
+		cli.ShowCommandHelp(c, name)
+		Exiter(0)
+	}
+}
+
+// NeedArg checks that we have received the expected number of arguments
+func NeedArg(c *cli.Context, count int) {
+	args := c.Args()
+
+	// if count is negative, it means we need *at least* that many arguments
+	atLeast := ""
+	if count < 0 {
+		count = count * -1
+		if len(args) >= count {
+			return
+		}
+		atLeast = "at least "
+	}
+
+	expected := "argument"
+	if count > 1 || count == 0 {
+		expected = "arguments"
+	}
+	received := "argument"
+	if len(args) > 1 {
+		received = "arguments"
+	}
+
+	if len(args) < count {
+		isOrAre := "is"
+		if count > 1 {
+			isOrAre = "are"
+		}
+		Errorf("%s%d %s %s required: %s",
+			atLeast,
+			count,
+			expected,
+			isOrAre,
+			c.Command.ArgsUsage)
+		Usage(c)
+	}
+
+	if len(args) > count {
+		msg := fmt.Sprintf("expected %d %s %s; got %d %s (%s).",
+			count,
+			expected,
+			c.Command.ArgsUsage,
+			len(args),
+			received,
+			strings.Join(args, " "),
+		)
+		msg = strings.Replace(msg, " ;", ";", 1)
+		if count == 0 {
+			msg += " Perhaps you meant to use a subcommand or option?"
+		}
+		if Debug() {
+			Errorf(msg)
+		}
+
+		Usage(c)
+	}
+}
+
+// EnsureOnlyFlags ensures that every element in the args slice starts with --
+func EnsureOnlyFlags(c *cli.Context, args []string) {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "--") {
+			Errorf("got unexpected argument '%s'; please provide parameters in --flag or --flag=value format", a)
+			Usage(c)
+		}
+	}
+}
+
+// FlagsToOptions converts a list of '--key=value'/'--bool' strings to 'key: value, bool: true'-style map
+func FlagsToOptions(c *cli.Context, args []string) map[string]string {
+	options := ParseOpts(args)
+	for key, value := range options {
+		if value == "" {
+			options[key] = "true"
+		}
+	}
+	return options
 }

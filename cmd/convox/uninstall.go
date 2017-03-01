@@ -51,6 +51,8 @@ func init() {
 }
 
 func cmdUninstall(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
 	ep := stdcli.QOSEventProperties{Start: time.Now()}
 
 	distinctId, err := currentId()
@@ -59,7 +61,7 @@ func cmdUninstall(c *cli.Context) error {
 	}
 
 	if len(c.Args()) != 2 && len(c.Args()) != 3 {
-		stdcli.Usage(c, "uninstall")
+		stdcli.Usage(c)
 		return nil
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/urfave/cli"
 )
 
 func TestParseOptions(t *testing.T) {
@@ -59,4 +60,39 @@ func TestCheckEnvVars(t *testing.T) {
 			Stderr:  "ERROR: 'foo' is not a valid value for environment variable CONVOX_WAIT (expected: [true false 1 0 ])\n",
 		},
 	)
+}
+
+func TestDebug(t *testing.T) {
+	oldDebug := os.Getenv("CONVOX_DEBUG")
+
+	os.Setenv("CONVOX_DEBUG", "")
+	d := stdcli.Debug()
+	assert.Equal(t, d, false)
+
+	os.Setenv("CONVOX_DEBUG", "true")
+	d = stdcli.Debug()
+	assert.Equal(t, d, true)
+
+	os.Setenv("CONVOX_DEBUG", oldDebug)
+}
+
+func TestStdcliApp(t *testing.T) {
+	app := stdcli.New()
+	assert.Equal(t, "<command>", app.ArgsUsage)
+	assert.Equal(t, "<command> [subcommand] [options...] [args...]", app.Usage)
+	assert.Equal(t, "command-line application management", app.Description)
+	assert.Equal(t, cli.BoolFlag{
+		Name:   "help, h",
+		Usage:  "show help",
+		EnvVar: "",
+		Hidden: false,
+	}, cli.HelpFlag)
+	args := []string{"convox foo"}
+	err := app.Run(args)
+	assert.NoError(t, err)
+
+	stdcli.Spinner.Prefix = "Testing..."
+	stdcli.Spinner.Start()
+	stdcli.Spinner.Stop()
+	assert.Equal(t, stdcli.Spinner.Prefix, "Testing...")
 }
