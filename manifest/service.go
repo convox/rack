@@ -301,7 +301,11 @@ func containerEnv(container string) map[string]string {
 
 	for _, e := range es {
 		parts := strings.SplitN(e, "=", 2)
-		env[parts[0]] = parts[1]
+		if len(parts) > 1 {
+			env[parts[0]] = parts[1]
+		} else {
+			env[parts[0]] = ""
+		}
 	}
 
 	return env

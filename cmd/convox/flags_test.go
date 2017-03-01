@@ -17,41 +17,41 @@ Usage:
   convox <command> [args...]
 
 Subcommands: (convox help <subcommand>)
-  api			api endpoint
-  apps			list deployed apps
-  build			create a new build
-  builds		manage an app's builds
-  certs			list certificates
-  deploy		deploy an app to AWS
-  doctor		check your app for common Convox compatibility issues
-  env			manage an app's environment variables
-  exec			exec a command in a process in your Convox rack
-  init			initialize an app for local development
-  install		install convox into an aws account
-  instances		list your Convox rack's instances
-  login			log into your convox rack
-  logs			stream the logs for an application
-  proxy			proxy local ports into a rack
-  ps			list an app's processes
-  rack			manage your Convox rack
-  racks			list your Convox racks
-  registries		manage private registries
-  releases		list an app's releases
-  run			run a one-off command in your Convox rack
-  scale			scale an app's processes
-  resources, services	manage external resources [prev. services]
-  ssl			manage ssl certificates
-  start			start an app for local development
-  switch		switch to another Convox rack
-  uninstall		uninstall a convox rack
-  update		update the cli
-  help, h		
+  api                  api endpoint
+  apps                 list deployed apps
+  build                create a new build
+  builds               manage an app's builds
+  certs                list certificates
+  deploy               deploy an app to AWS
+  doctor               check your app for common Convox compatibility issues
+  env                  manage an app's environment variables
+  exec                 exec a command in a process in your Convox rack
+  init                 initialize an app for local development
+  install              install convox into an aws account
+  instances            list your Convox rack's instances
+  login                log into your convox rack
+  logs                 stream the logs for an application
+  proxy                proxy local ports into a rack
+  ps                   list an app's processes
+  rack                 manage your Convox rack
+  racks                list your Convox racks
+  registries           manage private registries
+  releases             list an app's releases
+  run                  run a one-off command in your Convox rack
+  scale                scale an app's processes
+  resources, services  manage external resources [prev. services]
+  ssl                  manage ssl certificates
+  start                start an app for local development
+  switch               switch to another Convox rack
+  uninstall            uninstall a convox rack
+  update               update the cli
+  help, h              
   
 Options:
-  --app value, -a value	app name inferred from current directory if not specified
-  --rack value		rack name
-  --help, -h		show help
-  --version, -v		print the version
+  --app value, -a value  app name inferred from current directory if not specified
+  --rack value           rack name
+  --help, -h             show help
+  --version, -v          print the version
   
 `
 
