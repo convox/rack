@@ -1359,6 +1359,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
+              "Encryption": "true",
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1366,6 +1367,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
+              "Encryption": "true",
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
@@ -1477,6 +1479,7 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
+              "Encryption": "true",
               "VolumeSize": { "Ref": "SwapSize" },
               "VolumeType":"gp2"
             }
@@ -1484,6 +1487,7 @@
           {
             "DeviceName": "/dev/xvdcz",
             "Ebs": {
+              "Encryption": "true",
               "VolumeSize": { "Ref": "VolumeSize" },
               "VolumeType":"gp2"
             }
