@@ -8,34 +8,10 @@
         "Type": "String",
         "Description": "Name of elasticsearch domain"
       },
-      "UserArn": {
-        "Type": "String",
-        "Description": "The ARN of the user which will sign requests"
-      },
-      "WhitelistIp": {
-        "Type": "String",
-        "Default": "127.0.0.1/0",
-        "Description": "IP to white-list for power users"
-      },
-      "Version": {
-        "Type": "String",
-        "Default": "2.3",
-        "Description": "Version of elasticsearch instance"
-      },
       "DedicatedMaster": {
         "Type" : "String",
         "Default" : "true",
         "Description" : "Use a dedicated master"
-      },
-      "MasterInstanceType": {
-        "Type" : "String",
-        "Default" : "m3.medium.elasticsearch",
-        "Description" : "Size of elasticsearch document"
-      },
-      "MasterInstanceCount": {
-        "Type" : "Number",
-        "Default" : 3,
-        "Description" : "Master Instance Count"
       },
       "InstanceType": {
         "Type" : "String",
@@ -52,10 +28,34 @@
         "Default" : 0,
         "Description" : "Provisioned Iops"
       },
+      "MasterInstanceType": {
+        "Type" : "String",
+        "Default" : "m3.medium.elasticsearch",
+        "Description" : "Size of elasticsearch document"
+      },
+      "MasterInstanceCount": {
+        "Type" : "Number",
+        "Default" : 3,
+        "Description" : "Master Instance Count"
+      },
+      "UserArn": {
+        "Type": "String",
+        "Description": "The ARN of the user which will sign requests"
+      },
+      "Version": {
+        "Type": "String",
+        "Default": "2.3",
+        "Description": "Version of elasticsearch instance"
+      },
       "VolumeSize": {
         "Type" : "Number",
         "Default" : 20,
         "Description" : "Volume Size"
+      },
+      "WhitelistIp": {
+        "Type": "String",
+        "Default": "127.0.0.1/0",
+        "Description": "IP to white-list for power users"
       }
     },
     "Outputs": {
