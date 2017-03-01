@@ -175,12 +175,10 @@ func (a *App) Create() error {
 	}
 
 	req := &cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(a.StackName()),
-		TemplateBody: aws.String(formation),
-		NotificationARNs: []*string{
-			aws.String(CloudformationEventsTopic),
-		},
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		StackName:        aws.String(a.StackName()),
+		TemplateBody:     aws.String(formation),
+		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
 	}
 
 	for key, value := range params {
@@ -231,6 +229,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
+		NotificationARNs:    []*string{aws.String(CloudformationEventsTopic)},
 	}
 
 	// sort parameters by key name to make test requests stable
