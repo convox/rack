@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -27,7 +26,8 @@ type Event struct {
 // Record is an entry in a lambda event
 type Record struct {
 	Sns struct {
-		Message string
+		Message   string
+		MessageId string
 	}
 }
 
@@ -75,8 +75,6 @@ func handle(r Record) error {
 	stack := resp.Stacks[0]
 
 	var logGroup string
-
-	logStream := uuid.NewV4().String()
 	for _, output := range stack.Outputs {
 		if *output.OutputKey == "LogGroup" {
 			logGroup = *output.OutputValue
@@ -91,7 +89,7 @@ func handle(r Record) error {
 
 	_, err = cwl.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroup),
-		LogStreamName: aws.String(logStream),
+		LogStreamName: aws.String(r.Sns.MessageId),
 	})
 	if err != nil {
 		return err
@@ -122,7 +120,7 @@ func handle(r Record) error {
 			},
 		},
 		LogGroupName:  aws.String(logGroup),
-		LogStreamName: aws.String(logStream),
+		LogStreamName: aws.String(r.Sns.MessageId),
 	}
 	le, err := cwl.PutLogEvents(params)
 	if err != nil {
