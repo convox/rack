@@ -10,4 +10,4 @@ ENV {{ range $key, $value := .environment }}{{ $key }}={{ $value }} {{ end }}
 
 COPY . /app
 
-RUN /tmp/heroku-buildpack-{{ .kind }}/bin/compile /app /tmp/cache
+RUN output=$(/tmp/heroku-buildpack-{{ .kind }}/bin/compile /app /tmp/cache) || echo $output

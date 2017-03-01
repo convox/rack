@@ -20,6 +20,16 @@ func (bp *Boilerplate) GenerateDockerIgnore() ([]byte, error) {
 	return []byte(di), nil
 }
 
+// GenerateLocalEnv generates a .env file
+func (bp *Boilerplate) GenerateLocalEnv() ([]byte, error) {
+	return nil, nil
+}
+
+// GenerateGitIgnore generates a .gitignore file
+func (bp *Boilerplate) GenerateGitIgnore() ([]byte, error) {
+	return writeAsset("appinit/templates/gitignore", nil)
+}
+
 // GenerateManifest generates a docker-compose.yml file
 func (bp *Boilerplate) GenerateManifest() ([]byte, error) {
 	dc := `version: "2"

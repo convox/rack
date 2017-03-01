@@ -170,6 +170,24 @@ func initApplication(dir string, c *cli.Context) (string, error) {
 		return kind, err
 	}
 
+	gi, err := af.GenerateGitIgnore()
+	if err != nil {
+		return kind, err
+	}
+
+	if err := writeFile(".gitignore", gi, 0644); err != nil {
+		return kind, err
+	}
+
+	env, err := af.GenerateLocalEnv()
+	if err != nil {
+		return kind, err
+	}
+
+	if err := writeFile(".env", env, 0644); err != nil {
+		return kind, err
+	}
+
 	cleanComposeFile()
 
 	fmt.Println()
@@ -225,6 +243,10 @@ func emptyDir(dir string) bool {
 
 // writeFile is a helper function that writes a file
 func writeFile(path string, data []byte, mode os.FileMode) error {
+	if data == nil {
+		return nil
+	}
+
 	fmt.Printf("Writing %s... ", path)
 
 	if helpers.Exists(path) {

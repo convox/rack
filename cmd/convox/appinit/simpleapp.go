@@ -33,6 +33,16 @@ func (sa *SimpleApp) GenerateDockerIgnore() ([]byte, error) {
 	return writeAsset("appinit/templates/dockerignore", input)
 }
 
+// GenerateLocalEnv generates a .env file
+func (sa *SimpleApp) GenerateLocalEnv() ([]byte, error) {
+	return nil, nil
+}
+
+// GenerateGitIgnore generates a .gitignore file
+func (sa *SimpleApp) GenerateGitIgnore() ([]byte, error) {
+	return writeAsset("appinit/templates/gitignore", nil)
+}
+
 // GenerateManifest generates a docker-compose.yml file
 func (sa *SimpleApp) GenerateManifest() ([]byte, error) {
 	m := GenerateManifest(sa.pf, sa.af, sa.release)
