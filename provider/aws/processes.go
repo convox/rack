@@ -230,6 +230,7 @@ func (p *AWSProvider) stackTasks(stack string) ([]string, error) {
 				for _, arn := range page.TaskArns {
 					tasks = append(tasks, *arn)
 				}
+				time.Sleep(100 * time.Millisecond)
 				return true
 			},
 		)
