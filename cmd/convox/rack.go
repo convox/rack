@@ -18,14 +18,16 @@ func init() {
 	stdcli.RegisterCommand(cli.Command{
 		Name:        "rack",
 		Description: "manage your Convox rack",
-		Usage:       "",
+		Usage:       "[options]",
+		ArgsUsage:   "[subcommand]",
 		Action:      cmdRack,
 		Flags:       []cli.Flag{rackFlag},
 		Subcommands: []cli.Command{
 			{
 				Name:        "logs",
 				Description: "stream the rack logs",
-				Usage:       "",
+				Usage:       "[options]",
+				ArgsUsage:   "",
 				Action:      cmdRackLogs,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -47,14 +49,16 @@ func init() {
 			{
 				Name:        "params",
 				Description: "list advanced rack parameters",
-				Usage:       "",
+				Usage:       "[options]",
+				ArgsUsage:   "[<subcommand>]",
 				Action:      cmdRackParams,
 				Flags:       []cli.Flag{rackFlag},
 				Subcommands: []cli.Command{
 					{
 						Name:        "set",
 						Description: "update advanced rack parameters",
-						Usage:       "NAME=VALUE [NAME=VALUE]",
+						Usage:       "NAME=VALUE [NAME=VALUE] ...",
+						ArgsUsage:   "NAME=VALUE",
 						Action:      cmdRackParamsSet,
 						Flags:       []cli.Flag{rackFlag},
 					},
@@ -63,7 +67,8 @@ func init() {
 			{
 				Name:        "ps",
 				Description: "list rack processes",
-				Usage:       "",
+				Usage:       "[options]",
+				ArgsUsage:   "",
 				Action:      cmdRackPs,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -80,7 +85,8 @@ func init() {
 			{
 				Name:        "scale",
 				Description: "scale the rack capacity",
-				Usage:       "",
+				Usage:       "[options]",
+				ArgsUsage:   "",
 				Action:      cmdRackScale,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -97,7 +103,8 @@ func init() {
 			{
 				Name:        "update",
 				Description: "update rack to the given version",
-				Usage:       "[version]",
+				Usage:       "[version] [options]",
+				ArgsUsage:   "[version]",
 				Action:      cmdRackUpdate,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -112,6 +119,7 @@ func init() {
 				Name:        "releases",
 				Description: "list a Rack's version history",
 				Usage:       "",
+				ArgsUsage:   "",
 				Action:      cmdRackReleases,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -126,14 +134,8 @@ func init() {
 }
 
 func cmdRack(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox rack` does not take arguments. Perhaps you meant `convox rack update`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
@@ -150,6 +152,9 @@ func cmdRack(c *cli.Context) error {
 }
 
 func cmdRackLogs(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	err := rackClient(c).StreamRackLogs(c.String("filter"), c.BoolT("follow"), c.Duration("since"), os.Stdout)
 	if err != nil {
 		return stdcli.Error(err)
@@ -159,6 +164,9 @@ func cmdRackLogs(c *cli.Context) error {
 }
 
 func cmdRackParams(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		return stdcli.Error(err)
@@ -188,6 +196,9 @@ func cmdRackParams(c *cli.Context) error {
 }
 
 func cmdRackParamsSet(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -1)
+
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		return stdcli.Error(err)
@@ -220,6 +231,9 @@ func cmdRackParamsSet(c *cli.Context) error {
 }
 
 func cmdRackPs(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		return stdcli.Error(err)
@@ -248,6 +262,8 @@ func cmdRackPs(c *cli.Context) error {
 }
 
 func cmdRackUpdate(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
 	// Retrieve list of all versions
 	vs, err := version.All()
 	if err != nil {
@@ -262,6 +278,7 @@ func cmdRackUpdate(c *cli.Context) error {
 
 	// if user has provided a version number as an argument, use that instead
 	if len(c.Args()) > 0 {
+		stdcli.NeedArg(c, 1) // accept no more than one argument
 		t, err := vs.Find(c.Args()[0])
 		if err != nil {
 			return stdcli.Error(err)
@@ -318,6 +335,9 @@ func cmdRackUpdate(c *cli.Context) error {
 }
 
 func cmdRackScale(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	// initialize to invalid values that indicate no change
 	count := -1
 	typ := ""
@@ -330,16 +350,8 @@ func cmdRackScale(c *cli.Context) error {
 		typ = c.String("type")
 	}
 
-	// validate no argument
-	switch len(c.Args()) {
-	case 0:
-		if count == -1 && typ == "" {
-			displaySystem(c)
-			return nil
-		}
-		// fall through to scale API call
-	default:
-		stdcli.Usage(c, "scale")
+	if count == -1 && typ == "" {
+		displaySystem(c)
 		return nil
 	}
 
@@ -353,6 +365,9 @@ func cmdRackScale(c *cli.Context) error {
 }
 
 func cmdRackReleases(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	system, err := rackClient(c).GetSystem()
 	if err != nil {
 		return stdcli.Error(err)

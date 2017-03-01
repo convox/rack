@@ -20,14 +20,16 @@ func init() {
 			{
 				Name:        "cancel",
 				Description: "cancel an update",
-				Usage:       "",
+				Usage:       "[options]",
+				ArgsUsage:   "",
 				Action:      cmdAppCancel,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 			},
 			{
 				Name:        "create",
 				Description: "create a new application",
-				Usage:       "<name>",
+				Usage:       "[name] [options]",
+				ArgsUsage:   "[name] (inferred from current directory if not specified)",
 				Action:      cmdAppCreate,
 				Flags: []cli.Flag{
 					rackFlag,
@@ -56,13 +58,15 @@ func init() {
 				Name:        "params",
 				Description: "list advanced parameters for an app",
 				Usage:       "[name]",
+				ArgsUsage:   "",
 				Action:      cmdAppParams,
 				Flags:       []cli.Flag{appFlag, rackFlag},
 				Subcommands: []cli.Command{
 					{
 						Name:        "set",
 						Description: "update advanced parameters for an app",
-						Usage:       "NAME=VALUE [NAME=VALUE]",
+						Usage:       "NAME=VALUE [NAME=VALUE] ... [options]",
+						ArgsUsage:   "NAME=VALUE",
 						Action:      cmdAppParamsSet,
 						Flags:       []cli.Flag{appFlag, rackFlag},
 					},
@@ -73,14 +77,8 @@ func init() {
 }
 
 func cmdApps(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox apps` does not take arguments. Perhaps you meant `convox apps create`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
 
 	apps, err := rackClient(c).GetApps()
 	if err != nil {
@@ -98,6 +96,9 @@ func cmdApps(c *cli.Context) error {
 }
 
 func cmdAppCancel(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -119,12 +120,16 @@ func cmdAppCancel(c *cli.Context) error {
 }
 
 func cmdAppCreate(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
 	if len(c.Args()) > 0 {
+		// accept no more than 1 argument
+		stdcli.NeedArg(c, 1)
 		app = c.Args()[0]
 	}
 
@@ -155,10 +160,8 @@ func cmdAppCreate(c *cli.Context) error {
 }
 
 func cmdAppDelete(c *cli.Context) error {
-	if len(c.Args()) < 1 {
-		stdcli.Usage(c, "delete")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 1)
 
 	app := c.Args()[0]
 
@@ -175,12 +178,16 @@ func cmdAppDelete(c *cli.Context) error {
 }
 
 func cmdAppInfo(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
 	}
 
+	// FIXME: we should accept only --app (i.e. as a flag) to be consistent with other commands
 	if len(c.Args()) > 0 {
+		stdcli.NeedArg(c, 1)
 		app = c.Args()[0]
 	}
 
@@ -221,6 +228,9 @@ func cmdAppInfo(c *cli.Context) error {
 }
 
 func cmdAppParams(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
@@ -250,6 +260,10 @@ func cmdAppParams(c *cli.Context) error {
 }
 
 func cmdAppParamsSet(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	// need at least one argument
+	stdcli.NeedArg(c, -1)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
