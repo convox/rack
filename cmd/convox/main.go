@@ -11,6 +11,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/convox/rack/client"
+	"github.com/convox/rack/cmd/convox/helpers"
 	"github.com/convox/rack/cmd/convox/stdcli"
 )
 
@@ -40,10 +41,31 @@ func init() {
 	})
 }
 
+/*
+	## Command syntax ##
+
+		Usage:
+			no more than one line
+
+		UsageText:
+			may be multiple lines, but isn't usually displayed
+
+		ArgsUsage:
+			no more than one line
+			denotes required arguments
+			used in output of stdcli.NeedArg as placeholder when argument is missing or unexpected
+
+		Description:
+			no more than one line
+			used in:
+				* 'convox <command> --help' under 'Usage:'
+				* output of 'convox -h' and 'convox h'
+*/
+
 func main() {
 	app := stdcli.New()
+	app.Flags = []cli.Flag{appFlag, rackFlag}
 	app.Version = Version
-	app.Usage = "command-line application management"
 
 	err := app.Run(os.Args)
 
@@ -88,16 +110,6 @@ func main() {
 	}
 }
 
-func coalesce(ss ...string) string {
-	for _, s := range ss {
-		if s != "" {
-			return s
-		}
-	}
-
-	return ""
-}
-
 func currentRack(c *cli.Context) string {
 	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
 	if err != nil && !os.IsNotExist(err) {
@@ -106,7 +118,7 @@ func currentRack(c *cli.Context) string {
 
 	rackFlag := stdcli.RecoverFlag(c, "rack")
 
-	return coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
+	return helpers.Coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
 }
 
 func rackClient(c *cli.Context) *client.Client {

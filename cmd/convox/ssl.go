@@ -22,7 +22,8 @@ func init() {
 			{
 				Name:        "update",
 				Description: "update the certificate associated with an endpoint",
-				Usage:       "<process:port> <certificate-id>",
+				Usage:       "<process:port> <certificate-id> [options]",
+				ArgsUsage:   "<process:port> <certificate-id>",
 				Action:      cmdSSLUpdate,
 				Flags: []cli.Flag{
 					appFlag,
@@ -34,18 +35,12 @@ func init() {
 }
 
 func cmdSSLList(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, 0)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) > 0 {
-		return stdcli.Error(fmt.Errorf("`convox ssl` does not take arguments. Perhaps you meant `convox ssl update`?"))
-	}
-
-	if c.Bool("help") {
-		stdcli.Usage(c, "")
-		return nil
 	}
 
 	ssls, err := rackClient(c).ListSSL(app)
@@ -64,14 +59,12 @@ func cmdSSLList(c *cli.Context) error {
 }
 
 func cmdSSLUpdate(c *cli.Context) error {
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -2)
+
 	_, app, err := stdcli.DirApp(c, ".")
 	if err != nil {
 		return stdcli.Error(err)
-	}
-
-	if len(c.Args()) < 2 {
-		stdcli.Usage(c, "update")
-		return nil
 	}
 
 	target := c.Args()[0]

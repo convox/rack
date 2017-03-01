@@ -6,18 +6,22 @@ import (
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"github.com/convox/rack/test"
+	"github.com/stretchr/testify/assert"
 )
 
 /* HELP CHECKS */
 // http://www.gnu.org/prep/standards/html_node/_002d_002dhelp.html
 
-var convoxHelp = `convox: command-line application management
+// Note: when --help precedes a subcommand, it shows Convox help, not the subcommand help
+// This is a known issue: https://github.com/urfave/cli/issues/318
+
+var convoxUsage = `convox: command-line application management
 
 Usage:
-  convox <command> [args...]
+  convox <command> [subcommand] [options...] [args...]
 
-Subcommands: (convox help <subcommand>)
-  api                  api endpoint
+Commands: (convox <command> --help)
+  api                  make a rest api call to a convox endpoint
   apps                 list deployed apps
   build                create a new build
   builds               manage an app's builds
@@ -52,10 +56,11 @@ Options:
   --rack value           rack name
   --help, -h             show help
   --version, -v          print the version
-  
-`
+  `
 
 func TestHelpFlag(t *testing.T) {
+	assert.Equal(t, stdcli.HelpFlags, []string{"--help", "-h", "h", "help"})
+
 	ts := testServer(t,
 		test.Http{
 			Method: "GET",
@@ -71,7 +76,7 @@ func TestHelpFlag(t *testing.T) {
 			test.ExecRun{
 				Command: c,
 				Exit:    0,
-				Stdout:  convoxHelp,
+				Stdout:  convoxUsage,
 			},
 		)
 	}

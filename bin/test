@@ -6,6 +6,9 @@ go get -t ./...
 
 rm -f coverage.txt
 
+# Print urfave/cli template parsing errors
+export CLI_TEMPLATE_ERROR_DEBUG=true
+
 if [ ! -z ${PKG} ]; then
     if [ ! -z ${TEST} ]; then
         echo "Running single test $TEST"

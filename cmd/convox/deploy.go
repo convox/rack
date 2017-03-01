@@ -30,9 +30,11 @@ func init() {
 }
 
 func cmdDeploy(c *cli.Context) error {
+	stdcli.NeedHelp(c)
 	wd := "."
 
 	if len(c.Args()) > 0 {
+		stdcli.NeedArg(c, 1)
 		wd = c.Args()[0]
 	}
 

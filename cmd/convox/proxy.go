@@ -16,16 +16,15 @@ func init() {
 		Name:        "proxy",
 		Description: "proxy local ports into a rack",
 		Usage:       "<[port:]host:hostport> [[port:]host:hostport]...",
+		ArgsUsage:   "<[port:]host:hostport>",
 		Action:      cmdProxy,
 		Flags:       []cli.Flag{rackFlag},
 	})
 }
 
 func cmdProxy(c *cli.Context) error {
-	if len(c.Args()) == 0 {
-		stdcli.Usage(c, "proxy")
-		return nil
-	}
+	stdcli.NeedHelp(c)
+	stdcli.NeedArg(c, -1)
 
 	for _, arg := range c.Args() {
 		parts := strings.SplitN(arg, ":", 3)
