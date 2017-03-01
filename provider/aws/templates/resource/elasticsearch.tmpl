@@ -1,0 +1,128 @@
+{{ define "resource" }}
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+    "Conditions": {
+    },
+    "Parameters": {
+      "DomainName": {
+        "Type": "String",
+        "Description": "Name of elasticsearch domain"
+      },
+      "UserArn": {
+        "Type": "String",
+        "Description": "Name of elasticsearch domain"
+      },
+      "WhitelistIp": {
+        "Type": "String",
+        "Default": "127.0.0.1/0",
+        "Description": "Ip to Whitelist access for power users"
+      },
+      "Version": {
+        "Type": "String",
+        "Default": "2.3",
+        "Description": "Version of Elasticsearch instance"
+      },
+      "DedicatedMaster": {
+        "Type" : "String",
+        "Default" : "true",
+        "Description" : "Use a dedicated master"
+      },
+      "MasterInstanceType": {
+        "Type" : "String",
+        "Default" : "m3.medium.elasticsearch",
+        "Description" : "Size of elasticsearch document"
+      },
+      "MasterInstanceCount": {
+        "Type" : "Number",
+        "Default" : 3,
+        "Description" : "Master Instance Count"
+      },
+      "InstanceType": {
+        "Type" : "String",
+        "Default" : "m3.medium.elasticsearch",
+        "Description" : "Size of elasticsearch document"
+      },
+      "InstanceCount": {
+        "Type" : "Number",
+        "Default" : 2,
+        "Description" : "Instance Count"
+      },
+      "Iops": {
+        "Type" : "Number",
+        "Default" : 0,
+        "Description" : "Provisioned Iops"
+      },
+      "VolumeSize": {
+        "Type" : "Number",
+        "Default" : 20,
+        "Description" : "Volume Size"
+      }
+    },
+    "Outputs": {
+      "DomainEndpoint": { "Value": { "Fn::GetAtt": [ "ElasticsearchDomain", "DomainEndpoint" ] } }
+    },
+    "Resources": {
+      "ElasticsearchDomain": {
+        "Type": "AWS::Elasticsearch::Domain",
+        "Properties": {
+          "DomainName": { "Ref": "DomainName" },
+          "ElasticsearchVersion": { "Ref": "Version" },
+          "ElasticsearchClusterConfig": {
+            "DedicatedMasterEnabled": { "Ref": "DedicatedMaster" },
+            "DedicatedMasterType": { "Ref": "MasterInstanceType" },
+            "DedicatedMasterCount": { "Ref": "MasterInstanceCount" },
+            "InstanceType": { "Ref": "InstanceType" },
+            "InstanceCount": { "Ref": "InstanceCount" },
+            "ZoneAwarenessEnabled": true
+          },
+          "EBSOptions": {
+            "EBSEnabled": true,
+            "Iops": { "Ref": "Iops" },
+            "VolumeSize": { "Ref": "VolumeSize" },
+            "VolumeType": "gp2"
+          },
+          "SnapshotOptions": {
+            "AutomatedSnapshotStartHour": "0"
+          },
+          "AccessPolicies": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": { "Ref": "UserArn" }
+                },
+                "Action": [
+                  "es:ESHttpHead",
+                  "es:ESHttpGet",
+                  "es:ESHttpPost",
+                  "es:ESHttpPut",
+                  "es:ESHttpDelete"
+                ],
+                "Resource": { "Fn::GetAtt": [ "ElasticsearchDomain", "DomainArn" ] }
+              },
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": { "Ref": "UserArn" }
+                },
+                "Action": "es:*",
+                "Condition": {
+                  "IpAddress": {
+                    "aws:SourceIp": {
+                      "Ref": "WhitelistIp"
+                    }
+                  }
+                },
+                "Resource": { "Fn::GetAtt": [ "ElasticsearchDomain", "DomainArn" ] }
+              }
+            ]
+          },
+          "AdvancedOptions": {
+            "rest.action.multi.allow_explicit_index": "true"
+          }
+        }
+      }
+    }
+}
+{{ end }}
