@@ -1812,6 +1812,7 @@
                   "Effect": "Allow",
                   "Action": [
                     "cloudformation:DescribeStacks",
+                    "logs:CreateLogGroup",
                     "logs:CreateLogStream",
                     "logs:PutLogEvents"
                   ],
