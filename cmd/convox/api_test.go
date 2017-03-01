@@ -29,19 +29,19 @@ func TestApiGet(t *testing.T) {
 /* HELP CHECKS */
 // http://www.gnu.org/prep/standards/html_node/_002d_002dhelp.html
 
-var apiHelp = `convox api: api endpoint
+var apiHelp = `convox api: 
 
 Usage:
   convox api <command> [args...]
 
 Subcommands: (convox api help <subcommand>)
-  get		get an api endpoint
-  delete	delete an api endpoint
-  help, h	
+  get      get an api endpoint
+  delete   delete an api endpoint
+  help, h  
   
 Options:
-  --rack value	rack name
-  --help, -h	show help
+  --rack value  rack name
+  --help, -h    show help
   
 `
 
@@ -51,7 +51,7 @@ Usage:
   convox api get <endpoint>
 
 Options:
-   --rack value	rack name
+   --rack value  rack name
    
 `
 

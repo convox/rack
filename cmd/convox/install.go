@@ -263,7 +263,7 @@ func cmdInstall(c *cli.Context) error {
 	}
 
 	private := "No"
-	if c.Bool("private") || strings.ToLower(os.Getenv("RACK_PRIVATE")) == "yes" || strings.ToLower(os.Getenv("RACK_PRIVATE")) == "true" {
+	if c.Bool("private") {
 		private = "Yes"
 	}
 

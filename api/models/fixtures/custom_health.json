@@ -104,7 +104,21 @@
     },
     "MainPort80BalancerName": {
       "Condition": "EnabledMain",
-      "Value": "httpd-main-KQSNMIK"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-main-KQSNMIK",
+                "n"
+              ]
+            ]
+          },
+          "httpd-main-KQSNMIK"
+        ]
+      }
     },
     "MainPort81Balancer": {
       "Condition": "EnabledMain",
@@ -112,7 +126,21 @@
     },
     "MainPort81BalancerName": {
       "Condition": "EnabledMain",
-      "Value": "httpd-main-KQSNMIK"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-main-KQSNMIK",
+                "n"
+              ]
+            ]
+          },
+          "httpd-main-KQSNMIK"
+        ]
+      }
     },
     "RegistryId": {
       "Value": {
@@ -346,7 +374,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-main-KQSNMIK",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-main-KQSNMIK",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-main-KQSNMIK"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"

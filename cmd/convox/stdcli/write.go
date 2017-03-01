@@ -75,6 +75,7 @@ func Writef(format string, args ...interface{}) (int, error) {
 }
 
 func (w *Writer) Error(err error) error {
+	err = ErrorStdCli(err.Error())
 	if err.Error() != "Token expired" {
 		w.Stderr.Write([]byte(fmt.Sprintf(w.renderTags("<error>%s</error>\n"), err)))
 	}

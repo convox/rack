@@ -18,7 +18,7 @@ case "$1" in
   3)
     echo AWS_DEFAULT_REGION=us-west-2
     echo AWS_REGION=us-west-2
-    echo RACK_PRIVATE=yes
+    echo RACK_PRIVATE=true
     ;;
   4)
     echo AWS_DEFAULT_REGION=eu-central-1
@@ -41,7 +41,7 @@ case "$1" in
   8)
     echo AWS_DEFAULT_REGION=ap-southeast-1
     echo AWS_REGION=ap-southeast-1
-    echo RACK_PRIVATE=yes
+    echo RACK_PRIVATE=true
     ;;
   9)
     echo AWS_DEFAULT_REGION=ap-southeast-2

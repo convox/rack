@@ -122,7 +122,21 @@
     },
     "WebPort3001BalancerName": {
       "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P-i"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-web-XHW5F4P-i",
+                "n"
+              ]
+            ]
+          },
+          "httpd-web-XHW5F4P-i"
+        ]
+      }
     },
     "WebPort80Balancer": {
       "Condition": "EnabledWeb",
@@ -130,7 +144,21 @@
     },
     "WebPort80BalancerName": {
       "Condition": "EnabledWeb",
-      "Value": "httpd-web-XHW5F4P-i"
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-web-XHW5F4P-i",
+                "n"
+              ]
+            ]
+          },
+          "httpd-web-XHW5F4P-i"
+        ]
+      }
     }
   },
   "Parameters": {
@@ -346,7 +374,21 @@
             "Ref": "AWS::NoValue"
           }
         ],
-        "LoadBalancerName": "httpd-web-XHW5F4P-i",
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-web-XHW5F4P-i",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-web-XHW5F4P-i"
+          ]
+        },
         "Policies": [
           {
             "Ref": "AWS::NoValue"
