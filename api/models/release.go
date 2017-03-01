@@ -321,13 +321,11 @@ func (r *Release) Promote() error {
 	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
 
 	req := &cloudformation.UpdateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(app.StackName()),
-		TemplateURL:  aws.String(url),
-		Parameters:   params,
-		NotificationARNs: []*string{
-			aws.String(CloudformationEventsTopic),
-		},
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		StackName:        aws.String(app.StackName()),
+		TemplateURL:      aws.String(url),
+		Parameters:       params,
+		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
 	}
 
 	_, err = UpdateStack(req)
