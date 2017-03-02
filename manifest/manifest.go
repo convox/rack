@@ -24,7 +24,7 @@ type Manifest struct {
 	Version       string             `yaml:"version"`
 	Networks      Networks           `yaml:"networks,omitempty"`
 	Services      map[string]Service `yaml:"services"`
-	ServiceGroups []*Group
+	ServiceGroups []*Group           `yaml:"-"`
 }
 
 // Load a Manifest from raw data

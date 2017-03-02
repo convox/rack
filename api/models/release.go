@@ -300,9 +300,9 @@ func (r *Release) Promote() error {
 		}
 	}
 
-	for _, group := range m.ServiceGroups {
-		app.Parameters[group.ParamName("Formation")] = "1"
-	}
+	//for _, group := range m.ServiceGroups {
+	//app.Parameters[group.ParamName("Formation")] = "1"
+	//}
 
 	params := []*cloudformation.Parameter{}
 
