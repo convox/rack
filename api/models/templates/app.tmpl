@@ -17,6 +17,7 @@
     "Parameters" : {
       {{ template "balancer-params" .Manifest }}
       {{ template "process-params" .Manifest }}
+      {{ template "group-params" .Manifest }}
 
       "Cluster": {
         "Type" : "String",
@@ -208,6 +209,16 @@
   {{ end }}
 {{ end }}
 
+{{ define "group-params" }}
+  {{ range $group := .ServiceGroups }}
+    "{{ upper $group.Name }}GroupFormation": {
+      "Type": "Number",
+      "Default": 1,
+      "Description": "Number of processes to run"
+    },
+  {{ end }}
+{{ end }}
+
 {{ define "process-outputs" }}
   "LogGroup": {
     "Value": { "Ref": "LogGroup" }
@@ -221,6 +232,143 @@
 {{ end }}
 
 {{ define "process-services" }}
+  {{ $manifest := .Manifest }}
+  {{ $app := .App }}
+  {{ if $manifest.HasProcesses }}
+    {{ range $group := $manifest.ServiceGroups }}
+      "{{ upper $group.Name }}GroupECSTaskDefinition": {
+        "DependsOn": ["CustomTopic", "ServiceRole"],
+        "Type": "Custom::ECSTaskDefinition",
+        "Version": "1.0",
+        "Properties": {
+          "TaskRole": { "Ref": "TaskRole" },
+          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $group.Name }}" ] ] },
+          "Release": { "Ref": "Release" },
+          "Environment": { "Ref": "Environment" },
+          "Key": { "Ref": "Key" },
+          "Tasks": [
+            {{ range $serviceIndex, $e := $group.Services }}
+              {{ if $serviceIndex }},{{ else }}{{ end }}
+              {
+                "Name": "{{ $e.Name }}",
+                "Image": "{{ $e.Image }}",
+                {{if $e.Command.Array}}
+                  "Command": [
+                    {{ range $index, $element := $e.Command.Array}}
+                        {{if $index}},{{else}}{{end}}
+                        "{{$element}}"
+                    {{end}}
+                  ],
+                {{else if ne $e.Command.String ""}}
+                  "Command": {{ value $e.Command.String }},
+                {{end}}
+                "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper $e.Name }}Formation" } ] },
+                "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper $e.Name }}Formation" } ] },
+                "Environment": {
+                  "APP": "{{ $.App.Name }}",
+                  "RACK": "{{ env "RACK" }}",
+                  "AWS_REGION": "{{ env "AWS_REGION" }}",
+                  {{ range $e.Environment }}
+                    {{ if ne .Value "" }}
+                      "{{ .Name }}": {{ value .Value }},
+                    {{ end }}
+                  {{ end }}
+                  {{ range $key, $value := .LinkVars }}
+                    "{{ $key }}": {{ $value }},
+                  {{ end }}
+                  "LOG_GROUP": { "Ref": "LogGroup" },
+                  "PROCESS": "{{ $e.Name }}"
+                },
+                "Volumes": [
+                  {{ range $e.MountableVolumes }}
+                    {{ if .IsSystem }}
+                      "{{.Host}}:{{.Container}}",
+                    {{ else }}
+                      { "Fn::Join": [ "", [ "/volumes/", { "Ref": "AWS::StackName" }, "/{{$e.Name}}{{.Host}}:{{.Container}}" ] ] },
+                    {{ end }}
+                  {{ end }}
+                  { "Ref" : "AWS::NoValue" }
+                ],
+                "ExtraHosts": [
+                  {{ range $key, $value := $e.ExtraHostsMap }}
+                    {
+                      "HostName": "{{ $key }}",
+                      "IpAddress": "{{ $value }}"
+                    },
+                  {{ end }}
+                  { "Ref" : "AWS::NoValue" }
+                ],
+                "Services": [
+                  { "Ref" : "AWS::NoValue" }
+                ],
+                "PortMappings": [
+                  {{ range .Ports }}
+                    {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
+                      { "Fn::Join": [ ":", [
+                        { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
+                        "{{ .Container }}/{{ .Protocol }}"
+                      ] ] },
+                    {{ else }}
+                      "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
+                    {{ end }}
+                  {{ end }}
+                  { "Ref" : "AWS::NoValue" }
+                ],
+                "Privileged": "{{ $e.Privileged }}",
+                "Links": [
+                  {{ range $linkIndex, $link := $group.Links $e.Name }}
+                    {{ if $linkIndex}},{{ else }} {{ end }}
+                    "{{ $link }}"
+                  {{ end }}
+                ]
+              }
+            {{ end }}
+          ]
+        }
+      },
+      "Service{{ upper $group.Name }}": {
+        "Condition": "Enabled{{ upper $group.Name }}",
+        "DependsOn": [
+          {{ range $serviceIndex, $e := $group.Services }}
+            {{ if $e.HasBalancer }}
+              "{{ $manifest.BalancerResourceName $e.Name }}",
+            {{ end }}
+          {{ end }}
+          "CustomTopic",
+          "ServiceRole"
+         ],
+        "Type": "AWS::ECS::Service",
+        "Properties": {
+          "Cluster": { "Ref": "Cluster" },
+          "DeploymentConfiguration": {
+            "MinimumHealthyPercent": "{{ $group.DeploymentMinimum }}",
+            "MaximumPercent": "{{ $group.DeploymentMaximum }}"
+          },
+          "DesiredCount": { "Ref": "{{ upper $group.Name }}GroupFormation" },
+          {{ if $group.HasBalancer }}
+            "LoadBalancers": [
+              {{ range $serviceIndex, $e := $group.ServicesWithLoadBalancers }}
+                {{ if $serviceIndex }},{{ else }} {{ end }}
+                {{ if $e.HasBalancer }}
+                  {
+                    "ContainerName": "{{ $e.Name }}",
+                    "ContainerPort": "{{ (index $e.Ports 0).Container }}",
+                    "LoadBalancerName": { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }
+                  }
+                {{ end }}
+              {{ end }}
+            ],
+            "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
+          {{ end }}
+          "TaskDefinition": { "Ref": "{{ upper $group.Name }}GroupECSTaskDefinition" }
+        }
+      },
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ define "process-services-old" }}
   {{ $manifest := .Manifest }}
   {{ $app := .App }}
   {{ if $manifest.HasProcesses }}

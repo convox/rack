@@ -21,9 +21,10 @@ var interpolationBracketRegex = regexp.MustCompile("\\$\\{([0-9A-Za-z_]*)\\}")
 var interpolationDollarRegex = regexp.MustCompile("\\$([0-9A-Za-z_]+)")
 
 type Manifest struct {
-	Version  string             `yaml:"version"`
-	Networks Networks           `yaml:"networks,omitempty"`
-	Services map[string]Service `yaml:"services"`
+	Version       string             `yaml:"version"`
+	Networks      Networks           `yaml:"networks,omitempty"`
+	Services      map[string]Service `yaml:"services"`
+	ServiceGroups []*Group
 }
 
 // Load a Manifest from raw data
@@ -53,6 +54,9 @@ func Load(data []byte) (*Manifest, error) {
 		return nil, fmt.Errorf("unknown manifest version: %s", v)
 	}
 
+	var groups []*Group
+	groupMap := make(map[string]*Group, len(m.Services))
+
 	for name, service := range m.Services {
 		service.Name = name
 
@@ -70,7 +74,18 @@ func Load(data []byte) (*Manifest, error) {
 		service.Networks = m.Networks
 
 		m.Services[name] = service
+
+		// Gather groups
+		if groupName, ok := service.Labels["convox.group"]; ok {
+			// if a group is specified use that name
+			groups = AddOrUpdateGroup(groupName, service, groupMap, groups)
+		} else {
+			// if no group is specified for a service, use that service's name
+			groups = AddOrUpdateGroup(service.Name, service, groupMap, groups)
+		}
 	}
+
+	m.ServiceGroups = groups
 
 	return m, nil
 }
