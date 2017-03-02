@@ -85,19 +85,19 @@ func cmdLogin(c *cli.Context) error {
 		password = c.String("password")
 	}
 
-	var userID string
+	var auth *client.Auth
 
 	if password != "" {
 		// password flag
-		userID, err = testLogin(host, password, c.App.Version)
+		auth, err = testLogin(host, password, c.App.Version)
 	} else {
 		// first try current login
 		password, err = getLogin(host)
-		userID, err = testLogin(host, password, c.App.Version)
+		auth, err = testLogin(host, password, c.App.Version)
 		// then prompt for password
 		if err != nil {
 			password = promptForPassword()
-			userID, err = testLogin(host, password, c.App.Version)
+			auth, err = testLogin(host, password, c.App.Version)
 		}
 	}
 
@@ -114,8 +114,8 @@ func cmdLogin(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if userID != "" {
-		updateID(userID)
+	if auth.ID != "" {
+		updateID(auth.ID)
 	}
 
 	err = switchHost(host)
@@ -123,7 +123,12 @@ func cmdLogin(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	stdcli.QOSEventSend("Client Created", userID, stdcli.QOSEventProperties{})
+	distinctID, err = currentId()
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.QOSEventSend("Client Created", distinctID, stdcli.QOSEventProperties{})
 	fmt.Println("Logged in successfully.")
 	return nil
 }
@@ -348,7 +353,7 @@ func updateID(id string) error {
 	return ioutil.WriteFile(config, []byte(id), 0600)
 }
 
-func testLogin(host, password, version string) (string, error) {
+func testLogin(host, password, version string) (*client.Auth, error) {
 	return client.New(host, password, version).Auth()
 }
 
