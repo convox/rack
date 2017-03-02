@@ -7,41 +7,47 @@ import (
 	"net/http"
 )
 
+type Auth struct {
+	ID string `json:"id"`
+}
+
 //Auth is a request that simply checks whether the password is valid
 //in the case of console the users id will be returned, a rack will
 //return an empty string
-func (c *Client) Auth() (string, error) {
+func (c *Client) Auth() (*Auth, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/auth", c.Host), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req.SetBasicAuth("convox", string(c.Password))
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("invalid login\nHave you created an account at https://convox.com/signup?")
+		return nil, fmt.Errorf("invalid login\nHave you created an account at https://convox.com/signup?")
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	var id string
-	var data map[string]string
+	auth := &Auth{}
 
-	err = json.Unmarshal(body, &data)
-	if err == nil {
-		//if bad JSON is returned it is probably a legacy rack
-		//which used to return the plain text string 'OK'
-		id = data["id"]
+	//legacy racks used to return a plain text string 'OK\n'
+	if string(body) == "OK\n" {
+		return auth, nil
 	}
 
-	return id, nil
+	err = json.Unmarshal(body, &auth)
+	if err != nil {
+		return auth, err
+	}
+
+	return auth, nil
 }

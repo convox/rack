@@ -58,7 +58,7 @@ func TestLoginRack(t *testing.T) {
 	temp, _ := ioutil.TempDir("", "convox-test")
 
 	ts := testServer(t,
-		test.Http{Method: "GET", Path: "/auth", Code: 200, Response: client.Apps{}},
+		test.Http{Method: "GET", Path: "/auth", Code: 200, Response: client.Auth{}},
 	)
 
 	defer ts.Close()
