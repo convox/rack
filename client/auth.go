@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+//Auth is used to transfer the id of the authenticating user when authing against the console API.
+//When authing against a rack the id will be blank as user ids are a console concept
 type Auth struct {
 	ID string `json:"id"`
 }
