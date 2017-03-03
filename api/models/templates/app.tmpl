@@ -213,7 +213,7 @@
   {{ range $group := .ServiceGroups }}
     "{{ upper $group.Name }}GroupFormation": {
       "Type": "Number",
-      "Default": 1,
+      "Default": "1",
       "Description": "Number of processes to run"
     },
   {{ end }}
