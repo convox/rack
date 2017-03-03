@@ -14,54 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
-var msg = `{
-	"account": "990037048036",
-	"detail": {
-		"clusterArn": "arn:aws:ecs:us-east-1:990037048036:cluster/devrack-Cluster-1K78FI9LDOTEO",
-		"containerInstanceArn": "arn:aws:ecs:us-east-1:990037048036:container-instance/ff6b3f46-fa63-41e7-ab62-ba92df8cccdd",
-		"containers": [{
-			"containerArn": "arn:aws:ecs:us-east-1:990037048036:container/001c4cef-c701-4d17-90bc-0e5c5bc17621",
-			"lastStatus": "RUNNING",
-			"name": "web",
-			"networkBindings": [{
-				"bindIP": "0.0.0.0",
-				"containerPort": 8080,
-				"hostPort": 37132,
-				"protocol": "tcp"
-			}, {
-				"bindIP": "0.0.0.0",
-				"containerPort": 8080,
-				"hostPort": 51496,
-				"protocol": "tcp"
-			}],
-			"taskArn": "arn:aws:ecs:us-east-1:990037048036:task/b2292b44-5a13-435a-b2fa-458f8a2363f1"
-		}],
-		"createdAt": "2017-03-02T16:35:48.514Z",
-		"desiredStatus": "RUNNING",
-		"group": "service:devrack-node-workers-ServiceWeb-J67T2KMVUAF8",
-		"lastStatus": "PENDING",
-		"overrides": {
-			"containerOverrides": [{
-				"name": "web"
-			}]
-		},
-		"startedBy": "ecs-svc/9223370548382827191",
-		"taskArn": "arn:aws:ecs:us-east-1:990037048036:task/b2292b44-5a13-435a-b2fa-458f8a2363f1",
-		"taskDefinitionArn": "arn:aws:ecs:us-east-1:990037048036:task-definition/devrack-node-workers-web:42",
-		"updatedAt": "2017-03-02T16:35:49.678Z",
-		"version": 2
-	},
-	"detail-type": "ECS Task State Change",
-	"id": "ee00af90-ce43-413e-8cb6-c02d88687fd3",
-	"region": "us-east-1",
-	"resources": [
-		"arn:aws:ecs:us-east-1:990037048036:task/b2292b44-5a13-435a-b2fa-458f8a2363f1"
-	],
-	"source": "aws.ecs",
-	"time": "2017-03-02T16:35:49Z",
-	"version": "0"
-}`
-
 var (
 	// ECS gives access to the ecs API
 	ECS = ecs.New(session.New(), nil)
@@ -103,7 +55,6 @@ func main() {
 	}
 
 	data := []byte(os.Args[1])
-	//data := []byte(msg)
 
 	var e Event
 
@@ -155,7 +106,7 @@ func handle(e Event) error {
 	if e.Detail.LastStatus == "PENDING" {
 		split := strings.SplitN(e.Detail.ClusterArn, ":cluster/", 2)
 		if len(split) != 2 {
-			return fmt.Errorf("unkown service: %s", service)
+			return fmt.Errorf("unkown cluster: %s", service)
 		}
 
 		el, err := getServiceEvents(service, split[1])
@@ -183,6 +134,7 @@ func handle(e Event) error {
 		})
 	}
 
+	fmt.Printf("e.ID = %+v\n", e.ID)
 	_, err = CWL.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroup),
 		LogStreamName: aws.String(e.ID),
@@ -191,7 +143,6 @@ func handle(e Event) error {
 		return err
 	}
 
-	fmt.Printf("e.ID = %+v\n", e.ID)
 	params := &cloudwatchlogs.PutLogEventsInput{
 		LogEvents:     logEvents,
 		LogGroupName:  aws.String(logGroup),
