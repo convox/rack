@@ -24,6 +24,8 @@ var dockerBin = helpers.DetectDocker()
 type AppFramework interface {
 	GenerateDockerfile() ([]byte, error)
 	GenerateDockerIgnore() ([]byte, error)
+	GenerateLocalEnv() ([]byte, error)
+	GenerateGitIgnore() ([]byte, error)
 	GenerateManifest() ([]byte, error)
 	Setup(string) error
 }
