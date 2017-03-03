@@ -104,6 +104,9 @@
     "BuildCluster": {
       "Value": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] }
     },
+    "CloudformationEventsTopic": {
+      "Value" : { "Ref": "CloudformationEventsTopic" }
+    },
     "Cluster": {
       "Value": { "Ref": "Cluster" }
     },
@@ -1753,6 +1756,74 @@
         ]
       }
     },
+    "CloudformationEventsTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": [ { "Endpoint": { "Fn::GetAtt": [ "CloudformationEventsHandler", "Arn" ] }, "Protocol": "lambda" } ],
+        "TopicName" : { "Fn::Join": ["", [{"Ref":"AWS::StackName"}, "-cloudformationevents"]] }
+      }
+    },
+    "CloudformationEventsHandler": {
+      "DependsOn": ["CloudformationEventsHandlerRole"],
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": { "Fn::Join": [ "-", [ "convox", { "Ref": "AWS::Region" } ] ] },
+          "S3Key": { "Fn::Join": [ "", [ "release/", { "Ref": "Version" }, "/lambda/cloudformationevents.zip" ] ] }
+        },
+        "Description": "Handler for Cloudformation events.",
+        "Handler": "index.external",
+        "MemorySize": "128",
+        "Role": { "Fn::GetAtt": [ "CloudformationEventsHandlerRole", "Arn" ] },
+        "Runtime": "nodejs4.3",
+        "Timeout": "300"
+      }
+    },
+    "CloudformationEventsHandlerPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": { "Fn::GetAtt": [ "CloudformationEventsHandler", "Arn" ] },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": { "Ref": "CloudformationEventsTopic" }
+      }
+    },
+    "CloudformationEventsHandlerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/convox/",
+        "Policies": [
+          {
+            "PolicyName": "CloudformationEventsHandlerRole",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DescribeStacks",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "Balancer": {
       "DependsOn": [ "BalancerSecurityGroup" ],
       "Properties": {
@@ -2130,8 +2201,9 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
-              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
+              "CLOUDFORMATION_EVENTS_TOPIC": { "Ref": "CloudformationEventsTopic" },
               "CLUSTER": { "Ref": "Cluster" },
+              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
@@ -2205,8 +2277,8 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
-              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "CLUSTER": { "Ref": "Cluster" },
+              "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },

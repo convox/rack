@@ -13,6 +13,7 @@ services:
       - AWS_SECRET
       - BUILD_CLUSTER
       - CLIENT_ID=dev@convox.com
+      - CLOUDFORMATION_EVENTS_TOPIC
       - CLUSTER
       - CUSTOM_TOPIC
       - DEBUG=false
