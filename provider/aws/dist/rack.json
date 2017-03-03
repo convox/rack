@@ -465,7 +465,7 @@
     "EncryptionKeyAlias": {
       "Type": "AWS::KMS::Alias",
       "Properties": {
-        "AliasName": "alias/convox",
+        "AliasName": { "Fn::Join": ["alias/convox-", [{"Ref":"AWS::StackName"} ]] },
         "TargetKeyId": { "Ref": "EncryptionKey" }
       }
     },
