@@ -85,6 +85,21 @@ func (g Group) DeploymentMaximum() string {
 	return "200"
 }
 
+func (m Manifest) ServiceGroups() []*Group {
+	var groups []*Group
+
+	groupMap := make(map[string]*Group, len(m.Services))
+	for serviceName, service := range m.Services {
+		if groupName, ok := service.Labels["convox.group"]; ok {
+			groups = AddOrUpdateGroup(groupName, service, groupMap, groups)
+		} else {
+			groups = AddOrUpdateGroup(serviceName, service, groupMap, groups)
+		}
+	}
+
+	return groups
+}
+
 func AddOrUpdateGroup(groupName string, service Service, groupMap map[string]*Group, groups []*Group) []*Group {
 	if group, ok := groupMap[groupName]; ok {
 		group.AddService(service)
