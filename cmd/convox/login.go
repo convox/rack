@@ -1,11 +1,9 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -83,25 +81,23 @@ func cmdLogin(c *cli.Context) error {
 	}
 
 	password := os.Getenv("CONVOX_PASSWORD")
-
 	if password == "" {
 		password = c.String("password")
 	}
 
-	var userID string
+	var auth *client.Auth
 
 	if password != "" {
 		// password flag
-		_, userID, err = testLogin(host, password, c.App.Version)
+		auth, err = testLogin(host, password, c.App.Version)
 	} else {
 		// first try current login
 		password, err = getLogin(host)
-		_, userID, err = testLogin(host, password, c.App.Version)
-
+		auth, err = testLogin(host, password, c.App.Version)
 		// then prompt for password
 		if err != nil {
 			password = promptForPassword()
-			_, userID, err = testLogin(host, password, c.App.Version)
+			auth, err = testLogin(host, password, c.App.Version)
 		}
 	}
 
@@ -118,8 +114,8 @@ func cmdLogin(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	if userID != "" {
-		updateID(userID)
+	if auth.ID != "" {
+		updateID(auth.ID)
 	}
 
 	err = switchHost(host)
@@ -127,7 +123,12 @@ func cmdLogin(c *cli.Context) error {
 		return stdcli.Error(err)
 	}
 
-	stdcli.QOSEventSend("Client Created", userID, stdcli.QOSEventProperties{})
+	distinctID, err = currentId()
+	if err != nil {
+		return stdcli.Error(err)
+	}
+
+	stdcli.QOSEventSend("Client Created", distinctID, stdcli.QOSEventProperties{})
 	fmt.Println("Logged in successfully.")
 	return nil
 }
@@ -352,48 +353,8 @@ func updateID(id string) error {
 	return ioutil.WriteFile(config, []byte(id), 0600)
 }
 
-func testLogin(host, password, version string) (bool, string, error) {
-	//Attempt a console login
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	u := url.URL{}
-	u.Host = host
-	u.Scheme = "https"
-	u.Path = "/auth"
-
-	req, err := http.NewRequest("GET", u.String(), nil)
-	req.SetBasicAuth("", password)
-
-	httpClient := &http.Client{Transport: tr}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return false, "", err
-	}
-
-	data := map[string]string{}
-
-	_ = json.NewDecoder(resp.Body).Decode(&data)
-
-	if data["id"] != "" {
-		return true, data["id"], nil
-	}
-
-	//Attempt a rack login
-	cl := client.New(host, password, version)
-
-	_, err = cl.GetApps()
-	if err != nil {
-		err = cl.Auth()
-
-		if err != nil {
-			return false, "", err
-		}
-	}
-
-	return false, "", nil
+func testLogin(host, password, version string) (*client.Auth, error) {
+	return client.New(host, password, version).Auth()
 }
 
 func promptForPassword() string {
