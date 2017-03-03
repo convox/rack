@@ -189,7 +189,7 @@ func (r *Release) Promote() error {
 	// set default values for memory and cpu
 
 	for _, entry := range m.Services {
-		scale := []string{"1", "0", "256"}
+		scale := strings.Split(entry.DefaultParams(), ",")
 
 		if entry.Cpu > 0 {
 			scale[1] = fmt.Sprintf("%d", entry.Cpu)
