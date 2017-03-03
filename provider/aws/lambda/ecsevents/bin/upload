@@ -9,9 +9,9 @@ if [ "$rack" == "" ]; then
   exit 1
 fi
 
-#func=$(\
-#  aws cloudformation describe-stack-resources --stack-name ${rack} |\
-#  jq -r '.StackResources[]|select(.LogicalResourceId=="CloudformationEventsHandler").PhysicalResourceId' \
-#)
+func=$(\
+  aws cloudformation describe-stack-resources --stack-name ${rack} |\
+  jq -r '.StackResources[]|select(.LogicalResourceId=="ECSEventHandler").PhysicalResourceId' \
+)
 
-aws lambda update-function-code --function-name ECSEventHandler --zip fileb://lambda.zip
+aws lambda update-function-code --function-name $func --zip fileb://lambda.zip
