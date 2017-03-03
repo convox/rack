@@ -16,8 +16,5 @@ release: lambda.zip
 		aws s3 cp lambda.zip s3://convox-$$region/release/$(VERSION)/lambda/cloudformationevents.zip --acl public-read --region $$region; \
 	done
 
-test:
-	bin/test $(RACK) $(INSTANCE)
-
 upload: lambda.zip
 	bin/upload $(RACK)
