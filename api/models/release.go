@@ -189,7 +189,7 @@ func (r *Release) Promote() error {
 	// set default values for memory and cpu
 
 	for _, entry := range m.Services {
-		scale := []string{"1", "0", "256"}
+		scale := strings.Split(entry.DefaultParams(), ",")
 
 		if entry.Cpu > 0 {
 			scale[1] = fmt.Sprintf("%d", entry.Cpu)
@@ -321,10 +321,11 @@ func (r *Release) Promote() error {
 	url := fmt.Sprintf("https://s3.amazonaws.com/%s/templates/%s", app.Outputs["Settings"], r.Id)
 
 	req := &cloudformation.UpdateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(app.StackName()),
-		TemplateURL:  aws.String(url),
-		Parameters:   params,
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		StackName:        aws.String(app.StackName()),
+		TemplateURL:      aws.String(url),
+		Parameters:       params,
+		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
 	}
 
 	_, err = UpdateStack(req)

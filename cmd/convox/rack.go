@@ -209,6 +209,9 @@ func cmdRackParamsSet(c *cli.Context) error {
 
 	err = rackClient(c).SetParameters(system.Name, params)
 	if err != nil {
+		if strings.Contains(err.Error(), "No updates are to be performed") {
+			return stdcli.Error(fmt.Errorf("No updates are to be performed"))
+		}
 		return stdcli.Error(err)
 	}
 

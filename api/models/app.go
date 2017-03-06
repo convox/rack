@@ -16,9 +16,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
-var CustomTopic = os.Getenv("CUSTOM_TOPIC")
+var (
+	CustomTopic               = os.Getenv("CUSTOM_TOPIC")
+	CloudformationEventsTopic = os.Getenv("CLOUDFORMATION_EVENTS_TOPIC")
 
-var StatusCodePrefix = client.StatusCodePrefix
+	StatusCodePrefix = client.StatusCodePrefix
+)
 
 type App struct {
 	Name    string `json:"name"`
@@ -172,9 +175,10 @@ func (a *App) Create() error {
 	}
 
 	req := &cloudformation.CreateStackInput{
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		StackName:    aws.String(a.StackName()),
-		TemplateBody: aws.String(formation),
+		Capabilities:     []*string{aws.String("CAPABILITY_IAM")},
+		StackName:        aws.String(a.StackName()),
+		TemplateBody:     aws.String(formation),
+		NotificationARNs: []*string{aws.String(CloudformationEventsTopic)},
 	}
 
 	for key, value := range params {
@@ -225,6 +229,7 @@ func (a *App) UpdateParams(changes map[string]string) error {
 		StackName:           aws.String(a.StackName()),
 		Capabilities:        []*string{aws.String("CAPABILITY_IAM")},
 		UsePreviousTemplate: aws.Bool(true),
+		NotificationARNs:    []*string{aws.String(CloudformationEventsTopic)},
 	}
 
 	// sort parameters by key name to make test requests stable
