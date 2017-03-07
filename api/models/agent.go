@@ -122,7 +122,7 @@ function stopTask(event, runningTask) {
     return ecs.stopTask(options).promise()
     .then(data => {
         console.log('stopTask Data: ', data);
-        return data.tasks[0].taskArn;
+        return data.task.taskArn;
     });
 }
 
