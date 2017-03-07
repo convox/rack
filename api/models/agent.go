@@ -74,6 +74,9 @@ func (a App) AgentFunctionCode() map[string]template.HTML {
 const aws = require('aws-sdk');
 const ecs = new aws.ECS({ maxRetries: 10 });
 
+const STARTED_BY = 'convox agent';
+const STOPPED_REASON = 'convox agent convergence';
+
 // arn:aws:ecs:<region>:<aws_account_id>:task-definition/<task name>:<task def revision>
 const taskDefinitions = [
     /* TASK DEFINITIONS */
@@ -94,7 +97,7 @@ function startTask(event, desiredTD) {
         containerInstances: [event.detail.containerInstanceArn],
         taskDefinition: desiredTD,
         cluster: event.detail.clusterArn,
-        startedBy: 'convox agent'
+        startedBy: STARTED_BY
     };
 
     return ecs.startTask(options).promise()
@@ -109,14 +112,15 @@ function startTask(event, desiredTD) {
 }
 
 function stopTask(event, runningTask) {
-    if (runningTask.startedBy !== 'convox agent') {
+    if (runningTask.startedBy !== STARTED_BY) {
+        console.log('Warning: Non-agent task running (scale count > 0?)');
         return;
     }
 
     let options = {
         task: runningTask.taskArn,
         cluster: event.detail.clusterArn,
-        reason: 'convox agent convergence'
+        reason: STOPPED_REASON
     };
 
     return ecs.stopTask(options).promise()
@@ -128,6 +132,10 @@ function stopTask(event, runningTask) {
 
 exports.handler = (event, context, callback) => {
     console.log('Event: ', event);
+
+    if (event.detail.stoppedReason === STOPPED_REASON) {
+        return callback(null, 'Ignored');
+    }
 
     let options = {
         cluster: event.detail.clusterArn,
