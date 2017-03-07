@@ -201,7 +201,7 @@ exports.handler = (event, context, callback) => {
 `
 
 	// Format JS code for embedding in app.tmpl
-	halves := strings.Split(code, "/* TASK DEFINITIONS */")
+	halves := strings.Split(code, "/* TASK DEFINITION ARNs */")
 	for i := range halves {
 		oldLines := strings.Split(halves[i], "\n")
 		newLines := []string{}
