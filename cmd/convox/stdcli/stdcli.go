@@ -104,8 +104,21 @@ func New() *cli.App {
 	}
 
 	app.Writer = DefaultWriter
+	app.Before = ValidatePreconditions(CliCheckEnv)
 
 	return app
+}
+
+// ValidatePreconditions runs one or more cli.BeforeFuncs where called in Command.Before
+func ValidatePreconditions(preconditions ...cli.BeforeFunc) cli.BeforeFunc {
+	return func(c *cli.Context) error {
+		for _, condition := range preconditions {
+			if err := condition(c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 func Debug() bool {
@@ -308,4 +321,35 @@ func ParseOpts(args []string) map[string]string {
 	}
 
 	return options
+}
+
+// CliCheckEnv takes cli.Context as an arg so it can be used as a BeforeFunc
+func CliCheckEnv(c *cli.Context) error {
+	return CheckEnv()
+}
+
+// CheckEnv validates that relevant envvars have acceptable values
+func CheckEnv() error {
+	vars := map[string][]string{
+		"CONVOX_DEBUG": []string{"true", "false", "1", "0", ""},
+		"CONVOX_WAIT":  []string{"true", "false", "1", "0", ""},
+		"RACK_PRIVATE": []string{"true", "false", "1", "0", ""},
+	}
+
+	for varName, okVals := range vars {
+		ev := strings.ToLower(os.Getenv(varName))
+		ok := false
+		for _, val := range okVals {
+			if ev == val {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			msg := fmt.Sprintf("'%s' is not a valid value for environment variable %s ", os.Getenv(varName), varName)
+			msg += fmt.Sprintf("(expected: %s)", okVals)
+			Warn(msg)
+		}
+	}
+	return nil
 }
