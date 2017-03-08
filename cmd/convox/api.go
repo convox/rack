@@ -78,6 +78,7 @@ func cmdApiGet(c *cli.Context) error {
 	stdcli.NeedArg(c, 1)
 
 	path := c.Args()[0]
+	path = strings.TrimRight(path, "/")
 
 	var object interface{}
 
@@ -100,6 +101,7 @@ func cmdApiDelete(c *cli.Context) error {
 	stdcli.NeedArg(c, 1)
 
 	path := c.Args()[0]
+	path = strings.TrimRight(path, "/")
 
 	var object interface{}
 
