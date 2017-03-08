@@ -17,11 +17,11 @@ import (
 )
 
 func TestConvoxInstallSTDINCredentials(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		{
 			awsutil.Request{"GET", "/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		{
 			awsutil.Request{"GET", "/", "", ""},
@@ -42,7 +42,7 @@ func TestConvoxInstallSTDINCredentials(t *testing.T) {
 			Exit:    0,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"test","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: FOO\n" + stackId + "\n",
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: FOO\n" + stackID + "\n",
 		},
 	)
 }
@@ -154,11 +154,11 @@ func TestConvoxInstallFileCredentialsWithEnvCredentials(t *testing.T) {
 }
 
 func TestConvoxInstallValidateStackName(t *testing.T) {
-	stackId := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
 	cycles := []awsutil.Cycle{
 		{
 			awsutil.Request{"GET", "/", "", "/./"},
-			awsutil.Response{200, `<CreateStackResult><StackId>` + stackId + `</StackId></CreateStackResult>`},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
 		},
 		{
 			awsutil.Request{"GET", "/", "", ""},
@@ -179,7 +179,7 @@ func TestConvoxInstallValidateStackName(t *testing.T) {
 			Exit:    0,
 			Env:     map[string]string{"AWS_ENDPOINT_URL": s.URL, "AWS_REGION": "test"},
 			Stdin:   `{"Credentials":{"AccessKeyId":"FOO","SecretAccessKey":"test","Expiration":"2015-09-17T14:09:41Z"}}`,
-			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: FOO\n" + stackId + "\n",
+			Stdout:  Banner + "\nInstalling Convox (" + latest + ")...\nUsing AWS Access Key ID: FOO\n" + stackID + "\n",
 		},
 
 		test.ExecRun{
@@ -330,4 +330,66 @@ func TestUrls(t *testing.T) {
 			assert.Fail(t, fmt.Sprintf("Got response code %d for URL %s", rc, url))
 		}
 	}
+}
+
+func TestInstallCmd(t *testing.T) {
+	stackID := "arn:aws:cloudformation:us-east-1:123456789:stack/MyStack/aaf549a0-a413-11df-adb3-5081b3858e83"
+	cycles := []awsutil.Cycle{
+		{
+			awsutil.Request{"GET", "/", "", "/./"},
+			awsutil.Response{200, `<CreateStackResult><StackId>` + stackID + `</StackId></CreateStackResult>`},
+		},
+		{
+			awsutil.Request{"GET", "/", "", ""},
+			awsutil.Response{200, ""},
+		},
+	}
+
+	handler := awsutil.NewHandler(cycles)
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	os.Setenv("AWS_ENDPOINT", s.URL)
+
+	ts := testServer(t,
+		test.Http{
+			Method:   "GET",
+			Path:     "/foo",
+			Code:     200,
+			Response: "bar",
+			Headers:  map[string]string{"Rack": "myorg/staging"},
+		},
+	)
+	defer ts.Close()
+
+	tests := []test.ExecRun{
+		// help flags
+		test.ExecRun{
+			Command:  "convox install -h",
+			OutMatch: "convox install: install convox into an aws account",
+		},
+
+		// no credentials
+		// FIXME: test suite doesn't handle standard input properly (Stdin behaves as if the input were piped to the command)
+		test.ExecRun{
+			Env: map[string]string{
+				"AWS_ACCESS_KEY_ID":     "",
+				"AWS_SECRET_ACCESS_KEY": "",
+			},
+			Command:  "convox install",
+			OutMatch: "This installer needs AWS credentials to install/uninstall the Convox platform",
+			Stderr:   "ERROR: EOF\n",
+			Exit:     1,
+		},
+	}
+
+	for _, myTest := range tests {
+		test.Runs(t, myTest)
+	}
+}
+
+func TestAwsCLICredentials(t *testing.T) {
+	creds, err := awsCLICredentials()
+	assert.Nil(t, creds)
+	assert.NoError(t, err)
 }

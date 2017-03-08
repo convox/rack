@@ -750,23 +750,23 @@ func readCredentials(fileName string) (creds *AwsCredentials, err error) {
 		inputCreds, err = readCredentialsFromSTDIN()
 	}
 
-	if inputCreds != nil {
-		creds = inputCreds
-	}
-
 	if err != nil {
 		return nil, err
 	}
 
+	if inputCreds != nil {
+		creds = inputCreds
+	}
+
 	if creds.Access == "" || creds.Secret == "" {
-		creds, err = awsCLICredentials()
+		awsCLICreds, err := awsCLICredentials()
 
 		if err != nil {
 			return nil, err
 		}
 
-		if creds != nil {
-			return creds, err
+		if awsCLICreds != nil {
+			return awsCLICreds, err
 		}
 
 		fmt.Println(CredentialsMessage)
