@@ -275,3 +275,22 @@ func TestApiGetNoArg(t *testing.T) {
 		},
 	)
 }
+
+// TestApiGet404 should ensure an error is returned when a user runs 'convox api get' with an invalid API endpoint.
+func TestApiTrailingSlash(t *testing.T) {
+	ts := testServer(t,
+		test.Http{Method: "GET", Path: "/apps", Code: 200, Response: client.Apps{
+			client.App{Name: "sinatra", Status: "running"},
+		}},
+	)
+
+	defer ts.Close()
+
+	test.Runs(t,
+		test.ExecRun{
+			Command: "convox api get /apps/",
+			Exit:    0,
+			Stdout:  "[\n  {\n    \"name\": \"sinatra\",\n    \"release\": \"\",\n    \"status\": \"running\"\n  }\n]\n",
+		},
+	)
+}

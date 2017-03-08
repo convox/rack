@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
@@ -53,6 +54,7 @@ func cmdApiGet(c *cli.Context) error {
 	}
 
 	path := c.Args()[0]
+	path = strings.TrimRight(path, "/")
 
 	var object interface{}
 
@@ -77,6 +79,7 @@ func cmdApiDelete(c *cli.Context) error {
 	}
 
 	path := c.Args()[0]
+	path = strings.TrimRight(path, "/")
 
 	var object interface{}
 
