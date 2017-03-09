@@ -65,15 +65,14 @@ func cmdScale(c *cli.Context) error {
 			return stdcli.Error(fmt.Errorf("missing process name"))
 		}
 
-		err = displayFormation(c, app)
-		if err != nil {
+		if err := displayFormation(c, app); err != nil {
 			return stdcli.Error(err)
 		}
+
 		return nil
 	case 1:
 		if opts.Count == "" && opts.CPU == "" && opts.Memory == "" {
-			err = displayFormation(c, app)
-			if err != nil {
+			if err := displayFormation(c, app); err != nil {
 				return stdcli.Error(err)
 			}
 			return nil
