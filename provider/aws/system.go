@@ -275,22 +275,26 @@ func (p *AWSProvider) SystemSave(system structs.System) error {
 		}
 	}
 
+	// update the stack
+	err = p.updateStack(p.Rack, template, params)
+	if err != nil {
+		if awsError(err) == "ValidationError" {
+			switch {
+			case strings.Contains(err.Error(), "No updates are to be performed"):
+				return fmt.Errorf("no system updates are to be performed")
+			case strings.Contains(err.Error(), "can not be updated"):
+				return fmt.Errorf("system is already updating")
+			}
+		}
+
+		return err
+	}
+
 	// notify about the update
 	p.EventSend(&structs.Event{
 		Action: "rack:update",
 		Data:   changes,
 	}, nil)
-
-	// update the stack
-	err = p.updateStack(p.Rack, template, params)
-	if awsError(err) == "ValidationError" {
-		switch {
-		case strings.Contains(err.Error(), "No updates are to be performed"):
-			return fmt.Errorf("no system updates are to be performed")
-		case strings.Contains(err.Error(), "can not be updated"):
-			return fmt.Errorf("system is already updating")
-		}
-	}
 
 	return err
 }
