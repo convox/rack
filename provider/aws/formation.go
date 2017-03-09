@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/convox/rack/api/structs"
 	"github.com/convox/rack/manifest"
 )
@@ -116,6 +115,20 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 		params[fmt.Sprintf("%sMemory", upperName(pf.Name))] = fmt.Sprintf("%d", pf.Memory)
 	}
 
+	err = p.updateStack(stackName(a), "", params)
+	if err != nil {
+		if awsError(err) == "ValidationError" {
+			switch {
+			case strings.Contains(err.Error(), "No updates are to be performed"):
+				return fmt.Errorf("no updates are to be performed: %s", app)
+			case strings.Contains(err.Error(), "can not be updated"):
+				return fmt.Errorf("app is already updating: %s", app)
+			}
+		}
+
+		return err
+	}
+
 	p.EventSend(&structs.Event{
 		Action: "release:scale",
 		Data: map[string]string{
@@ -124,20 +137,7 @@ func (p *AWSProvider) FormationSave(app string, pf *structs.ProcessFormation) er
 		},
 	}, nil)
 
-	err = p.updateStack(stackName(a), "", params)
-
-	if ae, ok := err.(awserr.Error); ok {
-		if ae.Code() == "ValidationError" {
-			switch {
-			case strings.Contains(ae.Error(), "No updates are to be performed"):
-				return fmt.Errorf("no updates are to be performed: %s", app)
-			case strings.Contains(ae.Error(), "can not be updated"):
-				return fmt.Errorf("app is already updating: %s", app)
-			}
-		}
-	}
-
-	return err
+	return nil
 }
 
 func parseFormationParameters(app *structs.App, process string) (count, cpu, memory int, err error) {
