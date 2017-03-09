@@ -83,6 +83,7 @@ func sendSegmentEvent(e *structs.Event) {
 		"Create":  "Created",
 		"Promote": "Promoted",
 		"Delete":  "Deleted",
+		"Update":  "Updated",
 	}
 
 	switch e.Status {
