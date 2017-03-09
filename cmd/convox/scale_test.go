@@ -18,7 +18,7 @@ Options:
    --memory value         Amount of memory, in MB, available to specified process type. (default: 0)
    --cpu value            CPU units available to specified process type. (default: 0)
    --wait                 wait for app to finish scaling before returning [$CONVOX_WAIT]
-
+   
 `
 
 func TestScaleCmd(t *testing.T) {
