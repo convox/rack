@@ -96,9 +96,9 @@ func TestSystemSave(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
 		cycleReleasePutItem,
-		cycleSystemUpdateNotificationPublish,
 		cycleSystemDescribeStacks,
 		cycleSystemUpdateStack,
+		cycleSystemUpdateNotificationPublish,
 	)
 	defer provider.Close()
 
@@ -115,9 +115,9 @@ func TestSystemSaveNewParameter(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemDescribeStacks,
 		cycleReleasePutItem,
-		cycleSystemUpdateNotificationPublish,
 		cycleSystemDescribeStacksMissingParameters,
 		cycleSystemUpdateStackNewParameter,
+		cycleSystemUpdateNotificationPublish,
 	)
 	defer provider.Close()
 

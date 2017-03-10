@@ -200,9 +200,9 @@ func TestFormationSave(t *testing.T) {
 		cycleCapacityDescribeTaskDefinition2,
 		cycleCapacityDescribeTaskDefinition1,
 		cycleCapacityDescribeTaskDefinition1,
-		cycleNotificationPublish,
 		cycleFormationDescribeStack,
 		cycleFormationUpdateStack,
+		cycleNotificationPublish,
 	)
 	defer provider.Close()
 

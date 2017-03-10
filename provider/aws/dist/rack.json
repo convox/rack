@@ -967,7 +967,7 @@
         "CidrBlock": { "Ref": "VPCCIDR" },
         "EnableDnsSupport": "true",
         "EnableDnsHostnames": "true",
-        "InstanceTenancy": "default",
+        "InstanceTenancy": { "Ref": "Tenancy" },
         "Tags": [
           { "Key": "Name", "Value": { "Ref": "AWS::StackName" } }
         ]
@@ -2285,6 +2285,7 @@
               "AWS_SECRET": { "Fn::GetAtt": [ "KernelAccess", "SecretAccessKey" ] },
               "BUILD_CLUSTER": { "Fn::If": [ "DedicatedBuilder", { "Ref": "BuildCluster" }, { "Ref": "Cluster" } ] },
               "CLIENT_ID": { "Ref": "ClientId" },
+              "CLOUDFORMATION_EVENTS_TOPIC": { "Ref": "CloudformationEventsTopic" },
               "CLUSTER": { "Ref": "Cluster" },
               "CUSTOM_TOPIC": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
               "DOCKER_IMAGE_API": { "Fn::Join": [ ":", [ "convox/api", { "Ref": "Version" } ] ] },
