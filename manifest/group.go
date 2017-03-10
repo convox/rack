@@ -1,6 +1,9 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 const ServiceMapSizeIncrement = 5
 
@@ -56,7 +59,7 @@ func (g Group) ServicesWithLoadBalancers() []*Service {
 func (g Group) Links(serviceName string) []string {
 	matchingService, matchingServiceExists := g.ServiceMap[serviceName]
 	if !matchingServiceExists {
-		return []string{}
+		return nil
 	}
 	links := matchingService.Links
 	var filteredLinks []string
@@ -66,6 +69,11 @@ func (g Group) Links(serviceName string) []string {
 		}
 	}
 	return filteredLinks
+}
+
+func (g *Group) HasService(serviceName string) bool {
+	_, ok := g.ServiceMap[serviceName]
+	return ok
 }
 
 func (g Group) HasBalancer() bool {
@@ -85,22 +93,47 @@ func (g Group) DeploymentMaximum() string {
 	return "200"
 }
 
+func (m *Manifest) sortedServiceNames() []string {
+	var serviceNames []string
+
+	for serviceName := range m.Services {
+		serviceNames = append(serviceNames, serviceName)
+	}
+
+	sort.Strings(serviceNames)
+	return serviceNames
+}
+
 func (m Manifest) ServiceGroups() []*Group {
 	var groups []*Group
 
 	groupMap := make(map[string]*Group, len(m.Services))
-	for serviceName, service := range m.Services {
+
+	for _, serviceName := range m.sortedServiceNames() {
+		service := m.Services[serviceName]
 		if groupName, ok := service.Labels["convox.group"]; ok {
-			groups = AddOrUpdateGroup(groupName, service, groupMap, groups)
+			groups = addOrUpdateGroup(groupName, service, groupMap, groups)
 		} else {
-			groups = AddOrUpdateGroup(serviceName, service, groupMap, groups)
+			groups = addOrUpdateGroup(serviceName, service, groupMap, groups)
 		}
 	}
 
 	return groups
 }
 
-func AddOrUpdateGroup(groupName string, service Service, groupMap map[string]*Group, groups []*Group) []*Group {
+func (m Manifest) ServiceGroup(name string) *Group {
+	group := NewGroup(name)
+	for _, serviceName := range m.sortedServiceNames() {
+		service := m.Services[serviceName]
+
+		if service.GroupName() == name {
+			group.AddService(service)
+		}
+	}
+	return &group
+}
+
+func addOrUpdateGroup(groupName string, service Service, groupMap map[string]*Group, groups []*Group) []*Group {
 	if group, ok := groupMap[groupName]; ok {
 		group.AddService(service)
 	} else {

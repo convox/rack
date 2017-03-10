@@ -6,6 +6,7 @@
     "Conditions": {
       {{ template "balancer-conditions" .Manifest }}
       {{ template "process-conditions" .Manifest }}
+      {{ template "group-conditions" .Manifest }}
       "Internal": { "Fn::Equals": [ { "Ref": "Internal" }, "Yes" ] },
       "Private": { "Fn::Equals": [ { "Ref": "Private" }, "Yes" ] },
       "RegionHasLambdaUpdate": { "Fn::Equals": [
@@ -199,6 +200,12 @@
   {{ end }}
 {{ end }}
 
+{{ define "group-conditions" }}
+  {{ range $group := .ServiceGroups }}
+    "Enabled{{ upper $group.Name }}Group": { "Fn::Not": [{ "Fn::Equals": [ { "Ref": "{{ upper $group.Name }}GroupFormation" }, "-1" ] }] },
+  {{ end }}
+{{ end }}
+
 {{ define "process-params" }}
   {{ range $e := .Services }}
     "{{ upper $e.Name }}Formation": {
@@ -253,6 +260,7 @@
               {
                 "Name": "{{ $e.Name }}",
                 "Image": "{{ $e.Image }}",
+                "SecureEnvironment": {{ if $e.UseSecureEnvironment }}true{{ else }}false{{ end }},
                 {{if $e.Command.Array}}
                   "Command": [
                     {{ range $index, $element := $e.Command.Array}}
@@ -328,7 +336,7 @@
         }
       },
       "Service{{ upper $group.Name }}": {
-        "Condition": "Enabled{{ upper $group.Name }}",
+        "Condition": "Enabled{{ upper $group.Name }}Group",
         "DependsOn": [
           {{ range $serviceIndex, $e := $group.Services }}
             {{ if $e.HasBalancer }}
@@ -362,127 +370,6 @@
             "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
           {{ end }}
           "TaskDefinition": { "Ref": "{{ upper $group.Name }}GroupECSTaskDefinition" }
-        }
-      },
-    {{ end }}
-  {{ end }}
-{{ end }}
-
-{{ define "process-services-old" }}
-  {{ $manifest := .Manifest }}
-  {{ $app := .App }}
-  {{ if $manifest.HasProcesses }}
-    {{ range $e := $manifest.Services }}
-      "{{ upper $e.Name }}ECSTaskDefinition": {
-        "DependsOn": ["CustomTopic", "ServiceRole"],
-        "Type": "Custom::ECSTaskDefinition",
-        "Version": "1.0",
-        "Properties": {
-          "TaskRole": { "Ref": "TaskRole" },
-          "ServiceToken": { "Fn::GetAtt": [ "CustomTopic", "Arn" ] },
-          "Name": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" }, "{{ $e.Name }}" ] ] },
-          "Release": { "Ref": "Release" },
-          "Environment": { "Ref": "Environment" },
-          "Key": { "Ref": "Key" },
-          "Tasks": [
-            {
-              "Name": "{{ $e.Name }}",
-              "Image": "{{ $e.Image }}",
-              {{if $e.Command.Array}}
-                "Command": [
-                  {{ range $index, $element := $e.Command.Array}}
-                      {{if $index}},{{else}}{{end}}
-                      "{{$element}}"
-                  {{end}}
-                ],
-              {{else if ne $e.Command.String ""}}
-                "Command": {{ value $e.Command.String }},
-              {{end}}
-              "Cpu": { "Fn::Select": [ 1, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-              "Memory": { "Fn::Select": [ 2, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-              "Environment": {
-                "APP": "{{ $.App.Name }}",
-                "RACK": "{{ env "RACK" }}",
-                "AWS_REGION": "{{ env "AWS_REGION" }}",
-                {{ range $e.Environment }}
-                  {{ if ne .Value "" }}
-                    "{{ .Name }}": {{ value .Value }},
-                  {{ end }}
-                {{ end }}
-                {{ range $key, $value := .LinkVars }}
-                  "{{ $key }}": {{ $value }},
-                {{ end }}
-                "LOG_GROUP": { "Ref": "LogGroup" },
-                "PROCESS": "{{ $e.Name }}"
-              },
-              "Volumes": [
-                {{ range $e.MountableVolumes }}
-                  {{ if .IsSystem }}
-                    "{{.Host}}:{{.Container}}",
-                  {{ else }}
-                    { "Fn::Join": [ "", [ "/volumes/", { "Ref": "AWS::StackName" }, "/{{$e.Name}}{{.Host}}:{{.Container}}" ] ] },
-                  {{ end }}
-                {{ end }}
-                { "Ref" : "AWS::NoValue" }
-              ],
-              "ExtraHosts": [
-                {{ range $key, $value := $e.ExtraHostsMap }}
-                  {
-                    "HostName": "{{ $key }}",
-                    "IpAddress": "{{ $value }}"
-                  },
-                {{ end }}
-                { "Ref" : "AWS::NoValue" }
-              ],
-              "Services": [
-                { "Ref" : "AWS::NoValue" }
-              ],
-              "PortMappings": [
-                {{ range .Ports }}
-                  {{ if and (eq .Protocol "tcp") ($e.HasBalancer) }}
-                  { "Fn::Join": [ ":", [
-                    { "Ref": "{{ upper $e.Name }}Port{{ .Balancer }}Host" },
-                      "{{ .Container }}/{{ .Protocol }}"
-                  ] ] },
-                  {{ else }}
-                    "{{ .Balancer }}:{{ .Container }}/{{ .Protocol }}",
-                  {{ end }}
-                {{ end }}
-                { "Ref" : "AWS::NoValue" }
-              ],
-              "Privileged": "{{ $e.Privileged }}"
-            }
-          ]
-        }
-      },
-      "Service{{ upper $e.Name }}": {
-        "Condition": "Enabled{{ upper $e.Name }}",
-        "DependsOn": [
-          {{ if $e.HasBalancer }}
-            "{{ $manifest.BalancerResourceName $e.Name }}",
-          {{ end }}
-          "CustomTopic",
-          "ServiceRole"
-         ],
-        "Type": "AWS::ECS::Service",
-        "Properties": {
-          "Cluster": { "Ref": "Cluster" },
-          "DeploymentConfiguration": {
-            "MinimumHealthyPercent": "{{ $e.DeploymentMinimum }}",
-            "MaximumPercent": "{{ $e.DeploymentMaximum }}"
-          },
-          "DesiredCount": { "Fn::Select": [ 0, { "Ref": "{{ upper $e.Name }}Formation" } ] },
-          {{ if $e.HasBalancer }}
-            "LoadBalancers": [
-              {
-                "ContainerName": "{{ $e.Name }}",
-                "ContainerPort": "{{ (index $e.Ports 0).Container }}",
-                "LoadBalancerName": { "Ref": "{{ $manifest.BalancerResourceName $e.Name }}" }
-              }
-            ],
-            "Role": { "Fn::GetAtt": [ "ServiceRole", "Arn" ] },
-          {{ end }}
-          "TaskDefinition": { "Ref": "{{ upper $e.Name }}ECSTaskDefinition" }
         }
       },
     {{ end }}

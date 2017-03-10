@@ -1,18 +1,26 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Conditions": {
-    "BlankBalancerRedisPort6379Certificate": {
+    "BlankBalancerBarPort9000Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "RedisPort6379Certificate"
+          "Ref": "BarPort9000Certificate"
         },
         ""
       ]
     },
-    "BlankBalancerWebPort80Certificate": {
+    "BlankBalancerFooPort443Certificate": {
       "Fn::Equals": [
         {
-          "Ref": "WebPort80Certificate"
+          "Ref": "FooPort443Certificate"
+        },
+        ""
+      ]
+    },
+    "BlankBalancerSslterminatorPort443Certificate": {
+      "Fn::Equals": [
+        {
+          "Ref": "SslterminatorPort443Certificate"
         },
         ""
       ]
@@ -25,7 +33,7 @@
         ""
       ]
     },
-    "EnabledRedis": {
+    "EnabledBar": {
       "Fn::Not": [
         {
           "Fn::Equals": [
@@ -33,7 +41,7 @@
               "Fn::Select": [
                 0,
                 {
-                  "Ref": "RedisFormation"
+                  "Ref": "BarFormation"
                 }
               ]
             },
@@ -42,12 +50,46 @@
         }
       ]
     },
-    "EnabledRedisGroup": {
+    "EnabledFoo": {
       "Fn::Not": [
         {
           "Fn::Equals": [
             {
-              "Ref": "RedisGroupFormation"
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "FooFormation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledFoobarGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "FoobarGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledSslterminator": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "SslterminatorFormation"
+                }
+              ]
             },
             "-1"
           ]
@@ -83,6 +125,35 @@
         }
       ]
     },
+    "EnabledWorker": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledWorkerGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "Internal": {
       "Fn::Equals": [
         {
@@ -95,20 +166,6 @@
       "Fn::Equals": [
         {
           "Ref": "Private"
-        },
-        "Yes"
-      ]
-    },
-    "RegionHasLambdaUpdate": {
-      "Fn::Equals": [
-        {
-          "Fn::FindInMap": [
-            "RegionConfig",
-            {
-              "Ref": "AWS::Region"
-            },
-            "LambdaUpdate"
-          ]
         },
         "Yes"
       ]
@@ -136,73 +193,42 @@
         "ListenerProtocol": "SSL",
         "SecureInstanceProtocol": "SSL"
       }
-    },
-    "RegionConfig": {
-      "ap-northeast-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "ap-southeast-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "ap-southeast-2": {
-        "LambdaUpdate": "Yes"
-      },
-      "ca-central-1": {
-        "LambdaUpdate": "No"
-      },
-      "eu-central-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "eu-west-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "eu-west-2": {
-        "LambdaUpdate": "No"
-      },
-      "us-east-1": {
-        "LambdaUpdate": "Yes"
-      },
-      "us-east-2": {
-        "LambdaUpdate": "No"
-      },
-      "us-west-1": {
-        "LambdaUpdate": "No"
-      },
-      "us-west-2": {
-        "LambdaUpdate": "Yes"
-      }
     }
   },
   "Outputs": {
-    "BalancerRedisHost": {
-      "Condition": "EnabledRedis",
+    "BalancerBarHost": {
+      "Condition": "EnabledBar",
       "Value": {
         "Fn::GetAtt": [
-          "BalancerRedisInternal",
+          "BalancerBar",
           "DNSName"
         ]
       }
     },
-    "BalancerWebHost": {
-      "Condition": "EnabledWeb",
+    "BalancerFooHost": {
+      "Condition": "EnabledFoo",
       "Value": {
         "Fn::GetAtt": [
-          "BalancerWeb",
+          "BalancerFoo",
           "DNSName"
         ]
       }
     },
-    "LogGroup": {
+    "BalancerSslterminatorHost": {
+      "Condition": "EnabledSslterminator",
       "Value": {
-        "Ref": "LogGroup"
+        "Fn::GetAtt": [
+          "BalancerSslterminator",
+          "DNSName"
+        ]
       }
     },
-    "RedisPort6379Balancer": {
-      "Condition": "EnabledRedis",
-      "Value": "6379"
+    "BarPort9000Balancer": {
+      "Condition": "EnabledBar",
+      "Value": "9000"
     },
-    "RedisPort6379BalancerName": {
-      "Condition": "EnabledRedis",
+    "BarPort9000BalancerName": {
+      "Condition": "EnabledBar",
       "Value": {
         "Fn::If": [
           "Internal",
@@ -210,13 +236,40 @@
             "Fn::Join": [
               "-",
               [
-                "httpd-redis-NVCY43S-i",
+                "httpd-bar-PX3ZPBB",
                 "n"
               ]
             ]
           },
-          "httpd-redis-NVCY43S-i"
+          "httpd-bar-PX3ZPBB"
         ]
+      }
+    },
+    "FooPort443Balancer": {
+      "Condition": "EnabledFoo",
+      "Value": "443"
+    },
+    "FooPort443BalancerName": {
+      "Condition": "EnabledFoo",
+      "Value": {
+        "Fn::If": [
+          "Internal",
+          {
+            "Fn::Join": [
+              "-",
+              [
+                "httpd-foo-I5T6O34",
+                "n"
+              ]
+            ]
+          },
+          "httpd-foo-I5T6O34"
+        ]
+      }
+    },
+    "LogGroup": {
+      "Value": {
+        "Ref": "LogGroup"
       }
     },
     "RegistryId": {
@@ -237,12 +290,12 @@
         "Ref": "Settings"
       }
     },
-    "WebPort80Balancer": {
-      "Condition": "EnabledWeb",
-      "Value": "80"
+    "SslterminatorPort443Balancer": {
+      "Condition": "EnabledSslterminator",
+      "Value": "443"
     },
-    "WebPort80BalancerName": {
-      "Condition": "EnabledWeb",
+    "SslterminatorPort443BalancerName": {
+      "Condition": "EnabledSslterminator",
       "Value": {
         "Fn::If": [
           "Internal",
@@ -250,17 +303,32 @@
             "Fn::Join": [
               "-",
               [
-                "httpd-web-XHW5F4P",
+                "httpd-sslterminator-YIH5GRH",
                 "n"
               ]
             ]
           },
-          "httpd-web-XHW5F4P"
+          "httpd-sslterminator-YIH5GRH"
         ]
       }
     }
   },
   "Parameters": {
+    "BarFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "BarPort9000Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "BarPort9000Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
     "Cluster": {
       "Default": "",
       "Description": "",
@@ -286,6 +354,26 @@
       "Description": "",
       "Type": "String"
     },
+    "FooFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "FooPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "FooPort443Host": {
+      "Default": "5000",
+      "Description": "",
+      "Type": "String"
+    },
+    "FoobarGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
+    },
     "Internal": {
       "AllowedValues": [
         "Yes",
@@ -309,26 +397,6 @@
       "Description": "Use SubnetsPrivate to specify VPC-side load balancer endpoints",
       "Type": "String"
     },
-    "RedisFormation": {
-      "Default": "1,0,256",
-      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
-      "Type": "CommaDelimitedList"
-    },
-    "RedisGroupFormation": {
-      "Default": "1",
-      "Description": "Number of processes to run",
-      "Type": "Number"
-    },
-    "RedisPort6379Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
-    },
-    "RedisPort6379Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
-    },
     "Release": {
       "Default": "",
       "Description": "",
@@ -342,6 +410,21 @@
     "SecurityGroup": {
       "Default": "",
       "Description": "The Load balancer security group for this app",
+      "Type": "String"
+    },
+    "SslterminatorFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
+    },
+    "SslterminatorPort443Certificate": {
+      "Default": "",
+      "Description": "",
+      "Type": "String"
+    },
+    "SslterminatorPort443Host": {
+      "Default": "5000",
+      "Description": "",
       "Type": "String"
     },
     "Subnets": {
@@ -384,22 +467,22 @@
       "Description": "Number of processes to run",
       "Type": "Number"
     },
-    "WebPort80Certificate": {
-      "Default": "",
-      "Description": "",
-      "Type": "String"
+    "WorkerFormation": {
+      "Default": "1,0,256",
+      "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
+      "Type": "CommaDelimitedList"
     },
-    "WebPort80Host": {
-      "Default": "5000",
-      "Description": "",
-      "Type": "String"
+    "WorkerGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     }
   },
   "Resources": {
-    "BalancerRedisInternal": {
-      "Condition": "EnabledRedis",
+    "BalancerBar": {
+      "Condition": "EnabledBar",
       "DependsOn": [
-        "BalancerRedisInternalSecurityGroup"
+        "BalancerBarSecurityGroup"
       ],
       "Properties": {
         "ConnectionDrainingPolicy": {
@@ -419,7 +502,7 @@
               [
                 "TCP:",
                 {
-                  "Ref": "RedisPort6379Host"
+                  "Ref": "BarPort9000Host"
                 },
                 ""
               ]
@@ -436,25 +519,19 @@
         "Listeners": [
           {
             "InstancePort": {
-              "Ref": "RedisPort6379Host"
+              "Ref": "BarPort9000Host"
             },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "6379",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerRedisPort6379Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": "9000",
+            "Protocol": "HTTP",
             "SSLCertificateId": {
               "Fn::If": [
-                "BlankBalancerRedisPort6379Certificate",
+                "BlankBalancerBarPort9000Certificate",
                 {
                   "Ref": "AWS::NoValue"
                 },
                 {
-                  "Ref": "RedisPort6379Certificate"
+                  "Ref": "BarPort9000Certificate"
                 }
               ]
             }
@@ -470,160 +547,12 @@
               "Fn::Join": [
                 "-",
                 [
-                  "httpd-redis-NVCY43S-i",
+                  "httpd-bar-PX3ZPBB",
                   "n"
                 ]
               ]
             },
-            "httpd-redis-NVCY43S-i"
-          ]
-        },
-        "Policies": [
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "Scheme": "internal",
-        "SecurityGroups": [
-          {
-            "Fn::If": [
-              "BlankSecurityGroup",
-              {
-                "Ref": "BalancerRedisInternalSecurityGroup"
-              },
-              {
-                "Ref": "SecurityGroup"
-              }
-            ]
-          }
-        ],
-        "Subnets": {
-          "Fn::If": [
-            "Private",
-            {
-              "Ref": "SubnetsPrivate"
-            },
-            {
-              "Ref": "Subnets"
-            }
-          ]
-        }
-      },
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
-    },
-    "BalancerRedisInternalSecurityGroup": {
-      "Condition": "EnabledRedis",
-      "Properties": {
-        "GroupDescription": {
-          "Fn::Join": [
-            " ",
-            [
-              {
-                "Ref": "AWS::StackName"
-              },
-              "-balancer"
-            ]
-          ]
-        },
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": {
-              "Ref": "VPCCIDR"
-            },
-            "FromPort": "6379",
-            "IpProtocol": "tcp",
-            "ToPort": "6379"
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "VpcId": {
-          "Ref": "VPC"
-        }
-      },
-      "Type": "AWS::EC2::SecurityGroup"
-    },
-    "BalancerWeb": {
-      "Condition": "EnabledWeb",
-      "DependsOn": [
-        "BalancerWebSecurityGroup"
-      ],
-      "Properties": {
-        "ConnectionDrainingPolicy": {
-          "Enabled": true,
-          "Timeout": "60"
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "3600"
-        },
-        "CrossZone": true,
-        "HealthCheck": {
-          "HealthyThreshold": "2",
-          "Interval": "5",
-          "Target": {
-            "Fn::Join": [
-              "",
-              [
-                "TCP:",
-                {
-                  "Ref": "WebPort80Host"
-                },
-                ""
-              ]
-            ]
-          },
-          "Timeout": "3",
-          "UnhealthyThreshold": "2"
-        },
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "affinity"
-          }
-        ],
-        "Listeners": [
-          {
-            "InstancePort": {
-              "Ref": "WebPort80Host"
-            },
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "80",
-            "Protocol": {
-              "Fn::If": [
-                "BlankBalancerWebPort80Certificate",
-                "TCP",
-                "SSL"
-              ]
-            },
-            "SSLCertificateId": {
-              "Fn::If": [
-                "BlankBalancerWebPort80Certificate",
-                {
-                  "Ref": "AWS::NoValue"
-                },
-                {
-                  "Ref": "WebPort80Certificate"
-                }
-              ]
-            }
-          },
-          {
-            "Ref": "AWS::NoValue"
-          }
-        ],
-        "LoadBalancerName": {
-          "Fn::If": [
-            "Internal",
-            {
-              "Fn::Join": [
-                "-",
-                [
-                  "httpd-web-XHW5F4P",
-                  "n"
-                ]
-              ]
-            },
-            "httpd-web-XHW5F4P"
+            "httpd-bar-PX3ZPBB"
           ]
         },
         "Policies": [
@@ -645,7 +574,7 @@
             "Fn::If": [
               "BlankSecurityGroup",
               {
-                "Ref": "BalancerWebSecurityGroup"
+                "Ref": "BalancerBarSecurityGroup"
               },
               {
                 "Ref": "SecurityGroup"
@@ -667,8 +596,8 @@
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "BalancerWebSecurityGroup": {
-      "Condition": "EnabledWeb",
+    "BalancerBarSecurityGroup": {
+      "Condition": "EnabledBar",
       "Properties": {
         "GroupDescription": {
           "Fn::Join": [
@@ -684,9 +613,335 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": "80",
+            "FromPort": "9000",
             "IpProtocol": "tcp",
-            "ToPort": "80"
+            "ToPort": "9000"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerFoo": {
+      "Condition": "EnabledFoo",
+      "DependsOn": [
+        "BalancerFooSecurityGroup"
+      ],
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": "60"
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "3600"
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "5",
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                "SSL:",
+                {
+                  "Ref": "FooPort443Host"
+                },
+                ""
+              ]
+            ]
+          },
+          "Timeout": "3",
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": {
+              "Ref": "FooPort443Host"
+            },
+            "InstanceProtocol": "SSL",
+            "LoadBalancerPort": "443",
+            "Protocol": "SSL",
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerFooPort443Certificate",
+                {
+                  "Ref": "AWS::NoValue"
+                },
+                {
+                  "Ref": "FooPort443Certificate"
+                }
+              ]
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-foo-I5T6O34",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-foo-I5T6O34"
+          ]
+        },
+        "Policies": [
+          {
+            "Attributes": [
+              {
+                "Name": "ProxyProtocol",
+                "Value": "true"
+              }
+            ],
+            "InstancePorts": [
+              {
+                "Ref": "FooPort443Host"
+              }
+            ],
+            "PolicyName": "EnableProxyProtocol",
+            "PolicyType": "ProxyProtocolPolicyType"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerFooSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerFooSecurityGroup": {
+      "Condition": "EnabledFoo",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "443",
+            "IpProtocol": "tcp",
+            "ToPort": "443"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "BalancerSslterminator": {
+      "Condition": "EnabledSslterminator",
+      "DependsOn": [
+        "BalancerSslterminatorSecurityGroup"
+      ],
+      "Properties": {
+        "ConnectionDrainingPolicy": {
+          "Enabled": true,
+          "Timeout": "60"
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "3600"
+        },
+        "CrossZone": true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "5",
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                "SSL:",
+                {
+                  "Ref": "SslterminatorPort443Host"
+                },
+                ""
+              ]
+            ]
+          },
+          "Timeout": "3",
+          "UnhealthyThreshold": "2"
+        },
+        "LBCookieStickinessPolicy": [
+          {
+            "PolicyName": "affinity"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": {
+              "Ref": "SslterminatorPort443Host"
+            },
+            "InstanceProtocol": "SSL",
+            "LoadBalancerPort": "443",
+            "Protocol": "SSL",
+            "SSLCertificateId": {
+              "Fn::If": [
+                "BlankBalancerSslterminatorPort443Certificate",
+                {
+                  "Ref": "AWS::NoValue"
+                },
+                {
+                  "Ref": "SslterminatorPort443Certificate"
+                }
+              ]
+            }
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "LoadBalancerName": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  "httpd-sslterminator-YIH5GRH",
+                  "n"
+                ]
+              ]
+            },
+            "httpd-sslterminator-YIH5GRH"
+          ]
+        },
+        "Policies": [
+          {
+            "Attributes": [
+              {
+                "Name": "ProxyProtocol",
+                "Value": "true"
+              }
+            ],
+            "InstancePorts": [
+              {
+                "Ref": "SslterminatorPort443Host"
+              }
+            ],
+            "PolicyName": "EnableProxyProtocol",
+            "PolicyType": "ProxyProtocolPolicyType"
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ],
+        "Scheme": {
+          "Fn::If": [
+            "Internal",
+            "internal",
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        },
+        "SecurityGroups": [
+          {
+            "Fn::If": [
+              "BlankSecurityGroup",
+              {
+                "Ref": "BalancerSslterminatorSecurityGroup"
+              },
+              {
+                "Ref": "SecurityGroup"
+              }
+            ]
+          }
+        ],
+        "Subnets": {
+          "Fn::If": [
+            "Internal",
+            {
+              "Ref": "SubnetsPrivate"
+            },
+            {
+              "Ref": "Subnets"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "BalancerSslterminatorSecurityGroup": {
+      "Condition": "EnabledSslterminator",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            " ",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-balancer"
+            ]
+          ]
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "443",
+            "IpProtocol": "tcp",
+            "ToPort": "443"
           },
           {
             "Ref": "AWS::NoValue"
@@ -734,13 +989,7 @@
           ]
         },
         "Runtime": {
-          "Fn::If": [
-            "RegionHasLambdaUpdate",
-            "nodejs4.3",
-            {
-              "Ref": "CustomTopicRuntime"
-            }
-          ]
+          "Ref": "CustomTopicRuntime"
         },
         "Timeout": "300"
       },
@@ -783,10 +1032,7 @@
       },
       "Type": "AWS::IAM::Role"
     },
-    "LogGroup": {
-      "Type": "AWS::Logs::LogGroup"
-    },
-    "RedisGroupECSTaskDefinition": {
+    "FoobarGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -805,7 +1051,7 @@
               {
                 "Ref": "AWS::StackName"
               },
-              "redis"
+              "foobar"
             ]
           ]
         },
@@ -823,26 +1069,22 @@
         },
         "Tasks": [
           {
+            "Command": "bin/web",
             "Cpu": {
               "Fn::Select": [
                 1,
                 {
-                  "Ref": "RedisFormation"
+                  "Ref": "BarFormation"
                 }
               ]
             },
             "Environment": {
               "APP": "httpd",
               "AWS_REGION": "test",
-              "LINK_PASSWORD": "pass-the-word",
-              "LINK_PATH": "/0",
-              "LINK_PORT": "6379",
-              "LINK_SCHEME": "redis",
-              "LINK_USERNAME": "user",
               "LOG_GROUP": {
                 "Ref": "LogGroup"
               },
-              "PROCESS": "redis",
+              "PROCESS": "bar",
               "RACK": "convox-test"
             },
             "ExtraHosts": [
@@ -850,26 +1092,94 @@
                 "Ref": "AWS::NoValue"
               }
             ],
-            "Image": "convox/redis",
-            "Links": [],
+            "Image": "",
+            "Links": [
+              "foo"
+            ],
             "Memory": {
               "Fn::Select": [
                 2,
                 {
-                  "Ref": "RedisFormation"
+                  "Ref": "BarFormation"
                 }
               ]
             },
-            "Name": "redis",
+            "Name": "bar",
             "PortMappings": [
               {
                 "Fn::Join": [
                   ":",
                   [
                     {
-                      "Ref": "RedisPort6379Host"
+                      "Ref": "BarPort9000Host"
                     },
-                    "6379/tcp"
+                    "9000/tcp"
+                  ]
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "SecureEnvironment": false,
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Command": "bin/haproxy",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "FooFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "foo",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "haproxy",
+            "Links": [
+              "bar"
+            ],
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "FooFormation"
+                }
+              ]
+            },
+            "Name": "foo",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Ref": "FooPort443Host"
+                    },
+                    "5000/tcp"
                   ]
                 ]
               },
@@ -895,6 +1205,9 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup"
+    },
     "RegistryRepository": {
       "Properties": {
         "RepositoryName": {
@@ -910,10 +1223,11 @@
       "Type": "Custom::ECRRepository",
       "Version": "1.0"
     },
-    "ServiceRedis": {
-      "Condition": "EnabledRedisGroup",
+    "ServiceFoobar": {
+      "Condition": "EnabledFoobarGroup",
       "DependsOn": [
-        "BalancerRedisInternal",
+        "BalancerBar",
+        "BalancerFoo",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -926,14 +1240,21 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Ref": "RedisGroupFormation"
+          "Ref": "FoobarGroupFormation"
         },
         "LoadBalancers": [
           {
-            "ContainerName": "redis",
-            "ContainerPort": "6379",
+            "ContainerName": "bar",
+            "ContainerPort": "9000",
             "LoadBalancerName": {
-              "Ref": "BalancerRedisInternal"
+              "Ref": "BalancerBar"
+            }
+          },
+          {
+            "ContainerName": "foo",
+            "ContainerPort": "5000",
+            "LoadBalancerName": {
+              "Ref": "BalancerFoo"
             }
           }
         ],
@@ -944,7 +1265,7 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "RedisGroupECSTaskDefinition"
+          "Ref": "FoobarGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -996,7 +1317,7 @@
     "ServiceWeb": {
       "Condition": "EnabledWebGroup",
       "DependsOn": [
-        "BalancerWeb",
+        "BalancerSslterminator",
         "CustomTopic",
         "ServiceRole"
       ],
@@ -1013,10 +1334,10 @@
         },
         "LoadBalancers": [
           {
-            "ContainerName": "web",
-            "ContainerPort": "3000",
+            "ContainerName": "sslterminator",
+            "ContainerPort": "5000",
             "LoadBalancerName": {
-              "Ref": "BalancerWeb"
+              "Ref": "BalancerSslterminator"
             }
           }
         ],
@@ -1028,6 +1349,29 @@
         },
         "TaskDefinition": {
           "Ref": "WebGroupECSTaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "ServiceWorker": {
+      "Condition": "EnabledWorkerGroup",
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": "200",
+          "MinimumHealthyPercent": "100"
+        },
+        "DesiredCount": {
+          "Ref": "WorkerGroupFormation"
+        },
+        "TaskDefinition": {
+          "Ref": "WorkerGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -1088,6 +1432,73 @@
         },
         "Tasks": [
           {
+            "Command": "bin/haproxy",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "SslterminatorFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "sslterminator",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "haproxy",
+            "Links": [
+              "web"
+            ],
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "SslterminatorFormation"
+                }
+              ]
+            },
+            "Name": "sslterminator",
+            "PortMappings": [
+              {
+                "Fn::Join": [
+                  ":",
+                  [
+                    {
+                      "Ref": "SslterminatorPort443Host"
+                    },
+                    "5000/tcp"
+                  ]
+                ]
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "SecureEnvironment": false,
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Command": "bin/web",
             "Cpu": {
               "Fn::Select": [
                 1,
@@ -1122,17 +1533,101 @@
             },
             "Name": "web",
             "PortMappings": [
+              "9000:9000/tcp",
               {
-                "Fn::Join": [
-                  ":",
-                  [
-                    {
-                      "Ref": "WebPort80Host"
-                    },
-                    "3000/tcp"
-                  ]
-                ]
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Privileged": "false",
+            "SecureEnvironment": false,
+            "Services": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Volumes": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "Custom::ECSTaskDefinition",
+      "Version": "1.0"
+    },
+    "WorkerGroupECSTaskDefinition": {
+      "DependsOn": [
+        "CustomTopic",
+        "ServiceRole"
+      ],
+      "Properties": {
+        "Environment": {
+          "Ref": "Environment"
+        },
+        "Key": {
+          "Ref": "Key"
+        },
+        "Name": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "AWS::StackName"
               },
+              "worker"
+            ]
+          ]
+        },
+        "Release": {
+          "Ref": "Release"
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomTopic",
+            "Arn"
+          ]
+        },
+        "TaskRole": {
+          "Ref": "TaskRole"
+        },
+        "Tasks": [
+          {
+            "Command": "bin/worker",
+            "Cpu": {
+              "Fn::Select": [
+                1,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "Environment": {
+              "APP": "httpd",
+              "AWS_REGION": "test",
+              "LOG_GROUP": {
+                "Ref": "LogGroup"
+              },
+              "PROCESS": "worker",
+              "RACK": "convox-test"
+            },
+            "ExtraHosts": [
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ],
+            "Image": "",
+            "Links": [],
+            "Memory": {
+              "Fn::Select": [
+                2,
+                {
+                  "Ref": "WorkerFormation"
+                }
+              ]
+            },
+            "Name": "worker",
+            "PortMappings": [
               {
                 "Ref": "AWS::NoValue"
               }

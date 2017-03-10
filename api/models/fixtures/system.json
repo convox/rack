@@ -26,6 +26,18 @@
         }
       ]
     },
+    "EnabledWorkerGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "Internal": {
       "Fn::Equals": [
         {
@@ -239,6 +251,11 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "WorkerGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     }
   },
   "Resources": {
@@ -390,7 +407,7 @@
       "Type": "AWS::IAM::Role"
     },
     "ServiceWorker": {
-      "Condition": "EnabledWorker",
+      "Condition": "EnabledWorkerGroup",
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -404,15 +421,10 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WorkerFormation"
-            }
-          ]
+          "Ref": "WorkerGroupFormation"
         },
         "TaskDefinition": {
-          "Ref": "WorkerECSTaskDefinition"
+          "Ref": "WorkerGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -436,7 +448,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WorkerECSTaskDefinition": {
+    "WorkerGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -496,6 +508,7 @@
               }
             ],
             "Image": "datadog/docker-dd-agent:latest",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -511,6 +524,7 @@
               }
             ],
             "Privileged": "true",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"

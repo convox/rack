@@ -42,6 +42,18 @@
         }
       ]
     },
+    "EnabledMainGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "MainGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "Internal": {
       "Fn::Equals": [
         {
@@ -254,6 +266,11 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "MainGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     },
     "MainPort80Certificate": {
       "Default": "",
@@ -604,7 +621,7 @@
     "LogGroup": {
       "Type": "AWS::Logs::LogGroup"
     },
-    "MainECSTaskDefinition": {
+    "MainGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -664,6 +681,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -701,6 +719,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -733,7 +752,7 @@
       "Version": "1.0"
     },
     "ServiceMain": {
-      "Condition": "EnabledMain",
+      "Condition": "EnabledMainGroup",
       "DependsOn": [
         "BalancerMain",
         "CustomTopic",
@@ -748,12 +767,7 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "MainFormation"
-            }
-          ]
+          "Ref": "MainGroupFormation"
         },
         "LoadBalancers": [
           {
@@ -771,7 +785,7 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "MainECSTaskDefinition"
+          "Ref": "MainGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"

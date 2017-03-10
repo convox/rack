@@ -105,6 +105,13 @@ func (s *Service) Process(app string, m Manifest) Process {
 	return NewProcess(app, *s, m)
 }
 
+func (s Service) UseSecureEnvironment() bool {
+	if useSecureEnvironment, ok := s.Labels["convox.secure-env"]; useSecureEnvironment == "true" && ok {
+		return true
+	}
+	return false
+}
+
 // HasBalancer returns false if the Service contains no public ports,
 // or if the `convox.balancer` label is set to false
 func (s Service) HasBalancer() bool {
@@ -490,6 +497,13 @@ func (s Service) ContainerPorts() []string {
 
 func (s Service) ParamName(name string) string {
 	return fmt.Sprintf("%s%s", UpperName(s.Name), name)
+}
+
+func (s Service) GroupName() string {
+	if groupName, ok := s.Labels["convox.group"]; ok {
+		return groupName
+	}
+	return s.Name
 }
 
 func (s Service) RegistryImage(appName, buildId string, outputs map[string]string) string {

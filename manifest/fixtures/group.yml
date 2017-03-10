@@ -1,0 +1,19 @@
+version: "2"
+services:
+  web:
+    build: .
+    labels:
+      - convox.group=web
+      - convox.balancer=false
+    expose:
+      - 8080
+  reverse-proxy:
+    image: haproxy
+    labels:
+      - convox.group=web
+    links:
+      - web
+    ports:
+      - 443:443
+  worker:
+    build: .

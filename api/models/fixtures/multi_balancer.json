@@ -42,6 +42,18 @@
         }
       ]
     },
+    "EnabledWebGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WebGroupFormation"
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
     "EnabledWorker": {
       "Fn::Not": [
         {
@@ -53,6 +65,18 @@
                   "Ref": "WorkerFormation"
                 }
               ]
+            },
+            "-1"
+          ]
+        }
+      ]
+    },
+    "EnabledWorkerGroup": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "WorkerGroupFormation"
             },
             "-1"
           ]
@@ -335,6 +359,11 @@
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
     },
+    "WebGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
+    },
     "WebPort80Certificate": {
       "Default": "",
       "Description": "",
@@ -349,6 +378,11 @@
       "Default": "1,0,256",
       "Description": "Number of processes to run, CPU units to reserve, and MB of RAM to reserve",
       "Type": "CommaDelimitedList"
+    },
+    "WorkerGroupFormation": {
+      "Default": "1",
+      "Description": "Number of processes to run",
+      "Type": "Number"
     },
     "WorkerPort80Certificate": {
       "Default": "",
@@ -818,7 +852,7 @@
       "Type": "AWS::IAM::Role"
     },
     "ServiceWeb": {
-      "Condition": "EnabledWeb",
+      "Condition": "EnabledWebGroup",
       "DependsOn": [
         "BalancerWeb",
         "CustomTopic",
@@ -833,12 +867,7 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WebFormation"
-            }
-          ]
+          "Ref": "WebGroupFormation"
         },
         "LoadBalancers": [
           {
@@ -856,13 +885,13 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WebECSTaskDefinition"
+          "Ref": "WebGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
     },
     "ServiceWorker": {
-      "Condition": "EnabledWorker",
+      "Condition": "EnabledWorkerGroup",
       "DependsOn": [
         "BalancerWorker",
         "CustomTopic",
@@ -877,12 +906,7 @@
           "MinimumHealthyPercent": "100"
         },
         "DesiredCount": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "WorkerFormation"
-            }
-          ]
+          "Ref": "WorkerGroupFormation"
         },
         "LoadBalancers": [
           {
@@ -900,7 +924,7 @@
           ]
         },
         "TaskDefinition": {
-          "Ref": "WorkerECSTaskDefinition"
+          "Ref": "WorkerGroupECSTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
@@ -924,7 +948,7 @@
       },
       "Type": "AWS::S3::Bucket"
     },
-    "WebECSTaskDefinition": {
+    "WebGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -985,6 +1009,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -1011,6 +1036,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
@@ -1027,7 +1053,7 @@
       "Type": "Custom::ECSTaskDefinition",
       "Version": "1.0"
     },
-    "WorkerECSTaskDefinition": {
+    "WorkerGroupECSTaskDefinition": {
       "DependsOn": [
         "CustomTopic",
         "ServiceRole"
@@ -1088,6 +1114,7 @@
               }
             ],
             "Image": "",
+            "Links": [],
             "Memory": {
               "Fn::Select": [
                 2,
@@ -1114,6 +1141,7 @@
               }
             ],
             "Privileged": "false",
+            "SecureEnvironment": false,
             "Services": [
               {
                 "Ref": "AWS::NoValue"
