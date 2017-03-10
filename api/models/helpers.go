@@ -247,6 +247,8 @@ func S3Put(bucket, key string, data []byte, public bool) error {
 	}
 
 	if public {
+		// FIXME: This shouldn't be public read. In order for that to work
+		// with the topic we need to give Lambda access to the s3 document
 		req.ACL = aws.String("public-read")
 	}
 
