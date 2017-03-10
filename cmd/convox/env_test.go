@@ -160,7 +160,7 @@ func TestEnvSetStdin(t *testing.T) {
 		test.Http{
 			Method: "POST",
 			Path:   "/apps/myapp/environment",
-			Body:   "foo=bar\nping=pong\n",
+			Body:   "# Comment followed by blank line\n\nfoo=bar\nping=pong\n",
 			Code:   200,
 		},
 		test.Http{

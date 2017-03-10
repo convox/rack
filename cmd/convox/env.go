@@ -12,6 +12,7 @@ import (
 
 	"github.com/convox/rack/cmd/convox/stdcli"
 	"gopkg.in/urfave/cli.v1"
+	"regexp"
 )
 
 func init() {
@@ -166,7 +167,14 @@ func cmdEnvSet(c *cli.Context) error {
 
 		scanner := bufio.NewScanner(bytes.NewReader(in))
 		for scanner.Scan() {
-			data += fmt.Sprintf("%s\n", scanner.Text())
+			k, v, err := parseEnvLine(scanner.Text())
+			if err != nil {
+				return stdcli.Error(err)
+			}
+
+			if k != "" {
+				data += fmt.Sprintf("%s=%s\n", k, v)
+			}
 		}
 	}
 
@@ -281,4 +289,26 @@ func cmdEnvUnset(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func parseEnvLine(line string) (key string, value string, err error) {
+	// Deal with empty lines
+	var m bool
+	if m = regexp.MustCompile(`^\s*$`).MatchString(line); m {
+		return
+	}
+
+	// Deal with simple comment lines
+	if m = regexp.MustCompile(`^\s*#.*$`).MatchString(line); m {
+		return
+	}
+
+	// check for invalid lines
+	re := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)\s*$`)
+	if m = re.MatchString(line); !m {
+		return "", "", fmt.Errorf("Invalid env format, expecting key=value: `%s`", line)
+	}
+
+	ms := re.FindStringSubmatch(line)
+	return ms[1], ms[2], nil
 }
