@@ -101,7 +101,7 @@ func getAppByStackName(stackName string) (*App, error) {
 	return app, nil
 }
 
-var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{2,29}\z`)
+var regexValidAppName = regexp.MustCompile(`\A[a-zA-Z][-a-zA-Z0-9]{0,127}\z`)
 
 func (a *App) IsBound() bool {
 	if a.Tags == nil {
