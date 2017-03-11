@@ -98,28 +98,13 @@ func coalesce(ss ...string) string {
 	return ""
 }
 
-// urfave/cli has a habit of discarding flags when they're between a command and a subcommand.
-// if --rack is missing from c.String(), recover it here by checking os.Args
-func getRackFlag(c *cli.Context) string {
-	rackFlag := c.String("rack")
-	if rackFlag != "" {
-		return rackFlag
-	}
-
-	// set rackFlag to everything after --rack
-	rackFlag = stdcli.ParseOpts(os.Args)["rack"]
-
-	// stdcli.ParseOpts() includes everything after --rack, so discard everything after the first space
-	return strings.Split(rackFlag, " ")[0]
-}
-
 func currentRack(c *cli.Context) string {
 	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
 	if err != nil && !os.IsNotExist(err) {
 		stdcli.Error(err)
 	}
 
-	rackFlag := getRackFlag(c)
+	rackFlag := stdcli.RecoverFlag(c, []string{"rack"})
 
 	return coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
 }

@@ -115,6 +115,23 @@ func Debug() bool {
 	return false
 }
 
+// RecoverFlag allows us to capture things like --app FOO which would otherwise be discarded by urfave/cli if passed in position 0
+func RecoverFlag(c *cli.Context, flagNames []string) string {
+	for _, flagName := range flagNames {
+		f := c.String(flagName)
+		if f != "" {
+			return f
+		}
+
+		f = ParseOpts(os.Args)[flagName]
+		if f != "" {
+			// ParseOpts() includes everything after the flag, so discard everything after the first space
+			return strings.Split(f, " ")[0]
+		}
+	}
+	return ""
+}
+
 // If user specifies the app's name from command line, then use it;
 // if not, try to read the app name from .convox/app
 // otherwise use the current working directory's name
@@ -124,7 +141,7 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	app := c.String("app")
+	app := RecoverFlag(c, []string{"a", "app"})
 
 	if app == "" {
 		app = ReadSetting("app")
@@ -292,9 +309,9 @@ func ParseOpts(args []string) map[string]string {
 	var key string
 
 	for _, token := range args {
-		isFlag := strings.HasPrefix(token, "--")
+		isFlag := strings.HasPrefix(token, "-")
 		if isFlag {
-			key = token[2:]
+			key = strings.TrimLeft(token, "-")
 			value := ""
 			if strings.Contains(key, "=") {
 				pivot := strings.Index(key, "=")
