@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/convox/rack/cmd/convox/stdcli"
-	"github.com/convox/rack/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,6 +25,22 @@ func TestParseOptions(t *testing.T) {
 	assert.Equal(t, "even worse", opts["is"])
 	_, ok := opts["this"]
 	assert.Equal(t, true, ok)
+}
+
+func TestDebug(t *testing.T) {
+	orig := os.Getenv("CONVOX_DEBUG")
+
+	os.Setenv("CONVOX_DEBUG", "")
+	assert.Equal(t, stdcli.Debug(), false)
+
+	os.Setenv("CONVOX_DEBUG", "mraaaa")
+	assert.Equal(t, stdcli.Debug(), true)
+
+	os.Setenv("CONVOX_DEBUG", "true")
+	assert.Equal(t, stdcli.Debug(), true)
+
+	// restore original CONVOX_DEBUG value
+	os.Setenv("CONVOX_DEBUG", orig)
 }
 
 // TestCheckEnvVars ensures stdcli.CheckEnv() prints a warning if bool envvars aren't true/false/1/0

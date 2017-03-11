@@ -122,7 +122,7 @@ func ValidatePreconditions(preconditions ...cli.BeforeFunc) cli.BeforeFunc {
 }
 
 func Debug() bool {
-	if debug := os.Getenv("DEBUG"); debug != "" {
+	if debug := os.Getenv("CONVOX_DEBUG"); debug != "" {
 		return true
 	}
 	return false
@@ -303,7 +303,7 @@ func runExecCommand(bin string, args ...string) error {
 	err := cmd.Run()
 
 	if Debug() {
-		fmt.Fprintf(os.Stderr, "DEBUG: exec: '%v', '%v', '%v'\n", bin, args, err)
+		fmt.Fprintf(os.Stderr, "CONVOX_DEBUG: exec: '%v', '%v', '%v'\n", bin, args, err)
 	}
 
 	return err
