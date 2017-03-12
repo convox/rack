@@ -127,7 +127,7 @@
           "Path": "/convox/",
           "Policies": [
             {
-              "PolicyName": "LambdaCloudformationCustomTopicPolicy",
+              "PolicyName": "LambdaCustomTopicPolicy",
               "PolicyDocument": {
                 "Version": "2012-10-17",
                 "Statement": [ 
@@ -180,7 +180,25 @@
                       "ecr:DeleteRepository"
                     ],
                     "Resource": { "Fn::Join": [ "", [ "arn:aws:ecr:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":*" ] ] }
-                  } 
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:ListBucket"
+                    ],
+                    "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "Settings" } ] ] }
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetObject"
+                    ],
+                    "Resource": [
+                      { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "Settings" }, "/*" ] ] }
+                    ]
+                  }
                 ]
               }
             }
