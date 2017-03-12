@@ -736,14 +736,177 @@
             "PolicyDocument": {
               "Statement": [
                 {
-                  "Action": "*",
+                  "Action": [
+                    "kms:CreateKey",
+                    "kms:ScheduleKeyDeletion",
+                    "kms:DisableKey",
+                    "kms:Decrypt",
+                    "kms:GenerateDataKey",
+                    "kms:GenerateRandom"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:kms:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":key/*"
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "Action": [
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:Unsubscribe"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:sns:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":*"
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "Action": [
+                    "ec2:CreateSubnet",
+                    "ec2:DeleteNatGateway",
+                    "ec2:DescribeNatGateways",
+                    "ec2:DeleteRoute"
+                  ],
+                  "Condition": {
+                    "StringEquals": {
+                      "ec2:Region": {
+                        "Ref": "AWS::Region"
+                      }
+                    }
+                  },
                   "Effect": "Allow",
                   "Resource": "*"
+                },
+                {
+                  "Action": [
+                    "ecs:UpdateService",
+                    "ecs:DeleteService",
+                    "ecs:RegisterTaskDefinition"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                },
+                {
+                  "Action": [
+                    "ecs:ListTasks"
+                  ],
+                  "Condition": {
+                    "ArnEquals": {
+                      "ecs:cluster": {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:aws:ecs:",
+                            {
+                              "Ref": "AWS::Region"
+                            },
+                            ":",
+                            {
+                              "Ref": "AWS::AccountId"
+                            },
+                            ":cluster/",
+                            {
+                              "Ref": "Cluster"
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  },
+                  "Effect": "Allow",
+                  "Resource": "*"
+                },
+                {
+                  "Action": [
+                    "ecr:CreateRepository",
+                    "ecr:DeleteRepository"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:ecr:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":*"
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "Settings"
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "Settings"
+                          },
+                          "/*"
+                        ]
+                      ]
+                    }
+                  ]
                 }
               ],
               "Version": "2012-10-17"
             },
-            "PolicyName": "Administrator"
+            "PolicyName": "LambdaCustomTopicPolicy"
           }
         ]
       },
