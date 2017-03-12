@@ -153,7 +153,10 @@
                     "Action": [
                       "kms:CreateKey", 
                       "kms:ScheduleKeyDeletion",
-                      "kms:DisableKey"
+                      "kms:DisableKey",
+                      "kms:Decrypt",
+                      "kms:GenerateDataKey",
+                      "kms:GenerateRandom"
                     ],
                     "Resource": { "Fn::Join": [ "", [ "arn:aws:kms:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":key/*" ] ] }
                   },
@@ -185,10 +188,21 @@
                     "Action": [
                       "ecs:UpdateService",
                       "ecs:DeleteService",
-                      "ecs:RegisterTaskDefinition",
+                      "ecs:RegisterTaskDefinition"
+                    ],
+                    "Resource": "*"
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
                       "ecs:ListTasks"
                     ],
-                    "Resource": { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":*" ] ] }
+                    "Condition": {
+                      "ArnEquals": {
+                        "ecs:cluster": { "Fn::Join": [ "", [ "arn:aws:ecs:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":cluster/", { "Ref": "Cluster" } ] ] }
+                      }
+                    },
+                    "Resource": "*"
                   },
                   {
                     "Effect": "Allow",
