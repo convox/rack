@@ -32,16 +32,15 @@ func TestParseOptions(t *testing.T) {
 func TestCheckEnvVars(t *testing.T) {
 	os.Setenv("RACK_PRIVATE", "foo")
 
-	// Ensure invalid env vars only print a warning and don't raise an error
 	err := stdcli.CheckEnv()
-	assert.NoError(t, err)
+	assert.Error(t, err)
 
 	test.Runs(t,
 		test.ExecRun{
-			Command:  "convox",
-			Env:      map[string]string{"CONVOX_WAIT": "foo"},
-			Exit:     0,
-			OutMatch: "WARNING: 'foo' is not a valid value for environment variable CONVOX_WAIT (expected: [true false 1 0 ])\n",
+			Command: "convox",
+			Env:     map[string]string{"CONVOX_WAIT": "foo"},
+			Exit:    1,
+			Stderr:  "ERROR: 'foo' is not a valid value for environment variable CONVOX_WAIT (expected: [true false 1 0 ])\n",
 		},
 	)
 }
