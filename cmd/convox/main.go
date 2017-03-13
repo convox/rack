@@ -104,7 +104,7 @@ func currentRack(c *cli.Context) string {
 		stdcli.Error(err)
 	}
 
-	rackFlag := stdcli.RecoverFlag(c, []string{"rack"})
+	rackFlag := stdcli.RecoverFlag(c, "rack")
 
 	return coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
 }
