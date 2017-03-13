@@ -291,16 +291,16 @@ func cmdEnvUnset(c *cli.Context) error {
 	return nil
 }
 
-func parseEnvLine(line string) (key string, value string, err error) {
+func parseEnvLine(line string) (string, string, error) {
 	// Deal with empty lines
 	var m bool
 	if m = regexp.MustCompile(`^\s*$`).MatchString(line); m {
-		return
+		return "", "", nil
 	}
 
 	// Deal with simple comment lines
 	if m = regexp.MustCompile(`^\s*#.*$`).MatchString(line); m {
-		return
+		return "", "", nil
 	}
 
 	// check for invalid lines
