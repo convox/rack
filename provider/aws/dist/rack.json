@@ -14,6 +14,10 @@
     "BlankKey": { "Fn::Equals": [ { "Ref": "Key" }, "" ] },
     "DedicatedBuilder": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "BuildInstance" }, "" ] } ] },
     "Development": { "Fn::Equals": [ { "Ref": "Development" }, "Yes" ] },
+    "EventRuleForECS": { "Fn::Equals": [
+      { "Fn::FindInMap": [ "AvailabilityZoneConfig", { "Ref": "AWS::Region" }, "EventRuleForECS" ] },
+      "Yes"
+    ] },
     "ExistingVpc": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "ExistingVpc" }, "" ] } ] },
     "ExistingVpcAndBlankInternetGateway": {
       "Fn::And": [ { "Condition": "ExistingVpc" }, { "Condition": "BlankInternetGateway" } ]
@@ -52,16 +56,16 @@
   },
   "Mappings": {
     "AvailabilityZoneConfig": {
-      "us-east-1": { "ThirdAvailabilityZone": "Yes" },
-      "us-east-2": { "ThirdAvailabilityZone": "Yes" },
-      "us-west-1": { "ThirdAvailabilityZone": "No" },
-      "us-west-2": { "ThirdAvailabilityZone": "Yes" },
-      "eu-west-1": { "ThirdAvailabilityZone": "Yes" },
-      "eu-west-2": { "ThirdAvailabilityZone": "No" },
-      "eu-central-1": { "ThirdAvailabilityZone": "No" },
-      "ap-northeast-1": { "ThirdAvailabilityZone": "No" },
-      "ap-southeast-1": { "ThirdAvailabilityZone": "No" },
-      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes" }
+      "us-east-1": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
+      "us-east-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
+      "us-west-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "us-west-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes"},
+      "eu-west-1": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" },
+      "eu-west-2": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "No" },
+      "eu-central-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "ap-northeast-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "ap-southeast-1": { "ThirdAvailabilityZone": "No", "EventRuleForECS": "Yes" },
+      "ap-southeast-2": { "ThirdAvailabilityZone": "Yes", "EventRuleForECS": "Yes" }
     },
     "RegionConfig": {
       "us-east-1": { "Ami": "ami-b2df2ca4" },
@@ -1869,6 +1873,7 @@
     },
     "ECSEventHandlerRole": {
       "Type": "AWS::IAM::Role",
+      "Condition": "EventRuleForECS",
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -1906,6 +1911,7 @@
     },
     "ECSEventHandler": {
       "DependsOn": ["ECSEventHandlerRole"],
+      "Condition": "EventRuleForECS",
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
@@ -1923,6 +1929,7 @@
     "ECSEventRule":{
       "Type" : "AWS::Events::Rule",
       "DependsOn": ["ECSEventHandler"],
+      "Condition": "EventRuleForECS",
       "Properties" : {
         "Description" : "Fires ECS Task change events",
         "EventPattern" : {
@@ -1947,6 +1954,7 @@
     },
     "ECSEventHandlerPermission": {
       "Type": "AWS::Lambda::Permission",
+      "Condition": "EventRuleForECS",
       "Properties": {
         "FunctionName": { "Fn::GetAtt": [ "ECSEventHandler", "Arn" ] },
         "Action": "lambda:InvokeFunction",
