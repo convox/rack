@@ -291,6 +291,7 @@ func cmdEnvUnset(c *cli.Context) error {
 	return nil
 }
 
+// parseEnvLine returns valid key, value pair, or an error if an invalid line
 func parseEnvLine(line string) (string, string, error) {
 	// Deal with empty lines
 	var m bool
