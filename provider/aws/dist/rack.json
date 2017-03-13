@@ -2393,6 +2393,8 @@
               "DYNAMO_BUILDS": { "Ref": "DynamoBuilds" },
               "DYNAMO_RELEASES": { "Ref": "DynamoReleases" },
               "ENCRYPTION_KEY": { "Ref": "EncryptionKey" },
+              "HTTP_PROXY": { "Ref": "HttpProxy" },
+              "HTTPS_PROXY": { "Ref": "HttpProxy" },
               "LOG_GROUP": { "Ref": "LogGroup" },
               "NOTIFICATION_HOST": { "Fn::GetAtt": [ "Balancer", "DNSName" ] },
               "NOTIFICATION_TOPIC": { "Ref": "NotificationTopic"},
