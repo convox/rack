@@ -116,7 +116,7 @@ func Debug() bool {
 }
 
 // RecoverFlag allows us to capture things like --app FOO which would otherwise be discarded by urfave/cli if passed in position 0
-func RecoverFlag(c *cli.Context, flagNames []string) string {
+func RecoverFlag(c *cli.Context, flagNames ...string) string {
 	for _, flagName := range flagNames {
 		f := c.String(flagName)
 		if f != "" {
@@ -141,7 +141,7 @@ func DirApp(c *cli.Context, wd string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	app := RecoverFlag(c, []string{"a", "app"})
+	app := RecoverFlag(c, "a", "app")
 
 	if app == "" {
 		app = ReadSetting("app")
