@@ -22,6 +22,7 @@ func init() {
 
 		rc := rackClient(c)
 		if rc == nil {
+			stdcli.Errorf("couldn't initialize Rack client; please log in (`convox login`)")
 			return
 		}
 
@@ -33,6 +34,7 @@ func init() {
 
 		host, _, err := currentLogin()
 		if err != nil {
+			stdcli.Error(err)
 			return
 		}
 
@@ -113,27 +115,30 @@ func getRackFlag(c *cli.Context) string {
 	return strings.Split(rackFlag, " ")[0]
 }
 
-func currentRack(c *cli.Context) string {
+func currentRack(c *cli.Context) (string, error) {
 	cr, err := ioutil.ReadFile(filepath.Join(ConfigRoot, "rack"))
 	if err != nil && !os.IsNotExist(err) {
-		stdcli.Error(err)
+		return "", err
 	}
 
 	rackFlag := getRackFlag(c)
 
-	return coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr)))
+	return coalesce(rackFlag, os.Getenv("CONVOX_RACK"), stdcli.ReadSetting("rack"), strings.TrimSpace(string(cr))), nil
 }
 
 func rackClient(c *cli.Context) *client.Client {
 	host, password, err := currentLogin()
 	if err != nil {
-		stdcli.Error(err)
 		return nil
 	}
 
 	cl := client.New(host, password, c.App.Version)
 
-	cl.Rack = currentRack(c)
+	rack, err := currentRack(c)
+	if err != nil {
+		return nil
+	}
+	cl.Rack = rack
 
 	return cl
 }

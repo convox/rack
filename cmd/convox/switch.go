@@ -23,7 +23,10 @@ func init() {
 
 func cmdSwitch(c *cli.Context) error {
 	if len(c.Args()) < 1 {
-		rack := currentRack(c)
+		rack, err := currentRack(c)
+		if err != nil {
+			return err
+		}
 
 		if rack == "" {
 			fmt.Println("Use `convox racks` to list your available racks and `convox switch <rack>` to select one.")
